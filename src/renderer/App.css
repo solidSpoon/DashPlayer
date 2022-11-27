@@ -1,62 +1,38 @@
-/*
- * @NOTE: Prepend a `~` to css file paths that are in your node_modules
- *        See https://github.com/webpack-contrib/sass-loader#imports
- */
+html {
+  background-color: rgb(32, 34, 37);
+  color: #fff;
+}
+
 body {
-  position: relative;
-  color: white;
-  height: 100vh;
-  background: linear-gradient(
-    200.96deg,
-    #fedc2a -29.09%,
-    #dd5789 51.77%,
-    #7a2c9e 129.35%
-  );
-  font-family: sans-serif;
-  overflow-y: hidden;
+  margin: 0;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 70vw 30vw;
+  grid-template-rows: 80vh 15vh 5vh;
+}
+
+.subtitle {
+  grid-column: 2 / span 1;
+  grid-row: 1 / span 2;
+}
+.menu{
+  grid-column: 2 / span 1;
+  grid-row: 3 / span 1;
+}
+.underline-subtitle {
+  grid-column: 1 / span 1;
+  grid-row: 1 / span 2;
+  height: 20vh;
+}
+
+.player {
+  height: 100%;
+}
+
+.underline-subtitle {
   display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-button {
-  background-color: white;
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: none;
-  appearance: none;
-  font-size: 1.3rem;
-  box-shadow: 0px 8px 28px -6px rgba(24, 39, 75, 0.12),
-    0px 18px 88px -4px rgba(24, 39, 75, 0.14);
-  transition: all ease-in 0.1s;
-  cursor: pointer;
-  opacity: 0.9;
-}
-
-button:hover {
-  transform: scale(1.05);
-  opacity: 1;
-}
-
-li {
-  list-style: none;
-}
-
-a {
-  text-decoration: none;
-  height: fit-content;
-  width: fit-content;
-  margin: 10px;
-}
-
-a:hover {
-  opacity: 1;
-  text-decoration: none;
-}
-
-.Hello {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 20px 0;
+  flex-direction: column;
+  grid-row: 2 /span2;
 }

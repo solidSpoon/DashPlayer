@@ -1,0 +1,15 @@
+.notWord {
+    user-select: none;
+}
+
+.word {
+    border-radius: 3px;
+    transition: 0.2s;
+    user-select: none;
+}
+
+.word:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: 0.2s;
+    cursor: pointer;
+}

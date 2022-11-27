@@ -1,0 +1,33 @@
+.mainSubtitleContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    text-align: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.source {
+    margin: 10px 40px 0px 40px;
+    padding: 10px 40px;
+    background-color: rgb(46, 49, 54);
+    font-size: 2em;
+    border-radius: 5px;
+    box-shadow: rgb(0 0 0 / 20%) 0px 2px 1px -1px, rgb(0 0 0 / 14%) 0px 1px 1px 0px, rgb(0 0 0 / 12%) 0px 1px 3px 0px;
+}
+
+.destM {
+    margin: 0px 40px;
+    font-size: 1.8em;
+    padding: 10px 40px;
+    /*background-color: rgb(28, 29, 31);*/
+    /*background-color: rgb(46, 49, 54);*/
+}
+
+.destH {
+    margin: 0px 40px;
+    font-size: 1.5em;
+    padding: 10px 40px;
+    /*border-radius: 5px;*/
+    background-color: rgb(46, 49, 54);
+}
