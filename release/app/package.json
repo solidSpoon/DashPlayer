@@ -1,11 +1,11 @@
 {
   "name": "dash-player",
-  "version": "4.6.0",
-  "description": "A foundation for scalable desktop apps",
+  "version": "0.1.0",
+  "description": "A player for English Learners",
   "license": "MIT",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
+    "name": "solidSpoon",
+    "email": "cedarrival@gmail.com",
     "url": "https://github.com/electron-react-boilerplate"
   },
   "main": "./dist/main/main.js",

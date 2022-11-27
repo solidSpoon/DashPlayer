@@ -27,7 +27,7 @@ const RecordProgress = (props: RecordProgressParam) => {
             });
         }
 
-        const interval = setInterval(method, 5000);
+        const interval = setInterval(method, 1000);
         return () => {
             clearInterval(interval);
         };
