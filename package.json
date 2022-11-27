@@ -194,8 +194,8 @@
     "webpack-merge": "^5.8.0"
   },
   "build": {
-    "productName": "ElectronReact",
-    "appId": "org.erb.ElectronReact",
+    "productName": "DashPlayer",
+    "appId": "xyz.solidSpoon.DashPlayer",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
