@@ -13,7 +13,7 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
     }
     let keyIndex = 0;
     const trans = (str: string): void => {
-        axios.get('/api/appleTrans', {params: {str: str}});
+        // axios.get('/api/appleTrans', {params: {str: str}});
     }
     const notWord = (str: string): ReactElement => {
         return <span className={s.notWord} key={keyIndex++}>{str}</span>;

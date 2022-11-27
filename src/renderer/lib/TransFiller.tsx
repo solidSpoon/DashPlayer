@@ -51,8 +51,8 @@ class TransFiller {
             const data = {
                 str: buffer.strs
             }
-            const response = await axios.post('/api/translate', data);
-            this.processTransResponse(response, buffer.startIndex);
+            // const response = await axios.post('/api/translate', data);
+            // this.processTransResponse(response, buffer.startIndex);
             await this.sleep(delay);
         }
     }
