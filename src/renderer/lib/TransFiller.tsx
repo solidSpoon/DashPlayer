@@ -1,5 +1,6 @@
 import axios from "axios";
 import SentenceT from "./param/SentenceT";
+import { callApi } from "../apis/ApiWrapper";
 
 class TransFiller {
     private readonly subtitles: Array<SentenceT>;
@@ -26,13 +27,13 @@ class TransFiller {
         const buffers: Buf[] = [];
         let buffer = new Buf(0, capacity);
         subtitles.forEach((item, index) => {
-            item.text = item.text ? item.text : '';
+            item.text = item.text ? item.text : "";
             if (!buffer.canAdd(item.text)) {
                 buffers.push(buffer);
                 buffer = new Buf(index, capacity);
             }
             buffer.add(item.text);
-        })
+        });
         buffers.push(buffer);
         return buffers;
     }
@@ -50,9 +51,10 @@ class TransFiller {
             }
             const data = {
                 str: buffer.strs
-            }
-            // const response = await axios.post('/api/translate', data);
-            // this.processTransResponse(response, buffer.startIndex);
+            };
+            let response = await callApi("batch-translate", [buffer.strs]);
+            console.log("trans response", response);
+            this.processTransResponse(response, buffer.startIndex);
             await this.sleep(delay);
         }
     }
@@ -62,14 +64,14 @@ class TransFiller {
     }
 
 
-    processTransResponse(response, start: number): void {
-        if (response["data"]["success"] === false) {
-            return;
-        }
-        response["data"]["strs"].forEach((item, i) => {
+    processTransResponse(response: string[], start: number): void {
+        // if (response["data"]["success"] === false) {
+        //     return;
+        // }
+        response.forEach((item, i) => {
             const index = start + i;
             this.subtitles[index]["msTranslate"] = item;
-        })
+        });
     }
 
 }
@@ -93,7 +95,7 @@ class Buf {
         const b = this.size + str.length < this.capacity;
         if (!b) {
             if (this.size === 0) {
-                throw 'translate buf: capacity too small-' + str.length;
+                throw "translate buf: capacity too small-" + str.length;
             }
         }
         return b;
@@ -101,7 +103,7 @@ class Buf {
 
     add(str: string): void {
         if (!this.canAdd(str)) {
-            throw 'translate buf: too large';
+            throw "translate buf: too large";
         }
         this.strs.push(str);
         this.size += str.length;

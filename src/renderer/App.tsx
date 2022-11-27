@@ -12,7 +12,7 @@ import BorderProgressBar from "./components/BorderProgressBar";
 import GlobalShortCut, { JumpPosition } from "./components/GlobalShortCut";
 import SentenceT from "./lib/param/SentenceT";
 import RecordProgress from "./components/RecordProgress";
-
+import './fonts/Archivo-VariableFont_wdth,wght.ttf'
 
 interface HomeState {
   /**
@@ -140,15 +140,13 @@ export default class App extends Component<any, HomeState> {
 
   render() {
     return (
-      <>
+      <div className={'font-face-arc'}>
         <GlobalShortCut
           onJumpTo={(position) => this.onJumpTo(position)}
           onSpace={() => this.onSpace()}/>
         <RecordProgress getCurrentProgress={() => this.progress}
                         getCurrentVideoFile={() => this.state.videoFile}/>
         <div className='container'>
-          <RecordProgress getCurrentProgress={() => this.progress}
-                          getCurrentVideoFile={() => this.state.videoFile}/>
           <div
             onMouseOver={() => this.showControl()}
             onMouseLeave={() => this.hideControl()}
@@ -181,7 +179,7 @@ export default class App extends Component<any, HomeState> {
         <div id={'progressBarRef'}>
           <BorderProgressBar getCurrentTime={() => this.progress} getTotalTime={() => this.totalTime}/>
         </div>
-      </>
+      </div>
     )
   }
 }

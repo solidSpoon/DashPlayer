@@ -27,6 +27,7 @@ export default abstract class BaseCacheEntity<T> {
      * @private
      */
     private calcHash(str: string): string {
+        console.log('fdsafdsafdsafc',str)
         return crypto.createHash('md5')
             .update(str.trim())
             .digest("hex");

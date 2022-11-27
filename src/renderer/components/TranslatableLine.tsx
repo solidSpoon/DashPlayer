@@ -1,6 +1,6 @@
 import axios from "axios";
-import {ReactElement} from "react";
-import s from './css/TranslatableLine.module.css';
+import { ReactElement } from "react";
+import s from "./css/TranslatableLine.module.css";
 
 interface TranslatableSubtitleLineParam {
     text: string,
@@ -13,11 +13,15 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
     }
     let keyIndex = 0;
     const trans = (str: string): void => {
-        // axios.get('/api/appleTrans', {params: {str: str}});
-    }
+        console.log("click");
+        window.electron.ipcRenderer.sendMessage("trans-word", [str]);
+        window.electron.ipcRenderer.once("trans-word", () => {
+            console.log("trans word success");
+        });
+    };
     const notWord = (str: string): ReactElement => {
         return <span className={s.notWord} key={keyIndex++}>{str}</span>;
-    }
+    };
     const word = (str: string): ReactElement => {
         const t = () => trans(str);
         return <>
@@ -28,12 +32,12 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
             >
                 {str}
             </span>
-        </>
-    }
+        </>;
+    };
     const isWord = (str: string): boolean => {
         const noWordRegex = /[^A-Za-z0-9\-]/;
         return !noWordRegex.test(str);
-    }
+    };
     const words: string[] = props.text.split(/((?<=.)(?=[^A-Za-z0-9\-]))|((?<=[^A-Za-z0-9\-])(?=.))/);
 
     function ele(): ReactElement[] {
@@ -46,12 +50,12 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
         });
     }
 
-  return (
-    // @ts-ignore
+    return (
+        // @ts-ignore
         <div key={1} className={props.className ? props.className : null}>
             {ele()}
         </div>
-    )
-}
+    );
+};
 
 export default TranslatableLine;
