@@ -2,19 +2,23 @@
  * 调用 Bob 翻译
  * @param word
  */
-import { app } from "electron";
+import { app } from 'electron';
+import log from 'electron-log';
 
-export default function(word: string) {
-    if (process.platform !== "darwin") {
+const applescript = require('applescript');
+
+export default function transWord(word: string) {
+    if (process.platform !== 'darwin') {
         return;
     }
-    console.log(app.getPath('userData'));
-    word = word.replace("\"", " ");
-    let script: string = "tell application \"Bob\"\n" +
-        "launch\n" +
-        `translate "${word}"\n` +
-        "end tell";
-    // runAppleScript(script);
-    const applescript = require('applescript');
+    const replacedWord = word.replace('"', ' ');
+    const script: string =
+        'tell application "Bob"\n' +
+        'launch\n' +
+        `translate "${replacedWord}"\n` +
+        'end tell';
+
     applescript.execString(script);
+
+    log.info(app.getPath('userData'));
 }

@@ -1,16 +1,18 @@
-import ProgressEntity from "../ServerLib/entity/ProgressEntity";
-import ProgressCache from "../ServerLib/ProgressCache";
+import ProgressEntity from '../ServerLib/entity/ProgressEntity';
+import ProgressCache from '../ServerLib/ProgressCache';
 
 /**
  * 更新播放进度
  * @param fileName
  * @param progress
  */
-export async function updateProgress(fileName: string, progress: number): Promise<void> {
+export async function updateProgress(
+    fileName: string,
+    progress: number
+): Promise<void> {
     const progressEntity = new ProgressEntity(fileName);
     progressEntity.progress = progress;
     await ProgressCache.updateProgress(progressEntity);
-    return;
 }
 
 /**

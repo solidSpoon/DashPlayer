@@ -4,7 +4,7 @@ import {
     updateProgress,
     queryProgress,
 } from './controllers/ProgressController';
-import { batchTranslate } from './controllers/Translate';
+import batchTranslate from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
 
 export default function registerHandler() {
