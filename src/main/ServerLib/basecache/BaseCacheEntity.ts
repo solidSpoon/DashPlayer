@@ -1,10 +1,11 @@
-import crypto from "crypto";
+import crypto from 'crypto';
 
 export default abstract class BaseCacheEntity<T> {
     /**
      * 唯一标识
      */
     readonly hash: string;
+
     /**
      * 更新时间
      */
@@ -26,10 +27,8 @@ export default abstract class BaseCacheEntity<T> {
      * @return hash 值
      * @private
      */
-    private calcHash(str: string): string {
-        console.log('fdsafdsafdsafc',str)
-        return crypto.createHash('md5')
-            .update(str.trim())
-            .digest("hex");
-    }
+    private calcHash = (str: string): string => {
+        console.log('fdsafdsafdsafc', str);
+        return crypto.createHash('md5').update(str.trim()).digest('hex');
+    };
 }
