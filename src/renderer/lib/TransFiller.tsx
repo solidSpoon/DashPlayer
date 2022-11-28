@@ -1,12 +1,11 @@
-import axios from "axios";
-import SentenceT from "./param/SentenceT";
-import { callApi } from "../apis/ApiWrapper";
+import SentenceT from './param/SentenceT';
+import callApi from '../apis/ApiWrapper';
 
 class TransFiller {
     private readonly subtitles: Array<SentenceT>;
 
     constructor(subtitles: Array<SentenceT>) {
-        this.subtitles = subtitles ? subtitles : [];
+        this.subtitles = subtitles || [];
     }
 
     /**
@@ -27,7 +26,7 @@ class TransFiller {
         const buffers: Buf[] = [];
         let buffer = new Buf(0, capacity);
         subtitles.forEach((item, index) => {
-            item.text = item.text ? item.text : "";
+            item.text = item.text ? item.text : '';
             if (!buffer.canAdd(item.text)) {
                 buffers.push(buffer);
                 buffer = new Buf(index, capacity);
@@ -45,24 +44,23 @@ class TransFiller {
      * @private
      */
     private async batchTranslate(buffers: Buf[], delay: number): Promise<void> {
-        for (let buffer of buffers) {
+        for (const buffer of buffers) {
             if (buffer.isEmpty()) {
                 return;
             }
             const data = {
-                str: buffer.strs
+                str: buffer.strs,
             };
-            let response = await callApi("batch-translate", [buffer.strs]);
-            console.log("trans response", response);
+            const response = await callApi('batch-translate', [buffer.strs]);
+            console.log('trans response', response);
             this.processTransResponse(response, buffer.startIndex);
             await this.sleep(delay);
         }
     }
 
     private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
-
 
     processTransResponse(response: string[], start: number): void {
         // if (response["data"]["success"] === false) {
@@ -70,17 +68,20 @@ class TransFiller {
         // }
         response.forEach((item, i) => {
             const index = start + i;
-            this.subtitles[index]["msTranslate"] = item;
+            this.subtitles[index].msTranslate = item;
         });
     }
-
 }
 
 class Buf {
     startIndex: number;
+
     strs: string[];
+
     private size: number;
+
     private readonly capacity: number;
+
     next: Buf;
 
     constructor(startIndex, capacity: number) {
@@ -95,7 +96,7 @@ class Buf {
         const b = this.size + str.length < this.capacity;
         if (!b) {
             if (this.size === 0) {
-                throw "translate buf: capacity too small-" + str.length;
+                throw `translate buf: capacity too small-${str.length}`;
             }
         }
         return b;
@@ -103,7 +104,7 @@ class Buf {
 
     add(str: string): void {
         if (!this.canAdd(str)) {
-            throw "translate buf: too large";
+            throw 'translate buf: too large';
         }
         this.strs.push(str);
         this.size += str.length;
@@ -113,6 +114,5 @@ class Buf {
         return this.size === 0;
     }
 }
-
 
 export default TransFiller;
