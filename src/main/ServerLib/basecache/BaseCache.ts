@@ -1,4 +1,5 @@
 import Nedb from 'nedb';
+import log from 'electron-log';
 import BaseCacheEntity from './BaseCacheEntity';
 import { BaseCacheConfig } from './CacheConfig';
 
@@ -34,10 +35,10 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
         return new Promise((resolve, reject) => {
             this.db.update(query, entity, options, (error, num) => {
                 if (error !== null) {
-                    console.log(error);
+                    log.error(error);
                     reject(error);
                 } else {
-                    console.log(`insert or update ${entity}, count: ${num}`);
+                    log.info(`insert or update ${entity}, count: ${num}`);
                     resolve(num);
                 }
             });
@@ -58,10 +59,10 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
                 { multi: true },
                 (error, count) => {
                     if (error !== null) {
-                        console.log(error);
+                        log.error(error);
                         reject(error);
                     } else {
-                        console.log(`delete ${entity}, count: ${count}`);
+                        log.info(`delete ${entity}, count: ${count}`);
                         resolve(count);
                     }
                 }
@@ -89,10 +90,10 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
         return new Promise((resolve, reject) => {
             this.db.remove(query, option, (err, count) => {
                 if (err !== null) {
-                    console.log(err);
+                    log.error(err);
                     reject(err);
                 } else {
-                    console.log(`batch delete ${entities}, count: ${count}`);
+                    log.info(`batch delete ${entities}, count: ${count}`);
                     resolve(count);
                 }
             });
@@ -111,7 +112,7 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
         return new Promise<E[]>((resolve, reject) => {
             this.db.find(query, (err: Error | null, docs: E[]) => {
                 if (err !== null) {
-                    console.log(err);
+                    log.error(err);
                     reject(err);
                 } else {
                     resolve(docs);
@@ -139,10 +140,10 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
                 query,
                 (err: null | Error, docs: E[] | PromiseLike<E[]>) => {
                     if (err !== null) {
-                        console.log(err);
+                        log.error(err);
                         reject(err);
                     } else {
-                        console.log(`batch load ${entities}`);
+                        log.info(`batch load ${entities}`);
                         resolve(docs);
                     }
                 }
@@ -162,10 +163,10 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
         return new Promise((resolve, reject) =>
             this.db.insert(entities, (err, documents) => {
                 if (err !== null) {
-                    console.log(err);
+                    log.error(err);
                     reject(err);
                 } else {
-                    console.log('insert batch:', entities);
+                    log.info('insert batch:', entities);
                     resolve(documents);
                 }
             })

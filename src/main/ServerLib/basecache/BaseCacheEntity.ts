@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import log from 'electron-log';
 
 export default abstract class BaseCacheEntity<T> {
     /**
@@ -28,7 +29,11 @@ export default abstract class BaseCacheEntity<T> {
      * @private
      */
     private calcHash = (str: string): string => {
-        console.log('fdsafdsafdsafc', str);
-        return crypto.createHash('md5').update(str.trim()).digest('hex');
+        try {
+            return crypto.createHash('md5').update(str.trim()).digest('hex');
+        } catch (e) {
+            log.error(`calc hash failed, str: ${str}`);
+            throw e;
+        }
     };
 }
