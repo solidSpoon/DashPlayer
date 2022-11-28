@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import FileT from "../lib/param/FileT";
+import { useEffect } from 'react';
+import FileT from '../lib/param/FileT';
+import callApi from '../apis/ApiWrapper';
 
 interface RecordProgressParam {
     getCurrentProgress: () => number;
@@ -10,21 +11,16 @@ const RecordProgress = (props: RecordProgressParam) => {
     useEffect(() => {
         const { getCurrentVideoFile, getCurrentProgress } = props;
 
-        function method() {
+        async function method() {
             if (
                 getCurrentVideoFile() === undefined ||
                 getCurrentProgress() === undefined
             ) {
                 return;
             }
-            console.log("update progress");
             const { fileName } = getCurrentVideoFile();
             const progress = getCurrentProgress();
-            console.log("recordProgress", fileName, progress);
-            window.electron.ipcRenderer.sendMessage("update-progress", [fileName, progress]);
-            window.electron.ipcRenderer.once("update-progress", (result) => {
-                console.log("update progress ", result);
-            });
+            await callApi('update-progress', [fileName, progress]);
         }
 
         const interval = setInterval(method, 1000);
