@@ -1,24 +1,24 @@
-import BaseCacheEntity from "../basecache/BaseCacheEntity";
+import BaseCacheEntity from '../basecache/BaseCacheEntity';
 
 class ProgressEntity extends BaseCacheEntity<ProgressEntity> {
-  /**
-   * 文件名
-   */
-  fileName: string;
-  /**
-   * 观看进度
-   */
-    // @ts-ignore
-  progress: number;
+    /**
+     * 文件名
+     */
+    fileName: string;
 
-  /**
-   * 构造方法
-   * @param fileName 文件名
-   */
-  constructor(fileName: string) {
-    super(fileName);
-    this.fileName = fileName.trim();
-  }
+    /**
+     * 观看进度
+     */
+    progress: number | undefined;
+
+    /**
+     * 构造方法
+     * @param fileName 文件名
+     */
+    constructor(fileName: string) {
+        super(fileName);
+        this.fileName = fileName.trim();
+    }
 }
 
 export default ProgressEntity;
