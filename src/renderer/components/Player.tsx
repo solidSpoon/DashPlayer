@@ -1,8 +1,8 @@
-import ReactPlayer from "react-player";
-import React, { Component, ReactElement } from "react";
-import axios from "axios";
-import style from "./css/Player.module.css";
-import FileT from "../lib/param/FileT";
+import ReactPlayer from 'react-player';
+import React, { Component, ReactElement } from 'react';
+import style from './css/Player.module.css';
+import FileT from '../lib/param/FileT';
+import callApi from '../apis/ApiWrapper';
 
 interface PlayerParam {
     videoFile: FileT;
@@ -28,34 +28,18 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         this.playing = true;
         this.state = {
             playing: true,
-            showControl: false
+            showControl: false,
         };
     }
 
-    private jumpToHistoryProgress = (file: FileT) => {
-        console.log("onready", file.fileName);
+    private jumpToHistoryProgress = async (file: FileT) => {
         if (file === this.lastFile) {
             return;
         }
-        console.log("isready");
         const { videoFile } = this.props;
-        // axios
-        //   .get('/api/queryProgress', {
-        //     params: {
-        //       fileName: videoFile.fileName,
-        //     },
-        //   })
-        //   .then((response) => {
-        //     this.seekTo(response.data.progress);
-        //     return response;
-        //   })
-        //   .catch((err) => console.log(err));
-        window.electron.ipcRenderer.sendMessage("query-progress", [videoFile.fileName]);
-        window.electron.ipcRenderer.once("query-progress", (args) => {
-            const progress = args as number;
-            console.log("query progress ", progress);
-            this.seekTo(progress);
-        });
+        const result = await callApi('query-progress', [videoFile.fileName]);
+        const progress = result as number;
+        this.seekTo(progress);
         this.lastFile = file;
     };
 
@@ -65,46 +49,46 @@ export default class Player extends Component<PlayerParam, PlayerState> {
 
     public pause() {
         this.setState({
-            playing: false
+            playing: false,
         });
     }
 
     public change() {
         const { playing } = this.state;
         this.setState({
-            playing: !playing
+            playing: !playing,
         });
     }
 
     public play() {
         this.setState({
-            playing: true
+            playing: true,
         });
     }
 
     public seekTo(time: number) {
         const player = this.getPlayer();
         if (player === null) {
-            console.log("player undefined, cannot seekTo");
+            console.log('player undefined, cannot seekTo');
             return;
         }
         if (time === undefined) {
-            console.log("time undefined, cannot seekTo");
+            console.log('time undefined, cannot seekTo');
             return;
         }
-        console.log("seek time>>> ", time);
-        player.seekTo(time, "seconds");
+        console.log('seek time>>> ', time);
+        player.seekTo(time, 'seconds');
     }
 
     showControl() {
         this.setState({
-            showControl: true
+            showControl: true,
         });
     }
 
     hideControl() {
         this.setState({
-            showControl: false
+            showControl: false,
         });
     }
 
@@ -118,7 +102,7 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             <ReactPlayer
                 id="react-player-id"
                 ref={this.playerRef}
-                url={videoFile.objectUrl ? videoFile.objectUrl : ""}
+                url={videoFile.objectUrl ? videoFile.objectUrl : ''}
                 className={`react-player${style.player}`}
                 playing={playing}
                 controls={false}
