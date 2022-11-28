@@ -1,36 +1,40 @@
-import { ipcMain } from "electron";
-import { updateProgress, queryProgress } from "./controllers/ProgressController";
-import { batchTranslate } from "./controllers/Translate";
-import transWord from "./controllers/AppleTrans";
+import { ipcMain } from 'electron';
+import log from 'electron-log';
+import {
+    updateProgress,
+    queryProgress,
+} from './controllers/ProgressController';
+import { batchTranslate } from './controllers/Translate';
+import transWord from './controllers/AppleTrans';
 
-export function registerHandler() {
-    ipcMain.on("update-process", async (event, arg) => {
-        console.log("ipcMain update-process", arg);
-        event.reply("update-process", "success");
+export default function registerHandler() {
+    ipcMain.on('update-process', async (event, arg) => {
+        log.info('ipcMain update-process', arg);
+        event.reply('update-process', 'success');
     });
-    ipcMain.on("trans-word", async (event, arg) => {
-        console.log("trans-words", arg);
+    ipcMain.on('trans-word', async (event, arg) => {
+        log.info('trans-words', arg);
         transWord(arg[0]);
-        event.reply("update-process", "success");
+        event.reply('update-process', 'success');
     });
-    ipcMain.on("update-progress", async (event, args: any[]) => {
+    ipcMain.on('update-progress', async (event, args: never[]) => {
         const [fileName, progress] = args;
-        console.log("update-progress", fileName, progress);
+        log.info('update-progress', fileName, progress);
         await updateProgress(fileName, progress);
-        event.reply("update-progress", "success");
+        event.reply('update-progress', 'success');
     });
-    ipcMain.on("query-progress", async (event, args: any[]) => {
+    ipcMain.on('query-progress', async (event, args: never[]) => {
         const [fileName] = args;
-        console.log("query-progress", fileName);
-        let progress = await queryProgress(fileName);
-        console.log(`query-progress file: ${fileName}, progress: ${progress}`);
-        event.reply("query-progress", progress);
+        log.info('query-progress', fileName);
+        const progress = await queryProgress(fileName);
+        log.info(`query-progress file: ${fileName}, progress: ${progress}`);
+        event.reply('query-progress', progress);
     });
-    ipcMain.on("batch-translate", async (event, args: any[]) => {
+    ipcMain.on('batch-translate', async (event, args: never[]) => {
         const strs = args[0];
-        console.log("batch-translate");
-        let translateResult = await batchTranslate(strs);
-        console.log("server tranlate result", translateResult);
-        event.reply("batch-translate", translateResult);
+        log.info('batch-translate');
+        const translateResult = await batchTranslate(strs);
+        log.info('server tranlate result', translateResult);
+        event.reply('batch-translate', translateResult);
     });
 }
