@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-cycle
 import SideSentence from '../../components/SideSentence';
 
 class SentenceT {
@@ -33,7 +34,7 @@ class SentenceT {
 
     prevItem: SentenceT | undefined;
 
-    element: React.RefObject<SideSentence>;
+    element: React.RefObject<SideSentence> | undefined;
 
     public getPrevItem = (): SentenceT => {
         return this.prevItem as SentenceT;
@@ -43,7 +44,7 @@ class SentenceT {
         return this.nextItem as SentenceT;
     };
 
-    divElement: React.RefObject<HTMLDivElement>;
+    divElement: React.RefObject<HTMLDivElement> | undefined;
 }
 
 export default SentenceT;
