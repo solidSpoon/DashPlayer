@@ -27,7 +27,9 @@ export default class UploadPhoto extends Component<UploadPhotoParam, never> {
             } else {
                 fileT.fileType = FileType.VIDEO;
             }
-            onFileChange(fileT);
+            if (onFileChange) {
+                onFileChange(fileT);
+            }
         });
     };
 
@@ -55,6 +57,7 @@ export default class UploadPhoto extends Component<UploadPhotoParam, never> {
                     hidden // 隐藏input
                     onChange={(event) => this.handlePhoto(event)}
                 />
+                {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
                 <a
                     className={style.button}
                     onClick={() => {

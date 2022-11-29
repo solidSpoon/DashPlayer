@@ -7,7 +7,7 @@ import FileT from '../lib/param/FileT';
 import parseSrtSubtitles from '../lib/parseSrt';
 import TransFiller from '../lib/TransFiller';
 import SideSentence from './SideSentence';
-import { isVisible } from '../lib/isVisible';
+import isVisible from '../lib/isVisible';
 
 interface SubtitleParam {
     subtitleFile: FileT;
@@ -143,7 +143,12 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
 
     private updateTo(sentence: SentenceT) {
         const { onCurrentSentenceChange } = this.props;
-        if (sentence === undefined || sentence === this.currentSentence) {
+        if (
+            sentence.divElement?.current === undefined ||
+            sentence.divElement?.current === null ||
+            sentence === this.currentSentence
+        ) {
+            console.log(`can not update to, sentence: ${sentence}`);
             return;
         }
         if (sentence.divElement === undefined) {
@@ -193,6 +198,10 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
             return;
         }
         const { updateSubtitle } = this;
+        if (srcFile.objectUrl === undefined) {
+            console.log(`can not request src file, srcFile: ${srcFile}`);
+            return;
+        }
         axios
             .get(srcFile.objectUrl)
             .then((response) => updateSubtitle(response.data, srcFile))

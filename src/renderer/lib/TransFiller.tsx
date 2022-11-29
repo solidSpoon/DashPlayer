@@ -1,7 +1,8 @@
 import SentenceT from './param/SentenceT';
 import callApi from '../apis/ApiWrapper';
+import TranslateBuf from './TranslateBuf';
 
-class TransFiller {
+export default class TransFiller {
     private readonly subtitles: Array<SentenceT>;
 
     constructor(subtitles: Array<SentenceT>) {
@@ -13,6 +14,7 @@ class TransFiller {
      */
     public fillTranslate(): void {
         const buffers = this.splitToBuffers(this.subtitles, 1000);
+        // eslint-disable-next-line promise/catch-or-return
         this.batchTranslate(buffers, 300).finally();
     }
 
@@ -22,28 +24,35 @@ class TransFiller {
      * @param capacity 批处理块容量
      * @private
      */
-    private splitToBuffers(subtitles: SentenceT[], capacity: number): Buf[] {
-        const buffers: Buf[] = [];
-        let buffer = new Buf(0, capacity);
+    private splitToBuffers = (
+        subtitles: SentenceT[],
+        capacity: number
+    ): TranslateBuf[] => {
+        const buffers: TranslateBuf[] = [];
+        let buffer = new TranslateBuf(0, capacity);
         subtitles.forEach((item, index) => {
             item.text = item.text ? item.text : '';
             if (!buffer.canAdd(item.text)) {
                 buffers.push(buffer);
-                buffer = new Buf(index, capacity);
+                buffer = new TranslateBuf(index, capacity);
             }
             buffer.add(item.text);
         });
         buffers.push(buffer);
         return buffers;
-    }
+    };
 
     /**
      * 批量翻译
-     * @param buffers Buf[]
+     * @param buffers TranslateBuf[]
      * @param delay 每次翻译的间隔时间
      * @private
      */
-    private async batchTranslate(buffers: Buf[], delay: number): Promise<void> {
+    private async batchTranslate(
+        buffers: TranslateBuf[],
+        delay: number
+    ): Promise<void> {
+        // eslint-disable-next-line no-restricted-syntax
         for (const buffer of buffers) {
             if (buffer.isEmpty()) {
                 return;
@@ -51,16 +60,20 @@ class TransFiller {
             const data = {
                 str: buffer.strs,
             };
+            // eslint-disable-next-line no-await-in-loop
             const response = await callApi('batch-translate', [buffer.strs]);
             console.log('trans response', response);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             this.processTransResponse(response, buffer.startIndex);
+            // eslint-disable-next-line no-await-in-loop
             await this.sleep(delay);
         }
     }
 
-    private sleep(ms: number): Promise<void> {
+    sleep = (ms: number): Promise<void> => {
         return new Promise((resolve) => setTimeout(resolve, ms));
-    }
+    };
 
     processTransResponse(response: string[], start: number): void {
         // if (response["data"]["success"] === false) {
@@ -72,47 +85,3 @@ class TransFiller {
         });
     }
 }
-
-class Buf {
-    startIndex: number;
-
-    strs: string[];
-
-    private size: number;
-
-    private readonly capacity: number;
-
-    next: Buf;
-
-    constructor(startIndex, capacity: number) {
-        this.startIndex = startIndex;
-        this.strs = [];
-        this.size = 0;
-        this.capacity = capacity;
-        this.next = undefined;
-    }
-
-    canAdd(str: string): boolean {
-        const b = this.size + str.length < this.capacity;
-        if (!b) {
-            if (this.size === 0) {
-                throw `translate buf: capacity too small-${str.length}`;
-            }
-        }
-        return b;
-    }
-
-    add(str: string): void {
-        if (!this.canAdd(str)) {
-            throw 'translate buf: too large';
-        }
-        this.strs.push(str);
-        this.size += str.length;
-    }
-
-    isEmpty(): boolean {
-        return this.size === 0;
-    }
-}
-
-export default TransFiller;
