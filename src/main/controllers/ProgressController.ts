@@ -22,5 +22,5 @@ export async function updateProgress(
 export async function queryProgress(fileName: string): Promise<number> {
     const progressEntity = new ProgressEntity(fileName);
     const result = await ProgressCache.queryProcess(progressEntity);
-    return result.progress;
+    return result.progress ?? 0;
 }

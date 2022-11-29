@@ -23,4 +23,11 @@ export default class CacheConfig {
     public static progressConfig: BaseCacheConfig = {
         filename: `${this.base}/db/progress.db`,
     };
+
+    /**
+     * 键值数据库
+     */
+    public static keyValueConfig: BaseCacheConfig = {
+        filename: `${this.base}/db/keyValue.db`,
+    };
 }
