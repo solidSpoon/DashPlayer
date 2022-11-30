@@ -25,7 +25,7 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
-
+let settingWindow: BrowserWindow | null = null;
 ipcMain.on('ipc-example', async (event, arg) => {
     const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
     console.log(msgTemplate(arg));
@@ -111,6 +111,60 @@ const createWindow = async () => {
     new AppUpdater();
 };
 
+const createSettingWindow = async () => {
+    if (isDebug) {
+        await installExtensions();
+    }
+
+    const RESOURCES_PATH = app.isPackaged
+        ? path.join(process.resourcesPath, 'assets')
+        : path.join(__dirname, '../../assets');
+
+    const getAssetPath = (...paths: string[]): string => {
+        return path.join(RESOURCES_PATH, ...paths);
+    };
+
+    settingWindow = new BrowserWindow({
+        show: false,
+        icon: getAssetPath('icon.png'),
+        webPreferences: {
+            preload: app.isPackaged
+                ? path.join(__dirname, 'preload.js')
+                : path.join(__dirname, '../../.erb/dll/preload.js'),
+        },
+    });
+    settingWindow.maximize();
+    settingWindow.loadURL(resolveHtmlPath('windows/key/index.html'));
+
+    settingWindow.on('ready-to-show', () => {
+        if (!settingWindow) {
+            throw new Error('"mainWindow" is not defined');
+        }
+        if (process.env.START_MINIMIZED) {
+            settingWindow.minimize();
+        } else {
+            settingWindow.show();
+        }
+    });
+
+    settingWindow.on('closed', () => {
+        settingWindow = null;
+    });
+
+    const menuBuilder = new MenuBuilder(settingWindow);
+    menuBuilder.buildMenu();
+
+    // Open urls in the user's browser
+    settingWindow.webContents.setWindowOpenHandler((edata) => {
+        shell.openExternal(edata.url);
+        return { action: 'deny' };
+    });
+
+    // Remove this if your app does not use auto updates
+    // eslint-disable-next-line
+    new AppUpdater();
+};
+
 /**
  * Add event listeners...
  */
@@ -126,6 +180,7 @@ app.on('window-all-closed', () => {
 app.whenReady()
     .then(() => {
         createWindow();
+        createSettingWindow();
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the
             // dock icon is clicked and there are no other windows open.
