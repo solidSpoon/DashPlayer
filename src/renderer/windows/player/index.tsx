@@ -1,11 +1,11 @@
 import { createRoot } from 'react-dom/client';
-import SettingKey from './windows/key/SettingKey';
+import App from './App';
 
-const container = document.getElementById('root2')!;
+const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(
     <>
-        <SettingKey />
+        <App />
     </>
 );
 

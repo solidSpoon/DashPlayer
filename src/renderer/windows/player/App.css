@@ -1,7 +1,7 @@
 @font-face
 {
     font-family: 'Archivo';
-    src: url('./fonts/Archivo-VariableFont_wdth,wght.ttf') format("truetype");
+    src: url('../../fonts/Archivo-VariableFont_wdth,wght.ttf') format("truetype");
     font-weight: normal;
     font-style: normal;
 }

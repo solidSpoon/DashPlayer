@@ -49,12 +49,22 @@ const configuration: webpack.Configuration = {
         player: [
             `webpack-dev-server/client?http://localhost:${port}/dist`,
             'webpack/hot/only-dev-server',
-            path.join(webpackPaths.srcRendererPath, 'index.tsx'),
+            path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'player',
+                'index.tsx'
+            ),
         ],
         setting: [
             `webpack-dev-server/client?http://localhost:${port}/dist`,
             'webpack/hot/only-dev-server',
-            path.join(webpackPaths.srcRendererPath, 'index2.tsx'),
+            path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'setting',
+                'index.tsx'
+            ),
         ],
     },
 
@@ -158,7 +168,12 @@ const configuration: webpack.Configuration = {
 
         new HtmlWebpackPlugin({
             filename: path.join('player.html'),
-            template: path.join(webpackPaths.srcRendererPath, 'index.ejs'),
+            template: path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'player',
+                'index.ejs'
+            ),
             minify: {
                 collapseWhitespace: true,
                 removeAttributeQuotes: true,
@@ -172,7 +187,12 @@ const configuration: webpack.Configuration = {
         }),
         new HtmlWebpackPlugin({
             filename: path.join('setting.html'),
-            template: path.join(webpackPaths.srcRendererPath, 'index2.ejs'),
+            template: path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'setting',
+                'index.ejs'
+            ),
             minify: {
                 collapseWhitespace: true,
                 removeAttributeQuotes: true,

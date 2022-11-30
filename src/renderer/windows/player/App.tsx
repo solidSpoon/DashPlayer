@@ -1,16 +1,16 @@
 import React, { Component } from 'react';
 import './App.css';
-import FileT, { FileType } from './lib/param/FileT';
-import Player from './components/Player';
-import Subtitle from './components/Subtitle';
-import MainSubtitle from './components/MainSubtitle';
-import PlayTime from './components/PlayTime';
-import UploadPhoto from './components/UplodeButton';
-import BorderProgressBar from './components/BorderProgressBar';
-import GlobalShortCut, { JumpPosition } from './components/GlobalShortCut';
-import SentenceT from './lib/param/SentenceT';
-import RecordProgress from './components/RecordProgress';
-import './fonts/Archivo-VariableFont_wdth,wght.ttf';
+import FileT, { FileType } from '../../lib/param/FileT';
+import Player from '../../components/Player';
+import Subtitle from '../../components/Subtitle';
+import MainSubtitle from '../../components/MainSubtitle';
+import PlayTime from '../../components/PlayTime';
+import UploadPhoto from '../../components/UplodeButton';
+import BorderProgressBar from '../../components/BorderProgressBar';
+import GlobalShortCut, { JumpPosition } from '../../components/GlobalShortCut';
+import SentenceT from '../../lib/param/SentenceT';
+import RecordProgress from '../../components/RecordProgress';
+import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
 
 interface HomeState {
     /**
