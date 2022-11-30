@@ -5,7 +5,7 @@ import FileT from '../lib/param/FileT';
 import callApi from '../apis/ApiWrapper';
 
 interface PlayerParam {
-    videoFile: FileT;
+    videoFile: FileT | undefined;
     onProgress: (time: number) => void;
     onTotalTimeChange: (time: number) => void;
 }
@@ -37,6 +37,9 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             return;
         }
         const { videoFile } = this.props;
+        if (videoFile === undefined) {
+            return;
+        }
         const result = await callApi('query-progress', [videoFile.fileName]);
         const progress = result as number;
         this.seekTo(progress);

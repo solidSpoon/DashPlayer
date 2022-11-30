@@ -7,7 +7,7 @@ interface MainSubtitleState {
     sentence: undefined | SentenceT;
 }
 
-export default class MainSubtitle extends Component<never, MainSubtitleState> {
+export default class MainSubtitle extends Component<any, MainSubtitleState> {
     constructor(props: never) {
         super(props);
         this.state = {

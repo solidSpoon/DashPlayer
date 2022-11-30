@@ -1,6 +1,4 @@
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import React, { Component } from 'react';
-import icon from '../../assets/icon.svg';
 import './App.css';
 import FileT, { FileType } from './lib/param/FileT';
 import Player from './components/Player';
@@ -19,13 +17,14 @@ interface HomeState {
      * 视频文件
      * @private
      */
-    videoFile: FileT;
+    videoFile: FileT | undefined;
     /**
      * 字幕文件
      * @private
      */
-    subtitleFile: FileT;
+    subtitleFile: FileT | undefined;
 }
+
 export default class App extends Component<any, HomeState> {
     /**
      * 当前播放时间
@@ -66,9 +65,7 @@ export default class App extends Component<any, HomeState> {
         this.mainSubtitleRef = React.createRef<MainSubtitle>();
 
         this.state = {
-            // @ts-ignore
             videoFile: undefined,
-            // @ts-ignore
             subtitleFile: undefined,
         };
     }
@@ -86,60 +83,52 @@ export default class App extends Component<any, HomeState> {
         }
     };
 
-    private seekTo = (time: number) => {
-        // @ts-ignore
-        this.playerRef.current.seekTo(time);
-        // @ts-ignore
-        this.playerRef.current.play();
-    };
-
     private onSpace() {
-        // @ts-ignore
-        this.playerRef.current.change();
+        this.playerRef.current?.change();
     }
 
     private onJumpTo(position: JumpPosition) {
-        if (this.subtitleRef.current === undefined) {
+        if (this.subtitleRef.current === null) {
             console.log('subtitleRef is empty, can not jump');
             return;
         }
         if (JumpPosition.BEFORE === position) {
-            // @ts-ignore
             this.subtitleRef.current.jumpPrev();
         }
         if (JumpPosition.AFTER === position) {
-            // @ts-ignore
             this.subtitleRef.current.jumpNext();
         }
         if (JumpPosition.CURRENT === position) {
-            // @ts-ignore
             this.subtitleRef.current.repeat();
         }
     }
+
+    private seekTo = (time: number) => {
+        this.playerRef.current?.seekTo(time);
+        this.playerRef.current?.play();
+    };
+
+    private showControl = () => {
+        console.log('showC');
+        this.playerRef.current?.showControl();
+    };
+
+    private hideControl = () => {
+        console.log('hideControl');
+        this.playerRef.current?.hideControl();
+    };
 
     private changeCurrentSentence(currentSentence: SentenceT) {
         if (this.mainSubtitleRef === undefined) {
             return;
         }
-        // @ts-ignore
-        this.mainSubtitleRef.current.setState({
+        this.mainSubtitleRef.current?.setState({
             sentence: currentSentence,
         });
     }
 
-    private showControl = () => {
-        console.log('showC');
-        // @ts-ignore
-        this.playerRef.current.showControl();
-    };
-
-    private hideControl = () => {
-        console.log('hideControl');
-        // @ts-ignore
-        this.playerRef.current.hideControl();
-    };
-
     render() {
+        const { videoFile, subtitleFile } = this.state;
         return (
             <div className="font-face-arc">
                 <GlobalShortCut
@@ -148,10 +137,11 @@ export default class App extends Component<any, HomeState> {
                 />
                 <RecordProgress
                     getCurrentProgress={() => this.progress}
-                    getCurrentVideoFile={() => this.state.videoFile}
+                    getCurrentVideoFile={() => videoFile}
                 />
                 <div className="container">
                     <div
+                        onFocus={() => this.showControl()}
                         onMouseOver={() => this.showControl()}
                         onMouseLeave={() => this.hideControl()}
                         className="player"
@@ -159,11 +149,13 @@ export default class App extends Component<any, HomeState> {
                     >
                         <Player
                             ref={this.playerRef}
-                            videoFile={this.state.videoFile}
-                            onProgress={(time) => (this.progress = time)}
-                            onTotalTimeChange={(time) =>
-                                (this.totalTime = time)
-                            }
+                            videoFile={videoFile}
+                            onProgress={(time) => {
+                                this.progress = time;
+                            }}
+                            onTotalTimeChange={(time) => {
+                                this.totalTime = time;
+                            }}
                         />
                     </div>
                     <div className="subtitle" id="subtitle-id">
@@ -174,7 +166,7 @@ export default class App extends Component<any, HomeState> {
                                 this.changeCurrentSentence(currentSentence)
                             }
                             seekTo={(time) => this.seekTo(time)}
-                            subtitleFile={this.state.subtitleFile}
+                            subtitleFile={subtitleFile}
                         />
                     </div>
                     <div className="menu">

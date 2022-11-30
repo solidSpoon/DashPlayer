@@ -8,7 +8,8 @@ export enum JumpPosition {
 }
 
 interface ReactParam {
-    children: undefined | ReactNode;
+    // eslint-disable-next-line react/require-default-props
+    children?: ReactNode;
 }
 
 interface GlobalShortCutParam extends ReactParam {

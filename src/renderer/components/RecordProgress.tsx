@@ -4,7 +4,7 @@ import callApi from '../apis/ApiWrapper';
 
 interface RecordProgressParam {
     getCurrentProgress: () => number;
-    getCurrentVideoFile: () => FileT;
+    getCurrentVideoFile: () => FileT | undefined;
 }
 
 const RecordProgress = (props: RecordProgressParam) => {
@@ -18,9 +18,11 @@ const RecordProgress = (props: RecordProgressParam) => {
             ) {
                 return;
             }
-            const { fileName } = getCurrentVideoFile();
+            const fileName = getCurrentVideoFile()?.fileName;
             const progress = getCurrentProgress();
-            await callApi('update-progress', [fileName, progress]);
+            if (fileName !== undefined) {
+                await callApi('update-progress', [fileName, progress]);
+            }
         }
 
         const interval = setInterval(method, 1000);

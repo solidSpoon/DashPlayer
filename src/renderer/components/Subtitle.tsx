@@ -10,7 +10,7 @@ import SideSentence from './SideSentence';
 import isVisible from '../lib/isVisible';
 
 interface SubtitleParam {
-    subtitleFile: FileT;
+    subtitleFile: FileT | undefined;
     getCurrentTime: () => number;
     seekTo: (time: number) => void;
     onCurrentSentenceChange: (currentSentence: SentenceT) => void;
