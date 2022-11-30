@@ -80,7 +80,7 @@ const createWindow = async () => {
         },
     });
     mainWindow.maximize();
-    mainWindow.loadURL(resolveHtmlPath('index.html'));
+    mainWindow.loadURL(resolveHtmlPath('player.html'));
 
     mainWindow.on('ready-to-show', () => {
         if (!mainWindow) {
@@ -134,7 +134,7 @@ const createSettingWindow = async () => {
         },
     });
     settingWindow.maximize();
-    settingWindow.loadURL(resolveHtmlPath('windows/key/index.html'));
+    settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
     settingWindow.on('ready-to-show', () => {
         if (!settingWindow) {
