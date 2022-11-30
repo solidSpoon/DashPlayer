@@ -71,7 +71,7 @@ const configuration: webpack.Configuration = {
     output: {
         path: webpackPaths.distRendererPath,
         publicPath: '/',
-        filename: '[id].dev.js',
+        filename: '[name].dev.js',
         library: {
             type: 'umd',
         },

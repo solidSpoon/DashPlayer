@@ -1,5 +1,5 @@
 import SentenceT from './param/SentenceT';
-import callApi from '../apis/ApiWrapper';
+import callApi from './apis/ApiWrapper';
 import TranslateBuf from './TranslateBuf';
 
 export default class TransFiller {

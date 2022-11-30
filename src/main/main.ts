@@ -57,7 +57,7 @@ const installExtensions = async () => {
         .catch(console.log);
 };
 
-const createWindow = async () => {
+export const createPlayerWindow = async () => {
     if (isDebug) {
         await installExtensions();
     }
@@ -111,7 +111,7 @@ const createWindow = async () => {
     new AppUpdater();
 };
 
-const createSettingWindow = async () => {
+export const createSettingWindow = async () => {
     if (isDebug) {
         await installExtensions();
     }
@@ -179,12 +179,11 @@ app.on('window-all-closed', () => {
 
 app.whenReady()
     .then(() => {
-        createWindow();
-        createSettingWindow();
+        createPlayerWindow();
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the
             // dock icon is clicked and there are no other windows open.
-            if (mainWindow === null) createWindow();
+            if (mainWindow === null) createPlayerWindow();
         });
     })
     .catch(console.log);

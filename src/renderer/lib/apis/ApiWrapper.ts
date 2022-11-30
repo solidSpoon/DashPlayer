@@ -1,4 +1,4 @@
-import { Channels } from '../../main/preload';
+import { Channels } from '../../../main/preload';
 
 export default async function callApi(
     name: Channels,

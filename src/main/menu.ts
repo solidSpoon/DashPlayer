@@ -5,6 +5,7 @@ import {
     BrowserWindow,
     MenuItemConstructorOptions,
 } from 'electron';
+import { createSettingWindow } from './main';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
     selector?: string;
@@ -61,10 +62,24 @@ export default class MenuBuilder {
                     selector: 'orderFrontStandardAboutPanel:',
                 },
                 { type: 'separator' },
+                {
+                    label: 'Preferences...',
+                    click: () => {
+                        createSettingWindow();
+                    },
+                },
+                { type: 'separator' },
+                {
+                    label: 'Reset App & Clear Local Data',
+                    click: () => {
+                        createSettingWindow();
+                    },
+                },
+                { type: 'separator' },
                 { label: 'Services', submenu: [] },
                 { type: 'separator' },
                 {
-                    label: 'Hide ElectronReact',
+                    label: 'Hide DashPlayer',
                     accelerator: 'Command+H',
                     selector: 'hide:',
                 },
@@ -202,7 +217,12 @@ export default class MenuBuilder {
                 },
             ],
         };
-
+        const subMenuSetting: MenuItemConstructorOptions = {
+            label: 'Setting',
+            click() {
+                shell.openExternal('https://electronjs.org');
+            },
+        };
         const subMenuView =
             process.env.NODE_ENV === 'development' ||
             process.env.DEBUG_PROD === 'true'
@@ -215,6 +235,7 @@ export default class MenuBuilder {
             subMenuView,
             subMenuWindow,
             subMenuHelp,
+            subMenuSetting,
         ];
     }
 

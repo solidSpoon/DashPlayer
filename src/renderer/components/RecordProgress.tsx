@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import FileT from '../lib/param/FileT';
-import callApi from '../apis/ApiWrapper';
+import callApi from '../lib/apis/ApiWrapper';
 
 interface RecordProgressParam {
     getCurrentProgress: () => number;

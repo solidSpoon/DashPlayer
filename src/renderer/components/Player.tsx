@@ -2,7 +2,7 @@ import ReactPlayer from 'react-player';
 import React, { Component, ReactElement } from 'react';
 import style from './css/Player.module.css';
 import FileT from '../lib/param/FileT';
-import callApi from '../apis/ApiWrapper';
+import callApi from '../lib/apis/ApiWrapper';
 
 interface PlayerParam {
     videoFile: FileT | undefined;
