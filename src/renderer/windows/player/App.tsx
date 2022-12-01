@@ -11,6 +11,7 @@ import GlobalShortCut, { JumpPosition } from '../../components/GlobalShortCut';
 import SentenceT from '../../lib/param/SentenceT';
 import RecordProgress from '../../components/RecordProgress';
 import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
+import 'tailwindcss/tailwind.css';
 
 interface HomeState {
     /**

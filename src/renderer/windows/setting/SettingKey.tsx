@@ -1,4 +1,5 @@
 import { ChangeEvent, Component, FormEvent } from 'react';
+import 'tailwindcss/tailwind.css';
 
 interface SettingKeyState {
     secretId: string | undefined;
@@ -28,17 +29,22 @@ export default class SettingKey extends Component<any, SettingKeyState> {
 
     render() {
         return (
-            <form onSubmit={this.handleSubmit}>
-                <label htmlFor="secretId">
-                    secretId:
-                    <input type="text" onChange={this.handleChange} />
-                </label>
-                <label htmlFor="secretKey">
-                    secretKey:
-                    <input type="text" onChange={this.handleChange} />
-                </label>
-                <input type="submit" value="Submit" />
-            </form>
+            <>
+                <div className="text-center border-solid border-4 border-red-500 bg-black text-white shadow">
+                    ERB + TAILWIND = ❤
+                </div>
+                <form onSubmit={this.handleSubmit}>
+                    <label htmlFor="secretId">
+                        secretId:
+                        <input type="text" onChange={this.handleChange} />
+                    </label>
+                    <label htmlFor="secretKey">
+                        secretKey:
+                        <input type="text" onChange={this.handleChange} />
+                    </label>
+                    <input type="submit" value="Submit" />
+                </form>
+            </>
         );
     }
 }
