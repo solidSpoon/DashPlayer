@@ -59,7 +59,7 @@ export default class UploadPhoto extends Component<UploadPhotoParam, never> {
                 />
                 {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
                 <a
-                    className="flex place-content-center bg-lime-800 hover:bg-lime-700 rounded-full w-12 h-12 p-0.5 drop-shadow-md fixed bottom-12 right-12 "
+                    className="flex place-content-center bg-lime-700 hover:bg-lime-600 rounded-full w-12 h-12 p-0.5 drop-shadow-md fixed bottom-12 right-12 "
                     onClick={() => {
                         this.fileInputEl.current?.click(); // 当点击a标签的时候触发事件
                     }}
