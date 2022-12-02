@@ -3,13 +3,20 @@ import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import log from 'electron-log';
 import TransCacheEntity from './entity/TransCacheEntity';
-import { secretId, secretKey } from './basecache/Key';
+// eslint-disable-next-line import/no-cycle
+import KeyValueCache from './KeyValueCache';
 
 class TransApi {
     private static client: Client;
 
     static {
+        TransApi.init();
+    }
+
+    public static async init() {
         const TmtClient = tencentcloud.tmt.v20180321.Client;
+        const secretId = await KeyValueCache.queryValue('secretId');
+        const secretKey = await KeyValueCache.queryValue('secretKey');
         const clientConfig = {
             credential: {
                 secretId,

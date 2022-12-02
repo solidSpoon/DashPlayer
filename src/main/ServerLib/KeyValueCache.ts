@@ -12,9 +12,12 @@ class ProgressCache {
 
     /**
      * 更新值
-     * @param query
+     * @param key
+     * @param value
      */
-    public static async updateValue(query: KeyValueEntity): Promise<void> {
+    public static async updateValue(key: string, value: string): Promise<void> {
+        const query = new KeyValueEntity(key);
+        query.value = value;
         const updateNum = await this.cache.insertOrUpdate(query);
         if (updateNum === 1) {
             return;
@@ -28,19 +31,18 @@ class ProgressCache {
      * 查询值
      * @param query
      */
-    public static async queryValue(
-        query: KeyValueEntity
-    ): Promise<KeyValueEntity> {
+    public static async queryValue(key: string): Promise<string | undefined> {
+        const query = new KeyValueEntity(key);
         const progressEntities: KeyValueEntity[] = await this.cache.loadCache(
             query
         );
         if (progressEntities.length === 0) {
-            return query;
+            return query.value;
         }
         if (progressEntities.length > 1) {
             log.warn('value num bigger than one');
         }
-        return progressEntities[0];
+        return progressEntities[0].value;
     }
 }
 

@@ -5,7 +5,7 @@ import {
     BrowserWindow,
     MenuItemConstructorOptions,
 } from 'electron';
-import { createSettingWindow } from './main';
+import { createSettingWindowIfNeed } from './main';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
     selector?: string;
@@ -65,14 +65,14 @@ export default class MenuBuilder {
                 {
                     label: 'Preferences...',
                     click: () => {
-                        createSettingWindow();
+                        createSettingWindowIfNeed();
                     },
                 },
                 { type: 'separator' },
                 {
                     label: 'Reset App & Clear Local Data',
                     click: () => {
-                        createSettingWindow();
+                        // createSettingWindow();
                     },
                 },
                 { type: 'separator' },

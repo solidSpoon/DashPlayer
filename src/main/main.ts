@@ -110,8 +110,7 @@ export const createPlayerWindow = async () => {
     // eslint-disable-next-line
     new AppUpdater();
 };
-
-export const createSettingWindow = async () => {
+const createSettingWindow = async () => {
     if (isDebug) {
         await installExtensions();
     }
@@ -125,15 +124,17 @@ export const createSettingWindow = async () => {
     };
 
     settingWindow = new BrowserWindow({
+        width: 800,
+        height: 500,
         show: false,
         icon: getAssetPath('icon.png'),
+        alwaysOnTop: true,
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
     });
-    settingWindow.maximize();
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
     settingWindow.on('ready-to-show', () => {
@@ -164,7 +165,9 @@ export const createSettingWindow = async () => {
     // eslint-disable-next-line
     new AppUpdater();
 };
-
+export const createSettingWindowIfNeed = async () => {
+    if (settingWindow === null) await createSettingWindow();
+};
 /**
  * Add event listeners...
  */

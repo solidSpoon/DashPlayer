@@ -7,7 +7,9 @@ import TransApi from '../ServerLib/TransApi';
  * AI 翻译
  * @param str
  */
-export default async function batchTranslate(str: string[]): Promise<string[]> {
+export default async function batchTranslate(
+    str: string[]
+): Promise<(string | undefined)[]> {
     const sourceArr: TransCacheEntity[] = str.map(
         (item) => new TransCacheEntity(item)
     );

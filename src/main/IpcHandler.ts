@@ -6,6 +6,10 @@ import {
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
+import {
+    updateTencentSecret,
+    getTencentSecret,
+} from './controllers/SecretController';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -36,5 +40,17 @@ export default function registerHandler() {
         const translateResult = await batchTranslate(strs);
         log.info('server tranlate result', translateResult);
         event.reply('batch-translate', translateResult);
+    });
+
+    ipcMain.on('update-secret', async (event, args: never[]) => {
+        const [secretId, secretKey] = args;
+        log.info('update-secret');
+        await updateTencentSecret(secretId, secretKey);
+        event.reply('update-secret', 'success');
+    });
+    ipcMain.on('get-secret', async (event) => {
+        log.info('get-secret');
+        const result: string[] = await getTencentSecret();
+        event.reply('get-secret', result);
     });
 }

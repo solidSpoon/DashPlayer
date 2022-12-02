@@ -5,7 +5,9 @@ export type Channels =
     | 'update-progress'
     | 'trans-word'
     | 'query-progress'
-    | 'batch-translate';
+    | 'batch-translate'
+    | 'update-secret'
+    | 'get-secret';
 
 contextBridge.exposeInMainWorld('electron', {
     ipcRenderer: {
