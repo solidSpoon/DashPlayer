@@ -25,12 +25,29 @@ const configuration: webpack.Configuration = {
 
     target: ['web', 'electron-renderer'],
 
-    entry: [path.join(webpackPaths.srcRendererPath, 'index.tsx')],
+    entry: {
+        player: [
+            path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'player',
+                'index.tsx'
+            ),
+        ],
+        setting: [
+            path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'setting',
+                'index.tsx'
+            ),
+        ],
+    },
 
     output: {
         path: webpackPaths.distRendererPath,
         publicPath: './',
-        filename: 'renderer.js',
+        filename: '[name].js',
         library: {
             type: 'umd',
         },
@@ -132,7 +149,7 @@ const configuration: webpack.Configuration = {
         }),
 
         new MiniCssExtractPlugin({
-            filename: 'style.css',
+            filename: '[name].[contenthash].css',
         }),
 
         new BundleAnalyzerPlugin({
@@ -142,17 +159,39 @@ const configuration: webpack.Configuration = {
         }),
 
         new HtmlWebpackPlugin({
-            filename: 'index.html',
-            template: path.join(webpackPaths.srcRendererPath, 'index.ejs'),
+            filename: 'player.html',
+            template: path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'player',
+                'index.ejs'
+            ),
             minify: {
                 collapseWhitespace: true,
                 removeAttributeQuotes: true,
                 removeComments: true,
             },
+            chunks: ['player'],
             isBrowser: false,
             isDevelopment: process.env.NODE_ENV !== 'production',
         }),
-
+        new HtmlWebpackPlugin({
+            filename: 'setting.html',
+            template: path.join(
+                webpackPaths.srcRendererPath,
+                'windows',
+                'setting',
+                'index.ejs'
+            ),
+            minify: {
+                collapseWhitespace: true,
+                removeAttributeQuotes: true,
+                removeComments: true,
+            },
+            chunks: ['setting'],
+            isBrowser: false,
+            isDevelopment: process.env.NODE_ENV !== 'production',
+        }),
         new webpack.DefinePlugin({
             'process.type': '"renderer"',
         }),

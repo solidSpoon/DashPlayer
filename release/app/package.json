@@ -6,7 +6,7 @@
   "author": {
     "name": "solidSpoon",
     "email": "cedarrival@gmail.com",
-    "url": "https://github.com/electron-react-boilerplate"
+    "url": "https://github.com/solidSpoon/DashPlayer"
   },
   "main": "./dist/main/main.js",
   "scripts": {
