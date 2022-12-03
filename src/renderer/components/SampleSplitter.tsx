@@ -12,13 +12,14 @@ const SampleSplitter = ({
     isVertical = true,
     ...props
 }: SampleSplitterParam) => {
-
     return (
         <div
             id={id}
             data-testid={id}
             className={cn(
-                isVertical ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize',
+                isVertical
+                    ? 'w-1 cursor-col-resize'
+                    : 'h-1 cursor-row-resize z-50',
                 'hover:bg-neutral-600',
                 'bg-neutral-700',
                 'drop-shadow',
