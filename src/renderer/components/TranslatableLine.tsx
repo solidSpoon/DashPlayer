@@ -59,7 +59,10 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
 
     return (
         // eslint-disable-next-line react/destructuring-assignment
-        <div key={1} className={props.className}>
+        <div
+            key={1}
+            className="bg-neutral-700 rounded-lg drop-shadow-md hover:drop-shadow-xl text-3xl mx-10 mt-2.5 px-10 py-2.5"
+        >
             {ele()}
         </div>
     );

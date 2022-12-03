@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+ import React, { Component } from 'react';
 // eslint-disable-next-line import/no-cycle
 import SentenceT from '../lib/param/SentenceT';
 import style from './css/Subtitle.module.css';

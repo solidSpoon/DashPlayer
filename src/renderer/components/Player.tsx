@@ -102,24 +102,26 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             return <></>;
         }
         return (
-            <ReactPlayer
-                id="react-player-id"
-                ref={this.playerRef}
-                url={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                className={`react-player${style.player}`}
-                playing={playing}
-                controls={false}
-                width="100%"
-                height="100%"
-                progressInterval={50}
-                onProgress={(progress) => {
-                    onProgress(progress.playedSeconds);
-                }}
-                onDuration={(duration) => {
-                    onTotalTimeChange(duration);
-                }}
-                onReady={() => this.jumpToHistoryProgress(videoFile)}
-            />
+            <div className="w-full h-full mb-auto">
+                <ReactPlayer
+                    id="react-player-id"
+                    ref={this.playerRef}
+                    url={videoFile.objectUrl ? videoFile.objectUrl : ''}
+                    className={`react-player${style.player}`}
+                    playing={playing}
+                    controls={false}
+                    width="100%"
+                    height="100%"
+                    progressInterval={50}
+                    onProgress={(progress) => {
+                        onProgress(progress.playedSeconds);
+                    }}
+                    onDuration={(duration) => {
+                        onTotalTimeChange(duration);
+                    }}
+                    onReady={() => this.jumpToHistoryProgress(videoFile)}
+                />
+            </div>
         );
     }
 }
