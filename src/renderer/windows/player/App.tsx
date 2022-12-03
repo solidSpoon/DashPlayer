@@ -13,6 +13,7 @@ import SentenceT from '../../lib/param/SentenceT';
 import RecordProgress from '../../components/RecordProgress';
 import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
 import 'tailwindcss/tailwind.css';
+import SampleSplitter from '../../components/SampleSplitter';
 
 interface HomeState {
     /**
@@ -25,6 +26,8 @@ interface HomeState {
      * @private
      */
     subtitleFile: FileT | undefined;
+    screenHeight: number;
+    screenWidth: number;
 }
 
 export default class App extends Component<any, HomeState> {
@@ -65,11 +68,20 @@ export default class App extends Component<any, HomeState> {
         this.playerRef = React.createRef<Player>();
         this.subtitleRef = React.createRef<Subtitle>();
         this.mainSubtitleRef = React.createRef<MainSubtitle>();
-
         this.state = {
             videoFile: undefined,
             subtitleFile: undefined,
+            screenHeight: window.innerHeight,
+            screenWidth: window.innerWidth,
         };
+    }
+
+    componentDidMount(): void {
+        window.addEventListener('resize', this.updateScreenSize);
+    }
+
+    componentWillUnmount(): void {
+        window.removeEventListener('resize', this.updateScreenSize);
     }
 
     private onFileChange = (file: FileT) => {
@@ -120,6 +132,14 @@ export default class App extends Component<any, HomeState> {
         this.playerRef.current?.hideControl();
     };
 
+    private updateScreenSize = () => {
+        console.log('resize');
+        this.setState({
+            screenHeight: window.innerHeight,
+            screenWidth: window.innerWidth,
+        });
+    };
+
     private changeCurrentSentence(currentSentence: SentenceT) {
         if (this.mainSubtitleRef === undefined) {
             return;
@@ -130,15 +150,43 @@ export default class App extends Component<any, HomeState> {
     }
 
     render() {
-        const { videoFile, subtitleFile } = this.state;
+        const { videoFile, subtitleFile, screenWidth, screenHeight } =
+            this.state;
         return (
-            <div className="flex bg-blue-500 h-screen">
-                <div className="bg-green-600 w-2/3">
-                    <div className="bg-emerald-700 h-2/3" />
-                    <div className="bg-emerald-200 flex-1" />
-                </div>
-                <div className="bg-gray-400 flex-1">b</div>
-            </div>
+            <Resizable axis="x" initial={screenWidth * 0.7}>
+                {({ position: position1, separatorProps: separatorProps1 }) => (
+                    <div className="flex bg-blue-500 h-screen overflow-y-auto">
+                        <Resizable axis="y" initial={screenHeight * 0.8}>
+                            {({
+                                position: position2,
+                                separatorProps: separatorProps2,
+                            }) => (
+                                <div className="wrapper bg-green-600 w-2/3 resize-x">
+                                    <div
+                                        className="bg-emerald-700 h-2/3"
+                                        style={{ height: position2 }}
+                                    />
+                                    <SampleSplitter
+                                        isVertical={false}
+                                        id="spitter-1"
+                                        {...separatorProps2}
+                                    />
+                                    <div
+                                        className="bg-emerald-200 flex-1 min-h-min"
+                                        style={{ width: position1 }}
+                                    />
+                                </div>
+                            )}
+                        </Resizable>
+                        <SampleSplitter
+                            isVertical
+                            id="spitter-2"
+                            {...separatorProps1}
+                        />
+                        <div className="bg-gray-400 flex-1">b</div>
+                    </div>
+                )}
+            </Resizable>
         );
     }
 }
