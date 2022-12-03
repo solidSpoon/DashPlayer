@@ -166,7 +166,7 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
                 );
                 return;
             }
-            const current = this.getCurrentSentence().divElement?.current;
+            const current = this.currentSentence?.divElement?.current;
             if (
                 current !== null &&
                 current !== undefined &&
