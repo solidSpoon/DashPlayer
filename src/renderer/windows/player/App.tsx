@@ -167,22 +167,28 @@ export default class App extends Component<any, HomeState> {
                             id="spitter-2"
                             {...separatorProps1}
                         />
-                        <Resizable axis="y" initial={screenHeight * 0.2}>
+                        <Resizable
+                            axis="y"
+                            initial={screenHeight * 0.2}
+                            reverse
+                        >
                             {({
                                 position: position2,
                                 separatorProps: separatorProps2,
                             }) => (
-                                <div className="bg-green-600 flex-auto">
+                                <div className="flex flex-col-reverse bg-green-600 flex-auto">
                                     <div
-                                        className="bg-emerald-700"
+                                        className="bg-emerald-200"
                                         style={{ height: position2 }}
-                                    />
+                                    >
+                                        a
+                                    </div>
                                     <SampleSplitter
                                         isVertical={false}
                                         id="spitter-1"
                                         {...separatorProps2}
                                     />
-                                    <div className="bg-emerald-200 flex-1" />
+                                    <div className="bg-emerald-700 flex-auto" />
                                 </div>
                             )}
                         </Resizable>
