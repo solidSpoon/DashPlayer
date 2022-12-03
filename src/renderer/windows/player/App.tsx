@@ -129,6 +129,13 @@ export default class App extends Component<any, HomeState> {
         });
     }
 
+    private refreshCurrentSentence() {
+        if (this.mainSubtitleRef === undefined) {
+            return;
+        }
+        this.mainSubtitleRef.current?.forceUpdate();
+    }
+
     render() {
         const { videoFile, subtitleFile } = this.state;
         const player = (
@@ -154,6 +161,7 @@ export default class App extends Component<any, HomeState> {
                 }
                 seekTo={(time) => this.seekTo(time)}
                 subtitleFile={subtitleFile}
+                forceUpdateMain={() => this.refreshCurrentSentence()}
             />
         );
         const mainSubtitle = <MainSubtitle ref={this.mainSubtitleRef} />;

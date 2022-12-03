@@ -4,6 +4,8 @@ import SideSentence from '../../components/SideSentence';
 class SentenceT {
     key: string | undefined;
 
+    isCurrent: boolean;
+
     /**
      * 字幕序号
      */
@@ -45,6 +47,10 @@ class SentenceT {
     };
 
     divElement: React.RefObject<HTMLDivElement> | undefined;
+
+    constructor() {
+        this.isCurrent = false;
+    }
 }
 
 export default SentenceT;

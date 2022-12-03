@@ -18,12 +18,16 @@ export default class SideSentence extends Component<SideSentenceParam, any> {
 
     public show(): void {
         if (this.iconRef.current !== null) {
+            const { sentence } = this.props;
+            sentence.isCurrent = true;
             this.iconRef.current.style.visibility = 'visible';
         }
     }
 
     public hide(): void {
         if (this.iconRef.current !== null) {
+            const { sentence } = this.props;
+            sentence.isCurrent = false;
             this.iconRef.current.style.visibility = 'hidden';
         }
     }

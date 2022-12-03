@@ -13,6 +13,7 @@ interface SubtitleParam {
     getCurrentTime: () => number;
     seekTo: (time: number) => void;
     onCurrentSentenceChange: (currentSentence: SentenceT) => void;
+    forceUpdateMain: () => void;
 }
 
 interface SubtitleState {
@@ -102,7 +103,8 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
             }
             lastSubtitle = item;
         });
-        new TransFiller(srtSubtitles).fillTranslate();
+        const { forceUpdateMain } = this.props;
+        new TransFiller(srtSubtitles, forceUpdateMain).fillTranslate();
         this.setState({
             subtitles: srtSubtitles,
         });

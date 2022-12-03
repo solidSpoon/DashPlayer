@@ -5,8 +5,11 @@ import TranslateBuf from './TranslateBuf';
 export default class TransFiller {
     private readonly subtitles: Array<SentenceT>;
 
-    constructor(subtitles: Array<SentenceT>) {
+    private readonly reminder: () => void;
+
+    constructor(subtitles: Array<SentenceT>, reminder: () => void) {
         this.subtitles = subtitles || [];
+        this.reminder = reminder;
     }
 
     /**
@@ -81,7 +84,12 @@ export default class TransFiller {
         // }
         response.forEach((item, i) => {
             const index = start + i;
-            this.subtitles[index].msTranslate = item;
+            const sentenceT = this.subtitles[index];
+            console.log('报错', sentenceT, index);
+            sentenceT.msTranslate = item;
+            if (sentenceT.isCurrent) {
+                this.reminder();
+            }
         });
     }
 }
