@@ -158,7 +158,7 @@ export default class App extends Component<any, HomeState> {
         );
         const mainSubtitle = <MainSubtitle ref={this.mainSubtitleRef} />;
         return (
-            <div className="font-face-arc">
+            <div className="font-face-arc bg-neutral-800">
                 <GlobalShortCut
                     onJumpTo={(position) => this.onJumpTo(position)}
                     onSpace={() => this.onSpace()}

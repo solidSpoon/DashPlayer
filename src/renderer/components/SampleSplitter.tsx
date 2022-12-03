@@ -20,9 +20,8 @@ const SampleSplitter = ({
             data-testid={id}
             className={cn(
                 isVertical ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize',
-                'bg-amber-100',
-                'hover:bg-amber-200',
-                isFocused ? 'bg-amber-200' : `bg-amber-100`
+                'hover:bg-neutral-600',
+                isFocused ? 'bg-neutral-600' : `bg-none`
             )}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}

@@ -30,8 +30,8 @@ const ResizeableSkeleton = ({
     return (
         <Resizable axis="x" initial={screenWidth * 0.3} reverse>
             {({ position: position1, separatorProps: separatorProps1 }) => (
-                <div className="flex flex-row-reverse bg-blue-500 h-screen overflow-y-auto">
-                    <div className="bg-gray-400 " style={{ width: position1 }}>
+                <div className="flex flex-row-reverse h-screen overflow-y-auto">
+                    <div className="" style={{ width: position1 }}>
                         {subtitle}
                     </div>
                     <SampleSplitter
@@ -50,11 +50,11 @@ const ResizeableSkeleton = ({
                             separatorProps: separatorProps2,
                         }) => (
                             <div
-                                className="flex flex-col-reverse bg-green-600 flex-auto"
+                                className="flex flex-col-reverse flex-auto"
                                 style={{ width: screenWidth - position1 - 1 }}
                             >
                                 <div
-                                    className="bg-emerald-200 overflow-y-auto"
+                                    className="overflow-y-auto"
                                     style={{ height: position2 }}
                                 >
                                     {currentSentence}
@@ -65,7 +65,7 @@ const ResizeableSkeleton = ({
                                     {...separatorProps2}
                                 />
                                 <div
-                                    className="bg-emerald-700 flex-auto min-h-0"
+                                    className="flex-auto min-h-0"
                                     style={{
                                         height: screenHeight - position2 - 1,
                                     }}
