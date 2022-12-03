@@ -37,7 +37,7 @@ export default class MainSubtitle extends Component<any, MainSubtitleState> {
             elements.push(
                 <div
                     key={3}
-                    className="my-0 mx-10 text-2xl py-2.5 px-10 bg-neutral-700"
+                    className="drop-shadow my-0 mx-10 text-2xl py-2.5 px-10 bg-neutral-700 rounded-lg"
                 >
                     {sentence.textZH}
                 </div>
