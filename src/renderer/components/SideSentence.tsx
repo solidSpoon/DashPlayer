@@ -44,7 +44,9 @@ export default class SideSentence extends Component<SideSentenceParam, any> {
                 hover:drop-shadow-xl
                 hover:scale-y-95
                 hover:shadow-inner
+                hover:shadow-neutral-500
                 hover:bg-neutral-600
+                hover:drop-shadow-lg
                 text-lg
                 drop-shadow
                 "
