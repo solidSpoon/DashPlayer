@@ -3,7 +3,6 @@ import s from './css/TranslatableLine.module.css';
 
 interface TranslatableSubtitleLineParam {
     text: string;
-    className: string | undefined;
 }
 
 const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
