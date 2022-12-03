@@ -1,5 +1,4 @@
 import { ReactElement } from 'react';
-import s from './css/TranslatableLine.module.css';
 
 interface TranslatableSubtitleLineParam {
     text: string;
@@ -21,7 +20,7 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
     const notWord = (str: string): ReactElement => {
         keyIndex += 1;
         return (
-            <span className={s.notWord} key={keyIndex}>
+            <span className="select-none" key={keyIndex}>
                 {str}
             </span>
         );
@@ -29,10 +28,15 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
     const word = (str: string): ReactElement => {
         const t = () => trans(str);
         keyIndex += 1;
+
         return (
             <>
                 {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
-                <span className={s.word} key={keyIndex} onClick={t}>
+                <span
+                    className="rounded select-none hover:bg-zinc-600"
+                    key={keyIndex}
+                    onClick={t}
+                >
                     {str}
                 </span>
             </>

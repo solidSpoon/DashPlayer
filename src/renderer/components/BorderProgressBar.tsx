@@ -1,6 +1,7 @@
 import ProgressBar from '@ramonak/react-progress-bar';
 import { Component } from 'react';
-import s from './css/BorderProgressBar.module.css';
+import { visible } from 'chalk';
+import PlayTime from './PlayTime';
 
 interface BorderProgressBarParam {
     getCurrentTime: () => number;
@@ -9,6 +10,7 @@ interface BorderProgressBarParam {
 
 interface BorderProgressBarState {
     completed: number;
+    isHover: boolean;
 }
 
 export default class BorderProgressBar extends Component<
@@ -23,6 +25,7 @@ export default class BorderProgressBar extends Component<
         super(props);
         this.state = {
             completed: 100,
+            isHover: false,
         };
     }
 
@@ -47,16 +50,30 @@ export default class BorderProgressBar extends Component<
     };
 
     render() {
-        const { completed } = this.state;
+        const { completed, isHover } = this.state;
+        const { getTotalTime, getCurrentTime } = this.props;
+        const vis = isHover ? 'visible' : 'invisible';
         return (
-            <div className={s.processBar}>
-                <ProgressBar
-                    completed={completed}
-                    transitionDuration="0.2s"
-                    isLabelVisible={false}
-                    height="8px"
-                    width="100%"
-                />
+            <div
+                className="w-full flex flex-col-reverse items-end absolute bottom-0 h-10 hover:bg-stone-200 mt-60"
+                onMouseOver={() => this.setState({ isHover: true })}
+                onMouseLeave={() => this.setState({ isHover: false })}
+            >
+                <div className="w-full">
+                    <ProgressBar
+                        completed={completed}
+                        transitionDuration="0.2s"
+                        isLabelVisible={false}
+                        height="8px"
+                        width="100%"
+                    />
+                </div>
+                <div className={`mr-5 ${vis}`}>
+                    <PlayTime
+                        getProgress={getCurrentTime}
+                        getTotalTime={getTotalTime}
+                    />
+                </div>
             </div>
         );
     }

@@ -1,6 +1,5 @@
 import ReactPlayer from 'react-player';
 import React, { Component, ReactElement } from 'react';
-import style from './css/Player.module.css';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
 
@@ -107,7 +106,6 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                     id="react-player-id"
                     ref={this.playerRef}
                     url={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                    className={`react-player${style.player}`}
                     playing={playing}
                     controls={false}
                     width="100%"

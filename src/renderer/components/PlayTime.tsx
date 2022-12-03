@@ -1,5 +1,4 @@
 import { Component } from 'react';
-import style from './css/PlayTime.module.css';
 
 interface PlayTimeParam {
     getProgress: () => number;
@@ -57,15 +56,11 @@ export default class PlayTime extends Component<
     render() {
         const { progress, totalTime } = this.state;
         return (
-            <>
-                <div className={style.timeContainer}>
-                    <div className={style.time}>
-                        <span className={style.timeText}>{progress}</span>
-                        &nbsp;/&nbsp;
-                        <span className={style.timeText}>{totalTime}</span>
-                    </div>
-                </div>
-            </>
+            <div className="text-black">
+                <span className="rounded">{progress}</span>
+                &nbsp;/&nbsp;
+                <span className="rounded">{totalTime}</span>
+            </div>
         );
     }
 }

@@ -1,6 +1,5 @@
 import React, { Component, ReactElement } from 'react';
 import axios from 'axios';
-import style from './css/Subtitle.module.css';
 import searchSubtitle from '../lib/searchSubtitle';
 import SentenceT from '../lib/param/SentenceT';
 import FileT from '../lib/param/FileT';
@@ -236,7 +235,10 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
     render() {
         console.log('Subtitle render');
         return (
-            <div className={style.subtitleBox} ref={this.parentRef}>
+            <div
+                className="flex flex-col w-full h-full overflow-x-hidden overflow-y-auto"
+                ref={this.parentRef}
+            >
                 {this.subtitleItems()}
             </div>
         );

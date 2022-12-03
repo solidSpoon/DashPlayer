@@ -21,6 +21,9 @@ const SampleSplitter = ({
             className={cn(
                 isVertical ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize',
                 'hover:bg-neutral-600',
+                'bg-neutral-700',
+                'drop-shadow',
+                'shadow-inner',
                 isFocused ? 'bg-neutral-600' : `bg-none`
             )}
             onFocus={() => setIsFocused(true)}
