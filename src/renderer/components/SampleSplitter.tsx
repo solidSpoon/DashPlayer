@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { SeparatorProps } from 'react-resizable-layout';
 import cn from '../lib/cn';
-import s from './SampleSplitter.module.css';
 
 interface SampleSplitterParam extends SeparatorProps {
     id: string;
