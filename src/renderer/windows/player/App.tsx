@@ -153,23 +153,28 @@ export default class App extends Component<any, HomeState> {
         const { videoFile, subtitleFile, screenWidth, screenHeight } =
             this.state;
         return (
-            <Resizable axis="x" initial={screenWidth * 0.7} reverse>
+            <Resizable axis="x" initial={screenWidth * 0.2} reverse>
                 {({ position: position1, separatorProps: separatorProps1 }) => (
                     <div className="flex flex-row-reverse bg-blue-500 h-screen overflow-y-auto">
-                        <div className="bg-gray-400 " style={{width: position1}}>b</div>
+                        <div
+                            className="bg-gray-400 "
+                            style={{ width: position1 }}
+                        >
+                            b
+                        </div>
                         <SampleSplitter
                             isVertical
                             id="spitter-2"
                             {...separatorProps1}
                         />
-                        <Resizable axis="y" initial={screenHeight * 0.8}>
+                        <Resizable axis="y" initial={screenHeight * 0.2}>
                             {({
                                 position: position2,
                                 separatorProps: separatorProps2,
                             }) => (
-                                <div className="wrapper bg-green-600 w-2/3 resize-x flex-auto">
+                                <div className="bg-green-600 flex-auto">
                                     <div
-                                        className="bg-emerald-700 h-2/3"
+                                        className="bg-emerald-700"
                                         style={{ height: position2 }}
                                     />
                                     <SampleSplitter
@@ -177,10 +182,7 @@ export default class App extends Component<any, HomeState> {
                                         id="spitter-1"
                                         {...separatorProps2}
                                     />
-                                    <div
-                                        className="bg-emerald-200 flex-1 min-h-min"
-                                        style={{ width: position1 }}
-                                    />
+                                    <div className="bg-emerald-200 flex-1" />
                                 </div>
                             )}
                         </Resizable>
