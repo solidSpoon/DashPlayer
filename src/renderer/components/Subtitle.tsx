@@ -164,10 +164,21 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
                 );
                 return;
             }
-            this.parentRef.current?.scrollTo({
-                top: offsetTop - 50,
-                behavior: 'smooth',
-            });
+            const current = this.getCurrentSentence().divElement?.current;
+            if (
+                current !== null &&
+                current !== undefined &&
+                !isVisible(current)
+            ) {
+                this.parentRef.current?.scrollTo({
+                    top: offsetTop - 50,
+                });
+            } else {
+                this.parentRef.current?.scrollTo({
+                    top: offsetTop - 50,
+                    behavior: 'smooth',
+                });
+            }
         }
 
         sentence?.element?.current?.show();
