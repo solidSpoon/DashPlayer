@@ -12,7 +12,6 @@ const SampleSplitter = ({
     isVertical = true,
     ...props
 }: SampleSplitterParam) => {
-    const [isFocused, setIsFocused] = useState(false);
 
     return (
         <div
@@ -23,11 +22,8 @@ const SampleSplitter = ({
                 'hover:bg-neutral-600',
                 'bg-neutral-700',
                 'drop-shadow',
-                'shadow-inner',
-                isFocused ? 'bg-neutral-600' : `bg-none`
+                'shadow-inner'
             )}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
             {...props}
         />
     );

@@ -51,7 +51,10 @@ const ResizeableSkeleton = ({
                         }) => (
                             <div
                                 className="flex flex-col-reverse flex-auto"
-                                style={{ width: screenWidth - position1 - 1 }}
+                                // style={{ width: screenWidth - position1 - 1 }}
+                                style={{
+                                    width: `calc(100vw - ${position1}px - 1px)`,
+                                }}
                             >
                                 <div
                                     className="overflow-y-auto"
@@ -66,8 +69,11 @@ const ResizeableSkeleton = ({
                                 />
                                 <div
                                     className="flex-auto min-h-0"
+                                    // style={{
+                                    //     height: screenHeight - position2 - 1,
+                                    // }}
                                     style={{
-                                        height: screenHeight - position2 - 1,
+                                        height: `calc(100vh - ${position2}px - 1px)`,
                                     }}
                                 >
                                     {player}
