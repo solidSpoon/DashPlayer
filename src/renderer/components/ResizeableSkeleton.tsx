@@ -12,19 +12,23 @@ const ResizeableSkeleton = ({
     currentSentence,
     subtitle,
 }: ResizeableSkeletonParam) => {
-    const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+    const [screenWidth, setScreenWidth] = useState(document.body.clientWidth);
     const [screenHeight, setScreenHeight] = useState(window.innerHeight);
     useEffect(() => {
         const updateScreenSize = () => {
             console.log('updateScreenSize');
-            setScreenWidth(window.innerWidth);
+            setScreenWidth(document.body.clientWidth);
             setScreenHeight(window.innerHeight);
         };
         window.addEventListener('resize', updateScreenSize);
-        return window.removeEventListener('resize', updateScreenSize);
+        return () => window.removeEventListener('resize', updateScreenSize);
     }, []);
+    // const getWidth = (): number => {
+    //     console.log('call');
+    //     return screenWidth;
+    // };
     return (
-        <Resizable axis="x" initial={screenWidth * 0.2} reverse>
+        <Resizable axis="x" initial={screenWidth * 0.3} reverse>
             {({ position: position1, separatorProps: separatorProps1 }) => (
                 <div className="flex flex-row-reverse bg-blue-500 h-screen overflow-y-auto">
                     <div className="bg-gray-400 " style={{ width: position1 }}>
@@ -35,25 +39,37 @@ const ResizeableSkeleton = ({
                         id="spitter-2"
                         {...separatorProps1}
                     />
-                    <Resizable axis="y" initial={screenHeight * 0.2} reverse>
+                    <Resizable
+                        axis="y"
+                        initial={screenHeight * 0.2}
+                        reverse
+                        min={9}
+                    >
                         {({
                             position: position2,
                             separatorProps: separatorProps2,
                         }) => (
-                            <div className="flex flex-col-reverse bg-green-600 flex-auto">
+                            <div
+                                className="flex flex-col-reverse bg-green-600 flex-auto"
+                                style={{ width: screenWidth - position1 - 1 }}
+                            >
                                 <div
                                     className="bg-emerald-200 overflow-y-auto"
                                     style={{ height: position2 }}
                                 >
-                                    <div className="w-full overflow-hidden basis-0">1111</div>
-                                    {/* {currentSentence} */}
+                                    {currentSentence}
                                 </div>
                                 <SampleSplitter
                                     isVertical={false}
                                     id="spitter-1"
                                     {...separatorProps2}
                                 />
-                                <div className="bg-emerald-700 flex-auto">
+                                <div
+                                    className="bg-emerald-700 flex-auto min-h-0"
+                                    style={{
+                                        height: screenHeight - position2 - 1,
+                                    }}
+                                >
                                     {player}
                                 </div>
                             </div>
