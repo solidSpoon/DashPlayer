@@ -18,9 +18,8 @@ const SampleSplitter = ({
         <div
             id={id}
             data-testid={id}
-            tabIndex={0}
             className={cn(
-                isVertical ? 'w-5' : 'h-5',
+                isVertical ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize',
                 'bg-amber-100',
                 'hover:bg-amber-200',
                 isFocused ? 'bg-amber-200' : `bg-amber-100`

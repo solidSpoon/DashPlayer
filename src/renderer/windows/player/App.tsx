@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import './App.css';
-import Resizable from 'react-resizable-layout';
 import FileT, { FileType } from '../../lib/param/FileT';
 import Player from '../../components/Player';
 import Subtitle from '../../components/Subtitle';
@@ -13,7 +12,7 @@ import SentenceT from '../../lib/param/SentenceT';
 import RecordProgress from '../../components/RecordProgress';
 import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
 import 'tailwindcss/tailwind.css';
-import SampleSplitter from '../../components/SampleSplitter';
+import ResizeableSkeleton from '../../components/ResizeableSkeleton';
 
 interface HomeState {
     /**
@@ -26,8 +25,6 @@ interface HomeState {
      * @private
      */
     subtitleFile: FileT | undefined;
-    screenHeight: number;
-    screenWidth: number;
 }
 
 export default class App extends Component<any, HomeState> {
@@ -68,20 +65,11 @@ export default class App extends Component<any, HomeState> {
         this.playerRef = React.createRef<Player>();
         this.subtitleRef = React.createRef<Subtitle>();
         this.mainSubtitleRef = React.createRef<MainSubtitle>();
+
         this.state = {
             videoFile: undefined,
             subtitleFile: undefined,
-            screenHeight: window.innerHeight,
-            screenWidth: window.innerWidth,
         };
-    }
-
-    componentDidMount(): void {
-        window.addEventListener('resize', this.updateScreenSize);
-    }
-
-    componentWillUnmount(): void {
-        window.removeEventListener('resize', this.updateScreenSize);
     }
 
     private onFileChange = (file: FileT) => {
@@ -132,14 +120,6 @@ export default class App extends Component<any, HomeState> {
         this.playerRef.current?.hideControl();
     };
 
-    private updateScreenSize = () => {
-        console.log('resize');
-        this.setState({
-            screenHeight: window.innerHeight,
-            screenWidth: window.innerWidth,
-        });
-    };
-
     private changeCurrentSentence(currentSentence: SentenceT) {
         if (this.mainSubtitleRef === undefined) {
             return;
@@ -150,51 +130,57 @@ export default class App extends Component<any, HomeState> {
     }
 
     render() {
-        const { videoFile, subtitleFile, screenWidth, screenHeight } =
-            this.state;
+        const { videoFile, subtitleFile } = this.state;
+        const player = (
+            <>
+                <Player
+                    ref={this.playerRef}
+                    videoFile={videoFile}
+                    onProgress={(time) => {
+                        this.progress = time;
+                    }}
+                    onTotalTimeChange={(time) => {
+                        this.totalTime = time;
+                    }}
+                />
+            </>
+        );
+        const subtitle = (
+            <Subtitle
+                ref={this.subtitleRef}
+                getCurrentTime={() => this.progress}
+                onCurrentSentenceChange={(currentSentence) =>
+                    this.changeCurrentSentence(currentSentence)
+                }
+                seekTo={(time) => this.seekTo(time)}
+                subtitleFile={subtitleFile}
+            />
+        );
+        const mainSubtitle = <MainSubtitle ref={this.mainSubtitleRef} />;
         return (
-            <Resizable axis="x" initial={screenWidth * 0.2} reverse>
-                {({ position: position1, separatorProps: separatorProps1 }) => (
-                    <div className="flex flex-row-reverse bg-blue-500 h-screen overflow-y-auto">
-                        <div
-                            className="bg-gray-400 "
-                            style={{ width: position1 }}
-                        >
-                            b
-                        </div>
-                        <SampleSplitter
-                            isVertical
-                            id="spitter-2"
-                            {...separatorProps1}
-                        />
-                        <Resizable
-                            axis="y"
-                            initial={screenHeight * 0.2}
-                            reverse
-                        >
-                            {({
-                                position: position2,
-                                separatorProps: separatorProps2,
-                            }) => (
-                                <div className="flex flex-col-reverse bg-green-600 flex-auto">
-                                    <div
-                                        className="bg-emerald-200"
-                                        style={{ height: position2 }}
-                                    >
-                                        a
-                                    </div>
-                                    <SampleSplitter
-                                        isVertical={false}
-                                        id="spitter-1"
-                                        {...separatorProps2}
-                                    />
-                                    <div className="bg-emerald-700 flex-auto" />
-                                </div>
-                            )}
-                        </Resizable>
-                    </div>
-                )}
-            </Resizable>
+            <div className="font-face-arc">
+                <GlobalShortCut
+                    onJumpTo={(position) => this.onJumpTo(position)}
+                    onSpace={() => this.onSpace()}
+                />
+                <RecordProgress
+                    getCurrentProgress={() => this.progress}
+                    getCurrentVideoFile={() => videoFile}
+                />
+                <ResizeableSkeleton
+                    player={player}
+                    currentSentence={mainSubtitle}
+                    subtitle={subtitle}
+                />
+
+                <UploadPhoto onFileChange={this.onFileChange} />
+                <div id="progressBarRef">
+                    <BorderProgressBar
+                        getCurrentTime={() => this.progress}
+                        getTotalTime={() => this.totalTime}
+                    />
+                </div>
+            </div>
         );
     }
 }

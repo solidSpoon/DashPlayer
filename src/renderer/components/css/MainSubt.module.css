@@ -1,10 +1,8 @@
 .mainSubtitleContainer {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    /*width: 100%;*/
     text-align: center;
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
 .source {
