@@ -55,7 +55,7 @@ export default class BorderProgressBar extends Component<
         const vis = isHover ? 'visible' : 'invisible';
         return (
             <div
-                className="w-full flex flex-col-reverse items-end absolute bottom-0 h-10 hover:bg-stone-200 mt-60"
+                className="w-full flex flex-col-reverse items-end absolute bottom-0 h-10 hover:bg-stone-200 mt-60 delay-500"
                 onMouseOver={() => this.setState({ isHover: true })}
                 onMouseLeave={() => this.setState({ isHover: false })}
             >
@@ -66,6 +66,7 @@ export default class BorderProgressBar extends Component<
                         isLabelVisible={false}
                         height="8px"
                         width="100%"
+                        borderRadius="0"
                     />
                 </div>
                 <div className={`mr-5 ${vis}`}>

@@ -252,7 +252,9 @@ export default class Subtitle extends Component<SubtitleParam, SubtitleState> {
                 className="flex flex-col w-full h-full overflow-x-hidden overflow-y-auto"
                 ref={this.parentRef}
             >
+                <div className="w-full mt-3" />
                 {this.subtitleItems()}
+                <div className="w-full mb-96" />
             </div>
         );
     }

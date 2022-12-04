@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { SeparatorProps } from 'react-resizable-layout';
 import cn from '../lib/cn';
 

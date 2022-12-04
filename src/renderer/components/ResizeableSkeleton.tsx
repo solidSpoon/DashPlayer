@@ -23,10 +23,6 @@ const ResizeableSkeleton = ({
         window.addEventListener('resize', updateScreenSize);
         return () => window.removeEventListener('resize', updateScreenSize);
     }, []);
-    // const getWidth = (): number => {
-    //     console.log('call');
-    //     return screenWidth;
-    // };
     return (
         <Resizable axis="x" initial={screenWidth * 0.3} reverse>
             {({ position: position1, separatorProps: separatorProps1 }) => (
@@ -51,7 +47,6 @@ const ResizeableSkeleton = ({
                         }) => (
                             <div
                                 className="flex flex-col-reverse flex-auto"
-                                // style={{ width: screenWidth - position1 - 1 }}
                                 style={{
                                     width: `calc(100vw - ${position1}px - 1px)`,
                                 }}
@@ -69,9 +64,6 @@ const ResizeableSkeleton = ({
                                 />
                                 <div
                                     className="flex-auto min-h-0"
-                                    // style={{
-                                    //     height: screenHeight - position2 - 1,
-                                    // }}
                                     style={{
                                         height: `calc(100vh - ${position2}px - 1px)`,
                                     }}
