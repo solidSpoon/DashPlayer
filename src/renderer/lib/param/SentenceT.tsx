@@ -1,7 +1,9 @@
 // eslint-disable-next-line import/no-cycle
-import SideSentence from '../../components/SideSentence';
+import { randomUUID } from 'crypto';
 
 class SentenceT {
+    id: string;
+
     key: string | undefined;
 
     isCurrent: boolean;
@@ -36,8 +38,6 @@ class SentenceT {
 
     prevItem: SentenceT | undefined;
 
-    element: React.RefObject<SideSentence> | undefined;
-
     public getPrevItem = (): SentenceT => {
         return this.prevItem as SentenceT;
     };
@@ -49,6 +49,7 @@ class SentenceT {
     divElement: React.RefObject<HTMLDivElement> | undefined;
 
     constructor() {
+        this.id = randomUUID();
         this.isCurrent = false;
     }
 }
