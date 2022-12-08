@@ -1,21 +1,17 @@
-import React, { Component, ReactElement } from 'react';
+import React, { PureComponent, ReactElement } from 'react';
 import SentenceT from '../lib/param/SentenceT';
 import TranslatableLine from './TranslatableLine';
 
-interface MainSubtitleState {
+interface MainSubtitleParam {
     sentence: undefined | SentenceT;
 }
 
-export default class MainSubtitle extends Component<any, MainSubtitleState> {
-    constructor(props: never) {
-        super(props);
-        this.state = {
-            sentence: undefined,
-        };
-    }
-
+export default class MainSubtitle extends PureComponent<
+    MainSubtitleParam,
+    never
+> {
     private ele(): ReactElement[] {
-        const { sentence } = this.state;
+        const { sentence } = this.props;
         const elements: ReactElement[] = [];
         if (sentence === undefined) {
             return elements;
@@ -50,7 +46,10 @@ export default class MainSubtitle extends Component<any, MainSubtitleState> {
     }
 
     render() {
-        const { sentence } = this.state;
+        const { sentence } = this.props;
+        if (sentence === undefined) {
+            return <></>;
+        }
         return (
             <div
                 key={`trans-sub:${sentence?.getKey()}`}

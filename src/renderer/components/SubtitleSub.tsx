@@ -2,7 +2,6 @@ import React, { Component, PureComponent, ReactElement } from 'react';
 import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentenceNew from './SideSentenceNew';
-import { visible } from 'chalk';
 
 interface SubtitleSubParam {
     subtitles: SentenceT[];
@@ -14,7 +13,7 @@ interface SubtitleSubState {
     current: SentenceT | undefined;
 }
 
-export default class SubtitleSub extends Component<
+export default class SubtitleSub extends PureComponent<
     SubtitleSubParam,
     SubtitleSubState
 > {

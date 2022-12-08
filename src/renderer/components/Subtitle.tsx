@@ -7,7 +7,6 @@ import TransFiller from '../lib/TransFiller';
 import SubtitleSub from './SubtitleSub';
 import callApi from '../lib/apis/ApiWrapper';
 import TranslateBuf from '../lib/TranslateBuf';
-import sentenceT from '../lib/param/SentenceT';
 
 interface SubtitleParam {
     subtitleFile: FileT | undefined;
@@ -83,7 +82,7 @@ export default class Subtitle extends PureComponent<
     private getTranslatedArray = (
         arr: SentenceT[],
         buffer: TranslateBuf
-    ): sentenceT[] => {
+    ): SentenceT[] => {
         const newArr: SentenceT[] = [...arr];
         const { response } = buffer;
         if (response === undefined) {

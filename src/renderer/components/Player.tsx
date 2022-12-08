@@ -1,5 +1,5 @@
 import ReactPlayer from 'react-player';
-import React, { Component, ReactElement } from 'react';
+import React, { Component, PureComponent, ReactElement } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
 
@@ -14,7 +14,7 @@ interface PlayerState {
     showControl: boolean;
 }
 
-export default class Player extends Component<PlayerParam, PlayerState> {
+export default class Player extends PureComponent<PlayerParam, PlayerState> {
     private readonly playerRef: React.RefObject<ReactPlayer>;
 
     private playing: boolean;

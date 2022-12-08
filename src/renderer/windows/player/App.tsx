@@ -25,6 +25,8 @@ interface HomeState {
      * @private
      */
     subtitleFile: FileT | undefined;
+
+    currentSentence: SentenceT | undefined;
 }
 
 export default class App extends Component<any, HomeState> {
@@ -52,23 +54,17 @@ export default class App extends Component<any, HomeState> {
      */
     private subtitleRef: React.RefObject<Subtitle>;
 
-    /**
-     * 主字幕组件引用
-     * @private
-     */
-    private mainSubtitleRef: React.RefObject<MainSubtitle>;
-
     constructor(props: any) {
         super(props);
         this.progress = 0;
         this.totalTime = 0;
         this.playerRef = React.createRef<Player>();
         this.subtitleRef = React.createRef<Subtitle>();
-        this.mainSubtitleRef = React.createRef<MainSubtitle>();
 
         this.state = {
             videoFile: undefined,
             subtitleFile: undefined,
+            currentSentence: undefined,
         };
     }
 
@@ -121,23 +117,13 @@ export default class App extends Component<any, HomeState> {
     };
 
     private changeCurrentSentence(currentSentence: SentenceT) {
-        if (this.mainSubtitleRef === undefined) {
-            return;
-        }
-        this.mainSubtitleRef.current?.setState({
-            sentence: currentSentence,
+        this.setState({
+            currentSentence,
         });
     }
 
-    private refreshCurrentSentence() {
-        if (this.mainSubtitleRef === undefined) {
-            return;
-        }
-        this.mainSubtitleRef.current?.forceUpdate();
-    }
-
     render() {
-        const { videoFile, subtitleFile } = this.state;
+        const { videoFile, subtitleFile, currentSentence } = this.state;
         const player = (
             <>
                 <Player
@@ -156,14 +142,14 @@ export default class App extends Component<any, HomeState> {
             <Subtitle
                 ref={this.subtitleRef}
                 getCurrentTime={() => this.progress}
-                onCurrentSentenceChange={(currentSentence) =>
-                    this.changeCurrentSentence(currentSentence)
+                onCurrentSentenceChange={(current) =>
+                    this.changeCurrentSentence(current)
                 }
                 seekTo={(time) => this.seekTo(time)}
                 subtitleFile={subtitleFile}
             />
         );
-        const mainSubtitle = <MainSubtitle ref={this.mainSubtitleRef} />;
+        const mainSubtitle = <MainSubtitle sentence={currentSentence} />;
         return (
             <div className="font-face-arc bg-neutral-800">
                 <GlobalShortCut
