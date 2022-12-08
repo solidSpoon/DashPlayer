@@ -35,7 +35,6 @@ export default class SubtitleSub extends PureComponent<
     }
 
     componentDidMount() {
-        console.log('setin');
         this.timer = setInterval(this.interval, 50);
     }
 
