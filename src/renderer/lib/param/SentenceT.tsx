@@ -2,55 +2,55 @@
 import { randomUUID } from 'crypto';
 
 class SentenceT {
-    id: string;
+    public index: number;
 
-    key: string | undefined;
+    public currentBegin: number | undefined;
 
-    isCurrent: boolean;
+    public currentEnd: number | undefined;
 
-    /**
-     * 字幕序号
-     */
-    sn: string | undefined;
-
-    timeStart: number | undefined;
-
-    timeEnd: number | undefined;
+    public nextBegin: number | undefined;
 
     /**
      * 字幕英文原文
      */
-    text: string | undefined;
+    public text: string | undefined;
 
     /**
      * 字幕中文原文
      */
-    textZH: string | undefined;
+    public textZH: string | undefined;
+
+    public fileUrl: string | undefined;
 
     /**
      * 字幕机器翻译
      */
-    fileUrl: string | undefined;
+    public msTranslate: string | undefined;
 
-    msTranslate: string | undefined;
-
-    nextItem: SentenceT | undefined;
-
-    prevItem: SentenceT | undefined;
-
-    public getPrevItem = (): SentenceT => {
-        return this.prevItem as SentenceT;
+    public getKey = (): string => {
+        return `${this.fileUrl ?? 'file-url'}<->${this.index}`;
     };
 
-    public getNestItem = (): SentenceT => {
-        return this.nextItem as SentenceT;
+    public equals(other: SentenceT | undefined): boolean {
+        if (other === undefined) {
+            return false;
+        }
+        return this.getKey() === other.getKey();
+    }
+
+    public isCurrent = (time: number): boolean => {
+        if (
+            this.currentBegin === undefined ||
+            this.currentEnd === undefined ||
+            this.nextBegin === undefined
+        ) {
+            return false;
+        }
+        return time >= this.currentBegin - 0.2 && time <= this.nextBegin;
     };
 
-    divElement: React.RefObject<HTMLDivElement> | undefined;
-
-    constructor() {
-        this.id = randomUUID();
-        this.isCurrent = false;
+    constructor(index: number) {
+        this.index = index;
     }
 }
 

@@ -22,13 +22,16 @@ export default class MainSubtitle extends Component<any, MainSubtitleState> {
         }
         elements.push(
             <TranslatableLine
-                key={1}
+                key={`first-line:${sentence.getKey()}`}
                 text={sentence.text ? sentence.text : ''}
             />
         );
         if (sentence.msTranslate !== undefined) {
             elements.push(
-                <div key={2} className="my-0 mx-10 text-3xl py-2.5 px-10">
+                <div
+                    key={`secondLine${sentence.getKey()}`}
+                    className="my-0 mx-10 text-3xl py-2.5 px-10"
+                >
                     {sentence.msTranslate}
                 </div>
             );
@@ -36,7 +39,7 @@ export default class MainSubtitle extends Component<any, MainSubtitleState> {
         if (sentence.textZH !== undefined) {
             elements.push(
                 <div
-                    key={3}
+                    key={`third-line${sentence.getKey()}`}
                     className="drop-shadow my-0 mx-10 text-2xl py-2.5 px-10 bg-neutral-700 rounded-lg"
                 >
                     {sentence.textZH}
@@ -47,6 +50,14 @@ export default class MainSubtitle extends Component<any, MainSubtitleState> {
     }
 
     render() {
-        return <div className="flex flex-col text-center">{this.ele()}</div>;
+        const { sentence } = this.state;
+        return (
+            <div
+                key={`trans-sub:${sentence?.getKey()}`}
+                className="flex flex-col text-center"
+            >
+                {this.ele()}
+            </div>
+        );
     }
 }

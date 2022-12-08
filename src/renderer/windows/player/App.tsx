@@ -161,7 +161,6 @@ export default class App extends Component<any, HomeState> {
                 }
                 seekTo={(time) => this.seekTo(time)}
                 subtitleFile={subtitleFile}
-                forceUpdateMain={() => this.refreshCurrentSentence()}
             />
         );
         const mainSubtitle = <MainSubtitle ref={this.mainSubtitleRef} />;

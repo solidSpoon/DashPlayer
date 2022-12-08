@@ -15,10 +15,10 @@ export default class TransFiller {
     /**
      * 填充翻译
      */
-    public fillTranslate(): void {
+    public static translate(sentences: SentenceT[]): Promise<SentenceT[]> {
         const buffers = this.splitToBuffers(this.subtitles, 1000);
         // eslint-disable-next-line promise/catch-or-return
-        this.batchTranslate(buffers, 300).finally();
+        return this.batchTranslate(buffers, 300);
     }
 
     /**
@@ -27,7 +27,7 @@ export default class TransFiller {
      * @param capacity 批处理块容量
      * @private
      */
-    private splitToBuffers = (
+    private static splitToBuffers = (
         subtitles: SentenceT[],
         capacity: number
     ): TranslateBuf[] => {
@@ -51,7 +51,7 @@ export default class TransFiller {
      * @param delay 每次翻译的间隔时间
      * @private
      */
-    private async batchTranslate(
+    private static async batchTranslate(
         buffers: TranslateBuf[],
         delay: number
     ): Promise<void> {
@@ -74,11 +74,14 @@ export default class TransFiller {
         }
     }
 
-    sleep = (ms: number): Promise<void> => {
+    private static sleep = (ms: number): Promise<void> => {
         return new Promise((resolve) => setTimeout(resolve, ms));
     };
 
-    processTransResponse(response: string[], start: number): void {
+    private static processTransResponse(
+        response: string[],
+        start: number
+    ): void {
         // if (response["data"]["success"] === false) {
         //     return;
         // }
@@ -87,7 +90,7 @@ export default class TransFiller {
             const sentenceT = this.subtitles[index];
             console.log('报错', sentenceT, index);
             sentenceT.msTranslate = item;
-            if (sentenceT.isCurrent) {
+            if (sentenceT.current) {
                 this.reminder();
             }
         });
