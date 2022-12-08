@@ -1,4 +1,4 @@
-import React, { Component, ReactElement } from 'react';
+import React, { Component, PureComponent, ReactElement } from 'react';
 import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentenceNew from './SideSentenceNew';
