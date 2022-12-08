@@ -2,6 +2,7 @@ import React, { Component, PureComponent, ReactElement } from 'react';
 import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentenceNew from './SideSentenceNew';
+import { visible } from 'chalk';
 
 interface SubtitleSubParam {
     subtitles: SentenceT[];
@@ -39,24 +40,40 @@ export default class SubtitleSub extends Component<
         this.timer = setInterval(this.interval, 50);
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(
+        prevProps: Readonly<SubtitleSubParam>,
+        prevState: Readonly<SubtitleSubState>,
+        snapshot?: any
+    ) {
+        const beforeIsViable = snapshot as boolean;
         const currentDiv = this.currentRef.current;
         if (currentDiv === null || isVisible(currentDiv)) {
             return;
         }
         const { offsetTop } = currentDiv;
-        this.parentRef.current?.scrollTo({
-            top: offsetTop - 50,
-            behavior: 'smooth',
-        });
+        if (beforeIsViable) {
+            this.parentRef.current?.scrollTo({
+                top: offsetTop - 50,
+                behavior: 'smooth',
+            });
+        } else {
+            this.parentRef.current?.scrollTo({
+                top: offsetTop - 50,
+            });
+        }
     }
 
     componentWillUnmount() {
         clearInterval(this.timer);
     }
 
-    // eslint-disable-next-line react/destructuring-assignment
-    private getCurrentTime = () => this.props.getCurrentTime();
+    getSnapshotBeforeUpdate() {
+        const ele = this.currentRef.current;
+        if (ele === null) {
+            return true;
+        }
+        return isVisible(ele);
+    }
 
     private getElementAt(index: number): SentenceT {
         const { subtitles } = this.props;
@@ -69,9 +86,6 @@ export default class SubtitleSub extends Component<
         }
         return subtitles[targetIndex];
     }
-
-    // eslint-disable-next-line react/destructuring-assignment
-    private sentences = () => this.props.subtitles;
 
     private findCurrentSentence = (
         subtitles: SentenceT[],
@@ -110,12 +124,8 @@ export default class SubtitleSub extends Component<
 
     private updateTo(target: SentenceT) {
         if (target.equals(this.currentSentence)) {
-            console.log(
-                `eq${target.getKey()},${this.currentSentence?.getKey()}`
-            );
             return;
         }
-        console.log('aaa');
         this.currentSentence = target;
         const { onCurrentSentenceChange } = this.props;
         onCurrentSentenceChange(target);
