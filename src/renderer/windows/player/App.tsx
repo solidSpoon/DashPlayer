@@ -116,6 +116,11 @@ export default class App extends Component<any, HomeState> {
         this.playerRef.current?.hideControl();
     };
 
+    private currentTime = () => this.progress;
+
+    private onCurrentSentenceChange = (current: SentenceT) =>
+        this.changeCurrentSentence(current);
+
     private changeCurrentSentence(currentSentence: SentenceT) {
         this.setState({
             currentSentence,
@@ -141,11 +146,9 @@ export default class App extends Component<any, HomeState> {
         const subtitle = (
             <Subtitle
                 ref={this.subtitleRef}
-                getCurrentTime={() => this.progress}
-                onCurrentSentenceChange={(current) =>
-                    this.changeCurrentSentence(current)
-                }
-                seekTo={(time) => this.seekTo(time)}
+                getCurrentTime={this.currentTime}
+                onCurrentSentenceChange={this.onCurrentSentenceChange}
+                seekTo={this.seekTo}
                 subtitleFile={subtitleFile}
             />
         );
