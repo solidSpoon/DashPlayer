@@ -13,7 +13,7 @@ interface SubtitleSubState {
     current: SentenceT | undefined;
 }
 
-export default class SubtitleSub extends PureComponent<
+export default class SubtitleSub extends Component<
     SubtitleSubParam,
     SubtitleSubState
 > {
@@ -98,7 +98,18 @@ export default class SubtitleSub extends PureComponent<
     private getCurrentSentence = (): SentenceT => {
         const { getCurrentTime, subtitles } = this.props;
         const isOverdue = Date.now() - this.manuallyUpdateTime > 600;
-        if (isOverdue || this.currentSentence === undefined) {
+        console.log(
+            this.currentSentence?.getKey?.(),
+            subtitles[this.currentSentence?.index ?? 0].getKey()
+        );
+
+        if (
+            this.currentSentence === undefined ||
+            !this.currentSentence.equals(
+                subtitles[this.currentSentence.index]
+            ) ||
+            isOverdue
+        ) {
             return this.findCurrentSentence(subtitles, getCurrentTime());
         }
         return this.currentSentence;
@@ -112,7 +123,6 @@ export default class SubtitleSub extends PureComponent<
     };
 
     private interval = () => {
-        console.log('interval');
         const find: SentenceT = this.getCurrentSentence();
         if (find === undefined) {
             return;
@@ -152,7 +162,6 @@ export default class SubtitleSub extends PureComponent<
         const { current } = this.state;
         return subtitles.map((item) => {
             const isCurrent = item.equals(current);
-            console.log(isCurrent);
             let result = (
                 <SideSentenceNew
                     key={item.getKey()}
@@ -162,7 +171,6 @@ export default class SubtitleSub extends PureComponent<
                 />
             );
             if (isCurrent) {
-                console.log(`current${item}`);
                 result = (
                     <div key={`${item.getKey()}div`} ref={this.currentRef}>
                         {result}

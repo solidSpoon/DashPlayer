@@ -1,4 +1,4 @@
-import React, { Component, PureComponent } from 'react';
+import React, { PureComponent } from 'react';
 import axios from 'axios';
 import SentenceT from '../lib/param/SentenceT';
 import FileT from '../lib/param/FileT';
@@ -48,32 +48,41 @@ export default class Subtitle extends PureComponent<
         const srtSubtitles = parseSrtSubtitles(str);
         srtSubtitles.forEach((item) => {
             item.fileUrl = fileUrl.objectUrl;
-            console.log(item);
+        });
+        srtSubtitles.forEach((item) => {
+            item.updateKey();
         });
         // new TransFiller(srtSubtitles, u).translate();
         this.setState({
             subtitles: srtSubtitles,
         });
-        this.trans(srtSubtitles);
+        this.trans(srtSubtitles, fileUrl.objectUrl ?? '');
     };
 
-    private trans = async (arr: SentenceT[]) => {
+    private trans = async (arr: SentenceT[], url: string) => {
+        let tempArr = arr;
         const buffers: TranslateBuf[] = TransFiller.splitToBuffers(arr, 1000);
         // eslint-disable-next-line no-restricted-syntax
         for (const buffer of buffers) {
             if (buffer.isEmpty()) {
                 return;
             }
-            const data = {
-                str: buffer.strs,
-            };
             // eslint-disable-next-line no-await-in-loop
             buffer.response = (await callApi('batch-translate', [
                 buffer.strs,
             ])) as string[];
-            console.log('trans response', buffer.response);
-            const translatedArray = this.getTranslatedArray(arr, buffer);
+            const translatedArray = this.getTranslatedArray(tempArr, buffer);
+            translatedArray.forEach((item) => {
+                item.updateKey();
+            });
+            // eslint-disable-next-line no-restricted-syntax
+            for (const item of translatedArray) {
+                if (item.fileUrl !== url) {
+                    return;
+                }
+            }
             this.setState({ subtitles: translatedArray });
+            tempArr = translatedArray;
             // eslint-disable-next-line no-await-in-loop
             await TransFiller.sleep(300);
         }
@@ -90,7 +99,11 @@ export default class Subtitle extends PureComponent<
         }
         response.forEach((item, i) => {
             const index = buffer.startIndex + i;
-            arr[index].msTranslate = item;
+            if (index < newArr.length) {
+                const n: SentenceT = arr[index].copy();
+                n.msTranslate = item;
+                newArr[index] = n;
+            }
         });
         return newArr;
     };

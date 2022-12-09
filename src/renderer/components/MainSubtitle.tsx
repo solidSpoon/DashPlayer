@@ -1,4 +1,4 @@
-import React, { PureComponent, ReactElement } from 'react';
+import React, { Component, PureComponent, ReactElement } from 'react';
 import SentenceT from '../lib/param/SentenceT';
 import TranslatableLine from './TranslatableLine';
 
@@ -6,10 +6,7 @@ interface MainSubtitleParam {
     sentence: undefined | SentenceT;
 }
 
-export default class MainSubtitle extends PureComponent<
-    MainSubtitleParam,
-    never
-> {
+export default class MainSubtitle extends Component<MainSubtitleParam, never> {
     private ele(): ReactElement[] {
         const { sentence } = this.props;
         const elements: ReactElement[] = [];

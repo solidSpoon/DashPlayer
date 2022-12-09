@@ -118,14 +118,11 @@ export default class App extends Component<any, HomeState> {
 
     private currentTime = () => this.progress;
 
-    private onCurrentSentenceChange = (current: SentenceT) =>
-        this.changeCurrentSentence(current);
-
-    private changeCurrentSentence(currentSentence: SentenceT) {
+    private onCurrentSentenceChange = (current: SentenceT) => {
         this.setState({
-            currentSentence,
+            currentSentence: current,
         });
-    }
+    };
 
     render() {
         const { videoFile, subtitleFile, currentSentence } = this.state;

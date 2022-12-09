@@ -1,5 +1,4 @@
-// eslint-disable-next-line import/no-cycle
-import { randomUUID } from 'crypto';
+import hash from '../hash';
 
 class SentenceT {
     public index: number;
@@ -27,8 +26,10 @@ class SentenceT {
      */
     public msTranslate: string | undefined;
 
+    public key: string = '';
+
     public getKey = (): string => {
-        return `${this.fileUrl ?? 'file-url'}<->${this.index}`;
+        return this.key;
     };
 
     public equals(other: SentenceT | undefined): boolean {
@@ -36,6 +37,13 @@ class SentenceT {
             return false;
         }
         return this.getKey() === other.getKey();
+    }
+
+    public updateKey(): void {
+        const source = `${this.fileUrl ?? ''}:${(this.index ?? 0).toString()}:${
+            this.msTranslate ?? ''
+        }`;
+        this.key = hash(source) + this.msTranslate;
     }
 
     public isCurrent = (time: number): boolean => {
@@ -51,6 +59,19 @@ class SentenceT {
 
     constructor(index: number) {
         this.index = index;
+    }
+
+    public copy(): SentenceT {
+        const result = new SentenceT(this.index);
+        result.currentBegin = this.currentBegin;
+        result.currentEnd = this.currentEnd;
+        result.nextBegin = this.nextBegin;
+        result.text = this.text;
+        result.textZH = this.textZH;
+        result.fileUrl = this.fileUrl;
+        result.msTranslate = this.msTranslate;
+        result.key = this.key;
+        return result;
     }
 }
 
