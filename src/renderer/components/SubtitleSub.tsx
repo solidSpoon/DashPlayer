@@ -98,11 +98,6 @@ export default class SubtitleSub extends Component<
     private getCurrentSentence = (): SentenceT => {
         const { getCurrentTime, subtitles } = this.props;
         const isOverdue = Date.now() - this.manuallyUpdateTime > 600;
-        console.log(
-            this.currentSentence?.getKey?.(),
-            subtitles[this.currentSentence?.index ?? 0].getKey()
-        );
-
         if (
             this.currentSentence === undefined ||
             !this.currentSentence.equals(
