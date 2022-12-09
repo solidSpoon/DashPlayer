@@ -1,6 +1,5 @@
 const isVisible = (el: HTMLDivElement): boolean => {
     const rect = el.getBoundingClientRect();
-    console.log(rect.bottom, rect.top);
     const vWidth = window.innerWidth || document.documentElement.clientWidth;
     const vHeight =
         (window.innerHeight || document.documentElement.clientHeight) - 100;

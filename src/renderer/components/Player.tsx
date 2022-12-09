@@ -1,5 +1,5 @@
 import ReactPlayer from 'react-player';
-import React, { Component, ReactElement } from 'react';
+import React, { Component, PureComponent, ReactElement } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
 
@@ -49,24 +49,29 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         return this.playerRef.current;
     };
 
-    public pause() {
+    public pause = () => {
         this.setState({
             playing: false,
         });
-    }
+    };
 
-    public change() {
-        const { playing } = this.state;
-        this.setState({
-            playing: !playing,
-        });
-    }
-
-    public play() {
+    public play = () => {
         this.setState({
             playing: true,
         });
-    }
+    };
+
+    showControl = () => {
+        this.setState({
+            showControl: true,
+        });
+    };
+
+    hideControl = () => {
+        this.setState({
+            showControl: false,
+        });
+    };
 
     public seekTo(time: number) {
         const player = this.getPlayer();
@@ -82,15 +87,10 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         player.seekTo(time, 'seconds');
     }
 
-    showControl() {
+    public change() {
+        const { playing } = this.state;
         this.setState({
-            showControl: true,
-        });
-    }
-
-    hideControl() {
-        this.setState({
-            showControl: false,
+            playing: !playing,
         });
     }
 
@@ -101,13 +101,17 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             return <></>;
         }
         return (
-            <div className="w-full h-full mb-auto">
+            <div
+                className="w-full h-full mb-auto"
+                onClick={this.showControl}
+                onMouseLeave={this.hideControl}
+            >
                 <ReactPlayer
                     id="react-player-id"
                     ref={this.playerRef}
                     url={videoFile.objectUrl ? videoFile.objectUrl : ''}
                     playing={playing}
-                    controls={false}
+                    controls={showControl}
                     width="100%"
                     height="100%"
                     progressInterval={50}

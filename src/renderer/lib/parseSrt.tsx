@@ -37,7 +37,7 @@ export default function parseSrtSubtitles(srt: string): Array<SentenceT> {
     const subtitles: Array<SentenceT> = [];
     let textSubtitles = srt.split(/\r?\n\r?\n/); // 每条字幕的信息，包含了序号，时间，字幕内容
     textSubtitles = textSubtitles.map((item) => item.replace(/{\w+}/, ''));
-    for (let i = 0; i < textSubtitles.length; ++i) {
+    for (let i = 0; i < textSubtitles.length; i += 1) {
         const textSubtitle = textSubtitles[i].split(/\r?\n/);
 
         if (textSubtitle.length >= 2) {
@@ -60,15 +60,17 @@ export default function parseSrtSubtitles(srt: string): Array<SentenceT> {
             }
 
             // 字幕对象
-            const subtitle = new SentenceT();
-            subtitle.key = sn;
-            subtitle.sn = sn;
-            subtitle.timeStart = startTime;
-            subtitle.timeEnd = endTime;
+            const subtitle = new SentenceT(i);
+            subtitle.currentBegin = startTime;
+            subtitle.currentEnd = endTime;
             subtitle.text = contentEn;
             subtitle.textZH = contentZh !== '' ? contentZh : undefined;
             subtitles.push(subtitle);
         }
+    }
+    for (let i = 1; i < subtitles.length; i += 1) {
+        subtitles[i - 1].nextBegin = subtitles[i].currentBegin;
+        subtitles[i].nextBegin = subtitles[i].currentEnd;
     }
     return subtitles;
 }

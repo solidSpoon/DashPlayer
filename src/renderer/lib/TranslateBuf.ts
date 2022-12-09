@@ -3,6 +3,8 @@ export default class TranslateBuf {
 
     strs: string[];
 
+    response: string[] | undefined;
+
     private size: number;
 
     private readonly capacity: number;

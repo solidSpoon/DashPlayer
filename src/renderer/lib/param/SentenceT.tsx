@@ -1,55 +1,77 @@
-// eslint-disable-next-line import/no-cycle
-import SideSentence from '../../components/SideSentence';
+import hash from '../hash';
 
 class SentenceT {
-    key: string | undefined;
+    public index: number;
 
-    isCurrent: boolean;
+    public currentBegin: number | undefined;
 
-    /**
-     * 字幕序号
-     */
-    sn: string | undefined;
+    public currentEnd: number | undefined;
 
-    timeStart: number | undefined;
-
-    timeEnd: number | undefined;
+    public nextBegin: number | undefined;
 
     /**
      * 字幕英文原文
      */
-    text: string | undefined;
+    public text: string | undefined;
 
     /**
      * 字幕中文原文
      */
-    textZH: string | undefined;
+    public textZH: string | undefined;
+
+    public fileUrl: string | undefined;
 
     /**
      * 字幕机器翻译
      */
-    fileUrl: string | undefined;
+    public msTranslate: string | undefined;
 
-    msTranslate: string | undefined;
+    public key: string = '';
 
-    nextItem: SentenceT | undefined;
-
-    prevItem: SentenceT | undefined;
-
-    element: React.RefObject<SideSentence> | undefined;
-
-    public getPrevItem = (): SentenceT => {
-        return this.prevItem as SentenceT;
+    public getKey = (): string => {
+        return this.key;
     };
 
-    public getNestItem = (): SentenceT => {
-        return this.nextItem as SentenceT;
+    public equals(other: SentenceT | undefined): boolean {
+        if (other === undefined) {
+            return false;
+        }
+        return this.getKey() === other.getKey();
+    }
+
+    public updateKey(): void {
+        const source = `${this.fileUrl ?? ''}:${(this.index ?? 0).toString()}:${
+            this.msTranslate ?? ''
+        }`;
+        this.key = hash(source) + this.msTranslate;
+    }
+
+    public isCurrent = (time: number): boolean => {
+        if (
+            this.currentBegin === undefined ||
+            this.currentEnd === undefined ||
+            this.nextBegin === undefined
+        ) {
+            return false;
+        }
+        return time >= this.currentBegin - 0.2 && time <= this.nextBegin;
     };
 
-    divElement: React.RefObject<HTMLDivElement> | undefined;
+    constructor(index: number) {
+        this.index = index;
+    }
 
-    constructor() {
-        this.isCurrent = false;
+    public copy(): SentenceT {
+        const result = new SentenceT(this.index);
+        result.currentBegin = this.currentBegin;
+        result.currentEnd = this.currentEnd;
+        result.nextBegin = this.nextBegin;
+        result.text = this.text;
+        result.textZH = this.textZH;
+        result.fileUrl = this.fileUrl;
+        result.msTranslate = this.msTranslate;
+        result.key = this.key;
+        return result;
     }
 }
 
