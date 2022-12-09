@@ -61,7 +61,7 @@ class SentenceT {
         this.index = index;
     }
 
-    public copy(): SentenceT {
+    public clone(): SentenceT {
         const result = new SentenceT(this.index);
         result.currentBegin = this.currentBegin;
         result.currentEnd = this.currentEnd;

@@ -100,7 +100,7 @@ export default class Subtitle extends PureComponent<
         response.forEach((item, i) => {
             const index = buffer.startIndex + i;
             if (index < newArr.length) {
-                const n: SentenceT = arr[index].copy();
+                const n: SentenceT = arr[index].clone();
                 n.msTranslate = item;
                 newArr[index] = n;
             }
