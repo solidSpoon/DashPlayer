@@ -7,38 +7,54 @@ interface MainSubtitleParam {
 }
 
 export default class MainSubtitle extends Component<MainSubtitleParam, never> {
+    private firstEle = (text: string, key: string): ReactElement => {
+        return <TranslatableLine key={key} text={text || ''} />;
+    };
+
+    private secondEle = (text: string, key: string): ReactElement => {
+        return (
+            <div key={key} className="my-0 mx-10 text-3xl py-2.5 px-10">
+                {text}
+            </div>
+        );
+    };
+
+    private thirdEle = (text: string, key: string): ReactElement => {
+        return (
+            <div
+                key={key}
+                className="drop-shadow my-0 mx-10 text-2xl py-2.5 px-10 bg-neutral-700 rounded-lg"
+            >
+                {text}
+            </div>
+        );
+    };
+
     private ele(): ReactElement[] {
         const { sentence } = this.props;
         const elements: ReactElement[] = [];
         if (sentence === undefined) {
             return elements;
         }
-        elements.push(
-            <TranslatableLine
-                key={`first-line:${sentence.getKey()}`}
-                text={sentence.text ? sentence.text : ''}
-            />
-        );
-        if (sentence.msTranslate !== undefined) {
-            elements.push(
-                <div
-                    key={`secondLine${sentence.getKey()}`}
-                    className="my-0 mx-10 text-3xl py-2.5 px-10"
-                >
-                    {sentence.msTranslate}
-                </div>
-            );
-        }
-        if (sentence.textZH !== undefined) {
-            elements.push(
-                <div
-                    key={`third-line${sentence.getKey()}`}
-                    className="drop-shadow my-0 mx-10 text-2xl py-2.5 px-10 bg-neutral-700 rounded-lg"
-                >
-                    {sentence.textZH}
-                </div>
-            );
-        }
+        const tempEle: string[] = [
+            sentence.text,
+            sentence.msTranslate,
+            sentence.textZH,
+        ]
+            .filter((item) => item !== undefined)
+            .map((item) => item || '');
+        const mapMethod: ((text: string, key: string) => React.ReactElement)[] =
+            [this.firstEle, this.secondEle, this.thirdEle];
+        mapMethod.forEach((method, index) => {
+            if (tempEle[index] !== undefined) {
+                elements.push(
+                    method(
+                        tempEle[index],
+                        `main-sentence-${index}-${sentence.getKey()}`
+                    )
+                );
+            }
+        });
         return elements;
     }
 

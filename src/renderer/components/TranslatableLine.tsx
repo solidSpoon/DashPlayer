@@ -1,15 +1,14 @@
 import { ReactElement } from 'react';
+import hash from '../lib/hash';
 
 interface TranslatableSubtitleLineParam {
     text: string;
 }
 
-const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
-    const { text } = props;
+const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
     if (text === undefined) {
         return <></>;
     }
-    let keyIndex = 0;
     const trans = (str: string): void => {
         console.log('click');
         window.electron.ipcRenderer.sendMessage('trans-word', [str]);
@@ -17,24 +16,21 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
             console.log('trans word success');
         });
     };
-    const notWord = (str: string): ReactElement => {
-        keyIndex += 1;
+    const notWord = (str: string, key: string): ReactElement => {
         return (
-            <span className="select-none" key={keyIndex}>
+            <span className="select-none" key={key}>
                 {str}
             </span>
         );
     };
-    const word = (str: string): ReactElement => {
+    const word = (str: string, key: string): ReactElement => {
         const t = () => trans(str);
-        keyIndex += 1;
-
         return (
             <>
                 {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
                 <span
                     className="rounded select-none hover:bg-zinc-600"
-                    key={keyIndex}
+                    key={key}
                     onClick={t}
                 >
                     {str}
@@ -46,26 +42,24 @@ const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
         const noWordRegex = /[^A-Za-z0-9-]/;
         return !noWordRegex.test(str);
     };
-    // eslint-disable-next-line react/destructuring-assignment
-    const words: string[] = props.text.split(
+
+    const words: string[] = text.split(
         /((?<=.)(?=[^A-Za-z0-9-]))|((?<=[^A-Za-z0-9-])(?=.))/
     );
 
     function ele(): ReactElement[] {
-        return words.map((w) => {
+        return words.map((w, index) => {
+            const key = `${hash(text)}:${index}`;
+            console.log(key);
             if (isWord(w)) {
-                return word(w);
+                return word(w, `nw:${key}`);
             }
-            return notWord(w);
+            return notWord(w, `w:${key}`);
         });
     }
 
     return (
-        // eslint-disable-next-line react/destructuring-assignment
-        <div
-            key={1}
-            className="bg-neutral-700 rounded-lg drop-shadow-md hover:drop-shadow-xl text-3xl mx-10 mt-2.5 px-10 py-2.5 shadow-inner shadow-neutral-600"
-        >
+        <div className="bg-neutral-700 rounded-lg drop-shadow-md hover:drop-shadow-xl text-3xl mx-10 mt-2.5 px-10 py-2.5 shadow-inner shadow-neutral-600">
             {ele()}
         </div>
     );
