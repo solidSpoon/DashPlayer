@@ -5,6 +5,8 @@ import {
     BrowserWindow,
     MenuItemConstructorOptions,
 } from 'electron';
+
+// eslint-disable-next-line import/no-cycle
 import { createSettingWindowIfNeed } from './main';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
@@ -256,6 +258,12 @@ export default class MenuBuilder {
                         },
                     },
                 ],
+            },
+            {
+                label: 'Setting',
+                click() {
+                    createSettingWindowIfNeed();
+                },
             },
             {
                 label: '&View',
