@@ -1,5 +1,9 @@
-import React, { Component, PureComponent, ReactElement } from 'react';
-import isVisible from '../lib/isVisible';
+import React, { Component, ReactElement } from 'react';
+import isVisible, {
+    getTargetBottomPosition,
+    isBottomInVisible,
+    isTopInVisible,
+} from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentenceNew from './SideSentenceNew';
 
@@ -17,6 +21,8 @@ export default class SubtitleSub extends Component<
     SubtitleSubParam,
     SubtitleSubState
 > {
+    private readonly SCROOL_BOUNDARY = 100;
+
     private timer: NodeJS.Timer | undefined;
 
     private currentSentence: SentenceT | undefined;
@@ -43,20 +49,37 @@ export default class SubtitleSub extends Component<
         prevState: Readonly<SubtitleSubState>,
         snapshot?: any
     ) {
-        const beforeIsViable = snapshot as boolean;
+        const [beforeTopHidden, beforeBottomHidden] = snapshot as [
+            boolean,
+            boolean
+        ];
         const currentDiv = this.currentRef.current;
-        if (currentDiv === null || isVisible(currentDiv)) {
+        if (
+            currentDiv === null ||
+            isVisible(currentDiv, this.SCROOL_BOUNDARY)
+        ) {
             return;
         }
+        const [currentTopHidden, currentBottomHidden] = [
+            isTopInVisible(currentDiv, this.SCROOL_BOUNDARY),
+            isBottomInVisible(currentDiv, this.SCROOL_BOUNDARY),
+        ];
+
         const { offsetTop } = currentDiv;
-        if (beforeIsViable) {
+        if (currentTopHidden && beforeTopHidden) {
             this.parentRef.current?.scrollTo({
-                top: offsetTop - 50,
-                behavior: 'smooth',
+                top: offsetTop - this.SCROOL_BOUNDARY,
             });
-        } else {
+        } else if (currentBottomHidden && beforeBottomHidden) {
             this.parentRef.current?.scrollTo({
-                top: offsetTop - 50,
+                top:
+                    offsetTop -
+                    getTargetBottomPosition(currentDiv, this.SCROOL_BOUNDARY),
+            });
+        } else if (currentTopHidden || currentBottomHidden) {
+            this.parentRef.current?.scrollTo({
+                top: offsetTop - this.SCROOL_BOUNDARY,
+                behavior: 'smooth',
             });
         }
     }
@@ -65,12 +88,15 @@ export default class SubtitleSub extends Component<
         clearInterval(this.timer);
     }
 
-    getSnapshotBeforeUpdate() {
+    getSnapshotBeforeUpdate(): [boolean, boolean] {
         const ele = this.currentRef.current;
         if (ele === null) {
-            return true;
+            return [false, false];
         }
-        return isVisible(ele);
+        return [
+            isTopInVisible(ele, this.SCROOL_BOUNDARY),
+            isBottomInVisible(ele, this.SCROOL_BOUNDARY),
+        ];
     }
 
     private getElementAt(index: number): SentenceT {
