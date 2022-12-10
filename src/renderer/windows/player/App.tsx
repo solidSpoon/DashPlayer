@@ -73,6 +73,9 @@ export default class App extends Component<any, HomeState> {
             this.setState({
                 videoFile: file,
             });
+            if (file.fileName !== undefined) {
+                document.title = file.fileName;
+            }
         }
         if (FileType.SUBTITLE === file.fileType) {
             this.setState({
