@@ -258,8 +258,8 @@
         ],
         "publish": {
             "provider": "github",
-            "owner": "electron-react-boilerplate",
-            "repo": "electron-react-boilerplate"
+            "owner": "solidSpoon",
+            "repo": "DashPlayer"
         }
     },
     "collective": {
