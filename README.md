@@ -11,7 +11,7 @@ Clone the repo and install dependencies:
 
 ```bash
 git clone --depth 1 --branch main https://github.com/solidSpoon/DashPlayer.git
-cd your-project-name
+cd DashPlayer
 npm install
 ```
 
