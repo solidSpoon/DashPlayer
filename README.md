@@ -10,7 +10,7 @@
 Clone the repo and install dependencies:
 
 ```bash
-git clone --depth 1 --branch main https://github.com/electron-react-boilerplate/electron-react-boilerplate.git your-project-name
+git clone --depth 1 --branch main https://github.com/solidSpoon/DashPlayer.git
 cd your-project-name
 npm install
 ```
