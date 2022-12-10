@@ -6,6 +6,7 @@
 - 支持按字幕跳转
 - 支持机器翻译
 - Mac 下支持 [Bob](https://bobtranslate.com/) 查词
+- 可调整界面尺寸
 
 
 ## usage:
