@@ -1,6 +1,6 @@
 import ProgressBar from '@ramonak/react-progress-bar';
 import { Component } from 'react';
-import { visible } from 'chalk';
+import { visible, white } from 'chalk';
 import PlayTime from './PlayTime';
 
 interface BorderProgressBarParam {
@@ -18,6 +18,8 @@ export default class BorderProgressBar extends Component<
     BorderProgressBarState
 > {
     private interval: NodeJS.Timer | undefined;
+
+    private timeout: (number | undefined)[] = [];
 
     constructor(
         props: BorderProgressBarParam | Readonly<BorderProgressBarParam>
@@ -49,15 +51,36 @@ export default class BorderProgressBar extends Component<
         });
     };
 
+    private mouseEnter = () => {
+        console.log('mouseOVer');
+        while (this.timeout.length > 0) {
+            const id = this.timeout.pop();
+            window.clearTimeout(id);
+        }
+        const func = () => this.setState({ isHover: true });
+        this.timeout.push(window.setTimeout(func, 400));
+    };
+
+    private mouseLeave = () => {
+        console.log('moustLeave');
+        while (this.timeout.length > 0) {
+            const id = this.timeout.pop();
+            window.clearTimeout(id);
+        }
+        const func = () => this.setState({ isHover: false });
+        this.timeout.push(window.setTimeout(func, 300));
+    };
+
     render() {
         const { completed, isHover } = this.state;
         const { getTotalTime, getCurrentTime } = this.props;
-        const vis = isHover ? 'visible' : 'invisible';
         return (
             <div
-                className="w-full flex flex-col-reverse items-end absolute bottom-0 h-10 hover:bg-stone-200 mt-60 delay-500"
-                onMouseOver={() => this.setState({ isHover: true })}
-                onMouseLeave={() => this.setState({ isHover: false })}
+                className={`w-full flex flex-col-reverse
+                items-end absolute bottom-0 h-10 mt-60
+                 ${isHover ? 'bg-stone-200' : ''}`}
+                onMouseEnter={this.mouseEnter}
+                onMouseLeave={this.mouseLeave}
             >
                 <div className="w-full">
                     <ProgressBar
@@ -69,7 +92,7 @@ export default class BorderProgressBar extends Component<
                         borderRadius="0"
                     />
                 </div>
-                <div className={`mr-5 ${vis}`}>
+                <div className={`mr-5 ${isHover ? 'visible' : 'invisible'}`}>
                     <PlayTime
                         getProgress={getCurrentTime}
                         getTotalTime={getTotalTime}
