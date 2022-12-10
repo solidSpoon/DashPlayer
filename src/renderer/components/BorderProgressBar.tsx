@@ -52,7 +52,6 @@ export default class BorderProgressBar extends Component<
     };
 
     private mouseEnter = () => {
-        console.log('mouseOVer');
         while (this.timeout.length > 0) {
             const id = this.timeout.pop();
             window.clearTimeout(id);
@@ -62,7 +61,6 @@ export default class BorderProgressBar extends Component<
     };
 
     private mouseLeave = () => {
-        console.log('moustLeave');
         while (this.timeout.length > 0) {
             const id = this.timeout.pop();
             window.clearTimeout(id);
