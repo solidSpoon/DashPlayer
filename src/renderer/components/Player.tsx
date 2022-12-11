@@ -10,23 +10,21 @@ interface PlayerParam {
 }
 
 interface PlayerState {
-    playing: boolean;
+    playingState: boolean;
     showControl: boolean;
 }
 
 export default class Player extends Component<PlayerParam, PlayerState> {
     private readonly playerRef: React.RefObject<ReactPlayer>;
 
-    private playing: boolean;
-
     private lastFile: FileT | undefined;
 
     constructor(props: PlayerParam | Readonly<PlayerParam>) {
         super(props);
         this.playerRef = React.createRef<ReactPlayer>();
-        this.playing = true;
+
         this.state = {
-            playing: true,
+            playingState: true,
             showControl: false,
         };
     }
@@ -51,14 +49,12 @@ export default class Player extends Component<PlayerParam, PlayerState> {
 
     public pause = () => {
         this.setState({
-            playing: false,
+            playingState: false,
         });
     };
 
     public play = () => {
-        this.setState({
-            playing: true,
-        });
+        this.setState({ playingState: true });
     };
 
     showControl = () => {
@@ -88,15 +84,18 @@ export default class Player extends Component<PlayerParam, PlayerState> {
     }
 
     public change() {
-        const { playing } = this.state;
+        const { showControl, playingState } = this.state;
+        if (showControl) {
+            return;
+        }
         this.setState({
-            playing: !playing,
+            playingState: !playingState,
         });
     }
 
     render(): ReactElement {
         const { videoFile, onProgress, onTotalTimeChange } = this.props;
-        const { playing, showControl } = this.state;
+        const { playingState, showControl } = this.state;
         if (videoFile === undefined) {
             return <></>;
         }
@@ -110,7 +109,7 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                     id="react-player-id"
                     ref={this.playerRef}
                     url={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                    playing={playing}
+                    playing={playingState}
                     controls={showControl}
                     width="100%"
                     height="100%"
@@ -122,6 +121,16 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                         onTotalTimeChange(duration);
                     }}
                     onReady={() => this.jumpToHistoryProgress(videoFile)}
+                    onPlay={() => {
+                        if (!playingState) {
+                            this.setState({ playingState: true });
+                        }
+                    }}
+                    onPause={() => {
+                        if (playingState) {
+                            this.setState({ playingState: false });
+                        }
+                    }}
                 />
             </div>
         );
