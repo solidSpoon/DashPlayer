@@ -102,7 +102,7 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         return (
             <div
                 className="w-full h-full mb-auto"
-                onClick={this.showControl}
+                onDoubleClick={this.showControl}
                 onMouseLeave={this.hideControl}
             >
                 <ReactPlayer
@@ -114,6 +114,13 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                     width="100%"
                     height="100%"
                     progressInterval={50}
+                    config={{
+                        file: {
+                            attributes: {
+                                controlsList: 'nofullscreen',
+                            },
+                        },
+                    }}
                     onProgress={(progress) => {
                         onProgress(progress.playedSeconds);
                     }}
