@@ -7,6 +7,7 @@
 - 支持机器翻译
 - Mac 下支持 [Bob](https://bobtranslate.com/) 查词
 - 可调整界面尺寸
+- 支持记录播放位置
 
 
 ## usage:
