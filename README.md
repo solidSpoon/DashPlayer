@@ -1,3 +1,5 @@
+<img src="https://user-images.githubusercontent.com/39454841/208255692-ea202258-747b-4a77-9090-ece503efcd0c.png" width="30%" />
+
 # Dash Player
 > A player for English learners
 
