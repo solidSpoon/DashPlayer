@@ -14,6 +14,9 @@ export default function SideSentenceNew({
     isCurrent,
 }: SideSentenceNewParam) {
     const show = isCurrent ? 'visible' : 'invisible';
+    const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
+        (i) => i !== undefined && i !== ''
+    );
     return (
         // eslint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events
         <div
@@ -59,7 +62,7 @@ export default function SideSentenceNew({
                     />
                 </svg>
             </div>
-            <div className="w-full text-center">{sentence.text}</div>
+            <div className="w-full text-center">{s ?? ''}</div>
         </div>
     );
 }
