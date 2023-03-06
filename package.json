@@ -261,6 +261,10 @@
             "provider": "github",
             "owner": "solidSpoon",
             "repo": "DashPlayer"
+        },
+        "nsis":{
+            "oneClick" : false,
+            "allowToChangeInstallationDirectory" : true
         }
     },
     "collective": {
