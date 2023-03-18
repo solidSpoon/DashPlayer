@@ -97,7 +97,6 @@ npm start
 为本地平台打包应用：
 
 ```bash
-bashCopy code
 npm run package
 ```
 
