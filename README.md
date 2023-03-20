@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://user-images.githubusercontent.com/39454841/208255692-ea202258-747b-4a77-9090-ece503efcd0c.png" width="30%" />
+<img src="https://user-images.githubusercontent.com/39454841/226364979-9c96a838-aa43-4b70-89d8-8ea83d59fc0f.png" width="30%" />
 </p>
 
 # DashPlayer：打造更轻松、高效的英语学习体验！ 🎉
