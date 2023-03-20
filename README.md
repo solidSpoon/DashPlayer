@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://user-images.githubusercontent.com/39454841/208255692-ea202258-747b-4a77-9090-ece503efcd0c.png" width="30%" />
+<img src="https://user-images.githubusercontent.com/39454841/226364979-9c96a838-aa43-4b70-89d8-8ea83d59fc0f.png" width="30%" />
 </p>
 
 # DashPlayer：打造更轻松、高效的英语学习体验！ 🎉
@@ -38,7 +38,7 @@
 
 ## 如何开始使用 DashPlayer？ 🚀
 
-1. **下载安装：** 前往 GitHub 项目页面下载 DashPlayer，按照说明完成安装。
+1. **下载安装：** 前往 GitHub 项目页面下载 DashPlayer，按照说明完成安装，详见[安装说明](#安装说明)。
 2. **打开视频文件：** 选择一个英语视频文件及其对应的字幕文件，开始享受 DashPlayer 带来的全新学习体验。
 3. **个性化设置：** 根据自己的需求，调整界面尺寸、音量等设置，让学习更舒适。
 4. **利用遥控器：** 连接蓝牙遥控器，轻松控制视频播放，让学习更轻松。
@@ -68,6 +68,41 @@ DashPlayer 坚持轻松愉快的英语学习理念，让你不再死磕每一个
 DashPlayer 让你告别枯燥无味的学习方式，通过观看视频来获得大量的听力输入，全方位提升你的英语水平！赶快加入我们，一起享受轻松愉快的英语学习之旅吧！
 
 **让 DashPlayer 陪伴你成为英语达人！** 🌈
+
+# 安装说明
+
+## Windows
+
+1. 在 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载以 `.exe` 结尾的安装包
+2. 下载完成后双击安装包进行安装
+3. 如果提示不安全，可以点击 `更多信息` -> `仍要运行` 进行安装
+4. 开始使用吧！
+
+## MacOS
+
+### 手动安装
+
+1.  去 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载对应芯片以 `.dmg` 的安装包
+2.  下载完成后双击安装包进行安装，然后将 `DashPlayer` 拖动到 `Applications` 文件夹。
+3.  开始使用吧！
+
+### 故障排除
+
+-   "DashPlayer" can’t be opened because the developer cannot be verified.
+
+    
+    <p align="center">
+      <img width="300" alt="image" src="https://user-images.githubusercontent.com/39454841/226151784-b6ed3e65-2c0a-4ad0-93eb-57d45108e1ba.png">
+    </p>
+
+    -   点击 `Cancel` 按钮，然后去 `设置` -> `隐私与安全性` 页面，点击 `仍要打开` 按钮，然后在弹出窗口里点击 `打开` 按钮即可，以后打开 `DashPlayer` 就再也不会有任何弹窗告警了 🎉
+        
+
+        <p align="center">
+          <img width="500" alt="image" src="https://user-images.githubusercontent.com/39454841/226151875-03f79da9-45fc-4c0d-9d12-8cc9666ff904.png">
+          <img width="200" alt="image" src="https://user-images.githubusercontent.com/39454841/226151917-6b59f228-2bb9-4f12-9584-32bca9699d8e.png">
+        </p>
+
 
 ---
 # 开发指南
