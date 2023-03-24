@@ -70,5 +70,6 @@ DashPlayer 让你告别枯燥无味的学习方式，通过观看视频来获得
 **让 DashPlayer 陪伴你成为英语达人！** 🌈
 
 ---
-安装指南，如何使用蓝牙手柄，开发文档等详见 [wiki](https://github.com/solidSpoon/DashPlayer/wiki/)
+
+**安装指南，如何使用蓝牙手柄，开发文档等详见 [wiki](https://github.com/solidSpoon/DashPlayer/wiki/)**
 
