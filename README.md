@@ -70,33 +70,5 @@ DashPlayer 让你告别枯燥无味的学习方式，通过观看视频来获得
 **让 DashPlayer 陪伴你成为英语达人！** 🌈
 
 ---
-# 开发指南
 
-## 下载代码
-
-克隆仓库并安装依赖项：
-
-```bash
-git clone --depth 1 --branch main https://github.com/solidSpoon/DashPlayer.git
-cd DashPlayer
-npm install
-```
-
-**安装过程中遇到问题？请查看我们的[调试指南](https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues/400)**
-
-## 开始开发
-
-在 `dev` 环境下启动应用：
-
-```bash
-npm start
-```
-
-## 打包生产版本
-
-为本地平台打包应用：
-
-```bash
-npm run package
-```
 
