@@ -1,5 +1,4 @@
-import ReactPlayer from 'react-player';
-import React, { Component, PureComponent, ReactElement } from 'react';
+import React, { Component, ReactElement } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
 
@@ -15,13 +14,13 @@ interface PlayerState {
 }
 
 export default class Player extends Component<PlayerParam, PlayerState> {
-    private readonly playerRef: React.RefObject<ReactPlayer>;
+    private readonly playerRef: React.RefObject<HTMLVideoElement>;
 
     private lastFile: FileT | undefined;
 
     constructor(props: PlayerParam | Readonly<PlayerParam>) {
         super(props);
-        this.playerRef = React.createRef<ReactPlayer>();
+        this.playerRef = React.createRef<HTMLVideoElement>();
 
         this.state = {
             playingState: true,
@@ -48,12 +47,14 @@ export default class Player extends Component<PlayerParam, PlayerState> {
     };
 
     public pause = () => {
+        console.log('pause');
         this.setState({
             playingState: false,
         });
     };
 
     public play = () => {
+        console.log('play');
         this.setState({ playingState: true });
     };
 
@@ -62,6 +63,19 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             showControl: true,
         });
     };
+
+    componentDidUpdate(prevProps: PlayerParam, prevState: PlayerState) {
+        if (prevState.playingState !== this.state.playingState) {
+            const player = this.getPlayer();
+            if (player) {
+                if (this.state.playingState) {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+            }
+        }
+    }
 
     hideControl = () => {
         this.setState({
@@ -80,7 +94,7 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             return;
         }
         console.log('seek time>>> ', time);
-        player.seekTo(time, 'seconds');
+        player.currentTime = time;
     }
 
     public change() {
@@ -105,29 +119,13 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                 onDoubleClick={this.showControl}
                 onMouseLeave={this.hideControl}
             >
-                <ReactPlayer
+                <video
                     id="react-player-id"
                     ref={this.playerRef}
-                    url={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                    playing={playingState}
+                    src={videoFile.objectUrl ? videoFile.objectUrl : ''}
                     controls={showControl}
-                    width="100%"
-                    height="100%"
-                    progressInterval={50}
-                    config={{
-                        file: {
-                            attributes: {
-                                controlsList: 'nofullscreen',
-                            },
-                        },
-                    }}
-                    onProgress={(progress) => {
-                        onProgress(progress.playedSeconds);
-                    }}
-                    onDuration={(duration) => {
-                        onTotalTimeChange(duration);
-                    }}
-                    onReady={() => this.jumpToHistoryProgress(videoFile)}
+                    style={{ width: '100%', height: '100%' }}
+                    autoPlay={playingState}
                     onPlay={() => {
                         if (!playingState) {
                             this.setState({ playingState: true });
@@ -137,6 +135,13 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                         if (playingState) {
                             this.setState({ playingState: false });
                         }
+                    }}
+                    onTimeUpdate={() => {
+                        onProgress(this.playerRef.current!.currentTime);
+                    }}
+                    onLoadedMetadata={() => {
+                        onTotalTimeChange(this.playerRef.current!.duration);
+                        this.jumpToHistoryProgress(videoFile);
                     }}
                 />
             </div>
