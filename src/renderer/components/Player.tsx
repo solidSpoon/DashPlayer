@@ -28,6 +28,31 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         };
     }
 
+    componentDidUpdate(prevProps: PlayerParam, prevState: PlayerState) {
+        const { state } = this;
+        if (prevState.playingState !== state.playingState) {
+            const player = this.getPlayer();
+            if (player) {
+                if (state.playingState) {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+            }
+        }
+    }
+
+    public play = () => {
+        console.log('play');
+        this.setState({ playingState: true });
+    };
+
+    showControl = () => {
+        this.setState({
+            showControl: true,
+        });
+    };
+
     private jumpToHistoryProgress = async (file: FileT) => {
         if (file === this.lastFile) {
             return;
@@ -52,30 +77,6 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             playingState: false,
         });
     };
-
-    public play = () => {
-        console.log('play');
-        this.setState({ playingState: true });
-    };
-
-    showControl = () => {
-        this.setState({
-            showControl: true,
-        });
-    };
-
-    componentDidUpdate(prevProps: PlayerParam, prevState: PlayerState) {
-        if (prevState.playingState !== this.state.playingState) {
-            const player = this.getPlayer();
-            if (player) {
-                if (this.state.playingState) {
-                    player.play();
-                } else {
-                    player.pause();
-                }
-            }
-        }
-    }
 
     hideControl = () => {
         this.setState({
@@ -119,6 +120,7 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                 onDoubleClick={this.showControl}
                 onMouseLeave={this.hideControl}
             >
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video
                     id="react-player-id"
                     ref={this.playerRef}
