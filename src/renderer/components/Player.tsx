@@ -86,6 +86,21 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         });
     };
 
+    syncVideos = () => {
+        const { state } = this;
+        const mainVideo = this.playerRef.current;
+        const backgroundVideo = this.playerRefBackground.current;
+
+        if (mainVideo && backgroundVideo) {
+            backgroundVideo.currentTime = mainVideo.currentTime;
+            if (state.playingState) {
+                backgroundVideo.play();
+            } else {
+                backgroundVideo.pause();
+            }
+        }
+    };
+
     public seekTo(time: number) {
         const player = this.getPlayer();
         if (player === null) {
@@ -110,20 +125,6 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         });
     }
 
-    syncVideos = () => {
-        const mainVideo = this.playerRef.current;
-        const backgroundVideo = this.playerRefBackground.current;
-
-        if (mainVideo && backgroundVideo) {
-            backgroundVideo.currentTime = mainVideo.currentTime;
-            if (this.state.playingState) {
-                backgroundVideo.play();
-            } else {
-                backgroundVideo.pause();
-            }
-        }
-    };
-
     render(): ReactElement {
         const { videoFile, onProgress, onTotalTimeChange } = this.props;
         const { playingState, showControl } = this.state;
@@ -141,11 +142,11 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                     <video
                         className="w-full h-full"
                         ref={this.playerRefBackground}
-                        src={videoFile.objectUrl ? videoFile.objectUrl : ""}
+                        src={videoFile.objectUrl ? videoFile.objectUrl : ''}
                         style={{
-                            filter: "blur(20px)",
-                            transform: "scale(1.1)",
-                            objectFit: "cover",
+                            filter: 'blur(20px)',
+                            transform: 'scale(1.1)',
+                            objectFit: 'cover',
                         }}
                         muted
                     />
@@ -155,9 +156,9 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                     <video
                         id="react-player-id"
                         ref={this.playerRef}
-                        src={videoFile.objectUrl ? videoFile.objectUrl : ""}
+                        src={videoFile.objectUrl ? videoFile.objectUrl : ''}
                         controls={showControl}
-                        style={{ width: "100%", height: "100%" }}
+                        style={{ width: '100%', height: '100%' }}
                         autoPlay={playingState}
                         onPlay={() => {
                             if (!playingState) {
