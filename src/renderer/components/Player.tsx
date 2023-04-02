@@ -16,12 +16,14 @@ interface PlayerState {
 export default class Player extends Component<PlayerParam, PlayerState> {
     private readonly playerRef: React.RefObject<HTMLVideoElement>;
 
+    private readonly playerRefBackground: React.RefObject<HTMLVideoElement>;
+
     private lastFile: FileT | undefined;
 
     constructor(props: PlayerParam | Readonly<PlayerParam>) {
         super(props);
         this.playerRef = React.createRef<HTMLVideoElement>();
-
+        this.playerRefBackground = React.createRef<HTMLVideoElement>();
         this.state = {
             playingState: true,
             showControl: false,
@@ -108,6 +110,20 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         });
     }
 
+    syncVideos = () => {
+        const mainVideo = this.playerRef.current;
+        const backgroundVideo = this.playerRefBackground.current;
+
+        if (mainVideo && backgroundVideo) {
+            backgroundVideo.currentTime = mainVideo.currentTime;
+            if (this.state.playingState) {
+                backgroundVideo.play();
+            } else {
+                backgroundVideo.pause();
+            }
+        }
+    };
+
     render(): ReactElement {
         const { videoFile, onProgress, onTotalTimeChange } = this.props;
         const { playingState, showControl } = this.state;
@@ -116,36 +132,55 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         }
         return (
             <div
-                className="w-full h-full mb-auto"
+                className="w-full h-full mb-auto relative overflow-hidden"
                 onDoubleClick={this.showControl}
                 onMouseLeave={this.hideControl}
             >
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video
-                    id="react-player-id"
-                    ref={this.playerRef}
-                    src={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                    controls={showControl}
-                    style={{ width: '100%', height: '100%' }}
-                    autoPlay={playingState}
-                    onPlay={() => {
-                        if (!playingState) {
-                            this.setState({ playingState: true });
-                        }
-                    }}
-                    onPause={() => {
-                        if (playingState) {
-                            this.setState({ playingState: false });
-                        }
-                    }}
-                    onTimeUpdate={() => {
-                        onProgress(this.playerRef.current!.currentTime);
-                    }}
-                    onLoadedMetadata={() => {
-                        onTotalTimeChange(this.playerRef.current!.duration);
-                        this.jumpToHistoryProgress(videoFile);
-                    }}
-                />
+                <div className="absolute top-0 left-0 w-full h-full">
+                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                    <video
+                        className="w-full h-full"
+                        ref={this.playerRefBackground}
+                        src={videoFile.objectUrl ? videoFile.objectUrl : ""}
+                        style={{
+                            filter: "blur(20px)",
+                            transform: "scale(1.1)",
+                            objectFit: "cover",
+                        }}
+                        muted
+                    />
+                </div>
+                <div className="absolute top-0 left-0 w-full h-full">
+                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                    <video
+                        id="react-player-id"
+                        ref={this.playerRef}
+                        src={videoFile.objectUrl ? videoFile.objectUrl : ""}
+                        controls={showControl}
+                        style={{ width: "100%", height: "100%" }}
+                        autoPlay={playingState}
+                        onPlay={() => {
+                            if (!playingState) {
+                                this.setState({ playingState: true });
+                            }
+                            this.syncVideos();
+                        }}
+                        onPause={() => {
+                            if (playingState) {
+                                this.setState({ playingState: false });
+                            }
+                            this.syncVideos();
+                        }}
+                        onTimeUpdate={() => {
+                            onProgress(this.playerRef.current!.currentTime);
+                            this.syncVideos();
+                        }}
+                        onLoadedMetadata={() => {
+                            onTotalTimeChange(this.playerRef.current!.duration);
+                            this.jumpToHistoryProgress(videoFile);
+                        }}
+                    />
+                </div>
             </div>
         );
     }
