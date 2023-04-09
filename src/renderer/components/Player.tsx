@@ -20,6 +20,8 @@ export default class Player extends Component<PlayerParam, PlayerState> {
 
     private lastFile: FileT | undefined;
 
+    private animationFrameId: number | undefined;
+
     constructor(props: PlayerParam | Readonly<PlayerParam>) {
         super(props);
         this.playerRef = React.createRef<HTMLVideoElement>();
@@ -28,6 +30,10 @@ export default class Player extends Component<PlayerParam, PlayerState> {
             playingState: true,
             showControl: false,
         };
+    }
+
+    componentDidMount() {
+        this.syncVideos();
     }
 
     componentDidUpdate(prevProps: PlayerParam, prevState: PlayerState) {
@@ -41,6 +47,12 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                     player.pause();
                 }
             }
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.animationFrameId !== undefined) {
+            cancelAnimationFrame(this.animationFrameId);
         }
     }
 
@@ -86,20 +98,26 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         });
     };
 
-    syncVideos = () => {
-        const { state } = this;
+    syncVideos = async () => {
         const mainVideo = this.playerRef.current;
         const backgroundVideo = this.playerRefBackground.current;
-        const offset = 0.1;
 
         if (mainVideo && backgroundVideo) {
-            backgroundVideo.currentTime = mainVideo.currentTime + offset;
+            backgroundVideo.currentTime = mainVideo.currentTime;
+            const { state } = this;
             if (state.playingState) {
-                backgroundVideo.play();
+                try {
+                    await backgroundVideo.play();
+                } catch (error) {
+                    console.error('Error playing background video:', error);
+                }
             } else {
                 backgroundVideo.pause();
             }
         }
+
+        // 在每一帧中调用 syncVideos
+        this.animationFrameId = requestAnimationFrame(this.syncVideos);
     };
 
     public seekTo(time: number) {
