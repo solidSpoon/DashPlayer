@@ -90,9 +90,10 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         const { state } = this;
         const mainVideo = this.playerRef.current;
         const backgroundVideo = this.playerRefBackground.current;
+        const offset = 0.1;
 
         if (mainVideo && backgroundVideo) {
-            backgroundVideo.currentTime = mainVideo.currentTime;
+            backgroundVideo.currentTime = mainVideo.currentTime + offset;
             if (state.playingState) {
                 backgroundVideo.play();
             } else {
@@ -144,8 +145,8 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                         ref={this.playerRefBackground}
                         src={videoFile.objectUrl ? videoFile.objectUrl : ''}
                         style={{
-                            filter: 'blur(20px)',
-                            transform: 'scale(1.1)',
+                            filter: 'blur(100px)',
+                            // transform: 'scale(1.1)',
                             objectFit: 'cover',
                         }}
                         muted
