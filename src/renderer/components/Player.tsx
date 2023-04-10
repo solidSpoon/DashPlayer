@@ -103,7 +103,7 @@ export default class Player extends Component<PlayerParam, PlayerState> {
         const backgroundVideo = this.playerRefBackground.current;
 
         if (mainVideo && backgroundVideo) {
-            backgroundVideo.currentTime = mainVideo.currentTime;
+            backgroundVideo.currentTime = mainVideo.currentTime + 0.05;
             const { state } = this;
             if (state.playingState) {
                 try {
@@ -183,17 +183,14 @@ export default class Player extends Component<PlayerParam, PlayerState> {
                             if (!playingState) {
                                 this.setState({ playingState: true });
                             }
-                            this.syncVideos();
                         }}
                         onPause={() => {
                             if (playingState) {
                                 this.setState({ playingState: false });
                             }
-                            this.syncVideos();
                         }}
                         onTimeUpdate={() => {
                             onProgress(this.playerRef.current!.currentTime);
-                            this.syncVideos();
                         }}
                         onLoadedMetadata={() => {
                             onTotalTimeChange(this.playerRef.current!.duration);
