@@ -61,7 +61,6 @@ export default class SubtitleSub extends Component<
             }
             const currentVisable = this.isIsVisible();
             const index = this.currentSentence?.index;
-            console.log('aaa-n', index, currentVisable, beforeVisable);
             if (index && !currentVisable) {
                 if (beforeVisable) {
                     this.listRef.current?.scrollToIndex({
@@ -189,7 +188,6 @@ export default class SubtitleSub extends Component<
     render() {
         const { subtitles } = this.props;
         const { current } = this.state;
-        console.log('aaa-render');
         return (
             <Virtuoso
                 ref={this.listRef}

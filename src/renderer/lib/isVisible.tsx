@@ -28,7 +28,6 @@ export const isBottomInVisible = (
 };
 const isVisible = (el: HTMLDivElement, boundary: number): boolean => {
     const rect = el.getBoundingClientRect();
-    console.log('aaa', rect.top, rect.bottom);
     const topInVisible = isTopInVisible(el, boundary);
     const bottomInVisible = isBottomInVisible(el, boundary);
     return !(topInVisible || bottomInVisible);
