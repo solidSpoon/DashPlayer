@@ -53,14 +53,33 @@ export default class SubtitleSub extends Component<
         // 所以需要延迟一下
         requestAnimationFrame(() => {
             const beforeVisable = snapshot as boolean;
+            if (
+                this.currentRef.current === null &&
+                this.currentSentence !== undefined
+            ) {
+                return;
+            }
             const currentVisable = this.isIsVisible();
             const index = this.currentSentence?.index;
             if (index && !currentVisable) {
-                this.listRef.current?.scrollToIndex({
-                    index: index - 1 >= 0 ? index - 1 : index,
-                    align: 'start',
-                    behavior: beforeVisable ? 'smooth' : 'auto',
-                });
+                if (beforeVisable) {
+                    this.listRef.current?.scrollToIndex({
+                        index: index - 1 >= 0 ? index - 1 : 0,
+                        align: 'start',
+                        behavior: 'smooth',
+                    });
+                } else {
+                    this.listRef.current?.scrollIntoView({
+                        index,
+                        align: 'start',
+                        behavior: 'auto',
+                    });
+                    this.listRef.current?.scrollIntoView({
+                        index: index - 1 >= 0 ? index - 1 : 0,
+                        align: 'start',
+                        behavior: 'auto',
+                    });
+                }
             }
         });
     };
@@ -169,7 +188,6 @@ export default class SubtitleSub extends Component<
     render() {
         const { subtitles } = this.props;
         const { current } = this.state;
-        console.log('Subtitle render');
         return (
             <Virtuoso
                 ref={this.listRef}
