@@ -123,6 +123,7 @@
         "react-player": "^2.11.0",
         "react-resizable-layout": "^0.4.0",
         "react-router-dom": "^6.4.0",
+        "react-virtuoso": "^4.2.0",
         "run-applescript": "^6.0.0",
         "tencentcloud-sdk-nodejs": "^4.0.489"
     },
@@ -262,9 +263,9 @@
             "owner": "solidSpoon",
             "repo": "DashPlayer"
         },
-        "nsis":{
-            "oneClick" : false,
-            "allowToChangeInstallationDirectory" : true
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true
         }
     },
     "collective": {

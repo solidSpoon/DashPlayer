@@ -1,4 +1,5 @@
 import React, { Component, ReactElement } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 import isVisible, {
     getTargetBottomPosition,
     isBottomInVisible,
@@ -13,6 +14,7 @@ interface SubtitleSubParam {
     seekTo: (time: number) => void;
     onCurrentSentenceChange: (currentSentence: SentenceT) => void;
 }
+
 interface SubtitleSubState {
     current: SentenceT | undefined;
 }
@@ -178,41 +180,37 @@ export default class SubtitleSub extends Component<
         this.jumpTo(targetElement);
     }
 
-    private subtitleItems(): ReactElement[] {
+    render() {
         const { subtitles } = this.props;
         const { current } = this.state;
-        return subtitles.map((item) => {
-            const isCurrent = item.equals(current);
-            let result = (
-                <SideSentenceNew
-                    key={item.getKey()}
-                    sentence={item}
-                    onClick={(sentence) => this.jumpTo(sentence)}
-                    isCurrent={isCurrent}
-                />
-            );
-            if (isCurrent) {
-                result = (
-                    <div key={`${item.getKey()}div`} ref={this.currentRef}>
-                        {result}
-                    </div>
-                );
-            }
-            return result;
-        });
-    }
-
-    render() {
         console.log('Subtitle render');
         return (
-            <div
-                className="flex flex-col w-full h-full overflow-x-hidden overflow-y-auto"
-                ref={this.parentRef}
-            >
-                <div className="w-full mt-3" />
-                {this.subtitleItems()}
-                <div className="w-full mb-96" />
-            </div>
+            <Virtuoso
+                className="h-full w-full"
+                data={subtitles}
+                itemContent={(index, item) => {
+                    const isCurrent = item.equals(current);
+                    let result = (
+                        <SideSentenceNew
+                            key={item.getKey()}
+                            sentence={item}
+                            onClick={(sentence) => this.jumpTo(sentence)}
+                            isCurrent={isCurrent}
+                        />
+                    );
+                    if (isCurrent) {
+                        result = (
+                            <div
+                                key={`${item.getKey()}div`}
+                                ref={this.currentRef}
+                            >
+                                {result}
+                            </div>
+                        );
+                    }
+                    return result;
+                }}
+            />
         );
     }
 }
