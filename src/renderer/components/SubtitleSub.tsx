@@ -199,11 +199,16 @@ export default class SubtitleSub extends Component<
                 itemContent={(index, item) => {
                     const isCurrent = item.equals(current);
                     let result = (
-                        <SideSentenceNew
-                            sentence={item}
-                            onClick={(sentence) => this.jumpTo(sentence)}
-                            isCurrent={isCurrent}
-                        />
+                        <div
+                            className={`${index === 0 ? 'pt-3' : ''}
+                            ${index === subtitles.length - 1 ? 'pb-52' : ''}`}
+                        >
+                            <SideSentenceNew
+                                sentence={item}
+                                onClick={(sentence) => this.jumpTo(sentence)}
+                                isCurrent={isCurrent}
+                            />
+                        </div>
                     );
                     if (isCurrent) {
                         result = (
