@@ -1,10 +1,6 @@
-import React, { Component, ReactElement } from 'react';
-import { Virtuoso } from 'react-virtuoso';
-import isVisible, {
-    getTargetBottomPosition,
-    isBottomInVisible,
-    isTopInVisible,
-} from '../lib/isVisible';
+import React, { Component } from 'react';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentenceNew from './SideSentenceNew';
 
@@ -23,7 +19,7 @@ export default class SubtitleSub extends Component<
     SubtitleSubParam,
     SubtitleSubState
 > {
-    private readonly SCROOL_BOUNDARY = 100;
+    private readonly SCROOL_BOUNDARY = 50;
 
     private timer: NodeJS.Timer | undefined;
 
@@ -34,6 +30,10 @@ export default class SubtitleSub extends Component<
     private parentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     private currentRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+    private listRef: React.RefObject<VirtuosoHandle> = React.createRef();
+
+    private visibleRange: [number, number] = [0, 0];
 
     constructor(props: SubtitleSubParam) {
         super(props);
@@ -51,37 +51,15 @@ export default class SubtitleSub extends Component<
         prevState: Readonly<SubtitleSubState>,
         snapshot?: any
     ) {
-        const [beforeTopHidden, beforeBottomHidden] = snapshot as [
-            boolean,
-            boolean
-        ];
-        const currentDiv = this.currentRef.current;
-        if (
-            currentDiv === null ||
-            isVisible(currentDiv, this.SCROOL_BOUNDARY)
-        ) {
-            return;
-        }
-        const [currentTopHidden, currentBottomHidden] = [
-            isTopInVisible(currentDiv, this.SCROOL_BOUNDARY),
-            isBottomInVisible(currentDiv, this.SCROOL_BOUNDARY),
-        ];
-
-        const { offsetTop } = currentDiv;
-        if (currentTopHidden && beforeTopHidden) {
-            this.parentRef.current?.scrollTo({
-                top: offsetTop - this.SCROOL_BOUNDARY,
-            });
-        } else if (currentBottomHidden && beforeBottomHidden) {
-            this.parentRef.current?.scrollTo({
-                top:
-                    offsetTop -
-                    getTargetBottomPosition(currentDiv, this.SCROOL_BOUNDARY),
-            });
-        } else if (currentTopHidden || currentBottomHidden) {
-            this.parentRef.current?.scrollTo({
-                top: offsetTop - this.SCROOL_BOUNDARY,
-                behavior: 'smooth',
+        const beforeVisable = snapshot as boolean;
+        const currentVisable = this.isIsVisible();
+        console.log('aaa', beforeVisable, currentVisable);
+        const index = this.currentSentence?.index;
+        if (index && !currentVisable) {
+            this.listRef.current?.scrollToIndex({
+                index: index - 1 >= 0 ? index - 1 : index,
+                align: 'start',
+                behavior: beforeVisable ? 'smooth' : 'auto',
             });
         }
     }
@@ -90,15 +68,8 @@ export default class SubtitleSub extends Component<
         clearInterval(this.timer);
     }
 
-    getSnapshotBeforeUpdate(): [boolean, boolean] {
-        const ele = this.currentRef.current;
-        if (ele === null) {
-            return [false, false];
-        }
-        return [
-            isTopInVisible(ele, this.SCROOL_BOUNDARY),
-            isBottomInVisible(ele, this.SCROOL_BOUNDARY),
-        ];
+    getSnapshotBeforeUpdate(): boolean {
+        return this.isIsVisible();
     }
 
     private getElementAt(index: number): SentenceT {
@@ -153,6 +124,20 @@ export default class SubtitleSub extends Component<
         this.updateTo(find);
     };
 
+    isIsVisible(): boolean {
+        const index = this.currentSentence?.index;
+        if (index) {
+            if (index < this.visibleRange[0] || index > this.visibleRange[1]) {
+                return false;
+            }
+        }
+        const currentDiv = this.currentRef.current;
+        if (currentDiv === null) {
+            return false;
+        }
+        return isVisible(currentDiv, this.SCROOL_BOUNDARY);
+    }
+
     private updateTo(target: SentenceT) {
         if (target.equals(this.currentSentence)) {
             return;
@@ -186,8 +171,12 @@ export default class SubtitleSub extends Component<
         console.log('Subtitle render');
         return (
             <Virtuoso
+                ref={this.listRef}
                 className="h-full w-full"
                 data={subtitles}
+                rangeChanged={({ startIndex, endIndex }) => {
+                    this.visibleRange = [startIndex, endIndex];
+                }}
                 itemContent={(index, item) => {
                     const isCurrent = item.equals(current);
                     let result = (
