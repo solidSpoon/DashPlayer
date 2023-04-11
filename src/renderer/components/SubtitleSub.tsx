@@ -27,8 +27,6 @@ export default class SubtitleSub extends Component<
 
     private manuallyUpdateTime: number = Date.now();
 
-    private parentRef: React.RefObject<HTMLDivElement> = React.createRef();
-
     private currentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     private listRef: React.RefObject<VirtuosoHandle> = React.createRef();
@@ -46,23 +44,26 @@ export default class SubtitleSub extends Component<
         this.timer = setInterval(this.interval, 50);
     }
 
-    componentDidUpdate(
+    componentDidUpdate = (
         prevProps: Readonly<SubtitleSubParam>,
         prevState: Readonly<SubtitleSubState>,
         snapshot?: any
-    ) {
-        const beforeVisable = snapshot as boolean;
-        const currentVisable = this.isIsVisible();
-        console.log('aaa', beforeVisable, currentVisable);
-        const index = this.currentSentence?.index;
-        if (index && !currentVisable) {
-            this.listRef.current?.scrollToIndex({
-                index: index - 1 >= 0 ? index - 1 : index,
-                align: 'start',
-                behavior: beforeVisable ? 'smooth' : 'auto',
-            });
-        }
-    }
+    ) => {
+        // 似乎 render() 最外层元素渲染后就会触发 componentDidUpdate，此时还拿不到新的元素
+        // 所以需要延迟一下
+        requestAnimationFrame(() => {
+            const beforeVisable = snapshot as boolean;
+            const currentVisable = this.isIsVisible();
+            const index = this.currentSentence?.index;
+            if (index && !currentVisable) {
+                this.listRef.current?.scrollToIndex({
+                    index: index - 1 >= 0 ? index - 1 : index,
+                    align: 'start',
+                    behavior: beforeVisable ? 'smooth' : 'auto',
+                });
+            }
+        });
+    };
 
     componentWillUnmount() {
         clearInterval(this.timer);
@@ -124,7 +125,7 @@ export default class SubtitleSub extends Component<
         this.updateTo(find);
     };
 
-    isIsVisible(): boolean {
+    private isIsVisible = (): boolean => {
         const index = this.currentSentence?.index;
         if (index) {
             if (index < this.visibleRange[0] || index > this.visibleRange[1]) {
@@ -136,7 +137,7 @@ export default class SubtitleSub extends Component<
             return false;
         }
         return isVisible(currentDiv, this.SCROOL_BOUNDARY);
-    }
+    };
 
     private updateTo(target: SentenceT) {
         if (target.equals(this.currentSentence)) {
