@@ -25,17 +25,24 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
     };
     const word = (str: string, key: string): ReactElement => {
         const t = () => trans(str);
+
+        // 并没有用到，只是为了让 eslint 不报错
+        const handleKeyDown = (event: React.KeyboardEvent) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                t();
+            }
+        };
         return (
-            <>
-                {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
-                <span
-                    className="rounded select-none hover:bg-zinc-600"
-                    key={key}
-                    onClick={t}
-                >
-                    {str}
-                </span>
-            </>
+            <span
+                className="rounded select-none hover:bg-zinc-600"
+                key={key}
+                role="button"
+                tabIndex={0}
+                onClick={t}
+                onKeyDown={handleKeyDown}
+            >
+                {str}
+            </span>
         );
     };
     const isWord = (str: string): boolean => {
@@ -50,7 +57,6 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
     function ele(): ReactElement[] {
         return words.map((w, index) => {
             const key = `${hash(text)}:${index}`;
-            console.log(key);
             if (isWord(w)) {
                 return word(w, `nw:${key}`);
             }

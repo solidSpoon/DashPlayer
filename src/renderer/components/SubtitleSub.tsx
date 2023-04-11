@@ -202,7 +202,6 @@ export default class SubtitleSub extends Component<
                     const isCurrent = item.equals(current);
                     let result = (
                         <SideSentenceNew
-                            key={item.getKey()}
                             sentence={item}
                             onClick={(sentence) => this.jumpTo(sentence)}
                             isCurrent={isCurrent}
