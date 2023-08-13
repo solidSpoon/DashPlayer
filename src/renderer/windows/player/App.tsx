@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 import FileT, { FileType } from '../../lib/param/FileT';
-import Player from '../../components/Player';
+import Player, { SeekTime } from '../../components/Player';
 import Subtitle from '../../components/Subtitle';
 import MainSubtitle from '../../components/MainSubtitle';
 import PlayTime from '../../components/PlayTime';
@@ -27,6 +27,10 @@ interface HomeState {
     subtitleFile: FileT | undefined;
 
     currentSentence: SentenceT | undefined;
+
+    jumpTo: SeekTime;
+
+    playState: boolean;
 }
 
 export default class App extends Component<any, HomeState> {
@@ -35,12 +39,6 @@ export default class App extends Component<any, HomeState> {
      * @private
      */
     private progress: number;
-
-    /**
-     * 播放器引用
-     * @private
-     */
-    private playerRef: React.RefObject<Player>;
 
     /**
      * 视频时长
@@ -58,13 +56,17 @@ export default class App extends Component<any, HomeState> {
         super(props);
         this.progress = 0;
         this.totalTime = 0;
-        this.playerRef = React.createRef<Player>();
         this.subtitleRef = React.createRef<Subtitle>();
 
         this.state = {
             videoFile: undefined,
             subtitleFile: undefined,
             currentSentence: undefined,
+            jumpTo: {
+                time: 0,
+                version: 0,
+            },
+            playState: true,
         };
     }
 
@@ -85,7 +87,9 @@ export default class App extends Component<any, HomeState> {
     };
 
     private onSpace() {
-        this.playerRef.current?.change();
+        this.setState((prevState) => ({
+            playState: !prevState.playState,
+        }));
     }
 
     private onJumpTo(position: JumpPosition) {
@@ -104,21 +108,6 @@ export default class App extends Component<any, HomeState> {
         }
     }
 
-    private seekTo = (time: number) => {
-        this.playerRef.current?.seekTo(time);
-        this.playerRef.current?.play();
-    };
-
-    private showControl = () => {
-        console.log('showC');
-        this.playerRef.current?.showControl();
-    };
-
-    private hideControl = () => {
-        console.log('hideControl');
-        this.playerRef.current?.hideControl();
-    };
-
     private currentTime = () => this.progress;
 
     private onCurrentSentenceChange = (current: SentenceT) => {
@@ -127,18 +116,35 @@ export default class App extends Component<any, HomeState> {
         });
     };
 
+    private onJumpToTime = (time: number) => {
+        this.setState((prevState) => ({
+            jumpTo: {
+                time,
+                version: prevState.jumpTo.version + 1,
+            },
+        }));
+    };
+
     render() {
-        const { videoFile, subtitleFile, currentSentence } = this.state;
+        const { playState, videoFile, subtitleFile, currentSentence, jumpTo } =
+            this.state;
         const player = (
             <>
                 <Player
-                    ref={this.playerRef}
                     videoFile={videoFile}
                     onProgress={(time) => {
                         this.progress = time;
                     }}
                     onTotalTimeChange={(time) => {
                         this.totalTime = time;
+                    }}
+                    onJumpTo={this.onJumpToTime}
+                    seekTime={jumpTo}
+                    playingState={playState}
+                    setPlayingState={(state) => {
+                        this.setState({
+                            playState: state,
+                        });
                     }}
                 />
             </>
@@ -148,7 +154,7 @@ export default class App extends Component<any, HomeState> {
                 ref={this.subtitleRef}
                 getCurrentTime={this.currentTime}
                 onCurrentSentenceChange={this.onCurrentSentenceChange}
-                seekTo={this.seekTo}
+                seekTo={this.onJumpToTime}
                 subtitleFile={subtitleFile}
             />
         );

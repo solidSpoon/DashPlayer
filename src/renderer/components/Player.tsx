@@ -1,204 +1,166 @@
-import React, { Component, ReactElement } from 'react';
+import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
 
 interface PlayerParam {
     videoFile: FileT | undefined;
+    seekTime: SeekTime;
     onProgress: (time: number) => void;
     onTotalTimeChange: (time: number) => void;
-}
-
-interface PlayerState {
+    onJumpTo: (time: number) => void;
     playingState: boolean;
-    showControl: boolean;
+    setPlayingState: (state: boolean) => void;
 }
 
-export default class Player extends Component<PlayerParam, PlayerState> {
-    private readonly playerRef: React.RefObject<HTMLVideoElement>;
+export interface SeekTime {
+    time: number;
+    version: number;
+}
 
-    private readonly playerRefBackground: React.RefObject<HTMLVideoElement>;
+export default function Player({
+    videoFile,
+    seekTime,
+    onProgress,
+    onTotalTimeChange,
+    onJumpTo,
+    playingState,
+    setPlayingState,
+}: PlayerParam): ReactElement {
+    console.log('playingState:', playingState);
 
-    private lastFile: FileT | undefined;
+    const playerRef: React.RefObject<HTMLVideoElement> =
+        useRef<HTMLVideoElement>(null);
+    const playerRefBackground: React.RefObject<HTMLCanvasElement> =
+        useRef<HTMLCanvasElement>(null);
+    let lastFile: FileT | undefined;
 
-    private animationFrameId: number | undefined;
+    const lastSeekTime = useRef<SeekTime>({ time: 0, version: 0 });
 
-    constructor(props: PlayerParam | Readonly<PlayerParam>) {
-        super(props);
-        this.playerRef = React.createRef<HTMLVideoElement>();
-        this.playerRefBackground = React.createRef<HTMLVideoElement>();
-        this.state = {
-            playingState: true,
-            showControl: false,
-        };
+    const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
+
+    if (lastSeekTime.current.version !== seekTime.version) {
+        lastSeekTime.current = seekTime;
+        if (playerRef.current !== null) {
+            playerRef.current.currentTime = seekTime.time;
+            playerRef.current.play();
+        }
+    } else if (playerRef.current !== null) {
+        if (playingState && playerRef.current.paused) {
+            playerRef.current.play();
+        } else if (!playingState && !playerRef.current.paused) {
+            playerRef.current.pause();
+        }
     }
 
-    componentDidMount() {
-        this.syncVideos();
-    }
+    useEffect(() => {
+        let animationFrameId: number | undefined;
+        const syncVideos = async () => {
+            const mainVideo = playerRef?.current;
+            const backgroundCanvas = playerRefBackground?.current;
 
-    componentDidUpdate(prevProps: PlayerParam, prevState: PlayerState) {
-        const { state } = this;
-        if (prevState.playingState !== state.playingState) {
-            const player = this.getPlayer();
-            if (player) {
-                if (state.playingState) {
-                    player.play();
-                } else {
-                    player.pause();
+            if (mainVideo !== null && backgroundCanvas !== null) {
+                const { width, height } =
+                    backgroundCanvas.getBoundingClientRect();
+                const ctx = backgroundCanvas.getContext('2d');
+                if (ctx !== null) {
+                    if (
+                        backgroundCanvas.width !== width ||
+                        backgroundCanvas.height !== height
+                    ) {
+                        const { devicePixelRatio: ratio = 1 } = window;
+                        backgroundCanvas.width = width * ratio;
+                        backgroundCanvas.height = height * ratio;
+                        ctx.scale(ratio, ratio);
+                    }
+
+                    const canvasWidth = Math.floor(
+                        backgroundCanvas?.clientWidth ?? 0
+                    );
+                    const canvasHeight = Math.floor(
+                        backgroundCanvas?.clientHeight ?? 0
+                    );
+
+                    ctx?.drawImage(mainVideo, 0, 0, canvasWidth, canvasHeight);
                 }
             }
-        }
-    }
 
-    componentWillUnmount() {
-        if (this.animationFrameId !== undefined) {
-            cancelAnimationFrame(this.animationFrameId);
-        }
-    }
+            // 在每一帧中调用 syncVideos
+            animationFrameId = requestAnimationFrame(syncVideos);
+        };
+        syncVideos();
+        return () => {
+            if (animationFrameId !== undefined) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [playingState]);
 
-    public play = () => {
-        console.log('play');
-        this.setState({ playingState: true });
-    };
-
-    showControl = () => {
-        this.setState({
-            showControl: true,
-        });
-    };
-
-    private jumpToHistoryProgress = async (file: FileT) => {
-        if (file === this.lastFile) {
+    const jumpToHistoryProgress = async (file: FileT) => {
+        if (file === lastFile) {
             return;
         }
-        const { videoFile } = this.props;
+
         if (videoFile === undefined) {
             return;
         }
         const result = await callApi('query-progress', [videoFile.fileName]);
         const progress = result as number;
-        this.seekTo(progress);
-        this.lastFile = file;
+        onJumpTo(progress);
+        lastFile = file;
     };
 
-    private getPlayer = () => {
-        return this.playerRef.current;
-    };
-
-    public pause = () => {
-        console.log('pause');
-        this.setState({
-            playingState: false,
-        });
-    };
-
-    hideControl = () => {
-        this.setState({
-            showControl: false,
-        });
-    };
-
-    syncVideos = async () => {
-        const mainVideo = this.playerRef.current;
-        const backgroundVideo = this.playerRefBackground.current;
-
-        if (mainVideo && backgroundVideo) {
-            backgroundVideo.currentTime = mainVideo.currentTime + 0.05;
-            const { state } = this;
-            if (state.playingState) {
-                try {
-                    await backgroundVideo.play();
-                } catch (error) {
-                    console.error('Error playing background video:', error);
-                }
-            } else {
-                backgroundVideo.pause();
-            }
-        }
-
-        // 在每一帧中调用 syncVideos
-        this.animationFrameId = requestAnimationFrame(this.syncVideos);
-    };
-
-    public seekTo(time: number) {
-        const player = this.getPlayer();
-        if (player === null) {
-            console.log('player undefined, cannot seekTo');
-            return;
-        }
-        if (time === undefined) {
-            console.log('time undefined, cannot seekTo');
-            return;
-        }
-        console.log('seek time>>> ', time);
-        player.currentTime = time;
-    }
-
-    public change() {
-        const { showControl, playingState } = this.state;
-        if (showControl) {
-            return;
-        }
-        this.setState({
-            playingState: !playingState,
-        });
-    }
-
-    render(): ReactElement {
-        const { videoFile, onProgress, onTotalTimeChange } = this.props;
-        const { playingState, showControl } = this.state;
+    const render = (): ReactElement => {
         if (videoFile === undefined) {
             return <></>;
         }
         return (
             <div
                 className="w-full h-full mb-auto relative overflow-hidden"
-                onDoubleClick={this.showControl}
-                onMouseLeave={this.hideControl}
+                onDoubleClick={() => setShowControlPanel(true)}
+                onMouseLeave={() => setShowControlPanel(false)}
             >
                 <div className="absolute top-0 left-0 w-full h-full">
-                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                    <video
+                    <canvas
                         className="w-full h-full"
-                        ref={this.playerRefBackground}
-                        src={videoFile.objectUrl ? videoFile.objectUrl : ''}
+                        ref={playerRefBackground}
                         style={{
                             filter: 'blur(100px)',
                             // transform: 'scale(1.1)',
                             objectFit: 'cover',
                         }}
-                        muted
                     />
                 </div>
                 <div className="absolute top-0 left-0 w-full h-full">
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video
                         id="react-player-id"
-                        ref={this.playerRef}
+                        ref={playerRef}
                         src={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                        controls={showControl}
+                        controls={showControlPanel}
                         style={{ width: '100%', height: '100%' }}
-                        autoPlay={playingState}
+                        autoPlay
                         onPlay={() => {
                             if (!playingState) {
-                                this.setState({ playingState: true });
+                                setPlayingState(true);
                             }
                         }}
                         onPause={() => {
                             if (playingState) {
-                                this.setState({ playingState: false });
+                                setPlayingState(false);
                             }
                         }}
                         onTimeUpdate={() => {
-                            onProgress(this.playerRef.current!.currentTime);
+                            onProgress(playerRef.current!.currentTime);
                         }}
                         onLoadedMetadata={() => {
-                            onTotalTimeChange(this.playerRef.current!.duration);
-                            this.jumpToHistoryProgress(videoFile);
+                            onTotalTimeChange(playerRef.current!.duration);
+                            jumpToHistoryProgress(videoFile);
                         }}
                     />
                 </div>
             </div>
         );
-    }
+    };
+
+    return render();
 }
