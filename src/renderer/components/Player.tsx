@@ -73,12 +73,8 @@ export default function Player({
                         ctx.scale(ratio, ratio);
                     }
 
-                    const canvasWidth = Math.floor(
-                        backgroundCanvas?.clientWidth ?? 0
-                    );
-                    const canvasHeight = Math.floor(
-                        backgroundCanvas?.clientHeight ?? 0
-                    );
+                    const canvasWidth = backgroundCanvas?.clientWidth ?? 0;
+                    const canvasHeight = backgroundCanvas?.clientHeight ?? 0;
 
                     ctx?.drawImage(mainVideo, 0, 0, canvasWidth, canvasHeight);
                 }
