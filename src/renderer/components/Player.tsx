@@ -1,6 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
+import SentenceT from '../lib/param/SentenceT';
 
 interface PlayerParam {
     videoFile: FileT | undefined;
@@ -10,11 +11,6 @@ interface PlayerParam {
     onJumpTo: (time: number) => void;
     playingState: boolean;
     setPlayingState: (state: boolean) => void;
-}
-
-export interface SeekTime {
-    time: number;
-    version: number;
 }
 
 export default function Player({

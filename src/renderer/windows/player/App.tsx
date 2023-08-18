@@ -1,10 +1,7 @@
-import React, { Component } from 'react';
+import React, { useRef, useState } from 'react';
 import './App.css';
-import FileT, { FileType } from '../../lib/param/FileT';
-import Player, { SeekTime } from '../../components/Player';
-import Subtitle from '../../components/Subtitle';
+import Player from '../../components/Player';
 import MainSubtitle from '../../components/MainSubtitle';
-import PlayTime from '../../components/PlayTime';
 import UploadPhoto from '../../components/UplodeButton';
 import BorderProgressBar from '../../components/BorderProgressBar';
 import GlobalShortCut, { JumpPosition } from '../../components/GlobalShortCut';
@@ -13,160 +10,112 @@ import RecordProgress from '../../components/RecordProgress';
 import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
 import 'tailwindcss/tailwind.css';
 import ResizeableSkeleton from '../../components/ResizeableSkeleton';
+import useSubtitle from '../../hooks/useSubtitle';
+import useFile from '../../hooks/useFile';
+import SubtitleSub, { Action } from '../../components/SubtitleSub';
+import { SeekTime } from '../../hooks/useSubTitleController';
 
-interface HomeState {
-    /**
-     * 视频文件
-     * @private
-     */
-    videoFile: FileT | undefined;
-    /**
-     * 字幕文件
-     * @private
-     */
-    subtitleFile: FileT | undefined;
-
-    currentSentence: SentenceT | undefined;
-
-    jumpTo: SeekTime;
-
-    playState: boolean;
-}
-
-export default class App extends Component<any, HomeState> {
+export default function App() {
     /**
      * 当前播放时间
      * @private
      */
-    private progress: number;
+    const progress = useRef<number>(0);
 
     /**
      * 视频时长
      * @private
      */
-    private totalTime: number;
+    const totalTime = useRef<number>(0);
 
-    /**
-     * 侧边字幕组件引用
-     * @private
-     */
-    private subtitleRef: React.RefObject<Subtitle>;
-
-    constructor(props: any) {
-        super(props);
-        this.progress = 0;
-        this.totalTime = 0;
-        this.subtitleRef = React.createRef<Subtitle>();
-
-        this.state = {
-            videoFile: undefined,
-            subtitleFile: undefined,
-            currentSentence: undefined,
-            jumpTo: {
-                time: 0,
-                version: 0,
-            },
-            playState: true,
-        };
-    }
-
-    private onFileChange = (file: FileT) => {
-        if (FileType.VIDEO === file.fileType) {
-            this.setState({
-                videoFile: file,
-            });
-            if (file.fileName !== undefined) {
-                document.title = file.fileName;
-            }
-        }
-        if (FileType.SUBTITLE === file.fileType) {
-            this.setState({
-                subtitleFile: file,
-            });
-        }
+    const { videoFile, subtitleFile, updateFile } = useFile();
+    const [currentSentence, setCurrentSentence] = useState<
+        SentenceT | undefined
+    >(undefined);
+    const [jumpTo, setJumpTo] = useState<SeekTime>({
+        time: 0,
+        version: 0,
+    });
+    const [action, setAction] = useState<Action>({
+        num: 0,
+        action: 'none',
+        target: undefined,
+        time: undefined,
+    });
+    const [playState, setPlayState] = useState<boolean>(true);
+    const subtitles = useSubtitle(subtitleFile);
+    const onSpace = () => {
+        setPlayState((prevState) => !prevState);
     };
 
-    private onSpace() {
-        this.setState((prevState) => ({
-            playState: !prevState.playState,
-        }));
-    }
-
-    private onJumpTo(position: JumpPosition) {
-        if (this.subtitleRef.current === null) {
-            console.log('subtitleRef is empty, can not jump');
-            return;
-        }
-        if (JumpPosition.BEFORE === position) {
-            this.subtitleRef.current.jumpPrev();
-        }
-        if (JumpPosition.AFTER === position) {
-            this.subtitleRef.current.jumpNext();
-        }
-        if (JumpPosition.CURRENT === position) {
-            this.subtitleRef.current.repeat();
-        }
-    }
-
-    private currentTime = () => this.progress;
-
-    private onCurrentSentenceChange = (current: SentenceT) => {
-        this.setState({
-            currentSentence: current,
-        });
+    const onJumpTo = (position: JumpPosition) => {
+        // if (subtitleRef.current === null) {
+        //     console.log('subtitleRef is empty, can not jump');
+        //     return;
+        // }
+        // if (JumpPosition.BEFORE === position) {
+        //     this.subtitleRef.current.jumpPrev();
+        // }
+        // if (JumpPosition.AFTER === position) {
+        //     this.subtitleRef.current.jumpNext();
+        // }
+        // if (JumpPosition.CURRENT === position) {
+        //     this.subtitleRef.current.repeat();
+        // }
     };
 
-    private onJumpToTime = (time: number) => {
-        this.setState((prevState) => ({
-            jumpTo: {
-                time,
-                version: prevState.jumpTo.version + 1,
-            },
+    const currentTime = () => progress.current;
+
+    const onCurrentSentenceChange = (current: SentenceT) => {
+        setCurrentSentence(current);
+    };
+
+    const onJumpToTime = (time: number) => {
+        setJumpTo((prevState) => ({
+            time,
+            version: prevState.version + 1,
+            sentence: undefined,
         }));
     };
 
-    render() {
-        const { playState, videoFile, subtitleFile, currentSentence, jumpTo } =
-            this.state;
+    const render = () => {
         const player = (
             <>
                 <Player
                     videoFile={videoFile}
                     onProgress={(time) => {
-                        this.progress = time;
+                        progress.current = time;
                     }}
                     onTotalTimeChange={(time) => {
-                        this.totalTime = time;
+                        totalTime.current = time;
                     }}
-                    onJumpTo={this.onJumpToTime}
+                    onJumpTo={onJumpToTime}
                     seekTime={jumpTo}
                     playingState={playState}
                     setPlayingState={(state) => {
-                        this.setState({
-                            playState: state,
-                        });
+                        setPlayState(state);
                     }}
                 />
             </>
         );
         const subtitle = (
-            <Subtitle
-                ref={this.subtitleRef}
-                getCurrentTime={this.currentTime}
-                onCurrentSentenceChange={this.onCurrentSentenceChange}
-                seekTo={this.onJumpToTime}
-                subtitleFile={subtitleFile}
+            <SubtitleSub
+                getCurrentTime={currentTime}
+                onCurrentSentenceChange={onCurrentSentenceChange}
+                seekTo={onJumpToTime}
+                subtitles={subtitles}
+                action={action}
             />
         );
         const mainSubtitle = <MainSubtitle sentence={currentSentence} />;
         return (
             <div className="font-face-arc bg-neutral-800">
                 <GlobalShortCut
-                    onJumpTo={(position) => this.onJumpTo(position)}
-                    onSpace={() => this.onSpace()}
+                    onJumpTo={(position) => onJumpTo(position)}
+                    onSpace={() => onSpace()}
                 />
                 <RecordProgress
-                    getCurrentProgress={() => this.progress}
+                    getCurrentProgress={() => progress.current}
                     getCurrentVideoFile={() => videoFile}
                 />
                 <ResizeableSkeleton
@@ -175,14 +124,16 @@ export default class App extends Component<any, HomeState> {
                     subtitle={subtitle}
                 />
 
-                <UploadPhoto onFileChange={this.onFileChange} />
+                <UploadPhoto onFileChange={updateFile} />
                 <div id="progressBarRef">
                     <BorderProgressBar
-                        getCurrentTime={() => this.progress}
-                        getTotalTime={() => this.totalTime}
+                        getCurrentTime={() => progress.current}
+                        getTotalTime={() => totalTime.current}
                     />
                 </div>
             </div>
         );
-    }
+    };
+
+    return render();
 }
