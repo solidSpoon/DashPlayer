@@ -1,5 +1,6 @@
 import { Component, ReactNode } from 'react';
 import Keyevent from 'react-keyevent';
+import { Action, next, prev, repeat, space } from '../lib/CallAction';
 
 export enum JumpPosition {
     BEFORE = 0,
@@ -13,8 +14,7 @@ interface ReactParam {
 }
 
 interface GlobalShortCutParam extends ReactParam {
-    onJumpTo: (position: JumpPosition) => void;
-    onSpace: () => void;
+    onAction: (action: Action) => void;
 }
 
 export default class GlobalShortCut extends Component<
@@ -22,48 +22,52 @@ export default class GlobalShortCut extends Component<
     never
 > {
     public onA = () => {
-        const { onJumpTo } = this.props;
-        onJumpTo(JumpPosition.BEFORE);
+        const { onAction } = this.props;
+        // onJumpTo(JumpPosition.BEFORE);
+        onAction(prev());
     };
 
     public onD = () => {
-        const { onJumpTo } = this.props;
-        onJumpTo(JumpPosition.AFTER);
+        const { onAction } = this.props;
+        // onJumpTo(JumpPosition.AFTER);
+        onAction(next());
     };
 
     public onS = () => {
-        const { onJumpTo } = this.props;
-        onJumpTo(JumpPosition.CURRENT);
+        const { onAction } = this.props;
+        // onJumpTo(JumpPosition.CURRENT);
+        onAction(repeat());
     };
 
     public onLeft = () => {
-        const { onJumpTo } = this.props;
-        onJumpTo(JumpPosition.BEFORE);
+        const { onAction } = this.props;
+        // onJumpTo(JumpPosition.BEFORE);
+        onAction(prev());
     };
 
     public onRight = () => {
-        const { onJumpTo } = this.props;
-        onJumpTo(JumpPosition.AFTER);
+        const { onAction } = this.props;
+        onAction(next());
     };
 
     public onDown = () => {
-        const { onJumpTo } = this.props;
-        onJumpTo(JumpPosition.CURRENT);
+        const { onAction } = this.props;
+        onAction(repeat());
     };
 
     public onSpace = () => {
-        const { onSpace } = this.props;
-        onSpace();
+        const { onAction } = this.props;
+        onAction(repeat());
     };
 
     public onUp = () => {
-        const { onSpace } = this.props;
-        onSpace();
+        const { onAction } = this.props;
+        onAction(space());
     };
 
     public onW = () => {
-        const { onSpace } = this.props;
-        onSpace();
+        const { onAction } = this.props;
+        onAction(space());
     };
 
     render() {

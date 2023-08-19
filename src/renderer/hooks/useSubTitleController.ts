@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import SentenceT from '../lib/param/SentenceT';
-import { Action } from '../components/SubtitleSub';
+import { Action } from '../lib/CallAction';
 
 export interface SeekTime {
     time: number;
@@ -92,6 +92,15 @@ export default function useSubTitleController(
     }
 
     const doAction = (action: Action) => {
+        /*
+        | 'repeat'
+        | 'next'
+        | 'prev'
+        | 'jump'
+        | 'jump_time'
+        | 'space'
+        | 'none';
+         */
         switch (action.action) {
             case 'repeat':
                 setSeekTime((state) => ({
@@ -100,19 +109,26 @@ export default function useSubTitleController(
                 }));
                 manuallyUpdateTime.current = Date.now();
                 break;
-            case 'jump':
-                setSeekTime((state) => ({
-                    time: action.time ?? 0.0,
-                    version: state.version + 1,
-                }));
-                setCurrentSentence(action.target);
-                manuallyUpdateTime.current = Date.now();
-                break;
             case 'next':
                 jumpNext();
                 break;
             case 'prev':
                 jumpPrev();
+                break;
+            case 'jump':
+                setSeekTime((state) => ({
+                    time: action.target?.currentBegin ?? 0.0,
+                    version: state.version + 1,
+                }));
+                setCurrentSentence(action.target);
+                manuallyUpdateTime.current = Date.now();
+                break;
+            case 'jump_time':
+                setSeekTime((state) => ({
+                    time: action.time ?? 0.0,
+                    version: state.version + 1,
+                }));
+                manuallyUpdateTime.current = Date.now();
                 break;
             default:
                 break;

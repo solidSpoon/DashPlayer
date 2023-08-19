@@ -1,14 +1,15 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
-import SentenceT from '../lib/param/SentenceT';
+import { SeekTime } from '../hooks/useSubTitleController';
+import { Action, jumpTime } from '../lib/CallAction';
 
 interface PlayerParam {
     videoFile: FileT | undefined;
     seekTime: SeekTime;
     onProgress: (time: number) => void;
     onTotalTimeChange: (time: number) => void;
-    onJumpTo: (time: number) => void;
+    onAction: (action: Action) => void;
     playingState: boolean;
     setPlayingState: (state: boolean) => void;
 }
@@ -18,9 +19,9 @@ export default function Player({
     seekTime,
     onProgress,
     onTotalTimeChange,
-    onJumpTo,
     playingState,
     setPlayingState,
+    onAction,
 }: PlayerParam): ReactElement {
     console.log('playingState:', playingState);
 
@@ -97,7 +98,7 @@ export default function Player({
         }
         const result = await callApi('query-progress', [videoFile.fileName]);
         const progress = result as number;
-        onJumpTo(progress);
+        onAction(jumpTime(progress));
         lastFile = file;
     };
 
