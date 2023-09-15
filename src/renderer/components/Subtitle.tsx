@@ -12,7 +12,7 @@ interface SubtitleSubParam {
 }
 
 export default class Subtitle extends Component<SubtitleSubParam> {
-    private readonly SCROOL_BOUNDARY = 50;
+    private readonly SCROLL_BOUNDARY = 50;
 
     private currentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -22,23 +22,26 @@ export default class Subtitle extends Component<SubtitleSubParam> {
 
     componentDidUpdate = (
         _prevProps: Readonly<SubtitleSubParam>,
+        _prevState: Readonly<never>,
         snapshot?: any
     ) => {
+        console.log('snapshot', snapshot);
         // 似乎 render() 最外层元素渲染后就会触发 componentDidUpdate，此时还拿不到新的元素
         // 所以需要延迟一下
         requestAnimationFrame(() => {
             const { currentSentence } = this.props;
-            const beforeVisable = snapshot as boolean;
+            const beforeVisible = snapshot as boolean;
             if (
                 this.currentRef.current === null &&
                 currentSentence === undefined
             ) {
                 return;
             }
-            const currentVisable = this.isIsVisible();
+            const currentVisible = this.isIsVisible();
+            console.log('currentVisible', beforeVisible, currentVisible);
             const index = currentSentence?.index;
-            if (index && !currentVisable) {
-                if (beforeVisable) {
+            if (index && !currentVisible) {
+                if (beforeVisible) {
                     this.listRef.current?.scrollToIndex({
                         index: index - 1 >= 0 ? index - 1 : 0,
                         align: 'start',
@@ -76,7 +79,7 @@ export default class Subtitle extends Component<SubtitleSubParam> {
         if (currentDiv === null) {
             return false;
         }
-        return isVisible(currentDiv, this.SCROOL_BOUNDARY);
+        return isVisible(currentDiv, this.SCROLL_BOUNDARY);
     };
 
     render() {

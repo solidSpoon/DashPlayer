@@ -20,7 +20,6 @@ export default function App() {
 
     const { videoFile, subtitleFile, updateFile } = useFile();
     const subtitles = useSubtitle(subtitleFile);
-    const [playState, setPlayState] = useState<boolean>(true);
     const {
         seekAction: seekTime,
         currentSentence,
@@ -40,10 +39,6 @@ export default function App() {
                     }}
                     onAction={doAction}
                     seekTime={seekTime}
-                    playingState={playState}
-                    setPlayingState={(state) => {
-                        setPlayState(state);
-                    }}
                 />
             </>
         );

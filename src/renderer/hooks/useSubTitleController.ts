@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import SentenceT from '../lib/param/SentenceT';
 import { Action } from '../lib/CallAction';
 
+export const SPACE_NUM = -1;
+
 export interface SeekTime {
     time: number;
 }
@@ -120,6 +122,15 @@ export default function useSubTitleController(
             case 'jump_time':
                 setSeekTime((state) => ({
                     time: action.time ?? 0.0,
+                }));
+                manuallyUpdateTime.current = Date.now();
+                break;
+            case 'space':
+                setSeekTime((state) => ({
+                    time:
+                        state.time === SPACE_NUM
+                            ? currentSentence?.currentBegin ?? 0.0
+                            : SPACE_NUM,
                 }));
                 manuallyUpdateTime.current = Date.now();
                 break;

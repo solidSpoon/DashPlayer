@@ -57,7 +57,7 @@ export default class GlobalShortCut extends Component<
 
     public onSpace = () => {
         const { onAction } = this.props;
-        onAction(repeat());
+        onAction(space());
     };
 
     public onUp = () => {

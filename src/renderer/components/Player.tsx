@@ -1,8 +1,8 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import callApi from '../lib/apis/ApiWrapper';
-import { SeekTime } from '../hooks/useSubTitleController';
-import { Action, jumpTime } from '../lib/CallAction';
+import { SeekTime, SPACE_NUM } from '../hooks/useSubTitleController';
+import { Action, jumpTime, space } from '../lib/CallAction';
 
 interface PlayerParam {
     videoFile: FileT | undefined;
@@ -10,8 +10,8 @@ interface PlayerParam {
     onProgress: (time: number) => void;
     onTotalTimeChange: (time: number) => void;
     onAction: (action: Action) => void;
-    playingState: boolean;
-    setPlayingState: (state: boolean) => void;
+    // playingState: boolean;
+    // setPlayingState: (state: boolean) => void;
 }
 
 export default function Player({
@@ -19,11 +19,11 @@ export default function Player({
     seekTime,
     onProgress,
     onTotalTimeChange,
-    playingState,
-    setPlayingState,
+    // playingState,
+    // setPlayingState,
     onAction,
 }: PlayerParam): ReactElement {
-    console.log('playingState:', playingState);
+    // console.log('playingState:', playingState);
 
     const playerRef: React.RefObject<HTMLVideoElement> =
         useRef<HTMLVideoElement>(null);
@@ -35,17 +35,19 @@ export default function Player({
 
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
-    if (lastSeekTime.current !== seekTime) {
+    const shouldPause = seekTime.time === SPACE_NUM;
+    console.log('shouldPause:', shouldPause);
+    if (!shouldPause && lastSeekTime.current !== seekTime) {
         console.log('seekTimeupdate');
         lastSeekTime.current = seekTime;
         if (playerRef.current !== null) {
             playerRef.current.currentTime = seekTime.time;
-            playerRef.current.play();
         }
-    } else if (playerRef.current !== null) {
-        if (playingState && playerRef.current.paused) {
+    }
+    if (playerRef.current !== null) {
+        if (!shouldPause && playerRef.current.paused) {
             playerRef.current.play();
-        } else if (!playingState && !playerRef.current.paused) {
+        } else if (shouldPause && !playerRef.current.paused) {
             playerRef.current.pause();
         }
     }
@@ -87,7 +89,7 @@ export default function Player({
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [playingState]);
+    }, [shouldPause]);
 
     const jumpToHistoryProgress = async (file: FileT) => {
         if (file === lastFile) {
@@ -134,13 +136,13 @@ export default function Player({
                         style={{ width: '100%', height: '100%' }}
                         autoPlay
                         onPlay={() => {
-                            if (!playingState) {
-                                setPlayingState(true);
+                            if (shouldPause) {
+                                onAction(space());
                             }
                         }}
                         onPause={() => {
-                            if (playingState) {
-                                setPlayingState(false);
+                            if (!shouldPause) {
+                                onAction(space());
                             }
                         }}
                         onTimeUpdate={() => {
