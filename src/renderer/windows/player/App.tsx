@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import './App.css';
 import Player from '../../components/Player';
 import MainSubtitle from '../../components/MainSubtitle';

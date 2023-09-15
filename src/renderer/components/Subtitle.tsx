@@ -25,7 +25,6 @@ export default class Subtitle extends Component<SubtitleSubParam> {
         _prevState: Readonly<never>,
         snapshot?: any
     ) => {
-        console.log('snapshot', snapshot);
         // 似乎 render() 最外层元素渲染后就会触发 componentDidUpdate，此时还拿不到新的元素
         // 所以需要延迟一下
         requestAnimationFrame(() => {
@@ -38,7 +37,6 @@ export default class Subtitle extends Component<SubtitleSubParam> {
                 return;
             }
             const currentVisible = this.isIsVisible();
-            console.log('currentVisible', beforeVisible, currentVisible);
             const index = currentSentence?.index;
             if (index && !currentVisible) {
                 if (beforeVisible) {

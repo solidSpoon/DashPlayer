@@ -90,15 +90,6 @@ export default function useSubTitleController(
     }
 
     const doAction = (action: Action) => {
-        /*
-        | 'repeat'
-        | 'next'
-        | 'prev'
-        | 'jump'
-        | 'jump_time'
-        | 'space'
-        | 'none';
-         */
         switch (action.action) {
             case 'repeat':
                 setSeekTime((state) => ({
@@ -113,16 +104,16 @@ export default function useSubTitleController(
                 jumpPrev();
                 break;
             case 'jump':
-                setSeekTime((state) => ({
+                setSeekTime({
                     time: action.target?.currentBegin ?? 0.0,
-                }));
+                });
                 setCurrentSentence(action.target);
                 manuallyUpdateTime.current = Date.now();
                 break;
             case 'jump_time':
-                setSeekTime((state) => ({
+                setSeekTime({
                     time: action.time ?? 0.0,
-                }));
+                });
                 manuallyUpdateTime.current = Date.now();
                 break;
             case 'space':

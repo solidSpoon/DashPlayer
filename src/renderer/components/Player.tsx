@@ -10,8 +10,6 @@ interface PlayerParam {
     onProgress: (time: number) => void;
     onTotalTimeChange: (time: number) => void;
     onAction: (action: Action) => void;
-    // playingState: boolean;
-    // setPlayingState: (state: boolean) => void;
 }
 
 export default function Player({
@@ -19,12 +17,8 @@ export default function Player({
     seekTime,
     onProgress,
     onTotalTimeChange,
-    // playingState,
-    // setPlayingState,
     onAction,
 }: PlayerParam): ReactElement {
-    // console.log('playingState:', playingState);
-
     const playerRef: React.RefObject<HTMLVideoElement> =
         useRef<HTMLVideoElement>(null);
     const playerRefBackground: React.RefObject<HTMLCanvasElement> =
@@ -36,9 +30,7 @@ export default function Player({
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
     const shouldPause = seekTime.time === SPACE_NUM;
-    console.log('shouldPause:', shouldPause);
     if (!shouldPause && lastSeekTime.current !== seekTime) {
-        console.log('seekTimeupdate');
         lastSeekTime.current = seekTime;
         if (playerRef.current !== null) {
             playerRef.current.currentTime = seekTime.time;
