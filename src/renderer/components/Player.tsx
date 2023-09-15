@@ -31,11 +31,12 @@ export default function Player({
         useRef<HTMLCanvasElement>(null);
     let lastFile: FileT | undefined;
 
-    const lastSeekTime = useRef<SeekTime>({ time: 0, version: 0 });
+    const lastSeekTime = useRef<SeekTime>({ time: 0 });
 
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
-    if (lastSeekTime.current.version !== seekTime.version) {
+    if (lastSeekTime.current !== seekTime) {
+        console.log('seekTimeupdate');
         lastSeekTime.current = seekTime;
         if (playerRef.current !== null) {
             playerRef.current.currentTime = seekTime.time;

@@ -4,7 +4,6 @@ import { Action } from '../lib/CallAction';
 
 export interface SeekTime {
     time: number;
-    version: number;
 }
 
 function findCurrentSentence(
@@ -32,9 +31,8 @@ export default function useSubTitleController(
     sentences: SentenceT[],
     getProgress: () => number
 ) {
-    const [seekTime, setSeekTime] = useState({
+    const [seekTime, setSeekTime] = useState<SeekTime>({
         time: 0,
-        version: 0,
     });
     const [currentSentence, setCurrentSentence] = useState<
         SentenceT | undefined
@@ -75,7 +73,6 @@ export default function useSubTitleController(
         setCurrentSentence(target);
         setSeekTime((state) => ({
             time: target.currentBegin ?? 0,
-            version: state.version + 1,
         }));
         manuallyUpdateTime.current = Date.now();
     }
@@ -86,7 +83,6 @@ export default function useSubTitleController(
         setCurrentSentence(target);
         setSeekTime((state) => ({
             time: target.currentBegin ?? 0,
-            version: state.version + 1,
         }));
         manuallyUpdateTime.current = Date.now();
     }
@@ -105,7 +101,6 @@ export default function useSubTitleController(
             case 'repeat':
                 setSeekTime((state) => ({
                     ...state,
-                    version: state.version + 1,
                 }));
                 manuallyUpdateTime.current = Date.now();
                 break;
@@ -118,7 +113,6 @@ export default function useSubTitleController(
             case 'jump':
                 setSeekTime((state) => ({
                     time: action.target?.currentBegin ?? 0.0,
-                    version: state.version + 1,
                 }));
                 setCurrentSentence(action.target);
                 manuallyUpdateTime.current = Date.now();
@@ -126,7 +120,6 @@ export default function useSubTitleController(
             case 'jump_time':
                 setSeekTime((state) => ({
                     time: action.time ?? 0.0,
-                    version: state.version + 1,
                 }));
                 manuallyUpdateTime.current = Date.now();
                 break;

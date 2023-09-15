@@ -11,7 +11,7 @@ interface SubtitleSubParam {
     onAction: (action: Action) => void;
 }
 
-export default class SubtitleSub extends Component<SubtitleSubParam> {
+export default class Subtitle extends Component<SubtitleSubParam> {
     private readonly SCROOL_BOUNDARY = 50;
 
     private currentRef: React.RefObject<HTMLDivElement> = React.createRef();
