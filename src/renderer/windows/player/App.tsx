@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import './App.css';
 import Player from '../../components/Player';
 import MainSubtitle from '../../components/MainSubtitle';
-import UploadPhoto from '../../components/UplodeButton';
+import UploadPhoto from '../../components/UploadButton';
 import BorderProgressBar from '../../components/BorderProgressBar';
 import GlobalShortCut from '../../components/GlobalShortCut';
 import RecordProgress from '../../components/RecordProgress';
@@ -18,7 +18,7 @@ import TitleBar from '../../components/TitleBar';
 export default function App() {
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
-
+    const [showTitleBar, setShowTitleBar] = React.useState<boolean>(false);
     const { videoFile, subtitleFile, updateFile } = useFile();
     const subtitles = useSubtitle(subtitleFile);
     const {
@@ -53,7 +53,7 @@ export default function App() {
         const mainSubtitle = <MainSubtitle sentence={currentSentence} />;
         return (
             <>
-                <TitleBar />
+                <TitleBar show={showTitleBar} title={videoFile?.fileName} />
                 <div className="font-face-arc bg-neutral-800">
                     <GlobalShortCut onAction={doAction} />
                     <RecordProgress
@@ -66,7 +66,14 @@ export default function App() {
                         subtitle={subtitle}
                     />
 
-                    <UploadPhoto onFileChange={updateFile} />
+                    <UploadPhoto
+                        onFileChange={(file) => {
+                            updateFile(file);
+                        }}
+                        onSelectingFile={(isSelect) =>
+                            setShowTitleBar(isSelect)
+                        }
+                    />
                     <div id="progressBarRef">
                         <BorderProgressBar
                             getCurrentTime={() => progress.current}

@@ -79,7 +79,8 @@ export const createPlayerWindow = async () => {
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
         resizable: true,
-        titleBarStyle: 'customButtonsOnHover',
+        // titleBarStyle: 'hidden',
+        frame: false,
     });
     mainWindow.maximize();
     mainWindow.loadURL(resolveHtmlPath('player.html'));
@@ -207,9 +208,15 @@ ipcMain.on('is-maximized', async (event) => {
     log.info('is-maximized');
     event.reply('is-maximized', mainWindow?.isMaximized());
 });
-// ipcMain.on('show-button', async (event) => {
-//     log.info('show-button');
-//     // 展示红绿灯
-//
-//     event.reply('show-button', 'success');
-// });
+ipcMain.on('show-button', async (event) => {
+    log.info('show-button');
+    // 展示红绿灯
+    mainWindow?.setWindowButtonVisibility(true);
+    event.reply('show-button', 'success');
+});
+ipcMain.on('hide-button', async (event) => {
+    log.info('hide-button');
+    // 隐藏红绿灯
+    mainWindow?.setWindowButtonVisibility(false);
+    event.reply('hide-button', 'success');
+});

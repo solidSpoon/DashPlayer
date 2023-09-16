@@ -1,7 +1,8 @@
 import FileT from './FileT';
 
-class UploadPhotoParam {
-    onFileChange: ((file: FileT) => void) | undefined;
+interface UploadPhotoParam {
+    onSelectingFile: (isSelect: boolean) => void;
+    onFileChange: (file: FileT) => void;
 }
 
 export default UploadPhotoParam;
