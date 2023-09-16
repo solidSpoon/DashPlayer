@@ -141,6 +141,7 @@ export default function Player({
                             onProgress(playerRef.current!.currentTime);
                         }}
                         onLoadedMetadata={() => {
+                            console.log('aaa loaded');
                             onTotalTimeChange(playerRef.current!.duration);
                             jumpToHistoryProgress(videoFile);
                         }}

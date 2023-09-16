@@ -33,9 +33,8 @@ export default function useSubTitleController(
     sentences: SentenceT[],
     getProgress: () => number
 ) {
-    const [seekTime, setSeekTime] = useState<SeekTime>({
-        time: 0,
-    });
+    const lastSeekTime = useRef<SeekTime>({ time: 0 });
+    const [seekTime, setSeekTime] = useState<SeekTime>(lastSeekTime.current);
     const [currentSentence, setCurrentSentence] = useState<
         SentenceT | undefined
     >(undefined);
@@ -117,12 +116,14 @@ export default function useSubTitleController(
                 manuallyUpdateTime.current = Date.now();
                 break;
             case 'space':
-                setSeekTime((state) => ({
-                    time:
-                        state.time === SPACE_NUM
-                            ? currentSentence?.currentBegin ?? 0.0
-                            : SPACE_NUM,
-                }));
+                if (seekTime.time === SPACE_NUM) {
+                    setSeekTime(lastSeekTime.current);
+                } else {
+                    lastSeekTime.current = seekTime;
+                    setSeekTime({
+                        time: SPACE_NUM,
+                    });
+                }
                 manuallyUpdateTime.current = Date.now();
                 break;
             default:
