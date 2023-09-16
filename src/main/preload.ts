@@ -7,7 +7,11 @@ export type Channels =
     | 'query-progress'
     | 'batch-translate'
     | 'update-secret'
-    | 'get-secret';
+    | 'get-secret'
+    | 'maximize'
+    | 'unmaximize'
+    | 'is-maximized'
+    | 'show-button';
 
 contextBridge.exposeInMainWorld('electron', {
     ipcRenderer: {

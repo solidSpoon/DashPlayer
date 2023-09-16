@@ -13,6 +13,7 @@ import useSubtitle from '../../hooks/useSubtitle';
 import useFile from '../../hooks/useFile';
 import Subtitle from '../../components/Subtitle';
 import useSubTitleController from '../../hooks/useSubTitleController';
+import TitleBar from '../../components/TitleBar';
 
 export default function App() {
     const progress = useRef<number>(0);
@@ -51,26 +52,29 @@ export default function App() {
         );
         const mainSubtitle = <MainSubtitle sentence={currentSentence} />;
         return (
-            <div className="font-face-arc bg-neutral-800">
-                <GlobalShortCut onAction={doAction} />
-                <RecordProgress
-                    getCurrentProgress={() => progress.current}
-                    getCurrentVideoFile={() => videoFile}
-                />
-                <ResizeableSkeleton
-                    player={player}
-                    currentSentence={mainSubtitle}
-                    subtitle={subtitle}
-                />
-
-                <UploadPhoto onFileChange={updateFile} />
-                <div id="progressBarRef">
-                    <BorderProgressBar
-                        getCurrentTime={() => progress.current}
-                        getTotalTime={() => totalTime.current}
+            <>
+                <TitleBar />
+                <div className="font-face-arc bg-neutral-800">
+                    <GlobalShortCut onAction={doAction} />
+                    <RecordProgress
+                        getCurrentProgress={() => progress.current}
+                        getCurrentVideoFile={() => videoFile}
                     />
+                    <ResizeableSkeleton
+                        player={player}
+                        currentSentence={mainSubtitle}
+                        subtitle={subtitle}
+                    />
+
+                    <UploadPhoto onFileChange={updateFile} />
+                    <div id="progressBarRef">
+                        <BorderProgressBar
+                            getCurrentTime={() => progress.current}
+                            getTotalTime={() => totalTime.current}
+                        />
+                    </div>
                 </div>
-            </div>
+            </>
         );
     };
 

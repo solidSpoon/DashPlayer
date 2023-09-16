@@ -17,6 +17,14 @@ body {
   margin: 0;
 }
 
+.drag {
+    -webkit-app-region: drag;
+}
+
+.no-drag {
+    -webkit-app-region: no-drag;
+}
+
 /*.container {*/
 /*  display: grid;*/
 /*  grid-template-columns: 70vw 30vw;*/
