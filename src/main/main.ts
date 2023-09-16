@@ -211,12 +211,34 @@ ipcMain.on('is-maximized', async (event) => {
 ipcMain.on('show-button', async (event) => {
     log.info('show-button');
     // 展示红绿灯
-    mainWindow?.setWindowButtonVisibility(true);
+    if ('darwin' === process.platform) {
+        mainWindow?.setWindowButtonVisibility(true);
+    }
     event.reply('show-button', 'success');
 });
 ipcMain.on('hide-button', async (event) => {
     log.info('hide-button');
     // 隐藏红绿灯
-    mainWindow?.setWindowButtonVisibility(false);
+    if ('darwin' === process.platform) {
+        mainWindow?.setWindowButtonVisibility(false);
+    }
+
     event.reply('hide-button', 'success');
+});
+ipcMain.on('minimize', async (event) => {
+    log.info('minimize');
+    mainWindow?.minimize();
+    event.reply('minimize', 'success');
+});
+ipcMain.on('close', async (event) => {
+    log.info('close');
+    mainWindow?.close();
+    event.reply('close', 'success');
+});
+ipcMain.on('open-menu', async (event) => {
+    log.info('open-menu');
+    // create or show setting window
+    await createSettingWindowIfNeed();
+    settingWindow?.show();
+    event.reply('open-menu', 'success');
 });

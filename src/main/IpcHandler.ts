@@ -53,4 +53,9 @@ export default function registerHandler() {
         const result: string[] = await getTencentSecret();
         event.reply('get-secret', result);
     });
+    ipcMain.on('is-windows', async (event) => {
+        log.info('is-windows');
+        const isWindows = 'win32'===process.platform
+        event.reply('is-windows', isWindows);
+    });
 }

@@ -12,7 +12,11 @@ export type Channels =
     | 'unmaximize'
     | 'is-maximized'
     | 'show-button'
-    | 'hide-button';
+    | 'hide-button'
+    | 'is-windows'
+    | 'minimize'
+    | 'close'
+    | 'open-menu';
 
 contextBridge.exposeInMainWorld('electron', {
     ipcRenderer: {
