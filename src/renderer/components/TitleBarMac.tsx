@@ -40,17 +40,16 @@ const TitleBarMac = ({ title, show }: TitleBarProps) => {
             }}
             onMouseLeave={() => setIsMouseOver(false)}
         >
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
                 className={`drag w-full h-10 absolute top-0 z-50 hover:bg-amber-300 content-center flex flex-col justify-center items-center select-none ${
                     showTitleBar ? 'bg-amber-300' : ''
                 }`}
                 onDoubleClick={() => {
                     onDoubleClick();
-                    console.log('mmmm db');
                 }}
-                onClick={() => console.log('mmmm click')}
             >
-                <span className='text-black'>{showTitleBar ? title : ''}</span>
+                <span className="text-black">{showTitleBar ? title : ''}</span>
             </div>
         </div>
     );

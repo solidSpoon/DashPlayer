@@ -5,13 +5,11 @@ import { FaWindowMinimize } from 'react-icons/fa';
 import { FiMaximize } from 'react-icons/fi';
 import callApi from '../lib/apis/ApiWrapper';
 
-
 export interface TitleBarWindowsProps {
     title: string | undefined;
 }
 
 const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
-
     const [isMouseOver, setIsMouseOver] = useState(false);
 
     const onMaximize = async () => {
@@ -37,40 +35,52 @@ const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
 
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events
-        <div className='absolute top-0 z-50 select-none w-full'>
+        <div className="absolute top-0 z-50 select-none w-full">
+            <div className="drag w-full h-5 min-h-3" />
+            {/* eslint-disable-next-line jsx-a11y/mouse-events-have-key-events */}
             <div
-                className={`drag w-full h-5 min-h-3`}
-            ></div>
-            <div className='w-full h-10'
-                 onMouseOver={() => {
-                     setIsMouseOver(true);
-                 }}
-                 onMouseLeave={() => setIsMouseOver(false)}
+                className="w-full h-10"
+                onMouseOver={() => {
+                    setIsMouseOver(true);
+                }}
+                onMouseLeave={() => setIsMouseOver(false)}
             >
                 {isMouseOver ? (
                     <div
-                        className={`h-10 flex w-fit px-2 items-center space-x-2 border-black border-4 hover:bg-white ${isMouseOver ? 'bg-white' : ''}`}>
-                        <GrClose className='hover:bg-amber-300 w-7 h-7'
-                                 onClick={onClose}
-                        ></GrClose>
-                        <FiMaximize className='hover:bg-amber-300 w-7 h-7'
-                                    onClick={onMaximize}
-                        ></FiMaximize>
-                        <AiOutlineMinus className='hover:bg-amber-300 w-7 h-7'
-                                        onClick={onMinimize}
-                        ></AiOutlineMinus>
-                        <div className='h-7'></div>
-                        <GrMenu className='hover:bg-amber-300 w-7 h-7 ml-3.5'
-                                onClick={onMenu}
-                        ></GrMenu>
+                        className={`h-10 flex w-fit px-2 items-center space-x-2 border-black border-4 hover:bg-white ${
+                            isMouseOver ? 'bg-white' : ''
+                        }`}
+                    >
+                        <GrClose
+                            className="hover:bg-amber-300 w-7 h-7"
+                            onClick={onClose}
+                        />
+                        <FiMaximize
+                            className="hover:bg-amber-300 w-7 h-7"
+                            onClick={onMaximize}
+                        />
+                        <AiOutlineMinus
+                            className="hover:bg-amber-300 w-7 h-7"
+                            onClick={onMinimize}
+                        />
+                        <div className="h-7" />
+                        <GrMenu
+                            className="hover:bg-amber-300 w-7 h-7 ml-3.5"
+                            onClick={onMenu}
+                        />
 
-                        {title ?
-                        <>
-                            <div className='h-7'></div>
-                            <span className='text-black'>{title}</span>
-                        </> : <></>}
-
-                    </div>) : <></>}
+                        {title ? (
+                            <>
+                                <div className="h-7" />
+                                <span className="text-black">{title}</span>
+                            </>
+                        ) : (
+                            <></>
+                        )}
+                    </div>
+                ) : (
+                    <></>
+                )}
             </div>
         </div>
     );
