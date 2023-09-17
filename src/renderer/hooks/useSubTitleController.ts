@@ -126,6 +126,19 @@ export default function useSubTitleController(
                 }
                 manuallyUpdateTime.current = Date.now();
                 break;
+            case 'play':
+                if (seekTime.time === SPACE_NUM) {
+                    setSeekTime(lastSeekTime.current);
+                }
+                break;
+            case 'pause':
+                if (seekTime.time !== SPACE_NUM) {
+                    lastSeekTime.current = seekTime;
+                    setSeekTime({
+                        time: SPACE_NUM,
+                    });
+                }
+                break;
             default:
                 break;
         }

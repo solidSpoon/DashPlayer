@@ -1,35 +1,18 @@
-import { useState } from 'react';
-import {
-    autoPlacement,
-    offset,
-    shift,
-    useFloating,
-    useHover,
-    useInteractions,
-} from '@floating-ui/react';
+import { useEffect, useState } from 'react';
+import callApi from '../lib/apis/ApiWrapper';
+import { YdRes } from '../lib/param/yd/a';
+import WordSub from './WordSub';
+import { Action, pause, space } from '../lib/CallAction';
 
 export interface WordParam {
     word: string;
-    translation: string;
+    doAction: (action: Action) => void;
 }
-const Word = ({ word, translation }: WordParam) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const { refs, floatingStyles, context } = useFloating({
-        open: isOpen,
-        onOpenChange: setIsOpen,
-        middleware: [
-            // autoPlacement({ allowedPlacements: ['bottom'] }),
-            offset(50),
-            autoPlacement({
-                allowedPlacements: ['top', 'bottom', 'top-end', 'bottom-end'],
-            }),
-        ],
-    });
-
-    const hover = useHover(context);
-
-    const { getReferenceProps, getFloatingProps } = useInteractions([hover]);
+const Word = ({ word, doAction }: WordParam) => {
+    const [translationText, setTranslationText] = useState<string | undefined>(
+        undefined
+    );
+    const [hovered, setHovered] = useState(false);
     const trans = (str: string): void => {
         console.log('click');
         window.electron.ipcRenderer.sendMessage('trans-word', [str]);
@@ -39,35 +22,37 @@ const Word = ({ word, translation }: WordParam) => {
     };
     const t = () => trans(word);
 
-    // 并没有用到，只是为了让 eslint 不报错
-    const handleKeyDown = (event: React.KeyboardEvent) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            t();
+    useEffect(() => {
+        const transFun = async (str: string) => {
+            const r = (await callApi('you-dao-translate', [str])) as string;
+            if (r === null) {
+                return;
+            }
+            const res = JSON.parse(r) as YdRes;
+            setTranslationText(res.translation?.join('\n') ?? '');
+        };
+        if (hovered) {
+            transFun(word);
         }
-    };
+    }, [hovered, word]);
+
     return (
         <>
-            <span
-                ref={refs.setReference}
+            <div
                 className="rounded  select-none hover:bg-zinc-600"
-                role="button"
-                tabIndex={0}
+                onMouseOver={() => {
+                    setHovered(true);
+                    doAction(pause());
+                }}
+                onMouseLeave={() => setHovered(false)}
                 onClick={t}
-                onKeyDown={handleKeyDown}
-                {...getReferenceProps()}
             >
-                {word}
-            </span>
-            {isOpen && (
-                <div
-                    {...getFloatingProps()}
-                    ref={refs.setFloating}
-                    style={floatingStyles}
-                    className="rounded-lg  bg-gray-900 p-10 text-xl"
-                >
-                    {word}
-                </div>
-            )}
+                {translationText && hovered ? (
+                    <WordSub word={word} translation={translationText} />
+                ) : (
+                    <div>{word}</div>
+                )}
+            </div>
         </>
     );
 };

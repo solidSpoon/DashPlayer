@@ -50,7 +50,9 @@ export default function App() {
                 onAction={doAction}
             />
         );
-        const mainSubtitle = <MainSubtitle sentence={currentSentence} />;
+        const mainSubtitle = (
+            <MainSubtitle sentence={currentSentence} doAction={doAction} />
+        );
         return (
             <>
                 <TitleBar show={showTitleBar} title={videoFile?.fileName} />

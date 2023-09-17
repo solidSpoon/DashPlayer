@@ -6,8 +6,10 @@ export type Channels =
     | 'trans-word'
     | 'query-progress'
     | 'batch-translate'
-    | 'update-secret'
-    | 'get-secret'
+    | 'update-tenant-secret'
+    | 'get-tenant-secret'
+    | 'get-you-dao-secret'
+    | 'update-you-dao-secret'
     | 'maximize'
     | 'unmaximize'
     | 'is-maximized'
@@ -16,7 +18,8 @@ export type Channels =
     | 'is-windows'
     | 'minimize'
     | 'close'
-    | 'open-menu';
+    | 'open-menu'
+    | 'you-dao-translate';
 
 contextBridge.exposeInMainWorld('electron', {
     ipcRenderer: {

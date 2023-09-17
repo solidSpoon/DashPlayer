@@ -8,14 +8,12 @@ import {
 } from '@floating-ui/react';
 import SentenceT from '../lib/param/SentenceT';
 import TranslatableLine from './TranslatableLine';
+import { Action } from '../lib/CallAction';
 
 interface MainSubtitleParam {
     sentence: undefined | SentenceT;
+    doAction: (action: Action) => void;
 }
-
-const firstEle = (text: string, key: string): ReactElement => {
-    return <TranslatableLine key={key} text={text || ''} />;
-};
 
 const secondEle = (text: string, key: string): ReactElement => {
     return (
@@ -35,7 +33,15 @@ const thirdEle = (text: string, key: string): ReactElement => {
         </div>
     );
 };
-export default function MainSubtitle({ sentence }: MainSubtitleParam) {
+export default function MainSubtitle({
+    sentence,
+    doAction,
+}: MainSubtitleParam) {
+    const firstEle = (text: string, key: string): ReactElement => {
+        return (
+            <TranslatableLine key={key} text={text || ''} doAction={doAction} />
+        );
+    };
     const ele = (): ReactElement[] => {
         const elements: ReactElement[] = [];
         if (sentence === undefined) {

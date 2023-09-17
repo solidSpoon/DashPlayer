@@ -32,7 +32,14 @@ export default async function batchTranslate(
     if (retryDoc.length === 0) {
         return sourceArr.map((doc) => doc.translate);
     }
-    const transResult: TransCacheEntity[] = await TransApi.batchTrans(retryDoc);
-    await TranslateCache.insertBatch(transResult);
-    return sourceArr.map((doc) => doc.translate);
+    try {
+        const transResult: TransCacheEntity[] = await TransApi.batchTrans(
+            retryDoc
+        );
+        await TranslateCache.insertBatch(transResult);
+        return sourceArr.map((doc) => doc.translate);
+    } catch (e) {
+        console.error(e);
+        return sourceArr.map((doc) => doc.translate);
+    }
 }

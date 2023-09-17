@@ -8,7 +8,9 @@ export interface Action {
         | 'jump'
         | 'jump_time'
         | 'space'
-        | 'none';
+        | 'none'
+        | 'play'
+        | 'pause';
     target: SentenceT | undefined;
     time: number | undefined;
 }
@@ -52,6 +54,22 @@ export function jumpTime(time: number): Action {
 export function space(): Action {
     return {
         action: 'space',
+        target: undefined,
+        time: undefined,
+    };
+}
+
+export function play(): Action {
+    return {
+        action: 'play',
+        target: undefined,
+        time: undefined,
+    };
+}
+
+export function pause(): Action {
+    return {
+        action: 'pause',
         target: undefined,
         time: undefined,
     };

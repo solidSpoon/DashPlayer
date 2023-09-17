@@ -18,6 +18,13 @@ export default class CacheConfig {
     };
 
     /**
+     * 缓存单词的数据库
+     */
+    public static wordConfig: BaseCacheConfig = {
+        filename: `${this.base}/db/word.db`,
+    };
+
+    /**
      * 缓存观看进度的数据库
      */
     public static progressConfig: BaseCacheConfig = {

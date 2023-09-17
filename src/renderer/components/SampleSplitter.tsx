@@ -18,7 +18,7 @@ const SampleSplitter = ({
             className={cn(
                 isVertical
                     ? 'w-1 cursor-col-resize'
-                    : 'h-1 cursor-row-resize z-50',
+                    : 'h-1 cursor-row-resize z-40',
                 'hover:bg-neutral-600',
                 'bg-neutral-700',
                 'drop-shadow',

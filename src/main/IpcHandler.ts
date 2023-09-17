@@ -9,7 +9,10 @@ import transWord from './controllers/AppleTrans';
 import {
     updateTencentSecret,
     getTencentSecret,
+    updateYouDaoSecret,
+    getYouDaoSecret,
 } from './controllers/SecretController';
+import youDaoTrans from './controllers/YouDaoTrans';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -42,20 +45,39 @@ export default function registerHandler() {
         event.reply('batch-translate', translateResult);
     });
 
-    ipcMain.on('update-secret', async (event, args: never[]) => {
+    ipcMain.on('update-tenant-secret', async (event, args: never[]) => {
         const [secretId, secretKey] = args;
-        log.info('update-secret');
+        log.info('update-tenant-secret');
         await updateTencentSecret(secretId, secretKey);
-        event.reply('update-secret', 'success');
+        event.reply('update-tenant-secret', 'success');
     });
-    ipcMain.on('get-secret', async (event) => {
-        log.info('get-secret');
+    ipcMain.on('get-tenant-secret', async (event) => {
+        log.info('get-tenant-secret');
         const result: string[] = await getTencentSecret();
-        event.reply('get-secret', result);
+        event.reply('get-tenant-secret', result);
     });
+
+    ipcMain.on('update-you-dao-secret', async (event, args: never[]) => {
+        const [secretId, secretKey] = args;
+        log.info('update-you-dao-secret');
+        await updateYouDaoSecret(secretId, secretKey);
+        event.reply('update-you-dao-secret', 'success');
+    });
+    ipcMain.on('get-you-dao-secret', async (event) => {
+        log.info('get-you-dao-secret');
+        const result: string[] = await getYouDaoSecret();
+        event.reply('get-you-dao-secret', result);
+    });
+
     ipcMain.on('is-windows', async (event) => {
         log.info('is-windows');
-        const isWindows = 'win32'===process.platform
+        const isWindows = process.platform === 'win32';
         event.reply('is-windows', isWindows);
+    });
+    ipcMain.on('you-dao-translate', async (event, args: string[]) => {
+        log.info('you-dao-translate');
+        const word = args[0];
+        const result = await youDaoTrans(word);
+        event.reply('you-dao-translate', result);
     });
 }
