@@ -52,20 +52,20 @@ const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
                         }`}
                     >
                         <GrClose
-                            className="hover:bg-amber-300 w-7 h-7"
+                            className="text-black hover:bg-amber-300 w-7 h-7"
                             onClick={onClose}
                         />
                         <FiMaximize
-                            className="hover:bg-amber-300 w-7 h-7"
+                            className="text-black hover:bg-amber-300 w-7 h-7"
                             onClick={onMaximize}
                         />
                         <AiOutlineMinus
-                            className="hover:bg-amber-300 w-7 h-7"
+                            className="text-black hover:bg-amber-300 w-7 h-7"
                             onClick={onMinimize}
                         />
                         <div className="h-7" />
                         <GrMenu
-                            className="hover:bg-amber-300 w-7 h-7 ml-3.5"
+                            className="text-black hover:bg-amber-300 w-7 h-7 ml-3.5"
                             onClick={onMenu}
                         />
 
