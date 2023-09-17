@@ -1,5 +1,6 @@
-import { ReactElement } from 'react';
+import { ReactElement, useState } from 'react';
 import hash from '../lib/hash';
+import Word from './Word';
 
 interface TranslatableSubtitleLineParam {
     text: string;
@@ -9,13 +10,6 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
     if (text === undefined) {
         return <></>;
     }
-    const trans = (str: string): void => {
-        console.log('click');
-        window.electron.ipcRenderer.sendMessage('trans-word', [str]);
-        window.electron.ipcRenderer.once('trans-word', () => {
-            console.log('trans word success');
-        });
-    };
     const notWord = (str: string, key: string): ReactElement => {
         return (
             <span className="select-none" key={key}>
@@ -23,28 +17,7 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
             </span>
         );
     };
-    const word = (str: string, key: string): ReactElement => {
-        const t = () => trans(str);
 
-        // 并没有用到，只是为了让 eslint 不报错
-        const handleKeyDown = (event: React.KeyboardEvent) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                t();
-            }
-        };
-        return (
-            <span
-                className="rounded select-none hover:bg-zinc-600"
-                key={key}
-                role="button"
-                tabIndex={0}
-                onClick={t}
-                onKeyDown={handleKeyDown}
-            >
-                {str}
-            </span>
-        );
-    };
     const isWord = (str: string): boolean => {
         const noWordRegex = /[^A-Za-z0-9-]/;
         return !noWordRegex.test(str);
@@ -58,7 +31,7 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
         return words.map((w, index) => {
             const key = `${hash(text)}:${index}`;
             if (isWord(w)) {
-                return word(w, `nw:${key}`);
+                return <Word key={`nw:${key}`} word={w} translation={w} />;
             }
             return notWord(w, `w:${key}`);
         });

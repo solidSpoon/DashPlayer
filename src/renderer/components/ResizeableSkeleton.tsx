@@ -52,7 +52,7 @@ const ResizeableSkeleton = ({
                                 }}
                             >
                                 <div
-                                    className="overflow-y-auto"
+                                    className="z-50"
                                     style={{ height: position2 }}
                                 >
                                     {currentSentence}

@@ -107,7 +107,7 @@ export default function Player({
                 onDoubleClick={() => setShowControlPanel(true)}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
-                <div className="absolute top-0 left-0 w-full h-full">
+                <div className="absolute top-0 left-0 w-full h-full z-10">
                     <canvas
                         className="w-full h-full"
                         ref={playerRefBackground}
@@ -118,7 +118,7 @@ export default function Player({
                         }}
                     />
                 </div>
-                <div className="absolute top-0 left-0 w-full h-full">
+                <div className="absolute top-0 left-0 w-full h-full z-20">
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video
                         id="react-player-id"
