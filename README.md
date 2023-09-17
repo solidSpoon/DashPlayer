@@ -2,6 +2,8 @@
 <img src="https://user-images.githubusercontent.com/39454841/226364979-9c96a838-aa43-4b70-89d8-8ea83d59fc0f.png" width="40%" />
 </p>
 
+> 安装与使用指南详见 [Wiki](https://github.com/solidSpoon/DashPlayer/wiki)
+
 # DashPlayer：打造更轻松、高效的英语学习体验！ 🎉
 
 让我们一起摆脱乏味的单词背诵和阅读理解练习！DashPlayer 是一款专为英语学习者设计的播放器，通过观看各种类型的视频、融入生动的真实场景，让你大量接触英语听力输入。这不仅有助于提高你的听力技能，还能激发你的学习兴趣，让你在轻松愉快的氛围中迅速提升英语水平！
