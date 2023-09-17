@@ -16,7 +16,7 @@ export default async function batchTranslate(
 
     const dbDocs: TransCacheEntity[] = await TranslateCache.loadCache(
         sourceArr
-    ).then((dbDoc) => dbDoc.filter((item) => item.translate !== undefined));
+    ).then((dbDoc) => dbDoc.filter((item) => item.translate));
 
     dbDocs.forEach((doc) => {
         const finds: TransCacheEntity[] = sourceArr.filter(
@@ -36,7 +36,10 @@ export default async function batchTranslate(
         const transResult: TransCacheEntity[] = await TransApi.batchTrans(
             retryDoc
         );
-        await TranslateCache.insertBatch(transResult);
+        const validTrans = transResult.filter(
+            (e) => e.translate !== undefined && e.translate !== null
+        );
+        await TranslateCache.insertBatch(validTrans);
         return sourceArr.map((doc) => doc.translate);
     } catch (e) {
         console.error(e);

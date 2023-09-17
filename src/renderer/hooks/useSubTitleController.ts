@@ -91,9 +91,9 @@ export default function useSubTitleController(
     const doAction = (action: Action) => {
         switch (action.action) {
             case 'repeat':
-                setSeekTime((state) => ({
-                    ...state,
-                }));
+                setSeekTime({
+                    time: currentSentence?.currentBegin ?? 0,
+                });
                 manuallyUpdateTime.current = Date.now();
                 break;
             case 'next':
