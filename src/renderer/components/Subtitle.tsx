@@ -27,14 +27,16 @@ interface Ele {
  * @param boundary
  * @param e
  */
-const suggestScroll = (boundary: Ele, e: Ele): number => {
+
+const suggestScroll = (boundary: Ele, e: Ele): number[] => {
     if (e.yt < boundary.yt) {
-        return boundary.yt - e.yt;
+        return [e.yt - boundary.yt, 0];
     }
     if (e.yb > boundary.yb) {
-        return boundary.yb - e.yb;
+        console.log('suggestScroll', boundary.yb);
+        return [e.yb - boundary.yb, boundary.yb - boundary.yt - (e.yb - e.yt)];
     }
-    return 0;
+    return [0, 0];
 };
 
 /**
@@ -43,8 +45,9 @@ const suggestScroll = (boundary: Ele, e: Ele): number => {
  * @param e
  */
 const suggestScroolTop = (boundary: Ele, e: Ele): number => {
-    if (e.yb > boundary.yb - 50) {
-        return boundary.yt - e.yt;
+    console.log('suggestScroolTop', e.yb, e.yt);
+    if (e.yb > boundary.yb - 5) {
+        return -(boundary.yt - boundary.yb - (e.yt - e.yb));
     }
     return 0;
 };
@@ -62,19 +65,27 @@ export default function Subtitle({
     currentSentence,
     onAction,
 }: SubtitleSubParam) {
-    const boundaryRef = useRef<HTMLDivElement>(null);
-    const currentRef = useRef<HTMLDivElement>(null);
+    // const boundaryRef = useRef<HTMLDivElement>(null);
+    const currentRef = useRef<{ r: HTMLDivElement | null; index: number }>({
+        r: null,
+        index: -1,
+    });
     const listRef = useRef<VirtuosoHandle>(null);
     const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
     const [boundary, setBoundary] = useState<Ele | undefined>(undefined);
 
-    const timer = useRef<NodeJS.Timeout | undefined>(undefined);
+    const timer = useRef<number | undefined>(undefined);
 
+    const lastCurrentSentence = useRef<SentenceT | undefined>(undefined);
     useEffect(() => {
         const updateBoundary = () => {
-            if (boundaryRef.current !== null) {
-                setBoundary(getEle(boundaryRef.current));
-            }
+            // 窗口高度
+            const wh = window.innerHeight;
+            // 顶部高度
+            setBoundary({
+                yt: 7,
+                yb: wh - 15,
+            });
         };
         updateBoundary();
         window.addEventListener('resize', updateBoundary);
@@ -84,82 +95,109 @@ export default function Subtitle({
     }, []);
 
     useEffect(() => {
-        if (!visibleRange || !currentSentence) {
+        if (currentRef.current.index < 0) {
             return;
         }
-        if (
-            currentSentence.index < visibleRange[0] ||
-            currentSentence.index > visibleRange[1]
-        ) {
-            listRef.current?.scrollToIndex(currentSentence.index);
+
+        if (currentSentence === lastCurrentSentence.current) {
             return;
         }
-        if (!currentRef.current || !boundary) {
+        lastCurrentSentence.current = currentSentence;
+
+        const idx = currentRef.current.index;
+        if (idx < visibleRange[0] || idx > visibleRange[1]) {
+            listRef.current?.scrollToIndex({
+                behavior: 'smooth',
+                index: idx,
+            });
+        }
+    }, [visibleRange, currentSentence]);
+
+    const updateCurrentRef = (ref: HTMLDivElement | null, index: number) => {
+        const lastIndex = currentRef.current?.index ?? -1;
+        currentRef.current = {
+            r: ref ?? null,
+            index,
+        };
+        if (!ref || !boundary) {
             return;
         }
-        const currentEle = getEle(currentRef.current);
-        const scroll = suggestScroll(boundary, currentEle);
+        if (lastIndex === index) {
+            return;
+        }
+        const currentEle = getEle(ref);
+        const [scroll, scroolTop] = suggestScroll(boundary, currentEle);
+        console.log('scro', scroll, scroolTop);
         if (scroll !== 0) {
+            console.log('scroll', scroll, boundary, listRef.current);
             listRef.current?.scrollBy({
                 top: scroll,
             });
         }
-
-        if (timer.current) {
-            clearTimeout(timer.current);
-        }
-        timer.current = setTimeout(() => {
-            const ce = getEle(currentRef.current!);
-            const sct = suggestScroolTop(boundary, ce);
-            if (sct !== 0) {
-                listRef.current?.scrollBy({
-                    behavior: 'smooth',
-                    top: scroll,
-                });
+        if (scroolTop !== 0) {
+            if (timer.current) {
+                clearTimeout(timer.current);
             }
-        }, 500);
-    }, [boundary, currentSentence, visibleRange]);
+            timer.current = setTimeout(
+                (st: number) => {
+                    // listRef.current?.scrollBy({
+                    //     behavior: 'smooth',
+                    //     top: st,
+                    // });
+                    listRef.current?.scrollToIndex({
+                        behavior: 'smooth',
+                        index,
+                    });
+                },
+                150,
+                [index]
+            );
+        }
+    };
 
     const render = () => {
         return (
-            <div className="w-full h-full" ref={boundaryRef}>
-                <Virtuoso
-                    ref={listRef}
-                    className="h-full w-full"
-                    data={subtitles}
-                    rangeChanged={({ startIndex, endIndex }) => {
-                        setVisibleRange([startIndex, endIndex]);
-                    }}
-                    itemContent={(index, item) => {
-                        const isCurrent = item.equals(currentSentence);
-                        let result = (
-                            <div
-                                className={`${index === 0 ? 'pt-3' : ''}
+            // <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
+            <Virtuoso
+                ref={listRef}
+                className="h-full w-full"
+                data={subtitles}
+                rangeChanged={({ startIndex, endIndex }) => {
+                    setVisibleRange([startIndex, endIndex]);
+                }}
+                itemContent={(index, item) => {
+                    const isCurrent = item.equals(currentSentence);
+                    let result = (
+                        <div
+                            className={`${index === 0 ? 'pt-3' : ''}
                             ${index === subtitles.length - 1 ? 'pb-52' : ''}`}
+                        >
+                            <SideSentenceNew
+                                sentence={item}
+                                onClick={(sentence) => onAction(jump(sentence))}
+                                isCurrent={isCurrent}
+                            />
+                        </div>
+                    );
+                    if (isCurrent) {
+                        result = (
+                            <div
+                                key={`${item.getKey()}div`}
+                                ref={(ref) =>
+                                    updateCurrentRef(
+                                        ref,
+                                        currentSentence?.index ?? -1
+                                    )
+                                }
                             >
-                                <SideSentenceNew
-                                    sentence={item}
-                                    onClick={(sentence) =>
-                                        onAction(jump(sentence))
-                                    }
-                                    isCurrent={isCurrent}
-                                />
+                                {result}
                             </div>
                         );
-                        if (isCurrent) {
-                            result = (
-                                <div
-                                    key={`${item.getKey()}div`}
-                                    ref={currentRef}
-                                >
-                                    {result}
-                                </div>
-                            );
-                        }
-                        return result;
-                    }}
-                />
-            </div>
+                    }
+                    return result;
+                }}
+            />
+            // </div>
         );
     };
 
