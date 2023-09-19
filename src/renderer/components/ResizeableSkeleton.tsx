@@ -26,7 +26,7 @@ const ResizeableSkeleton = ({
     return (
         <Resizable axis="x" initial={screenWidth * 0.3} reverse>
             {({ position: position1, separatorProps: separatorProps1 }) => (
-                <div className="flex flex-row-reverse h-screen overflow-y-auto">
+                <div className="flex flex-row-reverse h-screen">
                     <div className="" style={{ width: position1 }}>
                         {subtitle}
                     </div>

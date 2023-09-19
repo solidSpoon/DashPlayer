@@ -39,16 +39,21 @@ const Word = ({ word, doAction }: WordParam) => {
     return (
         <>
             <div
-                className="rounded  select-none hover:bg-zinc-600"
+                className={`rounded  select-none ${
+                    hovered ? 'bg-zinc-600' : ''
+                }`}
                 onMouseOver={() => {
                     setHovered(true);
                     doAction(pause());
                 }}
-                onMouseLeave={() => setHovered(false)}
                 onClick={t}
             >
                 {translationText && hovered ? (
-                    <WordSub word={word} translation={translationText} />
+                    <WordSub
+                        word={word}
+                        translation={translationText}
+                        onMoustOut={() => setHovered(false)}
+                    />
                 ) : (
                     <div>{word}</div>
                 )}
