@@ -99,17 +99,18 @@ export default function Player({
 
     const render = (): ReactElement => {
         if (videoFile === undefined) {
-            return <></>;
+            return <div />;
         }
         return (
             <div
-                className="w-full h-full mb-auto relative overflow-hidden"
+                className="w-full h-full overflow-hidden"
                 onDoubleClick={() => setShowControlPanel(true)}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
-                <div className="absolute top-0 left-0 w-full h-full z-10">
+                <div className="w-full h-full relative overflow-hidden">
+                    {/* <div className="relative top-0 left-0 w-full h-full z-10"> */}
                     <canvas
-                        className="w-full h-full"
+                        className="absolute top-0 left-0 w-full h-full -z-0"
                         ref={playerRefBackground}
                         style={{
                             filter: 'blur(100px)',
@@ -117,10 +118,11 @@ export default function Player({
                             objectFit: 'cover',
                         }}
                     />
-                </div>
-                <div className="absolute top-0 left-0 w-full h-full z-20">
+                    {/* </div> */}
+                    {/* <div className="relative top-0 left-0 w-full h-full z-50"> */}
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video
+                        className="w-full w-full absolute top-0 left-0 z-0"
                         id="react-player-id"
                         ref={playerRef}
                         src={videoFile.objectUrl ? videoFile.objectUrl : ''}

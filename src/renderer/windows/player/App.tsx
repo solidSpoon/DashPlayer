@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import './App.css';
+import Split from 'react-split';
 import Player from '../../components/Player';
 import MainSubtitle from '../../components/MainSubtitle';
 import UploadPhoto from '../../components/UploadButton';
@@ -8,7 +9,6 @@ import GlobalShortCut from '../../components/GlobalShortCut';
 import RecordProgress from '../../components/RecordProgress';
 import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
 import 'tailwindcss/tailwind.css';
-import ResizeableSkeleton from '../../components/ResizeableSkeleton';
 import useSubtitle from '../../hooks/useSubtitle';
 import useFile from '../../hooks/useFile';
 import Subtitle from '../../components/Subtitle';
@@ -26,66 +26,56 @@ export default function App() {
         currentSentence,
         dispatch: doAction,
     } = useSubTitleController(subtitles, () => progress.current);
-
-    const render = () => {
-        const player = (
-            <>
-                <Player
-                    videoFile={videoFile}
-                    onProgress={(time) => {
-                        progress.current = time;
-                    }}
-                    onTotalTimeChange={(time) => {
-                        totalTime.current = time;
-                    }}
-                    onAction={doAction}
-                    seekTime={seekTime}
-                />
-            </>
-        );
-        const subtitle = (
-            <Subtitle
-                subtitles={subtitles}
-                currentSentence={currentSentence}
-                onAction={doAction}
+    return (
+        <>
+            <TitleBar show={showTitleBar} title={videoFile?.fileName} />
+            <RecordProgress
+                getCurrentProgress={() => progress.current}
+                getCurrentVideoFile={() => videoFile}
             />
-        );
-        const mainSubtitle = (
-            <MainSubtitle sentence={currentSentence} doAction={doAction} />
-        );
-        return (
-            <>
-                <TitleBar show={showTitleBar} title={videoFile?.fileName} />
-                <div className="font-face-arc bg-neutral-800">
-                    <GlobalShortCut onAction={doAction} />
-                    <RecordProgress
-                        getCurrentProgress={() => progress.current}
-                        getCurrentVideoFile={() => videoFile}
-                    />
-                    <ResizeableSkeleton
-                        player={player}
-                        currentSentence={mainSubtitle}
-                        subtitle={subtitle}
-                    />
+            <GlobalShortCut onAction={doAction} />
 
-                    <UploadPhoto
-                        onFileChange={(file) => {
-                            updateFile(file);
-                        }}
-                        onSelectingFile={(isSelect) =>
-                            setShowTitleBar(isSelect)
-                        }
-                    />
-                    <div id="progressBarRef">
-                        <BorderProgressBar
-                            getCurrentTime={() => progress.current}
-                            getTotalTime={() => totalTime.current}
+            <Split className="split flex flex-row font-face-arc bg-neutral-800 h-screen w-full">
+                <Split className="split" direction="vertical">
+                    <div className="h-full">
+                        <Player
+                            videoFile={videoFile}
+                            onProgress={(time) => {
+                                progress.current = time;
+                            }}
+                            onTotalTimeChange={(time) => {
+                                totalTime.current = time;
+                            }}
+                            onAction={doAction}
+                            seekTime={seekTime}
                         />
                     </div>
-                </div>
-            </>
-        );
-    };
+                    <div className="h-full">
+                        <MainSubtitle
+                            sentence={currentSentence}
+                            doAction={doAction}
+                        />
+                    </div>
+                </Split>
+                <Subtitle
+                    subtitles={subtitles}
+                    currentSentence={currentSentence}
+                    onAction={doAction}
+                />
+            </Split>
 
-    return render();
+            <UploadPhoto
+                onFileChange={(file) => {
+                    updateFile(file);
+                }}
+                onSelectingFile={(isSelect) => setShowTitleBar(isSelect)}
+            />
+            <div id="progressBarRef">
+                <BorderProgressBar
+                    getCurrentTime={() => progress.current}
+                    getTotalTime={() => totalTime.current}
+                />
+            </div>
+        </>
+    );
 }

@@ -71,7 +71,7 @@ export default function MainSubtitle({
 
     const render = () => {
         if (sentence === undefined) {
-            return <></>;
+            return <div />;
         }
         return (
             <div
