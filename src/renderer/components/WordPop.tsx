@@ -13,7 +13,7 @@ export interface WordSubParam {
     translation: string;
 }
 
-const WordSub = React.forwardRef(
+const WordPop = React.forwardRef(
     (
         { word, translation }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
@@ -66,4 +66,4 @@ const WordSub = React.forwardRef(
     }
 );
 
-export default WordSub;
+export default WordPop;

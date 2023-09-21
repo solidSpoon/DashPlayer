@@ -3,7 +3,7 @@ import * as turf from '@turf/turf';
 import { Feature, Polygon } from '@turf/turf';
 import callApi from '../lib/apis/ApiWrapper';
 import { YdRes } from '../lib/param/yd/a';
-import WordSub from './WordSub';
+import WordPop from './WordPop';
 import { Action, pause, space } from '../lib/CallAction';
 
 export interface WordParam {
@@ -48,6 +48,7 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
     };
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
+        let timeout: NodeJS.Timeout;
         const mouseEvent = (e: MouseEvent) => {
             if (!eleRef?.current) {
                 return;
@@ -58,21 +59,26 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
             const point = turf.point([e.clientX, e.clientY]);
 
             const b = turf.booleanPointInPolygon(point, hull!);
+            clearTimeout(timeout);
             if (!b) {
                 setHovered(false);
+                return;
             }
+            timeout = setTimeout(() => {
+                if (!resquested.current) {
+                    resquested.current = true;
+                    requestPop(false);
+                }
+            }, 50);
         };
         if (hovered) {
-            if (!resquested.current) {
-                resquested.current = true;
-                requestPop(true);
-            }
             document.addEventListener('mousemove', mouseEvent);
         } else {
             resquested.current = false;
         }
         return () => {
             document.removeEventListener('mousemove', mouseEvent);
+            clearTimeout(timeout);
         };
     }, [hovered, requestPop, word]);
 
@@ -104,14 +110,14 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
             onClick={() => trans(word)}
         >
             {pop && hovered ? (
-                <WordSub
+                <WordPop
                     word={word}
                     translation={translationText ?? ''}
                     ref={popperRef}
                 />
             ) : (
                 <div
-                    className="hover:bg-zinc-600"
+                    className="hover:bg-zinc-600 rounded select-none"
                     onMouseLeave={() => {
                         setHovered(false);
                     }}
