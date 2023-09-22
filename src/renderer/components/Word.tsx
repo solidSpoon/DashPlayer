@@ -39,13 +39,6 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
-    const trans = (str: string): void => {
-        // console.log('click');
-        // window.electron.ipcRenderer.sendMessage('trans-word', [str]);
-        // window.electron.ipcRenderer.once('trans-word', () => {
-        //     console.log('trans word success');
-        // });
-    };
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
         let timeout: NodeJS.Timeout;
@@ -107,7 +100,6 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
             onMouseLeave={() => {
                 console.log('avvv onMouseLeave', word);
             }}
-            onClick={() => trans(word)}
         >
             {pop && hovered ? (
                 <WordPop
