@@ -10,18 +10,6 @@ export interface TitleBarProps {
 const TitleBarMac = ({ title, show }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const showTitleBar = show || isMouseOver;
-    useEffect(() => {
-        const updateTitleState = async () => {
-            if (showTitleBar) {
-                // await TransFiller.sleep(200);
-                await callApi('show-button', []);
-            } else {
-                // await TransFiller.sleep(5000);
-                await callApi('hide-button', []);
-            }
-        };
-        updateTitleState();
-    }, [showTitleBar]);
     const onDoubleClick = async () => {
         const isMaximized = (await callApi('is-maximized', [])) as boolean;
         if (isMaximized) {
@@ -31,18 +19,34 @@ const TitleBarMac = ({ title, show }: TitleBarProps) => {
         }
     };
 
+    const handleMouseOver = async () => {
+        const fullScreen = (await callApi('is-full-screen', [])) as boolean;
+        console.log('fullScreen', fullScreen);
+        if (fullScreen) {
+            setIsMouseOver(false);
+        } else {
+            setIsMouseOver(true);
+            await callApi('show-button', []);
+        }
+    };
+
+    const handleMouseLeave = async () => {
+        const fullScreen = (await callApi('is-full-screen', [])) as boolean;
+        console.log('fullScreen', fullScreen);
+        if (fullScreen) {
+            setIsMouseOver(false);
+        } else {
+            setIsMouseOver(false);
+            await callApi('hide-button', []);
+        }
+    };
+
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events
-        <div
-            onMouseOver={() => {
-                console.log('mmmm over');
-                setIsMouseOver(true);
-            }}
-            onMouseLeave={() => setIsMouseOver(false)}
-        >
+        <div onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
-                className={`drag w-full h-10 absolute top-0 z-50 hover:bg-amber-300 content-center flex flex-col justify-center items-center select-none ${
+                className={`drag w-full h-10 absolute top-0 z-50 content-center flex flex-col justify-center items-center select-none ${
                     showTitleBar ? 'bg-amber-300' : ''
                 }`}
                 onDoubleClick={() => {

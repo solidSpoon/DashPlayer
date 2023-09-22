@@ -35,8 +35,12 @@ export default function App() {
             />
             <GlobalShortCut onAction={doAction} />
 
-            <Split className="split flex flex-row font-face-arc bg-neutral-800 h-screen w-full">
-                <Split className="split" direction="vertical">
+            <Split className="split flex flex-row font-face-arc bg-neutral-800 h-screen w-full"
+                   sizes={[75, 25]}
+            >
+                <Split className="split"
+                       sizes={[80, 20]}
+                       direction="vertical">
                     <div className="h-full">
                         <Player
                             videoFile={videoFile}

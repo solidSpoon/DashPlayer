@@ -76,11 +76,11 @@ export const createPlayerWindow = async () => {
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
-                : path.join(__dirname, '../../.erb/dll/preload.js'),
+                : path.join(__dirname, '../../.erb/dll/preload.js')
         },
         resizable: true,
         // titleBarStyle: 'hidden',
-        frame: false,
+        frame: false
     });
     mainWindow.maximize();
     mainWindow.loadURL(resolveHtmlPath('player.html'));
@@ -109,6 +109,13 @@ export const createPlayerWindow = async () => {
         return { action: 'deny' };
     });
 
+    // on full screen, show button
+    mainWindow?.on('enter-full-screen', () => {
+        mainWindow?.setWindowButtonVisibility(true);
+    });
+    mainWindow?.on('leave-full-screen', () => {
+        mainWindow?.setWindowButtonVisibility(false);
+    });
     // Remove this if your app does not use auto updates
     // eslint-disable-next-line
     // new AppUpdater();
@@ -135,8 +142,8 @@ const createSettingWindow = async () => {
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
-                : path.join(__dirname, '../../.erb/dll/preload.js'),
-        },
+                : path.join(__dirname, '../../.erb/dll/preload.js')
+        }
     });
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
@@ -207,6 +214,10 @@ ipcMain.on('unmaximize', async (event) => {
 ipcMain.on('is-maximized', async (event) => {
     log.info('is-maximized');
     event.reply('is-maximized', mainWindow?.isMaximized());
+});
+ipcMain.on('is-full-screen', async (event) => {
+    log.info('is-full-screen');
+    event.reply('is-full-screen', mainWindow?.isFullScreen());
 });
 ipcMain.on('show-button', async (event) => {
     log.info('show-button');

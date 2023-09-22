@@ -13,6 +13,7 @@ export type Channels =
     | 'maximize'
     | 'unmaximize'
     | 'is-maximized'
+    | 'is-full-screen'
     | 'show-button'
     | 'hide-button'
     | 'is-windows'

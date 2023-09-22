@@ -28,7 +28,6 @@ export default function SideSentenceNew({
                 content-start
                 rounded-lg
                 bg-neutral-700
-                hover:drop-shadow-xl
                 hover:shadow-inner
                 hover:shadow-neutral-500
                 hover:bg-neutral-600
