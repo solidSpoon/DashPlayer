@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import callApi from '../lib/apis/ApiWrapper';
-import TransFiller from '../lib/TransFiller';
 
 export interface TitleBarProps {
     title: string | undefined;
@@ -21,21 +20,16 @@ const TitleBarMac = ({ title, show }: TitleBarProps) => {
 
     const handleMouseOver = async () => {
         const fullScreen = (await callApi('is-full-screen', [])) as boolean;
-        console.log('fullScreen', fullScreen);
-        if (fullScreen) {
-            setIsMouseOver(false);
-        } else {
-            setIsMouseOver(true);
+        setIsMouseOver(!fullScreen);
+        if (!fullScreen) {
             await callApi('show-button', []);
         }
     };
 
     const handleMouseLeave = async () => {
         const fullScreen = (await callApi('is-full-screen', [])) as boolean;
-        console.log('fullScreen', fullScreen);
-        if (fullScreen) {
-            setIsMouseOver(false);
-        } else {
+        setIsMouseOver(false);
+        if (!fullScreen) {
             setIsMouseOver(false);
             await callApi('hide-button', []);
         }
