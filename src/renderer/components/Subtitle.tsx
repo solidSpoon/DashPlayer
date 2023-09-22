@@ -2,7 +2,7 @@ import React, { Component, useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
-import SideSentenceNew from './SideSentenceNew';
+import SideSentence from './SideSentence';
 import { Action, jump, jumpTime } from '../lib/CallAction';
 
 interface SubtitleSubParam {
@@ -172,7 +172,7 @@ export default function Subtitle({
                             className={`${index === 0 ? 'pt-3' : ''}
                             ${index === subtitles.length - 1 ? 'pb-52' : ''}`}
                         >
-                            <SideSentenceNew
+                            <SideSentence
                                 sentence={item}
                                 onClick={(sentence) => onAction(jump(sentence))}
                                 isCurrent={isCurrent}
