@@ -26,6 +26,11 @@ export default function App() {
         currentSentence,
         dispatch: doAction,
     } = useSubTitleController(subtitles, () => progress.current);
+    const sizeA =
+        localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
+    const sizeB =
+        localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
+
     return (
         <>
             <TitleBar show={showTitleBar} title={videoFile?.fileName} />
@@ -37,9 +42,22 @@ export default function App() {
 
             <Split
                 className="split flex flex-row font-face-arc bg-neutral-800 h-screen w-full overflow-hidden"
-                sizes={[75, 25]}
+                sizes={JSON.parse(sizeA)}
+                onDragEnd={(sizes) => {
+                    localStorage.setItem('split-size-a', JSON.stringify(sizes));
+                }}
             >
-                <Split className="split" sizes={[80, 20]} direction="vertical">
+                <Split
+                    className="split"
+                    sizes={JSON.parse(sizeB)}
+                    onDragEnd={(sizes) => {
+                        localStorage.setItem(
+                            'split-size-b',
+                            JSON.stringify(sizes)
+                        );
+                    }}
+                    direction="vertical"
+                >
                     <div className="h-full">
                         <Player
                             videoFile={videoFile}

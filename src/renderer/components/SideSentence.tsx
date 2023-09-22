@@ -8,7 +8,7 @@ interface SideSentenceNewParam {
     isCurrent: boolean;
 }
 
-export default function SideSentenceNew({
+export default function SideSentence({
     sentence,
     onClick,
     isCurrent,
