@@ -32,7 +32,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
 };
 const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
     console.log('abab render Word', word, pop);
-    const [translationText, setTranslationText] = useState<string | undefined>(
+    const [translationText, setTranslationText] = useState<YdRes | undefined>(
         undefined
     );
     const [hovered, setHovered] = useState(false);
@@ -40,11 +40,11 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
     const trans = (str: string): void => {
-        console.log('click');
-        window.electron.ipcRenderer.sendMessage('trans-word', [str]);
-        window.electron.ipcRenderer.once('trans-word', () => {
-            console.log('trans word success');
-        });
+        // console.log('click');
+        // window.electron.ipcRenderer.sendMessage('trans-word', [str]);
+        // window.electron.ipcRenderer.once('trans-word', () => {
+        //     console.log('trans word success');
+        // });
     };
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
@@ -89,7 +89,7 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
                 return;
             }
             const res = JSON.parse(r) as YdRes;
-            setTranslationText(res.translation?.join('\n') ?? '');
+            setTranslationText(res);
         };
         if (hovered) {
             transFun(word);
@@ -112,7 +112,7 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
             {pop && hovered ? (
                 <WordPop
                     word={word}
-                    translation={translationText ?? ''}
+                    translation={translationText}
                     ref={popperRef}
                 />
             ) : (

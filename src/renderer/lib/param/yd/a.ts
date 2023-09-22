@@ -10,6 +10,7 @@ export interface YdRes {
 }
 
 export interface Basic {
+    exam_type: string[];
     phonetic: string;
     'uk-phonetic': string;
     'us-phonetic': string;
