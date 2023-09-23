@@ -45,11 +45,12 @@ const WordPop = React.forwardRef(
         const play = async (type: 'us' | 'uk') => {
             audio.current?.pause();
             try {
-                if (type === 'us') {
+                if (type === 'us' && translation?.basic['us-speech']) {
                     audio.current = new Audio(translation?.basic['us-speech']);
                     audio.current.volume = 0.3;
                     await audio.current.play();
-                } else {
+                }
+                if (type === 'uk' && translation?.basic['uk-speech']) {
                     audio.current = new Audio(translation?.basic['uk-speech']);
                     audio.current.volume = 0.3;
                     await audio.current.play();

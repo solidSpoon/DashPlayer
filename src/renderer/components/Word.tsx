@@ -10,7 +10,7 @@ export interface WordParam {
     word: string;
     doAction: (action: Action) => void;
     pop: boolean;
-    requestPop: (b: boolean) => void;
+    requestPop: () => void;
 }
 /**
  * 以左上角为原点，顺时针旋转
@@ -60,7 +60,7 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
             timeout = setTimeout(() => {
                 if (!resquested.current) {
                     resquested.current = true;
-                    requestPop(false);
+                    requestPop();
                 }
             }, 50);
         };

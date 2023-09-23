@@ -48,7 +48,7 @@ export default function App() {
                 }}
             >
                 <Split
-                    className="split"
+                    className="split z-40"
                     sizes={JSON.parse(sizeB)}
                     onDragEnd={(sizes) => {
                         localStorage.setItem(
