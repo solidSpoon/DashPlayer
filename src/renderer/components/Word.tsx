@@ -101,7 +101,7 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
                 console.log('avvv onMouseLeave', word);
             }}
         >
-            {pop && hovered ? (
+            {pop && hovered && translationText ? (
                 <WordPop
                     word={word}
                     translation={translationText}

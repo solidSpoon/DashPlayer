@@ -66,10 +66,7 @@ export default function Subtitle({
     onAction,
 }: SubtitleSubParam) {
     // const boundaryRef = useRef<HTMLDivElement>(null);
-    const currentRef = useRef<{ r: HTMLDivElement | null; index: number }>({
-        r: null,
-        index: -1,
-    });
+    const currentRef = useRef<number>(-1);
     const listRef = useRef<VirtuosoHandle>(null);
     const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
     const [boundary, setBoundary] = useState<Ele | undefined>(undefined);
@@ -95,16 +92,15 @@ export default function Subtitle({
     }, []);
 
     useEffect(() => {
-        if (currentRef.current.index < 0) {
-            return;
-        }
-
         if (currentSentence === lastCurrentSentence.current) {
             return;
         }
         lastCurrentSentence.current = currentSentence;
 
-        const idx = currentRef.current.index;
+        const idx = currentSentence?.index ?? -1;
+        if (idx === -1) {
+            return;
+        }
         if (idx < visibleRange[0] || idx > visibleRange[1]) {
             listRef.current?.scrollToIndex({
                 behavior: 'smooth',
@@ -114,11 +110,8 @@ export default function Subtitle({
     }, [visibleRange, currentSentence]);
 
     const updateCurrentRef = (ref: HTMLDivElement | null, index: number) => {
-        const lastIndex = currentRef.current?.index ?? -1;
-        currentRef.current = {
-            r: ref ?? null,
-            index,
-        };
+        const lastIndex = currentRef.current ?? -1;
+        currentRef.current = index;
         if (!ref || !boundary) {
             return;
         }
@@ -140,10 +133,6 @@ export default function Subtitle({
             }
             timer.current = setTimeout(
                 (st: number) => {
-                    // listRef.current?.scrollBy({
-                    //     behavior: 'smooth',
-                    //     top: st,
-                    // });
                     listRef.current?.scrollToIndex({
                         behavior: 'smooth',
                         index,
