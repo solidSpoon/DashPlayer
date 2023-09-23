@@ -25,8 +25,8 @@ class AppUpdater {
     }
 }
 
-let mainWindow: BrowserWindow | null = null;
-let settingWindow: BrowserWindow | null = null;
+export let mainWindow: BrowserWindow | null = null;
+export let settingWindow: BrowserWindow | null = null;
 ipcMain.on('ipc-example', async (event, arg) => {
     const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
     console.log(msgTemplate(arg));
@@ -145,7 +145,7 @@ const createSettingWindow = async () => {
                 ? path.join(__dirname, 'preload.js')
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
-        frame: false,
+        frame: process.platform === 'darwin',
     });
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
@@ -202,56 +202,3 @@ app.whenReady()
         });
     })
     .catch(console.log);
-
-ipcMain.on('maximize', async (event) => {
-    log.info('maximize');
-    mainWindow?.maximize();
-    event.reply('maximize', 'success');
-});
-ipcMain.on('unmaximize', async (event) => {
-    log.info('unmaximize');
-    mainWindow?.unmaximize();
-    event.reply('unmaximize', 'success');
-});
-ipcMain.on('is-maximized', async (event) => {
-    log.info('is-maximized');
-    event.reply('is-maximized', mainWindow?.isMaximized());
-});
-ipcMain.on('is-full-screen', async (event) => {
-    log.info('is-full-screen');
-    event.reply('is-full-screen', mainWindow?.isFullScreen());
-});
-ipcMain.on('show-button', async (event) => {
-    log.info('show-button');
-    // 展示红绿灯
-    if (process.platform === 'darwin') {
-        mainWindow?.setWindowButtonVisibility(true);
-    }
-    event.reply('show-button', 'success');
-});
-ipcMain.on('hide-button', async (event) => {
-    log.info('hide-button');
-    // 隐藏红绿灯
-    if (process.platform === 'darwin') {
-        mainWindow?.setWindowButtonVisibility(false);
-    }
-
-    event.reply('hide-button', 'success');
-});
-ipcMain.on('minimize', async (event) => {
-    log.info('minimize');
-    mainWindow?.minimize();
-    event.reply('minimize', 'success');
-});
-ipcMain.on('close', async (event) => {
-    log.info('close');
-    mainWindow?.close();
-    event.reply('close', 'success');
-});
-ipcMain.on('open-menu', async (event) => {
-    log.info('open-menu');
-    // create or show setting window
-    await createSettingWindowIfNeed();
-    settingWindow?.show();
-    event.reply('open-menu', 'success');
-});

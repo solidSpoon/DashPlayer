@@ -14,6 +14,7 @@ import {
 } from './controllers/SecretController';
 import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
 import { getShortCut, updateShortCut } from './controllers/ShortCutController';
+import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -96,5 +97,81 @@ export default function registerHandler() {
         log.info('get-shortcut');
         const shortcut = await getShortCut();
         event.reply('get-shortcut', shortcut);
+    });
+    ipcMain.on('maximize', async (event) => {
+        log.info('maximize');
+        mainWindow?.maximize();
+        event.reply('maximize', 'success');
+    });
+    ipcMain.on('unmaximize', async (event) => {
+        log.info('unmaximize');
+        mainWindow?.unmaximize();
+        event.reply('unmaximize', 'success');
+    });
+    ipcMain.on('is-maximized', async (event) => {
+        log.info('is-maximized');
+        event.reply('is-maximized', mainWindow?.isMaximized());
+    });
+    ipcMain.on('is-full-screen', async (event) => {
+        log.info('is-full-screen');
+        event.reply('is-full-screen', mainWindow?.isFullScreen());
+    });
+    ipcMain.on('show-button', async (event) => {
+        log.info('show-button');
+        // 展示红绿灯
+        if (process.platform === 'darwin') {
+            mainWindow?.setWindowButtonVisibility(true);
+        }
+        event.reply('show-button', 'success');
+    });
+    ipcMain.on('hide-button', async (event) => {
+        log.info('hide-button');
+        // 隐藏红绿灯
+        if (process.platform === 'darwin') {
+            mainWindow?.setWindowButtonVisibility(false);
+        }
+
+        event.reply('hide-button', 'success');
+    });
+    ipcMain.on('minimize', async (event) => {
+        log.info('minimize');
+        mainWindow?.minimize();
+        event.reply('minimize', 'success');
+    });
+    ipcMain.on('close', async (event) => {
+        log.info('close');
+        mainWindow?.close();
+        event.reply('close', 'success');
+    });
+    ipcMain.on('open-menu', async (event) => {
+        log.info('open-menu');
+        // create or show setting window
+        await createSettingWindowIfNeed();
+        settingWindow?.show();
+        event.reply('open-menu', 'success');
+    });
+    ipcMain.on('maximize-setting', async (event) => {
+        log.info('maximize-setting');
+        settingWindow?.maximize();
+        event.reply('maximize-setting', 'success');
+    });
+    ipcMain.on('unmaximize-setting', async (event) => {
+        log.info('unmaximize-setting');
+        settingWindow?.unmaximize();
+        event.reply('unmaximize-setting', 'success');
+    });
+    ipcMain.on('is-maximized-setting', async (event) => {
+        log.info('is-maximized-setting');
+        event.reply('is-maximized-setting', settingWindow?.isMaximized());
+    });
+    ipcMain.on('close-setting', async (event) => {
+        log.info('close-setting');
+        settingWindow?.close();
+        event.reply('close-setting', 'success');
+    });
+    ipcMain.on('minimize-setting', async (event) => {
+        log.info('minimize-setting');
+        settingWindow?.minimize();
+        event.reply('minimize-setting', 'success');
     });
 }

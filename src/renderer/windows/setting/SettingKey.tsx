@@ -1,16 +1,31 @@
-import { ChangeEvent, Component, FormEvent, useState } from 'react';
+import { ChangeEvent, Component, FormEvent, useEffect, useState } from 'react';
 import 'tailwindcss/tailwind.css';
 import callApi from '../../lib/apis/ApiWrapper';
 import TenantSetting from './sub/TenantSetting';
 import YouDaoSetting from './sub/YouDaoSetting';
 import ShortcutSetting from './sub/ShortcutSetting';
-
+import TitleBarSettingWindows from '../../components/TitleBarSettingWindows';
+import './SettingKey.css';
 type SettingType = 'you-dao' | 'tenant' | 'shortcut';
 
 export default function SettingKey() {
     const [settingType, setSettingType] = useState<SettingType>('shortcut');
+    const [isWindows, setIsWindows] = useState<boolean>(false);
+
+    useEffect(() => {
+        const fun = async () => {
+            const isW = (await callApi('is-windows', [])) as boolean;
+            setIsWindows(isW);
+            console.log('isw', isW);
+        };
+        fun();
+    }, []);
+
     return (
         <div className="w-full h-screen mx-auto bg-gray-200">
+            {isWindows && (
+                <TitleBarSettingWindows />
+            )}
             <div className="flex flex-row flex-wrap py-4">
                 <aside className="w-1/3 select-none">
                     <div className="sticky top-0 p-4 w-full flex flex-col gap-2">
