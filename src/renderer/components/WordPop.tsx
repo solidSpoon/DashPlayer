@@ -73,7 +73,7 @@ const WordPop = React.forwardRef(
                 return <div className="text-2xl">loading</div>;
             }
             return (
-                <div className="max-w-sm max-h-96 overflow-y-auto flex flex-col items-start bg-gray-900 rounded-lg pt-4 px-4">
+                <div className="relative top-0 left-0 max-w-sm max-h-96 overflow-y-auto flex flex-col items-start  bg-gray-200 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl pt-4 px-4">
                     <div className="text-2xl mb-2 flex justify-start items-center gap-4">
                         {translation.query}
                         <div>{translation.translation}</div>
@@ -92,10 +92,10 @@ const WordPop = React.forwardRef(
                             className="cursor-pointer hover:text-gray-400 text-2xl"
                         />
                     </div>
-                    <div className="text-base mt-2 flex flex-col gap-2 items-start">
+                    <div className="text-base mt-2 flex flex-col gap-2 items-start w-full">
                         {translation.basic.explains.map((e) => {
                             return (
-                                <div className="p-2 rounded text-left w-full bg-gray-800">
+                                <div className="p-2 rounded text-left w-full bg-gray-300/25">
                                     {e}
                                 </div>
                             );
@@ -111,7 +111,7 @@ const WordPop = React.forwardRef(
                             </div>
                         </>
                     )}
-                    <div className="sticky bottom-0 text-cyan-100 text-lg text-center bg-gray-900/95 w-full pt-1 mt-1 pb-2">
+                    <div className="sticky bottom-0 text-cyan-900 text-lg text-center bg-gray-200/95 w-full pt-1 mt-1 pb-2">
                         {translation.translation}
                     </div>
                 </div>
