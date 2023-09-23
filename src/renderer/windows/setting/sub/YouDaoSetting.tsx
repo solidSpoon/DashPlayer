@@ -4,20 +4,21 @@ import callApi from '../../../lib/apis/ApiWrapper';
 const TenantSetting = () => {
     const [secretId, setSecretId] = useState<string | undefined>();
     const [secretKey, setSecretKey] = useState<string | undefined>();
+    const [serverValue, serServerValue] = useState<string[] | undefined>();
 
+    const eqServer =
+        serverValue?.[0] === secretId && serverValue?.[1] === secretKey;
+    const updateFromServer = async () => {
+        const newVar = (await callApi('get-you-dao-secret', [])) as string[];
+        if (newVar.length === 0) {
+            return;
+        }
+        setSecretId(newVar[0]);
+        setSecretKey(newVar[1]);
+        serServerValue(newVar);
+    };
     useEffect(() => {
-        const init = async () => {
-            const newVar = (await callApi(
-                'get-you-dao-secret',
-                []
-            )) as string[];
-            if (newVar.length === 0) {
-                return;
-            }
-            setSecretId(newVar[0]);
-            setSecretKey(newVar[1]);
-        };
-        init();
+        updateFromServer();
     }, []);
 
     const handleSecretIdChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +31,7 @@ const TenantSetting = () => {
 
     const handleSubmit = async () => {
         await callApi('update-you-dao-secret', [secretId, secretKey]);
+        await updateFromServer();
         console.log(`A name was submitted: ${secretId}, ${secretKey}`);
     };
     return (
@@ -70,7 +72,11 @@ const TenantSetting = () => {
                 </div>
                 <div className="flex items-center justify-end">
                     <button
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5"
+                        className={` text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5 ${
+                            eqServer
+                                ? 'bg-gray-500'
+                                : 'bg-blue-500 hover:bg-blue-700'
+                        }`}
                         onClick={handleSubmit}
                         type="button"
                     >

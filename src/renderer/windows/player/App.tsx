@@ -33,8 +33,7 @@ export default function App() {
 
     return (
         <div className="h-screen w-full bg-neutral-800 font-face-arc overflow-hidden flex flex-col">
-            <TitleBar
-                show={showTitleBar} title={videoFile?.fileName} />
+            <TitleBar show={showTitleBar} title={videoFile?.fileName} />
             <RecordProgress
                 getCurrentProgress={() => progress.current}
                 getCurrentVideoFile={() => videoFile}

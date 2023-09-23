@@ -12,6 +12,7 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+// eslint-disable-next-line import/no-cycle
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import registerHandler from './IpcHandler';
@@ -76,11 +77,11 @@ export const createPlayerWindow = async () => {
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
-                : path.join(__dirname, '../../.erb/dll/preload.js')
+                : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
         resizable: true,
         // titleBarStyle: 'hidden',
-        frame: false
+        frame: false,
     });
     mainWindow.maximize();
     mainWindow.loadURL(resolveHtmlPath('player.html'));
@@ -142,8 +143,9 @@ const createSettingWindow = async () => {
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
-                : path.join(__dirname, '../../.erb/dll/preload.js')
-        }
+                : path.join(__dirname, '../../.erb/dll/preload.js'),
+        },
+        frame: false,
     });
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
@@ -222,7 +224,7 @@ ipcMain.on('is-full-screen', async (event) => {
 ipcMain.on('show-button', async (event) => {
     log.info('show-button');
     // 展示红绿灯
-    if ('darwin' === process.platform) {
+    if (process.platform === 'darwin') {
         mainWindow?.setWindowButtonVisibility(true);
     }
     event.reply('show-button', 'success');
@@ -230,7 +232,7 @@ ipcMain.on('show-button', async (event) => {
 ipcMain.on('hide-button', async (event) => {
     log.info('hide-button');
     // 隐藏红绿灯
-    if ('darwin' === process.platform) {
+    if (process.platform === 'darwin') {
         mainWindow?.setWindowButtonVisibility(false);
     }
 

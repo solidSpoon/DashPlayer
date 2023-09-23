@@ -58,7 +58,7 @@ const TranslatableLine = ({
                         word={w.content}
                         doAction={doAction}
                         pop={popELe === w.id}
-                        requestPop={(b) => handleRequestPop(w.id)}
+                        requestPop={() => handleRequestPop(w.id)}
                     />
                 );
             }

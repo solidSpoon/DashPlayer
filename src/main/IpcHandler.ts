@@ -1,12 +1,5 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
-import player from 'play-sound';
-import sounds from 'sound-play';
-import * as http from 'http';
-import fs from 'fs';
-import * as https from 'https';
-import { ChildProcess } from 'child_process';
-import axios from 'axios';
 import {
     updateProgress,
     queryProgress,
@@ -20,6 +13,7 @@ import {
     getYouDaoSecret,
 } from './controllers/SecretController';
 import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
+import { getShortCut, updateShortCut } from './controllers/ShortCutController';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -91,5 +85,16 @@ export default function registerHandler() {
         log.info('pronounce', args[0]);
         const success = await playSound(args[0]);
         event.reply('pronounce', success);
+    });
+    ipcMain.on('update-shortcut', async (event, args: string[]) => {
+        log.info('update-shortcut');
+        const [shortcut] = args;
+        const success = await updateShortCut(shortcut);
+        event.reply('update-shortcut', success);
+    });
+    ipcMain.on('get-shortcut', async (event) => {
+        log.info('get-shortcut');
+        const shortcut = await getShortCut();
+        event.reply('get-shortcut', shortcut);
     });
 }

@@ -10,6 +10,8 @@ export type Channels =
     | 'get-tenant-secret'
     | 'get-you-dao-secret'
     | 'update-you-dao-secret'
+    | 'update-shortcut'
+    | 'get-shortcut'
     | 'maximize'
     | 'unmaximize'
     | 'is-maximized'
