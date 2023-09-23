@@ -1,14 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import * as turf from '@turf/turf';
+import React, { useRef } from 'react';
 import {
     autoPlacement,
     offset,
     useFloating,
     useInteractions,
 } from '@floating-ui/react';
-import { Feature, Polygon } from '@turf/turf';
 import { AiOutlineSound } from 'react-icons/ai';
 import { YdRes } from '../lib/param/yd/a';
+import callApi from '../lib/apis/ApiWrapper';
 
 export interface WordSubParam {
     word: string;
@@ -40,32 +39,22 @@ const WordPop = React.forwardRef(
         });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([]);
-        const audio = useRef<HTMLAudioElement | null>(null);
 
         const play = async (type: 'us' | 'uk') => {
-            audio.current?.pause();
-            try {
-                if (type === 'us' && translation?.basic['us-speech']) {
-                    audio.current = new Audio(translation?.basic['us-speech']);
-                    audio.current.volume = 0.3;
-                    await audio.current.play();
-                }
-                if (type === 'uk' && translation?.basic['uk-speech']) {
-                    audio.current = new Audio(translation?.basic['uk-speech']);
-                    audio.current.volume = 0.3;
-                    await audio.current.play();
-                }
-            } catch (e) {
-                return false;
+            let url = '';
+            if (type === 'us') {
+                url = translation?.basic['us-speech'] || '';
             }
-            return true;
+            if (type === 'uk') {
+                url = translation?.basic['uk-speech'] || '';
+            }
+            return callApi('pronounce', [url]);
         };
 
         const clickPlay = async () => {
-            if (await play('us')) {
-                return;
+            if (!(await play('us'))) {
+                await play('uk');
             }
-            await play('uk');
         };
 
         const popper = () => {

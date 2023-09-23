@@ -20,7 +20,8 @@ export type Channels =
     | 'minimize'
     | 'close'
     | 'open-menu'
-    | 'you-dao-translate';
+    | 'you-dao-translate'
+    | 'pronounce';
 
 contextBridge.exposeInMainWorld('electron', {
     ipcRenderer: {

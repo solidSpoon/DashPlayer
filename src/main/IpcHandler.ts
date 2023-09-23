@@ -1,5 +1,12 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
+import player from 'play-sound';
+import sounds from 'sound-play';
+import * as http from 'http';
+import fs from 'fs';
+import * as https from 'https';
+import { ChildProcess } from 'child_process';
+import axios from 'axios';
 import {
     updateProgress,
     queryProgress,
@@ -12,7 +19,7 @@ import {
     updateYouDaoSecret,
     getYouDaoSecret,
 } from './controllers/SecretController';
-import youDaoTrans from './controllers/YouDaoTrans';
+import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -79,5 +86,10 @@ export default function registerHandler() {
         const word = args[0];
         const result = await youDaoTrans(word);
         event.reply('you-dao-translate', result);
+    });
+    ipcMain.on('pronounce', async (event, args: string[]) => {
+        log.info('pronounce', args[0]);
+        const success = await playSound(args[0]);
+        event.reply('pronounce', success);
     });
 }
