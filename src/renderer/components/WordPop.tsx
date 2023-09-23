@@ -42,6 +42,9 @@ const WordPop = React.forwardRef(
 
         const play = async (type: 'us' | 'uk') => {
             let url = '';
+            if (!translation?.basic) {
+                return true;
+            }
             if (type === 'us') {
                 url = translation?.basic['us-speech'] || '';
             }
@@ -67,22 +70,31 @@ const WordPop = React.forwardRef(
                         {translation.query}
                         <div>{translation.translation}</div>
                     </div>
-                    <div className="pl-2 text-base flex justify-start items-center gap-2">
-                        {`美 [${translation.basic['us-phonetic']}]`}
-                        <AiOutlineSound
-                            onClick={() => play('us')}
-                            className="cursor-pointer hover:text-gray-400 text-2xl"
-                        />
-                    </div>
-                    <div className="pl-2 text-base flex justify-start items-start gap-2">
-                        {`英 [${translation.basic['uk-phonetic']}]`}
-                        <AiOutlineSound
-                            onClick={() => play('uk')}
-                            className="cursor-pointer hover:text-gray-400 text-2xl"
-                        />
-                    </div>
+                    {translation?.basic && (
+                        <>
+                            <div className="pl-2 text-base flex justify-start items-center gap-2">
+                                {`美 [${
+                                    translation?.basic['us-phonetic'] || ''
+                                }]`}
+                                <AiOutlineSound
+                                    onClick={() => play('us')}
+                                    className="cursor-pointer hover:text-gray-400 text-2xl"
+                                />
+                            </div>
+                            <div className="pl-2 text-base flex justify-start items-start gap-2">
+                                {`英 [${
+                                    translation.basic['uk-phonetic'] ?? ''
+                                }]`}
+                                <AiOutlineSound
+                                    onClick={() => play('uk')}
+                                    className="cursor-pointer hover:text-gray-400 text-2xl"
+                                />
+                            </div>
+                        </>
+                    )}
+
                     <div className="text-base mt-2 flex flex-col gap-2 items-start w-full">
-                        {translation.basic.explains.map((e) => {
+                        {translation.basic?.explains.map((e) => {
                             return (
                                 <div className="p-2 rounded text-left w-full bg-gray-300/25">
                                     {e}
@@ -90,7 +102,7 @@ const WordPop = React.forwardRef(
                             );
                         })}
                     </div>
-                    {translation.basic.exam_type && (
+                    {translation.basic?.exam_type && (
                         <>
                             <div className="text-sm text-gray-400 mt-2 mb-1">
                                 标签
