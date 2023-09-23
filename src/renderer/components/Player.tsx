@@ -38,7 +38,9 @@ export default function Player({
     }
     if (playerRef.current !== null) {
         if (!shouldPause && playerRef.current.paused) {
-            playerRef.current.play();
+            playerRef.current.play().catch((e) => {
+                console.log('play error', e);
+            });
         } else if (shouldPause && !playerRef.current.paused) {
             playerRef.current.pause();
         }
