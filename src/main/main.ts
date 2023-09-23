@@ -145,7 +145,7 @@ const createSettingWindow = async () => {
                 ? path.join(__dirname, 'preload.js')
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
-        frame: false,
+        frame: process.platform === 'darwin',
     });
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
