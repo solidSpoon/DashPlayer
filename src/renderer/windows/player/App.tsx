@@ -32,8 +32,9 @@ export default function App() {
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
 
     return (
-        <>
-            <TitleBar show={showTitleBar} title={videoFile?.fileName} />
+        <div className="h-screen w-full bg-neutral-800 font-face-arc overflow-hidden flex flex-col">
+            <TitleBar
+                show={showTitleBar} title={videoFile?.fileName} />
             <RecordProgress
                 getCurrentProgress={() => progress.current}
                 getCurrentVideoFile={() => videoFile}
@@ -41,7 +42,7 @@ export default function App() {
             <GlobalShortCut onAction={doAction} />
 
             <Split
-                className="split flex flex-row font-face-arc bg-neutral-800 h-screen w-full overflow-hidden"
+                className="split flex flex-row w-full flex-1"
                 sizes={JSON.parse(sizeA)}
                 onDragEnd={(sizes) => {
                     localStorage.setItem('split-size-a', JSON.stringify(sizes));
@@ -97,6 +98,6 @@ export default function App() {
                     getTotalTime={() => totalTime.current}
                 />
             </div>
-        </>
+        </div>
     );
 }

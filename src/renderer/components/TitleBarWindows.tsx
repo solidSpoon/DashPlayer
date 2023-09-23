@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { AiOutlineCloseSquare, AiOutlineMinus } from 'react-icons/ai';
+import { AiOutlineClose, AiOutlineCloseSquare, AiOutlineMinus } from 'react-icons/ai';
 import { GrClose, GrMenu } from 'react-icons/gr';
 import { FaWindowMinimize } from 'react-icons/fa';
 import { FiMaximize } from 'react-icons/fi';
 import callApi from '../lib/apis/ApiWrapper';
+import { BiMenu } from 'react-icons/bi';
+import { HiOutlineMenu } from 'react-icons/hi';
 
 export interface TitleBarWindowsProps {
     title: string | undefined;
@@ -34,55 +36,34 @@ const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
     };
 
     return (
-        // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events
-        <div className="absolute top-0 z-50 select-none w-full">
-            <div className="drag w-full h-5 min-h-3" />
-            {/* eslint-disable-next-line jsx-a11y/mouse-events-have-key-events */}
-            <div
-                className="w-full h-10"
-                onMouseOver={() => {
-                    setIsMouseOver(true);
-                }}
-                onMouseLeave={() => setIsMouseOver(false)}
-            >
-                {isMouseOver ? (
-                    <div
-                        className={`h-10 flex w-fit px-2 items-center space-x-2 border-black border-4 hover:bg-white ${
-                            isMouseOver ? 'bg-white' : ''
-                        }`}
-                    >
-                        <GrClose
-                            className="text-black hover:bg-amber-300 w-7 h-7"
-                            onClick={onClose}
-                        />
-                        <FiMaximize
-                            className="text-black hover:bg-amber-300 w-7 h-7"
-                            onClick={onMaximize}
-                        />
-                        <AiOutlineMinus
-                            className="text-black hover:bg-amber-300 w-7 h-7"
-                            onClick={onMinimize}
-                        />
-                        <div className="h-7" />
-                        <GrMenu
-                            className="text-black hover:bg-amber-300 w-7 h-7 ml-3.5"
-                            onClick={onMenu}
-                        />
+        <div
+            className={`select-none w-full drag h-7 flex justify-between items-center bg-neutral-800 text-neutral-200 shadow-inner shadow-neutral-700 space-x-2 drop-shadow
 
-                        {title ? (
-                            <>
-                                <div className="h-7" />
-                                <span className="text-black">{title}</span>
-                            </>
-                        ) : (
-                            <></>
-                        )}
-                    </div>
-                ) : (
-                    <></>
-                )}
+            `}
+        >
+            <HiOutlineMenu
+                className='no-drag hover:bg-neutral-500 w-7 h-7 p-1'
+                onClick={onMenu}
+            />
+            <div>{title}</div>
+            <div className='no-drag flex space-x-2 h-full justify-center items-center'>
+                <AiOutlineMinus
+                    className='hover:bg-neutral-500 w-7 h-7 p-1'
+                    onClick={onMinimize}
+                />
+                <FiMaximize
+                    className='hover:bg-neutral-500 w-7 h-7 p-1'
+                    onClick={onMaximize}
+                />
+                <AiOutlineClose
+                    className='hover:bg-neutral-500 w-7 h-7 p-1'
+                    onClick={onClose}
+                />
             </div>
+
         </div>
+
+
     );
 };
 export default TitleBarWindows;
