@@ -4,37 +4,36 @@ export interface BaseCacheConfig {
     filename: string;
 }
 
+export const BASE_PATH = `${app.getPath('userData')}/useradd`;
 /**
  * 数据库配置文件
  */
 export default class CacheConfig {
-    static base = app.getPath('userData');
-
     /**
      * 缓存翻译结果的数据库
      */
     public static transConfig: BaseCacheConfig = {
-        filename: `${this.base}/db/sentence.db`,
+        filename: `${BASE_PATH}/db/sentence.db`,
     };
 
     /**
      * 缓存单词的数据库
      */
     public static wordConfig: BaseCacheConfig = {
-        filename: `${this.base}/db/word.db`,
+        filename: `${BASE_PATH}/db/word.db`,
     };
 
     /**
      * 缓存观看进度的数据库
      */
     public static progressConfig: BaseCacheConfig = {
-        filename: `${this.base}/db/progress.db`,
+        filename: `${BASE_PATH}/db/progress.db`,
     };
 
     /**
      * 键值数据库
      */
     public static keyValueConfig: BaseCacheConfig = {
-        filename: `${this.base}/db/keyValue.db`,
+        filename: `${BASE_PATH}/db/keyValue.db`,
     };
 }

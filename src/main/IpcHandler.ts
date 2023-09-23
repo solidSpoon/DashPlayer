@@ -15,6 +15,7 @@ import {
 import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
 import { getShortCut, updateShortCut } from './controllers/ShortCutController';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
+import { clearCache, openDataDir, queryCacheSize } from './controllers/StorageController';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -173,5 +174,20 @@ export default function registerHandler() {
         log.info('minimize-setting');
         settingWindow?.minimize();
         event.reply('minimize-setting', 'success');
+    });
+    ipcMain.on('open-data-dir', async (event) => {
+        log.info('open-data-dir');
+        await openDataDir();
+        event.reply('open-data-dir', 'success');
+    });
+    ipcMain.on('query-cache-size', async (event) => {
+        log.info('query-cache-size');
+        const size = await queryCacheSize();
+        event.reply('query-cache-size', size);
+    });
+    ipcMain.on('clear-cache', async (event) => {
+        log.info('clear-cache');
+        await clearCache();
+        event.reply('clear-cache', 'success');
     });
 }

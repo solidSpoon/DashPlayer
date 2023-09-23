@@ -6,6 +6,7 @@ import { app } from 'electron';
 import KeyValueCache from '../ServerLib/KeyValueCache';
 import WordTransCache from '../ServerLib/WordTransCache';
 import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
+import { BASE_PATH } from '../ServerLib/basecache/CacheConfig';
 
 const config: YouDaoConfig = {
     from: 'zh_CHS', // zh-CHS(中文) || ja(日语) || EN(英文) || fr(法语) ...
@@ -72,10 +73,9 @@ const playSound = async (url: string): Promise<boolean> => {
     const res = await axios.get(url, { responseType: 'stream' });
     // 创建可写流，保存音频文件
     fileIndex += 1;
-    const bashPath = app.getPath('userData');
-    const path = `${bashPath}/temp/dash-player-youdao-pronounce${fileIndex}.mp3`;
-    if (!fs.existsSync(`${bashPath}/temp`)) {
-        fs.mkdirSync(`${bashPath}/temp`);
+    const path = `${BASE_PATH}/temp/dash-player-youdao-pronounce${fileIndex}.mp3`;
+    if (!fs.existsSync(`${BASE_PATH}/temp`)) {
+        fs.mkdirSync(`${BASE_PATH}/temp`);
     }
     const file = fs.createWriteStream(path);
     res.data.pipe(file);

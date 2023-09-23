@@ -45,6 +45,13 @@ class ProgressCache {
         }
         return progressEntities[0];
     }
+
+    /**
+     * 删除一个月前的缓存
+     */
+    public static async clearCache(): Promise<void> {
+        await this.cache.clearCache();
+    }
 }
 
 export default ProgressCache;

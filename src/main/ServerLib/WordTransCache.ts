@@ -44,6 +44,13 @@ class WordTransCache {
         }
         return progressEntities[0].value;
     }
+
+    /**
+     * 删除一个月前的缓存
+     */
+    public static async clearCache(): Promise<void> {
+        await this.cache.clearCache();
+    }
 }
 
 export default WordTransCache;

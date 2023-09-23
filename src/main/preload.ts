@@ -28,7 +28,10 @@ export type Channels =
     | 'close'
     | 'open-menu'
     | 'you-dao-translate'
-    | 'pronounce';
+    | 'pronounce'
+    | 'open-data-dir'
+    | 'query-cache-size'
+    | 'clear-cache';
 
 contextBridge.exposeInMainWorld('electron', {
     ipcRenderer: {

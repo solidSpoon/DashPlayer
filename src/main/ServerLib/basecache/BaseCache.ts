@@ -172,4 +172,28 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
             })
         );
     }
+
+    /**
+     * 清理一个月前的缓存
+     */
+    public clearCache(): Promise<number> {
+        const now = new Date();
+        const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const query = {
+            updateTime: {
+                $lt: oneMonthAgo,
+            },
+        };
+        return new Promise((resolve, reject) => {
+            this.db.remove(query, { multi: true }, (err, count) => {
+                if (err !== null) {
+                    log.error(err);
+                    reject(err);
+                } else {
+                    log.info(`clear cache, count: ${count}`);
+                    resolve(count);
+                }
+            });
+        });
+    }
 }
