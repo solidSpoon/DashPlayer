@@ -11,6 +11,7 @@ export interface WordParam {
     doAction: (action: Action) => void;
     pop: boolean;
     requestPop: () => void;
+    show: boolean;
 }
 /**
  * 以左上角为原点，顺时针旋转
@@ -30,7 +31,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
+const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
     console.log('abab render Word', word, pop);
     const [translationText, setTranslationText] = useState<YdRes | undefined>(
         undefined
@@ -91,7 +92,7 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
     return (
         <div
             ref={eleRef}
-            className="rounded select-none"
+            className="rounded select-none mt-2"
             onMouseOver={() => {
                 console.log('avvv onMouseOver', word);
                 setHovered(true);
@@ -109,7 +110,9 @@ const Word = ({ word, doAction, pop, requestPop }: WordParam) => {
                 />
             ) : (
                 <div
-                    className="hover:bg-zinc-600 rounded select-none"
+                    className={`hover:bg-zinc-600 rounded select-none ${
+                        show ? 'text-white' : 'text-transparent bg-neutral-600'
+                    }`}
                     onMouseLeave={() => {
                         setHovered(false);
                     }}

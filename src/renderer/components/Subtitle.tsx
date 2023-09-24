@@ -9,6 +9,7 @@ interface SubtitleSubParam {
     subtitles: SentenceT[];
     currentSentence: SentenceT | undefined;
     onAction: (action: Action) => void;
+    singleRepeat: boolean;
 }
 
 interface Ele {
@@ -64,6 +65,7 @@ export default function Subtitle({
     subtitles,
     currentSentence,
     onAction,
+    singleRepeat,
 }: SubtitleSubParam) {
     // const boundaryRef = useRef<HTMLDivElement>(null);
     const currentRef = useRef<number>(-1);
@@ -149,13 +151,13 @@ export default function Subtitle({
             // <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
             <Virtuoso
                 ref={listRef}
-                className="h-full w-full"
+                className="h-full w-full shadow-inner shadow-neutral-900"
                 data={subtitles}
                 rangeChanged={({ startIndex, endIndex }) => {
                     setVisibleRange([startIndex, endIndex]);
                 }}
                 itemContent={(index, item) => {
-                    const isCurrent = item.equals(currentSentence);
+                    const isCurrent = item === currentSentence;
                     let result = (
                         <div
                             className={`${index === 0 ? 'pt-3' : ''}
@@ -165,6 +167,7 @@ export default function Subtitle({
                                 sentence={item}
                                 onClick={(sentence) => onAction(jump(sentence))}
                                 isCurrent={isCurrent}
+                                isRepeat={singleRepeat}
                             />
                         </div>
                     );

@@ -10,7 +10,11 @@ export interface Action {
         | 'space'
         | 'none'
         | 'play'
-        | 'pause';
+        | 'pause'
+        | 'single_repeat'
+        | 'show_cn'
+        | 'show_en'
+        | 'show_en_cn';
     target: SentenceT | undefined;
     time: number | undefined;
 }
@@ -35,6 +39,39 @@ export function repeat(): Action {
         time: undefined,
     };
 }
+
+export function singleRepeat(): Action {
+    return {
+        action: 'single_repeat',
+        target: undefined,
+        time: undefined,
+    };
+}
+
+export function showCn(): Action {
+    return {
+        action: 'show_cn',
+        target: undefined,
+        time: undefined,
+    };
+}
+
+export function showEn(): Action {
+    return {
+        action: 'show_en',
+        target: undefined,
+        time: undefined,
+    };
+}
+
+export function showEnCn(): Action {
+    return {
+        action: 'show_en_cn',
+        target: undefined,
+        time: undefined,
+    };
+}
+
 export function jump(target: SentenceT): Action {
     return {
         action: 'jump',

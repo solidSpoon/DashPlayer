@@ -29,6 +29,12 @@ function getElementAt(index: number, subtitles: SentenceT[]): SentenceT {
     return subtitles[targetIndex];
 }
 
+const OVERDUE_TIME = 600;
+
+const isTimeOverdue = (time: number) => {
+    return Date.now() - time > OVERDUE_TIME;
+};
+
 export default function useSubTitleController(
     sentences: SentenceT[],
     getProgress: () => number
@@ -39,11 +45,16 @@ export default function useSubTitleController(
         SentenceT | undefined
     >(undefined);
 
+    const [showCn, setShowCn] = useState<boolean>(true);
+    const [showEn, setShowEn] = useState<boolean>(true);
+
+    const [singleRepeat, setSingleRepeat] = useState<boolean>(false);
+
     const manuallyUpdateTime = useRef<number>(Date.now());
 
     const getProgressRef = useRef(getProgress);
     const getCurrentSentence = useCallback(() => {
-        const isOverdue = Date.now() - manuallyUpdateTime.current > 600;
+        const isOverdue = isTimeOverdue(manuallyUpdateTime.current);
         if (
             currentSentence === undefined ||
             !currentSentence.equals(sentences[currentSentence.index]) ||
@@ -56,17 +67,54 @@ export default function useSubTitleController(
 
     useEffect(() => {
         const interval = () => {
-            const find: SentenceT = getCurrentSentence();
-            if (find === undefined) {
+            const newCs = getCurrentSentence();
+            if (!currentSentence) {
+                if (newCs) {
+                    setCurrentSentence((old) => {
+                        return old ?? newCs;
+                    });
+                }
                 return;
             }
-            setCurrentSentence(find);
+            if (singleRepeat) {
+                if (currentSentence.isCurrentStrict(getProgressRef.current())) {
+                    if (currentSentence !== newCs) {
+                        setCurrentSentence((old) => {
+                            return old === newCs ? old : newCs;
+                        });
+                    }
+                    return;
+                }
+                if (seekTime.time !== SPACE_NUM) {
+                    const isOverdue = isTimeOverdue(manuallyUpdateTime.current);
+                    if (isOverdue) {
+                        setSeekTime({
+                            time: currentSentence?.currentBegin ?? 0,
+                        });
+                        manuallyUpdateTime.current = Date.now();
+                    }
+                }
+            } else {
+                if (!newCs) {
+                    return;
+                }
+                if (newCs === currentSentence) {
+                    return;
+                }
+                setCurrentSentence(newCs);
+            }
         };
         const timer = setInterval(interval, 50);
         return () => {
             clearInterval(timer);
         };
-    }, [currentSentence, getCurrentSentence, sentences]);
+    }, [
+        currentSentence,
+        getCurrentSentence,
+        seekTime.time,
+        sentences,
+        singleRepeat,
+    ]);
 
     function jumpNext() {
         const current = getCurrentSentence();
@@ -88,6 +136,11 @@ export default function useSubTitleController(
         manuallyUpdateTime.current = Date.now();
     }
 
+    function showEnCn() {
+        const show = !showEn;
+        setShowCn(show);
+        setShowEn(show);
+    }
     const doAction = (action: Action) => {
         switch (action.action) {
             case 'repeat':
@@ -139,6 +192,18 @@ export default function useSubTitleController(
                     });
                 }
                 break;
+            case 'single_repeat':
+                setSingleRepeat((old) => !old);
+                break;
+            case 'show_cn':
+                setShowCn((old) => !old);
+                break;
+            case 'show_en':
+                setShowEn((old) => !old);
+                break;
+            case 'show_en_cn':
+                showEnCn();
+                break;
             default:
                 break;
         }
@@ -148,5 +213,8 @@ export default function useSubTitleController(
         seekAction: seekTime,
         currentSentence,
         dispatch: doAction,
+        showCn,
+        showEn,
+        singleRepeat,
     };
 }

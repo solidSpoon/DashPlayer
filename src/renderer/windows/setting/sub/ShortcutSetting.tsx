@@ -7,13 +7,22 @@ const ShortcutSetting = () => {
     const [next, setNext] = useState<string>('');
     const [repeat, setRepeat] = useState<string>('');
     const [space, setSpace] = useState<string>('');
+    const [singleRepeat, setSingleRepeat] = useState<string>('');
+    const [showEn, setShowEn] = useState<string>('');
+    const [showCn, setShowCn] = useState<string>('');
+    const [showEnCn, setShowEnCn] = useState<string>('');
+
     const [serverValue, serServerValue] = useState<ShortCutValue | undefined>();
 
     const eqServer =
         serverValue?.last === last &&
         serverValue?.next === next &&
         serverValue?.repeat === repeat &&
-        serverValue?.space === space;
+        serverValue?.space === space &&
+        serverValue?.singleRepeat === singleRepeat &&
+        serverValue?.showEn === showEn &&
+        serverValue?.showCn === showCn &&
+        serverValue?.sowEnCn === showEnCn;
     const updateFromServer = async () => {
         const newVar = (await callApi('get-shortcut', [])) as string;
         if (!newVar || newVar === '') {
@@ -24,6 +33,10 @@ const ShortcutSetting = () => {
         setNext(sc.next);
         setRepeat(sc.repeat);
         setSpace(sc.space);
+        setSingleRepeat(sc.singleRepeat);
+        setShowEn(sc.showEn);
+        setShowCn(sc.showCn);
+        setShowEnCn(sc.sowEnCn);
         serServerValue(sc);
     };
     useEffect(() => {
@@ -36,6 +49,10 @@ const ShortcutSetting = () => {
             next: next ?? '',
             repeat: repeat ?? '',
             space: space ?? '',
+            singleRepeat: singleRepeat ?? '',
+            showEn: showEn ?? '',
+            showCn: showCn ?? '',
+            sowEnCn: showEnCn ?? '',
         };
         await callApi('update-shortcut', [JSON.stringify(sc)]);
         await updateFromServer();
@@ -53,7 +70,7 @@ const ShortcutSetting = () => {
                 className="flex items-center gap-4  text-gray-700 text-sm font-bold select-none"
                 htmlFor={id}
             >
-                <div className="text-lg w-24">{title} :</div>
+                <div className="text-lg w-32">{title} :</div>
                 <input
                     className="shadow appearance-none border rounded flex-1 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     id={id}
@@ -67,11 +84,13 @@ const ShortcutSetting = () => {
     };
 
     return (
-        <div className="w-full">
+        <div className="w-full h-screen overflow-y-auto">
             <form className=" px-8 pt-6 pb-8 mb-4" onSubmit={handleSubmit}>
-                <h1 className="text-2xl font-bold">快捷键</h1>
-                <text className="text-gray-400">多个快捷键用 , 分割</text>
-                <div className=" flex flex-col gap-5 mt-5 mb-5">
+                <div className="sticky top-0 bg-gray-200/95">
+                    <h1 className="text-2xl font-bold">快捷键</h1>
+                    <text className="">多个快捷键用 , 分割</text>
+                </div>
+                <div className=" flex flex-col gap-5 mt-6 mb-5">
                     {itemEle('上一句', 'last', 'left,a', last || '', setLast)}
                     {itemEle('下一句', 'next', 'right,d', next || '', setNext)}
                     {itemEle(
@@ -87,6 +106,34 @@ const ShortcutSetting = () => {
                         'space,up,w',
                         space || '',
                         setSpace
+                    )}
+                    {itemEle(
+                        '单句重复',
+                        'repeatSingle',
+                        'r',
+                        singleRepeat || '',
+                        setSingleRepeat
+                    )}
+                    {itemEle(
+                        '展示/隐藏英文',
+                        'showEn',
+                        'e',
+                        showEn || '',
+                        setShowEn
+                    )}
+                    {itemEle(
+                        '展示/隐藏中文',
+                        'showCn',
+                        'c',
+                        showCn || '',
+                        setShowCn
+                    )}
+                    {itemEle(
+                        '展示/隐藏中英',
+                        'showEnCn',
+                        'b',
+                        showEnCn || '',
+                        setShowEnCn
                     )}
                 </div>
 

@@ -1,6 +1,6 @@
 import { Component, ReactNode, useCallback, useEffect, useState } from 'react';
 import Keyevent from 'react-keyevent';
-import { Action, next, prev, repeat, space } from '../lib/CallAction';
+import { Action, next, prev, repeat, showCn, showEn, showEnCn, singleRepeat, space } from '../lib/CallAction';
 import callApi from '../lib/apis/ApiWrapper';
 
 export enum JumpPosition {
@@ -35,6 +35,22 @@ export interface ShortCutValue {
      * 播放/暂停
      */
     space: string;
+    /**
+     * 单句重复
+     */
+    singleRepeat: string;
+    /**
+     * 显示/隐藏英文
+     */
+    showEn: string;
+    /**
+     * 显示/隐藏中文
+     */
+    showCn: string;
+    /**
+     * 显示/隐藏中英
+     */
+    sowEnCn: string;
 }
 
 export default function GlobalShortCut(
@@ -54,7 +70,11 @@ export default function GlobalShortCut(
                 shortCutValue?.last === newVal.last &&
                 shortCutValue?.next === newVal.next &&
                 shortCutValue?.repeat === newVal.repeat &&
-                shortCutValue?.space === newVal.space;
+                shortCutValue?.space === newVal.space &&
+                shortCutValue?.singleRepeat === newVal.singleRepeat &&
+                shortCutValue?.showEn === newVal.showEn &&
+                shortCutValue?.showCn === newVal.showCn &&
+                shortCutValue?.sowEnCn === newVal.sowEnCn;
             if (!eqServer) {
                 setShortCutValue(newVal);
             }
@@ -93,6 +113,10 @@ export default function GlobalShortCut(
     registerKey(shortCutValue?.next, 'd', next());
     registerKey(shortCutValue?.repeat, 's', repeat());
     registerKey(shortCutValue?.space, 'w', space());
+    registerKey(shortCutValue?.singleRepeat, 'r', singleRepeat());
+    registerKey(shortCutValue?.showEn, 'e', showEn());
+    registerKey(shortCutValue?.showCn, 'c', showCn());
+    registerKey(shortCutValue?.sowEnCn, 'b', showEnCn());
 
     console.log('register events', events);
     return (

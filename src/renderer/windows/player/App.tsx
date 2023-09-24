@@ -25,6 +25,9 @@ export default function App() {
         seekAction: seekTime,
         currentSentence,
         dispatch: doAction,
+        showCn,
+        showEn,
+        singleRepeat,
     } = useSubTitleController(subtitles, () => progress.current);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
@@ -75,6 +78,8 @@ export default function App() {
                         <MainSubtitle
                             sentence={currentSentence}
                             doAction={doAction}
+                            showEn={showEn}
+                            showCn={showCn}
                         />
                     </div>
                 </Split>
@@ -82,6 +87,7 @@ export default function App() {
                     subtitles={subtitles}
                     currentSentence={currentSentence}
                     onAction={doAction}
+                    singleRepeat={singleRepeat}
                 />
             </Split>
 

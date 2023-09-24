@@ -57,6 +57,13 @@ class SentenceT {
         return time >= this.currentBegin - 0.2 && time <= this.nextBegin;
     };
 
+    public isCurrentStrict = (time: number): boolean => {
+        if (this.currentBegin === undefined || this.currentEnd === undefined) {
+            return false;
+        }
+        return time >= this.currentBegin && time <= this.currentEnd;
+    };
+
     constructor(index: number) {
         this.index = index;
     }

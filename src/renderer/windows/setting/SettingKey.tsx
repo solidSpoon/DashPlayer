@@ -41,7 +41,7 @@ export default function SettingKey() {
     };
 
     return (
-        <div className="w-full h-screen mx-auto bg-gray-200">
+        <div className="w-full h-screen mx-auto bg-gray-200 overflow-hidden">
             {isWindows && <TitleBarSettingWindows />}
             <div className="flex flex-row flex-wrap py-4">
                 <aside className="w-1/3 select-none">
@@ -52,7 +52,7 @@ export default function SettingKey() {
                         {ele('存储', 'storage')}
                     </div>
                 </aside>
-                <main role="main" className="w-2/3 pt-1 px-2 ">
+                <main role="main" className="w-2/3 pt-1 px-2 h-full ">
                     {settingType === 'tenant' && <TenantSetting />}
                     {settingType === 'you-dao' && <YouDaoSetting />}
                     {settingType === 'shortcut' && <ShortcutSetting />}

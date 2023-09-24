@@ -13,33 +13,58 @@ import { Action } from '../lib/CallAction';
 interface MainSubtitleParam {
     sentence: undefined | SentenceT;
     doAction: (action: Action) => void;
+    showEn: boolean;
+    showCn: boolean;
 }
 
-const secondEle = (text: string, key: string): ReactElement => {
+const secondEle = (text: string, key: string, show: boolean): ReactElement => {
     return (
         <div key={key} className="my-0 mx-10 text-3xl py-2.5 px-10">
-            {text}
+            <span
+                className={`${
+                    show ? '' : 'text-transparent bg-white/5 rounded'
+                }`}
+            >
+                {text}
+            </span>
         </div>
     );
 };
 
-const thirdEle = (text: string, key: string): ReactElement => {
+const thirdEle = (text: string, key: string, show: boolean): ReactElement => {
     return (
         <div
             key={key}
-            className="drop-shadow my-0 mx-10 text-2xl py-2.5 px-10 bg-neutral-700 rounded-lg"
+            className="drop-shadow my-0 mx-10 text-2xl py-2.5 px-10 rounded-lg"
         >
-            {text}
+            <span
+                className={`${
+                    show ? '' : 'text-transparent bg-white/5 rounded'
+                }`}
+            >
+                {text}
+            </span>
         </div>
     );
 };
 export default function MainSubtitle({
     sentence,
     doAction,
+    showEn,
+    showCn,
 }: MainSubtitleParam) {
-    const firstEle = (text: string, key: string): ReactElement => {
+    const firstEle = (
+        text: string,
+        key: string,
+        showE: boolean
+    ): ReactElement => {
         return (
-            <TranslatableLine key={key} text={text || ''} doAction={doAction} />
+            <TranslatableLine
+                key={key}
+                text={text || ''}
+                doAction={doAction}
+                show={showE}
+            />
         );
     };
     const ele = (): ReactElement[] => {
@@ -54,14 +79,18 @@ export default function MainSubtitle({
         ]
             .filter((item) => item !== undefined)
             .map((item) => item || '');
-        const mapMethod: ((text: string, key: string) => React.ReactElement)[] =
-            [firstEle, secondEle, thirdEle];
+        const mapMethod: ((
+            text: string,
+            key: string,
+            showE: boolean
+        ) => React.ReactElement)[] = [firstEle, secondEle, thirdEle];
         mapMethod.forEach((method, index) => {
             if (tempEle[index] !== undefined) {
                 elements.push(
                     method(
                         tempEle[index],
-                        `main-sentence-${index}-${sentence.getKey()}`
+                        `main-sentence-${index}-${sentence.getKey()}`,
+                        index === 0 ? showEn : showCn
                     )
                 );
             }
@@ -71,12 +100,14 @@ export default function MainSubtitle({
 
     const render = () => {
         if (sentence === undefined) {
-            return <div />;
+            return (
+                <div className="w-full h-full shadow-inner shadow-neutral-900" />
+            );
         }
         return (
             <div
                 key={`trans-sub:${sentence?.getKey()}`}
-                className="flex flex-col text-center"
+                className="flex flex-col w-full h-full text-center"
             >
                 {ele()}
             </div>
