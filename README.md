@@ -9,7 +9,7 @@
 让我们一起摆脱乏味的单词背诵和阅读理解练习！DashPlayer 是一款专为英语学习者设计的播放器，通过观看各种类型的视频、融入生动的真实场景，让你大量接触英语听力输入。这不仅有助于提高你的听力技能，还能激发你的学习兴趣，让你在轻松愉快的氛围中迅速提升英语水平！
 
 <p align="center">
-<img width="70%" alt="image"  src="https://user-images.githubusercontent.com/39454841/206864129-58e298dc-4bba-46ee-b5ec-b9f229894e52.png">
+    <img width="70%" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/f26289cb-ba2d-4d78-87dd-49b554c77a22">
 </p>
 
 ## 为什么选择 DashPlayer？ 🌟
