@@ -43,15 +43,14 @@ export default function SideSentence({
                 onClick(sentence);
             }}
         >
-            {isRepeat ? (
-                <BsArrowRepeat
-                    className={` mx-2 w-8 h-8 text-red-600 ${show}`}
-                />
-            ) : (
-                <FiPlayCircle
-                    className={`mx-2 p-0.5 w-8 h-8 text-red-600 ${show}`}
-                />
-            )}
+            <div className={`w-10 h-full overflow-hidden text-red-600 ${show}`}>
+                {isRepeat ? (
+                    <BsArrowRepeat className="w-10 h-6" />
+                ) : (
+                    <FiPlayCircle className="w-10 h-6" />
+                )}
+            </div>
+
             <div className="w-full text-center">{s ?? ''}</div>
         </div>
     );
