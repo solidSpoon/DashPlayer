@@ -13,6 +13,8 @@ interface Part {
     isWord: boolean;
     id: string;
 }
+export const SPLIT_REGEX =
+    /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 const TranslatableLine = ({
     text,
     doAction,
@@ -31,7 +33,8 @@ const TranslatableLine = ({
     };
     const textHash = hash(text);
     const words: Part[] = text
-        .split(/((?<=.)(?=[^A-Za-z0-9-]))|((?<=[^A-Za-z0-9-])(?=.))/)
+        .replace(/\s+/g, ' ')
+        .split(SPLIT_REGEX)
         .filter((w) => w)
         .map((w, index) => {
             return {
