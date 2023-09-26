@@ -104,7 +104,6 @@ export default function GlobalShortCut(
             .map((k) => k.trim())
             .map((k) => k.toUpperCase());
         keyArr.forEach((k) => {
-            console.log('register', k);
             events[`on${k}`] = onAction.bind(this, action);
         });
     };

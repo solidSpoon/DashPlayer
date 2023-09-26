@@ -20,7 +20,7 @@ const TranslatableLine = ({
     doAction,
     show,
 }: TranslatableSubtitleLineParam) => {
-    console.log('TranslatableLine');
+    console.log('TranslatableLine', text, 'dd');
     const [popELe, setPopEle] = useState<string | null>(null);
     const [hovered, setHovered] = useState(false);
     if (text === undefined) {

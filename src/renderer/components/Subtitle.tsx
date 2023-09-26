@@ -34,23 +34,9 @@ const suggestScroll = (boundary: Ele, e: Ele): number[] => {
         return [e.yt - boundary.yt, 0];
     }
     if (e.yb > boundary.yb) {
-        console.log('suggestScroll', boundary.yb);
         return [e.yb - boundary.yb, boundary.yb - boundary.yt - (e.yb - e.yt)];
     }
     return [0, 0];
-};
-
-/**
- * 元素距离下边界比较近时, 滚动到边界顶部
- * @param boundary
- * @param e
- */
-const suggestScroolTop = (boundary: Ele, e: Ele): number => {
-    console.log('suggestScroolTop', e.yb, e.yt);
-    if (e.yb > boundary.yb - 5) {
-        return -(boundary.yt - boundary.yb - (e.yt - e.yb));
-    }
-    return 0;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {

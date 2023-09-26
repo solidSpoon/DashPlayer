@@ -32,7 +32,6 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
     ]);
 };
 const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
-    console.log('abab render Word', word, pop);
     const [translationText, setTranslationText] = useState<YdRes | undefined>(
         undefined
     );

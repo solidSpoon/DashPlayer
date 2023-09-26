@@ -20,13 +20,13 @@ export default function MainSubtitle({
         if (sentence === undefined) {
             return [];
         }
-        const tempEle: string[] = [
+        const tempEle: Array<string> = [
             sentence.text,
             sentence.msTranslate,
             sentence.textZH,
         ]
-            .filter((item) => !item)
-            .map((item) => item || '');
+            .filter((item) => item !== undefined)
+            .map((item) => item ?? '');
         return tempEle.map((item, index) => {
             if (index === 0) {
                 return (

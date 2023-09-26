@@ -39,11 +39,9 @@ class SentenceT {
         return this.getKey() === other.getKey();
     }
 
-    public updateKey(): void {
-        const source = `${this.fileUrl ?? ''}:${(this.index ?? 0).toString()}:${
-            this.msTranslate ?? ''
-        }`;
-        this.key = hash(source) + this.msTranslate;
+    public setKey(): void {
+        const source = `${this.fileUrl ?? ''}:${(this.index ?? 0).toString()}`;
+        this.key = hash(source);
     }
 
     public isCurrent = (time: number): boolean => {
