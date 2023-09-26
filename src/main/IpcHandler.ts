@@ -124,50 +124,45 @@ export default function registerHandler() {
         const shortcut = await getShortCut();
         event.reply('get-shortcut', shortcut);
     });
-    ipcMain.on('maximize', async (event) => {
+    handle('maximize', async () => {
         log.info('maximize');
         mainWindow?.maximize();
-        event.reply('maximize', 'success');
     });
-    ipcMain.on('unmaximize', async (event) => {
+    handle('unmaximize', async () => {
         log.info('unmaximize');
         mainWindow?.unmaximize();
-        event.reply('unmaximize', 'success');
     });
-    ipcMain.on('is-maximized', async (event) => {
+    handle('is-maximized', async () => {
         log.info('is-maximized');
-        event.reply('is-maximized', mainWindow?.isMaximized());
+        return mainWindow?.isMaximized();
     });
-    ipcMain.on('is-full-screen', async (event) => {
+    handle('is-full-screen', async () => {
         log.info('is-full-screen');
-        event.reply('is-full-screen', mainWindow?.isFullScreen());
+        return mainWindow?.isFullScreen();
     });
-    ipcMain.on('show-button', async (event) => {
+    handle('show-button', async () => {
         log.info('show-button');
         // 展示红绿灯
         if (process.platform === 'darwin') {
             mainWindow?.setWindowButtonVisibility(true);
         }
-        event.reply('show-button', 'success');
     });
-    ipcMain.on('hide-button', async (event) => {
+    handle('hide-button', async () => {
         log.info('hide-button');
         // 隐藏红绿灯
         if (process.platform === 'darwin') {
             mainWindow?.setWindowButtonVisibility(false);
         }
-
-        event.reply('hide-button', 'success');
     });
-    ipcMain.on('minimize', async (event) => {
+
+    handle('minimize', async () => {
         log.info('minimize');
         mainWindow?.minimize();
-        event.reply('minimize', 'success');
     });
-    ipcMain.on('close', async (event) => {
+
+    handle('close', async () => {
         log.info('close');
         mainWindow?.close();
-        event.reply('close', 'success');
     });
     handle('open-menu', async () => {
         console.log('open-menu');

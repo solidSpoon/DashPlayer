@@ -104,6 +104,31 @@ const electronHandler = {
     openMenu: async () => {
         await invoke('open-menu');
     },
+    isMaximized: async () => {
+        return (await invoke('is-maximized')) as boolean;
+    },
+    unMaximize: async () => {
+        await invoke('unmaximize');
+    },
+    maximize: async () => {
+        await invoke('maximize');
+    },
+
+    minimize: async () => {
+        await invoke('minimize');
+    },
+    close: async () => {
+        await invoke('close');
+    },
+    isFullScreen: async () => {
+        return (await invoke('is-full-screen')) as boolean;
+    },
+    showButton: async () => {
+        await invoke('show-button');
+    },
+    hideButton: async () => {
+        await invoke('hide-button');
+    },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;

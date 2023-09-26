@@ -6,32 +6,34 @@ export interface TitleBarProps {
     show: boolean;
 }
 
+const api = window.electron;
+
 const TitleBarMac = ({ title, show }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const showTitleBar = show || isMouseOver;
     const onDoubleClick = async () => {
-        const isMaximized = (await callApi('is-maximized', [])) as boolean;
+        const isMaximized = await api.isMaximized();
         if (isMaximized) {
-            await callApi('unmaximize', []);
+            await api.unMaximize();
         } else {
-            await callApi('maximize', []);
+            await api.maximize();
         }
     };
 
     const handleMouseOver = async () => {
-        const fullScreen = (await callApi('is-full-screen', [])) as boolean;
+        const fullScreen = await api.isFullScreen();
         setIsMouseOver(!fullScreen);
         if (!fullScreen) {
-            await callApi('show-button', []);
+            await api.showButton();
         }
     };
 
     const handleMouseLeave = async () => {
-        const fullScreen = (await callApi('is-full-screen', [])) as boolean;
+        const fullScreen = await api.isFullScreen();
         setIsMouseOver(false);
         if (!fullScreen) {
             setIsMouseOver(false);
-            await callApi('hide-button', []);
+            await api.hideButton();
         }
     };
 

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AiOutlineClose, AiOutlineMinus } from 'react-icons/ai';
 import { FiMaximize } from 'react-icons/fi';
 import { HiOutlineMenu } from 'react-icons/hi';
-import callApi from '../lib/apis/ApiWrapper';
 
 export interface TitleBarWindowsProps {
     title: string | undefined;
@@ -12,20 +11,20 @@ const api = window.electron;
 
 const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
     const onMaximize = async () => {
-        const isMaximized = (await callApi('is-maximized', [])) as boolean;
+        const isMaximized = await api.isMaximized();
         if (isMaximized) {
-            await callApi('unmaximize', []);
+            await api.unMaximize();
         } else {
-            await callApi('maximize', []);
+            await api.maximize();
         }
     };
 
     const onMinimize = async () => {
-        await callApi('minimize', []);
+        await api.minimize();
     };
 
     const onClose = async () => {
-        await callApi('close', []);
+        await api.close();
     };
 
     const onMenu = async () => {
