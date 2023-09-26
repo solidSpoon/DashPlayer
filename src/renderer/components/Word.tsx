@@ -1,10 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as turf from '@turf/turf';
 import { Feature, Polygon } from '@turf/turf';
-import callApi from '../lib/apis/ApiWrapper';
 import { YdRes } from '../lib/param/yd/a';
 import WordPop from './WordPop';
-import { Action, pause, space } from '../lib/CallAction';
+import { Action, pause } from '../lib/CallAction';
+import { api } from "../windows/player/App";
 
 export interface WordParam {
     word: string;
@@ -77,12 +77,11 @@ const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
 
     useEffect(() => {
         const transFun = async (str: string) => {
-            const r = (await callApi('you-dao-translate', [str])) as string;
+            const r = await api.transWord(str);
             if (r === null) {
                 return;
             }
-            const res = JSON.parse(r) as YdRes;
-            setTranslationText(res);
+            setTranslationText(r);
         };
         if (hovered) {
             transFun(word);

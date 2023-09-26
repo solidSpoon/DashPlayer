@@ -7,6 +7,7 @@ import KeyValueCache from '../ServerLib/KeyValueCache';
 import WordTransCache from '../ServerLib/WordTransCache';
 import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
 import { BASE_PATH, concatPath } from '../ServerLib/basecache/CacheConfig';
+import { YdRes } from "../../renderer/lib/param/yd/a";
 
 const config: YouDaoConfig = {
     from: 'zh_CHS', // zh-CHS(中文) || ja(日语) || EN(英文) || fr(法语) ...
@@ -17,10 +18,10 @@ const config: YouDaoConfig = {
 
 const youDao = new YouDaoTranslater(config);
 
-const youDaoTrans = async (str: string) => {
+const youDaoTrans = async (str: string): Promise<YdRes | null> => {
     const cacheRes = await WordTransCache.queryValue(str);
     if (cacheRes) {
-        return cacheRes;
+        return JSON.parse(cacheRes) as YdRes;
     }
     const appKey = await KeyValueCache.queryValue('youDaoSecretId');
     const secretKey = await KeyValueCache.queryValue('youDaoSecretKey');
@@ -39,7 +40,7 @@ const youDaoTrans = async (str: string) => {
         return null;
     }
     await WordTransCache.updateValue(str, onlineRes);
-    return onlineRes;
+    return JSON.parse(onlineRes) as YdRes;
 };
 export default youDaoTrans;
 // let currentPlaying: HTMLAudioElement;

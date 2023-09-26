@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { YdRes } from "../renderer/lib/param/yd/a";
 
 export type Channels =
     | 'ipc-example'
@@ -34,7 +35,11 @@ export type Channels =
     | 'query-cache-size'
     | 'clear-cache';
 
-contextBridge.exposeInMainWorld('electron', {
+const invoke = (channel: Channels, ...args: unknown[]) => {
+    return ipcRenderer.invoke(channel, ...args);
+};
+
+const electronHandler = {
     ipcRenderer: {
         sendMessage(channel: Channels, args: unknown[]) {
             ipcRenderer.send(channel, args);
@@ -53,5 +58,20 @@ contextBridge.exposeInMainWorld('electron', {
         once(channel: Channels, func: (...args: unknown[]) => void) {
             ipcRenderer.once(channel, (_event, ...args) => func(...args));
         },
+        invoke(channel: Channels, ...args: unknown[]) {
+            try {
+                const promise = ipcRenderer.invoke(channel, ...args);
+                console.log('promise', promise);
+                return promise;
+            } catch (error) {
+                console.error(error);
+            }
+            return null;
+        },
     },
-});
+    transWord: async (word: string) => {
+        return invoke('you-dao-translate', word) as Promise<YdRes>;
+    },
+};
+contextBridge.exposeInMainWorld('electron', electronHandler);
+export type ElectronHandler = typeof electronHandler;

@@ -10,6 +10,7 @@ interface SubtitleSubParam {
     currentSentence: SentenceT | undefined;
     onAction: (action: Action) => void;
     singleRepeat: boolean;
+    pause: boolean;
 }
 
 interface Ele {
@@ -52,6 +53,7 @@ export default function Subtitle({
     currentSentence,
     onAction,
     singleRepeat,
+    pause,
 }: SubtitleSubParam) {
     // const boundaryRef = useRef<HTMLDivElement>(null);
     const currentRef = useRef<number>(-1);
@@ -154,6 +156,7 @@ export default function Subtitle({
                                 onClick={(sentence) => onAction(jump(sentence))}
                                 isCurrent={isCurrent}
                                 isRepeat={singleRepeat}
+                                pause={pause}
                             />
                         </div>
                     );

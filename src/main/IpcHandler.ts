@@ -2,16 +2,16 @@ import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import {
-    updateProgress,
     queryProgress,
+    updateProgress,
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
 import {
-    updateTencentSecret,
     getTencentSecret,
-    updateYouDaoSecret,
     getYouDaoSecret,
+    updateTencentSecret,
+    updateYouDaoSecret,
 } from './controllers/SecretController';
 import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
 import { getShortCut, updateShortCut } from './controllers/ShortCutController';
@@ -82,11 +82,9 @@ export default function registerHandler() {
         const isWindows = process.platform === 'win32';
         event.reply('is-windows', isWindows);
     });
-    ipcMain.on('you-dao-translate', async (event, args: string[]) => {
+    ipcMain.handle('you-dao-translate', async (event, word) => {
         log.info('you-dao-translate');
-        const word = args[0];
-        const result = await youDaoTrans(word);
-        event.reply('you-dao-translate', result);
+        return youDaoTrans(word);
     });
     ipcMain.on('pronounce', async (event, args: string[]) => {
         log.info('pronounce', args[0]);

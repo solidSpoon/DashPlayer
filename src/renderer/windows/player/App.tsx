@@ -12,9 +12,12 @@ import 'tailwindcss/tailwind.css';
 import useSubtitle from '../../hooks/useSubtitle';
 import useFile from '../../hooks/useFile';
 import Subtitle from '../../components/Subtitle';
-import useSubTitleController from '../../hooks/useSubTitleController';
+import useSubTitleController, {
+    SPACE_NUM,
+} from '../../hooks/useSubTitleController';
 import TitleBar from '../../components/TitleBar';
 
+export const api = window.electron;
 export default function App() {
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
@@ -88,6 +91,7 @@ export default function App() {
                     currentSentence={currentSentence}
                     onAction={doAction}
                     singleRepeat={singleRepeat}
+                    pause={seekTime.time === SPACE_NUM}
                 />
             </Split>
 

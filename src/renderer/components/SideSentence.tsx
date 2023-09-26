@@ -2,6 +2,7 @@ import React from 'react';
 // eslint-disable-next-line import/no-cycle
 import { FiPlayCircle } from 'react-icons/fi';
 import { BsArrowRepeat } from 'react-icons/bs';
+import { LuPauseCircle } from 'react-icons/lu';
 import SentenceT from '../lib/param/SentenceT';
 
 interface SideSentenceNewParam {
@@ -9,6 +10,7 @@ interface SideSentenceNewParam {
     onClick: (sentence: SentenceT) => void;
     isCurrent: boolean;
     isRepeat: boolean;
+    pause: boolean;
 }
 
 export default function SideSentence({
@@ -16,11 +18,24 @@ export default function SideSentence({
     onClick,
     isCurrent,
     isRepeat,
+    pause,
 }: SideSentenceNewParam) {
     const show = isCurrent ? 'visible' : 'invisible';
     const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
         (i) => i !== undefined && i !== ''
     );
+
+    const icon = () => {
+        if (pause) {
+            return <LuPauseCircle className="w-10 h-6" />;
+        }
+        return isRepeat ? (
+            <BsArrowRepeat className="w-10 h-6" />
+        ) : (
+            <FiPlayCircle className="w-10 h-6" />
+        );
+    };
+
     return (
         // eslint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events
         <div
@@ -44,11 +59,7 @@ export default function SideSentence({
             }}
         >
             <div className={`w-10 h-full overflow-hidden text-red-600 ${show}`}>
-                {isRepeat ? (
-                    <BsArrowRepeat className="w-10 h-6" />
-                ) : (
-                    <FiPlayCircle className="w-10 h-6" />
-                )}
+                {icon()}
             </div>
 
             <div className="w-full text-center">{s ?? ''}</div>
