@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
+import axios from 'axios';
 import {
     updateProgress,
     queryProgress,
@@ -15,7 +16,11 @@ import {
 import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
 import { getShortCut, updateShortCut } from './controllers/ShortCutController';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
-import { clearCache, openDataDir, queryCacheSize } from './controllers/StorageController';
+import {
+    clearCache,
+    openDataDir,
+    queryCacheSize,
+} from './controllers/StorageController';
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -87,6 +92,12 @@ export default function registerHandler() {
         log.info('pronounce', args[0]);
         const success = await playSound(args[0]);
         event.reply('pronounce', success);
+    });
+    ipcMain.on('get-audio', async (event, args: string[]) => {
+        log.info('get-audio', args[0]);
+        const url = args[0] as string;
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        event.reply('get-audio', response);
     });
     ipcMain.on('update-shortcut', async (event, args: string[]) => {
         log.info('update-shortcut');

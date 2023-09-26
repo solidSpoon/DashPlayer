@@ -29,6 +29,7 @@ export type Channels =
     | 'open-menu'
     | 'you-dao-translate'
     | 'pronounce'
+    | 'get-audio'
     | 'open-data-dir'
     | 'query-cache-size'
     | 'clear-cache';

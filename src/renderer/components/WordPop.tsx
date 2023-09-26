@@ -14,6 +14,12 @@ export interface WordSubParam {
     translation: YdRes | undefined;
 }
 
+const getAudio = async (url: string) => {
+    const data = (await callApi('get-audio', [url])) as any;
+    const blob = new Blob([data], { type: 'audio/mpeg' });
+    return URL.createObjectURL(blob);
+};
+
 const WordPop = React.forwardRef(
     (
         { word, translation }: WordSubParam,
@@ -39,19 +45,27 @@ const WordPop = React.forwardRef(
         });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([]);
+        const player = useRef<HTMLAudioElement | null>(null);
 
         const play = async (type: 'us' | 'uk') => {
-            let url = '';
             if (!translation?.basic) {
                 return true;
             }
-            if (type === 'us') {
-                url = translation?.basic['us-speech'] || '';
+            const field = type === 'us' ? 'us-speech' : 'uk-speech';
+            const url = translation?.basic[field];
+            if (!url) {
+                return true;
             }
-            if (type === 'uk') {
-                url = translation?.basic['uk-speech'] || '';
+            const audioUrl = await getAudio(url);
+            try {
+                player.current?.pause();
+                player.current = new Audio(audioUrl);
+                player.current.play();
+            } catch (error) {
+                console.log(error);
+                return false;
             }
-            return callApi('pronounce', [url]);
+            return true;
         };
 
         const clickPlay = async () => {
