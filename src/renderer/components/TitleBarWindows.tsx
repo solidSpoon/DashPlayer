@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { AiOutlineClose, AiOutlineCloseSquare, AiOutlineMinus } from 'react-icons/ai';
-import { GrClose, GrMenu } from 'react-icons/gr';
-import { FaWindowMinimize } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { AiOutlineClose, AiOutlineMinus } from 'react-icons/ai';
 import { FiMaximize } from 'react-icons/fi';
-import callApi from '../lib/apis/ApiWrapper';
-import { BiMenu } from 'react-icons/bi';
 import { HiOutlineMenu } from 'react-icons/hi';
+import callApi from '../lib/apis/ApiWrapper';
 
 export interface TitleBarWindowsProps {
     title: string | undefined;
 }
 
-const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
-    const [isMouseOver, setIsMouseOver] = useState(false);
+const api = window.electron;
 
+const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
     const onMaximize = async () => {
         const isMaximized = (await callApi('is-maximized', [])) as boolean;
         if (isMaximized) {
@@ -32,7 +29,7 @@ const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
     };
 
     const onMenu = async () => {
-        await callApi('open-menu', []);
+        await api.openMenu();
     };
 
     return (
@@ -42,28 +39,25 @@ const TitleBarWindows = ({ title }: TitleBarWindowsProps) => {
             `}
         >
             <HiOutlineMenu
-                className='no-drag hover:bg-neutral-500 w-7 h-7 p-1'
+                className="no-drag hover:bg-neutral-500 w-7 h-7 p-1"
                 onClick={onMenu}
             />
             <div>{title}</div>
-            <div className='no-drag flex space-x-2 h-full justify-center items-center'>
+            <div className="no-drag flex space-x-2 h-full justify-center items-center">
                 <AiOutlineMinus
-                    className='hover:bg-neutral-500 w-7 h-7 p-1'
+                    className="hover:bg-neutral-500 w-7 h-7 p-1"
                     onClick={onMinimize}
                 />
                 <FiMaximize
-                    className='hover:bg-neutral-500 w-7 h-7 p-1'
+                    className="hover:bg-neutral-500 w-7 h-7 p-1"
                     onClick={onMaximize}
                 />
                 <AiOutlineClose
-                    className='hover:bg-neutral-500 w-7 h-7 p-1'
+                    className="hover:bg-neutral-500 w-7 h-7 p-1"
                     onClick={onClose}
                 />
             </div>
-
         </div>
-
-
     );
 };
 export default TitleBarWindows;

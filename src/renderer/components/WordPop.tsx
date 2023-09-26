@@ -9,17 +9,11 @@ import { AiOutlineSound } from 'react-icons/ai';
 import { YdRes } from '../lib/param/yd/a';
 import callApi from '../lib/apis/ApiWrapper';
 
+const api = window.electron;
 export interface WordSubParam {
     word: string;
     translation: YdRes | undefined;
 }
-
-const getAudio = async (url: string) => {
-    const data = (await callApi('get-audio', [url])) as any;
-    const blob = new Blob([data], { type: 'audio/mpeg' });
-    return URL.createObjectURL(blob);
-};
-
 const WordPop = React.forwardRef(
     (
         { word, translation }: WordSubParam,
@@ -56,7 +50,7 @@ const WordPop = React.forwardRef(
             if (!url) {
                 return true;
             }
-            const audioUrl = await getAudio(url);
+            const audioUrl = await api.fetchAudio(url);
             try {
                 player.current?.pause();
                 player.current = new Audio(audioUrl);

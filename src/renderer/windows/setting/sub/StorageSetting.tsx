@@ -2,25 +2,26 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import callApi from '../../../lib/apis/ApiWrapper';
 import { ShortCutValue } from '../../../components/GlobalShortCut';
 
+const api = window.electron;
 const StorageSetting = () => {
     const [size, setSize] = useState<string>('0 KB');
 
     useEffect(() => {
         const init = async () => {
-            const s = (await callApi('query-cache-size', [])) as string;
+            const s = await api.queryCacheSize();
             setSize(s);
         };
         init();
     }, []);
 
     const handleClear = async () => {
-        await callApi('clear-cache', []);
-        const s = (await callApi('query-cache-size', [])) as string;
+        await api.clearCache();
+        const s = await api.queryCacheSize();
         setSize(s);
     };
 
     const handleOpen = async () => {
-        await callApi('open-data-dir', []);
+        await api.openDataFolder();
     };
 
     return (

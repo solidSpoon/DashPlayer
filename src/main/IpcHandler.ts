@@ -21,6 +21,23 @@ import {
     openDataDir,
     queryCacheSize,
 } from './controllers/StorageController';
+import { Channels } from './preload';
+
+// const handle = (
+//     channel: Channels,
+//     listener: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<void> | any
+// ): void => {
+//     ipcMain.handle(channel, listener);
+// };
+
+const handle = (
+    channel: Channels,
+    listenerWrapper: (...args: any[]) => Promise<void> | any
+): void => {
+    ipcMain.handle(channel, (event, ...args) => {
+        return listenerWrapper(...args);
+    });
+};
 
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
@@ -82,7 +99,7 @@ export default function registerHandler() {
         const isWindows = process.platform === 'win32';
         event.reply('is-windows', isWindows);
     });
-    ipcMain.handle('you-dao-translate', async (event, word) => {
+    handle('you-dao-translate', async (word) => {
         log.info('you-dao-translate');
         return youDaoTrans(word);
     });
@@ -91,11 +108,10 @@ export default function registerHandler() {
         const success = await playSound(args[0]);
         event.reply('pronounce', success);
     });
-    ipcMain.on('get-audio', async (event, args: string[]) => {
-        log.info('get-audio', args[0]);
-        const url = args[0] as string;
+    handle('get-audio', async (url) => {
+        log.info('get-audio', url);
         const response = await axios.get(url, { responseType: 'arraybuffer' });
-        event.reply('get-audio', response);
+        return response;
     });
     ipcMain.on('update-shortcut', async (event, args: string[]) => {
         log.info('update-shortcut');
@@ -153,50 +169,43 @@ export default function registerHandler() {
         mainWindow?.close();
         event.reply('close', 'success');
     });
-    ipcMain.on('open-menu', async (event) => {
-        log.info('open-menu');
+    handle('open-menu', async () => {
+        console.log('open-menu');
         // create or show setting window
         await createSettingWindowIfNeed();
         settingWindow?.show();
-        event.reply('open-menu', 'success');
     });
-    ipcMain.on('maximize-setting', async (event) => {
+
+    handle('maximize-setting', async () => {
         log.info('maximize-setting');
         settingWindow?.maximize();
-        event.reply('maximize-setting', 'success');
     });
-    ipcMain.on('unmaximize-setting', async (event) => {
+    handle('unmaximize-setting', async () => {
         log.info('unmaximize-setting');
         settingWindow?.unmaximize();
-        event.reply('unmaximize-setting', 'success');
     });
-    ipcMain.on('is-maximized-setting', async (event) => {
+    handle('is-maximized-setting', async () => {
         log.info('is-maximized-setting');
-        event.reply('is-maximized-setting', settingWindow?.isMaximized());
+        return settingWindow?.isMaximized();
     });
-    ipcMain.on('close-setting', async (event) => {
+    handle('close-setting', async () => {
         log.info('close-setting');
         settingWindow?.close();
-        event.reply('close-setting', 'success');
     });
-    ipcMain.on('minimize-setting', async (event) => {
+    handle('minimize-setting', async () => {
         log.info('minimize-setting');
         settingWindow?.minimize();
-        event.reply('minimize-setting', 'success');
     });
-    ipcMain.on('open-data-dir', async (event) => {
+    handle('open-data-dir', async () => {
         log.info('open-data-dir');
         await openDataDir();
-        event.reply('open-data-dir', 'success');
     });
-    ipcMain.on('query-cache-size', async (event) => {
+    handle('query-cache-size', async () => {
         log.info('query-cache-size');
-        const size = await queryCacheSize();
-        event.reply('query-cache-size', size);
+        return queryCacheSize();
     });
-    ipcMain.on('clear-cache', async (event) => {
+    handle('clear-cache', async () => {
         log.info('clear-cache');
         await clearCache();
-        event.reply('clear-cache', 'success');
     });
 }

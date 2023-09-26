@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import { YdRes } from "../renderer/lib/param/yd/a";
+import { YdRes } from '../renderer/lib/param/yd/a';
 
 export type Channels =
     | 'ipc-example'
@@ -70,7 +70,39 @@ const electronHandler = {
         },
     },
     transWord: async (word: string) => {
-        return invoke('you-dao-translate', word) as Promise<YdRes>;
+        return (await invoke('you-dao-translate', word)) as YdRes;
+    },
+    fetchAudio: async (url: string) => {
+        const data = (await invoke('get-audio', url)) as any;
+        const blob = new Blob([data], { type: 'audio/mpeg' });
+        return URL.createObjectURL(blob);
+    },
+    isSettingMaximized: async () => {
+        return (await invoke('is-maximized-setting')) as boolean;
+    },
+    maximizeSetting: async () => {
+        await invoke('maximize-setting');
+    },
+    unMaximizeSetting: async () => {
+        await invoke('unmaximize-setting');
+    },
+    closeSetting: async () => {
+        await invoke('close-setting');
+    },
+    minimizeSetting: async () => {
+        await invoke('minimize-setting');
+    },
+    queryCacheSize: async () => {
+        return (await invoke('query-cache-size')) as string;
+    },
+    openDataFolder: async () => {
+        await invoke('open-data-dir');
+    },
+    clearCache: async () => {
+        await invoke('clear-cache');
+    },
+    openMenu: async () => {
+        await invoke('open-menu');
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

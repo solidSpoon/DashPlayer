@@ -4,7 +4,8 @@ import { Feature, Polygon } from '@turf/turf';
 import { YdRes } from '../lib/param/yd/a';
 import WordPop from './WordPop';
 import { Action, pause } from '../lib/CallAction';
-import { api } from "../windows/player/App";
+
+const api = window.electron;
 
 export interface WordParam {
     word: string;
