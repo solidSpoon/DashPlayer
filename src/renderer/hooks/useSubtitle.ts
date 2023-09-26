@@ -5,7 +5,37 @@ import SentenceT from '../lib/param/SentenceT';
 import parseSrtSubtitles from '../lib/parseSrt';
 import TranslateBuf from '../lib/TranslateBuf';
 import TransFiller from '../lib/TransFiller';
-import callApi from '../lib/apis/ApiWrapper';
+
+const api = window.electron;
+export interface SentenceApiParam {
+    index: number;
+    text: string;
+    translate: string | undefined;
+}
+
+export const toSentenceApiParam = (sentence: SentenceT): SentenceApiParam => {
+    return {
+        index: sentence.index,
+        text: sentence.text ?? '',
+        translate: undefined,
+    };
+};
+
+function merge(baseArr: SentenceT[], diff: SentenceApiParam[]) {
+    const mapping = new Map<number, string>();
+    diff.forEach((item) => {
+        mapping.set(item.index, item.translate ?? '');
+    });
+    return baseArr.map((item, index) => {
+        const translate = mapping.get(index);
+        if (translate) {
+            const ns = item.clone();
+            ns.msTranslate = translate;
+            return ns;
+        }
+        return item;
+    });
+}
 
 function mergeToNew(baseArr: SentenceT[], buffer: TranslateBuf): SentenceT[] {
     const newArr: SentenceT[] = [...baseArr];
@@ -43,11 +73,8 @@ async function transBuf(srtSubtitles: SentenceT[], buffer: TranslateBuf) {
     if (buffer.isEmpty()) {
         return srtSubtitles;
     }
-    // eslint-disable-next-line no-await-in-loop
-    buffer.response = (await callApi('batch-translate', [
-        buffer.strs,
-    ])) as string[];
-    return mergeToNew(srtSubtitles, buffer);
+    const res = await api.batchTranslate(buffer.sentences);
+    return merge(srtSubtitles, res);
 }
 
 export default function useSubtitle(subtitleFile: FileT | undefined) {
@@ -58,9 +85,19 @@ export default function useSubtitle(subtitleFile: FileT | undefined) {
         if (subtitleFile?.objectUrl === undefined) return () => {};
         const init = async () => {
             let srtSubtitles = await loadSubtitle(subtitleFile);
+            if (cancel) return;
             setSubtitle(srtSubtitles);
+            const params = srtSubtitles.map(toSentenceApiParam);
+            const cacheRes = await api.loadTransCache(params);
+            srtSubtitles = merge(srtSubtitles, cacheRes);
+            if (cancel) return;
+            setSubtitle(srtSubtitles);
+            const remain = srtSubtitles.filter(
+                (item) =>
+                    item.msTranslate === '' || item.msTranslate === undefined
+            );
             const buffers: TranslateBuf[] = TransFiller.splitToBuffers(
-                srtSubtitles,
+                remain,
                 1000
             );
 

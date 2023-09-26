@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
     autoPlacement,
     offset,
@@ -7,13 +7,13 @@ import {
 } from '@floating-ui/react';
 import { AiOutlineSound } from 'react-icons/ai';
 import { YdRes } from '../lib/param/yd/a';
-import callApi from '../lib/apis/ApiWrapper';
+import { playUrl } from '../lib/AudioPlayer';
 
-const api = window.electron;
 export interface WordSubParam {
     word: string;
     translation: YdRes | undefined;
 }
+
 const WordPop = React.forwardRef(
     (
         { word, translation }: WordSubParam,
@@ -39,33 +39,14 @@ const WordPop = React.forwardRef(
         });
 
         const { getReferenceProps, getFloatingProps } = useInteractions([]);
-        const player = useRef<HTMLAudioElement | null>(null);
 
         const play = async (type: 'us' | 'uk') => {
             if (!translation?.basic) {
-                return true;
+                return;
             }
             const field = type === 'us' ? 'us-speech' : 'uk-speech';
             const url = translation?.basic[field];
-            if (!url) {
-                return true;
-            }
-            const audioUrl = await api.fetchAudio(url);
-            try {
-                player.current?.pause();
-                player.current = new Audio(audioUrl);
-                player.current.play();
-            } catch (error) {
-                console.log(error);
-                return false;
-            }
-            return true;
-        };
-
-        const clickPlay = async () => {
-            if (!(await play('us'))) {
-                await play('uk');
-            }
+            await playUrl(url);
         };
 
         const popper = () => {
@@ -135,7 +116,6 @@ const WordPop = React.forwardRef(
                     className="rounded select-none bg-zinc-600 z-50"
                     role="button"
                     tabIndex={0}
-                    onClick={clickPlay}
                     {...getReferenceProps()}
                 >
                     {word}

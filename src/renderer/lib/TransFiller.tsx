@@ -29,7 +29,7 @@ export default class TransFiller {
                 buffers.push(buffer);
                 buffer = new TranslateBuf(index, capacity);
             }
-            buffer.add(item.text);
+            buffer.add(item);
         });
         buffers.push(buffer);
         return buffers;

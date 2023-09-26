@@ -4,6 +4,7 @@ import { Feature, Polygon } from '@turf/turf';
 import { YdRes } from '../lib/param/yd/a';
 import WordPop from './WordPop';
 import { Action, pause } from '../lib/CallAction';
+import { playUrl, playWord } from '../lib/AudioPlayer';
 
 const api = window.electron;
 
@@ -88,6 +89,20 @@ const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
             transFun(word);
         }
     }, [hovered, word]);
+
+    const handleWordClick = async () => {
+        let url = '';
+        if (translationText?.basic) {
+            url =
+                translationText.basic['us-speech'] ??
+                translationText.basic['uk-speech'] ??
+                '';
+            await playUrl(url);
+        } else {
+            await playWord(word);
+        }
+    };
+
     return (
         <div
             ref={eleRef}
@@ -99,6 +114,9 @@ const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
             }}
             onMouseLeave={() => {
                 console.log('avvv onMouseLeave', word);
+            }}
+            onClick={() => {
+                handleWordClick();
             }}
         >
             {pop && hovered && translationText ? (

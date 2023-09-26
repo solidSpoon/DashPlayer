@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { YdRes } from '../renderer/lib/param/yd/a';
+import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 
 export type Channels =
     | 'ipc-example'
@@ -7,6 +8,7 @@ export type Channels =
     | 'trans-word'
     | 'query-progress'
     | 'batch-translate'
+    | 'load-trans-cache'
     | 'update-tenant-secret'
     | 'get-tenant-secret'
     | 'get-you-dao-secret'
@@ -128,6 +130,18 @@ const electronHandler = {
     },
     hideButton: async () => {
         await invoke('hide-button');
+    },
+    loadTransCache: async (sentences: SentenceApiParam[]) => {
+        return (await invoke(
+            'load-trans-cache',
+            sentences
+        )) as SentenceApiParam[];
+    },
+    batchTranslate: async (sentences: SentenceApiParam[]) => {
+        return (await invoke(
+            'batch-translate',
+            sentences
+        )) as SentenceApiParam[];
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

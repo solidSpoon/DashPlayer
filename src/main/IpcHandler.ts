@@ -1,27 +1,21 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
-import {
-    queryProgress,
-    updateProgress,
-} from './controllers/ProgressController';
-import batchTranslate from './controllers/Translate';
+import { queryProgress, updateProgress } from './controllers/ProgressController';
+import batchTranslate, { loadTransCache } from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
 import {
     getTencentSecret,
     getYouDaoSecret,
     updateTencentSecret,
-    updateYouDaoSecret,
+    updateYouDaoSecret
 } from './controllers/SecretController';
 import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
 import { getShortCut, updateShortCut } from './controllers/ShortCutController';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
-import {
-    clearCache,
-    openDataDir,
-    queryCacheSize,
-} from './controllers/StorageController';
+import { clearCache, openDataDir, queryCacheSize } from './controllers/StorageController';
 import { Channels } from './preload';
+import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 
 // const handle = (
 //     channel: Channels,
@@ -62,14 +56,14 @@ export default function registerHandler() {
         log.info(`query-progress file: ${fileName}, progress: ${progress}`);
         event.reply('query-progress', progress);
     });
-    ipcMain.on('batch-translate', async (event, args: never[]) => {
-        const strs = args[0];
+    handle('batch-translate', async (sentences: SentenceApiParam[]) => {
         log.info('batch-translate');
-        const translateResult = await batchTranslate(strs);
-        log.info('server tranlate result', translateResult);
-        event.reply('batch-translate', translateResult);
+        return batchTranslate(sentences);
     });
-
+    handle('load-trans-cache', async (sentences: SentenceApiParam[]) => {
+        log.info('load-trans-cache');
+        return loadTransCache(sentences);
+    });
     ipcMain.on('update-tenant-secret', async (event, args: never[]) => {
         const [secretId, secretKey] = args;
         log.info('update-tenant-secret');
@@ -111,7 +105,7 @@ export default function registerHandler() {
     handle('get-audio', async (url) => {
         log.info('get-audio', url);
         const response = await axios.get(url, { responseType: 'arraybuffer' });
-        return response;
+        return response.data;
     });
     ipcMain.on('update-shortcut', async (event, args: string[]) => {
         log.info('update-shortcut');
