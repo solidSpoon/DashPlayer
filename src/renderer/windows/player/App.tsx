@@ -42,7 +42,7 @@ export default function App() {
             <TitleBar show={showTitleBar} title={videoFile?.fileName} />
             <RecordProgress
                 getCurrentProgress={() => progress.current}
-                getCurrentVideoFile={() => videoFile}
+                videoFile={videoFile}
             />
             <GlobalShortCut onAction={doAction} />
 

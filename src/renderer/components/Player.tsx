@@ -12,6 +12,8 @@ interface PlayerParam {
     onAction: (action: Action) => void;
 }
 
+const api = window.electron;
+
 export default function Player({
     videoFile,
     seekTime,
@@ -90,10 +92,10 @@ export default function Player({
             return;
         }
 
-        if (videoFile === undefined) {
+        if (videoFile?.fileName === undefined) {
             return;
         }
-        const result = await callApi('query-progress', [videoFile.fileName]);
+        const result = await api.queryProgress(videoFile.fileName);
         const progress = result as number;
         onAction(jumpTime(progress));
         lastFile = file;
@@ -120,11 +122,9 @@ export default function Player({
                             objectFit: 'cover',
                         }}
                     />
-                    {/* </div> */}
-                    {/* <div className="relative top-0 left-0 w-full h-full z-50"> */}
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video
-                        className="w-full w-full absolute top-0 left-0 z-0"
+                        className="w-full h-full absolute top-0 left-0 z-0"
                         id="react-player-id"
                         ref={playerRef}
                         src={videoFile.objectUrl ? videoFile.objectUrl : ''}
@@ -141,12 +141,11 @@ export default function Player({
                                 onAction(space());
                             }
                         }}
-                        onTimeUpdate={() => {
-                            onProgress(playerRef.current!.currentTime);
+                        onTimeUpdate={(event) => {
+                            onProgress(event.currentTarget.currentTime);
                         }}
-                        onLoadedMetadata={() => {
-                            console.log('aaa loaded');
-                            onTotalTimeChange(playerRef.current!.duration);
+                        onLoadedMetadata={(event) => {
+                            onTotalTimeChange(event.currentTarget.duration);
                             jumpToHistoryProgress(videoFile);
                         }}
                     />

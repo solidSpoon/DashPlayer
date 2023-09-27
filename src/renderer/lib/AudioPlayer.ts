@@ -1,8 +1,4 @@
-import { LRUCache } from 'lru-cache';
-
-const cache = new LRUCache<string, string>({
-    max: 1000,
-});
+const cache = new Map<string, string>();
 const api = window.electron;
 let player: HTMLAudioElement | null = null;
 

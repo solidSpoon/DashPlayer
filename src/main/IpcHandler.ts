@@ -1,19 +1,26 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
-import { queryProgress, updateProgress } from './controllers/ProgressController';
+import {
+    queryProgress,
+    updateProgress,
+} from './controllers/ProgressController';
 import batchTranslate, { loadTransCache } from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
 import {
     getTencentSecret,
     getYouDaoSecret,
     updateTencentSecret,
-    updateYouDaoSecret
+    updateYouDaoSecret,
 } from './controllers/SecretController';
-import youDaoTrans, { playSound } from './controllers/YouDaoTrans';
+import youDaoTrans from './controllers/YouDaoTrans';
 import { getShortCut, updateShortCut } from './controllers/ShortCutController';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
-import { clearCache, openDataDir, queryCacheSize } from './controllers/StorageController';
+import {
+    clearCache,
+    openDataDir,
+    queryCacheSize,
+} from './controllers/StorageController';
 import { Channels } from './preload';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 
@@ -42,23 +49,23 @@ export default function registerHandler() {
         log.info('ipcMain update-process', arg);
         event.reply('update-process', 'success');
     });
+    /**
+     * Bob 翻译
+     */
     ipcMain.on('trans-word', async (event, arg) => {
         log.info('trans-words', arg);
         transWord(arg[0]);
         event.reply('update-process', 'success');
     });
-    ipcMain.on('update-progress', async (event, args: never[]) => {
-        const [fileName, progress] = args;
+    handle('update-progress', async (fileName: string, progress: number) => {
         log.info('update-progress', fileName, progress);
         await updateProgress(fileName, progress);
-        event.reply('update-progress', 'success');
     });
-    ipcMain.on('query-progress', async (event, args: never[]) => {
-        const [fileName] = args;
+    handle('query-progress', async (fileName: string) => {
         log.info('query-progress', fileName);
         const progress = await queryProgress(fileName);
         log.info(`query-progress file: ${fileName}, progress: ${progress}`);
-        event.reply('query-progress', progress);
+        return progress;
     });
     handle('batch-translate', async (sentences: SentenceApiParam[]) => {
         log.info('batch-translate');
@@ -103,11 +110,6 @@ export default function registerHandler() {
     handle('you-dao-translate', async (word) => {
         log.info('you-dao-translate');
         return youDaoTrans(word);
-    });
-    ipcMain.on('pronounce', async (event, args: string[]) => {
-        log.info('pronounce', args[0]);
-        const success = await playSound(args[0]);
-        event.reply('pronounce', success);
     });
     handle('get-audio', async (url) => {
         log.info('get-audio', url);
@@ -205,10 +207,4 @@ export default function registerHandler() {
         log.info('clear-cache');
         await clearCache();
     });
-    // mainWindow?.on('maximize', () => {
-    //     sent('maximize');
-    // });
-    // mainWindow?.on('unmaximize', () => {
-    //     sent('unmaximize');
-    // });
 }

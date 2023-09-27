@@ -33,7 +33,6 @@ export type Channels =
     | 'close'
     | 'open-menu'
     | 'you-dao-translate'
-    | 'pronounce'
     | 'get-audio'
     | 'open-data-dir'
     | 'query-cache-size'
@@ -153,6 +152,12 @@ const electronHandler = {
             'batch-translate',
             sentences
         )) as SentenceApiParam[];
+    },
+    updateProgress: async (fileName: string, progress: number) => {
+        await invoke('update-progress', fileName, progress);
+    },
+    queryProgress: async (fileName: string) => {
+        return (await invoke('query-progress', fileName)) as number;
     },
     onMaximize: (func: () => void) => {
         return on('maximize', func);

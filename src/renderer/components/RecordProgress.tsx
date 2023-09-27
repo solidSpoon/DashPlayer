@@ -4,24 +4,24 @@ import callApi from '../lib/apis/ApiWrapper';
 
 interface RecordProgressParam {
     getCurrentProgress: () => number;
-    getCurrentVideoFile: () => FileT | undefined;
+    videoFile: FileT | undefined;
 }
 
-const RecordProgress = (props: RecordProgressParam) => {
-    useEffect(() => {
-        const { getCurrentVideoFile, getCurrentProgress } = props;
+const api = window.electron;
 
+const RecordProgress = ({
+    videoFile,
+    getCurrentProgress,
+}: RecordProgressParam) => {
+    useEffect(() => {
         async function method() {
-            if (
-                getCurrentVideoFile() === undefined ||
-                getCurrentProgress() === undefined
-            ) {
+            if (videoFile === undefined || getCurrentProgress() === undefined) {
                 return;
             }
-            const fileName = getCurrentVideoFile()?.fileName;
+            const fileName = videoFile?.fileName;
             const progress = getCurrentProgress();
             if (fileName !== undefined) {
-                await callApi('update-progress', [fileName, progress]);
+                await api.updateProgress(fileName, progress);
             }
         }
 
@@ -29,7 +29,7 @@ const RecordProgress = (props: RecordProgressParam) => {
         return () => {
             clearInterval(interval);
         };
-    }, [props]);
+    }, [videoFile, getCurrentProgress]);
     return <></>;
 };
 export default RecordProgress;
