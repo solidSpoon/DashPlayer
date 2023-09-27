@@ -74,6 +74,7 @@ export default function registerHandler() {
         await updateTencentSecret(secretId, secretKey);
         event.reply('update-tenant-secret', 'success');
         mainWindow?.webContents.send('setting-update');
+        mainWindow?.webContents.send('tencent-secret-update');
     });
     ipcMain.on('get-tenant-secret', async (event) => {
         log.info('get-tenant-secret');

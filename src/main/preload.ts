@@ -16,6 +16,7 @@ export type Channels =
     | 'update-shortcut'
     | 'get-shortcut'
     | 'setting-update'
+    | 'tencent-secret-update'
     | 'maximize'
     | 'unmaximize'
     | 'is-maximized'
@@ -167,6 +168,9 @@ const electronHandler = {
     },
     onSettingUpdate: (func: () => void) => {
         return on('setting-update', func);
+    },
+    onTencentSecretUpdate: (func: () => void) => {
+        return on('tencent-secret-update', func);
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

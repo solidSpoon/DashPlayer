@@ -74,12 +74,9 @@ const TenantSetting = () => {
                 </div>
                 <div className="flex items-center justify-end">
                     <button
-                        className={` text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5 ${
-                            eqServer
-                                ? 'bg-gray-500'
-                                : 'bg-blue-500 hover:bg-blue-700'
-                        }`}
+                        className="text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5 disabled:bg-gray-500 bg-blue-500 hover:bg-blue-700"
                         onClick={handleSubmit}
+                        disabled={eqServer}
                         type="button"
                     >
                         Apply

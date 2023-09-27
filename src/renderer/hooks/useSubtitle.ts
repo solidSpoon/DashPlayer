@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import FileT from '../lib/param/FileT';
 import SentenceT from '../lib/param/SentenceT';
@@ -37,23 +37,6 @@ function merge(baseArr: SentenceT[], diff: SentenceApiParam[]) {
     });
 }
 
-function mergeToNew(baseArr: SentenceT[], buffer: TranslateBuf): SentenceT[] {
-    const newArr: SentenceT[] = [...baseArr];
-    const { response } = buffer;
-    if (response === undefined) {
-        return newArr;
-    }
-    response.forEach((item, i) => {
-        const index = buffer.startIndex + i;
-        if (index < newArr.length) {
-            const n: SentenceT = baseArr[index].clone();
-            n.msTranslate = item;
-            newArr[index] = n;
-        }
-    });
-    return newArr;
-}
-
 async function loadSubtitle(subtitleFile: FileT) {
     const url = subtitleFile?.objectUrl ?? '';
 
@@ -79,7 +62,7 @@ async function transBuf(srtSubtitles: SentenceT[], buffer: TranslateBuf) {
 
 export default function useSubtitle(subtitleFile: FileT | undefined) {
     const [subtitle, setSubtitle] = useState<SentenceT[]>([]);
-
+    const [secretVersion, setSecretVersion] = useState<number>(0);
     useEffect(() => {
         let cancel = false;
         if (subtitleFile?.objectUrl === undefined) return () => {};
@@ -116,7 +99,16 @@ export default function useSubtitle(subtitleFile: FileT | undefined) {
         return () => {
             cancel = true;
         };
-    }, [subtitleFile]);
+    }, [subtitleFile, secretVersion]);
+
+    useEffect(() => {
+        const cancel = api.onTencentSecretUpdate(() =>
+            setSecretVersion((v) => v + 1)
+        );
+        return () => {
+            cancel();
+        };
+    });
 
     return subtitle;
 }
