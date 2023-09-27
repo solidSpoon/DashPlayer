@@ -84,72 +84,66 @@ const ShortcutSetting = () => {
     };
 
     return (
-        <div className="w-full h-screen overflow-y-auto">
-            <form className=" px-8 pt-6 pb-8 mb-4" onSubmit={handleSubmit}>
-                <div className="sticky top-0 bg-gray-200/95">
-                    <h1 className="text-2xl font-bold">快捷键</h1>
-                    <text className="">多个快捷键用 , 分割</text>
-                </div>
-                <div className=" flex flex-col gap-5 mt-6 mb-5">
-                    {itemEle('上一句', 'last', 'left,a', last || '', setLast)}
-                    {itemEle('下一句', 'next', 'right,d', next || '', setNext)}
-                    {itemEle(
-                        '重复',
-                        'repeat',
-                        'down,s',
-                        repeat || '',
-                        setRepeat
-                    )}
-                    {itemEle(
-                        '播放/暂停',
-                        'space',
-                        'space,up,w',
-                        space || '',
-                        setSpace
-                    )}
-                    {itemEle(
-                        '单句重复',
-                        'repeatSingle',
-                        'r',
-                        singleRepeat || '',
-                        setSingleRepeat
-                    )}
-                    {itemEle(
-                        '展示/隐藏英文',
-                        'showEn',
-                        'e',
-                        showEn || '',
-                        setShowEn
-                    )}
-                    {itemEle(
-                        '展示/隐藏中文',
-                        'showCn',
-                        'c',
-                        showCn || '',
-                        setShowCn
-                    )}
-                    {itemEle(
-                        '展示/隐藏中英',
-                        'showEnCn',
-                        'b',
-                        showEnCn || '',
-                        setShowEnCn
-                    )}
-                </div>
+        <form
+            className="h-full overflow-y-auto  p-8 "
+            onSubmit={handleSubmit}
+        >
+            <h1 className="text-2xl font-bold">快捷键</h1>
+            <text className="">多个快捷键用 , 分割</text>
 
-                <div className="flex items-center justify-end">
-                    <button
-                        className="text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5
+            <div className=" flex flex-col gap-5 pb-5 pt-6">
+                {itemEle('上一句', 'last', 'left,a', last || '', setLast)}
+                {itemEle('下一句', 'next', 'right,d', next || '', setNext)}
+                {itemEle('重复', 'repeat', 'down,s', repeat || '', setRepeat)}
+                {itemEle(
+                    '播放/暂停',
+                    'space',
+                    'space,up,w',
+                    space || '',
+                    setSpace
+                )}
+                {itemEle(
+                    '单句重复',
+                    'repeatSingle',
+                    'r',
+                    singleRepeat || '',
+                    setSingleRepeat
+                )}
+                {itemEle(
+                    '展示/隐藏英文',
+                    'showEn',
+                    'e',
+                    showEn || '',
+                    setShowEn
+                )}
+                {itemEle(
+                    '展示/隐藏中文',
+                    'showCn',
+                    'c',
+                    showCn || '',
+                    setShowCn
+                )}
+                {itemEle(
+                    '展示/隐藏中英',
+                    'showEnCn',
+                    'b',
+                    showEnCn || '',
+                    setShowEnCn
+                )}
+            </div>
+
+            <div className="flex items-center justify-end">
+                <button
+                    className="text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5
                         disabled:bg-gray-500 bg-blue-500 hover:bg-blue-700"
-                        onClick={handleSubmit}
-                        disabled={eqServer}
-                        type="button"
-                    >
-                        Apply
-                    </button>
-                </div>
-            </form>
-        </div>
+                    onClick={handleSubmit}
+                    disabled={eqServer}
+                    type="button"
+                >
+                    Apply
+                </button>
+            </div>
+        </form>
     );
 };
 export default ShortcutSetting;

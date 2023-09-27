@@ -99,6 +99,7 @@ export const createPlayerWindow = async () => {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
+        settingWindow?.close();
     });
 
     const menuBuilder = new MenuBuilder(mainWindow);

@@ -41,18 +41,18 @@ export default function SettingKey() {
     };
 
     return (
-        <div className="w-full h-screen mx-auto bg-gray-200 overflow-hidden">
+        <div className="w-full h-screen flex flex-col mx-auto bg-gray-200 overflow-hidden">
             {isWindows && <TitleBarSettingWindows />}
-            <div className="flex flex-row flex-wrap py-4">
+            <div className="flex flex-row flex-1 h-0">
                 <aside className="w-1/3 select-none">
-                    <div className="sticky top-0 p-4 w-full flex flex-col gap-2">
+                    <div className="sticky top-0 p-4 pt-6 w-full flex flex-col gap-2">
                         {ele('快捷键', 'shortcut')}
                         {ele('腾讯密钥', 'tenant')}
                         {ele('有道密钥', 'you-dao')}
                         {ele('存储', 'storage')}
                     </div>
                 </aside>
-                <main role="main" className="w-2/3 pt-1 px-2 h-full ">
+                <main role="main" className="w-0 flex-1 pt-1 px-2 h-full ">
                     {settingType === 'tenant' && <TenantSetting />}
                     {settingType === 'you-dao' && <YouDaoSetting />}
                     {settingType === 'shortcut' && <ShortcutSetting />}
