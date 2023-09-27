@@ -139,7 +139,7 @@ export default function Subtitle({
             // <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
             <Virtuoso
                 ref={listRef}
-                className="h-full w-full shadow-inner shadow-neutral-900"
+                className="h-full w-full"
                 data={subtitles}
                 rangeChanged={({ startIndex, endIndex }) => {
                     setVisibleRange([startIndex, endIndex]);

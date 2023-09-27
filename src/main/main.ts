@@ -117,6 +117,12 @@ export const createPlayerWindow = async () => {
     mainWindow?.on('leave-full-screen', () => {
         mainWindow?.setWindowButtonVisibility(false);
     });
+    mainWindow.on('maximize', () => {
+        mainWindow?.webContents.send('maximize');
+    });
+    mainWindow.on('unmaximize', () => {
+        mainWindow?.webContents.send('unmaximize');
+    });
     // Remove this if your app does not use auto updates
     // eslint-disable-next-line
     // new AppUpdater();
@@ -163,7 +169,12 @@ const createSettingWindow = async () => {
     settingWindow.on('closed', () => {
         settingWindow = null;
     });
-
+    settingWindow.on('maximize', () => {
+        settingWindow?.webContents.send('maximize-setting');
+    });
+    settingWindow.on('unmaximize', () => {
+        settingWindow?.webContents.send('unmaximize-setting');
+    });
     const menuBuilder = new MenuBuilder(settingWindow);
     menuBuilder.buildMenu();
 

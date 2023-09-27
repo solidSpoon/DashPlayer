@@ -41,6 +41,15 @@ const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
 };
 
+const on = (channel: Channels, func: (...args: unknown[]) => void) => {
+    const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
+        func(...args);
+    ipcRenderer.on(channel, subscription);
+
+    return () => {
+        ipcRenderer.removeListener(channel, subscription);
+    };
+};
 const electronHandler = {
     ipcRenderer: {
         sendMessage(channel: Channels, args: unknown[]) {
@@ -142,6 +151,18 @@ const electronHandler = {
             'batch-translate',
             sentences
         )) as SentenceApiParam[];
+    },
+    onMaximize: (func: () => void) => {
+        return on('maximize', func);
+    },
+    onUnMaximize: (func: () => void) => {
+        return on('unmaximize', func);
+    },
+    onSettingMaximize: (func: () => void) => {
+        return on('maximize-setting', func);
+    },
+    onSettingUnMaximize: (func: () => void) => {
+        return on('unmaximize-setting', func);
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

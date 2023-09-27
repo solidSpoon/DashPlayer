@@ -1,17 +1,37 @@
-import React from 'react';
-import { AiOutlineClose, AiOutlineMinus } from 'react-icons/ai';
+import React, { useEffect } from 'react';
+import { AiOutlineClose, AiOutlineCompress, AiOutlineMinus } from "react-icons/ai";
 import { FiMaximize } from 'react-icons/fi';
 
 const api = window.electron;
 
 const TitleBarSettingWindows = () => {
-    const onMaximize = async () => {
-        const isMaximized = await api.isSettingMaximized();
-        if (isMaximized) {
-            await api.unMaximizeSetting();
-        } else {
-            await api.maximizeSetting();
-        }
+    const [isMaximized, setIsMaximized] = React.useState(false);
+
+    useEffect(() => {
+        const init = async () => {
+            const isM = await api.isSettingMaximized();
+            setIsMaximized(isM);
+        };
+        init();
+        const removeMaximize = api.onSettingMaximize(() =>
+            setIsMaximized(true)
+        );
+        const removeUnMaximize = api.onSettingUnMaximize(() =>
+            setIsMaximized(false)
+        );
+
+        return () => {
+            removeMaximize();
+            removeUnMaximize();
+        };
+    });
+
+    const maximize = async () => {
+        await api.maximizeSetting();
+    };
+
+    const unMaximize = async () => {
+        await api.unMaximizeSetting();
     };
 
     const onMinimize = async () => {
@@ -23,16 +43,24 @@ const TitleBarSettingWindows = () => {
     };
 
     return (
-        <div className="select-none w-full drag h-7 flex  justify-end items-center bg-neutral-800 text-neutral-200 shadow-inner shadow-neutral-700 space-x-2 drop-shadow">
+        <div className="select-none w-full drag h-7 flex  justify-end items-center bg-neutral-800 text-neutral-200 space-x-2 drop-shadow">
             <div className="no-drag flex space-x-2 h-full justify-center items-center">
                 <AiOutlineMinus
                     className="hover:bg-neutral-500 w-7 h-7 p-1"
                     onClick={onMinimize}
                 />
-                <FiMaximize
-                    className="hover:bg-neutral-500 w-7 h-7 p-1"
-                    onClick={onMaximize}
-                />
+                {isMaximized ? (
+                    <AiOutlineCompress
+                        className="hover:bg-neutral-500 w-7 h-7 p-1"
+                        onClick={unMaximize}
+                    />
+                ) : (
+                    <FiMaximize
+                        className="hover:bg-neutral-500 w-7 h-7 p-1"
+                        onClick={maximize}
+                    />
+                )}
+
                 <AiOutlineClose
                     className="hover:bg-neutral-500 w-7 h-7 p-1"
                     onClick={onClose}

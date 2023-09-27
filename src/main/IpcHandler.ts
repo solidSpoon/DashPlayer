@@ -33,6 +33,10 @@ const handle = (
     });
 };
 
+const sent = (channel: Channels, ...args: any[]) => {
+    mainWindow?.webContents.send(channel, ...args);
+};
+
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
         log.info('ipcMain update-process', arg);
@@ -197,4 +201,10 @@ export default function registerHandler() {
         log.info('clear-cache');
         await clearCache();
     });
+    // mainWindow?.on('maximize', () => {
+    //     sent('maximize');
+    // });
+    // mainWindow?.on('unmaximize', () => {
+    //     sent('unmaximize');
+    // });
 }
