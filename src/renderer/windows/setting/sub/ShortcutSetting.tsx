@@ -1,6 +1,27 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { white } from 'chalk';
 import callApi from '../../../lib/apis/ApiWrapper';
 import { ShortCutValue } from '../../../components/GlobalShortCut';
+
+export const defaultShortcut: ShortCutValue = {
+    last: 'left,a',
+    next: 'right,d',
+    repeat: 'down,s',
+    space: 'space,up,w',
+    singleRepeat: 'r',
+    showEn: 'e',
+    showCn: 'c',
+    sowEnCn: 'b',
+};
+
+function notify(res: string) {
+    const notification = new Notification('快捷键重复', {
+        body: `快捷键 ${res} 重复`,
+    });
+    notification.onclick = () => {
+        window.focus();
+    };
+}
 
 const ShortcutSetting = () => {
     const [last, setLast] = useState<string>('');
@@ -24,9 +45,10 @@ const ShortcutSetting = () => {
         serverValue?.showCn === showCn &&
         serverValue?.sowEnCn === showEnCn;
     const updateFromServer = async () => {
-        const newVar = (await callApi('get-shortcut', [])) as string;
+        let newVar = (await callApi('get-shortcut', [])) as string;
         if (!newVar || newVar === '') {
-            return;
+            newVar = JSON.stringify(defaultShortcut);
+            await callApi('update-shortcut', [newVar]);
         }
         const sc: ShortCutValue = JSON.parse(newVar);
         setLast(sc.last);
@@ -43,17 +65,62 @@ const ShortcutSetting = () => {
         updateFromServer();
     }, []);
 
+    const process = (base: string | undefined, def: string) => {
+        let baseStr = (base ?? '').trim();
+        baseStr = baseStr
+            .split(',')
+            .filter((item) => item.trim() !== '')
+            .join(',');
+        if (baseStr.trim() === '') {
+            return def;
+        }
+        return baseStr.replaceAll(' ', '');
+    };
+    const verify = (sc: ShortCutValue): string | null => {
+        // 校验有没有重复的
+        const arr = [
+            sc.last,
+            sc.next,
+            sc.repeat,
+            sc.space,
+            sc.singleRepeat,
+            sc.showEn,
+            sc.showCn,
+            sc.sowEnCn,
+        ];
+        const set = new Set<string>();
+        // eslint-disable-next-line no-restricted-syntax
+        for (const item of arr) {
+            const items = item.split(',');
+            // eslint-disable-next-line no-restricted-syntax
+            for (const i of items) {
+                if (i.trim() !== '') {
+                    if (set.has(i)) {
+                        return i;
+                    }
+                    set.add(i);
+                }
+            }
+        }
+        return null;
+    };
     const handleSubmit = async () => {
         const sc: ShortCutValue = {
-            last: last ?? '',
-            next: next ?? '',
-            repeat: repeat ?? '',
-            space: space ?? '',
-            singleRepeat: singleRepeat ?? '',
-            showEn: showEn ?? '',
-            showCn: showCn ?? '',
-            sowEnCn: showEnCn ?? '',
+            last: process(last, defaultShortcut.last),
+            next: process(next, defaultShortcut.next),
+            repeat: process(repeat, defaultShortcut.repeat),
+            space: process(space, defaultShortcut.space),
+            singleRepeat: process(singleRepeat, defaultShortcut.singleRepeat),
+            showEn: process(showEn, defaultShortcut.showEn),
+            showCn: process(showCn, defaultShortcut.showCn),
+            sowEnCn: process(showEnCn, defaultShortcut.sowEnCn),
         };
+        const res = verify(sc);
+        if (res) {
+            notify(res);
+            return;
+        }
+
         await callApi('update-shortcut', [JSON.stringify(sc)]);
         await updateFromServer();
     };
@@ -84,49 +151,64 @@ const ShortcutSetting = () => {
     };
 
     return (
-        <form
-            className="h-full overflow-y-auto  p-8 "
-            onSubmit={handleSubmit}
-        >
+        <form className="h-full overflow-y-auto  p-8 " onSubmit={handleSubmit}>
             <h1 className="text-2xl font-bold">快捷键</h1>
             <text className="">多个快捷键用 , 分割</text>
 
             <div className=" flex flex-col gap-5 pb-5 pt-6">
-                {itemEle('上一句', 'last', 'left,a', last || '', setLast)}
-                {itemEle('下一句', 'next', 'right,d', next || '', setNext)}
-                {itemEle('重复', 'repeat', 'down,s', repeat || '', setRepeat)}
+                {itemEle(
+                    '上一句',
+                    'last',
+                    defaultShortcut.last,
+                    last || '',
+                    setLast
+                )}
+                {itemEle(
+                    '下一句',
+                    'next',
+                    defaultShortcut.next,
+                    next || '',
+                    setNext
+                )}
+                {itemEle(
+                    '重复',
+                    'repeat',
+                    defaultShortcut.repeat,
+                    repeat || '',
+                    setRepeat
+                )}
                 {itemEle(
                     '播放/暂停',
                     'space',
-                    'space,up,w',
+                    defaultShortcut.space,
                     space || '',
                     setSpace
                 )}
                 {itemEle(
                     '单句重复',
                     'repeatSingle',
-                    'r',
+                    defaultShortcut.singleRepeat,
                     singleRepeat || '',
                     setSingleRepeat
                 )}
                 {itemEle(
                     '展示/隐藏英文',
                     'showEn',
-                    'e',
+                    defaultShortcut.showEn,
                     showEn || '',
                     setShowEn
                 )}
                 {itemEle(
                     '展示/隐藏中文',
                     'showCn',
-                    'c',
+                    defaultShortcut.showCn,
                     showCn || '',
                     setShowCn
                 )}
                 {itemEle(
                     '展示/隐藏中英',
                     'showEnCn',
-                    'b',
+                    defaultShortcut.sowEnCn,
                     showEnCn || '',
                     setShowEnCn
                 )}

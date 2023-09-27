@@ -12,6 +12,7 @@ import {
     space,
 } from '../lib/CallAction';
 import callApi from '../lib/apis/ApiWrapper';
+import { defaultShortcut } from '../windows/setting/sub/ShortcutSetting';
 
 const api = window.electron;
 
@@ -73,9 +74,9 @@ export default function GlobalShortCut(
 
     useEffect(() => {
         const updateFromServer = async () => {
-            const newVar = (await callApi('get-shortcut', [])) as string;
+            let newVar = (await callApi('get-shortcut', [])) as string;
             if (!newVar || newVar === '') {
-                return;
+                newVar = JSON.stringify(defaultShortcut);
             }
             const newVal: ShortCutValue = JSON.parse(newVar);
             const eqServer =
@@ -124,20 +125,25 @@ export default function GlobalShortCut(
         const keyArr = finalValues
             .split(',')
             .map((k) => k.trim())
+            .filter((k) => k !== '')
             .map((k) => k.toUpperCase());
         keyArr.forEach((k) => {
             events[`on${k}`] = onAction.bind(this, action);
         });
     };
 
-    registerKey(shortCutValue?.last, 'a', prev());
-    registerKey(shortCutValue?.next, 'd', next());
-    registerKey(shortCutValue?.repeat, 's', repeat());
-    registerKey(shortCutValue?.space, 'w', space());
-    registerKey(shortCutValue?.singleRepeat, 'r', singleRepeat());
-    registerKey(shortCutValue?.showEn, 'e', showEn());
-    registerKey(shortCutValue?.showCn, 'c', showCn());
-    registerKey(shortCutValue?.sowEnCn, 'b', showEnCn());
+    registerKey(shortCutValue?.last, defaultShortcut.last, prev());
+    registerKey(shortCutValue?.next, defaultShortcut.next, next());
+    registerKey(shortCutValue?.repeat, defaultShortcut.repeat, repeat());
+    registerKey(shortCutValue?.space, defaultShortcut.space, space());
+    registerKey(
+        shortCutValue?.singleRepeat,
+        defaultShortcut.singleRepeat,
+        singleRepeat()
+    );
+    registerKey(shortCutValue?.showEn, defaultShortcut.showEn, showEn());
+    registerKey(shortCutValue?.showCn, defaultShortcut.showCn, showCn());
+    registerKey(shortCutValue?.sowEnCn, defaultShortcut.sowEnCn, showEnCn());
 
     console.log('register events', events);
     return (
