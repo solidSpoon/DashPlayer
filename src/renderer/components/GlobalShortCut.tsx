@@ -1,7 +1,19 @@
-import { Component, ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import Keyevent from 'react-keyevent';
-import { Action, next, prev, repeat, showCn, showEn, showEnCn, singleRepeat, space } from '../lib/CallAction';
+import {
+    Action,
+    next,
+    prev,
+    repeat,
+    showCn,
+    showEn,
+    showEnCn,
+    singleRepeat,
+    space,
+} from '../lib/CallAction';
 import callApi from '../lib/apis/ApiWrapper';
+
+const api = window.electron;
 
 export enum JumpPosition {
     BEFORE = 0,
@@ -79,11 +91,21 @@ export default function GlobalShortCut(
                 setShortCutValue(newVal);
             }
         };
-        const interval = setInterval(() => {
-            updateFromServer();
-        }, 5000);
-        return () => clearInterval(interval);
+        const unSub = api.onSettingUpdate(updateFromServer);
+        return () => {
+            unSub();
+        };
     }, [shortCutValue]);
+
+    useEffect(() => {
+        const fun = () => {
+            console.log('sssssss');
+        };
+        const unSub = api.onSettingUpdate(fun);
+        return () => {
+            unSub();
+        };
+    }, []);
 
     const events: { [key: string]: () => void } = {};
     events.onLeft = onAction.bind(this, prev());

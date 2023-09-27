@@ -73,6 +73,7 @@ export default function registerHandler() {
         log.info('update-tenant-secret');
         await updateTencentSecret(secretId, secretKey);
         event.reply('update-tenant-secret', 'success');
+        mainWindow?.webContents.send('setting-update');
     });
     ipcMain.on('get-tenant-secret', async (event) => {
         log.info('get-tenant-secret');
@@ -85,6 +86,7 @@ export default function registerHandler() {
         log.info('update-you-dao-secret');
         await updateYouDaoSecret(secretId, secretKey);
         event.reply('update-you-dao-secret', 'success');
+        mainWindow?.webContents.send('setting-update');
     });
     ipcMain.on('get-you-dao-secret', async (event) => {
         log.info('get-you-dao-secret');
@@ -116,6 +118,7 @@ export default function registerHandler() {
         const [shortcut] = args;
         const success = await updateShortCut(shortcut);
         event.reply('update-shortcut', success);
+        mainWindow?.webContents.send('setting-update');
     });
     ipcMain.on('get-shortcut', async (event) => {
         log.info('get-shortcut');

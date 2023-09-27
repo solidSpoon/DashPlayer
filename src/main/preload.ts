@@ -15,6 +15,7 @@ export type Channels =
     | 'update-you-dao-secret'
     | 'update-shortcut'
     | 'get-shortcut'
+    | 'setting-update'
     | 'maximize'
     | 'unmaximize'
     | 'is-maximized'
@@ -163,6 +164,9 @@ const electronHandler = {
     },
     onSettingUnMaximize: (func: () => void) => {
         return on('unmaximize-setting', func);
+    },
+    onSettingUpdate: (func: () => void) => {
+        return on('setting-update', func);
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
