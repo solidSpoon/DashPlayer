@@ -91,7 +91,9 @@ export default class BorderProgressBar extends Component<
                             isLabelVisible={false}
                             height="8px"
                             width="100%"
-                            borderRadius="0 8px 8px 0"
+                            borderRadius={`${
+                                hasSubTitle ? '0 8px 8px 0' : '0'
+                            }`}
                         />
                     </div>
                     <div
