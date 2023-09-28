@@ -7,8 +7,9 @@ import ShortcutSetting from './sub/ShortcutSetting';
 import TitleBarSettingWindows from '../../components/TitleBarSettingWindows';
 import './SettingKey.css';
 import StorageSetting from './sub/StorageSetting';
+import CheckUpdate from './sub/CheckUpdate';
 
-type SettingType = 'you-dao' | 'tenant' | 'shortcut' | 'storage';
+type SettingType = 'you-dao' | 'tenant' | 'shortcut' | 'storage' | 'update';
 
 export default function SettingKey() {
     const [settingType, setSettingType] = useState<SettingType>('shortcut');
@@ -50,6 +51,7 @@ export default function SettingKey() {
                         {ele('腾讯密钥', 'tenant')}
                         {ele('有道密钥', 'you-dao')}
                         {ele('存储', 'storage')}
+                        {ele('版本更新', 'update')}
                     </div>
                 </aside>
                 <main role="main" className="w-0 flex-1 pt-1 px-2 h-full ">
@@ -57,6 +59,7 @@ export default function SettingKey() {
                     {settingType === 'you-dao' && <YouDaoSetting />}
                     {settingType === 'shortcut' && <ShortcutSetting />}
                     {settingType === 'storage' && <StorageSetting />}
+                    {settingType === 'update' && <CheckUpdate />}
                 </main>
             </div>
         </div>

@@ -1,32 +1,28 @@
-import { Octokit } from '@octokit/core';
-
-const octokit = new Octokit({});
+import axios from 'axios';
+import { app } from 'electron';
 
 export interface Release {
     url: string;
     version: string;
-    description: string;
 }
 
-const a = async (): Promise<Release | null> => {
-    const res = await octokit.request(
-        'GET /repos/{owner}/{repo}/releases/latest',
-        {
-            owner: 'solidSpoon',
-            repo: 'DashPlayer',
-            headers: {
-                'X-GitHub-Api-Version': '2022-11-28',
-            },
-        }
+export const checkUpdate = async (): Promise<Release | null> => {
+    const currentVersion = app.getVersion();
+
+    const result = await axios.get(
+        'https://api.github.com/repos/solidSpoon/DashPlayer/releases/latest'
     );
-    if (res.status !== 200) {
+
+    if (result.status !== 200) {
         return null;
     }
-    const { data } = res;
+
+    if (result.data.tag_name === `v${currentVersion}`) {
+        return null;
+    }
+
     return {
-        url: data.html_url,
-        version: data.tag_name,
-        description: data.body ?? '',
+        url: result.data.html_url,
+        version: result.data.tag_name,
     };
 };
-a();

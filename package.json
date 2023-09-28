@@ -111,7 +111,6 @@
     },
     "dependencies": {
         "@floating-ui/react": "^0.25.4",
-        "@octokit/core": "^5.0.1",
         "@ramonak/react-progress-bar": "^5.0.3",
         "@turf/convex": "^6.5.0",
         "@turf/turf": "^6.5.0",
