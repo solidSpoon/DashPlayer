@@ -42,16 +42,22 @@ const TitleBarMac = ({ title, show }: TitleBarProps) => {
         <div onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
-                className={`drag w-full h-10 absolute top-0 z-50 content-center text-black flex flex-col justify-center items-center select-none ${
-                    showTitleBar
-                        ? 'bg-stone-200 shadow-inner shadow-stone-100 drop-shadow'
-                        : ''
+                className={`drag w-full h-10 absolute top-0 z-50 content-center text-black flex flex-col justify-center items-center select-none -translate-x-2 ${
+                    showTitleBar ? 'bg-stone-200' : ''
                 }`}
                 onDoubleClick={() => {
                     onDoubleClick();
                 }}
             >
                 <span className="text-black">{showTitleBar ? title : ''}</span>
+            </div>
+
+            <div
+                className={`absolute top-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2 ${
+                    showTitleBar ? 'translate-y-10' : ''
+                }`}
+            >
+                <div className="w-full h-full rounded-tr-full bg-neutral-800" />
             </div>
         </div>
     );

@@ -41,7 +41,9 @@ export default function SideSentence({
         <div
             className="
                 m-1.5
+                {/*mr-0*/}
                 py-2
+                pr-2
                 border-0
                 flex
                 content-start
@@ -53,6 +55,7 @@ export default function SideSentence({
                 hover:drop-shadow-lg
                 text-lg
                 drop-shadow
+                {/*translate-x-1*/}
                 "
             onClick={() => {
                 onClick(sentence);

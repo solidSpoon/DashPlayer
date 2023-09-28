@@ -103,6 +103,7 @@ export default function App() {
             />
             <div id="progressBarRef">
                 <BorderProgressBar
+                    hasSubTitle={subtitleFile !== undefined}
                     getCurrentTime={() => progress.current}
                     getTotalTime={() => totalTime.current}
                 />
