@@ -105,7 +105,7 @@ export default function App() {
                 }}
                 onSelectingFile={(isSelect) => setShowTitleBar(isSelect)}
             />
-            <div id="progressBarRef">
+            <div id="progressBarRef" className='z-50'>
                 <BorderProgressBar
                     hasSubTitle={subtitleFile !== undefined}
                     getCurrentTime={() => progress.current}
