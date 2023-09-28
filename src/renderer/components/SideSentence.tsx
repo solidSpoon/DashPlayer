@@ -47,8 +47,8 @@ export default function SideSentence({
                 content-start
                 rounded-lg
                 bg-neutral-700
-                hover:shadow-inner
-                hover:shadow-neutral-500
+                {/*hover:shadow-inner*/}
+                {/*hover:shadow-neutral-500*/}
                 hover:bg-neutral-600
                 hover:drop-shadow-lg
                 text-lg

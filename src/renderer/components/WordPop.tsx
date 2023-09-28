@@ -125,6 +125,9 @@ const WordPop = React.forwardRef(
                     {...getFloatingProps()}
                     ref={refs.setFloating}
                     style={floatingStyles}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                    }}
                 >
                     <div className="z-50" ref={ref}>
                         {popper()}
