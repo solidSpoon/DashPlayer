@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { YdRes } from '../renderer/lib/param/yd/a';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
+import { Release } from './controllers/CheckUpdate';
 
 export type Channels =
     | 'ipc-example'
@@ -36,7 +37,9 @@ export type Channels =
     | 'get-audio'
     | 'open-data-dir'
     | 'query-cache-size'
-    | 'clear-cache';
+    | 'clear-cache'
+    | 'open-url'
+    | 'check-update';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -158,6 +161,12 @@ const electronHandler = {
     },
     queryProgress: async (fileName: string) => {
         return (await invoke('query-progress', fileName)) as number;
+    },
+    checkUpdate: async () => {
+        return (await invoke('check-update')) as Release | undefined;
+    },
+    openUrl: async (url: string) => {
+        await invoke('open-url', url);
     },
     onMaximize: (func: () => void) => {
         return on('maximize', func);
