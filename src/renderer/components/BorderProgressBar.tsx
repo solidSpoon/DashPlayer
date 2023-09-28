@@ -78,10 +78,7 @@ export default class BorderProgressBar extends Component<
                 <div className="w-full h-2 bg-stone-200" />
                 <div
                     className={`w-full flex flex-col-reverse
-                items-end absolute bottom-0 h-10 mt-60
-                 ${isHover ? 'bg-stone-200' : ''}`}
-                    onMouseEnter={this.mouseEnter}
-                    onMouseLeave={this.mouseLeave}
+                items-end absolute bottom-0 h-10 mt-60 pointer-events-none`}
                 >
                     <div className="w-full z-50">
                         <ProgressBar
@@ -96,15 +93,33 @@ export default class BorderProgressBar extends Component<
                             }`}
                         />
                     </div>
-                    <div
-                        className={`mr-5 ${isHover ? 'visible' : 'invisible'}`}
-                    >
-                        <PlayTime
-                            getProgress={getCurrentTime}
-                            getTotalTime={getTotalTime}
+                    <div className="flex flex-row-reverse items-end justify-end -translate-x-2">
+                        <div
+                            className={`pr-4 pt-2 pl-4 pointer-events-auto rounded-tl-lg ${
+                                isHover ? 'bg-stone-200' : ''
+                            }`}
+                            onMouseEnter={this.mouseEnter}
+                            onMouseLeave={this.mouseLeave}
+                        >
+                            <PlayTime
+                                textClassName={`${
+                                    isHover ? 'text-black' : 'text-transparent'
+                                }`}
+                                getProgress={getCurrentTime}
+                                getTotalTime={getTotalTime}
+                            />
+                        </div>
+                        <div
+                            style={{
+                                visibility: isHover ? 'visible' : 'hidden',
+                                width: '5px',
+                                height: '5px',
+                                background:
+                                    'radial-gradient(circle at 0% 0%, transparent 5px, rgb(231 229 228) 0)',
+                            }}
                         />
                     </div>
-                    {hasSubTitle && (
+                    {(hasSubTitle || isHover) && (
                         <div
                             className={`absolute bottom-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2
                         ${isHover ? '-translate-y-10' : '-translate-y-2'}`}

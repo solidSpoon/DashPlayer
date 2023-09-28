@@ -1,6 +1,7 @@
 import { Component } from 'react';
 
 interface PlayTimeParam {
+    textClassName: string;
     getProgress: () => number;
     getTotalTime: () => number;
 }
@@ -55,8 +56,9 @@ export default class PlayTime extends Component<
 
     render() {
         const { progress, totalTime } = this.state;
+        const { textClassName } = this.props;
         return (
-            <div className="text-black">
+            <div className={textClassName}>
                 <span className="rounded">{progress}</span>
                 &nbsp;/&nbsp;
                 <span className="rounded">{totalTime}</span>
