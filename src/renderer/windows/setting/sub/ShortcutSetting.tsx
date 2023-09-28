@@ -151,7 +151,10 @@ const ShortcutSetting = () => {
     };
 
     return (
-        <form className="h-full overflow-y-auto  p-8 " onSubmit={handleSubmit}>
+        <form
+            className="h-full overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-white scrollbar-thumb-rounded-sm"
+            onSubmit={handleSubmit}
+        >
             <h1 className="text-2xl font-bold">快捷键</h1>
             <text className="">多个快捷键用 , 分割</text>
 

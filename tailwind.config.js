@@ -14,5 +14,6 @@ module.exports = {
     variants: {
         extend: {},
     },
+    // eslint-disable-next-line global-require
     plugins: [require('tailwind-scrollbar')({ nocompatible: true })],
 };

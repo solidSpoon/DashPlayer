@@ -1,4 +1,4 @@
-import { ChangeEvent, Component, FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import 'tailwindcss/tailwind.css';
 import callApi from '../../lib/apis/ApiWrapper';
 import TenantSetting from './sub/TenantSetting';
