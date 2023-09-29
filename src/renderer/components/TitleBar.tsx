@@ -5,11 +5,12 @@ import TitleBarWindows from './TitleBarWindows';
 import TitleBarMac from './TitleBarMac';
 
 export interface TitleBarProps {
+    hasSubTitle: boolean;
     title: string | undefined;
     show: boolean;
 }
 
-const TitleBar = ({ title, show }: TitleBarProps) => {
+const TitleBar = ({ hasSubTitle, title, show }: TitleBarProps) => {
     const [isWindows, setIsWindows] = useState<boolean>(false);
 
     useEffect(() => {
@@ -24,9 +25,9 @@ const TitleBar = ({ title, show }: TitleBarProps) => {
     return (
         <>
             {isWindows ? (
-                <TitleBarWindows title={title} />
+                <TitleBarWindows hasSubtitle={hasSubTitle} title={title} />
             ) : (
-                <TitleBarMac title={title} show={show} />
+                <TitleBarMac hasSubtitle={hasSubTitle} title={title} show={show} />
             )}
         </>
     );

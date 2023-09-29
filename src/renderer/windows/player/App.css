@@ -45,3 +45,9 @@ body {
     background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
     cursor: row-resize;
 }
+
+.out-radio-10 {
+    width: 10px;
+    height: 10px;
+    background: radial-gradient(circle at 0% 0%, transparent 10px, rgb(231 229 228) 0);
+}

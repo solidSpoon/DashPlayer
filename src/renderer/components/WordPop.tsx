@@ -56,7 +56,7 @@ const WordPop = React.forwardRef(
             const { basic } = translation;
             return (
                 <div
-                    className={`relative top-0 left-0 max-w-sm max-h-96 overflow-y-auto flex flex-col items-start  bg-gray-200 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 ${
+                    className={`relative top-0 left-0 max-w-sm max-h-96 overflow-y-auto flex flex-col items-start  bg-gray-200 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none ${
                         basic && 'pt-4'
                     }`}
                 >
