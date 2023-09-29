@@ -14,6 +14,7 @@ async function getAudioUrl(outURl: string) {
 async function playAudioUrl(audioUrl: string) {
     player?.pause();
     player = new Audio(audioUrl);
+    player.volume = 0.5;
     await player.play();
 }
 
