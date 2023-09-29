@@ -38,7 +38,7 @@ const TenantSetting = () => {
     };
     return (
         <div className="w-full">
-            <form className=" px-8 pt-6 pb-8 mb-4" onSubmit={handleSubmit}>
+            <form className=" px-10 pt-6 pb-8 mb-4" onSubmit={handleSubmit}>
                 <h1 className="text-2xl font-bold mb-2">腾讯密钥</h1>
                 <div className="mb-4">
                     <label
