@@ -25,7 +25,7 @@ const StorageSetting = () => {
     };
 
     return (
-        <div className="w-full px-8 pt-6 pb-8 mb-4">
+        <div className="w-full px-10 pt-6 pb-8 mb-4">
             <h1 className="text-2xl font-bold">存储</h1>
             <text>
                 DashPlayer 会缓存翻译结果，以降低 API 调用成本。

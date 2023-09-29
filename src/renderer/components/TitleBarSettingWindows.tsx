@@ -43,26 +43,26 @@ const TitleBarSettingWindows = () => {
     };
 
     return (
-        <div className="select-none w-full drag h-7 flex  justify-end items-center bg-neutral-800 text-neutral-200 space-x-2 drop-shadow">
-            <div className="no-drag flex space-x-2 h-full justify-center items-center">
+        <div className="select-none w-full drag h-6 flex  justify-end items-center bg-stone-200 text-neutral-900 gap-x-2 drop-shadow">
+            <div className="no-drag flex h-full justify-center items-center">
                 <AiOutlineMinus
-                    className="hover:bg-neutral-500 w-7 h-7 p-1"
+                    className="hover:bg-neutral-300 w-6 h-6 p-1"
                     onClick={onMinimize}
                 />
                 {isMaximized ? (
                     <AiOutlineCompress
-                        className="hover:bg-neutral-500 w-7 h-7 p-1"
+                        className="hover:bg-neutral-300 w-6 h-6 p-[5px]"
                         onClick={unMaximize}
                     />
                 ) : (
                     <FiMaximize
-                        className="hover:bg-neutral-500 w-7 h-7 p-1"
+                        className="hover:bg-neutral-300 w-6 h-6 p-[5px]"
                         onClick={maximize}
                     />
                 )}
 
                 <AiOutlineClose
-                    className="hover:bg-neutral-500 w-7 h-7 p-1"
+                    className="hover:bg-neutral-300 w-6 h-6 p-1"
                     onClick={onClose}
                 />
             </div>

@@ -39,7 +39,11 @@ export default function App() {
 
     return (
         <div className="h-screen w-full bg-neutral-800 font-face-arc overflow-hidden flex flex-col">
-            <TitleBar show={showTitleBar} title={videoFile?.fileName} />
+            <TitleBar
+                hasSubTitle={subtitleFile !== undefined}
+                show={showTitleBar}
+                title={videoFile?.fileName}
+            />
             <RecordProgress
                 getCurrentProgress={() => progress.current}
                 videoFile={videoFile}
@@ -101,8 +105,9 @@ export default function App() {
                 }}
                 onSelectingFile={(isSelect) => setShowTitleBar(isSelect)}
             />
-            <div id="progressBarRef">
+            <div id="progressBarRef" className='z-50'>
                 <BorderProgressBar
+                    hasSubTitle={subtitleFile !== undefined}
                     getCurrentTime={() => progress.current}
                     getTotalTime={() => totalTime.current}
                 />

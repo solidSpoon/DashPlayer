@@ -4,6 +4,7 @@ import { visible, white } from 'chalk';
 import PlayTime from './PlayTime';
 
 interface BorderProgressBarParam {
+    hasSubTitle: boolean;
     getCurrentTime: () => number;
     getTotalTime: () => number;
 }
@@ -71,32 +72,48 @@ export default class BorderProgressBar extends Component<
 
     render() {
         const { completed, isHover } = this.state;
-        const { getTotalTime, getCurrentTime } = this.props;
+        const { getTotalTime, getCurrentTime, hasSubTitle } = this.props;
         return (
-            <div
-                className={`w-full flex flex-col-reverse
+            <>
+                <div className="w-full h-2 bg-stone-200" />
+                <div
+                    className={`w-full flex flex-col-reverse
                 items-end absolute bottom-0 h-10 mt-60
                  ${isHover ? 'bg-stone-200' : ''}`}
-                onMouseEnter={this.mouseEnter}
-                onMouseLeave={this.mouseLeave}
-            >
-                <div className="w-full">
-                    <ProgressBar
-                        completed={completed}
-                        transitionDuration="0.2s"
-                        isLabelVisible={false}
-                        height="8px"
-                        width="100%"
-                        borderRadius="0"
-                    />
+                    onMouseEnter={this.mouseEnter}
+                    onMouseLeave={this.mouseLeave}
+                >
+                    <div className="w-full z-50">
+                        <ProgressBar
+                            baseBgColor="rgb(231 229 228)"
+                            completed={completed}
+                            transitionDuration="0.2s"
+                            isLabelVisible={false}
+                            height="8px"
+                            width="100%"
+                            borderRadius={`${
+                                hasSubTitle ? '0 8px 8px 0' : '0'
+                            }`}
+                        />
+                    </div>
+                    <div
+                        className={`mr-5 ${isHover ? 'visible' : 'invisible'}`}
+                    >
+                        <PlayTime
+                            getProgress={getCurrentTime}
+                            getTotalTime={getTotalTime}
+                        />
+                    </div>
+                    {hasSubTitle && (
+                        <div
+                            className={`absolute bottom-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2
+                        ${isHover ? '-translate-y-10' : '-translate-y-2'}`}
+                        >
+                            <div className="w-full h-full rounded-br-full bg-neutral-800" />
+                        </div>
+                    )}
                 </div>
-                <div className={`mr-5 ${isHover ? 'visible' : 'invisible'}`}>
-                    <PlayTime
-                        getProgress={getCurrentTime}
-                        getTotalTime={getTotalTime}
-                    />
-                </div>
-            </div>
+            </>
         );
     }
 }
