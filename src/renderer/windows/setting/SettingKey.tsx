@@ -54,7 +54,7 @@ export default function SettingKey() {
                         {ele('版本更新', 'update')}
                     </div>
                 </aside>
-                <main role="main" className="w-0 flex-1 pt-1 px-2 h-full ">
+                <main role="main" className="w-0 flex-1 pt-1 pl-2 h-full ">
                     {settingType === 'tenant' && <TenantSetting />}
                     {settingType === 'you-dao' && <YouDaoSetting />}
                     {settingType === 'shortcut' && <ShortcutSetting />}

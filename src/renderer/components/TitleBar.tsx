@@ -25,7 +25,7 @@ const TitleBar = ({ hasSubTitle, title, show }: TitleBarProps) => {
     return (
         <>
             {isWindows ? (
-                <TitleBarWindows title={title} />
+                <TitleBarWindows hasSubtitle={hasSubTitle} title={title} />
             ) : (
                 <TitleBarMac hasSubtitle={hasSubTitle} title={title} show={show} />
             )}
