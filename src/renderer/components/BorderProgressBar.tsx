@@ -58,7 +58,7 @@ export default class BorderProgressBar extends Component<
             window.clearTimeout(id);
         }
         const func = () => this.setState({ isHover: true });
-        this.timeout.push(window.setTimeout(func, 400));
+        this.timeout.push(window.setTimeout(func, 50));
     };
 
     private mouseLeave = () => {
@@ -80,7 +80,11 @@ export default class BorderProgressBar extends Component<
                     className={`w-full flex flex-col-reverse
                 items-end absolute bottom-0 h-10 mt-60 pointer-events-none`}
                 >
-                    <div className="w-full z-50">
+                    <div
+                        className="w-full z-50 pointer-events-auto"
+                        onMouseEnter={this.mouseEnter}
+                        onMouseLeave={this.mouseLeave}
+                    >
                         <ProgressBar
                             baseBgColor="rgb(231 229 228)"
                             completed={completed}
@@ -93,21 +97,37 @@ export default class BorderProgressBar extends Component<
                             }`}
                         />
                     </div>
-                    <div className="flex flex-row-reverse items-end justify-end -translate-x-2">
+                    <div className="flex flex-row-reverse items-end justify-end">
                         <div
-                            className={`pr-4 pt-2 pl-4 pointer-events-auto rounded-tl-lg ${
+                            className={`w-2 h-full pointer-events-none ${
+                                isHover && !hasSubTitle ? 'bg-stone-200' : ''
+                            }`}
+                        />
+                        <div
+                            className={`   pointer-events-auto rounded-tl-lg ${
                                 isHover ? 'bg-stone-200' : ''
                             }`}
                             onMouseEnter={this.mouseEnter}
                             onMouseLeave={this.mouseLeave}
                         >
-                            <PlayTime
-                                textClassName={`${
-                                    isHover ? 'text-black' : 'text-transparent'
-                                }`}
-                                getProgress={getCurrentTime}
-                                getTotalTime={getTotalTime}
-                            />
+                            <div
+                                className={` m-2 mb-1 mr-1 p-1.5 rounded flex justify-center items-center h-6 font-mono
+                            ${
+                                isHover
+                                    ? 'bg-stone-300 shadow-inner shadow-stone-400'
+                                    : ''
+                            }`}
+                            >
+                                <PlayTime
+                                    textClassName={`${
+                                        isHover
+                                            ? 'text-black'
+                                            : 'text-transparent'
+                                    }`}
+                                    getProgress={getCurrentTime}
+                                    getTotalTime={getTotalTime}
+                                />
+                            </div>
                         </div>
                         <div
                             style={{
@@ -119,10 +139,10 @@ export default class BorderProgressBar extends Component<
                             }}
                         />
                     </div>
-                    {(hasSubTitle || isHover) && (
+                    {hasSubTitle && (
                         <div
                             className={`absolute bottom-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2
-                        ${isHover ? '-translate-y-10' : '-translate-y-2'}`}
+                        ${isHover ? '-translate-y-11' : '-translate-y-2'}`}
                         >
                             <div className="w-full h-full rounded-br-full bg-neutral-800" />
                         </div>
