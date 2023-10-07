@@ -129,23 +129,24 @@ export default class BorderProgressBar extends Component<
                                 />
                             </div>
                         </div>
-                        <div
-                            style={{
-                                visibility: isHover ? 'visible' : 'hidden',
-                                width: '5px',
-                                height: '5px',
-                                background:
-                                    'radial-gradient(circle at 0% 0%, transparent 5px, rgb(231 229 228) 0)',
-                            }}
-                        />
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 1 1"
+                            className="w-1.5 h-1.5 -rotate-90 fill-stone-200"
+                            visibility={isHover ? 'visible' : 'hidden'}
+                        >
+                            <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
+                        </svg>
                     </div>
                     {hasSubTitle && (
-                        <div
-                            className={`absolute bottom-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2
-                        ${isHover ? '-translate-y-11' : '-translate-y-2'}`}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 1 1"
+                            className={`absolute bottom-0 right-0 w-1 h-1 fill-stone-200 -translate-x-2 -rotate-90
+                            ${isHover ? '-translate-y-11' : '-translate-y-2'}`}
                         >
-                            <div className="w-full h-full rounded-br-full bg-neutral-800" />
-                        </div>
+                            <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
+                        </svg>
                     )}
                 </div>
             </>
