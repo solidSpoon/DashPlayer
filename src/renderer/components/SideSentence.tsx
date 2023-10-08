@@ -27,12 +27,12 @@ export default function SideSentence({
 
     const icon = () => {
         if (pause) {
-            return <LuPauseCircle className="w-10 h-6" />;
+            return <FiPlayCircle className="w-10 h-6" />;
         }
         return isRepeat ? (
             <BsArrowRepeat className="w-10 h-6" />
         ) : (
-            <FiPlayCircle className="w-10 h-6" />
+            <LuPauseCircle className="w-10 h-6" />
         );
     };
 
