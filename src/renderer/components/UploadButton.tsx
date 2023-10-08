@@ -51,7 +51,7 @@ export default function UploadButton({
             />
             {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
             <a
-                className="flex items-center justify-center bg-lime-700/80 hover:bg-lime-700/90 rounded-full w-12 h-12 drop-shadow-md fixed bottom-12 right-12 z-50"
+                className="flex items-center justify-center bg-lime-700/80 hover:bg-lime-700/90 rounded-full w-12 h-12 drop-shadow-md fixed bottom-12 right-12 z-50 backdrop-blur-3xl"
                 onClick={() => {
                     fileInputEl.current?.click(); // 当点击a标签的时候触发事件
                 }}
