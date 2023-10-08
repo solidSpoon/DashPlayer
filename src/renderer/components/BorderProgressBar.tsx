@@ -103,7 +103,9 @@ export default class BorderProgressBar extends Component<
                     <div className="flex flex-row-reverse items-end justify-end">
                         <div
                             className={`w-2 h-full pointer-events-none ${
-                                isHover && !hasSubTitle ? 'bg-stone-200' : ''
+                                isHover && !hasSubTitle
+                                    ? 'bg-scrollbarTrack'
+                                    : ''
                             }`}
                         />
                         <div
