@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { AiOutlineClose, AiOutlineCompress, AiOutlineMinus } from "react-icons/ai";
-import { FiMaximize } from 'react-icons/fi';
+import { VscChromeClose, VscChromeMinimize } from 'react-icons/vsc';
 
 const api = window.electron;
 
@@ -43,25 +42,13 @@ const TitleBarSettingWindows = () => {
     };
 
     return (
-        <div className="select-none w-full drag h-6 flex  justify-end items-center bg-stone-200 text-neutral-900 gap-x-2 drop-shadow">
+        <div className="select-none w-full drag h-6 flex  justify-end items-center bg-stone-200 drop-shadow">
             <div className="no-drag flex h-full justify-center items-center">
-                <AiOutlineMinus
+                <VscChromeMinimize
                     className="hover:bg-neutral-300 w-6 h-6 p-1"
                     onClick={onMinimize}
                 />
-                {isMaximized ? (
-                    <AiOutlineCompress
-                        className="hover:bg-neutral-300 w-6 h-6 p-[5px]"
-                        onClick={unMaximize}
-                    />
-                ) : (
-                    <FiMaximize
-                        className="hover:bg-neutral-300 w-6 h-6 p-[5px]"
-                        onClick={maximize}
-                    />
-                )}
-
-                <AiOutlineClose
+                <VscChromeClose
                     className="hover:bg-neutral-300 w-6 h-6 p-1"
                     onClick={onClose}
                 />

@@ -6,6 +6,7 @@ import {
 } from 'react-icons/ai';
 import { FiMaximize } from 'react-icons/fi';
 import { HiOutlineMenu } from 'react-icons/hi';
+import { VscChromeClose, VscChromeMaximize, VscChromeMinimize, VscChromeRestore } from 'react-icons/vsc';
 
 export interface TitleBarWindowsProps {
     hasSubtitle: boolean;
@@ -60,22 +61,22 @@ const TitleBarWindows = ({ title, hasSubtitle }: TitleBarWindowsProps) => {
             />
             <div>{title}</div>
             <div className="no-drag flex h-full justify-center items-center">
-                <AiOutlineMinus
+                <VscChromeMinimize
                     className="hover:bg-titlebarHover w-6 h-6 p-1"
                     onClick={onMinimize}
                 />
                 {isMaximized ? (
-                    <AiOutlineCompress
-                        className="hover:bg-titlebarHover w-6 h-6 p-[5px]"
+                    <VscChromeRestore
+                        className="hover:bg-titlebarHover w-6 h-6 p-1"
                         onClick={unMaximize}
                     />
                 ) : (
-                    <FiMaximize
-                        className="hover:bg-titlebarHover w-6 h-6 p-[5px]"
+                    <VscChromeMaximize
+                        className="hover:bg-titlebarHover w-6 h-6 p-1"
                         onClick={maximize}
                     />
                 )}
-                <AiOutlineClose
+                <VscChromeClose
                     className="hover:bg-titlebarHover w-6 h-6 p-1"
                     onClick={onClose}
                 />

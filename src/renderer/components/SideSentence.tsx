@@ -1,8 +1,9 @@
 import React from 'react';
-// eslint-disable-next-line import/no-cycle
-import { FiPlayCircle } from 'react-icons/fi';
-import { BsArrowRepeat } from 'react-icons/bs';
-import { LuPauseCircle } from 'react-icons/lu';
+import {
+    AiOutlinePauseCircle,
+    AiOutlinePlayCircle,
+    AiOutlineTrademarkCircle,
+} from 'react-icons/ai';
 import SentenceT from '../lib/param/SentenceT';
 
 interface SideSentenceNewParam {
@@ -27,12 +28,12 @@ export default function SideSentence({
 
     const icon = () => {
         if (pause) {
-            return <FiPlayCircle className="w-10 h-6" />;
+            return <AiOutlinePlayCircle className="w-full h-full" />;
         }
         return isRepeat ? (
-            <BsArrowRepeat className="w-10 h-6" />
+            <AiOutlineTrademarkCircle className="w-full h-full" />
         ) : (
-            <LuPauseCircle className="w-10 h-6" />
+            <AiOutlinePauseCircle className="w-full h-full" />
         );
     };
 
@@ -41,27 +42,26 @@ export default function SideSentence({
         <div
             className="
                 m-1.5
-                {/*mr-0*/}
+                px-1
                 py-2
-                pr-2
                 border-0
                 flex
+                gap-1
                 content-start
                 rounded-lg
                 bg-neutral-700
-                {/*hover:shadow-inner*/}
-                {/*hover:shadow-neutral-500*/}
                 hover:bg-neutral-600
                 hover:drop-shadow-lg
                 text-subtitle
                 drop-shadow
-                {/*translate-x-1*/}
                 "
             onClick={() => {
                 onClick(sentence);
             }}
         >
-            <div className={`w-10 h-full overflow-hidden text-red-600 ${show}`}>
+            <div
+                className={`w-7 flex flex-col items-center justify-center h-7 text-red-600 ${show}`}
+            >
                 {icon()}
             </div>
 
