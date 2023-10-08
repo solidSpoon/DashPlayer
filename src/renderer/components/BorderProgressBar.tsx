@@ -69,7 +69,7 @@ export default class BorderProgressBar extends Component<
             window.clearTimeout(id);
         }
         const func = () => this.setState({ isHover: false });
-        this.timeout.push(window.setTimeout(func, 300));
+        this.timeout.push(window.setTimeout(func, 10000));
     };
 
     render() {
