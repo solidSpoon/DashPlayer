@@ -1,38 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { VscChromeClose, VscChromeMinimize } from 'react-icons/vsc';
 
 const api = window.electron;
 
 const TitleBarSettingWindows = () => {
-    const [isMaximized, setIsMaximized] = React.useState(false);
-
-    useEffect(() => {
-        const init = async () => {
-            const isM = await api.isSettingMaximized();
-            setIsMaximized(isM);
-        };
-        init();
-        const removeMaximize = api.onSettingMaximize(() =>
-            setIsMaximized(true)
-        );
-        const removeUnMaximize = api.onSettingUnMaximize(() =>
-            setIsMaximized(false)
-        );
-
-        return () => {
-            removeMaximize();
-            removeUnMaximize();
-        };
-    });
-
-    const maximize = async () => {
-        await api.maximizeSetting();
-    };
-
-    const unMaximize = async () => {
-        await api.unMaximizeSetting();
-    };
-
     const onMinimize = async () => {
         await api.minimizeSetting();
     };
