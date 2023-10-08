@@ -53,7 +53,7 @@ export default function SideSentence({
                 {/*hover:shadow-neutral-500*/}
                 hover:bg-neutral-600
                 hover:drop-shadow-lg
-                text-lg
+                text-subtitle
                 drop-shadow
                 {/*translate-x-1*/}
                 "

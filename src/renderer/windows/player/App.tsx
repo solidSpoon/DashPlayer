@@ -38,7 +38,7 @@ export default function App() {
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
 
     return (
-        <div className="h-screen w-full bg-neutral-800 font-face-arc overflow-hidden flex flex-col">
+        <div className="h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col">
             <TitleBar
                 hasSubTitle={subtitleFile !== undefined}
                 show={showTitleBar}
@@ -105,7 +105,7 @@ export default function App() {
                 }}
                 onSelectingFile={(isSelect) => setShowTitleBar(isSelect)}
             />
-            <div id="progressBarRef" className='z-50'>
+            <div id="progressBarRef" className="z-50">
                 <BorderProgressBar
                     hasSubTitle={subtitleFile !== undefined}
                     getCurrentTime={() => progress.current}

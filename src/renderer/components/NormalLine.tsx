@@ -58,8 +58,10 @@ const NormalLine = ({ text, order, show }: NormalLineParam) => {
     };
     return (
         <div
-            className={`my-0 mx-10 text-3xl py-2.5 px-1 select-none ${
-                order === 'second' ? 'text-3xl' : 'text-2xl'
+            className={`my-0 mx-10 py-2.5 px-1 select-none ${
+                order === 'second'
+                    ? 'text-mainSubtitleTwo'
+                    : 'text-mainSubtitleThree'
             }`}
         >
             {words.map((w) => {
