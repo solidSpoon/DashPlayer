@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import callApi from '../lib/apis/ApiWrapper';
 
 export interface TitleBarProps {
@@ -43,24 +43,26 @@ const TitleBarMac = ({ hasSubtitle, title, show }: TitleBarProps) => {
         <div onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
-                className={`drag w-full h-10 absolute top-0 z-50 content-center text-black flex flex-col justify-center items-center select-none ${
-                    showTitleBar ? 'bg-stone-200' : ''
+                className={`drag w-full h-10 absolute top-0 z-50 content-center text-titlebarText flex flex-col justify-center items-center select-none ${
+                    showTitleBar ? 'bg-titlebar' : ''
                 } ${hasSubtitle ? '-translate-x-2' : ''}`}
                 onDoubleClick={() => {
                     onDoubleClick();
                 }}
             >
-                <span className="text-black">{showTitleBar ? title : ''}</span>
+                {showTitleBar ? title : ''}
             </div>
 
             {hasSubtitle && (
-                <div
-                    className={`absolute top-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2 ${
-                        showTitleBar ? 'translate-y-10' : ''
-                    }`}
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 1 1"
+                    className={`absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 rotate-180
+                        ${showTitleBar ? 'translate-y-10' : ''}
+                `}
                 >
-                    <div className="w-full h-full rounded-tr-full bg-neutral-800" />
-                </div>
+                    <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
+                </svg>
             )}
         </div>
     );
