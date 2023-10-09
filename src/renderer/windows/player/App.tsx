@@ -38,7 +38,9 @@ export default function App() {
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     return (
-        <FileDrop onFileChange={updateFile}>
+        <FileDrop
+            onFileChange={updateFile}
+        >
             <div className="h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col">
                 <TitleBar
                     hasSubTitle={subtitleFile !== undefined}
@@ -102,12 +104,6 @@ export default function App() {
                         pause={seekTime.time === SPACE_NUM}
                     />
                 </Split>
-                <UploadButton
-                    onFileChange={(file) => {
-                        updateFile(file);
-                    }}
-                    onSelectingFile={(isSelect) => setShowTitleBar(isSelect)}
-                />
                 <div id="progressBarRef" className="z-50">
                     <BorderProgressBar
                         hasSubTitle={subtitleFile !== undefined}
