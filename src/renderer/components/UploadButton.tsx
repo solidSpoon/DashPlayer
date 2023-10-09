@@ -1,19 +1,7 @@
 import React, { useRef } from 'react';
 import UploadPhotoParam from '../lib/param/UploadPhotoParam';
-import FileT, { FileType } from '../lib/param/FileT';
+import parseFile from '../lib/FileParser';
 
-const getFileUrl = (file: Blob | MediaSource): string => {
-    let url: string;
-
-    if (window.URL !== undefined) {
-        url = window.URL.createObjectURL(file);
-    } else if (window.webkitURL !== undefined) {
-        url = window.webkitURL.createObjectURL(file);
-    } else {
-        throw new Error('can not create object url');
-    }
-    return url;
-};
 export default function UploadButton({
     onFileChange,
     onSelectingFile,
@@ -21,22 +9,11 @@ export default function UploadButton({
     const fileInputEl = useRef<HTMLInputElement>(null);
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const files = [...event.target.files];
-        if (files.length === 0) return;
-        files.forEach((file) => {
-            const fileT = new FileT();
-            fileT.fileName = file.name;
-            fileT.objectUrl = getFileUrl(file);
-            const isSrt = file.name.endsWith('srt');
-            if (isSrt) {
-                fileT.fileType = FileType.SUBTITLE;
-            } else {
-                fileT.fileType = FileType.VIDEO;
-            }
-            onFileChange(fileT);
-        });
+        const files = event.target.files ?? [];
+        for (let i = 0; i < files.length; i += 1) {
+            const file = parseFile(files[i]);
+            onFileChange(file);
+        }
     };
 
     return (
