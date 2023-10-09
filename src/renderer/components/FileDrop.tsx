@@ -7,8 +7,6 @@ export type FileDropParam = {
     children: ReactElement;
     onFileChange: (file: FileT) => void;
     className?: string | undefined;
-    onDragIn?: () => void;
-    onDragOut?: () => void;
 };
 
 const FileDrop = ({ children, onFileChange, className }: FileDropParam) => {
@@ -105,7 +103,5 @@ const FileDrop = ({ children, onFileChange, className }: FileDropParam) => {
 
 FileDrop.defaultProps = {
     className: '',
-    onDragIn: () => {},
-    onDragOut: () => {},
 };
 export default FileDrop;
