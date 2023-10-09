@@ -48,6 +48,9 @@ const FileDrop = ({ children, onFileChange, className }: FileDropParam) => {
         e.preventDefault();
         e.stopPropagation();
         counter.current -= 1;
+        if (counter.current < 0) {
+            counter.current = 0;
+        }
         if (counter.current === 0) {
             setIsDragging(false);
             console.log('drag out');

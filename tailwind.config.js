@@ -42,7 +42,7 @@ module.exports = {
                         /**
                          * 进度条完成色
                          */
-                        progressbarComplete: colors.purple['800'],
+                        progressbarComplete: colors.purple['900'],
                         /**
                          * gutter 背景色
                          */
