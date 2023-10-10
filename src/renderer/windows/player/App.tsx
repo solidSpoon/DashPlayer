@@ -17,6 +17,7 @@ import useSubTitleController, {
 } from '../../hooks/useSubTitleController';
 import TitleBar from '../../components/TitleBar';
 import FileDrop from '../../components/FileDrop';
+import HomePage from '../../components/HomePage';
 
 export const api = window.electron;
 export default function App() {
@@ -50,58 +51,61 @@ export default function App() {
                     videoFile={videoFile}
                 />
                 <GlobalShortCut onAction={doAction} />
-
-                <Split
-                    className="split flex flex-row w-full flex-1"
-                    sizes={JSON.parse(sizeA)}
-                    onDragEnd={(sizes) => {
-                        localStorage.setItem(
-                            'split-size-a',
-                            JSON.stringify(sizes)
-                        );
-                    }}
-                >
+                {videoFile === undefined && subtitleFile === undefined ? (
+                    <HomePage />
+                ) : (
                     <Split
-                        className="split z-40"
-                        sizes={JSON.parse(sizeB)}
+                        className="split flex flex-row w-full flex-1"
+                        sizes={JSON.parse(sizeA)}
                         onDragEnd={(sizes) => {
                             localStorage.setItem(
-                                'split-size-b',
+                                'split-size-a',
                                 JSON.stringify(sizes)
                             );
                         }}
-                        direction="vertical"
                     >
-                        <div className="h-full">
-                            <Player
-                                videoFile={videoFile}
-                                onProgress={(time) => {
-                                    progress.current = time;
-                                }}
-                                onTotalTimeChange={(time) => {
-                                    totalTime.current = time;
-                                }}
-                                onAction={doAction}
-                                seekTime={seekTime}
-                            />
-                        </div>
-                        <div className="h-full">
-                            <MainSubtitle
-                                sentence={currentSentence}
-                                doAction={doAction}
-                                showEn={showEn}
-                                showCn={showCn}
-                            />
-                        </div>
+                        <Split
+                            className="split z-40"
+                            sizes={JSON.parse(sizeB)}
+                            onDragEnd={(sizes) => {
+                                localStorage.setItem(
+                                    'split-size-b',
+                                    JSON.stringify(sizes)
+                                );
+                            }}
+                            direction="vertical"
+                        >
+                            <div className="h-full">
+                                <Player
+                                    videoFile={videoFile}
+                                    onProgress={(time) => {
+                                        progress.current = time;
+                                    }}
+                                    onTotalTimeChange={(time) => {
+                                        totalTime.current = time;
+                                    }}
+                                    onAction={doAction}
+                                    seekTime={seekTime}
+                                />
+                            </div>
+                            <div className="h-full">
+                                <MainSubtitle
+                                    sentence={currentSentence}
+                                    doAction={doAction}
+                                    showEn={showEn}
+                                    showCn={showCn}
+                                />
+                            </div>
+                        </Split>
+                        <Subtitle
+                            subtitles={subtitles}
+                            currentSentence={currentSentence}
+                            onAction={doAction}
+                            singleRepeat={singleRepeat}
+                            pause={seekTime.time === SPACE_NUM}
+                        />
                     </Split>
-                    <Subtitle
-                        subtitles={subtitles}
-                        currentSentence={currentSentence}
-                        onAction={doAction}
-                        singleRepeat={singleRepeat}
-                        pause={seekTime.time === SPACE_NUM}
-                    />
-                </Split>
+                )}
                 <div id="progressBarRef" className="z-50">
                     <BorderProgressBar
                         hasSubTitle={subtitleFile !== undefined}

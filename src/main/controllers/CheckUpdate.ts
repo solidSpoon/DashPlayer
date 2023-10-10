@@ -26,3 +26,7 @@ export const checkUpdate = async (): Promise<Release | null> => {
         version: result.data.tag_name,
     };
 };
+
+export const appVersion = (): string => {
+    return app.getVersion();
+};

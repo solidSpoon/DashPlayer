@@ -39,7 +39,8 @@ export type Channels =
     | 'query-cache-size'
     | 'clear-cache'
     | 'open-url'
-    | 'check-update';
+    | 'check-update'
+    | 'app-version';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -164,6 +165,9 @@ const electronHandler = {
     },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release | undefined;
+    },
+    appVersion: async () => {
+        return (await invoke('app-version')) as string;
     },
     openUrl: async (url: string) => {
         await invoke('open-url', url);

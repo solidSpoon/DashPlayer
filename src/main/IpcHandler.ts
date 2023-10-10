@@ -23,7 +23,7 @@ import {
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
-import { checkUpdate } from './controllers/CheckUpdate';
+import { appVersion, checkUpdate } from './controllers/CheckUpdate';
 
 // const handle = (
 //     channel: Channels,
@@ -211,6 +211,10 @@ export default function registerHandler() {
     handle('check-update', async () => {
         log.info('check-update');
         return checkUpdate();
+    });
+    handle('app-version', async () => {
+        log.info('app-version');
+        return appVersion();
     });
     handle('open-url', async (url: string) => {
         log.info('open-url', url);
