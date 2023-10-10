@@ -82,7 +82,6 @@ const TranslatableLine = ({
         });
     }
 
-    console.log('avvv popEle', popELe);
     return (
         <div
             onMouseOver={() => {
@@ -91,7 +90,7 @@ const TranslatableLine = ({
             onMouseLeave={() => {
                 setHovered(false);
             }}
-            className="flex flex-wrap justify-center items-center gap-0 bg-neutral-700 rounded-lg drop-shadow-md hover:drop-shadow-xl text-3xl mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-neutral-600 z-50"
+            className="flex flex-wrap justify-center items-center gap-0 bg-neutral-700 rounded-lg drop-shadow-md hover:drop-shadow-xl text-mainSubtitleOne mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-neutral-600 z-50"
         >
             {ele()}
         </div>

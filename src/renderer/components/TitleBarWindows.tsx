@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import {
     AiOutlineClose,
     AiOutlineCompress,
-    AiOutlineMinus
+    AiOutlineMinus,
 } from 'react-icons/ai';
 import { FiMaximize } from 'react-icons/fi';
 import { HiOutlineMenu } from 'react-icons/hi';
+import { VscChromeClose, VscChromeMaximize, VscChromeMinimize, VscChromeRestore } from 'react-icons/vsc';
 
 export interface TitleBarWindowsProps {
     hasSubtitle: boolean;
@@ -53,52 +54,48 @@ const TitleBarWindows = ({ title, hasSubtitle }: TitleBarWindowsProps) => {
     };
 
     return (
-        <div
-            className='select-none w-full drag h-6 flex justify-between items-center bg-stone-200 text-neutral-900 gap-x-2 drop-shadow'>
+        <div className="select-none w-full drag h-6 flex justify-between items-center bg-titlebar text-titlebarText gap-x-2 drop-shadow">
             <HiOutlineMenu
-                className='no-drag hover:bg-neutral-300 w-6 h-6 p-1'
+                className="no-drag hover:bg-titlebarHover w-6 h-6 p-1"
                 onClick={onMenu}
             />
             <div>{title}</div>
-            <div className='no-drag flex h-full justify-center items-center'>
-                <AiOutlineMinus
-                    className='hover:bg-neutral-300 w-6 h-6 p-1'
+            <div className="no-drag flex h-full justify-center items-center">
+                <VscChromeMinimize
+                    className="hover:bg-titlebarHover w-6 h-6 p-1"
                     onClick={onMinimize}
                 />
                 {isMaximized ? (
-                    <AiOutlineCompress
-                        className='hover:bg-neutral-300 w-6 h-6 p-[5px]'
+                    <VscChromeRestore
+                        className="hover:bg-titlebarHover w-6 h-6 p-1"
                         onClick={unMaximize}
                     />
                 ) : (
-                    <FiMaximize
-                        className='hover:bg-neutral-300 w-6 h-6 p-[5px]'
+                    <VscChromeMaximize
+                        className="hover:bg-titlebarHover w-6 h-6 p-1"
                         onClick={maximize}
                     />
                 )}
-                <AiOutlineClose
-                    className={`hover:bg-neutral-300 w-6 h-6 p-1
-                    ${false ?  'p-1 border border-stone-200 rounded-b-lg z-20':''}`}
+                <VscChromeClose
+                    className="hover:bg-titlebarHover w-6 h-6 p-1"
                     onClick={onClose}
                 />
             </div>
             {hasSubtitle && (
                 <>
-
-                    <div
-                        className={`absolute top-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2 translate-y-6`}
+                    {/* <div className="absolute top-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2 translate-y-6"> */}
+                    {/*     <div className="w-full h-full rounded-tr-full bg-neutral-800" /> */}
+                    {/* </div> */}
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 1 1"
+                        className="absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 translate-y-6 rotate-180"
                     >
-                        <div className='w-full h-full rounded-tr-full bg-neutral-800' />
-                    </div>
-                    {/*<div*/}
-                    {/*    className={`absolute top-0 right-0 w-2 h-2 bg-stone-200 translate-y-5 z-10`}*/}
-                    {/*>*/}
-                    {/*    <div className='w-full h-full rounded-br-full bg-neutral-800' />*/}
-                    {/*</div>*/}
-                </>)
-            }
+                        <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
+                    </svg>
+                </>
+            )}
         </div>
-    )
-        ;
+    );
 };
 export default TitleBarWindows;

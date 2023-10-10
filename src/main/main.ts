@@ -144,6 +144,7 @@ const createSettingWindow = async () => {
     settingWindow = new BrowserWindow({
         width: 800,
         height: 500,
+        resizable: false,
         show: false,
         icon: getAssetPath('icon.png'),
         alwaysOnTop: true,

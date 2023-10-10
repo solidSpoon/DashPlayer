@@ -1,6 +1,8 @@
 import ProgressBar from '@ramonak/react-progress-bar';
 import { Component } from 'react';
 import { visible, white } from 'chalk';
+// import colors from 'tailwindcss/colors';
+import theme from 'tailwindcss/defaultTheme';
 import PlayTime from './PlayTime';
 
 interface BorderProgressBarParam {
@@ -67,7 +69,7 @@ export default class BorderProgressBar extends Component<
             window.clearTimeout(id);
         }
         const func = () => this.setState({ isHover: false });
-        this.timeout.push(window.setTimeout(func, 300));
+        this.timeout.push(window.setTimeout(func, 10000));
     };
 
     render() {
@@ -81,12 +83,13 @@ export default class BorderProgressBar extends Component<
                 items-end absolute bottom-0 h-10 mt-60 pointer-events-none`}
                 >
                     <div
-                        className="w-full z-50 pointer-events-auto"
+                        className="w-full z-50 pointer-events-auto bg-scrollbarTrack"
                         onMouseEnter={this.mouseEnter}
                         onMouseLeave={this.mouseLeave}
                     >
                         <ProgressBar
-                            baseBgColor="rgb(231 229 228)"
+                            baseBgColor="rgb(var(--colors-scrollbarTrack))"
+                            bgColor="rgb(var(--colors-progressbarComplete))"
                             completed={completed}
                             transitionDuration="0.2s"
                             isLabelVisible={false}
@@ -100,12 +103,14 @@ export default class BorderProgressBar extends Component<
                     <div className="flex flex-row-reverse items-end justify-end">
                         <div
                             className={`w-2 h-full pointer-events-none ${
-                                isHover && !hasSubTitle ? 'bg-stone-200' : ''
+                                isHover && !hasSubTitle
+                                    ? 'bg-scrollbarTrack'
+                                    : ''
                             }`}
                         />
                         <div
                             className={`   pointer-events-auto rounded-tl-lg ${
-                                isHover ? 'bg-stone-200' : ''
+                                isHover ? 'bg-scrollbarTrack' : ''
                             }`}
                             onMouseEnter={this.mouseEnter}
                             onMouseLeave={this.mouseLeave}
@@ -114,7 +119,7 @@ export default class BorderProgressBar extends Component<
                                 className={` m-2 mb-1 mr-1 p-1.5 rounded flex justify-center items-center h-6 font-mono
                             ${
                                 isHover
-                                    ? 'bg-stone-300 shadow-inner shadow-stone-400'
+                                    ? 'bg-stone-300 shadow-inner shadow-scrollbarTrack'
                                     : ''
                             }`}
                             >
@@ -129,23 +134,24 @@ export default class BorderProgressBar extends Component<
                                 />
                             </div>
                         </div>
-                        <div
-                            style={{
-                                visibility: isHover ? 'visible' : 'hidden',
-                                width: '5px',
-                                height: '5px',
-                                background:
-                                    'radial-gradient(circle at 0% 0%, transparent 5px, rgb(231 229 228) 0)',
-                            }}
-                        />
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 1 1"
+                            className="w-1.5 h-1.5 -rotate-90 fill-scrollbarTrack"
+                            visibility={isHover ? 'visible' : 'hidden'}
+                        >
+                            <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
+                        </svg>
                     </div>
                     {hasSubTitle && (
-                        <div
-                            className={`absolute bottom-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2
-                        ${isHover ? '-translate-y-11' : '-translate-y-2'}`}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 1 1"
+                            className={`absolute bottom-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 -rotate-90
+                            ${isHover ? '-translate-y-11' : '-translate-y-2'}`}
                         >
-                            <div className="w-full h-full rounded-br-full bg-neutral-800" />
-                        </div>
+                            <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
+                        </svg>
                     )}
                 </div>
             </>
