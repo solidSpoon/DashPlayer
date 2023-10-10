@@ -2,6 +2,27 @@
 <img src="https://user-images.githubusercontent.com/39454841/226364979-9c96a838-aa43-4b70-89d8-8ea83d59fc0f.png" width="40%" />
 </p>
 
+<p align="center">
+  <a href="LICENSE" target="_blank">
+    <img alt="MIT License" src="https://img.shields.io/github/license/solidSpoon/DashPlayer.svg?style=flat-square" />
+  </a>
+
+  <!-- TypeScript Badge -->
+  <img alt="TypeScript" src="https://img.shields.io/badge/-TypeScript-blue?style=flat-square&logo=typescript&logoColor=white" />
+
+  <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
+    <img alt="macOS" src="https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white" />
+  </a>
+
+  <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
+    <img alt="Windows" src="https://img.shields.io/badge/-Windows-blue?style=flat-square&logo=windows&logoColor=white" />
+  </a>
+
+  <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
+    <img alt="Linux" src="https://img.shields.io/badge/-Linux-yellow?style=flat-square&logo=linux&logoColor=white" />
+  </a>
+</p>
+
 > 安装与使用指南详见 [Wiki](https://github.com/solidSpoon/DashPlayer/wiki)
 
 # DashPlayer：打造更轻松、高效的英语学习体验！ 🎉
