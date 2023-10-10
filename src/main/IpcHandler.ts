@@ -2,8 +2,9 @@ import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import {
+    ProgressParam,
     queryProgress,
-    updateProgress,
+    updateProgress
 } from './controllers/ProgressController';
 import batchTranslate, { loadTransCache } from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
@@ -58,9 +59,9 @@ export default function registerHandler() {
         transWord(arg[0]);
         event.reply('update-process', 'success');
     });
-    handle('update-progress', async (fileName: string, progress: number) => {
-        log.info('update-progress', fileName, progress);
-        await updateProgress(fileName, progress);
+    handle('update-progress', async (progress: ProgressParam) => {
+        log.info('update-progress', progress);
+        await updateProgress(progress);
     });
     handle('query-progress', async (fileName: string) => {
         log.info('query-progress', fileName);

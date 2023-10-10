@@ -49,6 +49,7 @@ export default function App() {
                 <RecordProgress
                     getCurrentProgress={() => progress.current}
                     videoFile={videoFile}
+                    subtitleFile={subtitleFile}
                 />
                 <GlobalShortCut onAction={doAction} />
                 {videoFile === undefined && subtitleFile === undefined ? (

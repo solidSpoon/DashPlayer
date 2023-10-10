@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { YdRes } from '../renderer/lib/param/yd/a';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { Release } from './controllers/CheckUpdate';
+import { ProgressParam } from './controllers/ProgressController';
 
 export type Channels =
     | 'ipc-example'
@@ -157,8 +158,8 @@ const electronHandler = {
             sentences
         )) as SentenceApiParam[];
     },
-    updateProgress: async (fileName: string, progress: number) => {
-        await invoke('update-progress', fileName, progress);
+    updateProgress: async (progress: ProgressParam) => {
+        await invoke('update-progress', progress);
     },
     queryProgress: async (fileName: string) => {
         return (await invoke('query-progress', fileName)) as number;

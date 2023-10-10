@@ -16,6 +16,7 @@ const getFileUrl = (file: Blob | MediaSource): string => {
 const parseFile = (file: File): FileT => {
     const fileT = new FileT();
     fileT.fileName = file.name;
+    fileT.path = file.path;
     fileT.objectUrl = getFileUrl(file);
     // ".mp4,.mkv,.srt,.webm"
     const isSrt = file.name.endsWith('srt');

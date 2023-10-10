@@ -7,6 +7,16 @@ class ProgressEntity extends BaseCacheEntity<ProgressEntity> {
     fileName: string;
 
     /**
+     * 文件位置
+     */
+    filePath: string | undefined;
+
+    /**
+     * 字幕文件位置
+     */
+    subtitlePath: string | undefined;
+
+    /**
      * 观看进度
      */
     progress: number | undefined;

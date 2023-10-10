@@ -10,4 +10,6 @@ export default class FileT {
     objectUrl: string | undefined;
 
     fileType: FileType | undefined;
+
+    path: string | undefined;
 }
