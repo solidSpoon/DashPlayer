@@ -4,22 +4,27 @@
 
 <p align="center">
   <a href="LICENSE" target="_blank">
-    <img alt="MIT License" src="https://img.shields.io/github/license/solidSpoon/DashPlayer.svg?style=flat-square" />
+    <img alt="MIT License" src="https://img.shields.io/github/license/solidSpoon/DashPlayer.svg" />
   </a>
+
+  <img alt="React" src="https://img.shields.io/badge/React-rgb(8%2C126%2C164)?logo=react&logoColor=white" />
+
+  <img alt="Electron" src="https://img.shields.io/badge/Electron-rgb(54%2C155%2C176)?style=flat&logo=electron&logoColor=white" />
+
 
   <!-- TypeScript Badge -->
-  <img alt="TypeScript" src="https://img.shields.io/badge/-TypeScript-blue?style=flat-square&logo=typescript&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/-TypeScript-blue?logo=typescript&logoColor=white" />
 
   <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
-    <img alt="macOS" src="https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white" />
+    <img alt="macOS" src="https://img.shields.io/badge/-macOS-black?logo=apple&logoColor=white" />
   </a>
 
   <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
-    <img alt="Windows" src="https://img.shields.io/badge/-Windows-blue?style=flat-square&logo=windows&logoColor=white" />
+    <img alt="Windows" src="https://img.shields.io/badge/-Windows-blue?logo=windows&logoColor=white" />
   </a>
 
   <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
-    <img alt="Linux" src="https://img.shields.io/badge/-Linux-yellow?style=flat-square&logo=linux&logoColor=white" />
+    <img alt="Linux" src="https://img.shields.io/badge/-Linux-yellow?logo=linux&logoColor=white" />
   </a>
 </p>
 
