@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './App.css';
 import Split from 'react-split';
 import Player from '../../components/Player';
@@ -38,6 +38,21 @@ export default function App() {
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
+    const [maximize, setMaximize] = React.useState<boolean>(false);
+    useEffect(() => {
+        if (videoFile === undefined && subtitleFile === undefined) {
+        } else {
+            api.playerSize();
+        }
+    }, [videoFile, subtitleFile]);
+    useEffect(() => {
+        const unListen = api.onMaximize(() => {
+            if (!maximize) setMaximize(true);
+        });
+        return () => {
+            unListen();
+        };
+    }, [maximize]);
     return (
         <FileDrop onFileChange={updateFile}>
             <div className="h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col">
@@ -52,7 +67,8 @@ export default function App() {
                     subtitleFile={subtitleFile}
                 />
                 <GlobalShortCut onAction={doAction} />
-                {videoFile === undefined && subtitleFile === undefined ? (
+                {(videoFile === undefined && subtitleFile === undefined) ||
+                !maximize ? (
                     <HomePage />
                 ) : (
                     <Split

@@ -25,6 +25,10 @@ body {
     -webkit-app-region: no-drag;
 }
 
+.user-drag-none {
+    -webkit-user-drag: none;
+}
+
 /*.split {*/
 /*    display: flex;*/
 /*    flex-direction: row;*/

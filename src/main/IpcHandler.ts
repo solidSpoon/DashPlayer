@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
     ProgressParam,
     queryProgress,
-    updateProgress
+    updateProgress,
 } from './controllers/ProgressController';
 import batchTranslate, { loadTransCache } from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
@@ -219,5 +219,12 @@ export default function registerHandler() {
     });
     handle('open-url', async (url: string) => {
         log.info('open-url', url);
+    });
+    handle('player-size', async () => {
+        mainWindow?.setSize(800, 600);
+        mainWindow?.setResizable(true);
+        mainWindow?.setMaximizable(true);
+        mainWindow?.maximize();
+        // mainWindow?.setMaximizable(true);
     });
 }

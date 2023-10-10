@@ -72,6 +72,8 @@ export const createPlayerWindow = async () => {
     };
 
     mainWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
         show: false,
         icon: getAssetPath('icon.png'),
         webPreferences: {
@@ -79,11 +81,12 @@ export const createPlayerWindow = async () => {
                 ? path.join(__dirname, 'preload.js')
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
-        resizable: true,
+        resizable: false,
+        maximizable: false,
         // titleBarStyle: 'hidden',
         frame: false,
     });
-    mainWindow.maximize();
+    // mainWindow.maximize();
     mainWindow.loadURL(resolveHtmlPath('player.html'));
 
     mainWindow.on('ready-to-show', () => {
