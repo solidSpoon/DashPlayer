@@ -14,7 +14,7 @@ const HomePage = () => {
     }, []);
 
     return (
-        <div className="w-full flex-1 bg-background flex justify-center items-center">
+        <div className="w-full flex-1 bg-background flex justify-center items-center select-none">
             <div className="w-[800px] h-[600px] rounded flex flex-shrink">
                 <div className="w-1/3 h-full flex flex-col justify-center items-center bg-white/5 rounded-l-lg">
                     <img src={logo} alt="logo" className="" />
