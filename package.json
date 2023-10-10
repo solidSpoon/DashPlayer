@@ -127,6 +127,7 @@
         "react-resizable-layout": "^0.4.0",
         "react-router-dom": "^6.4.0",
         "react-split": "^2.0.14",
+        "react-toastify": "^9.1.3",
         "react-virtuoso": "^4.2.0",
         "request": "^2.88.2",
         "run-applescript": "^6.0.0",

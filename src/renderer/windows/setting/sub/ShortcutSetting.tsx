@@ -1,5 +1,6 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { white } from 'chalk';
+import { ToastContainer, toast } from 'react-toastify';
 import callApi from '../../../lib/apis/ApiWrapper';
 import { ShortCutValue } from '../../../components/GlobalShortCut';
 
@@ -14,14 +15,14 @@ export const defaultShortcut: ShortCutValue = {
     sowEnCn: 'b',
 };
 
-function notify(res: string) {
-    const notification = new Notification('快捷键重复', {
-        body: `快捷键 ${res} 重复`,
-    });
-    notification.onclick = () => {
-        window.focus();
-    };
-}
+// function notify(res: string) {
+//     const notification = new Notification('快捷键重复', {
+//         body: `快捷键 ${res} 重复`,
+//     });
+//     notification.onclick = () => {
+//         window.focus();
+//     };
+// }
 
 const ShortcutSetting = () => {
     const [last, setLast] = useState<string>('');
@@ -117,7 +118,16 @@ const ShortcutSetting = () => {
         };
         const res = verify(sc);
         if (res) {
-            notify(res);
+            toast.error(`快捷键 ${res} 重复`, {
+                position: 'top-center',
+                autoClose: 1000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
             return;
         }
 
