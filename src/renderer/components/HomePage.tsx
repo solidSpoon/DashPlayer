@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import ProgressBar from '@ramonak/react-progress-bar';
 import { logo } from '../../pic/img';
 import useSystem from '../hooks/useSystem';
 import TitleBar from './TitleBar/TitleBar';
 import { ProgressParam } from '../../main/controllers/ProgressController';
 import FileT from '../lib/param/FileT';
-import { pathToFile } from '../lib/FileParser';
+import parseFile, { pathToFile } from '../lib/FileParser';
 
 const api = window.electron;
 
@@ -14,20 +15,21 @@ export interface HomePageProps {
 const HomePage = ({ onFileChange }: HomePageProps) => {
     const appVersion = useSystem((s) => s.appVersion);
     const [recentPlaylists, setRecentPlaylists] = useState<ProgressParam[]>([]);
+    const fileInputEl = useRef<HTMLInputElement>(null);
     useEffect(() => {
         const init = async () => {
-            let playlists = await api.recentPlay(50);
-            playlists = [
-                ...playlists,
-                ...playlists,
-                ...playlists,
-                ...playlists,
-            ];
+            const playlists = await api.recentPlay(50);
             setRecentPlaylists(playlists);
         };
         init();
     }, []);
-
+    const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files ?? [];
+        for (let i = 0; i < files.length; i += 1) {
+            const file = parseFile(files[i]);
+            onFileChange(file);
+        }
+    };
     const handleClick = async (item: ProgressParam) => {
         if (item.filePath && item.filePath.length > 0) {
             const file = await pathToFile(item.filePath);
@@ -40,7 +42,7 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
     };
 
     return (
-        <div className="w-full h-screen flex-1 bg-background flex justify-center items-center select-none">
+        <div className="w-full h-screen flex-1 bg-background flex justify-center items-center select-none overflow-hidden">
             <TitleBar
                 maximizable={false}
                 className="fixed top-0 left-0 w-full z-50"
@@ -60,24 +62,44 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
                 </div>
                 <div className="w-full h-16" />
             </div>
-            <div className="h-full flex-1 flex flex-col justify-center items-center bg-white/10 rounded-r-lg border-l border-background px-6 gap-6">
+            <div className="h-full flex-1 w-0 flex flex-col justify-center items-center bg-white/10 rounded-r-lg border-l border-background px-6 gap-6">
                 <div className="w-full h-16" />
-                <div className="w-full bg-white/10 hover:bg-white/20 px-4 h-16 rounded-lg border border-background flex items-center justify-start">
+                <input
+                    type="file"
+                    multiple
+                    ref={fileInputEl} // 挂载ref
+                    accept=".mp4,.mkv,.srt,.webm" // 限制文件类型
+                    hidden // 隐藏input
+                    onChange={(event) => handleFile(event)}
+                />
+                <div
+                    onClick={() => fileInputEl.current?.click()}
+                    className="w-full bg-white/10 hover:bg-white/20 px-4 h-16 rounded-lg border border-background flex items-center justify-start"
+                >
                     open files...
                 </div>
-                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none">
+                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none gap-2">
                     {recentPlaylists.map((playlist) => (
                         <div
                             key={playlist.fileName}
                             onClick={() => handleClick(playlist)}
-                            className="w-full px-4 h-16 flex-shrink-0 flex justify-center items-center  hover:bg-white/10 rounded-lg"
+                            className="w-full h-12 bg-white/5 flex-shrink-0 flex flex-col justify-center items-center hover:bg-white/10 rounded-lg"
                         >
-                            <div className=" h-full flex-1 flex justify-start items-center">
-                                {playlist.fileName}
+                            <div className="w-full px-4 flex-1 flex items-center justify-start truncate">
+                                {playlist.fileName} fdsa
                             </div>
-                            <div className="w-1/3 h-full flex justify-center items-center">
-                                {playlist.progress}
-                            </div>
+                            <ProgressBar
+                                className="w-full"
+                                baseBgColor="rgba(0,0,0,0)"
+                                bgColor="rgba(var(--colors-homePageProgressbarComplete),0.2)"
+                                completed={
+                                    (playlist.progress / playlist.total) * 100
+                                }
+                                transitionDuration="0.2s"
+                                isLabelVisible={false}
+                                height="4px"
+                                width="100%"
+                            />
                         </div>
                     ))}
                 </div>

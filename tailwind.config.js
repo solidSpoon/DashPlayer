@@ -59,6 +59,10 @@ module.exports = {
                          * 标题栏文字色
                          */
                         titlebarText: colors.stone['100'],
+                        /**
+                         * homePage 进度条完成色
+                         */
+                        homePageProgressbarComplete: colors.yellow['500'],
                     },
                     fontSize: {
                         mainSubtitleOne: fontSize['3xl'],

@@ -1,7 +1,6 @@
 import FileT, { FileType } from './param/FileT';
 
 const api = window.electron;
-
 const parseFile = (file: File): FileT => {
     const fileT = new FileT();
     fileT.fileName = file.name;
@@ -25,7 +24,8 @@ const parseFile = (file: File): FileT => {
 
 const pathToFile = async (path: string): Promise<FileT> => {
     const fileT = new FileT();
-    fileT.fileName = path.substring(path.lastIndexOf('/') + 1);
+    const fileSeparator = path.lastIndexOf('/') > 0 ? '/' : '\\';
+    fileT.fileName = path.substring(path.lastIndexOf(fileSeparator) + 1);
     fileT.path = path;
     fileT.objectUrl = (await api.openFile(path)) ?? '';
     fileT.fileType = path.endsWith('srt') ? FileType.SUBTITLE : FileType.VIDEO;

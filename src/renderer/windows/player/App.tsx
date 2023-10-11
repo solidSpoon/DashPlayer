@@ -15,10 +15,10 @@ export default function App() {
     useEffect(() => {
         if (videoFile === undefined && subtitleFile === undefined) {
             api.homeSize();
-        } else {
+        } else if (!maximized) {
             api.playerSize();
         }
-    }, [videoFile, subtitleFile]);
+    }, [videoFile, subtitleFile, maximized]);
     useEffect(() => {
         const unListen = api.onMaximize(() => {
             if (!maximized) setMaximized(true);
@@ -37,6 +37,7 @@ export default function App() {
         >
             {showPlayerPage ? (
                 <PlayerPage
+                    isDragging={isDragging}
                     videoFile={videoFile}
                     subtitleFile={subtitleFile}
                     updateFile={updateFile}

@@ -18,12 +18,14 @@ export interface PlayerPageParam {
     videoFile: FileT | undefined;
     subtitleFile: FileT | undefined;
     updateFile: (file: FileT) => void;
+    isDragging: boolean;
 }
 
 const PlayerPage = ({
     videoFile,
     subtitleFile,
     updateFile,
+    isDragging,
 }: PlayerPageParam) => {
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
@@ -50,6 +52,7 @@ const PlayerPage = ({
             />
             <RecordProgress
                 getCurrentProgress={() => progress.current}
+                getTotalTime={() => totalTime.current}
                 videoFile={videoFile}
                 subtitleFile={subtitleFile}
             />
@@ -103,8 +106,7 @@ const PlayerPage = ({
                     pause={seekTime.time === SPACE_NUM}
                 />
             </Split>
-
-            <UploadButton onFileChange={updateFile} />
+            {!isDragging && <UploadButton onFileChange={updateFile} />}
 
             <div id="progressBarRef" className="z-50">
                 <BorderProgressBar

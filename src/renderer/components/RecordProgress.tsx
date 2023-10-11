@@ -5,6 +5,7 @@ import { ProgressParam } from '../../main/controllers/ProgressController';
 
 interface RecordProgressParam {
     getCurrentProgress: () => number;
+    getTotalTime: () => number;
     videoFile: FileT | undefined;
     subtitleFile: FileT | undefined;
 }
@@ -15,6 +16,7 @@ const RecordProgress = ({
     videoFile,
     subtitleFile,
     getCurrentProgress,
+    getTotalTime,
 }: RecordProgressParam) => {
     useEffect(() => {
         async function method() {
@@ -27,6 +29,7 @@ const RecordProgress = ({
                 const p: ProgressParam = {
                     fileName,
                     progress,
+                    total: getTotalTime(),
                     filePath: videoFile.path,
                     subtitlePath: subtitleFile?.path,
                 };
