@@ -4,7 +4,7 @@ import useSubtitle from '../hooks/useSubtitle';
 import useSubTitleController, {
     SPACE_NUM,
 } from '../hooks/useSubTitleController';
-import TitleBar from './TitleBar';
+import TitleBar from './TitleBar/TitleBar';
 import RecordProgress from './RecordProgress';
 import GlobalShortCut from './GlobalShortCut';
 import Player from './Player';
@@ -27,7 +27,6 @@ const PlayerPage = ({
 }: PlayerPageParam) => {
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
-    const [showTitleBar, setShowTitleBar] = React.useState<boolean>(false);
     const subtitles = useSubtitle(subtitleFile);
     const {
         seekAction: seekTime,
@@ -45,8 +44,9 @@ const PlayerPage = ({
         <div className="h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col">
             <TitleBar
                 hasSubTitle={subtitleFile !== undefined}
-                show={showTitleBar}
                 title={videoFile?.fileName}
+                windowsButtonClassName="hover:bg-titlebarHover"
+                className="bg-titlebar"
             />
             <RecordProgress
                 getCurrentProgress={() => progress.current}

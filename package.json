@@ -131,7 +131,8 @@
         "react-virtuoso": "^4.2.0",
         "request": "^2.88.2",
         "run-applescript": "^6.0.0",
-        "tencentcloud-sdk-nodejs": "^4.0.489"
+        "tencentcloud-sdk-nodejs": "^4.0.489",
+        "zustand": "^4.4.3"
     },
     "devDependencies": {
         "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",

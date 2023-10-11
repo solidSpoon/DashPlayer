@@ -1,25 +1,14 @@
-import { useEffect, useState } from 'react';
 import { logo } from '../../pic/img';
-import TitleBarWindows from './TitleBarWindows';
-
-const api = window.electron;
+import useSystem from '../hooks/useSystem';
+import TitleBar from './TitleBar/TitleBar';
 
 const HomePage = () => {
-    const [version, setVersion] = useState<string>('');
-    useEffect(() => {
-        const fun = async () => {
-            const v = await api.appVersion();
-            setVersion(v);
-        };
-        fun();
-    }, []);
-
+    const appVersion = useSystem((s) => s.appVersion);
     return (
         <div className="w-full h-screen flex-1 bg-background flex justify-center items-center select-none">
-            <TitleBarWindows
+            <TitleBar
                 maximizable={false}
-                className="fixed top-0 left-0 z-50"
-                buttonClassName="hover:bg-titlebarHover"
+                className="fixed top-0 left-0 w-full"
             />
             <div className="w-1/3 h-full flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drop-shadow shadow-black">
                 <div className="relative top-0 left-0 w-32 h-32">
@@ -31,7 +20,7 @@ const HomePage = () => {
                 </div>
                 <div className="flex flex-col items-center justify-center gap-2">
                     <h2 className="text-lg text-white/80">DashPlayer</h2>
-                    <text className="text-white/75">{version}</text>
+                    <text className="text-white/75">{appVersion}</text>
                 </div>
                 <div className="w-full h-16" />
             </div>

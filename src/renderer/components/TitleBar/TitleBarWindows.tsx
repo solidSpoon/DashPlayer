@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { HiOutlineMenu } from 'react-icons/hi';
 import {
     VscChromeClose,
@@ -6,6 +6,7 @@ import {
     VscChromeMinimize,
     VscChromeRestore,
 } from 'react-icons/vsc';
+import useSystem from '../../hooks/useSystem';
 
 export interface TitleBarWindowsProps {
     hasSubtitle?: boolean;
@@ -24,22 +25,7 @@ const TitleBarWindows = ({
     className,
     buttonClassName,
 }: TitleBarWindowsProps) => {
-    const [isMaximized, setIsMaximized] = React.useState(false);
-
-    useEffect(() => {
-        const init = async () => {
-            const isM = await api.isMaximized();
-            setIsMaximized(isM);
-        };
-        init();
-        const removeMaximize = api.onMaximize(() => setIsMaximized(true));
-        const removeUnMaximize = api.onUnMaximize(() => setIsMaximized(false));
-
-        return () => {
-            removeMaximize();
-            removeUnMaximize();
-        };
-    }, [isMaximized]);
+    const isMaximized = useSystem((s) => s.isMaximized);
 
     const maximize = async () => {
         await api.maximize();

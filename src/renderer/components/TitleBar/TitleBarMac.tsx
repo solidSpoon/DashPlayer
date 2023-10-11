@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
-import callApi from '../lib/apis/ApiWrapper';
 
 export interface TitleBarProps {
-    hasSubtitle: boolean;
+    hasSubtitle?: boolean;
     title: string | undefined;
-    show: boolean;
+    autoHide?: boolean;
+    className?: string;
 }
 
 const api = window.electron;
 
-const TitleBarMac = ({ hasSubtitle, title, show }: TitleBarProps) => {
+const TitleBarMac = ({
+    hasSubtitle,
+    title,
+    autoHide,
+    className,
+}: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
-    const showTitleBar = show || isMouseOver;
+    const showTitleBar = !autoHide || isMouseOver;
     const onDoubleClick = async () => {
         const isMaximized = await api.isMaximized();
         if (isMaximized) {
@@ -44,7 +49,7 @@ const TitleBarMac = ({ hasSubtitle, title, show }: TitleBarProps) => {
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
                 className={`drag w-full h-10 absolute top-0 z-50 content-center text-titlebarText flex flex-col justify-center items-center select-none ${
-                    showTitleBar ? 'bg-titlebar' : ''
+                    showTitleBar ? className : ''
                 } ${hasSubtitle ? '-translate-x-2' : ''}`}
                 onDoubleClick={() => {
                     onDoubleClick();
@@ -66,5 +71,10 @@ const TitleBarMac = ({ hasSubtitle, title, show }: TitleBarProps) => {
             )}
         </div>
     );
+};
+TitleBarMac.defaultProps = {
+    autoHide: true,
+    className: '',
+    hasSubtitle: false,
 };
 export default TitleBarMac;
