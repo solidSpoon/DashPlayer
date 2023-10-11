@@ -244,6 +244,12 @@ export default function registerHandler() {
     handle('open-file', async (path: string) => {
         log.info('open-file', path);
         // 如果文件存在, 则返回文件流, 否则返回null
+        // 检查文件是否存在
+        if (!fs.existsSync(path)) {
+            log.info('open-file', '文件不存在');
+            return null;
+        }
+
         return new Promise((resolve, reject) => {
             fs.readFile(path, (err, data) => {
                 if (err) {
