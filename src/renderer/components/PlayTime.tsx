@@ -10,7 +10,18 @@ interface PlayerTimeState {
     totalTime: string;
     progress: string;
 }
-
+export const secondToDate = (seconds = 0) => {
+    if (seconds === undefined) {
+        return '00:00:00';
+    }
+    const h: number = Math.floor((seconds / 60 / 60) % 24);
+    const hs = h < 10 ? `0${h}` : h;
+    const m = Math.floor((seconds / 60) % 60);
+    const ms = m < 10 ? `0${m}` : m;
+    const s = Math.floor(seconds % 60);
+    const ss = s < 10 ? `0${s}` : s;
+    return `${hs}:${ms}:${ss}`;
+};
 export default class PlayTime extends Component<
     PlayTimeParam,
     PlayerTimeState
@@ -36,23 +47,11 @@ export default class PlayTime extends Component<
     private task = () => {
         const { getTotalTime, getProgress } = this.props;
         this.setState({
-            totalTime: this.secondToDate(getTotalTime()),
-            progress: this.secondToDate(getProgress()),
+            totalTime: secondToDate(getTotalTime()),
+            progress: secondToDate(getProgress()),
         });
     };
 
-    private secondToDate = (seconds = 0) => {
-        if (seconds === undefined) {
-            return '00:00:00';
-        }
-        const h: number = Math.floor((seconds / 60 / 60) % 24);
-        const hs = h < 10 ? `0${h}` : h;
-        const m = Math.floor((seconds / 60) % 60);
-        const ms = m < 10 ? `0${m}` : m;
-        const s = Math.floor(seconds % 60);
-        const ss = s < 10 ? `0${s}` : s;
-        return `${hs}:${ms}:${ss}`;
-    };
 
     render() {
         const { progress, totalTime } = this.state;

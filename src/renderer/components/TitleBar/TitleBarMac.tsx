@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import useSystem from '../../hooks/useSystem';
 
 export interface TitleBarProps {
     hasSubtitle?: boolean;
@@ -17,8 +18,8 @@ const TitleBarMac = ({
 }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const showTitleBar = !autoHide || isMouseOver;
+    const isMaximized = useSystem((s) => s.isMaximized);
     const onDoubleClick = async () => {
-        const isMaximized = await api.isMaximized();
         if (isMaximized) {
             await api.unMaximize();
         } else {
@@ -29,7 +30,7 @@ const TitleBarMac = ({
     const handleMouseOver = async () => {
         const fullScreen = await api.isFullScreen();
         setIsMouseOver(!fullScreen);
-        if (!fullScreen) {
+        if (!fullScreen && autoHide) {
             await api.showButton();
         }
     };
@@ -37,11 +38,22 @@ const TitleBarMac = ({
     const handleMouseLeave = async () => {
         const fullScreen = await api.isFullScreen();
         setIsMouseOver(false);
-        if (!fullScreen) {
+        if (!fullScreen && autoHide) {
             setIsMouseOver(false);
             await api.hideButton();
         }
     };
+
+    useEffect(() => {
+        const init = async () => {
+            if (autoHide) {
+                await api.hideButton();
+            } else {
+                await api.showButton();
+            }
+        };
+        init();
+    }, [autoHide]);
 
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events

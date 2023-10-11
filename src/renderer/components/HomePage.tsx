@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ProgressBar from '@ramonak/react-progress-bar';
+import { GoFile, GoHistory } from 'react-icons/go';
 import { logo } from '../../pic/img';
 import useSystem from '../hooks/useSystem';
 import TitleBar from './TitleBar/TitleBar';
 import { ProgressParam } from '../../main/controllers/ProgressController';
 import FileT from '../lib/param/FileT';
 import parseFile, { pathToFile } from '../lib/FileParser';
+import { secondToDate } from './PlayTime';
 
 const api = window.electron;
 
@@ -16,6 +18,7 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
     const appVersion = useSystem((s) => s.appVersion);
     const [recentPlaylists, setRecentPlaylists] = useState<ProgressParam[]>([]);
     const fileInputEl = useRef<HTMLInputElement>(null);
+    const currentClick = useRef('');
     useEffect(() => {
         const init = async () => {
             const playlists = await api.recentPlay(50);
@@ -31,6 +34,10 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
         }
     };
     const handleClick = async (item: ProgressParam) => {
+        if (currentClick.current === item.filePath) {
+            return;
+        }
+        currentClick.current = item.filePath ?? '';
         if (item.filePath && item.filePath.length > 0) {
             const file = await pathToFile(item.filePath);
             onFileChange(file);
@@ -39,7 +46,12 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
             const file = await pathToFile(item.subtitlePath);
             onFileChange(file);
         }
+        // currentClick.current = '';
     };
+
+    const lastPlay =
+        recentPlaylists.length > 0 ? recentPlaylists[0] : undefined;
+    const restPlay = recentPlaylists.length > 1 ? recentPlaylists.slice(1) : [];
 
     return (
         <div className="w-full h-screen flex-1 bg-background flex justify-center items-center select-none overflow-hidden">
@@ -47,6 +59,7 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
                 maximizable={false}
                 className="fixed top-0 left-0 w-full z-50"
                 windowsButtonClassName="hover:bg-titlebarHover"
+                autoHideOnMac={false}
             />
             <div className="w-1/3 h-full flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drop-shadow shadow-black">
                 <div className="relative top-0 left-0 w-32 h-32">
@@ -62,8 +75,8 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
                 </div>
                 <div className="w-full h-16" />
             </div>
-            <div className="h-full flex-1 w-0 flex flex-col justify-center items-center bg-white/10 rounded-r-lg border-l border-background px-6 gap-6">
-                <div className="w-full h-16" />
+            <div className="h-full flex-1 w-0 flex flex-col justify-center items-center bg-white/10 rounded-r-lg border-l border-background pl-8 pr-10 gap-6">
+                <div className="w-full h-10" />
                 <input
                     type="file"
                     multiple
@@ -74,32 +87,34 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
                 />
                 <div
                     onClick={() => fileInputEl.current?.click()}
-                    className="w-full bg-white/10 hover:bg-white/20 px-4 h-16 rounded-lg border border-background flex items-center justify-start"
+                    className="w-full hover:bg-white/10 px-4 h-12 rounded-lg flex items-center justify-start"
                 >
-                    open files...
+                    Open Files...
                 </div>
-                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none gap-2">
-                    {recentPlaylists.map((playlist) => (
+                {lastPlay && (
+                    <div
+                        onClick={() => handleClick(lastPlay)}
+                        className="w-full bg-white/10 hover:bg-white/20 px-4 h-12 rounded-lg flex items-center justify-start gap-2 text-sm"
+                    >
+                        <GoHistory className="w-4 h-4 fill-neutral-400" />
+                        <span>Resume</span>
+                        <span className="flex-1">{lastPlay.fileName}</span>
+                        <span className="text-neutral-400">
+                            {secondToDate(lastPlay.progress)}
+                        </span>
+                    </div>
+                )}
+                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
+                    {restPlay.map((playlist) => (
                         <div
                             key={playlist.fileName}
                             onClick={() => handleClick(playlist)}
-                            className="w-full h-12 bg-white/5 flex-shrink-0 flex flex-col justify-center items-center hover:bg-white/10 rounded-lg"
+                            className="w-full h-10 flex-shrink-0 flex justify-center items-center hover:bg-white/5 rounded-lg gap-3 px-6"
                         >
-                            <div className="w-full px-4 flex-1 flex items-center justify-start truncate">
-                                {playlist.fileName} fdsa
+                            <GoFile className="w-4 h-4 fill-yellow-400/70" />
+                            <div className="w-full truncate">
+                                {playlist.fileName}
                             </div>
-                            <ProgressBar
-                                className="w-full"
-                                baseBgColor="rgba(0,0,0,0)"
-                                bgColor="rgba(var(--colors-homePageProgressbarComplete),0.2)"
-                                completed={
-                                    (playlist.progress / playlist.total) * 100
-                                }
-                                transitionDuration="0.2s"
-                                isLabelVisible={false}
-                                height="4px"
-                                width="100%"
-                            />
                         </div>
                     ))}
                 </div>
