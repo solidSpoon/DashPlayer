@@ -1,23 +1,12 @@
 import FileT, { FileType } from './param/FileT';
 
-const getFileUrl = (file: Blob | MediaSource): string => {
-    let url: string;
-
-    if (window.URL !== undefined) {
-        url = window.URL.createObjectURL(file);
-    } else if (window.webkitURL !== undefined) {
-        url = window.webkitURL.createObjectURL(file);
-    } else {
-        throw new Error('can not create object url');
-    }
-    return url;
-};
+const api = window.electron;
 
 const parseFile = (file: File): FileT => {
     const fileT = new FileT();
     fileT.fileName = file.name;
     fileT.path = file.path;
-    fileT.objectUrl = getFileUrl(file);
+    fileT.objectUrl = URL.createObjectURL(file);
     // ".mp4,.mkv,.srt,.webm"
     const isSrt = file.name.endsWith('srt');
     const isVideo =
@@ -33,5 +22,17 @@ const parseFile = (file: File): FileT => {
     }
     return fileT;
 };
+
+const pathToFile = async (path: string): Promise<FileT> => {
+    const fileT = new FileT();
+    fileT.fileName = path.substring(path.lastIndexOf('/') + 1);
+    fileT.path = path;
+    fileT.objectUrl = (await api.openFile(path)) ?? '';
+    fileT.fileType = path.endsWith('srt') ? FileType.SUBTITLE : FileType.VIDEO;
+    console.log('fileT', fileT);
+    return fileT;
+};
+
+export { pathToFile };
 
 export default parseFile;

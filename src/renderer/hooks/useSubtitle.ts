@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { fetch } from 'electron-rebuild/lib/src/fetcher';
 import FileT from '../lib/param/FileT';
 import SentenceT from '../lib/param/SentenceT';
 import parseSrtSubtitles from '../lib/parseSrt';
@@ -7,6 +8,7 @@ import TranslateBuf from '../lib/TranslateBuf';
 import TransFiller from '../lib/TransFiller';
 
 const api = window.electron;
+
 export interface SentenceApiParam {
     index: number;
     text: string;

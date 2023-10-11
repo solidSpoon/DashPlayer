@@ -42,7 +42,7 @@ export default function App() {
                     updateFile={updateFile}
                 />
             ) : (
-                <HomePage />
+                <HomePage onFileChange={updateFile} />
             )}
         </FileDrop>
     );

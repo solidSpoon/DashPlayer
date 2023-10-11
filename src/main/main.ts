@@ -17,6 +17,8 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import registerHandler from './IpcHandler';
 
+const { net, protocol } = require('electron');
+
 class AppUpdater {
     constructor() {
         log.transports.file.level = 'info';
@@ -207,7 +209,6 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
-
 app.whenReady()
     .then(() => {
         createPlayerWindow();
@@ -215,6 +216,15 @@ app.whenReady()
             // On macOS it's common to re-create a window in the app when the
             // dock icon is clicked and there are no other windows open.
             if (mainWindow === null) createPlayerWindow();
+        });
+        protocol.registerFileProtocol('dp', (request, callback) => {
+            const url: string = request.url.replace('dp:///', '');
+            try {
+                return callback(decodeURIComponent(url));
+            } catch (error) {
+                console.error(error);
+                return callback('');
+            }
         });
     })
     .catch(console.log);

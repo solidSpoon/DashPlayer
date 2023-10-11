@@ -3,6 +3,13 @@ import ProgressCache from '../ServerLib/ProgressCache';
 
 export interface ProgressParam {
     fileName: string;
+    /**
+     * 总时长
+     */
+    total: number;
+    /**
+     * 当前进度
+     */
     progress: number;
     /**
      * 文件位置
@@ -25,6 +32,7 @@ export async function updateProgress(progress: ProgressParam): Promise<void> {
     progressEntity.filePath = progress.filePath;
     progressEntity.subtitlePath = progress.subtitlePath;
     progressEntity.progress = progress.progress;
+    progressEntity.total = progress.total;
     await ProgressCache.updateProgress(progressEntity);
 }
 
@@ -36,4 +44,20 @@ export async function queryProgress(fileName: string): Promise<number> {
     const progressEntity = new ProgressEntity(fileName);
     const result = await ProgressCache.queryProcess(progressEntity);
     return result.progress ?? 0;
+}
+
+/**
+ * 最近播放
+ */
+export async function queryRecentPlay(size: number): Promise<ProgressParam[]> {
+    const result = await ProgressCache.queryRecentPlay(size);
+    return result.map((item) => {
+        return {
+            fileName: item.fileName,
+            filePath: item.filePath,
+            subtitlePath: item.subtitlePath,
+            progress: item.progress ?? 0,
+            total: item.total ?? 0,
+        };
+    });
 }

@@ -22,6 +22,11 @@ class ProgressEntity extends BaseCacheEntity<ProgressEntity> {
     progress: number | undefined;
 
     /**
+     * 总时长
+     */
+    total: number | undefined;
+
+    /**
      * 构造方法
      * @param fileName 文件名
      */

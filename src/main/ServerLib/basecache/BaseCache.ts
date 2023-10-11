@@ -196,4 +196,26 @@ export default class BaseCache<E extends BaseCacheEntity<E>> {
             });
         });
     }
+
+    queryRecentPlay(size: number): Promise<E[]> {
+        const query = {};
+        const sort = {
+            updateTime: -1,
+        };
+        return new Promise((resolve, reject) => {
+            this.db
+                .find(query)
+                .sort(sort)
+                .limit(size)
+                .exec((err, docs) => {
+                    if (err !== null) {
+                        log.error(err);
+                        reject(err);
+                    } else {
+                        log.info(`query recent play, size: ${size}`);
+                        resolve(docs);
+                    }
+                });
+        });
+    }
 }

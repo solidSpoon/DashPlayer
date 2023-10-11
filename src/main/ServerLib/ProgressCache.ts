@@ -52,6 +52,10 @@ class ProgressCache {
     public static async clearCache(): Promise<void> {
         await this.cache.clearCache();
     }
+
+    static async queryRecentPlay(size: number): Promise<ProgressEntity[]> {
+        return this.cache.queryRecentPlay(size);
+    }
 }
 
 export default ProgressCache;

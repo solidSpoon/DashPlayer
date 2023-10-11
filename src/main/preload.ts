@@ -43,7 +43,9 @@ export type Channels =
     | 'check-update'
     | 'app-version'
     | 'player-size'
-    | 'home-size';
+    | 'home-size'
+    | 'recent-play'
+    | 'open-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -179,6 +181,15 @@ const electronHandler = {
     },
     openUrl: async (url: string) => {
         await invoke('open-url', url);
+    },
+    openFile: async (path: string) => {
+        const data = await invoke('open-file', path);
+        if (data === null) return null;
+        const blob = new Blob([data]);
+        return URL.createObjectURL(blob);
+    },
+    recentPlay: async (size: number) => {
+        return (await invoke('recent-play', size)) as ProgressParam[];
     },
     onMaximize: (func: () => void) => {
         return on('maximize', func);
