@@ -98,7 +98,7 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
                     >
                         <GoHistory className="w-4 h-4 fill-neutral-400" />
                         <span>Resume</span>
-                        <span className="flex-1">{lastPlay.fileName}</span>
+                        <span className="flex-1 truncate">{lastPlay.fileName}</span>
                         <span className="text-neutral-400">
                             {secondToDate(lastPlay.progress)}
                         </span>
