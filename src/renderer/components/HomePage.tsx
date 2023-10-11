@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { logo } from '../../pic/img';
+import TitleBarWindows from './TitleBarWindows';
 
 const api = window.electron;
 
@@ -14,8 +15,13 @@ const HomePage = () => {
     }, []);
 
     return (
-        <div className="w-full flex-1 bg-background flex justify-center items-center select-none">
-            <div className="w-1/3 h-full flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drag drop-shadow shadow-black">
+        <div className="w-full h-screen flex-1 bg-background flex justify-center items-center select-none">
+            <TitleBarWindows
+                maximizable={false}
+                className="fixed top-0 left-0 z-50"
+                buttonClassName="hover:bg-titlebarHover"
+            />
+            <div className="w-1/3 h-full flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drop-shadow shadow-black">
                 <div className="relative top-0 left-0 w-32 h-32">
                     <img
                         src={logo}

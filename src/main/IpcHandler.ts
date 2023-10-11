@@ -221,10 +221,17 @@ export default function registerHandler() {
         log.info('open-url', url);
     });
     handle('player-size', async () => {
-        mainWindow?.setSize(800, 600);
+        log.info('player-size');
         mainWindow?.setResizable(true);
         mainWindow?.setMaximizable(true);
         mainWindow?.maximize();
         // mainWindow?.setMaximizable(true);
+    });
+    handle('home-size', async () => {
+        log.info('home-size');
+        mainWindow?.unmaximize();
+        mainWindow?.setSize(800, 600);
+        mainWindow?.setResizable(false);
+        mainWindow?.setMaximizable(false);
     });
 }

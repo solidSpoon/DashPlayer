@@ -25,9 +25,18 @@ const TitleBar = ({ hasSubTitle, title, show }: TitleBarProps) => {
     return (
         <>
             {isWindows ? (
-                <TitleBarWindows hasSubtitle={hasSubTitle} title={title} />
+                <TitleBarWindows
+                    hasSubtitle={hasSubTitle}
+                    title={title}
+                    buttonClassName="hover:bg-titlebarHover"
+                    className="bg-titlebar"
+                />
             ) : (
-                <TitleBarMac hasSubtitle={hasSubTitle} title={title} show={show} />
+                <TitleBarMac
+                    hasSubtitle={hasSubTitle}
+                    title={title}
+                    show={show}
+                />
             )}
         </>
     );

@@ -1,19 +1,25 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import parseFile from '../lib/FileParser';
-import UploadButton from './UploadButton';
 
 export type FileDropParam = {
     children: ReactElement;
     onFileChange: (file: FileT) => void;
     className?: string | undefined;
+    isDragging: boolean;
+    setIsDragging: (dragging: boolean) => void;
 };
 
-const FileDrop = ({ children, onFileChange, className }: FileDropParam) => {
+const FileDrop = ({
+    children,
+    onFileChange,
+    className,
+    isDragging,
+    setIsDragging,
+}: FileDropParam) => {
     // 创建组件引用
     const dropRef = useRef<HTMLDivElement>(null);
     const counter = useRef(0);
-    const [isDragging, setIsDragging] = React.useState<boolean>(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
@@ -32,7 +38,7 @@ const FileDrop = ({ children, onFileChange, className }: FileDropParam) => {
         return () => {
             window.removeEventListener('mousemove', callback);
         };
-    }, [isDragging]);
+    }, [isDragging, setIsDragging]);
     const handleDragIn = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -93,13 +99,17 @@ const FileDrop = ({ children, onFileChange, className }: FileDropParam) => {
             >
                 {children}
             </div>
-            <UploadButton
-                mousePosition={mousePosition}
-                isDragging={isDragging}
-                onFileChange={(file) => {
-                    onFileChange(file);
-                }}
-            />
+            {isDragging && (
+                <div
+                    className={`pointer-events-none flex z-50 items-center justify-center bg-lime-700 rounded-full w-56 h-56 drop-shadow-md blur-3xl
+                        fixed left-0 top-0`}
+                    style={{
+                        transform: `translate(${mousePosition.x - 112}px, ${
+                            mousePosition.y - 112
+                        }px)`,
+                    }}
+                />
+            )}
         </>
     );
 };

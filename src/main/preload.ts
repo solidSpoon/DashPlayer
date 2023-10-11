@@ -42,7 +42,8 @@ export type Channels =
     | 'open-url'
     | 'check-update'
     | 'app-version'
-    | 'player-size';
+    | 'player-size'
+    | 'home-size';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -136,6 +137,9 @@ const electronHandler = {
     },
     playerSize: async () => {
         await invoke('player-size');
+    },
+    homeSize: async () => {
+        await invoke('home-size');
     },
     close: async () => {
         await invoke('close');

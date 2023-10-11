@@ -1,21 +1,29 @@
 import React, { useEffect } from 'react';
-import {
-    AiOutlineClose,
-    AiOutlineCompress,
-    AiOutlineMinus,
-} from 'react-icons/ai';
-import { FiMaximize } from 'react-icons/fi';
 import { HiOutlineMenu } from 'react-icons/hi';
-import { VscChromeClose, VscChromeMaximize, VscChromeMinimize, VscChromeRestore } from 'react-icons/vsc';
+import {
+    VscChromeClose,
+    VscChromeMaximize,
+    VscChromeMinimize,
+    VscChromeRestore,
+} from 'react-icons/vsc';
 
 export interface TitleBarWindowsProps {
-    hasSubtitle: boolean;
-    title: string | undefined;
+    hasSubtitle?: boolean;
+    title?: string;
+    maximizable?: boolean;
+    className?: string;
+    buttonClassName?: string;
 }
 
 const api = window.electron;
 
-const TitleBarWindows = ({ title, hasSubtitle }: TitleBarWindowsProps) => {
+const TitleBarWindows = ({
+    title,
+    hasSubtitle,
+    maximizable,
+    className,
+    buttonClassName,
+}: TitleBarWindowsProps) => {
     const [isMaximized, setIsMaximized] = React.useState(false);
 
     useEffect(() => {
@@ -54,38 +62,39 @@ const TitleBarWindows = ({ title, hasSubtitle }: TitleBarWindowsProps) => {
     };
 
     return (
-        <div className="select-none w-full drag h-6 flex justify-between items-center bg-titlebar text-titlebarText gap-x-2 drop-shadow">
+        <div
+            className={`select-none w-full drag h-6 flex justify-between items-center text-titlebarText gap-x-2 drop-shadow ${className}`}
+        >
             <HiOutlineMenu
-                className="no-drag hover:bg-titlebarHover w-6 h-6 p-1"
+                className={`no-drag w-6 h-6 p-1 ${buttonClassName}`}
                 onClick={onMenu}
             />
             <div>{title}</div>
             <div className="no-drag flex h-full justify-center items-center">
                 <VscChromeMinimize
-                    className="hover:bg-titlebarHover w-6 h-6 p-1"
+                    className={` w-6 h-6 p-1 ${buttonClassName}`}
                     onClick={onMinimize}
                 />
-                {isMaximized ? (
+                {maximizable && isMaximized && (
                     <VscChromeRestore
-                        className="hover:bg-titlebarHover w-6 h-6 p-1"
+                        className={` w-6 h-6 p-1 ${buttonClassName}`}
                         onClick={unMaximize}
                     />
-                ) : (
+                )}
+                {maximizable && !isMaximized && (
                     <VscChromeMaximize
-                        className="hover:bg-titlebarHover w-6 h-6 p-1"
+                        className={` w-6 h-6 p-1 ${buttonClassName}`}
                         onClick={maximize}
                     />
                 )}
+
                 <VscChromeClose
-                    className="hover:bg-titlebarHover w-6 h-6 p-1"
+                    className={` w-6 h-6 p-1 ${buttonClassName}`}
                     onClick={onClose}
                 />
             </div>
             {hasSubtitle && (
                 <>
-                    {/* <div className="absolute top-0 right-0 w-1 h-1 bg-stone-200 -translate-x-2 translate-y-6"> */}
-                    {/*     <div className="w-full h-full rounded-tr-full bg-neutral-800" /> */}
-                    {/* </div> */}
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 1 1"
@@ -97,5 +106,13 @@ const TitleBarWindows = ({ title, hasSubtitle }: TitleBarWindowsProps) => {
             )}
         </div>
     );
+};
+
+TitleBarWindows.defaultProps = {
+    hasSubtitle: false,
+    maximizable: true,
+    title: '',
+    className: '',
+    buttonClassName: '',
 };
 export default TitleBarWindows;
