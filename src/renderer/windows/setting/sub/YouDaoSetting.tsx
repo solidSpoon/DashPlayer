@@ -44,11 +44,13 @@ const TenantSetting = () => {
             <Header title="查单词" description="配置有道密钥以启用查词功能" />
             <ItemWrapper>
                 <SettingInput
+                    inputWidth="w-64"
                     setValue={setSecretId}
                     title="secretId"
                     value={secretId ?? ''}
                 />
                 <SettingInput
+                    inputWidth="w-64"
                     setValue={setSecretKey}
                     title="secretKey"
                     value={secretKey ?? ''}
