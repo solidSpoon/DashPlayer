@@ -18,17 +18,18 @@ const TitleBarMac = ({
 }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const showTitleBar = !autoHide || isMouseOver;
-    const isMaximized = useSystem((s) => s.isMaximized);
+    const windowState = useSystem((s) => s.windowState);
+    const setWindowState = useSystem((s) => s.setWindowState);
     const onDoubleClick = async () => {
-        if (isMaximized) {
-            await api.unMaximize();
+        if (windowState === 'maximized') {
+            setWindowState('normal');
         } else {
-            await api.maximize();
+            setWindowState('maximized');
         }
     };
 
     const handleMouseOver = async () => {
-        const fullScreen = await api.isFullScreen();
+        const fullScreen = windowState === 'fullscreen';
         setIsMouseOver(!fullScreen);
         if (!fullScreen && autoHide) {
             await api.showButton();
@@ -36,7 +37,7 @@ const TitleBarMac = ({
     };
 
     const handleMouseLeave = async () => {
-        const fullScreen = await api.isFullScreen();
+        const fullScreen = windowState === 'fullscreen';
         setIsMouseOver(false);
         if (!fullScreen && autoHide) {
             setIsMouseOver(false);

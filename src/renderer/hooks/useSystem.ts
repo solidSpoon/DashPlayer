@@ -1,24 +1,39 @@
 import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+
+type WindowState =
+    | 'normal'
+    | 'maximized'
+    | 'minimized'
+    | 'fullscreen'
+    | 'closed';
 
 type State = {
     isWindows: boolean;
-    isMaximized: boolean;
+    windowState: WindowState;
+    isMain: boolean;
     appVersion: string;
 };
 
 type Actions = {
-    setIsWindows: (isWin: boolean) => void;
-    setIsMaximized: (isMaximized: boolean) => void;
+    setIsWin: (isWin: boolean) => void;
+    setWindowState: (windowsState: WindowState) => void;
     setAppVersion: (appVersion: string) => void;
+    setIsMain: (isMain: boolean) => void;
 };
 
-const useSystem = create<State & Actions>((set) => ({
-    isWindows: false,
-    isMaximized: false,
-    appVersion: '',
-    setIsWindows: (isWin: boolean) => set({ isWindows: isWin }),
-    setIsMaximized: (isMaximized: boolean) => set({ isMaximized }),
-    setAppVersion: (appVersion: string) => set({ appVersion }),
-}));
+const useSystem = create(
+    subscribeWithSelector<State & Actions>((set) => ({
+        isWindows: false,
+        appVersion: '',
+        isMain: true,
+        windowState: 'normal',
+        setIsWin: (isWin: boolean) => set({ isWindows: isWin }),
+        setAppVersion: (appVersion: string) => set({ appVersion }),
+        setIsMain: (isMain: boolean) => set({ isMain }),
+        setWindowState: (windowsState: WindowState) =>
+            set({ windowState: windowsState }),
+    }))
+);
 
 export default useSystem;

@@ -2,7 +2,6 @@ import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
-import { rejects } from 'assert';
 import {
     ProgressParam,
     queryProgress,
@@ -179,7 +178,10 @@ export default function registerHandler() {
         await createSettingWindowIfNeed();
         settingWindow?.show();
     });
-
+    handle('fullscreen', async () => {
+        log.info('fullscreen');
+        mainWindow?.setFullScreen(true);
+    });
     handle('maximize-setting', async () => {
         log.info('maximize-setting');
         settingWindow?.maximize();

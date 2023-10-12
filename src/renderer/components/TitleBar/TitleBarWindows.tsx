@@ -14,6 +14,7 @@ export interface TitleBarWindowsProps {
     maximizable?: boolean;
     className?: string;
     buttonClassName?: string;
+    hasSettings?: boolean;
 }
 
 const api = window.electron;
@@ -24,23 +25,25 @@ const TitleBarWindows = ({
     maximizable,
     className,
     buttonClassName,
+    hasSettings,
 }: TitleBarWindowsProps) => {
-    const isMaximized = useSystem((s) => s.isMaximized);
+    const windowState = useSystem((s) => s.windowState);
+    const setWindowState = useSystem((s) => s.setWindowState);
 
-    const maximize = async () => {
-        await api.maximize();
+    const maximize = () => {
+        setWindowState('maximized');
     };
 
-    const unMaximize = async () => {
-        await api.unMaximize();
+    const unMaximize = () => {
+        setWindowState('normal');
     };
 
     const onMinimize = async () => {
-        await api.minimize();
+        setWindowState('minimized');
     };
 
     const onClose = async () => {
-        await api.close();
+        setWindowState('closed');
     };
 
     const onMenu = async () => {
@@ -51,23 +54,25 @@ const TitleBarWindows = ({
         <div
             className={`select-none w-full drag h-6 flex justify-between items-center text-titlebarText gap-x-2 drop-shadow ${className}`}
         >
-            <HiOutlineMenu
-                className={`no-drag w-6 h-6 p-1 ${buttonClassName}`}
-                onClick={onMenu}
-            />
+            {hasSettings && (
+                <HiOutlineMenu
+                    className={`no-drag w-6 h-6 p-1 ${buttonClassName}`}
+                    onClick={onMenu}
+                />
+            )}
             <div>{title}</div>
             <div className="no-drag flex h-full justify-center items-center">
                 <VscChromeMinimize
                     className={` w-6 h-6 p-1 ${buttonClassName}`}
                     onClick={onMinimize}
                 />
-                {maximizable && isMaximized && (
+                {maximizable && windowState === 'maximized' && (
                     <VscChromeRestore
                         className={` w-6 h-6 p-1 ${buttonClassName}`}
                         onClick={unMaximize}
                     />
                 )}
-                {maximizable && !isMaximized && (
+                {maximizable && !(windowState === 'maximized') && (
                     <VscChromeMaximize
                         className={` w-6 h-6 p-1 ${buttonClassName}`}
                         onClick={maximize}
@@ -100,5 +105,6 @@ TitleBarWindows.defaultProps = {
     title: '',
     className: '',
     buttonClassName: '',
+    hasSettings: true,
 };
 export default TitleBarWindows;

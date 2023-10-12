@@ -119,9 +119,15 @@ export const createPlayerWindow = async () => {
     // on full screen, show button
     mainWindow?.on('enter-full-screen', () => {
         mainWindow?.setWindowButtonVisibility(true);
+        mainWindow?.webContents.send('fullscreen');
     });
     mainWindow?.on('leave-full-screen', () => {
         mainWindow?.setWindowButtonVisibility(false);
+        if (mainWindow?.isMaximized()) {
+            mainWindow?.webContents.send('maximize');
+        } else {
+            mainWindow?.webContents.send('unmaximize');
+        }
     });
     mainWindow.on('maximize', () => {
         mainWindow?.webContents.send('maximize');
@@ -158,7 +164,7 @@ const createSettingWindow = async () => {
                 ? path.join(__dirname, 'preload.js')
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
         },
-        frame: process.platform === 'darwin',
+        titleBarStyle: 'hidden',
     });
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 

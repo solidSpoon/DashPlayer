@@ -32,6 +32,7 @@ const TitleBar = ({
                     buttonClassName={windowsButtonClassName}
                     className={className}
                     maximizable={maximizable}
+                    hasSettings={windowsHasSettings}
                 />
             ) : (
                 <TitleBarMac

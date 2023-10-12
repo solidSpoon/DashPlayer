@@ -1,4 +1,4 @@
-import { cloneElement, ReactElement, useState } from 'react';
+import React, { cloneElement, ReactElement, useState } from 'react';
 import 'tailwindcss/tailwind.css';
 import { BsFillKeyboardFill } from 'react-icons/bs';
 import { PiKeyboardDuotone, PiKeyboardFill } from 'react-icons/pi';
@@ -12,6 +12,7 @@ import StorageSetting from './sub/StorageSetting';
 import CheckUpdate from './sub/CheckUpdate';
 import useSystem from '../../hooks/useSystem';
 import { MdBuild, MdKeyboard, MdKeyboardAlt, MdOutlineGTranslate, MdStorage, MdTranslate } from 'react-icons/md';
+import TitleBar from '../../components/TitleBar/TitleBar';
 
 type SettingType = 'you-dao' | 'tenant' | 'shortcut' | 'storage' | 'update';
 
@@ -39,7 +40,13 @@ export default function SettingKey() {
 
     return (
         <div className="w-full h-screen flex flex-col mx-auto overflow-hidden select-none bg-stone-200">
-            {isWindows && <TitleBarSettingWindows />}
+            <TitleBar
+                maximizable={false}
+                className="fixed top-0 left-0 w-full z-50"
+                windowsButtonClassName="hover:bg-titlebarHover"
+                autoHideOnMac={false}
+                windowsHasSettings={false}
+            />
             <div className="flex flex-row flex-1 h-0">
                 <aside className="w-1/3 backdrop-blur-3xl pt-6">
                     <div className="sticky top-0 p-4 pt-6 w-full flex flex-col">

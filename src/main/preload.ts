@@ -45,7 +45,8 @@ export type Channels =
     | 'player-size'
     | 'home-size'
     | 'recent-play'
-    | 'open-file';
+    | 'open-file'
+    | 'fullscreen';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -149,6 +150,9 @@ const electronHandler = {
     isFullScreen: async () => {
         return (await invoke('is-full-screen')) as boolean;
     },
+    fullscreen: async () => {
+        await invoke('fullscreen');
+    },
     showButton: async () => {
         await invoke('show-button');
     },
@@ -199,6 +203,9 @@ const electronHandler = {
     },
     onUnMaximize: (func: () => void) => {
         return on('unmaximize', func);
+    },
+    onFullScreen: (func: () => void) => {
+        return on('fullscreen', func);
     },
     onSettingMaximize: (func: () => void) => {
         return on('maximize-setting', func);
