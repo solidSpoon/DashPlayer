@@ -9,11 +9,16 @@ export interface Release {
 export const checkUpdate = async (): Promise<Release | null> => {
     const currentVersion = app.getVersion();
 
-    const result = await axios.get(
-        'https://api.github.com/repos/solidSpoon/DashPlayer/releases/latest'
-    );
+    const result = await axios
+        .get(
+            'https://api.github.com/repos/solidSpoon/DashPlayer/releases/latest'
+        )
+        .catch((err) => {
+            console.error(err);
+            return null;
+        });
 
-    if (result.status !== 200) {
+    if (result?.status !== 200) {
         return null;
     }
 

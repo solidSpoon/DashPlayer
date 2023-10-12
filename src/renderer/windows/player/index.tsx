@@ -1,14 +1,15 @@
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import App from './App';
-import SyncState from '../../components/SyncState';
+import useSystem from '../../hooks/useSystem';
+import syncStatus from '../sync';
 
 const container = document.getElementById('root')!;
 const root = createRoot(container);
+const api = window.electron;
 root.render(
     <>
         <App />
-        <SyncState />
     </>
 );
 
@@ -18,3 +19,4 @@ window.electron.ipcRenderer.once('ipc-example', (arg) => {
     console.log(arg);
 });
 window.electron.ipcRenderer.sendMessage('ipc-example', ['ping']);
+syncStatus();

@@ -63,6 +63,8 @@ module.exports = {
                          * homePage 进度条完成色
                          */
                         homePageProgressbarComplete: colors.yellow['500'],
+                        settingButton: colors.yellow['600'],
+                        settingButtonHover: colors.yellow['700'],
                     },
                     fontSize: {
                         mainSubtitleOne: fontSize['3xl'],

@@ -3,6 +3,11 @@ import { white } from 'chalk';
 import { ToastContainer, toast } from 'react-toastify';
 import callApi from '../../../lib/apis/ApiWrapper';
 import { ShortCutValue } from '../../../components/GlobalShortCut';
+import SettingButton from '../../../components/setting/SettingButton';
+import SettingInput from '../../../components/setting/SettingInput';
+import ItemWrapper from '../../../components/setting/ItemWapper';
+import FooterWrapper from '../../../components/setting/FooterWrapper';
+import Header from '../../../components/setting/Header';
 
 export const defaultShortcut: ShortCutValue = {
     last: 'left,a',
@@ -144,12 +149,12 @@ const ShortcutSetting = () => {
     ) => {
         return (
             <label
-                className="flex items-center gap-4  text-gray-700 text-sm font-bold select-none"
+                className="flex items-center gap-4  text-gray-700 text-sm select-none"
                 htmlFor={id}
             >
-                <div className="text-lg w-32">{title} :</div>
+                <div className="text-sm text-right w-28">{title} :</div>
                 <input
-                    className="shadow appearance-none border rounded flex-1 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    className="appearance-none border w-44 h-6 rounded text-sm px-3 text-gray-700  focus:outline-none focus:shadow-outline"
                     id={id}
                     type="text"
                     placeholder={placeHolder}
@@ -161,83 +166,65 @@ const ShortcutSetting = () => {
     };
 
     return (
-        <form
-            className="h-full overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-stone-400 scrollbar-thumb-rounded-sm"
-            onSubmit={handleSubmit}
-        >
-            <h1 className="text-2xl font-bold">快捷键</h1>
-            <text className="">多个快捷键用 , 分割</text>
+        <form className=" h-full overflow-y-auto flex flex-col gap-4">
+            <Header title="快捷键" description="多个快捷键用 , 分割" />
+            <ItemWrapper>
+                <SettingInput
+                    title="上一句"
+                    placeHolder={defaultShortcut.last}
+                    value={last || ''}
+                    setValue={setLast}
+                />
+                <SettingInput
+                    title="下一句"
+                    placeHolder={defaultShortcut.next}
+                    value={next || ''}
+                    setValue={setNext}
+                />
+                <SettingInput
+                    title="重复"
+                    placeHolder={defaultShortcut.repeat}
+                    value={repeat || ''}
+                    setValue={setRepeat}
+                />
+                <SettingInput
+                    title="播放/暂停"
+                    placeHolder={defaultShortcut.space}
+                    value={space || ''}
+                    setValue={setSpace}
+                />
+                <SettingInput
+                    title="单句重复"
+                    placeHolder={defaultShortcut.singleRepeat}
+                    value={singleRepeat || ''}
+                    setValue={setSingleRepeat}
+                />
+                <SettingInput
+                    title="展示/隐藏英文"
+                    placeHolder={defaultShortcut.showEn}
+                    value={showEn || ''}
+                    setValue={setShowEn}
+                />
+                <SettingInput
+                    title="展示/隐藏中文"
+                    placeHolder={defaultShortcut.showCn}
+                    value={showCn || ''}
+                    setValue={setShowCn}
+                />
+                <SettingInput
+                    title="展示/隐藏中英"
+                    placeHolder={defaultShortcut.sowEnCn}
+                    value={showEnCn || ''}
+                    setValue={setShowEnCn}
+                />
+            </ItemWrapper>
 
-            <div className=" flex flex-col gap-5 pb-5 pt-6">
-                {itemEle(
-                    '上一句',
-                    'last',
-                    defaultShortcut.last,
-                    last || '',
-                    setLast
-                )}
-                {itemEle(
-                    '下一句',
-                    'next',
-                    defaultShortcut.next,
-                    next || '',
-                    setNext
-                )}
-                {itemEle(
-                    '重复',
-                    'repeat',
-                    defaultShortcut.repeat,
-                    repeat || '',
-                    setRepeat
-                )}
-                {itemEle(
-                    '播放/暂停',
-                    'space',
-                    defaultShortcut.space,
-                    space || '',
-                    setSpace
-                )}
-                {itemEle(
-                    '单句重复',
-                    'repeatSingle',
-                    defaultShortcut.singleRepeat,
-                    singleRepeat || '',
-                    setSingleRepeat
-                )}
-                {itemEle(
-                    '展示/隐藏英文',
-                    'showEn',
-                    defaultShortcut.showEn,
-                    showEn || '',
-                    setShowEn
-                )}
-                {itemEle(
-                    '展示/隐藏中文',
-                    'showCn',
-                    defaultShortcut.showCn,
-                    showCn || '',
-                    setShowCn
-                )}
-                {itemEle(
-                    '展示/隐藏中英',
-                    'showEnCn',
-                    defaultShortcut.sowEnCn,
-                    showEnCn || '',
-                    setShowEnCn
-                )}
-            </div>
-
-            <div className="flex items-center justify-end">
-                <button
-                    className="text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5
-                        disabled:bg-gray-500 bg-blue-500 hover:bg-blue-700"
-                    onClick={handleSubmit}
+            <FooterWrapper>
+                <SettingButton
+                    handleSubmit={handleSubmit}
                     disabled={eqServer}
-                    type="button"
-                >
-                    Apply
-                </button>
-            </div>
+                />
+            </FooterWrapper>
         </form>
     );
 };

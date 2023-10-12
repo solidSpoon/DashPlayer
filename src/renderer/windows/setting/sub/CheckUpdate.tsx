@@ -1,5 +1,7 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { Release } from '../../../../main/controllers/CheckUpdate';
+import Header from '../../../components/setting/Header';
+import ItemWrapper from '../../../components/setting/ItemWapper';
 
 const api = window.electron;
 
@@ -20,23 +22,32 @@ const CheckUpdate = () => {
     }, []);
 
     return (
-        <div className="w-full h-full p-8">
-            {checking && <div>检查更新中...</div>}
-            {!checking && !newRelease && <div>已经是最新版本</div>}
-            {!checking && newRelease && (
-                <div>
-                    <h1 className="text-2xl">最新版本: {newRelease.version}</h1>
-                    <div className="pt-2">前往如下地址下载新版</div>
-                    <div
-                        onClick={() => {
-                            api.openUrl(newRelease.url);
-                        }}
-                        className=""
-                    >
-                        {newRelease.url}
+        <div className="w-full h-full flex flex-col gap-4">
+            <Header title="检查更新" />
+            <ItemWrapper>
+                {checking && <div>检查更新中...</div>}
+                {!checking && !newRelease && (
+                    <div className="text-lg">已经是最新版本</div>
+                )}
+                {!checking && newRelease && (
+                    <div className="">
+                        <h1 className="text-lg">
+                            最新版本: {newRelease.version}
+                        </h1>
+                        <div className="pt-2 text-base">
+                            前往如下地址下载新版
+                        </div>
+                        <div
+                            className="text-sm"
+                            onClick={() => {
+                                api.openUrl(newRelease.url);
+                            }}
+                        >
+                            {newRelease.url}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </ItemWrapper>
         </div>
     );
 };

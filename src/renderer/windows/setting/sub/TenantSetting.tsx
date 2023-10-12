@@ -1,5 +1,10 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import callApi from '../../../lib/apis/ApiWrapper';
+import SettingButton from '../../../components/setting/SettingButton';
+import SettingInput from '../../../components/setting/SettingInput';
+import ItemWrapper from '../../../components/setting/ItemWapper';
+import FooterWrapper from '../../../components/setting/FooterWrapper';
+import Header from '../../../components/setting/Header';
 
 const TenantSetting = () => {
     const [secretId, setSecretId] = useState<string | undefined>();
@@ -37,53 +42,31 @@ const TenantSetting = () => {
         console.log(`A name was submitted: ${secretId}, ${secretKey}`);
     };
     return (
-        <div className="w-full">
-            <form className=" px-10 pt-6 pb-8 mb-4" onSubmit={handleSubmit}>
-                <h1 className="text-2xl font-bold mb-2">腾讯密钥</h1>
-                <div className="mb-4">
-                    <label
-                        className="block text-gray-700 text-sm font-bold mb-2 select-none"
-                        htmlFor="secretId"
-                    >
-                        secretId
-                        <input
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 mt-2 leading-tight focus:outline-none focus:shadow-outline"
-                            id="secretId"
-                            type="text"
-                            // placeholder="******************"
-                            value={secretId || ''}
-                            onChange={handleSecretIdChange}
-                        />
-                    </label>
-                </div>
-                <div className="mb-6">
-                    <label
-                        className="block text-gray-700 text-sm font-bold mb-2 select-none"
-                        htmlFor="password"
-                    >
-                        secretKey
-                        <input
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 mt-2 leading-tight focus:outline-none focus:shadow-outline"
-                            id="password"
-                            type="password"
-                            placeholder="******************"
-                            value={secretKey || ''}
-                            onChange={handleSecretKeyChange}
-                        />
-                    </label>
-                </div>
-                <div className="flex items-center justify-end">
-                    <button
-                        className="text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-5 disabled:bg-gray-500 bg-blue-500 hover:bg-blue-700"
-                        onClick={handleSubmit}
-                        disabled={eqServer}
-                        type="button"
-                    >
-                        Apply
-                    </button>
-                </div>
-            </form>
-        </div>
+        <form className="w-full h-full flex flex-col gap-4">
+            <Header title="句子翻译" description="配置腾讯密钥以启用句子翻译"/>
+            <ItemWrapper>
+                <SettingInput
+                    setValue={setSecretId}
+                    title="secretId"
+                    inputWidth="w-64"
+                    value={secretId || ''}
+                />
+                <SettingInput
+                    type="password"
+                    inputWidth="w-64"
+                    placeHolder="******************"
+                    setValue={setSecretKey}
+                    title="secretKey"
+                    value={secretKey || ''}
+                />
+            </ItemWrapper>
+            <FooterWrapper>
+                <SettingButton
+                    disabled={eqServer}
+                    handleSubmit={handleSubmit}
+                />
+            </FooterWrapper>
+        </form>
     );
 };
 export default TenantSetting;

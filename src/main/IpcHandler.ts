@@ -107,11 +107,11 @@ export default function registerHandler() {
         event.reply('get-you-dao-secret', result);
     });
 
-    ipcMain.on('is-windows', async (event) => {
+    handle('is-windows', async () => {
         log.info('is-windows');
-        const isWindows = process.platform === 'win32';
-        event.reply('is-windows', isWindows);
+        return process.platform === 'win32';
     });
+
     handle('you-dao-translate', async (word) => {
         log.info('you-dao-translate');
         return youDaoTrans(word);

@@ -13,7 +13,7 @@ const TitleBarSettingWindows = () => {
     };
 
     return (
-        <div className="select-none w-full drag h-6 flex  justify-end items-center bg-stone-200 drop-shadow">
+        <div className="fixed top-0 left-0 select-none w-full drag h-10 pb-4 flex justify-end items-center  z-50">
             <div className="no-drag flex h-full justify-center items-center">
                 <VscChromeMinimize
                     className="hover:bg-neutral-300 w-6 h-6 p-1"

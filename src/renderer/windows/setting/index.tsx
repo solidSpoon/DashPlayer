@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { ToastContainer } from 'react-toastify';
 import SettingKey from './SettingKey';
 import 'react-toastify/dist/ReactToastify.css';
+import syncStatus from '../sync';
 
 const container = document.getElementById('root')!;
 const root = createRoot(container);
@@ -29,3 +30,4 @@ window.electron.ipcRenderer.once('ipc-example', (arg) => {
     console.log(arg);
 });
 window.electron.ipcRenderer.sendMessage('ipc-example', ['ping']);
+syncStatus();

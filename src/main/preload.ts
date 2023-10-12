@@ -191,6 +191,9 @@ const electronHandler = {
     recentPlay: async (size: number) => {
         return (await invoke('recent-play', size)) as ProgressParam[];
     },
+    isWindows: async () => {
+        return (await invoke('is-windows')) as boolean;
+    },
     onMaximize: (func: () => void) => {
         return on('maximize', func);
     },
