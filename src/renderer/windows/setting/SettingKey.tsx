@@ -43,7 +43,7 @@ export default function SettingKey() {
             <TitleBar
                 maximizable={false}
                 className="fixed top-0 left-0 w-full z-50"
-                windowsButtonClassName="hover:bg-titlebarHover"
+                windowsButtonClassName="hover:bg-black/10 fill-black/50"
                 autoHideOnMac={false}
                 windowsHasSettings={false}
             />

@@ -50,7 +50,7 @@ TitleBar.defaultProps = {
     autoHideOnMac: true,
     className: '',
     windowsButtonClassName: '',
-    windowsHasSettings: false,
+    windowsHasSettings: true,
     maximizable: true,
     hasSubTitle: false,
     title: '',
