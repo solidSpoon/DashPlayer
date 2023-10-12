@@ -93,6 +93,7 @@ const syncStatus = (main: boolean) => {
             }
         }
     );
+    useSystem.subscribe(console.log);
 };
 
 export default syncStatus;

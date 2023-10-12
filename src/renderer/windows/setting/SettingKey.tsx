@@ -6,7 +6,6 @@ import { IconType } from 'react-icons';
 import TenantSetting from './sub/TenantSetting';
 import YouDaoSetting from './sub/YouDaoSetting';
 import ShortcutSetting from './sub/ShortcutSetting';
-import TitleBarSettingWindows from '../../components/TitleBarSettingWindows';
 import './SettingKey.css';
 import StorageSetting from './sub/StorageSetting';
 import CheckUpdate from './sub/CheckUpdate';
