@@ -36,6 +36,8 @@
 
 <p align="center">
     <img width="70%" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/252a785a-cef4-445b-a8da-c3243f4fcddd">
+    <img width="40%" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/0d26ff19-540d-4045-a13f-4a2e0dabaaa6">
+    <img width="40%" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/e2c34bbc-24a5-483b-b38b-2ec1d2b3bcf4">
 </p>
 
 ## 为什么选择 DashPlayer？ 🌟
