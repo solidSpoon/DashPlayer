@@ -13,23 +13,18 @@ import Subtitle from './Subtitle';
 import BorderProgressBar from './BorderProgressBar';
 import FileT from '../lib/param/FileT';
 import UploadButton from './UploadButton';
+import useFile from '../hooks/useFile';
 
 export interface PlayerPageParam {
-    videoFile: FileT | undefined;
-    subtitleFile: FileT | undefined;
-    updateFile: (file: FileT) => void;
     isDragging: boolean;
 }
 
-const PlayerPage = ({
-    videoFile,
-    subtitleFile,
-    updateFile,
-    isDragging,
-}: PlayerPageParam) => {
+const PlayerPage = ({ isDragging }: PlayerPageParam) => {
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
-    const subtitles = useSubtitle(subtitleFile);
+    const videoFile = useFile((s) => s.videoFile);
+    const subtitleFile = useFile((s) => s.subtitleFile);
+    const subtitles = useSubtitle((s) => s.subtitle);
     const {
         seekAction: seekTime,
         currentSentence,
@@ -53,8 +48,6 @@ const PlayerPage = ({
             <RecordProgress
                 getCurrentProgress={() => progress.current}
                 getTotalTime={() => totalTime.current}
-                videoFile={videoFile}
-                subtitleFile={subtitleFile}
             />
             <GlobalShortCut onAction={doAction} />
 
@@ -78,7 +71,6 @@ const PlayerPage = ({
                 >
                     <div className="h-full">
                         <Player
-                            videoFile={videoFile}
                             onProgress={(time) => {
                                 progress.current = time;
                             }}
@@ -106,7 +98,7 @@ const PlayerPage = ({
                     pause={seekTime.time === SPACE_NUM}
                 />
             </Split>
-            {!isDragging && <UploadButton onFileChange={updateFile} />}
+            {!isDragging && <UploadButton />}
 
             <div id="progressBarRef" className="z-50">
                 <BorderProgressBar

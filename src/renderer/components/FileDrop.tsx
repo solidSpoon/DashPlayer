@@ -1,10 +1,10 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import parseFile from '../lib/FileParser';
+import useFile from '../hooks/useFile';
 
 export type FileDropParam = {
     children: ReactElement;
-    onFileChange: (file: FileT) => void;
     className?: string | undefined;
     isDragging: boolean;
     setIsDragging: (dragging: boolean) => void;
@@ -12,7 +12,6 @@ export type FileDropParam = {
 
 const FileDrop = ({
     children,
-    onFileChange,
     className,
     isDragging,
     setIsDragging,
@@ -21,6 +20,7 @@ const FileDrop = ({
     const dropRef = useRef<HTMLDivElement>(null);
     const counter = useRef(0);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const updateFile = useFile((s) => s.updateFile);
 
     useEffect(() => {
         let canceled = false;
@@ -72,7 +72,7 @@ const FileDrop = ({
         const files = e.dataTransfer.files ?? [];
         for (let i = 0; i < files.length; i += 1) {
             const file = parseFile(files[i]);
-            onFileChange(file);
+            updateFile(file);
         }
         e.dataTransfer.clearData();
         counter.current = 0;

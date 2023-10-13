@@ -1,26 +1,27 @@
 import { useEffect } from 'react';
-import FileT from '../lib/param/FileT';
-import callApi from '../lib/apis/ApiWrapper';
 import { ProgressParam } from '../../main/controllers/ProgressController';
+import useFile from '../hooks/useFile';
 
 interface RecordProgressParam {
     getCurrentProgress: () => number;
     getTotalTime: () => number;
-    videoFile: FileT | undefined;
-    subtitleFile: FileT | undefined;
 }
 
 const api = window.electron;
 
 const RecordProgress = ({
-    videoFile,
-    subtitleFile,
     getCurrentProgress,
     getTotalTime,
 }: RecordProgressParam) => {
+    const videoFile = useFile((s) => s.videoFile);
+    const subtitleFile = useFile((s) => s.subtitleFile);
+    const videoLoaded = useFile((s) => s.videoLoaded);
     useEffect(() => {
         async function method() {
             if (videoFile === undefined || getCurrentProgress() === undefined) {
+                return;
+            }
+            if (!videoLoaded) {
                 return;
             }
             const fileName = videoFile?.fileName;
@@ -41,7 +42,13 @@ const RecordProgress = ({
         return () => {
             clearInterval(interval);
         };
-    }, [videoFile, getCurrentProgress]);
+    }, [
+        videoFile,
+        getCurrentProgress,
+        getTotalTime,
+        subtitleFile?.path,
+        videoLoaded,
+    ]);
     return <></>;
 };
 export default RecordProgress;

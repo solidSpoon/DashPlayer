@@ -1,14 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
-import UploadPhotoParam from '../lib/param/UploadPhotoParam';
+import React, { useRef } from 'react';
 import parseFile from '../lib/FileParser';
+import useFile from '../hooks/useFile';
 
-export default function UploadButton({ onFileChange }: UploadPhotoParam) {
+export default function UploadButton() {
     const fileInputEl = useRef<HTMLInputElement>(null);
+    const updateFile = useFile((s) => s.updateFile);
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files ?? [];
         for (let i = 0; i < files.length; i += 1) {
             const file = parseFile(files[i]);
-            onFileChange(file);
+            updateFile(file);
         }
     };
 
