@@ -8,17 +8,16 @@ import { ProgressParam } from '../../main/controllers/ProgressController';
 import FileT from '../lib/param/FileT';
 import parseFile, { pathToFile } from '../lib/FileParser';
 import { secondToDate } from './PlayTime';
+import useFile from '../hooks/useFile';
 
 const api = window.electron;
 
-export interface HomePageProps {
-    onFileChange: (file: FileT) => void;
-}
-const HomePage = ({ onFileChange }: HomePageProps) => {
+const HomePage = () => {
     const appVersion = useSystem((s) => s.appVersion);
     const [recentPlaylists, setRecentPlaylists] = useState<ProgressParam[]>([]);
     const fileInputEl = useRef<HTMLInputElement>(null);
     const currentClick = useRef('');
+    const onFileChange = useFile((s) => s.updateFile);
     useEffect(() => {
         const init = async () => {
             const playlists = await api.recentPlay(50);
@@ -98,7 +97,9 @@ const HomePage = ({ onFileChange }: HomePageProps) => {
                     >
                         <GoHistory className="w-4 h-4 fill-neutral-400" />
                         <span>Resume</span>
-                        <span className="flex-1 truncate">{lastPlay.fileName}</span>
+                        <span className="flex-1 truncate">
+                            {lastPlay.fileName}
+                        </span>
                         <span className="text-neutral-400">
                             {secondToDate(lastPlay.progress)}
                         </span>

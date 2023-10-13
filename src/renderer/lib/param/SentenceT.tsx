@@ -28,6 +28,11 @@ class SentenceT {
 
     public key: string = '';
 
+    /**
+     * 批量翻译的分组, 从1开始
+     */
+    public transGroup: number = 0;
+
     public getKey = (): string => {
         return this.key;
     };
@@ -76,6 +81,7 @@ class SentenceT {
         result.fileUrl = this.fileUrl;
         result.msTranslate = this.msTranslate;
         result.key = this.key;
+        result.transGroup = this.transGroup;
         return result;
     }
 }

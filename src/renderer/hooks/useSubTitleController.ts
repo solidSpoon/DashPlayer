@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import SentenceT from '../lib/param/SentenceT';
 import { Action } from '../lib/CallAction';
+import useCurrentSentence from './useCurrentSentence';
 
 export const SPACE_NUM = -1;
 
@@ -41,9 +42,7 @@ export default function useSubTitleController(
 ) {
     const lastSeekTime = useRef<SeekTime>({ time: 0 });
     const [seekTime, setSeekTime] = useState<SeekTime>(lastSeekTime.current);
-    const [currentSentence, setCurrentSentence] = useState<
-        SentenceT | undefined
-    >(undefined);
+    const { currentSentence, setCurrentSentence } = useCurrentSentence();
 
     const [showCn, setShowCn] = useState<boolean>(true);
     const [showEn, setShowEn] = useState<boolean>(true);
@@ -113,6 +112,7 @@ export default function useSubTitleController(
         getCurrentSentence,
         seekTime.time,
         sentences,
+        setCurrentSentence,
         singleRepeat,
     ]);
 
