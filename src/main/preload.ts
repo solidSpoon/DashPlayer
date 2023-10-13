@@ -46,7 +46,8 @@ export type Channels =
     | 'home-size'
     | 'recent-play'
     | 'open-file'
-    | 'fullscreen';
+    | 'fullscreen'
+    | 'copy-to-clipboard'
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -191,6 +192,9 @@ const electronHandler = {
         if (data === null) return null;
         const blob = new Blob([data]);
         return URL.createObjectURL(blob);
+    },
+    copyToClipboard: async (text: string) => {
+        await invoke('copy-to-clipboard', text);
     },
     recentPlay: async (size: number) => {
         return (await invoke('recent-play', size)) as ProgressParam[];

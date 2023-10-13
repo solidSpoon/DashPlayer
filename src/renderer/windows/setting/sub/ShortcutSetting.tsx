@@ -1,6 +1,4 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
-import { white } from 'chalk';
-import { ToastContainer, toast } from 'react-toastify';
 import callApi from '../../../lib/apis/ApiWrapper';
 import { ShortCutValue } from '../../../components/GlobalShortCut';
 import SettingButton from '../../../components/setting/SettingButton';
@@ -8,6 +6,7 @@ import SettingInput from '../../../components/setting/SettingInput';
 import ItemWrapper from '../../../components/setting/ItemWapper';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
 import Header from '../../../components/setting/Header';
+import useNotification from '../../../hooks/useNotification';
 
 export const defaultShortcut: ShortCutValue = {
     last: 'left,a',
@@ -41,6 +40,7 @@ const ShortcutSetting = () => {
 
     const [serverValue, serServerValue] = useState<ShortCutValue | undefined>();
 
+    const setNotification = useNotification((s) => s.setNotification);
     const eqServer =
         serverValue?.last === last &&
         serverValue?.next === next &&
@@ -123,15 +123,10 @@ const ShortcutSetting = () => {
         };
         const res = verify(sc);
         if (res) {
-            toast.error(`快捷键 ${res} 重复`, {
-                position: 'top-center',
-                autoClose: 1000,
-                hideProgressBar: true,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: 'light',
+            // toast.error(`快捷键 ${res} 重复`, {
+            setNotification({
+                type: 'error',
+                text: `快捷键 ${res} 重复`,
             });
             return;
         }

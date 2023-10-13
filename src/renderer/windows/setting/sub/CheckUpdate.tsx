@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useState } from 'react';
 import { Release } from '../../../../main/controllers/CheckUpdate';
 import Header from '../../../components/setting/Header';
 import ItemWrapper from '../../../components/setting/ItemWapper';
+import useNotification from '../../../hooks/useNotification';
 
 const api = window.electron;
 
@@ -11,6 +12,7 @@ const CheckUpdate = () => {
     );
 
     const [checking, setChecking] = useState<boolean>(true);
+    const setNotification = useNotification((s) => s.setNotification);
 
     useEffect(() => {
         const fun = async () => {
@@ -20,6 +22,14 @@ const CheckUpdate = () => {
         };
         fun();
     }, []);
+
+    const handleClick = async () => {
+        setNotification({
+            type: 'info',
+            text: 'copied',
+        });
+        await api.copyToClipboard(newRelease?.url ?? '');
+    };
 
     return (
         <div className="w-full h-full flex flex-col gap-4">
@@ -38,9 +48,9 @@ const CheckUpdate = () => {
                             前往如下地址下载新版
                         </div>
                         <div
-                            className="text-sm"
+                            className="text-sm select-all"
                             onClick={() => {
-                                api.openUrl(newRelease.url);
+                                handleClick();
                             }}
                         >
                             {newRelease.url}

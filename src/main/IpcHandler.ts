@@ -27,6 +27,7 @@ import {
 import { Channels } from './preload';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
+import { clipboard } from 'electron';
 
 // const handle = (
 //     channel: Channels,
@@ -260,5 +261,10 @@ export default function registerHandler() {
                 resolve(Buffer.from(data));
             });
         });
+    });
+    handle('copy-to-clipboard', async (text: string) => {
+        console.log('copy-to-clipboard', text);
+        clipboard.writeText(text);
+        return true;
     });
 }
