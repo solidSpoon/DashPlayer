@@ -11,15 +11,6 @@ import useCurrentSentence from './useCurrentSentence';
 
 const api = window.electron;
 
-//    useEffect(() => {
-//         const cancel = api.onTencentSecretUpdate(() =>
-//             setSecretVersion((v) => v + 1)
-//         );
-//         return () => {
-//             cancel();
-//         };
-//     });
-
 type UseSubtitleState = {
     subtitle: SentenceT[];
 };
@@ -40,6 +31,20 @@ type UseSubtitleActions = {
     setSubtitle: (subtitle: SentenceT[]) => void;
     mergeSubtitle: (subtitle: SentenceT[]) => void;
 };
+
+function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
+    if (diff.length === 0) {
+        return baseArr;
+    }
+    const mapping = new Map<number, SentenceT>();
+    diff.forEach((item) => {
+        mapping.set(item.index, item);
+    });
+    return baseArr.map((item, index) => {
+        return mapping.get(index) ?? item;
+    });
+}
+
 const useSubtitle = create(
     subscribeWithSelector<UseSubtitleState & UseSubtitleActions>(
         (set, get) => ({
@@ -48,14 +53,7 @@ const useSubtitle = create(
                 set({ subtitle });
             },
             mergeSubtitle: (diff: SentenceT[]) => {
-                const mapping = new Map<number, SentenceT>();
-                diff.forEach((item) => {
-                    mapping.set(item.index, item);
-                });
-                const baseArr = get().subtitle;
-                const newSubtitle = baseArr.map((item, index) => {
-                    return mapping.get(index) ?? item;
-                });
+                const newSubtitle = mergeArr(get().subtitle, diff);
                 console.log('abc mergeSubtitle', newSubtitle);
                 set({ subtitle: newSubtitle });
             },
@@ -90,8 +88,11 @@ async function loadSubtitle(subtitleFile: FileT) {
     });
     return srtSubtitles;
 }
-
-function groupForTranslate(subtitle: SentenceT[], batch: number) {
+function groupSentence(
+    subtitle: SentenceT[],
+    batch: number,
+    fieldConsumer: (s: SentenceT, index: number) => void
+) {
     const groups: SentenceT[][] = [];
     let group: SentenceT[] = [];
     subtitle.forEach((item) => {
@@ -106,10 +107,11 @@ function groupForTranslate(subtitle: SentenceT[], batch: number) {
     }
     groups.forEach((item, index) => {
         item.forEach((s) => {
-            s.transGroup = index;
+            fieldConsumer(s, index);
         });
     });
 }
+
 function merge(baseArr: SentenceT[], diff: SentenceApiParam[]) {
     const mapping = new Map<number, string>();
     diff.forEach((item) => {
@@ -156,6 +158,30 @@ const trans = async (sentence: SentenceT[]): Promise<SentenceT[]> => {
     return res;
 };
 
+const transUserCanSee = async (
+    subtitle: SentenceT[],
+    finishedGroup: Set<number>
+): Promise<SentenceT[]> => {
+    const currentGroup =
+        useCurrentSentence.getState().currentSentence?.transGroup ?? 1;
+    let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
+    shouldTransGroup = shouldTransGroup.filter(
+        (item) => !finishedGroup.has(item)
+    );
+    if (shouldTransGroup.length === 0) {
+        // eslint-disable-next-line no-continue
+        return [];
+    }
+    console.log('trans group', shouldTransGroup);
+    const groupSubtitles = subtitle.filter((item) =>
+        shouldTransGroup.includes(item.transGroup)
+    );
+    shouldTransGroup.forEach((item) => {
+        finishedGroup.add(item);
+    });
+    // eslint-disable-next-line no-await-in-loop
+    return trans(groupSubtitles);
+};
 useFile.subscribe(
     (s) => s.subtitleFile,
     async (subtitleFile) => {
@@ -164,7 +190,9 @@ useFile.subscribe(
         }
         const CURRENT_FILE = useFile.getState().subtitleFile;
         const subtitle: SentenceT[] = await loadSubtitle(subtitleFile);
-        groupForTranslate(subtitle, 25);
+        groupSentence(subtitle, 25, (s, index) => {
+            s.transGroup = index;
+        });
         if (CURRENT_FILE !== useFile.getState().subtitleFile) {
             return;
         }
@@ -177,33 +205,15 @@ useFile.subscribe(
                 await TransFiller.sleep(500);
             }
             inited = true;
-            const currentGroup =
-                useCurrentSentence.getState().currentSentence?.transGroup ?? 1;
-            let shouldTransGroup = [
-                currentGroup - 1,
-                currentGroup,
-                currentGroup + 1,
-            ];
-            shouldTransGroup = shouldTransGroup.filter(
-                (item) => !finishedGroup.has(item)
-            );
-            if (shouldTransGroup.length === 0) {
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-            console.log('trans group', shouldTransGroup);
-            const groupSubtitles = subtitle.filter((item) =>
-                shouldTransGroup.includes(item.transGroup)
-            );
             // eslint-disable-next-line no-await-in-loop
-            const res = await trans(groupSubtitles);
+            const seePart = await transUserCanSee(subtitle, finishedGroup);
+
             if (CURRENT_FILE !== useFile.getState().subtitleFile) {
-                break;
+                return;
             }
-            useSubtitle.getState().mergeSubtitle(res);
-            shouldTransGroup.forEach((item) => {
-                finishedGroup.add(item);
-            });
+            if (seePart.length > 0) {
+                useSubtitle.getState().mergeSubtitle(seePart);
+            }
         }
     }
 );

@@ -33,6 +33,11 @@ class SentenceT {
      */
     public transGroup: number = 0;
 
+    /**
+     * 展示在界面的分组
+     */
+    public displayGroup: number = 0;
+
     public getKey = (): string => {
         return this.key;
     };
@@ -82,6 +87,7 @@ class SentenceT {
         result.msTranslate = this.msTranslate;
         result.key = this.key;
         result.transGroup = this.transGroup;
+        result.displayGroup = this.displayGroup;
         return result;
     }
 }
