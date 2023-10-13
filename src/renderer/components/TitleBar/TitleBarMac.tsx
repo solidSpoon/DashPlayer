@@ -20,6 +20,7 @@ const TitleBarMac = ({
     const showTitleBar = !autoHide || isMouseOver;
     const windowState = useSystem((s) => s.windowState);
     const setWindowState = useSystem((s) => s.setWindowState);
+    const isMain = useSystem((s) => s.isMain);
     const onDoubleClick = async () => {
         if (windowState === 'maximized') {
             setWindowState('normal');
@@ -32,8 +33,11 @@ const TitleBarMac = ({
         const fullScreen = windowState === 'fullscreen';
         setIsMouseOver(!fullScreen);
         if (!fullScreen && autoHide) {
-            await api.showButton();
+            if (isMain) {
+                await api.showButton();
+            }
         }
+        console.log('handleMouseOver');
     };
 
     const handleMouseLeave = async () => {
@@ -41,20 +45,25 @@ const TitleBarMac = ({
         setIsMouseOver(false);
         if (!fullScreen && autoHide) {
             setIsMouseOver(false);
-            await api.hideButton();
+            if (isMain) {
+                await api.hideButton();
+            }
         }
+        console.log('handleMouseLeave');
     };
 
     useEffect(() => {
         const init = async () => {
-            if (autoHide) {
-                await api.hideButton();
-            } else {
-                await api.showButton();
+            if (isMain) {
+                if (autoHide) {
+                    await api.hideButton();
+                } else {
+                    await api.showButton();
+                }
             }
         };
         init();
-    }, [autoHide]);
+    }, [autoHide, isMain]);
 
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events

@@ -9,6 +9,7 @@ import FileT from '../lib/param/FileT';
 import parseFile, { pathToFile } from '../lib/FileParser';
 import { secondToDate } from './PlayTime';
 import useFile from '../hooks/useFile';
+import loading from '../../pic/loading.svg';
 
 const api = window.electron;
 
@@ -16,7 +17,9 @@ const HomePage = () => {
     const appVersion = useSystem((s) => s.appVersion);
     const [recentPlaylists, setRecentPlaylists] = useState<ProgressParam[]>([]);
     const fileInputEl = useRef<HTMLInputElement>(null);
-    const currentClick = useRef('');
+    const [currentClick, setCurrentClick] = useState<string | undefined>(
+        undefined
+    );
     const onFileChange = useFile((s) => s.updateFile);
     useEffect(() => {
         const init = async () => {
@@ -33,10 +36,10 @@ const HomePage = () => {
         }
     };
     const handleClick = async (item: ProgressParam) => {
-        if (currentClick.current === item.filePath) {
+        if (currentClick === item.filePath) {
             return;
         }
-        currentClick.current = item.filePath ?? '';
+        setCurrentClick(item.filePath);
         if (item.filePath && item.filePath.length > 0) {
             const file = await pathToFile(item.filePath);
             onFileChange(file);
@@ -119,7 +122,15 @@ const HomePage = () => {
                         </div>
                     ))}
                 </div>
-                <div className="w-full h-16" />
+                <div className="w-full h-16">
+                    {currentClick && (
+                        <img
+                            src={loading}
+                            alt="loading"
+                            className="fixed bottom-1 right-1 w-8 h-8 bg-transparent"
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );
