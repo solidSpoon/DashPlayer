@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
@@ -24,6 +23,18 @@ const api = window.electron;
 type UseSubtitleState = {
     subtitle: SentenceT[];
 };
+
+api.onTencentSecretUpdate(() => {
+    useFile.setState((state) => {
+        return {
+            subtitleFile: state.subtitleFile
+                ? {
+                      ...state.subtitleFile,
+                  }
+                : undefined,
+        };
+    });
+});
 
 type UseSubtitleActions = {
     setSubtitle: (subtitle: SentenceT[]) => void;
@@ -151,18 +162,16 @@ useFile.subscribe(
         if (subtitleFile === undefined) {
             return;
         }
-        const CURRENT_FILE_VERSION = useFile.getState().subtitleFileVersion;
+        const CURRENT_FILE = useFile.getState().subtitleFile;
         const subtitle: SentenceT[] = await loadSubtitle(subtitleFile);
         groupForTranslate(subtitle, 25);
-        if (CURRENT_FILE_VERSION !== useFile.getState().subtitleFileVersion) {
+        if (CURRENT_FILE !== useFile.getState().subtitleFile) {
             return;
         }
         useSubtitle.getState().setSubtitle(subtitle);
         const finishedGroup = new Set<number>();
         let inited = false;
-        while (
-            CURRENT_FILE_VERSION === useFile.getState().subtitleFileVersion
-        ) {
+        while (CURRENT_FILE === useFile.getState().subtitleFile) {
             if (inited) {
                 // eslint-disable-next-line no-await-in-loop
                 await TransFiller.sleep(500);
@@ -188,9 +197,7 @@ useFile.subscribe(
             );
             // eslint-disable-next-line no-await-in-loop
             const res = await trans(groupSubtitles);
-            if (
-                CURRENT_FILE_VERSION !== useFile.getState().subtitleFileVersion
-            ) {
+            if (CURRENT_FILE !== useFile.getState().subtitleFile) {
                 break;
             }
             useSubtitle.getState().mergeSubtitle(res);

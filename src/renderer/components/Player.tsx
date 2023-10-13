@@ -1,6 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
-import callApi from '../lib/apis/ApiWrapper';
 import { SeekTime, SPACE_NUM } from '../hooks/useSubTitleController';
 import { Action, jumpTime, space } from '../lib/CallAction';
 

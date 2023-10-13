@@ -5,8 +5,6 @@ import FileT, { FileType } from '../lib/param/FileT';
 type UseFileState = {
     videoFile: FileT | undefined;
     subtitleFile: FileT | undefined;
-    videoFileVersion: number;
-    subtitleFileVersion: number;
     loadedNum: number;
 };
 
@@ -18,15 +16,12 @@ const useFile = create(
     subscribeWithSelector<UseFileState & UseFileActions>((set) => ({
         videoFile: undefined,
         subtitleFile: undefined,
-        videoFileVersion: 0,
-        subtitleFileVersion: 0,
         loadedNum: 0,
         updateFile: (file: FileT) => {
             if (FileType.VIDEO === file.fileType) {
                 set((ps) => {
                     return {
                         videoFile: file,
-                        videoFileVersion: ps.videoFileVersion + 1,
                         loadedNum: ps.loadedNum + 1,
                     };
                 });
@@ -38,7 +33,6 @@ const useFile = create(
                 set((ps) => {
                     return {
                         subtitleFile: file,
-                        subtitleFileVersion: ps.subtitleFileVersion + 1,
                         loadedNum: ps.loadedNum + 1,
                     };
                 });
