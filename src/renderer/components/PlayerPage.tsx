@@ -48,8 +48,6 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
             <RecordProgress
                 getCurrentProgress={() => progress.current}
                 getTotalTime={() => totalTime.current}
-                videoFile={videoFile}
-                subtitleFile={subtitleFile}
             />
             <GlobalShortCut onAction={doAction} />
 
@@ -73,7 +71,6 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                 >
                     <div className="h-full">
                         <Player
-                            videoFile={videoFile}
                             onProgress={(time) => {
                                 progress.current = time;
                             }}

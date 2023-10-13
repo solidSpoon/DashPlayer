@@ -2,9 +2,9 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import FileT from '../lib/param/FileT';
 import { SeekTime, SPACE_NUM } from '../hooks/useSubTitleController';
 import { Action, jumpTime, space } from '../lib/CallAction';
+import useFile from '../hooks/useFile';
 
 interface PlayerParam {
-    videoFile: FileT | undefined;
     seekTime: SeekTime;
     onProgress: (time: number) => void;
     onTotalTimeChange: (time: number) => void;
@@ -14,12 +14,13 @@ interface PlayerParam {
 const api = window.electron;
 
 export default function Player({
-    videoFile,
     seekTime,
     onProgress,
     onTotalTimeChange,
     onAction,
 }: PlayerParam): ReactElement {
+    const videoFile = useFile((s) => s.videoFile);
+    const loadedVideo = useFile((s) => s.loadedVideo);
     const playerRef: React.RefObject<HTMLVideoElement> =
         useRef<HTMLVideoElement>(null);
     const playerRefBackground: React.RefObject<HTMLCanvasElement> =
@@ -145,6 +146,7 @@ export default function Player({
                         }}
                         onLoadedMetadata={(event) => {
                             onTotalTimeChange(event.currentTarget.duration);
+                            loadedVideo(videoFile);
                             jumpToHistoryProgress(videoFile);
                         }}
                     />

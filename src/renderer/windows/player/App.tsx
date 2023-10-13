@@ -10,7 +10,7 @@ import useSystem from '../../hooks/useSystem';
 
 export const api = window.electron;
 export default function App() {
-    const loadedNum = useFile((s) => s.loadedNum);
+    const loadedNum = useFile((s) => s.openedNum);
     const [maximized, setMaximized] = React.useState<boolean>(false);
     const [isDragging, setIsDragging] = React.useState<boolean>(false);
     const windowState = useSystem((s) => s.windowState);

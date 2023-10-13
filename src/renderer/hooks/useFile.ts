@@ -5,24 +5,28 @@ import FileT, { FileType } from '../lib/param/FileT';
 type UseFileState = {
     videoFile: FileT | undefined;
     subtitleFile: FileT | undefined;
-    loadedNum: number;
+    videoLoaded: boolean;
+    openedNum: number;
 };
 
 type UseFileActions = {
     updateFile: (file: FileT) => void;
+    loadedVideo: (file: FileT) => void;
 };
 
 const useFile = create(
     subscribeWithSelector<UseFileState & UseFileActions>((set) => ({
         videoFile: undefined,
         subtitleFile: undefined,
-        loadedNum: 0,
+        videoLoaded: false,
+        openedNum: 0,
         updateFile: (file: FileT) => {
             if (FileType.VIDEO === file.fileType) {
                 set((ps) => {
                     return {
                         videoFile: file,
-                        loadedNum: ps.loadedNum + 1,
+                        openedNum: ps.openedNum + 1,
+                        videoLoaded: false,
                     };
                 });
                 if (file.fileName !== undefined) {
@@ -33,10 +37,17 @@ const useFile = create(
                 set((ps) => {
                     return {
                         subtitleFile: file,
-                        loadedNum: ps.loadedNum + 1,
+                        openedNum: ps.openedNum + 1,
                     };
                 });
             }
+        },
+        loadedVideo: (file: FileT) => {
+            set((s) => {
+                return {
+                    videoLoaded: s.videoFile === file,
+                };
+            });
         },
     }))
 );
