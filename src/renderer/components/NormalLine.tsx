@@ -58,7 +58,7 @@ const NormalLine = ({ text, order, show }: NormalLineParam) => {
     };
     return (
         <div
-            className={`my-0 mx-10 py-2.5 px-1 select-none ${
+            className={`my-0 mx-10 py-2.5 px-1 text-mainSubtitleTwoColor ${
                 order === 'second'
                     ? 'text-mainSubtitleTwo'
                     : 'text-mainSubtitleThree'

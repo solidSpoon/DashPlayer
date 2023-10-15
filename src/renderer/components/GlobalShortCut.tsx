@@ -13,6 +13,7 @@ import {
 } from '../lib/CallAction';
 import callApi from '../lib/apis/ApiWrapper';
 import { defaultShortcut } from '../windows/setting/sub/ShortcutSetting';
+import useTheme from '../hooks/useTheme';
 
 const api = window.electron;
 
@@ -71,7 +72,7 @@ export default function GlobalShortCut(
     { onAction, children }: GlobalShortCutParam
 ) {
     const [shortCutValue, setShortCutValue] = useState<ShortCutValue>();
-
+    const nextTheme = useTheme((s) => s.nextTheme);
     useEffect(() => {
         const updateFromServer = async () => {
             let newVar = (await callApi('get-shortcut', [])) as string;
@@ -114,6 +115,7 @@ export default function GlobalShortCut(
     events.onDown = onAction.bind(this, repeat());
     events.onSpace = onAction.bind(this, space());
     events.onUp = onAction.bind(this, space());
+    events.onT = nextTheme;
 
     const registerKey = (
         values: string | undefined,

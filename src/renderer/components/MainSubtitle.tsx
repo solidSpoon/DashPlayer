@@ -67,7 +67,7 @@ export default function MainSubtitle({
         return (
             <div
                 key={`trans-sub:${sentence?.getKey()}`}
-                className="flex flex-col w-full h-full text-center"
+                className="flex flex-col w-full h-full text-center text-textColor shadow-inner"
             >
                 {ele()}
             </div>

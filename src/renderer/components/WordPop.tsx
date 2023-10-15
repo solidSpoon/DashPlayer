@@ -113,7 +113,7 @@ const WordPop = React.forwardRef(
             <>
                 <div
                     ref={refs.setReference}
-                    className="rounded select-none bg-zinc-600 z-50"
+                    className="rounded select-none bg-wordHoverBackground z-50"
                     role="button"
                     tabIndex={0}
                     {...getReferenceProps()}

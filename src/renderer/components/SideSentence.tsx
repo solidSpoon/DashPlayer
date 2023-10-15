@@ -49,8 +49,8 @@ export default function SideSentence({
                 gap-1
                 content-start
                 rounded-lg
-                bg-neutral-700
-                hover:bg-neutral-600
+                bg-sentenceBackground
+                hover:bg-sentenceHoverBackground
                 hover:drop-shadow-lg
                 text-subtitle
                 drop-shadow
@@ -60,7 +60,7 @@ export default function SideSentence({
             }}
         >
             <div
-                className={`w-7 flex flex-col items-center justify-center h-7 text-red-600 ${show}`}
+                className={`w-7 flex flex-col items-center justify-center h-7 text-playIcon ${show}`}
             >
                 {icon()}
             </div>

@@ -139,7 +139,7 @@ export default function Subtitle({
             // <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
             <Virtuoso
                 ref={listRef}
-                className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded"
+                className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
                 data={subtitles}
                 rangeChanged={({ startIndex, endIndex }) => {
                     setVisibleRange([startIndex, endIndex]);

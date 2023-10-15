@@ -127,8 +127,8 @@ const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
                 />
             ) : (
                 <div
-                    className={`hover:bg-zinc-600 rounded select-none ${
-                        show ? 'text-white' : 'text-transparent bg-neutral-600'
+                    className={`hover:bg-wordHoverBackground rounded select-none ${
+                        show ? '' : 'text-transparent bg-neutral-600'
                     }`}
                     onMouseLeave={() => {
                         setHovered(false);

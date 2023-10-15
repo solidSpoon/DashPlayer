@@ -14,12 +14,14 @@ import BorderProgressBar from './BorderProgressBar';
 import FileT from '../lib/param/FileT';
 import UploadButton from './UploadButton';
 import useFile from '../hooks/useFile';
+import useTheme from '../hooks/useTheme';
 
 export interface PlayerPageParam {
     isDragging: boolean;
 }
 
 const PlayerPage = ({ isDragging }: PlayerPageParam) => {
+    const theme = useTheme((s) => s.theme);
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
     const videoFile = useFile((s) => s.videoFile);
@@ -38,7 +40,9 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     return (
-        <div className="h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col">
+        <div
+            className={`h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col ${theme}`}
+        >
             <TitleBar
                 hasSubTitle={subtitleFile !== undefined}
                 title={videoFile?.fileName}
