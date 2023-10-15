@@ -115,7 +115,7 @@ module.exports = {
                             /**
                              * 背景色
                              */
-                            background: colors.stone['300'],
+                            background: colors.gray['300'],
                             /**
                              * 句子背景色
                              */
@@ -196,7 +196,7 @@ module.exports = {
                             /**
                              * 背景色
                              */
-                            background: colors.stone['400'],
+                            background: colors.neutral['400'],
                             /**
                              * 句子背景色
                              */
@@ -216,15 +216,15 @@ module.exports = {
                             /**
                              * 文字色
                              */
-                            textColor: colors.stone['700'],
+                            textColor: colors.stone['900'],
                             /**
                              * main subtitle 1
                              */
-                            mainSubtitleOneColor: colors.stone['800'],
+                            mainSubtitleOneColor: colors.stone['900'],
                             /**
                              * main subtitle 2
                              */
-                            mainSubtitleTwoColor: colors.stone['700'],
+                            mainSubtitleTwoColor: colors.stone['800'],
                             /**
                              * 滚动条背景色
                              */
