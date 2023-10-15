@@ -17,6 +17,7 @@ export const defaultShortcut: ShortCutValue = {
     showEn: 'e',
     showCn: 'c',
     sowEnCn: 'b',
+    nextTheme: 't',
 };
 
 // function notify(res: string) {
@@ -37,6 +38,7 @@ const ShortcutSetting = () => {
     const [showEn, setShowEn] = useState<string>('');
     const [showCn, setShowCn] = useState<string>('');
     const [showEnCn, setShowEnCn] = useState<string>('');
+    const [nextTheme, setNextTheme] = useState<string>('');
 
     const [serverValue, serServerValue] = useState<ShortCutValue | undefined>();
 
@@ -49,7 +51,8 @@ const ShortcutSetting = () => {
         serverValue?.singleRepeat === singleRepeat &&
         serverValue?.showEn === showEn &&
         serverValue?.showCn === showCn &&
-        serverValue?.sowEnCn === showEnCn;
+        serverValue?.sowEnCn === showEnCn &&
+        serverValue?.nextTheme === nextTheme;
     const updateFromServer = async () => {
         let newVar = (await callApi('get-shortcut', [])) as string;
         if (!newVar || newVar === '') {
@@ -65,6 +68,7 @@ const ShortcutSetting = () => {
         setShowEn(sc.showEn);
         setShowCn(sc.showCn);
         setShowEnCn(sc.sowEnCn);
+        setNextTheme(sc.nextTheme);
         serServerValue(sc);
     };
     useEffect(() => {
@@ -120,6 +124,7 @@ const ShortcutSetting = () => {
             showEn: process(showEn, defaultShortcut.showEn),
             showCn: process(showCn, defaultShortcut.showCn),
             sowEnCn: process(showEnCn, defaultShortcut.sowEnCn),
+            nextTheme: process(nextTheme, defaultShortcut.nextTheme),
         };
         const res = verify(sc);
         if (res) {
@@ -211,6 +216,12 @@ const ShortcutSetting = () => {
                     placeHolder={defaultShortcut.sowEnCn}
                     value={showEnCn || ''}
                     setValue={setShowEnCn}
+                />
+                <SettingInput
+                    title="切换主题"
+                    placeHolder={defaultShortcut.nextTheme}
+                    value={nextTheme || ''}
+                    setValue={setNextTheme}
                 />
             </ItemWrapper>
 

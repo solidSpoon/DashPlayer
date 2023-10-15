@@ -65,6 +65,10 @@ export interface ShortCutValue {
      * 显示/隐藏中英
      */
     sowEnCn: string;
+    /**
+     * next theme
+     */
+    nextTheme: string;
 }
 
 export default function GlobalShortCut(
@@ -88,7 +92,8 @@ export default function GlobalShortCut(
                 shortCutValue?.singleRepeat === newVal.singleRepeat &&
                 shortCutValue?.showEn === newVal.showEn &&
                 shortCutValue?.showCn === newVal.showCn &&
-                shortCutValue?.sowEnCn === newVal.sowEnCn;
+                shortCutValue?.sowEnCn === newVal.sowEnCn &&
+                shortCutValue?.nextTheme === newVal.nextTheme;
             if (!eqServer) {
                 setShortCutValue(newVal);
             }
@@ -115,12 +120,11 @@ export default function GlobalShortCut(
     events.onDown = onAction.bind(this, repeat());
     events.onSpace = onAction.bind(this, space());
     events.onUp = onAction.bind(this, space());
-    events.onT = nextTheme;
 
     const registerKey = (
         values: string | undefined,
         defaultKey: string,
-        action: Action
+        action: Action | (() => void)
     ) => {
         const finalValues =
             !values || values.trim() === '' ? defaultKey : values;
@@ -130,7 +134,11 @@ export default function GlobalShortCut(
             .filter((k) => k !== '')
             .map((k) => k.toUpperCase());
         keyArr.forEach((k) => {
-            events[`on${k}`] = onAction.bind(this, action);
+            if (typeof action === 'function') {
+                events[`on${k}`] = action;
+            } else {
+                events[`on${k}`] = onAction.bind(this, action);
+            }
         });
     };
 
@@ -146,6 +154,7 @@ export default function GlobalShortCut(
     registerKey(shortCutValue?.showEn, defaultShortcut.showEn, showEn());
     registerKey(shortCutValue?.showCn, defaultShortcut.showCn, showCn());
     registerKey(shortCutValue?.sowEnCn, defaultShortcut.sowEnCn, showEnCn());
+    registerKey(shortCutValue?.nextTheme, defaultShortcut.nextTheme, nextTheme);
 
     console.log('register events', events);
     return (
