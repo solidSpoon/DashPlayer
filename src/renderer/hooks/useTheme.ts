@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-const THEME = ['dark', 'light'];
+const THEME = ['dark', 'light', 'bright', 'deep'];
 
 type ThemeState = {
     theme: string;
@@ -9,6 +9,7 @@ type ThemeState = {
 
 type ThemeAction = {
     nextTheme: () => void;
+    prevTheme: () => void;
 };
 
 // const useTheme = create<ThemeState & ThemeAction>((set) => ({
@@ -27,6 +28,13 @@ const useTheme = create(
                 set((state) => ({
                     theme: THEME[
                         (THEME.indexOf(state.theme) + 1) % THEME.length
+                    ],
+                })),
+            prevTheme: () =>
+                set((state) => ({
+                    theme: THEME[
+                        (THEME.indexOf(state.theme) - 1 + THEME.length) %
+                            THEME.length
                     ],
                 })),
         }),

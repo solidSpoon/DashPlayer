@@ -69,6 +69,10 @@ export interface ShortCutValue {
      * next theme
      */
     nextTheme: string;
+    /**
+     * previous theme
+     */
+    prevTheme: string;
 }
 
 export default function GlobalShortCut(
@@ -77,6 +81,7 @@ export default function GlobalShortCut(
 ) {
     const [shortCutValue, setShortCutValue] = useState<ShortCutValue>();
     const nextTheme = useTheme((s) => s.nextTheme);
+    const prevTheme = useTheme((s) => s.prevTheme);
     useEffect(() => {
         const updateFromServer = async () => {
             let newVar = (await callApi('get-shortcut', [])) as string;
@@ -93,7 +98,8 @@ export default function GlobalShortCut(
                 shortCutValue?.showEn === newVal.showEn &&
                 shortCutValue?.showCn === newVal.showCn &&
                 shortCutValue?.sowEnCn === newVal.sowEnCn &&
-                shortCutValue?.nextTheme === newVal.nextTheme;
+                shortCutValue?.nextTheme === newVal.nextTheme &&
+                shortCutValue?.prevTheme === newVal.prevTheme;
             if (!eqServer) {
                 setShortCutValue(newVal);
             }
@@ -155,6 +161,7 @@ export default function GlobalShortCut(
     registerKey(shortCutValue?.showCn, defaultShortcut.showCn, showCn());
     registerKey(shortCutValue?.sowEnCn, defaultShortcut.sowEnCn, showEnCn());
     registerKey(shortCutValue?.nextTheme, defaultShortcut.nextTheme, nextTheme);
+    registerKey(shortCutValue?.prevTheme, defaultShortcut.prevTheme, prevTheme);
 
     console.log('register events', events);
     return (

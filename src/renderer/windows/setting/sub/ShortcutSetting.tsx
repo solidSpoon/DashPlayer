@@ -18,6 +18,7 @@ export const defaultShortcut: ShortCutValue = {
     showCn: 'c',
     sowEnCn: 'b',
     nextTheme: 't',
+    prevTheme: 'r',
 };
 
 // function notify(res: string) {
@@ -39,6 +40,7 @@ const ShortcutSetting = () => {
     const [showCn, setShowCn] = useState<string>('');
     const [showEnCn, setShowEnCn] = useState<string>('');
     const [nextTheme, setNextTheme] = useState<string>('');
+    const [prevTheme, setPrevTheme] = useState<string>('');
 
     const [serverValue, serServerValue] = useState<ShortCutValue | undefined>();
 
@@ -52,7 +54,8 @@ const ShortcutSetting = () => {
         serverValue?.showEn === showEn &&
         serverValue?.showCn === showCn &&
         serverValue?.sowEnCn === showEnCn &&
-        serverValue?.nextTheme === nextTheme;
+        serverValue?.nextTheme === nextTheme &&
+        serverValue?.prevTheme === prevTheme;
     const updateFromServer = async () => {
         let newVar = (await callApi('get-shortcut', [])) as string;
         if (!newVar || newVar === '') {
@@ -69,6 +72,7 @@ const ShortcutSetting = () => {
         setShowCn(sc.showCn);
         setShowEnCn(sc.sowEnCn);
         setNextTheme(sc.nextTheme);
+        setPrevTheme(sc.prevTheme);
         serServerValue(sc);
     };
     useEffect(() => {
@@ -97,6 +101,8 @@ const ShortcutSetting = () => {
             sc.showEn,
             sc.showCn,
             sc.sowEnCn,
+            sc.nextTheme,
+            sc.prevTheme,
         ];
         const set = new Set<string>();
         // eslint-disable-next-line no-restricted-syntax
@@ -125,6 +131,7 @@ const ShortcutSetting = () => {
             showCn: process(showCn, defaultShortcut.showCn),
             sowEnCn: process(showEnCn, defaultShortcut.sowEnCn),
             nextTheme: process(nextTheme, defaultShortcut.nextTheme),
+            prevTheme: process(prevTheme, defaultShortcut.prevTheme),
         };
         const res = verify(sc);
         if (res) {
@@ -139,32 +146,6 @@ const ShortcutSetting = () => {
         await callApi('update-shortcut', [JSON.stringify(sc)]);
         await updateFromServer();
     };
-
-    const itemEle = (
-        title: string,
-        id: string,
-        placeHolder: string,
-        value: string,
-        setValue: (value: string) => void
-    ) => {
-        return (
-            <label
-                className="flex items-center gap-4  text-gray-700 text-sm select-none"
-                htmlFor={id}
-            >
-                <div className="text-sm text-right w-28">{title} :</div>
-                <input
-                    className="appearance-none border w-44 h-6 rounded text-sm px-3 text-gray-700  focus:outline-none focus:shadow-outline"
-                    id={id}
-                    type="text"
-                    placeholder={placeHolder}
-                    value={value || ''}
-                    onChange={(event) => setValue(event.target.value)}
-                />
-            </label>
-        );
-    };
-
     return (
         <form className=" h-full overflow-y-auto flex flex-col gap-4">
             <Header title="快捷键" description="多个快捷键用 , 分割" />
@@ -218,9 +199,15 @@ const ShortcutSetting = () => {
                     setValue={setShowEnCn}
                 />
                 <SettingInput
-                    title="切换主题"
-                    placeHolder={defaultShortcut.nextTheme}
+                    title="上一个主题"
+                    placeHolder={defaultShortcut.prevTheme}
                     value={nextTheme || ''}
+                    setValue={setPrevTheme}
+                />
+                <SettingInput
+                    title="下一个主题"
+                    placeHolder={defaultShortcut.nextTheme}
+                    value={prevTheme || ''}
                     setValue={setNextTheme}
                 />
             </ItemWrapper>
