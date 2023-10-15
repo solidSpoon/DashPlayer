@@ -119,14 +119,14 @@ export default class BorderProgressBar extends Component<
                                 className={` m-2 mb-1 mr-1 p-1.5 rounded flex justify-center items-center h-6 font-mono
                             ${
                                 isHover
-                                    ? 'bg-stone-300 shadow-inner shadow-scrollbarTrack'
+                                    ? 'bg-background shadow-inner'
                                     : ''
                             }`}
                             >
                                 <PlayTime
                                     textClassName={`${
                                         isHover
-                                            ? 'text-black'
+                                            ? 'text-textColor'
                                             : 'text-transparent'
                                     }`}
                                     getProgress={getCurrentTime}

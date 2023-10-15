@@ -91,7 +91,7 @@ module.exports = {
                         /**
                          * upload button color
                          */
-                        uploadButton: colors.yellow['600'],
+                        uploadButton: colors.lime['700'],
                         /**
                          * play icon color
                          */
@@ -179,7 +179,7 @@ module.exports = {
                             /**
                              * upload button color
                              */
-                            uploadButton: colors.yellow['600'],
+                            uploadButton: colors.lime['600'],
                             /**
                              * play icon color
                              */
