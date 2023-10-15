@@ -196,11 +196,11 @@ module.exports = {
                             /**
                              * 背景色
                              */
-                            background: colors.neutral['400'],
+                            background: colors.zinc['400'],
                             /**
                              * 句子背景色
                              */
-                            sentenceBackground: colors.stone['300'],
+                            sentenceBackground: colors.neutral['300'],
                             /**
                              * 句子 hover 背景色
                              */
@@ -281,19 +281,19 @@ module.exports = {
                             /**
                              * 句子背景色
                              */
-                            sentenceBackground: colors.stone['600'],
+                            sentenceBackground: colors.neutral['600'],
                             /**
                              * 单词 hover 背景色
                              */
-                            wordHoverBackground: colors.stone['500'],
+                            wordHoverBackground: colors.neutral['500'],
                             /**
                              * 句子 hover 背景色
                              */
-                            sentenceHoverBackground: colors.stone['500'],
+                            sentenceHoverBackground: colors.neutral['500'],
                             /**
                              * 句子 inner shadow
                              */
-                            sentenceInnerShadow: colors.stone['500'],
+                            sentenceInnerShadow: colors.neutral['500'],
                             /**
                              * 文字色
                              */
@@ -301,11 +301,11 @@ module.exports = {
                             /**
                              * main subtitle 1
                              */
-                            mainSubtitleOneColor: colors.stone['100'],
+                            mainSubtitleOneColor: colors.stone['200'],
                             /**
                              * main subtitle 2
                              */
-                            mainSubtitleTwoColor: colors.stone['200'],
+                            mainSubtitleTwoColor: colors.stone['100'],
                             /**
                              * 滚动条背景色
                              */

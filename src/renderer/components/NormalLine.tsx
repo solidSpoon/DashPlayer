@@ -40,7 +40,7 @@ const NormalLine = ({ text, order, show }: NormalLineParam) => {
         return (
             <span
                 className={`${
-                    show ? '' : 'text-transparent bg-white/5 rounded'
+                    show ? '' : 'text-transparent bg-wordHoverBackground/50 rounded'
                 }`}
                 key={key}
             >
