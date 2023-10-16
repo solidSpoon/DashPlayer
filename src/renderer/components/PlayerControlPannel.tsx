@@ -60,7 +60,7 @@ const PlayerControlPannel = ({
         }
         mouseOverTimeout.current = setTimeout(() => {
             setMouseOver(false);
-        }, 1000);
+        }, 0);
     };
 
     return (
