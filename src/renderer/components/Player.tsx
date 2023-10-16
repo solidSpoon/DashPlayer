@@ -2,8 +2,9 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import FileT from '../lib/param/FileT';
 import { SeekTime, SPACE_NUM } from '../hooks/useSubTitleController';
-import { Action, jumpTime, space } from '../lib/CallAction';
+import { Action, jumpTime, pause, play, space } from '../lib/CallAction';
 import useFile from '../hooks/useFile';
+import PlayerControlPannel from './PlayerControlPannel';
 
 interface PlayerParam {
     seekTime: SeekTime;
@@ -20,6 +21,7 @@ export default function Player({
     onTotalTimeChange,
     onAction,
 }: PlayerParam): ReactElement {
+    const [volume, setVolume] = useState<number>(0.8);
     const videoFile = useFile((s) => s.videoFile);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
@@ -131,6 +133,7 @@ export default function Player({
                         width="100%"
                         height="100%"
                         progressInterval={50}
+                        volume={volume}
                         config={{
                             file: {
                                 attributes: {
@@ -159,6 +162,31 @@ export default function Player({
                             jumpToHistoryProgress(videoFile);
                         }}
                     />
+                    {!showControlPanel && (
+                        <PlayerControlPannel
+                            volume={volume}
+                            onVolumeChange={(v) => {
+                                setVolume(v);
+                            }}
+                            getTotalTime={() => {
+                                return playerRef.current?.getDuration() ?? 0;
+                            }}
+                            getCurrentTime={() => {
+                                return playerRef.current?.getCurrentTime() ?? 0;
+                            }}
+                            onTimeChange={(time) => {
+                                onAction(jumpTime(time));
+                            }}
+                            className="absolute bottom-0 left-0 px-3"
+                            onPause={() => {
+                                onAction(pause());
+                            }}
+                            onPlay={() => {
+                                onAction(play());
+                            }}
+                            playing={!shouldPause}
+                        />
+                    )}
                 </div>
             </div>
         );
