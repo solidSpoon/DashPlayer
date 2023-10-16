@@ -124,6 +124,7 @@
         "react-dom": "^18.2.0",
         "react-icons": "^4.11.0",
         "react-keyevent": "^1.1.0",
+        "react-player": "^2.13.0",
         "react-resizable-layout": "^0.4.0",
         "react-router-dom": "^6.4.0",
         "react-split": "^2.0.14",

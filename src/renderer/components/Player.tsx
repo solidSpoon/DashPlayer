@@ -1,4 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
+import ReactPlayer from 'react-player';
 import FileT from '../lib/param/FileT';
 import { SeekTime, SPACE_NUM } from '../hooks/useSubTitleController';
 import { Action, jumpTime, space } from '../lib/CallAction';
@@ -21,8 +22,8 @@ export default function Player({
 }: PlayerParam): ReactElement {
     const videoFile = useFile((s) => s.videoFile);
     const loadedVideo = useFile((s) => s.loadedVideo);
-    const playerRef: React.RefObject<HTMLVideoElement> =
-        useRef<HTMLVideoElement>(null);
+    const videoLoaded = useFile((s) => s.videoLoaded);
+    const playerRef: React.RefObject<ReactPlayer> = useRef<ReactPlayer>(null);
     const playerRefBackground: React.RefObject<HTMLCanvasElement> =
         useRef<HTMLCanvasElement>(null);
     let lastFile: FileT | undefined;
@@ -35,16 +36,7 @@ export default function Player({
     if (!shouldPause && lastSeekTime.current !== seekTime) {
         lastSeekTime.current = seekTime;
         if (playerRef.current !== null) {
-            playerRef.current.currentTime = seekTime.time;
-        }
-    }
-    if (playerRef.current !== null) {
-        if (!shouldPause && playerRef.current.paused) {
-            playerRef.current.play().catch((e) => {
-                console.log('play error', e);
-            });
-        } else if (shouldPause && !playerRef.current.paused) {
-            playerRef.current.pause();
+            playerRef.current.seekTo(seekTime.time, 'seconds');
         }
     }
 
@@ -71,21 +63,28 @@ export default function Player({
 
                     const canvasWidth = backgroundCanvas?.clientWidth ?? 0;
                     const canvasHeight = backgroundCanvas?.clientHeight ?? 0;
-
-                    ctx?.drawImage(mainVideo, 0, 0, canvasWidth, canvasHeight);
+                    ctx?.drawImage(
+                        mainVideo?.getInternalPlayer() as CanvasImageSource,
+                        0,
+                        0,
+                        canvasWidth,
+                        canvasHeight
+                    );
                 }
             }
 
             // 在每一帧中调用 syncVideos
             animationFrameId = requestAnimationFrame(syncVideos);
         };
-        syncVideos();
+        if (videoLoaded) {
+            syncVideos();
+        }
         return () => {
             if (animationFrameId !== undefined) {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [shouldPause]);
+    }, [shouldPause, videoLoaded]);
 
     const jumpToHistoryProgress = async (file: FileT) => {
         if (file === lastFile) {
@@ -112,7 +111,6 @@ export default function Player({
                 onMouseLeave={() => setShowControlPanel(false)}
             >
                 <div className="w-full h-full relative overflow-hidden">
-                    {/* <div className="relative top-0 left-0 w-full h-full z-10"> */}
                     <canvas
                         className="absolute top-0 left-0 w-full h-full -z-0"
                         ref={playerRefBackground}
@@ -123,14 +121,23 @@ export default function Player({
                         }}
                     />
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                    <video
+                    <ReactPlayer
                         className="w-full h-full absolute top-0 left-0 z-0"
                         id="react-player-id"
                         ref={playerRef}
-                        src={videoFile.objectUrl ? videoFile.objectUrl : ''}
+                        url={videoFile.objectUrl ? videoFile.objectUrl : ''}
+                        playing={!shouldPause}
                         controls={showControlPanel}
-                        style={{ width: '100%', height: '100%' }}
-                        autoPlay
+                        width="100%"
+                        height="100%"
+                        progressInterval={50}
+                        config={{
+                            file: {
+                                attributes: {
+                                    controlsList: 'nofullscreen',
+                                },
+                            },
+                        }}
                         onPlay={() => {
                             if (shouldPause) {
                                 onAction(space());
@@ -141,11 +148,13 @@ export default function Player({
                                 onAction(space());
                             }
                         }}
-                        onTimeUpdate={(event) => {
-                            onProgress(event.currentTarget.currentTime);
+                        onProgress={(progress) => {
+                            onProgress(progress.playedSeconds);
                         }}
-                        onLoadedMetadata={(event) => {
-                            onTotalTimeChange(event.currentTarget.duration);
+                        onDuration={(duration) => {
+                            onTotalTimeChange(duration);
+                        }}
+                        onStart={() => {
                             loadedVideo(videoFile);
                             jumpToHistoryProgress(videoFile);
                         }}
