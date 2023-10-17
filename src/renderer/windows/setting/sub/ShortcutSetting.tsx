@@ -11,9 +11,7 @@ import { defaultShortcut, ShortCutValue } from '../../../../types/SettingType';
 const verify = (sc: ShortCutValue): string | null => {
     // 校验有没有重复的
     const set = new Set<string>();
-    console.log('aaaa');
     const keys = Object.keys(sc) as (keyof ShortCutValue)[];
-    console.log('bbbbb');
     for (let i = 0; i < keys.length; i += 1) {
         const key = keys[i];
         const value = sc[key];

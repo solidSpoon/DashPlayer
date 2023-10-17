@@ -29,6 +29,7 @@ import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { getSetting, updateSetting } from './controllers/SettingController';
+import { WindowState } from '../types/Types';
 
 const handle = (
     channel: Channels,
@@ -42,7 +43,6 @@ const handle = (
 const sent = (channel: Channels, ...args: any[]) => {
     mainWindow?.webContents.send(channel, ...args);
 };
-
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
         log.info('ipcMain update-process', arg);
@@ -137,22 +137,6 @@ export default function registerHandler() {
         const shortcut = await getShortCut();
         event.reply('get-shortcut', shortcut);
     });
-    handle('maximize', async () => {
-        log.info('maximize');
-        mainWindow?.maximize();
-    });
-    handle('unmaximize', async () => {
-        log.info('unmaximize');
-        mainWindow?.unmaximize();
-    });
-    handle('is-maximized', async () => {
-        log.info('is-maximized');
-        return mainWindow?.isMaximized();
-    });
-    handle('is-full-screen', async () => {
-        log.info('is-full-screen');
-        return mainWindow?.isFullScreen();
-    });
     handle('show-button', async () => {
         log.info('show-button');
         // 展示红绿灯
@@ -168,44 +152,11 @@ export default function registerHandler() {
         }
     });
 
-    handle('minimize', async () => {
-        log.info('minimize');
-        mainWindow?.minimize();
-    });
-
-    handle('close', async () => {
-        log.info('close');
-        mainWindow?.close();
-    });
     handle('open-menu', async () => {
         console.log('open-menu');
         // create or show setting window
         await createSettingWindowIfNeed();
         settingWindow?.show();
-    });
-    handle('fullscreen', async () => {
-        log.info('fullscreen');
-        mainWindow?.setFullScreen(true);
-    });
-    handle('maximize-setting', async () => {
-        log.info('maximize-setting');
-        settingWindow?.maximize();
-    });
-    handle('unmaximize-setting', async () => {
-        log.info('unmaximize-setting');
-        settingWindow?.unmaximize();
-    });
-    handle('is-maximized-setting', async () => {
-        log.info('is-maximized-setting');
-        return settingWindow?.isMaximized();
-    });
-    handle('close-setting', async () => {
-        log.info('close-setting');
-        settingWindow?.close();
-    });
-    handle('minimize-setting', async () => {
-        log.info('minimize-setting');
-        settingWindow?.minimize();
     });
     handle('open-data-dir', async () => {
         log.info('open-data-dir');
@@ -236,6 +187,46 @@ export default function registerHandler() {
         mainWindow?.setMaximizable(true);
         mainWindow?.maximize();
         // mainWindow?.setMaximizable(true);
+    });
+    handle('main-state', async (state: WindowState) => {
+        switch (state) {
+            case 'normal':
+                mainWindow?.unmaximize();
+                mainWindow?.setFullScreen(false);
+                break;
+            case 'maximized':
+                mainWindow?.maximize();
+                break;
+            case 'minimized':
+                mainWindow?.minimize();
+                break;
+            case 'fullscreen':
+                mainWindow?.setFullScreen(true);
+                break;
+            case 'closed':
+                mainWindow?.close();
+                break;
+            default:
+                break;
+        }
+    });
+    handle('setting-state', async (state: WindowState) => {
+        switch (state) {
+            case 'normal':
+                settingWindow?.unmaximize();
+                break;
+            case 'maximized':
+                settingWindow?.maximize();
+                break;
+            case 'minimized':
+                settingWindow?.minimize();
+                break;
+            case 'closed':
+                settingWindow?.close();
+                break;
+            default:
+                break;
+        }
     });
     handle('home-size', async () => {
         log.info('home-size');

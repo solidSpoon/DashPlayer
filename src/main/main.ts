@@ -16,6 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import registerHandler from './IpcHandler';
+import { WindowState } from '../types/Types';
 
 const { net, protocol } = require('electron');
 
@@ -26,7 +27,31 @@ class AppUpdater {
         autoUpdater.checkForUpdatesAndNotify();
     }
 }
-
+const events = [
+    'maximize',
+    'unmaximize',
+    'enter-full-screen',
+    'leave-full-screen',
+    'minimize',
+    'restore',
+];
+const windowStateChange = (w: BrowserWindow) => {
+    let targetState: WindowState = 'closed';
+    if (w?.isMaximized()) {
+        targetState = 'maximized';
+    }
+    if (w?.isMinimized()) {
+        targetState = 'minimized';
+    }
+    if (w?.isFullScreen()) {
+        targetState = 'fullscreen';
+    }
+    if (w?.isNormal()) {
+        targetState = 'normal';
+    }
+    console.log('mainWindowStateChange', targetState);
+    return targetState;
+};
 export let mainWindow: BrowserWindow | null = null;
 export let settingWindow: BrowserWindow | null = null;
 ipcMain.on('ipc-example', async (event, arg) => {
@@ -122,28 +147,21 @@ export const createPlayerWindow = async () => {
         mainWindow?.webContents.send('fullscreen');
     });
     mainWindow?.on('leave-full-screen', () => {
-        mainWindow?.setWindowButtonVisibility(false);
+        mainWindow?.setWindowButtonVisibility?.(false);
         if (mainWindow?.isMaximized()) {
             mainWindow?.webContents.send('maximize');
         } else {
             mainWindow?.webContents.send('unmaximize');
         }
     });
-    mainWindow.on('maximize', () => {
-        mainWindow?.webContents.send('maximize');
-    });
-    mainWindow.on('unmaximize', () => {
-        mainWindow?.webContents.send('unmaximize');
-    });
-    mainWindow.on('minimize', () => {
-        mainWindow?.webContents.send('minimize');
-    });
-    mainWindow.on('restore', () => {
-        if (mainWindow?.isMaximized()) {
-            mainWindow?.webContents.send('maximize');
-        } else {
-            mainWindow?.webContents.send('unmaximize');
-        }
+    events.forEach((event) => {
+        // @ts-ignore
+        mainWindow?.on(event, () => {
+            mainWindow?.webContents.send(
+                'main-state',
+                windowStateChange(mainWindow)
+            );
+        });
     });
     // Remove this if your app does not use auto updates
     // eslint-disable-next-line
@@ -189,14 +207,13 @@ const createSettingWindow = async () => {
         }
     });
 
-    settingWindow.on('closed', () => {
-        settingWindow = null;
-    });
-    settingWindow.on('maximize', () => {
-        settingWindow?.webContents.send('maximize-setting');
-    });
-    settingWindow.on('unmaximize', () => {
-        settingWindow?.webContents.send('unmaximize-setting');
+    events.forEach((event) => {
+        mainWindow?.on(event, () => {
+            settingWindow?.webContents.send(
+                'setting-state',
+                windowStateChange(settingWindow)
+            );
+        });
     });
     const menuBuilder = new MenuBuilder(settingWindow);
     menuBuilder.buildMenu();

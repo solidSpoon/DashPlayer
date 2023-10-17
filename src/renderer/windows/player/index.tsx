@@ -1,8 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import App from './App';
-import useSystem from '../../hooks/useSystem';
-import syncStatus from '../sync';
+import useSystem, { syncStatus } from '../../hooks/useSystem';
 
 const container = document.getElementById('root')!;
 const root = createRoot(container);

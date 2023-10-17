@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import SettingKey from './SettingKey';
-import syncStatus from '../sync';
 import Notification from '../../components/Notification';
+import { syncStatus } from '../../hooks/useSystem';
 
 const container = document.getElementById('root')!;
 const root = createRoot(container);

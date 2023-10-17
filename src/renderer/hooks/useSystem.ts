@@ -1,13 +1,8 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { WindowState } from '../../types/Types';
 
-type WindowState =
-    | 'normal'
-    | 'maximized'
-    | 'minimized'
-    | 'fullscreen'
-    | 'closed';
-
+const api = window.electron;
 type State = {
     isWindows: boolean;
     windowState: WindowState;
@@ -35,5 +30,49 @@ const useSystem = create(
             set({ windowState: windowsState }),
     }))
 );
+
+export const syncStatus = (main: boolean) => {
+    if (main) {
+        api.onMainState((state) => {
+            useSystem.setState({
+                windowState: state,
+            });
+        });
+    } else {
+        api.onSettingState((state) => {
+            useSystem.setState({
+                windowState: state,
+            });
+        });
+    }
+
+    useSystem.setState({
+        isMain: main,
+    });
+    // eslint-disable-next-line promise/always-return,promise/catch-or-return
+    api.isWindows().then((isWindows) => {
+        useSystem.setState({
+            isWindows,
+        });
+    });
+    // eslint-disable-next-line promise/catch-or-return,promise/always-return
+    api.appVersion().then((appVersion) => {
+        useSystem.setState({
+            appVersion,
+        });
+    });
+
+    useSystem.subscribe(
+        (s) => s.windowState,
+        (state) => {
+            if (main) {
+                api.setMainState(state);
+            } else {
+                api.setSettingState(state);
+            }
+        }
+    );
+    useSystem.subscribe(console.log);
+};
 
 export default useSystem;

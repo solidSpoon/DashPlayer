@@ -4,8 +4,11 @@ import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { Release } from './controllers/CheckUpdate';
 import { ProgressParam } from './controllers/ProgressController';
 import { SettingState } from '../renderer/hooks/useSetting';
+import { WindowState } from '../types/Types';
 
 export type Channels =
+    | 'main-state'
+    | 'setting-state'
     | 'ipc-example'
     | 'update-progress'
     | 'trans-word'
@@ -15,20 +18,9 @@ export type Channels =
     | 'update-setting'
     | 'get-setting'
     | 'setting-update'
-    | 'maximize'
-    | 'unmaximize'
-    | 'is-maximized'
-    | 'is-full-screen'
     | 'show-button'
     | 'hide-button'
-    | 'maximize-setting'
-    | 'unmaximize-setting'
-    | 'is-maximized-setting'
-    | 'close-setting'
-    | 'minimize-setting'
     | 'is-windows'
-    | 'minimize'
-    | 'close'
     | 'open-menu'
     | 'you-dao-translate'
     | 'get-audio'
@@ -42,7 +34,6 @@ export type Channels =
     | 'home-size'
     | 'recent-play'
     | 'open-file'
-    | 'fullscreen'
     | 'copy-to-clipboard';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -88,6 +79,12 @@ const electronHandler = {
             return null;
         },
     },
+    setMainState: async (state: WindowState) => {
+        await invoke('main-state', state);
+    },
+    setSettingState: async (state: WindowState) => {
+        await invoke('setting-state', state);
+    },
     updateSetting: async (setting: SettingState) => {
         await invoke('update-setting', setting);
     },
@@ -102,18 +99,6 @@ const electronHandler = {
         const blob = new Blob([data], { type: 'audio/mpeg' });
         return URL.createObjectURL(blob);
     },
-    maximizeSetting: async () => {
-        await invoke('maximize-setting');
-    },
-    unMaximizeSetting: async () => {
-        await invoke('unmaximize-setting');
-    },
-    closeSetting: async () => {
-        await invoke('close-setting');
-    },
-    minimizeSetting: async () => {
-        await invoke('minimize-setting');
-    },
     queryCacheSize: async () => {
         return (await invoke('query-cache-size')) as string;
     },
@@ -126,32 +111,11 @@ const electronHandler = {
     openMenu: async () => {
         await invoke('open-menu');
     },
-    isMaximized: async () => {
-        return (await invoke('is-maximized')) as boolean;
-    },
-    unMaximize: async () => {
-        await invoke('unmaximize');
-    },
-    maximize: async () => {
-        await invoke('maximize');
-    },
-    minimize: async () => {
-        await invoke('minimize');
-    },
     playerSize: async () => {
         await invoke('player-size');
     },
     homeSize: async () => {
         await invoke('home-size');
-    },
-    close: async () => {
-        await invoke('close');
-    },
-    isFullScreen: async () => {
-        return (await invoke('is-full-screen')) as boolean;
-    },
-    fullscreen: async () => {
-        await invoke('fullscreen');
     },
     showButton: async () => {
         await invoke('show-button');
@@ -201,24 +165,15 @@ const electronHandler = {
     isWindows: async () => {
         return (await invoke('is-windows')) as boolean;
     },
-    onMaximize: (func: () => void) => {
-        return on('maximize', func);
-    },
-    onUnMaximize: (func: () => void) => {
-        return on('unmaximize', func);
-    },
-    onFullScreen: (func: () => void) => {
-        return on('fullscreen', func);
-    },
-    onSettingMaximize: (func: () => void) => {
-        return on('maximize-setting', func);
-    },
-    onSettingUnMaximize: (func: () => void) => {
-        return on('unmaximize-setting', func);
-    },
     onUpdateSetting: (func: (setting: SettingState) => void) => {
         console.log('onUpdateSetting');
         return on('update-setting', func as any);
+    },
+    onMainState: (func: (state: WindowState) => void) => {
+        return on('main-state', func as any);
+    },
+    onSettingState: (func: (state: WindowState) => void) => {
+        return on('setting-state', func as any);
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
