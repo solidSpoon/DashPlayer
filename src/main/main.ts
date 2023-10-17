@@ -37,22 +37,24 @@ const events = [
 ];
 const windowStateChange = (w: BrowserWindow) => {
     let targetState: WindowState = 'closed';
-    if (w?.isMaximized()) {
+    if (w?.isMaximized?.()) {
         targetState = 'maximized';
     }
-    if (w?.isMinimized()) {
+    if (w?.isMinimized?.()) {
         targetState = 'minimized';
     }
-    if (w?.isFullScreen()) {
+    if (w?.isFullScreen?.()) {
         targetState = 'fullscreen';
     }
-    if (w?.isNormal()) {
+    if (w?.isNormal?.()) {
         targetState = 'normal';
     }
     console.log('mainWindowStateChange', targetState);
     return targetState;
 };
+// eslint-disable-next-line import/no-mutable-exports
 export let mainWindow: BrowserWindow | null = null;
+// eslint-disable-next-line import/no-mutable-exports
 export let settingWindow: BrowserWindow | null = null;
 ipcMain.on('ipc-example', async (event, arg) => {
     const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -206,9 +208,12 @@ const createSettingWindow = async () => {
             settingWindow.show();
         }
     });
-
+    settingWindow.on('closed', () => {
+        settingWindow = null;
+    });
     events.forEach((event) => {
-        mainWindow?.on(event, () => {
+        // @ts-ignore
+        settingWindow?.on(event, () => {
             settingWindow?.webContents.send(
                 'setting-state',
                 windowStateChange(settingWindow)
