@@ -3,6 +3,7 @@ import { YdRes } from '../renderer/lib/param/yd/a';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { Release } from './controllers/CheckUpdate';
 import { ProgressParam } from './controllers/ProgressController';
+import { SettingState } from '../renderer/hooks/useSetting';
 
 export type Channels =
     | 'ipc-example'
@@ -12,13 +13,14 @@ export type Channels =
     | 'batch-translate'
     | 'load-trans-cache'
     | 'update-tenant-secret'
+    | 'update-setting'
+    | 'get-setting'
     | 'get-tenant-secret'
     | 'get-you-dao-secret'
     | 'update-you-dao-secret'
     | 'update-shortcut'
     | 'get-shortcut'
     | 'setting-update'
-    | 'tencent-secret-update'
     | 'maximize'
     | 'unmaximize'
     | 'is-maximized'
@@ -92,6 +94,12 @@ const electronHandler = {
             return null;
         },
     },
+    updateSetting: async (setting: SettingState) => {
+        await invoke('update-setting', setting);
+    },
+    getSetting: async () => {
+        return (await invoke('get-setting')) as SettingState;
+    },
     transWord: async (word: string) => {
         return (await invoke('you-dao-translate', word)) as YdRes;
     },
@@ -99,9 +107,6 @@ const electronHandler = {
         const data = (await invoke('get-audio', url)) as any;
         const blob = new Blob([data], { type: 'audio/mpeg' });
         return URL.createObjectURL(blob);
-    },
-    isSettingMaximized: async () => {
-        return (await invoke('is-maximized-setting')) as boolean;
     },
     maximizeSetting: async () => {
         await invoke('maximize-setting');
@@ -217,11 +222,9 @@ const electronHandler = {
     onSettingUnMaximize: (func: () => void) => {
         return on('unmaximize-setting', func);
     },
-    onSettingUpdate: (func: () => void) => {
-        return on('setting-update', func);
-    },
-    onTencentSecretUpdate: (func: () => void) => {
-        return on('tencent-secret-update', func);
+    onUpdateSetting: (func: (setting: SettingState) => void) => {
+        console.log('onUpdateSetting');
+        return on('update-setting', func as any);
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

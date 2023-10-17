@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, clipboard } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
@@ -27,14 +27,8 @@ import {
 import { Channels } from './preload';
 import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
-import { clipboard } from 'electron';
-
-// const handle = (
-//     channel: Channels,
-//     listener: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<void> | any
-// ): void => {
-//     ipcMain.handle(channel, listener);
-// };
+import { SettingState } from '../renderer/hooks/useSetting';
+import { getSetting, updateSetting } from './controllers/SettingController';
 
 const handle = (
     channel: Channels,
@@ -87,6 +81,16 @@ export default function registerHandler() {
         event.reply('update-tenant-secret', 'success');
         mainWindow?.webContents.send('setting-update');
         mainWindow?.webContents.send('tencent-secret-update');
+    });
+    handle('update-setting', async (setting: SettingState) => {
+        log.info('update-setting');
+        await updateSetting(setting);
+        console.log('update-setting', setting);
+        mainWindow?.webContents.send('update-setting', setting);
+    });
+    handle('get-setting', async () => {
+        log.info('get-setting');
+        return getSetting();
     });
     ipcMain.on('get-tenant-secret', async (event) => {
         log.info('get-tenant-secret');

@@ -8,6 +8,7 @@ import TranslateBuf from '../lib/TranslateBuf';
 import TransFiller from '../lib/TransFiller';
 import useFile from './useFile';
 import useCurrentSentence from './useCurrentSentence';
+import useSetting from './useSetting';
 
 const api = window.electron;
 
@@ -15,17 +16,20 @@ type UseSubtitleState = {
     subtitle: SentenceT[];
 };
 
-api.onTencentSecretUpdate(() => {
-    useFile.setState((state) => {
-        return {
-            subtitleFile: state.subtitleFile
-                ? {
-                      ...state.subtitleFile,
-                  }
-                : undefined,
-        };
-    });
-});
+useSetting.subscribe(
+    (s) => s.tencentSecret,
+    () => {
+        useFile.setState((state) => {
+            return {
+                subtitleFile: state.subtitleFile
+                    ? {
+                          ...state.subtitleFile,
+                      }
+                    : undefined,
+            };
+        });
+    }
+);
 
 type UseSubtitleActions = {
     setSubtitle: (subtitle: SentenceT[]) => void;

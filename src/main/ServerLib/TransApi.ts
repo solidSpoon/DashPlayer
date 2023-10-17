@@ -10,13 +10,14 @@ class TransApi {
     private static client: Client;
 
     static {
-        TransApi.init();
+        TransApi.init('', '');
     }
 
-    public static async init() {
+    public static async init(
+        secretId: string,
+        secretKey: string
+    ): Promise<void> {
         const TmtClient = tencentcloud.tmt.v20180321.Client;
-        const secretId = await KeyValueCache.queryValue('tenantSecretId');
-        const secretKey = await KeyValueCache.queryValue('tenantSecretKey');
         const clientConfig = {
             credential: {
                 secretId,

@@ -1,4 +1,5 @@
 import useSystem from '../hooks/useSystem';
+import useSetting from '../hooks/useSetting';
 
 const api = window.electron;
 const syncStatus = (main: boolean) => {
@@ -94,6 +95,10 @@ const syncStatus = (main: boolean) => {
         }
     );
     useSystem.subscribe(console.log);
+};
+
+const syncSetting = () => {
+
 };
 
 export default syncStatus;
