@@ -1,7 +1,8 @@
-import KeyValueCache from '../ServerLib/KeyValueCache';
 import WordTransCache from '../ServerLib/WordTransCache';
 import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
 import { YdRes } from '../../renderer/lib/param/yd/a';
+import { getSetting } from './SettingController';
+import { strBlank } from '../../utils/StrUtil';
 
 const config: YouDaoConfig = {
     from: 'zh_CHS', // zh-CHS(中文) || ja(日语) || EN(英文) || fr(法语) ...
@@ -17,16 +18,16 @@ const youDaoTrans = async (str: string): Promise<YdRes | null> => {
     if (cacheRes) {
         return JSON.parse(cacheRes) as YdRes;
     }
-    const appKey = await KeyValueCache.queryValue('youDaoSecretId');
-    const secretKey = await KeyValueCache.queryValue('youDaoSecretKey');
-    if (!appKey || !secretKey) {
+    const setting = await getSetting();
+    const secret = setting.youdaoSecret;
+    if (strBlank(secret.secretId) || strBlank(secret.secretKey)) {
         return null;
     }
     const c: YouDaoConfig = {
         from: 'zh_CHS', // zh-CHS(中文) || ja(日语) || EN(英文) || fr(法语) ...
         to: 'EN',
-        appKey,
-        secretKey,
+        appKey: secret.secretId,
+        secretKey: secret.secretKey,
     };
     youDao.updateConfig(c);
     const onlineRes = await youDao.translate(str);

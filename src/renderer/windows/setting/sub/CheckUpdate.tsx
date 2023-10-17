@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Release } from '../../../../main/controllers/CheckUpdate';
 import Header from '../../../components/setting/Header';
 import ItemWrapper from '../../../components/setting/ItemWapper';

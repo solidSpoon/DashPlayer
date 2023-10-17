@@ -3,7 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { DEFAULT_SETTING, ShortCutValue } from '../../types/SettingType';
 
 const api = window.electron;
-interface Secret {
+export interface Secret {
     secretId: string;
     secretKey: string;
 }
@@ -23,24 +23,27 @@ export const clone = (setting: SettingState): SettingState => {
 };
 
 type Actions = {
-    updateKeyBinds: (key: keyof ShortCutValue, value: string) => void;
     setKeyBinds: (keyBinds: ShortCutValue) => void;
+    setTencentSecret: (secret: Secret) => void;
+    setYoudaoSecret: (secret: Secret) => void;
 };
 
 const useSetting = create(
     subscribeWithSelector<SettingState & Actions>((set) => ({
         ...DEFAULT_SETTING,
-        updateKeyBinds: (key: keyof ShortCutValue, value: string) => {
-            set((state) => ({
-                keyBinds: {
-                    ...state.keyBinds,
-                    [key]: value,
-                },
-            }));
-        },
         setKeyBinds: (keyBinds: ShortCutValue) => {
             set({
                 keyBinds,
+            });
+        },
+        setTencentSecret: (secret: Secret) => {
+            set({
+                tencentSecret: secret,
+            });
+        },
+        setYoudaoSecret: (secret: Secret) => {
+            set({
+                youdaoSecret: secret,
             });
         },
     }))

@@ -1,6 +1,4 @@
-import { ChangeEvent, useEffect, useRef, useState } from 'react';
-import callApi from '../../../lib/apis/ApiWrapper';
-import { ShortCutValue } from '../../../components/GlobalShortCut';
+import { useEffect, useState } from 'react';
 import Header from '../../../components/setting/Header';
 import ItemWrapper from '../../../components/setting/ItemWapper';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
