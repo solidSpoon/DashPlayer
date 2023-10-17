@@ -135,6 +135,16 @@ export const createPlayerWindow = async () => {
     mainWindow.on('unmaximize', () => {
         mainWindow?.webContents.send('unmaximize');
     });
+    mainWindow.on('minimize', () => {
+        mainWindow?.webContents.send('minimize');
+    });
+    mainWindow.on('restore', () => {
+        if (mainWindow?.isMaximized()) {
+            mainWindow?.webContents.send('maximize');
+        } else {
+            mainWindow?.webContents.send('unmaximize');
+        }
+    });
     // Remove this if your app does not use auto updates
     // eslint-disable-next-line
     // new AppUpdater();

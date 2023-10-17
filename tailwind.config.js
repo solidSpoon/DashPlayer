@@ -171,7 +171,7 @@ module.exports = {
                             /**
                              * 标题栏色 hover
                              */
-                            titlebarHover: colors.stone['300'],
+                            titlebarHover: colors.sky['200'],
                             /**
                              * 标题栏文字色
                              */

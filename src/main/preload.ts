@@ -47,7 +47,7 @@ export type Channels =
     | 'recent-play'
     | 'open-file'
     | 'fullscreen'
-    | 'copy-to-clipboard'
+    | 'copy-to-clipboard';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);

@@ -1,10 +1,34 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-const THEME = ['dark', 'light', 'bright', 'deep'];
+interface Theme {
+    name: string;
+    type: 'dark' | 'light';
+}
+
+const THEME: Theme[] = [
+    {
+        name: 'dark',
+        type: 'dark',
+    },
+    {
+        name: 'light',
+        type: 'light',
+    },
+    {
+        name: 'bright',
+        type: 'light',
+    },
+    {
+        name: 'deep',
+        type: 'dark',
+    },
+];
 
 type ThemeState = {
+    index: number;
     theme: string;
+    type: 'dark' | 'light';
 };
 
 type ThemeAction = {
@@ -12,31 +36,31 @@ type ThemeAction = {
     prevTheme: () => void;
 };
 
-// const useTheme = create<ThemeState & ThemeAction>((set) => ({
-//     theme: THEME[0],
-//     nextTheme: () =>
-//         set((state) => ({
-//             theme: THEME[(THEME.indexOf(state.theme) + 1) % THEME.length],
-//         })),
-// }));
-
 const useTheme = create(
     persist<ThemeState & ThemeAction>(
         (set) => ({
-            theme: THEME[0],
+            index: 0,
+            theme: THEME[0].name,
+            type: THEME[0].type,
             nextTheme: () =>
-                set((state) => ({
-                    theme: THEME[
-                        (THEME.indexOf(state.theme) + 1) % THEME.length
-                    ],
-                })),
+                set((state) => {
+                    const index = (state.index + 1) % THEME.length;
+                    return {
+                        index,
+                        theme: THEME[index].name,
+                        type: THEME[index].type,
+                    };
+                }),
             prevTheme: () =>
-                set((state) => ({
-                    theme: THEME[
-                        (THEME.indexOf(state.theme) - 1 + THEME.length) %
-                            THEME.length
-                    ],
-                })),
+                set((state) => {
+                    const index =
+                        (state.index - 1 + THEME.length) % THEME.length;
+                    return {
+                        index,
+                        theme: THEME[index].name,
+                        type: THEME[index].type,
+                    };
+                }),
         }),
         {
             name: 'theme',
