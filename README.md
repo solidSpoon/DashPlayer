@@ -63,71 +63,29 @@ DashPlayer  的目标就是方便你观看英文视频。无论你是想泛听�
 
 ## 屏幕截图
 
----
-# 使用指南
-## 如何播放视频
+多种亮度不同的主题：
 
-DashPlayer 支持常见的视频格式，以及 srt 字幕格式。
+<p align="center">
+    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/75f9a9fc-ef1c-4141-80e4-0aa6c38fd70b">
+</p>
 
-点击右下角的 “+”，选择一个视频文件以及对应的 srt 字幕文件，即可开始播放。
+播放历史记录：
 
-### 想播放在线视频？
+<p align="center">
+    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/aebb2661-0079-4ffb-b07f-0c5f531468ea">
+</p>
 
-目前 DashPlayer 只支持本地视频文件，但市面上有很多好用的视频下载工具，你可以通过它们将视频下载下来。
+字幕翻译和单词翻译：
 
-- Windows 平台：[Internet Download Manager (IDM)](https://www.internetdownloadmanager.com/)
-- macOS 平台：[Downie](https://software.charliemonroe.net/downie/)
+<p align="center">
+    <img width="755" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/0198d8c6-65f6-487c-ba65-e3b7b6cc1598">
+</p>
 
-### 没有字幕文件怎么办?
+可以隐藏字幕：
 
-可以使用 AI 生成字幕，OpenAI 家的 [Whisper](https://openai.com/research/whisper) 模型生成字幕的效果很好，有很多软件支持通过这个模型生成字幕。
-
-- [Memo](https://memo.ac/) Windows/macOS
-- [MacWhisper](https://goodsnooze.gumroad.com/l/macwhisper) macOS
-
-
-## 如何控制播放
-### 通过鼠标/键盘快捷键控制播放
-
-DashPlayer 默认快捷键如下
-
-- 上一句：“←” 或 “a”
-- 下一句：“→” 或 “d”
-- 重复当前句：“↓” 或 “s”
-- 暂停/播放：“上” 或 “w” 或 “space”
-- 单句重复：“r”（repeat）
-- 展示/隐藏英文字幕：“e”（english）
-- 展示/隐藏中文字幕：“c”（chinese）
-- 展示/隐藏中英文字幕：“b”（both）
-
-具体快捷键可在设置界面查看
-
-<img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/bba24297-dcb5-4594-9d62-966435695853">
-
-**tips:** 双击播放器区域可打开原生控制器，用于操作进度条、播放速度、声音等
-
-### 使用蓝牙手柄控制播放
-
-#### 蓝牙手柄控制的原理
-
-八位堂家的 [Zero2](https://www.8bitdo.cn/zero2/) 蓝牙手柄可当做蓝牙键盘使用，所以可以用它来操控 DashPlayer。
-
-- 将手柄通过键盘模式链接到电脑
-- 打开 DashPlayer 设置界面，进入快捷键设置，设置手柄对应按键为快捷键
-
-
-## 机器翻译
-
-DashPlayer 目前支持使用：
-
-- 腾讯云翻译字幕
-- 有道云翻译单词（鼠标**放置**在视频下方字幕行的单词上）
-- 点击单词播放发音
-
-
-要启用翻译功能，需要申请[腾讯云](https://console.cloud.tencent.com/cam/capi)和[有道云](https://ai.youdao.com/console/#/service-singleton/text-translation)的密钥，并在设置中填入
-
-<img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/b2dc5727-3c09-423a-9f1d-5d4647b74896">
+<p align="center">
+    <img width="753" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/e9e7f41b-946f-426d-bab8-e1264cbac06b">
+</p>
 
 ---
 
@@ -181,4 +139,71 @@ xattr -c <path/to/application.app>
 xattr -c /Applications/DashPlayer.app
 ```
 
+
+---
+# 使用指南
+## 如何播放视频
+
+DashPlayer 支持常见的视频格式，以及 srt 字幕格式。
+
+点击右下角的 “+”，选择一个视频文件以及对应的 srt 字幕文件，即可开始播放。
+
+### 想播放在线视频？
+
+目前 DashPlayer 只支持本地视频文件，但市面上有很多好用的视频下载工具，你可以通过它们将视频下载下来。
+
+- Windows 平台：[Internet Download Manager (IDM)](https://www.internetdownloadmanager.com/)
+- macOS 平台：[Downie](https://software.charliemonroe.net/downie/)
+
+### 没有字幕文件怎么办?
+
+可以使用 AI 生成字幕，OpenAI 家的 [Whisper](https://openai.com/research/whisper) 模型生成字幕的效果很好，有很多软件支持通过这个模型生成字幕。
+
+- [Memo](https://memo.ac/) Windows/macOS
+- [MacWhisper](https://goodsnooze.gumroad.com/l/macwhisper) macOS
+
+
+## 如何控制播放
+### 通过鼠标/键盘快捷键控制播放
+
+DashPlayer 默认快捷键如下
+
+- 上一句：“←” 或 “a”
+- 下一句：“→” 或 “d”
+- 重复当前句：“↓” 或 “s”
+- 暂停/播放：“上” 或 “w” 或 “space”
+- 单句重复：“r”（repeat）
+- 展示/隐藏英文字幕：“e”（english）
+- 展示/隐藏中文字幕：“c”（chinese）
+- 展示/隐藏中英文字幕：“b”（both）
+- 切换主题：“t”（theme）
+
+具体快捷键可在设置界面查看
+
+<img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/2b869c73-000d-45cb-9914-2bf2e7147e8f">
+
+### 使用蓝牙手柄控制播放
+
+#### 蓝牙手柄控制的原理
+
+八位堂家的 [Zero2](https://www.8bitdo.cn/zero2/) 蓝牙手柄可当做蓝牙键盘使用，所以可以用它来操控 DashPlayer。
+
+- 将手柄通过键盘模式链接到电脑
+- 打开 DashPlayer 设置界面，进入快捷键设置，设置手柄对应按键为快捷键
+
+
+## 机器翻译
+
+DashPlayer 目前支持使用：
+
+- 腾讯云翻译字幕
+- 有道云翻译单词（鼠标**放置**在视频下方字幕行的单词上）
+- 点击单词播放发音
+
+
+要启用翻译功能，需要申请[腾讯云](https://console.cloud.tencent.com/cam/capi)和[有道云](https://ai.youdao.com/console/#/service-singleton/text-translation)的密钥，并在设置中填入
+
+<img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/fdc4dc49-066b-482b-ac2d-f961e7dcdc77">
+
+腾讯云翻译每月有一定的免费额度，足够个人使用，DashPlayer 会采用缓存和懒加载等技术尽可能节省您的额度。
 
