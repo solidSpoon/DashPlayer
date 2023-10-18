@@ -1,13 +1,9 @@
 import React, { cloneElement, ReactElement, useState } from 'react';
 import 'tailwindcss/tailwind.css';
-import { BsFillKeyboardFill } from 'react-icons/bs';
-import { PiKeyboardDuotone, PiKeyboardFill } from 'react-icons/pi';
-import { IconType } from 'react-icons';
 import {
     MdBuild,
     MdColorLens,
     MdKeyboard,
-    MdKeyboardAlt,
     MdOutlineGTranslate,
     MdStorage,
     MdTranslate,
@@ -18,7 +14,6 @@ import ShortcutSetting from './sub/ShortcutSetting';
 import './SettingKey.css';
 import StorageSetting from './sub/StorageSetting';
 import CheckUpdate from './sub/CheckUpdate';
-import useSystem from '../../hooks/useSystem';
 import TitleBar from '../../components/TitleBar/TitleBar';
 import AppearanceSetting from './sub/AppearanceSetting';
 
@@ -32,7 +27,6 @@ type SettingType =
 
 export default function SettingKey() {
     const [settingType, setSettingType] = useState<SettingType>('shortcut');
-    const isWindows = useSystem((s) => s.isWindows);
     const ele = (name: string, key: SettingType, icon: ReactElement) => {
         const isCurrent = settingType === key;
         return (
@@ -66,7 +60,7 @@ export default function SettingKey() {
                     <div className="sticky top-0 p-4 pt-6 w-full flex flex-col">
                         {ele('快捷键', 'shortcut', <MdKeyboard />)}
                         {ele('外观', 'appearance', <MdColorLens />)}
-                        {ele('句子翻译', 'tenant', <MdOutlineGTranslate />)}
+                        {ele('字幕翻译', 'tenant', <MdOutlineGTranslate />)}
                         {ele('查单词', 'you-dao', <MdTranslate />)}
                         {ele('存储', 'storage', <MdStorage />)}
                         {ele('版本更新', 'update', <MdBuild />)}
@@ -85,7 +79,6 @@ export default function SettingKey() {
                         {settingType === 'storage' && <StorageSetting />}
                         {settingType === 'update' && <CheckUpdate />}
                     </div>
-                    {/* <div className="h-12 w-full" /> */}
                 </main>
             </div>
         </div>

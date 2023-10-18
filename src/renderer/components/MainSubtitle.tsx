@@ -3,19 +3,10 @@ import SentenceT from '../lib/param/SentenceT';
 import TranslatableLine from './TranslatableLine';
 import { Action } from '../lib/CallAction';
 import NormalLine from './NormalLine';
+import usePlayerController from '../hooks/usePlayerController';
 
-interface MainSubtitleParam {
-    sentence: undefined | SentenceT;
-    doAction: (action: Action) => void;
-    showEn: boolean;
-    showCn: boolean;
-}
-export default function MainSubtitle({
-    sentence,
-    doAction,
-    showEn,
-    showCn,
-}: MainSubtitleParam) {
+export default function MainSubtitle() {
+    const sentence = usePlayerController((state) => state.currentSentence);
     const ele = (): ReactElement[] => {
         if (sentence === undefined) {
             return [];
@@ -33,8 +24,6 @@ export default function MainSubtitle({
                     <TranslatableLine
                         key={`first-${sentence.getKey()}`}
                         text={item}
-                        doAction={doAction}
-                        show={showEn}
                     />
                 );
             }
@@ -44,7 +33,6 @@ export default function MainSubtitle({
                         key={`second-${sentence.getKey()}`}
                         text={item}
                         order="second"
-                        show={showCn}
                     />
                 );
             }
@@ -54,7 +42,6 @@ export default function MainSubtitle({
                     key={`third-${sentence.getKey()}`}
                     text={item}
                     order="third"
-                    show={showCn}
                 />
             );
         });

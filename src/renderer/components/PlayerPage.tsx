@@ -22,19 +22,11 @@ export interface PlayerPageParam {
 const PlayerPage = ({ isDragging }: PlayerPageParam) => {
     const themeName = useSetting((s) => s.appearance.theme);
     const fontSize = useSetting((s) => s.appearance.fontSize);
-    const progress = useRef<number>(0);
-    const totalTime = useRef<number>(0);
     const videoFile = useFile((s) => s.videoFile);
     const subtitleFile = useFile((s) => s.subtitleFile);
     const subtitles = useSubtitle((s) => s.subtitle);
-    const {
-        seekAction: seekTime,
-        currentSentence,
-        dispatch: doAction,
-        showCn,
-        showEn,
-        singleRepeat,
-    } = useSubTitleController(subtitles, () => progress.current);
+    const { dispatch: doAction, singleRepeat } =
+        useSubTitleController(subtitles);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
     const sizeB =
@@ -49,14 +41,10 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                 windowsButtonClassName="hover:bg-titlebarHover"
                 className="bg-titlebar"
             />
-            <RecordProgress
-                getCurrentProgress={() => progress.current}
-                getTotalTime={() => totalTime.current}
-            />
+            <RecordProgress />
             <GlobalShortCut onAction={doAction} />
 
             <Split
-                minSize={10}
                 className="split flex flex-row w-full flex-1"
                 sizes={JSON.parse(sizeA)}
                 onDragEnd={(sizes) => {
@@ -76,42 +64,22 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                     direction="vertical"
                 >
                     <div className="h-full">
-                        <Player
-                            onProgress={(time) => {
-                                progress.current = time;
-                            }}
-                            onTotalTimeChange={(time) => {
-                                totalTime.current = time;
-                            }}
-                            onAction={doAction}
-                            seekTime={seekTime}
-                        />
+                        <Player onAction={doAction} />
                     </div>
                     <div className="h-full">
-                        <MainSubtitle
-                            sentence={currentSentence}
-                            doAction={doAction}
-                            showEn={showEn}
-                            showCn={showCn}
-                        />
+                        <MainSubtitle />
                     </div>
                 </Split>
                 <Subtitle
                     subtitles={subtitles}
-                    currentSentence={currentSentence}
                     onAction={doAction}
                     singleRepeat={singleRepeat}
-                    pause={seekTime.time === SPACE_NUM}
                 />
             </Split>
             {!isDragging && <UploadButton />}
 
             <div id="progressBarRef" className="z-50">
-                <BorderProgressBar
-                    hasSubTitle={subtitleFile !== undefined}
-                    getCurrentTime={() => progress.current}
-                    getTotalTime={() => totalTime.current}
-                />
+                <BorderProgressBar />
             </div>
         </div>
     );

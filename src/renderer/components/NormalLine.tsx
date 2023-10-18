@@ -2,11 +2,11 @@ import { ReactElement, useCallback, useState } from 'react';
 import hash from '../lib/hash';
 import Word from './Word';
 import { Action } from '../lib/CallAction';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface NormalLineParam {
     text: string;
     order: 'second' | 'third';
-    show: boolean;
 }
 interface Part {
     content: string;
@@ -15,7 +15,8 @@ interface Part {
 }
 export const SPLIT_REGEX =
     /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
-const NormalLine = ({ text, order, show }: NormalLineParam) => {
+const NormalLine = ({ text, order }: NormalLineParam) => {
+    const show = usePlayerController((state) => state.showCn);
     if (text === undefined) {
         return <div />;
     }
@@ -40,7 +41,9 @@ const NormalLine = ({ text, order, show }: NormalLineParam) => {
         return (
             <span
                 className={`${
-                    show ? '' : 'text-transparent bg-wordHoverBackground/50 rounded'
+                    show
+                        ? ''
+                        : 'text-transparent bg-wordHoverBackground/50 rounded'
                 }`}
                 key={key}
             >

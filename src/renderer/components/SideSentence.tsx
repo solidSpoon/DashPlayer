@@ -6,13 +6,13 @@ import {
 } from 'react-icons/ai';
 import SentenceT from '../lib/param/SentenceT';
 import useSetting from '../hooks/useSetting';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface SideSentenceNewParam {
     sentence: SentenceT;
     onClick: (sentence: SentenceT) => void;
     isCurrent: boolean;
     isRepeat: boolean;
-    pause: boolean;
 }
 
 export default function SideSentence({
@@ -20,8 +20,8 @@ export default function SideSentence({
     onClick,
     isCurrent,
     isRepeat,
-    pause,
 }: SideSentenceNewParam) {
+    const playing = usePlayerController((state) => state.playing);
     const show = isCurrent ? 'visible' : 'invisible';
     const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
         (i) => i !== undefined && i !== ''
@@ -29,7 +29,7 @@ export default function SideSentence({
 
     const fontSize = useSetting((state) => state.appearance.fontSize);
     const icon = () => {
-        if (pause) {
+        if (!playing) {
             return <AiOutlinePlayCircle className="w-full h-full" />;
         }
         return isRepeat ? (

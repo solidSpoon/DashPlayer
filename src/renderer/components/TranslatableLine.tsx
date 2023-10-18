@@ -2,11 +2,10 @@ import { ReactElement, useCallback, useState } from 'react';
 import hash from '../lib/hash';
 import Word from './Word';
 import { Action } from '../lib/CallAction';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface TranslatableSubtitleLineParam {
     text: string;
-    doAction: (action: Action) => void;
-    show: boolean;
 }
 interface Part {
     content: string;
@@ -15,11 +14,8 @@ interface Part {
 }
 export const SPLIT_REGEX =
     /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
-const TranslatableLine = ({
-    text,
-    doAction,
-    show,
-}: TranslatableSubtitleLineParam) => {
+const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
+    const show = usePlayerController((state) => state.showEn);
     console.log('TranslatableLine', text, 'dd');
     const [popELe, setPopEle] = useState<string | null>(null);
     const [hovered, setHovered] = useState(false);
@@ -71,7 +67,6 @@ const TranslatableLine = ({
                     <Word
                         key={w.id}
                         word={w.content}
-                        doAction={doAction}
                         pop={popELe === w.id}
                         requestPop={() => handleRequestPop(w.id)}
                         show={show || hovered}

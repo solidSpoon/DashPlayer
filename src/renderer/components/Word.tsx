@@ -3,14 +3,13 @@ import * as turf from '@turf/turf';
 import { Feature, Polygon } from '@turf/turf';
 import { YdRes } from '../lib/param/yd/a';
 import WordPop from './WordPop';
-import { Action, pause } from '../lib/CallAction';
 import { playUrl, playWord } from '../lib/AudioPlayer';
+import usePlayerController from '../hooks/usePlayerController';
 
 const api = window.electron;
 
 export interface WordParam {
     word: string;
-    doAction: (action: Action) => void;
     pop: boolean;
     requestPop: () => void;
     show: boolean;
@@ -33,10 +32,11 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
+const Word = ({ word, pop, requestPop, show }: WordParam) => {
     const [translationText, setTranslationText] = useState<YdRes | undefined>(
         undefined
     );
+    const pause = usePlayerController((s) => s.pause);
     const [hovered, setHovered] = useState(false);
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
@@ -110,7 +110,7 @@ const Word = ({ word, doAction, pop, requestPop, show }: WordParam) => {
             onMouseOver={() => {
                 console.log('avvv onMouseOver', word);
                 setHovered(true);
-                doAction(pause());
+                pause();
             }}
             onMouseLeave={() => {
                 console.log('avvv onMouseLeave', word);

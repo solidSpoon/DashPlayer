@@ -1,36 +1,36 @@
 import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ProgressParam } from '../../main/controllers/ProgressController';
 import useFile from '../hooks/useFile';
-
-interface RecordProgressParam {
-    getCurrentProgress: () => number;
-    getTotalTime: () => number;
-}
+import usePlayerController from '../hooks/usePlayerController';
 
 const api = window.electron;
 
-const RecordProgress = ({
-    getCurrentProgress,
-    getTotalTime,
-}: RecordProgressParam) => {
+const RecordProgress = () => {
+    const { getExactPlayTime, duration } = usePlayerController(
+        useShallow((s) => ({
+            getExactPlayTime: s.getExactPlayTime,
+            duration: s.duration,
+        }))
+    );
     const videoFile = useFile((s) => s.videoFile);
     const subtitleFile = useFile((s) => s.subtitleFile);
     const videoLoaded = useFile((s) => s.videoLoaded);
     useEffect(() => {
         async function method() {
-            if (videoFile === undefined || getCurrentProgress() === undefined) {
+            if (videoFile === undefined || getExactPlayTime() === undefined) {
                 return;
             }
             if (!videoLoaded) {
                 return;
             }
             const fileName = videoFile?.fileName;
-            const progress = getCurrentProgress();
+            const progress = getExactPlayTime();
             if (fileName !== undefined) {
                 const p: ProgressParam = {
                     fileName,
                     progress,
-                    total: getTotalTime(),
+                    total: duration,
                     filePath: videoFile.path,
                     subtitlePath: subtitleFile?.path,
                 };
@@ -43,10 +43,10 @@ const RecordProgress = ({
             clearInterval(interval);
         };
     }, [
-        videoFile,
-        getCurrentProgress,
-        getTotalTime,
+        duration,
+        getExactPlayTime,
         subtitleFile?.path,
+        videoFile,
         videoLoaded,
     ]);
     return <></>;

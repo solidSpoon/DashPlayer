@@ -20,6 +20,7 @@ const SliderInput = ({
         <div className="flex items-center gap-4  text-gray-700 text-sm select-none">
             <div className="text-sm text-right w-28">{title} :</div>
             <Slider
+                sliderClassName="bg-stone-300"
                 className={`border rounded ${inputWidth}`}
                 max={values.length - 1}
                 min={0}

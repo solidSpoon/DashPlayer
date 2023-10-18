@@ -1,24 +1,10 @@
 import { ReactNode } from 'react';
 import Keyevent from 'react-keyevent';
-import {
-    Action,
-    next,
-    prev,
-    repeat,
-    showCn,
-    showEn,
-    showEnCn,
-    singleRepeat,
-    space,
-} from '../lib/CallAction';
+import { useShallow } from 'zustand/react/shallow';
+import { Action, next, prev, repeat } from '../lib/CallAction';
 import { defaultShortcut } from '../../types/SettingType';
 import useSetting, { nextThemeName, prevThemeName } from '../hooks/useSetting';
-
-export enum JumpPosition {
-    BEFORE = 0,
-    AFTER = 1,
-    CURRENT = 2,
-}
+import usePlayerController from '../hooks/usePlayerController';
 
 interface ReactParam {
     // eslint-disable-next-line react/require-default-props
@@ -33,6 +19,21 @@ export default function GlobalShortCut(
     this: any,
     { onAction, children }: GlobalShortCutParam
 ) {
+    const {
+        space,
+        changeShowEn,
+        changeShowCn,
+        changeShowEnCn,
+        changeSingleRepeat,
+    } = usePlayerController(
+        useShallow((s) => ({
+            space: s.space,
+            changeShowEn: s.changeShowEn,
+            changeShowCn: s.changeShowCn,
+            changeShowEnCn: s.changeShowEnCn,
+            changeSingleRepeat: s.changeSingleRepeat,
+        }))
+    );
     const keyBinds = useSetting((s) => s.keyBinds);
     const theme = useSetting((s) => s.appearance.theme);
     const setTheme = useSetting((s) => s.setTheme);
@@ -40,8 +41,8 @@ export default function GlobalShortCut(
     events.onLeft = onAction.bind(this, prev());
     events.onRight = onAction.bind(this, next());
     events.onDown = onAction.bind(this, repeat());
-    events.onSpace = onAction.bind(this, space());
-    events.onUp = onAction.bind(this, space());
+    events.onSpace = space;
+    events.onUp = space;
 
     const registerKey = (
         values: string | undefined,
@@ -67,15 +68,15 @@ export default function GlobalShortCut(
     registerKey(keyBinds?.last, defaultShortcut.last, prev());
     registerKey(keyBinds?.next, defaultShortcut.next, next());
     registerKey(keyBinds?.repeat, defaultShortcut.repeat, repeat());
-    registerKey(keyBinds?.space, defaultShortcut.space, space());
+    registerKey(keyBinds?.space, defaultShortcut.space, space);
     registerKey(
         keyBinds?.singleRepeat,
         defaultShortcut.singleRepeat,
-        singleRepeat()
+        changeSingleRepeat
     );
-    registerKey(keyBinds?.showEn, defaultShortcut.showEn, showEn());
-    registerKey(keyBinds?.showCn, defaultShortcut.showCn, showCn());
-    registerKey(keyBinds?.sowEnCn, defaultShortcut.sowEnCn, showEnCn());
+    registerKey(keyBinds?.showEn, defaultShortcut.showEn, changeShowEn);
+    registerKey(keyBinds?.showCn, defaultShortcut.showCn, changeShowCn);
+    registerKey(keyBinds?.sowEnCn, defaultShortcut.sowEnCn, changeShowEnCn);
     registerKey(
         keyBinds?.nextTheme,
         defaultShortcut.nextTheme,

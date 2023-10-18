@@ -123,7 +123,7 @@ const PlayerControlPannel = ({
                             setSelecting(false);
                         }}
                     />
-                    <div className="w-full flex justify-between px-3">
+                    <div className="w-full flex justify-between px-2">
                         <div className="flex gap-4">
                             <div
                                 onClick={() => {
@@ -133,7 +133,7 @@ const PlayerControlPannel = ({
                                         onPlay?.();
                                     }
                                 }}
-                                className="flex justify-center w-10 h-10 bg-white/20 items-center rounded-lg"
+                                className="flex justify-center items-center rounded-lg"
                             >
                                 {playing ? (
                                     <FaPause className="w-6 h-6 text-white/80" />

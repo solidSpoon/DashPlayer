@@ -4,13 +4,12 @@ import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
 import { Action, jump, jumpTime } from '../lib/CallAction';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface SubtitleSubParam {
     subtitles: SentenceT[];
-    currentSentence: SentenceT | undefined;
     onAction: (action: Action) => void;
     singleRepeat: boolean;
-    pause: boolean;
 }
 
 interface Ele {
@@ -50,11 +49,12 @@ const getEle = (ele: HTMLDivElement): Ele => {
 
 export default function Subtitle({
     subtitles,
-    currentSentence,
     onAction,
     singleRepeat,
-    pause,
 }: SubtitleSubParam) {
+    const currentSentence = usePlayerController(
+        (state) => state.currentSentence
+    );
     // const boundaryRef = useRef<HTMLDivElement>(null);
     const currentRef = useRef<number>(-1);
     const listRef = useRef<VirtuosoHandle>(null);
@@ -156,7 +156,6 @@ export default function Subtitle({
                                 onClick={(sentence) => onAction(jump(sentence))}
                                 isCurrent={isCurrent}
                                 isRepeat={singleRepeat}
-                                pause={pause}
                             />
                         </div>
                     );

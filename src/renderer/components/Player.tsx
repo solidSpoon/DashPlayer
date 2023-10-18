@@ -1,27 +1,41 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
+import { useShallow } from 'zustand/react/shallow';
 import FileT from '../lib/param/FileT';
-import { SeekTime, SPACE_NUM } from '../hooks/useSubTitleController';
-import { Action, jumpTime, pause, play, space } from '../lib/CallAction';
+import { SeekTime } from '../hooks/useSubTitleController';
+import { Action, jumpTime } from '../lib/CallAction';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface PlayerParam {
-    seekTime: SeekTime;
-    onProgress: (time: number) => void;
-    onTotalTimeChange: (time: number) => void;
     onAction: (action: Action) => void;
 }
 
 const api = window.electron;
 
-export default function Player({
-    seekTime,
-    onProgress,
-    onTotalTimeChange,
-    onAction,
-}: PlayerParam): ReactElement {
-    const [volume, setVolume] = useState<number>(0.8);
+export default function Player({ onAction }: PlayerParam): ReactElement {
+    const {
+        playing,
+        muted,
+        volume,
+        play,
+        pause,
+        seekTime,
+        updateExactPlayTime,
+        setDuration,
+    } = usePlayerController(
+        useShallow((state) => ({
+            playing: state.playing,
+            muted: state.muted,
+            volume: state.volume,
+            play: state.play,
+            pause: state.pause,
+            seekTime: state.seekTime,
+            updateExactPlayTime: state.updateExactPlayTime,
+            setDuration: state.setDuration,
+        }))
+    );
     const videoFile = useFile((s) => s.videoFile);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
@@ -34,8 +48,7 @@ export default function Player({
 
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
-    const shouldPause = seekTime.time === SPACE_NUM;
-    if (!shouldPause && lastSeekTime.current !== seekTime) {
+    if (lastSeekTime.current !== seekTime) {
         lastSeekTime.current = seekTime;
         if (playerRef.current !== null) {
             playerRef.current.seekTo(seekTime.time, 'seconds');
@@ -86,7 +99,7 @@ export default function Player({
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [shouldPause, videoLoaded]);
+    }, [videoLoaded]);
 
     const jumpToHistoryProgress = async (file: FileT) => {
         if (file === lastFile) {
@@ -124,11 +137,12 @@ export default function Player({
                     />
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <ReactPlayer
+                        muted={muted}
                         className="w-full h-full absolute top-0 left-0 z-0"
                         id="react-player-id"
                         ref={playerRef}
                         url={videoFile.objectUrl ? videoFile.objectUrl : ''}
-                        playing={!shouldPause}
+                        playing={playing}
                         controls={showControlPanel}
                         width="100%"
                         height="100%"
@@ -142,20 +156,16 @@ export default function Player({
                             },
                         }}
                         onPlay={() => {
-                            if (shouldPause) {
-                                onAction(space());
-                            }
+                            play();
                         }}
                         onPause={() => {
-                            if (!shouldPause) {
-                                onAction(space());
-                            }
+                            pause();
                         }}
                         onProgress={(progress) => {
-                            onProgress(progress.playedSeconds);
+                            updateExactPlayTime(progress.playedSeconds);
                         }}
                         onDuration={(duration) => {
-                            onTotalTimeChange(duration);
+                            setDuration(duration);
                         }}
                         onStart={() => {
                             loadedVideo(videoFile);
@@ -165,9 +175,7 @@ export default function Player({
                     {!showControlPanel && (
                         <PlayerControlPannel
                             volume={volume}
-                            onVolumeChange={(v) => {
-                                setVolume(v);
-                            }}
+                            onVolumeChange={(v) => {}}
                             getTotalTime={() => {
                                 return playerRef.current?.getDuration() ?? 0;
                             }}
@@ -179,12 +187,12 @@ export default function Player({
                             }}
                             className="absolute bottom-0 left-0 px-3"
                             onPause={() => {
-                                onAction(pause());
+                                pause();
                             }}
                             onPlay={() => {
-                                onAction(play());
+                                play();
                             }}
-                            playing={!shouldPause}
+                            playing={playing}
                         />
                     )}
                 </div>

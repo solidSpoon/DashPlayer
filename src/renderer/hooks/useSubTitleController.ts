@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import SentenceT from '../lib/param/SentenceT';
 import { Action } from '../lib/CallAction';
 import useCurrentSentence from './useCurrentSentence';
+import usePlayerController from './usePlayerController';
 
 export const SPACE_NUM = -1;
 
@@ -9,10 +11,8 @@ export interface SeekTime {
     time: number;
 }
 
-function findCurrentSentence(
-    subtitles: SentenceT[],
-    currentTime: number
-): SentenceT {
+function findCurrentSentence(subtitles: SentenceT[]): SentenceT {
+    const currentTime = usePlayerController.getState().getExactPlayTime();
     return (
         subtitles.find((item) => item.isCurrent(currentTime)) ??
         subtitles[subtitles.length - 1]
@@ -36,22 +36,26 @@ const isTimeOverdue = (time: number) => {
     return Date.now() - time > OVERDUE_TIME;
 };
 
-export default function useSubTitleController(
-    sentences: SentenceT[],
-    getProgress: () => number
-) {
-    const lastSeekTime = useRef<SeekTime>({ time: 0 });
-    const [seekTime, setSeekTime] = useState<SeekTime>(lastSeekTime.current);
-    const { currentSentence, setCurrentSentence } = useCurrentSentence();
-
-    const [showCn, setShowCn] = useState<boolean>(true);
-    const [showEn, setShowEn] = useState<boolean>(true);
-
-    const [singleRepeat, setSingleRepeat] = useState<boolean>(false);
-
+export default function useSubTitleController(sentences: SentenceT[]) {
+    const seekTime = usePlayerController((state) => state.seekTime);
+    const {
+        seekTo,
+        playing,
+        singleRepeat,
+        getExactPlayTime,
+        currentSentence,
+        setCurrentSentence,
+    } = usePlayerController(
+        useShallow((state) => ({
+            seekTo: state.seekTo,
+            playing: state.playing,
+            singleRepeat: state.singleRepeat,
+            getExactPlayTime: state.getExactPlayTime,
+            currentSentence: state.currentSentence,
+            setCurrentSentence: state.setCurrentSentence,
+        }))
+    );
     const manuallyUpdateTime = useRef<number>(Date.now());
-
-    const getProgressRef = useRef(getProgress);
     const getCurrentSentence = useCallback(() => {
         const isOverdue = isTimeOverdue(manuallyUpdateTime.current);
         if (
@@ -59,7 +63,7 @@ export default function useSubTitleController(
             !currentSentence.equals(sentences[currentSentence.index]) ||
             isOverdue
         ) {
-            return findCurrentSentence(sentences, getProgressRef.current());
+            return findCurrentSentence(sentences);
         }
         return currentSentence;
     }, [currentSentence, sentences]);
@@ -76,7 +80,7 @@ export default function useSubTitleController(
                 return;
             }
             if (singleRepeat) {
-                if (currentSentence.isCurrentStrict(getProgressRef.current())) {
+                if (currentSentence.isCurrentStrict(getExactPlayTime())) {
                     if (currentSentence !== newCs) {
                         setCurrentSentence((old) => {
                             return old === newCs ? old : newCs;
@@ -84,10 +88,10 @@ export default function useSubTitleController(
                     }
                     return;
                 }
-                if (seekTime.time !== SPACE_NUM) {
+                if (!playing) {
                     const isOverdue = isTimeOverdue(manuallyUpdateTime.current);
                     if (isOverdue) {
-                        setSeekTime({
+                        seekTo({
                             time: currentSentence?.currentBegin ?? 0,
                         });
                         manuallyUpdateTime.current = Date.now();
@@ -110,8 +114,9 @@ export default function useSubTitleController(
     }, [
         currentSentence,
         getCurrentSentence,
-        seekTime.time,
-        sentences,
+        getExactPlayTime,
+        playing,
+        seekTo,
         setCurrentSentence,
         singleRepeat,
     ]);
@@ -120,7 +125,7 @@ export default function useSubTitleController(
         const current = getCurrentSentence();
         const target = getElementAt(current.index + 1, sentences);
         setCurrentSentence(target);
-        setSeekTime((state) => ({
+        seekTo((state) => ({
             time: target.currentBegin ?? 0,
         }));
         manuallyUpdateTime.current = Date.now();
@@ -130,21 +135,15 @@ export default function useSubTitleController(
         const current = getCurrentSentence();
         const target = getElementAt(current.index - 1, sentences);
         setCurrentSentence(target);
-        setSeekTime((state) => ({
+        seekTo((state) => ({
             time: target.currentBegin ?? 0,
         }));
         manuallyUpdateTime.current = Date.now();
     }
-
-    function showEnCn() {
-        const show = !showEn;
-        setShowCn(show);
-        setShowEn(show);
-    }
     const doAction = (action: Action) => {
         switch (action.action) {
             case 'repeat':
-                setSeekTime({
+                seekTo({
                     time: currentSentence?.currentBegin ?? 0,
                 });
                 manuallyUpdateTime.current = Date.now();
@@ -156,53 +155,17 @@ export default function useSubTitleController(
                 jumpPrev();
                 break;
             case 'jump':
-                setSeekTime({
+                seekTo({
                     time: action.target?.currentBegin ?? 0.0,
                 });
                 setCurrentSentence(action.target);
                 manuallyUpdateTime.current = Date.now();
                 break;
             case 'jump_time':
-                setSeekTime({
+                seekTo({
                     time: action.time ?? 0.0,
                 });
                 manuallyUpdateTime.current = Date.now();
-                break;
-            case 'space':
-                if (seekTime.time === SPACE_NUM) {
-                    setSeekTime(lastSeekTime.current);
-                } else {
-                    lastSeekTime.current = seekTime;
-                    setSeekTime({
-                        time: SPACE_NUM,
-                    });
-                }
-                manuallyUpdateTime.current = Date.now();
-                break;
-            case 'play':
-                if (seekTime.time === SPACE_NUM) {
-                    setSeekTime(lastSeekTime.current);
-                }
-                break;
-            case 'pause':
-                if (seekTime.time !== SPACE_NUM) {
-                    lastSeekTime.current = seekTime;
-                    setSeekTime({
-                        time: SPACE_NUM,
-                    });
-                }
-                break;
-            case 'single_repeat':
-                setSingleRepeat((old) => !old);
-                break;
-            case 'show_cn':
-                setShowCn((old) => !old);
-                break;
-            case 'show_en':
-                setShowEn((old) => !old);
-                break;
-            case 'show_en_cn':
-                showEnCn();
                 break;
             default:
                 break;
@@ -211,10 +174,7 @@ export default function useSubTitleController(
 
     return {
         seekAction: seekTime,
-        currentSentence,
         dispatch: doAction,
-        showCn,
-        showEn,
         singleRepeat,
     };
 }
