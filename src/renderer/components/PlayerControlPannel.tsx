@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FaPause, FaPlay } from 'react-icons/fa';
+import { useShallow } from 'zustand/react/shallow';
 import { Slider } from './Slider';
 import { secondToDate } from './PlayTime';
 import VolumeSlider from './VolumeSlider';
+import usePlayerController from '../hooks/usePlayerController';
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -26,25 +28,25 @@ const PlayerControlPannel = ({
     volume,
     onVolumeChange,
 }: PlayerControlPannelProps) => {
+    const { playTime, duration } = usePlayerController(
+        useShallow((s) => ({
+            playTime: s.playTime,
+            duration: s.duration,
+        }))
+    );
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
-    const [maxValue, setMaxValue] = useState(0);
     const [currentValue, setCurrentValue] = useState(0);
+    const currentValueUpdateTime = useRef<number>(0);
     const [selecting, setSelecting] = useState(false);
     const mouseOverTimeout = useRef<number[]>([0]);
 
     // const currentValueUpdateTime
     useEffect(() => {
-        const update = () => {
-            console.log('update');
-            setMaxValue(getTotalTime?.() ?? 0);
-            if (selecting) return;
-            setCurrentValue(getCurrentTime?.() ?? 0);
-        };
-        const timeout = setTimeout(update, 100);
-        return () => {
-            clearInterval(timeout);
-        };
-    }, [getTotalTime, getCurrentTime, currentValue, selecting]);
+        if (selecting || Date.now() - currentValueUpdateTime.current < 500) {
+            return;
+        }
+        setCurrentValue(playTime);
+    }, [playTime, duration, selecting]);
     const onMouseLeave = () => {
         while (mouseOverTimeout.current.length > 0) {
             window.clearTimeout(mouseOverTimeout.current.pop());
@@ -109,7 +111,7 @@ const PlayerControlPannel = ({
                 >
                     <Slider
                         className="bg-white/50"
-                        max={maxValue}
+                        max={duration}
                         min={0}
                         value={[currentValue]}
                         onValueChange={(value) => {
@@ -119,6 +121,7 @@ const PlayerControlPannel = ({
                             onPause?.();
                         }}
                         onValueCommit={(value) => {
+                            currentValueUpdateTime.current = Date.now();
                             onTimeChange?.(value[0]);
                             setSelecting(false);
                         }}
@@ -144,7 +147,7 @@ const PlayerControlPannel = ({
                             <div className=" h-full flex items-center">
                                 {`${secondToDate(
                                     currentValue
-                                )} / ${secondToDate(maxValue)}`}
+                                )} / ${secondToDate(duration)}`}
                             </div>
                         </div>
                         <div className="h-full flex-1" />
