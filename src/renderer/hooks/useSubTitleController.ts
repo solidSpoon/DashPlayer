@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import SentenceT from '../lib/param/SentenceT';
 import { Action } from '../lib/CallAction';
-import useCurrentSentence from './useCurrentSentence';
 import usePlayerController from './usePlayerController';
 
 export const SPACE_NUM = -1;

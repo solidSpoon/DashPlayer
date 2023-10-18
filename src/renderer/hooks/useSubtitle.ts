@@ -7,8 +7,8 @@ import parseSrtSubtitles from '../lib/parseSrt';
 import TranslateBuf from '../lib/TranslateBuf';
 import TransFiller from '../lib/TransFiller';
 import useFile from './useFile';
-import useCurrentSentence from './useCurrentSentence';
 import useSetting from './useSetting';
+import usePlayerController from './usePlayerController';
 
 const api = window.electron;
 
@@ -170,7 +170,7 @@ const transUserCanSee = async (
     finishedGroup: Set<number>
 ): Promise<SentenceT[]> => {
     const currentGroup =
-        useCurrentSentence.getState().currentSentence?.transGroup ?? 1;
+        usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
     shouldTransGroup = shouldTransGroup.filter(
         (item) => !finishedGroup.has(item)

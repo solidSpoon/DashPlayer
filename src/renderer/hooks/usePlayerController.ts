@@ -4,6 +4,9 @@ import { SeekTime } from './useSubTitleController';
 import SentenceT from '../lib/param/SentenceT';
 
 export type PlayerControllerState = {
+    internal: {
+        exactPlayTime: number;
+    };
     muted: boolean;
     volume: number;
     playing: boolean;
@@ -11,7 +14,6 @@ export type PlayerControllerState = {
     showEn: boolean;
     showCn: boolean;
     singleRepeat: boolean;
-    exactPlayTime: SeekTime;
     playTime: number;
     duration: number;
     currentSentence: SentenceT | undefined;
@@ -42,6 +44,9 @@ export type PlayerControllerActions = {
 const usePlayerController = create(
     subscribeWithSelector<PlayerControllerState & PlayerControllerActions>(
         (set, getState) => ({
+            internal: {
+                exactPlayTime: 0,
+            },
             muted: false,
             volume: 1,
             playing: false,
@@ -49,7 +54,6 @@ const usePlayerController = create(
             showEn: true,
             showCn: true,
             singleRepeat: false,
-            exactPlayTime: { time: 0 },
             playTime: 0,
             currentSentence: undefined,
             duration: 0,
@@ -82,9 +86,9 @@ const usePlayerController = create(
             changeSingleRepeat: () =>
                 set((state) => ({ singleRepeat: !state.singleRepeat })),
             updateExactPlayTime: (currentTime) => {
-                getState().exactPlayTime.time = currentTime;
+                getState().internal.exactPlayTime = currentTime;
             },
-            getExactPlayTime: () => getState().exactPlayTime.time,
+            getExactPlayTime: () => getState().internal.exactPlayTime,
             setCurrentSentence: (sentence) => {
                 set((state) => {
                     let newSentence: SentenceT | undefined;
@@ -110,7 +114,7 @@ usePlayerController.subscribe(
         if (playing) {
             const sync = () => {
                 usePlayerController.setState((state) => ({
-                    playTime: state.exactPlayTime.time,
+                    playTime: state.internal.exactPlayTime,
                 }));
             };
             sync();
