@@ -11,17 +11,17 @@ import Player from './Player';
 import MainSubtitle from './MainSubtitle';
 import Subtitle from './Subtitle';
 import BorderProgressBar from './BorderProgressBar';
-import FileT from '../lib/param/FileT';
 import UploadButton from './UploadButton';
 import useFile from '../hooks/useFile';
-import useTheme from '../hooks/useTheme';
+import useSetting from '../hooks/useSetting';
 
 export interface PlayerPageParam {
     isDragging: boolean;
 }
 
 const PlayerPage = ({ isDragging }: PlayerPageParam) => {
-    const theme = useTheme((s) => s.theme);
+    const themeName = useSetting((s) => s.appearance.theme);
+    const fontSize = useSetting((s) => s.appearance.fontSize);
     const progress = useRef<number>(0);
     const totalTime = useRef<number>(0);
     const videoFile = useFile((s) => s.videoFile);
@@ -41,7 +41,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     return (
         <div
-            className={`h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col ${theme}`}
+            className={`select-none h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col ${themeName} ${fontSize}`}
         >
             <TitleBar
                 hasSubTitle={subtitleFile !== undefined}
@@ -56,6 +56,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
             <GlobalShortCut onAction={doAction} />
 
             <Split
+                minSize={10}
                 className="split flex flex-row w-full flex-1"
                 sizes={JSON.parse(sizeA)}
                 onDragEnd={(sizes) => {
@@ -63,6 +64,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                 }}
             >
                 <Split
+                    minSize={10}
                     className="split z-40"
                     sizes={JSON.parse(sizeB)}
                     onDragEnd={(sizes) => {

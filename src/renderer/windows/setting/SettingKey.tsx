@@ -3,6 +3,15 @@ import 'tailwindcss/tailwind.css';
 import { BsFillKeyboardFill } from 'react-icons/bs';
 import { PiKeyboardDuotone, PiKeyboardFill } from 'react-icons/pi';
 import { IconType } from 'react-icons';
+import {
+    MdBuild,
+    MdColorLens,
+    MdKeyboard,
+    MdKeyboardAlt,
+    MdOutlineGTranslate,
+    MdStorage,
+    MdTranslate,
+} from 'react-icons/md';
 import TenantSetting from './sub/TenantSetting';
 import YouDaoSetting from './sub/YouDaoSetting';
 import ShortcutSetting from './sub/ShortcutSetting';
@@ -10,10 +19,16 @@ import './SettingKey.css';
 import StorageSetting from './sub/StorageSetting';
 import CheckUpdate from './sub/CheckUpdate';
 import useSystem from '../../hooks/useSystem';
-import { MdBuild, MdKeyboard, MdKeyboardAlt, MdOutlineGTranslate, MdStorage, MdTranslate } from 'react-icons/md';
 import TitleBar from '../../components/TitleBar/TitleBar';
+import AppearanceSetting from './sub/AppearanceSetting';
 
-type SettingType = 'you-dao' | 'tenant' | 'shortcut' | 'storage' | 'update';
+type SettingType =
+    | 'you-dao'
+    | 'tenant'
+    | 'shortcut'
+    | 'storage'
+    | 'update'
+    | 'appearance';
 
 export default function SettingKey() {
     const [settingType, setSettingType] = useState<SettingType>('shortcut');
@@ -50,6 +65,7 @@ export default function SettingKey() {
                 <aside className="w-1/3 backdrop-blur-3xl pt-6">
                     <div className="sticky top-0 p-4 pt-6 w-full flex flex-col">
                         {ele('快捷键', 'shortcut', <MdKeyboard />)}
+                        {ele('外观', 'appearance', <MdColorLens />)}
                         {ele('句子翻译', 'tenant', <MdOutlineGTranslate />)}
                         {ele('查单词', 'you-dao', <MdTranslate />)}
                         {ele('存储', 'storage', <MdStorage />)}
@@ -63,6 +79,7 @@ export default function SettingKey() {
                     <div className="h-8 w-full" />
                     <div className="h-0 flex-1">
                         {settingType === 'tenant' && <TenantSetting />}
+                        {settingType === 'appearance' && <AppearanceSetting />}
                         {settingType === 'you-dao' && <YouDaoSetting />}
                         {settingType === 'shortcut' && <ShortcutSetting />}
                         {settingType === 'storage' && <StorageSetting />}

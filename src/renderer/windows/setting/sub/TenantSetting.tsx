@@ -22,7 +22,7 @@ const TenantSetting = () => {
     };
     return (
         <form className="w-full h-full flex flex-col gap-4">
-            <Header title="句子翻译" description="配置腾讯密钥以启用句子翻译" />
+            <Header title="字幕翻译" description="配置腾讯密钥以启用字幕翻译" />
             <ItemWrapper>
                 <SettingInput
                     setValue={update('secretId')}

@@ -87,6 +87,7 @@ export default function registerHandler() {
         await updateSetting(setting);
         console.log('update-setting', setting);
         mainWindow?.webContents.send('update-setting', setting);
+        settingWindow?.webContents.send('update-setting', setting);
     });
     handle('get-setting', async () => {
         log.info('get-setting');

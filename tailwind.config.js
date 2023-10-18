@@ -351,6 +351,28 @@ module.exports = {
                         },
                     },
                 },
+                {
+                    name: 'fontSizeSmall',
+                    extend: {
+                        fontSize: {
+                            mainSubtitleOne: fontSize.xl,
+                            mainSubtitleTwo: fontSize.xl,
+                            mainSubtitleThree: fontSize.lg,
+                            subtitle: fontSize.base,
+                        },
+                    },
+                },
+                {
+                    name: 'fontSizeMedium',
+                    extend: {
+                        fontSize: {
+                            mainSubtitleOne: fontSize['2xl'],
+                            mainSubtitleTwo: fontSize['2xl'],
+                            mainSubtitleThree: fontSize.xl,
+                            subtitle: fontSize.lg,
+                        },
+                    },
+                },
             ],
         }),
     ],

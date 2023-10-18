@@ -11,9 +11,8 @@ import {
     singleRepeat,
     space,
 } from '../lib/CallAction';
-import useTheme from '../hooks/useTheme';
 import { defaultShortcut } from '../../types/SettingType';
-import useSetting from '../hooks/useSetting';
+import useSetting, { nextThemeName, prevThemeName } from '../hooks/useSetting';
 
 export enum JumpPosition {
     BEFORE = 0,
@@ -35,8 +34,8 @@ export default function GlobalShortCut(
     { onAction, children }: GlobalShortCutParam
 ) {
     const keyBinds = useSetting((s) => s.keyBinds);
-    const nextTheme = useTheme((s) => s.nextTheme);
-    const prevTheme = useTheme((s) => s.prevTheme);
+    const theme = useSetting((s) => s.appearance.theme);
+    const setTheme = useSetting((s) => s.setTheme);
     const events: { [key: string]: () => void } = {};
     events.onLeft = onAction.bind(this, prev());
     events.onRight = onAction.bind(this, next());
@@ -77,8 +76,16 @@ export default function GlobalShortCut(
     registerKey(keyBinds?.showEn, defaultShortcut.showEn, showEn());
     registerKey(keyBinds?.showCn, defaultShortcut.showCn, showCn());
     registerKey(keyBinds?.sowEnCn, defaultShortcut.sowEnCn, showEnCn());
-    registerKey(keyBinds?.nextTheme, defaultShortcut.nextTheme, nextTheme);
-    registerKey(keyBinds?.prevTheme, defaultShortcut.prevTheme, prevTheme);
+    registerKey(
+        keyBinds?.nextTheme,
+        defaultShortcut.nextTheme,
+        setTheme.bind(this, nextThemeName(theme))
+    );
+    registerKey(
+        keyBinds?.prevTheme,
+        defaultShortcut.prevTheme,
+        setTheme.bind(this, prevThemeName(theme))
+    );
     return (
         <Keyevent className="TopSide" events={events} needFocusing={false}>
             {children}

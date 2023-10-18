@@ -1,4 +1,5 @@
-import { SettingState } from '../renderer/hooks/useSetting';
+import { Appearance, SettingState } from '../renderer/hooks/useSetting';
+
 export const defaultShortcut: ShortCutValue = {
     last: 'left,a',
     next: 'right,d',
@@ -62,5 +63,9 @@ export const DEFAULT_SETTING: SettingState = {
     youdaoSecret: {
         secretId: '',
         secretKey: '',
+    },
+    appearance: {
+        theme: 'light',
+        fontSize: 'fontSizeLarge',
     },
 };

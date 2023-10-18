@@ -18,7 +18,10 @@ type UseSubtitleState = {
 
 useSetting.subscribe(
     (s) => s.tencentSecret,
-    () => {
+    (s, ps) => {
+        if (JSON.stringify(s) === JSON.stringify(ps)) {
+            return;
+        }
         useFile.setState((state) => {
             return {
                 subtitleFile: state.subtitleFile

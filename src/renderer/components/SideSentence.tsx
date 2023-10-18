@@ -5,6 +5,7 @@ import {
     AiOutlineTrademarkCircle,
 } from 'react-icons/ai';
 import SentenceT from '../lib/param/SentenceT';
+import useSetting from '../hooks/useSetting';
 
 interface SideSentenceNewParam {
     sentence: SentenceT;
@@ -26,6 +27,7 @@ export default function SideSentence({
         (i) => i !== undefined && i !== ''
     );
 
+    const fontSize = useSetting((state) => state.appearance.fontSize);
     const icon = () => {
         if (pause) {
             return <AiOutlinePlayCircle className="w-full h-full" />;
@@ -60,7 +62,9 @@ export default function SideSentence({
             }}
         >
             <div
-                className={`w-7 flex flex-col items-center justify-center h-7 text-playIcon ${show}`}
+                className={`flex flex-col items-center justify-center text-playIcon ${show} ${
+                    fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7'
+                }`}
             >
                 {icon()}
             </div>
