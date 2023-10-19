@@ -5,10 +5,10 @@ import FileT from '../lib/param/FileT';
 import SentenceT from '../lib/param/SentenceT';
 import parseSrtSubtitles from '../lib/parseSrt';
 import useFile from './useFile';
-import useCurrentSentence from './useCurrentSentence';
 import useSetting from './useSetting';
 import translate from '../lib/TranslateBuf';
 import { sleep } from '../../utils/Util';
+import usePlayerController from './usePlayerController';
 
 const GROUP_SECONDS = 30;
 type UseSubtitleState = {
@@ -164,7 +164,7 @@ const transUserCanSee = async (
     finishedGroup: Set<number>
 ): Promise<SentenceT[]> => {
     const currentGroup =
-        useCurrentSentence.getState().currentSentence?.transGroup ?? 1;
+        usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
     shouldTransGroup = shouldTransGroup.filter(
         (item) => !finishedGroup.has(item)
