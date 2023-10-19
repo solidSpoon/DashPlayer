@@ -2,7 +2,7 @@ import WordTransCache from '../ServerLib/WordTransCache';
 import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
 import { YdRes } from '../../renderer/lib/param/yd/a';
 import { getSetting } from './SettingController';
-import { strBlank } from '../../utils/StrUtil';
+import { strBlank } from '../../utils/Util';
 
 const config: YouDaoConfig = {
     from: 'zh_CHS', // zh-CHS(中文) || ja(日语) || EN(英文) || fr(法语) ...

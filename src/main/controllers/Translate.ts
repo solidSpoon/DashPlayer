@@ -1,10 +1,10 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 
-import { d } from '@pmmmwh/react-refresh-webpack-plugin/types/options';
 import TransCacheEntity from '../ServerLib/entity/TransCacheEntity';
 import TranslateCache from '../ServerLib/TranslateCache';
 import TransApi from '../ServerLib/TransApi';
-import { SentenceApiParam } from '../../renderer/hooks/useSubtitle';
+
+import { SentenceApiParam } from '../../types/TransApi';
 
 function merge(sentences: SentenceApiParam[], dbDocs: TransCacheEntity[]) {
     const mapping = new Map<string, string>();

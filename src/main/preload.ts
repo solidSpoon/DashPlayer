@@ -1,10 +1,10 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { YdRes } from '../renderer/lib/param/yd/a';
-import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { Release } from './controllers/CheckUpdate';
 import { ProgressParam } from './controllers/ProgressController';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
+import { SentenceApiParam } from '../types/TransApi';
 
 export type Channels =
     | 'main-state'

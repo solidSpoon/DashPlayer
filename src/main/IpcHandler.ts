@@ -10,14 +10,7 @@ import {
 } from './controllers/ProgressController';
 import batchTranslate, { loadTransCache } from './controllers/Translate';
 import transWord from './controllers/AppleTrans';
-import {
-    getTencentSecret,
-    getYouDaoSecret,
-    updateTencentSecret,
-    updateYouDaoSecret,
-} from './controllers/SecretController';
 import youDaoTrans from './controllers/YouDaoTrans';
-import { getShortCut, updateShortCut } from './controllers/ShortCutController';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
     clearCache,
@@ -25,11 +18,11 @@ import {
     queryCacheSize,
 } from './controllers/StorageController';
 import { Channels } from './preload';
-import { SentenceApiParam } from '../renderer/hooks/useSubtitle';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { getSetting, updateSetting } from './controllers/SettingController';
 import { WindowState } from '../types/Types';
+import { SentenceApiParam } from '../types/TransApi';
 
 const handle = (
     channel: Channels,
@@ -74,14 +67,6 @@ export default function registerHandler() {
         log.info('load-trans-cache');
         return loadTransCache(sentences);
     });
-    ipcMain.on('update-tenant-secret', async (event, args: never[]) => {
-        const [secretId, secretKey] = args;
-        log.info('update-tenant-secret');
-        await updateTencentSecret(secretId, secretKey);
-        event.reply('update-tenant-secret', 'success');
-        mainWindow?.webContents.send('setting-update');
-        mainWindow?.webContents.send('tencent-secret-update');
-    });
     handle('update-setting', async (setting: SettingState) => {
         log.info('update-setting');
         await updateSetting(setting);
@@ -92,24 +77,6 @@ export default function registerHandler() {
     handle('get-setting', async () => {
         log.info('get-setting');
         return getSetting();
-    });
-    ipcMain.on('get-tenant-secret', async (event) => {
-        log.info('get-tenant-secret');
-        const result: string[] = await getTencentSecret();
-        event.reply('get-tenant-secret', result);
-    });
-
-    ipcMain.on('update-you-dao-secret', async (event, args: never[]) => {
-        const [secretId, secretKey] = args;
-        log.info('update-you-dao-secret');
-        await updateYouDaoSecret(secretId, secretKey);
-        event.reply('update-you-dao-secret', 'success');
-        mainWindow?.webContents.send('setting-update');
-    });
-    ipcMain.on('get-you-dao-secret', async (event) => {
-        log.info('get-you-dao-secret');
-        const result: string[] = await getYouDaoSecret();
-        event.reply('get-you-dao-secret', result);
     });
 
     handle('is-windows', async () => {
@@ -125,18 +92,6 @@ export default function registerHandler() {
         log.info('get-audio', url);
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         return response.data;
-    });
-    ipcMain.on('update-shortcut', async (event, args: string[]) => {
-        log.info('update-shortcut');
-        const [shortcut] = args;
-        const success = await updateShortCut(shortcut);
-        event.reply('update-shortcut', success);
-        mainWindow?.webContents.send('setting-update');
-    });
-    ipcMain.on('get-shortcut', async (event) => {
-        log.info('get-shortcut');
-        const shortcut = await getShortCut();
-        event.reply('get-shortcut', shortcut);
     });
     handle('show-button', async () => {
         log.info('show-button');
