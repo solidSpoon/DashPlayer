@@ -2,9 +2,10 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import { useShallow } from 'zustand/react/shallow';
 import FileT from '../lib/param/FileT';
-import usePlayerController, { SeekAction } from '../hooks/usePlayerController';
+import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
+import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
 
 const api = window.electron;
 

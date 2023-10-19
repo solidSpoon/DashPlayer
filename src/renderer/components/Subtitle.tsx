@@ -4,7 +4,6 @@ import { useShallow } from 'zustand/react/shallow';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController, { jump } from '../hooks/usePlayerController';
-import useSubtitle from '../hooks/useSubtitle';
 
 interface Ele {
     /**
@@ -42,7 +41,7 @@ const getEle = (ele: HTMLDivElement): Ele => {
 };
 
 export default function Subtitle() {
-    const subtitles = useSubtitle((s) => s.subtitle);
+    const subtitles = usePlayerController((s) => s.subtitle);
     const { currentSentence, singleRepeat } = usePlayerController(
         useShallow((state) => ({
             singleRepeat: state.singleRepeat,
