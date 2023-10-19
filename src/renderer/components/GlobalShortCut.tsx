@@ -3,11 +3,7 @@ import Keyevent from 'react-keyevent';
 import { useShallow } from 'zustand/react/shallow';
 import { defaultShortcut } from '../../types/SettingType';
 import useSetting, { nextThemeName, prevThemeName } from '../hooks/useSetting';
-import usePlayerController, {
-    next,
-    prev,
-    repeat,
-} from '../hooks/usePlayerController';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface ReactParam {
     // eslint-disable-next-line react/require-default-props
@@ -21,6 +17,9 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         changeShowCn,
         changeShowEnCn,
         changeSingleRepeat,
+        prev,
+        next,
+        repeat,
     } = usePlayerController(
         useShallow((s) => ({
             space: s.space,
@@ -28,6 +27,9 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
             changeShowCn: s.changeShowCn,
             changeShowEnCn: s.changeShowEnCn,
             changeSingleRepeat: s.changeSingleRepeat,
+            prev: s.prev,
+            next: s.next,
+            repeat: s.repeat,
         }))
     );
     const keyBinds = useSetting((s) => s.keyBinds);

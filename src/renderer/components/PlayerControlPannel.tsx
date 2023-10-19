@@ -8,14 +8,10 @@ import usePlayerController from '../hooks/usePlayerController';
 
 export interface PlayerControlPannelProps {
     className?: string;
-    getTotalTime?: () => number;
-    getCurrentTime?: () => number;
     onPause?: () => void;
     onPlay?: () => void;
     playing?: boolean;
     onTimeChange?: (time: number) => void;
-    volume: number;
-    onVolumeChange: (volume: number) => void;
 }
 const PlayerControlPannel = ({
     className,
@@ -23,15 +19,13 @@ const PlayerControlPannel = ({
     onPause,
     onPlay,
     playing,
-    getCurrentTime,
-    getTotalTime,
-    volume,
-    onVolumeChange,
 }: PlayerControlPannelProps) => {
-    const { playTime, duration } = usePlayerController(
+    const { playTime, duration, volume, setVolume } = usePlayerController(
         useShallow((s) => ({
             playTime: s.playTime,
             duration: s.duration,
+            volume: s.volume,
+            setVolume: s.setVolume,
         }))
     );
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
@@ -55,7 +49,6 @@ const PlayerControlPannel = ({
     };
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        console.log('handleMouseMove', e);
         while (mouseOverTimeout.current.length > 0) {
             window.clearTimeout(mouseOverTimeout.current.pop());
         }
@@ -154,7 +147,7 @@ const PlayerControlPannel = ({
                         <div className="flex justify-center items-center">
                             <VolumeSlider
                                 volume={volume ?? 1}
-                                onVolumeChange={onVolumeChange}
+                                onVolumeChange={setVolume}
                             />
                         </div>
                     </div>

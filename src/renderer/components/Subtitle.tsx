@@ -3,7 +3,7 @@ import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useShallow } from 'zustand/react/shallow';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
-import usePlayerController, { jump } from '../hooks/usePlayerController';
+import usePlayerController from '../hooks/usePlayerController';
 
 interface Ele {
     /**
@@ -41,13 +41,15 @@ const getEle = (ele: HTMLDivElement): Ele => {
 };
 
 export default function Subtitle() {
-    const subtitles = usePlayerController((s) => s.subtitle);
-    const { currentSentence, singleRepeat } = usePlayerController(
-        useShallow((state) => ({
-            singleRepeat: state.singleRepeat,
-            currentSentence: state.currentSentence,
-        }))
-    );
+    const { currentSentence, subtitle, jump, singleRepeat } =
+        usePlayerController(
+            useShallow((state) => ({
+                singleRepeat: state.singleRepeat,
+                currentSentence: state.currentSentence,
+                subtitle: state.subtitle,
+                jump: state.jump,
+            }))
+        );
     const boundaryRef = useRef<HTMLDivElement>(null);
     const currentRef = useRef<number>(-1);
     const listRef = useRef<VirtuosoHandle>(null);
@@ -133,7 +135,7 @@ export default function Subtitle() {
                 <Virtuoso
                     ref={listRef}
                     className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
-                    data={subtitles}
+                    data={subtitle}
                     rangeChanged={({ startIndex, endIndex }) => {
                         setVisibleRange([startIndex, endIndex]);
                     }}
@@ -142,7 +144,7 @@ export default function Subtitle() {
                         let result = (
                             <div
                                 className={`${index === 0 ? 'pt-3' : ''}
-                            ${index === subtitles.length - 1 ? 'pb-52' : ''}`}
+                            ${index === subtitle.length - 1 ? 'pb-52' : ''}`}
                             >
                                 <SideSentence
                                     sentence={item}

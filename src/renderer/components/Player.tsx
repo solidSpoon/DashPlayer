@@ -175,14 +175,6 @@ export default function Player(): ReactElement {
                     />
                     {!showControlPanel && (
                         <PlayerControlPannel
-                            volume={volume}
-                            onVolumeChange={(v) => {}}
-                            getTotalTime={() => {
-                                return playerRef.current?.getDuration() ?? 0;
-                            }}
-                            getCurrentTime={() => {
-                                return playerRef.current?.getCurrentTime() ?? 0;
-                            }}
                             onTimeChange={(time) => {
                                 seekTo({ time });
                             }}
