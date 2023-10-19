@@ -1,9 +1,5 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import Split from 'react-split';
-import useSubtitle from '../hooks/useSubtitle';
-import useSubTitleController, {
-    SPACE_NUM,
-} from '../hooks/useSubTitleController';
 import TitleBar from './TitleBar/TitleBar';
 import RecordProgress from './RecordProgress';
 import GlobalShortCut from './GlobalShortCut';
@@ -24,9 +20,6 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
     const fontSize = useSetting((s) => s.appearance.fontSize);
     const videoFile = useFile((s) => s.videoFile);
     const subtitleFile = useFile((s) => s.subtitleFile);
-    const subtitles = useSubtitle((s) => s.subtitle);
-    const { dispatch: doAction, singleRepeat } =
-        useSubTitleController(subtitles);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
     const sizeB =
@@ -42,7 +35,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                 className="bg-titlebar"
             />
             <RecordProgress />
-            <GlobalShortCut onAction={doAction} />
+            <GlobalShortCut />
 
             <Split
                 className="split flex flex-row w-full flex-1"
@@ -64,17 +57,13 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                     direction="vertical"
                 >
                     <div className="h-full">
-                        <Player onAction={doAction} />
+                        <Player />
                     </div>
                     <div className="h-full">
                         <MainSubtitle />
                     </div>
                 </Split>
-                <Subtitle
-                    subtitles={subtitles}
-                    onAction={doAction}
-                    singleRepeat={singleRepeat}
-                />
+                <Subtitle />
             </Split>
             {!isDragging && <UploadButton />}
 

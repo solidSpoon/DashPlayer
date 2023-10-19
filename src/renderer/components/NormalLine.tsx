@@ -1,7 +1,5 @@
-import { ReactElement, useCallback, useState } from 'react';
+import { ReactElement } from 'react';
 import hash from '../lib/hash';
-import Word from './Word';
-import { Action } from '../lib/CallAction';
 import usePlayerController from '../hooks/usePlayerController';
 
 interface NormalLineParam {

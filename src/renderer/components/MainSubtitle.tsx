@@ -1,7 +1,5 @@
 import React, { ReactElement } from 'react';
-import SentenceT from '../lib/param/SentenceT';
 import TranslatableLine from './TranslatableLine';
-import { Action } from '../lib/CallAction';
 import NormalLine from './NormalLine';
 import usePlayerController from '../hooks/usePlayerController';
 

@@ -1,24 +1,20 @@
 import { ReactNode } from 'react';
 import Keyevent from 'react-keyevent';
 import { useShallow } from 'zustand/react/shallow';
-import { Action, next, prev, repeat } from '../lib/CallAction';
 import { defaultShortcut } from '../../types/SettingType';
 import useSetting, { nextThemeName, prevThemeName } from '../hooks/useSetting';
-import usePlayerController from '../hooks/usePlayerController';
+import usePlayerController, {
+    next,
+    prev,
+    repeat,
+} from '../hooks/usePlayerController';
 
 interface ReactParam {
     // eslint-disable-next-line react/require-default-props
     children?: ReactNode;
 }
 
-interface GlobalShortCutParam extends ReactParam {
-    onAction: (action: Action) => void;
-}
-
-export default function GlobalShortCut(
-    this: any,
-    { onAction, children }: GlobalShortCutParam
-) {
+export default function GlobalShortCut(this: any, { children }: ReactParam) {
     const {
         space,
         changeShowEn,
@@ -38,16 +34,16 @@ export default function GlobalShortCut(
     const theme = useSetting((s) => s.appearance.theme);
     const setTheme = useSetting((s) => s.setTheme);
     const events: { [key: string]: () => void } = {};
-    events.onLeft = onAction.bind(this, prev());
-    events.onRight = onAction.bind(this, next());
-    events.onDown = onAction.bind(this, repeat());
+    events.onLeft = prev;
+    events.onRight = next;
+    events.onDown = repeat;
     events.onSpace = space;
     events.onUp = space;
 
     const registerKey = (
         values: string | undefined,
         defaultKey: string,
-        action: Action | (() => void)
+        action: () => void
     ) => {
         const finalValues =
             !values || values.trim() === '' ? defaultKey : values;
@@ -57,17 +53,13 @@ export default function GlobalShortCut(
             .filter((k) => k !== '')
             .map((k) => k.toUpperCase());
         keyArr.forEach((k) => {
-            if (typeof action === 'function') {
-                events[`on${k}`] = action;
-            } else {
-                events[`on${k}`] = onAction.bind(this, action);
-            }
+            events[`on${k}`] = action;
         });
     };
 
-    registerKey(keyBinds?.last, defaultShortcut.last, prev());
-    registerKey(keyBinds?.next, defaultShortcut.next, next());
-    registerKey(keyBinds?.repeat, defaultShortcut.repeat, repeat());
+    registerKey(keyBinds?.last, defaultShortcut.last, prev);
+    registerKey(keyBinds?.next, defaultShortcut.next, next);
+    registerKey(keyBinds?.repeat, defaultShortcut.repeat, repeat);
     registerKey(keyBinds?.space, defaultShortcut.space, space);
     registerKey(
         keyBinds?.singleRepeat,

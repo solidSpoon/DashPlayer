@@ -1,5 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
-import callApi from '../../../lib/apis/ApiWrapper';
+import { useState } from 'react';
 import SettingInput from '../../../components/setting/SettingInput';
 import SettingButton from '../../../components/setting/SettingButton';
 import FooterWrapper from '../../../components/setting/FooterWrapper';

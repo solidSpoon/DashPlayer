@@ -2,19 +2,13 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import { useShallow } from 'zustand/react/shallow';
 import FileT from '../lib/param/FileT';
-import { SeekTime } from '../hooks/useSubTitleController';
-import { Action, jumpTime } from '../lib/CallAction';
+import usePlayerController, { SeekAction } from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
-import usePlayerController from '../hooks/usePlayerController';
-
-interface PlayerParam {
-    onAction: (action: Action) => void;
-}
 
 const api = window.electron;
 
-export default function Player({ onAction }: PlayerParam): ReactElement {
+export default function Player(): ReactElement {
     const {
         playing,
         muted,
@@ -24,6 +18,7 @@ export default function Player({ onAction }: PlayerParam): ReactElement {
         seekTime,
         updateExactPlayTime,
         setDuration,
+        seekTo,
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -34,6 +29,7 @@ export default function Player({ onAction }: PlayerParam): ReactElement {
             seekTime: state.seekTime,
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
+            seekTo: state.seekTo,
         }))
     );
     const videoFile = useFile((s) => s.videoFile);
@@ -44,7 +40,7 @@ export default function Player({ onAction }: PlayerParam): ReactElement {
         useRef<HTMLCanvasElement>(null);
     let lastFile: FileT | undefined;
 
-    const lastSeekTime = useRef<SeekTime>({ time: 0 });
+    const lastSeekTime = useRef<SeekAction>({ time: 0 });
 
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
@@ -111,7 +107,7 @@ export default function Player({ onAction }: PlayerParam): ReactElement {
         }
         const result = await api.queryProgress(videoFile.fileName);
         const progress = result as number;
-        onAction(jumpTime(progress));
+        seekTo({ time: progress });
         lastFile = file;
     };
 
@@ -183,7 +179,7 @@ export default function Player({ onAction }: PlayerParam): ReactElement {
                                 return playerRef.current?.getCurrentTime() ?? 0;
                             }}
                             onTimeChange={(time) => {
-                                onAction(jumpTime(time));
+                                seekTo({ time });
                             }}
                             className="absolute bottom-0 left-0 px-3"
                             onPause={() => {

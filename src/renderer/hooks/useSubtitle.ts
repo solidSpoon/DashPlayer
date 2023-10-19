@@ -13,6 +13,10 @@ import useSetting from './useSetting';
 const api = window.electron;
 
 type UseSubtitleState = {
+    internal: {
+        // SentenceT[] 的数组
+        subtitleIndex: Map<number, SentenceT[]>;
+    };
     subtitle: SentenceT[];
 };
 
@@ -37,6 +41,7 @@ useSetting.subscribe(
 type UseSubtitleActions = {
     setSubtitle: (subtitle: SentenceT[]) => void;
     mergeSubtitle: (subtitle: SentenceT[]) => void;
+    getSubtitleAt: (time: number) => SentenceT | undefined;
 };
 
 function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
@@ -55,14 +60,31 @@ function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
 const useSubtitle = create(
     subscribeWithSelector<UseSubtitleState & UseSubtitleActions>(
         (set, get) => ({
+            internal: {
+                subtitleIndex: new Map(),
+            },
             subtitle: [],
             setSubtitle: (subtitle: SentenceT[]) => {
                 set({ subtitle });
+                const map = new Map<number, SentenceT[]>();
+                subtitle.forEach((item) => {
+                    const index = Math.floor((item.currentBegin ?? 0) / 60);
+                    const arr = map.get(index) ?? [];
+                    arr.push(item);
+                    map.set(index, arr);
+                });
+                set({ internal: { subtitleIndex: map } });
             },
             mergeSubtitle: (diff: SentenceT[]) => {
                 const newSubtitle = mergeArr(get().subtitle, diff);
-                console.log('abc mergeSubtitle', newSubtitle);
                 set({ subtitle: newSubtitle });
+            },
+            getSubtitleAt: (time: number) => {
+                const groupIndex = Math.floor(time / 60);
+                const group =
+                    get().internal.subtitleIndex.get(groupIndex) ?? [];
+                const eleIndex = group.findIndex((e) => e.isCurrent(time));
+                return get().subtitle[eleIndex];
             },
         })
     )

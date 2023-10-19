@@ -1,16 +1,9 @@
-import React, { Component, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import isVisible from '../lib/isVisible';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
-import { Action, jump, jumpTime } from '../lib/CallAction';
-import usePlayerController from '../hooks/usePlayerController';
-
-interface SubtitleSubParam {
-    subtitles: SentenceT[];
-    onAction: (action: Action) => void;
-    singleRepeat: boolean;
-}
+import usePlayerController, { jump } from '../hooks/usePlayerController';
+import useSubtitle from '../hooks/useSubtitle';
 
 interface Ele {
     /**
@@ -47,11 +40,9 @@ const getEle = (ele: HTMLDivElement): Ele => {
     };
 };
 
-export default function Subtitle({
-    subtitles,
-    onAction,
-    singleRepeat,
-}: SubtitleSubParam) {
+export default function Subtitle() {
+    const subtitles = useSubtitle((s) => s.subtitle);
+    const singleRepeat = usePlayerController((s) => s.singleRepeat);
     const currentSentence = usePlayerController(
         (state) => state.currentSentence
     );
@@ -153,7 +144,7 @@ export default function Subtitle({
                         >
                             <SideSentence
                                 sentence={item}
-                                onClick={(sentence) => onAction(jump(sentence))}
+                                onClick={(sentence) => jump(sentence)}
                                 isCurrent={isCurrent}
                                 isRepeat={singleRepeat}
                             />
