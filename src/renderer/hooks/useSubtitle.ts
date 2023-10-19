@@ -11,7 +11,7 @@ import useCurrentSentence from './useCurrentSentence';
 import useSetting from './useSetting';
 
 const api = window.electron;
-
+const GROUP_SECONDS = 30;
 type UseSubtitleState = {
     internal: {
         // SentenceT[] 的数组
@@ -65,14 +65,14 @@ function indexSubtitle(sentences: SentenceT[]) {
                 item.currentBegin ?? 0,
                 item.currentEnd ?? 0,
                 item.nextBegin ?? 0
-            ) / 60
+            ) / GROUP_SECONDS
         );
         const maxIndex = Math.floor(
             Math.max(
                 item.currentBegin ?? 0,
                 item.currentEnd ?? 0,
                 item.nextBegin ?? 0
-            ) / 60
+            ) / GROUP_SECONDS
         );
         for (let i = minIndex; i <= maxIndex; i += 1) {
             const group = map.get(i) ?? [];
@@ -100,7 +100,7 @@ const useSubtitle = create(
                 get().internal.subtitleIndex = indexSubtitle(newSubtitle);
             },
             getSubtitleAt: (time: number) => {
-                const groupIndex = Math.floor(time / 60);
+                const groupIndex = Math.floor(time / GROUP_SECONDS);
                 const group =
                     get().internal.subtitleIndex.get(groupIndex) ?? [];
                 const eleIndex =
@@ -110,6 +110,7 @@ const useSubtitle = create(
                     'getSubtitleAt',
                     groupIndex,
                     eleIndex,
+                    group.length,
                     time,
                     sentenceT?.currentBegin,
                     sentenceT?.currentEnd,
