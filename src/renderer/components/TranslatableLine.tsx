@@ -84,7 +84,7 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
             onMouseLeave={() => {
                 setHovered(false);
             }}
-            className="flex flex-wrap justify-center items-center gap-0 bg-sentenceBackground rounded-lg drop-shadow-md hover:drop-shadow-xl text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50"
+            className="flex flex-wrap justify-center items-center gap-0 bg-sentenceBackground rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50"
         >
             {ele()}
         </div>
