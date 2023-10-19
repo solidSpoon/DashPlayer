@@ -53,28 +53,29 @@ const createSubtitleSlice: StateCreator<
     setSubtitle: (subtitle: SentenceT[]) => {
         set({ subtitle });
         get().internal.subtitleIndex = indexSubtitle(subtitle);
+        get().internal.maxIndex = Math.max(
+            ...Array.from(get().internal.subtitleIndex.keys())
+        );
     },
     mergeSubtitle: (diff: SentenceT[]) => {
         const newSubtitle = mergeArr(get().subtitle, diff);
         set({ subtitle: newSubtitle });
         get().internal.subtitleIndex = indexSubtitle(newSubtitle);
+        get().internal.maxIndex = Math.max(
+            ...Array.from(get().internal.subtitleIndex.keys())
+        );
     },
     getSubtitleAt: (time: number) => {
-        const groupIndex = Math.floor(time / GROUP_SECONDS);
-        const group = get().internal.subtitleIndex.get(groupIndex) ?? [];
-        const eleIndex = group.find((e) => e.isCurrent(time))?.index ?? 0;
-        const sentenceT = get().subtitle[eleIndex];
-        console.log(
-            'getSubtitleAt',
-            groupIndex,
-            eleIndex,
-            group.length,
-            time,
-            sentenceT?.currentBegin,
-            sentenceT?.currentEnd,
-            sentenceT?.nextBegin
+        const groupIndex = Math.min(
+            Math.floor(time / GROUP_SECONDS),
+            get().internal.maxIndex
         );
-        return sentenceT;
+        const group = get().internal.subtitleIndex.get(groupIndex) ?? [];
+        const eleIndex = group.find((e) => e.isCurrent(time))?.index;
+        if (eleIndex === undefined) {
+            return undefined;
+        }
+        return get().subtitle[eleIndex];
     },
 });
 export default createSubtitleSlice;

@@ -11,6 +11,7 @@ export interface PlayerControllerInternal {
     lastSeekToOn: number;
     exactPlayTime: number;
     subtitleIndex: Map<number, SentenceT[]>;
+    maxIndex: number;
 }
 
 export interface InternalSlice {
