@@ -11,6 +11,7 @@ const createInternalSlice: StateCreator<
         lastSeekToOn: 0,
         exactPlayTime: 0,
         subtitleIndex: new Map(),
+        maxIndex: 0,
     },
 });
 
