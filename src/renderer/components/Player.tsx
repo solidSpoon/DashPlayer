@@ -168,6 +168,9 @@ export default function Player(): ReactElement {
                             loadedVideo(videoFile);
                             jumpToHistoryProgress(videoFile);
                         }}
+                        onReady={() => {
+                            play();
+                        }}
                     />
                     {!showControlPanel && (
                         <PlayerControlPannel
