@@ -107,6 +107,7 @@ export default function Player(): ReactElement {
         }
         const result = await api.queryProgress(videoFile.fileName);
         const progress = result as number;
+        console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });
         lastFile = file;
     };

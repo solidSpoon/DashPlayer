@@ -57,6 +57,32 @@ function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
     });
 }
 
+function indexSubtitle(sentences: SentenceT[]) {
+    const map = new Map<number, SentenceT[]>();
+    sentences.forEach((item) => {
+        const minIndex = Math.floor(
+            Math.min(
+                item.currentBegin ?? 0,
+                item.currentEnd ?? 0,
+                item.nextBegin ?? 0
+            ) / 60
+        );
+        const maxIndex = Math.floor(
+            Math.max(
+                item.currentBegin ?? 0,
+                item.currentEnd ?? 0,
+                item.nextBegin ?? 0
+            ) / 60
+        );
+        for (let i = minIndex; i <= maxIndex; i += 1) {
+            const group = map.get(i) ?? [];
+            group.push(item);
+            map.set(i, group);
+        }
+    });
+    return map;
+}
+
 const useSubtitle = create(
     subscribeWithSelector<UseSubtitleState & UseSubtitleActions>(
         (set, get) => ({
@@ -66,25 +92,30 @@ const useSubtitle = create(
             subtitle: [],
             setSubtitle: (subtitle: SentenceT[]) => {
                 set({ subtitle });
-                const map = new Map<number, SentenceT[]>();
-                subtitle.forEach((item) => {
-                    const index = Math.floor((item.currentBegin ?? 0) / 60);
-                    const arr = map.get(index) ?? [];
-                    arr.push(item);
-                    map.set(index, arr);
-                });
-                set({ internal: { subtitleIndex: map } });
+                get().internal.subtitleIndex = indexSubtitle(subtitle);
             },
             mergeSubtitle: (diff: SentenceT[]) => {
                 const newSubtitle = mergeArr(get().subtitle, diff);
                 set({ subtitle: newSubtitle });
+                get().internal.subtitleIndex = indexSubtitle(newSubtitle);
             },
             getSubtitleAt: (time: number) => {
                 const groupIndex = Math.floor(time / 60);
                 const group =
                     get().internal.subtitleIndex.get(groupIndex) ?? [];
-                const eleIndex = group.findIndex((e) => e.isCurrent(time));
-                return get().subtitle[eleIndex];
+                const eleIndex =
+                    group.find((e) => e.isCurrent(time))?.index ?? 0;
+                const sentenceT = get().subtitle[eleIndex];
+                console.log(
+                    'getSubtitleAt',
+                    groupIndex,
+                    eleIndex,
+                    time,
+                    sentenceT?.currentBegin,
+                    sentenceT?.currentEnd,
+                    sentenceT?.nextBegin
+                );
+                return sentenceT;
             },
         })
     )

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { useShallow } from 'zustand/react/shallow';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController, { jump } from '../hooks/usePlayerController';
@@ -42,11 +43,13 @@ const getEle = (ele: HTMLDivElement): Ele => {
 
 export default function Subtitle() {
     const subtitles = useSubtitle((s) => s.subtitle);
-    const singleRepeat = usePlayerController((s) => s.singleRepeat);
-    const currentSentence = usePlayerController(
-        (state) => state.currentSentence
+    const { currentSentence, singleRepeat } = usePlayerController(
+        useShallow((state) => ({
+            singleRepeat: state.singleRepeat,
+            currentSentence: state.currentSentence,
+        }))
     );
-    // const boundaryRef = useRef<HTMLDivElement>(null);
+    const boundaryRef = useRef<HTMLDivElement>(null);
     const currentRef = useRef<number>(-1);
     const listRef = useRef<VirtuosoHandle>(null);
     const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
@@ -100,15 +103,15 @@ export default function Subtitle() {
             return;
         }
         const currentEle = getEle(ref);
-        const [scroll, scroolTop] = suggestScroll(boundary, currentEle);
-        console.log('scro', scroll, scroolTop);
+        const [scroll, scrollTop] = suggestScroll(boundary, currentEle);
+        console.log('scro', scroll, scrollTop);
         if (scroll !== 0) {
             console.log('scroll', scroll, boundary, listRef.current);
             listRef.current?.scrollBy({
                 top: scroll,
             });
         }
-        if (scroolTop !== 0) {
+        if (scrollTop !== 0) {
             if (timer.current) {
                 clearTimeout(timer.current);
             }
@@ -127,48 +130,48 @@ export default function Subtitle() {
 
     const render = () => {
         return (
-            // <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
-            <Virtuoso
-                ref={listRef}
-                className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
-                data={subtitles}
-                rangeChanged={({ startIndex, endIndex }) => {
-                    setVisibleRange([startIndex, endIndex]);
-                }}
-                itemContent={(index, item) => {
-                    const isCurrent = item === currentSentence;
-                    let result = (
-                        <div
-                            className={`${index === 0 ? 'pt-3' : ''}
-                            ${index === subtitles.length - 1 ? 'pb-52' : ''}`}
-                        >
-                            <SideSentence
-                                sentence={item}
-                                onClick={(sentence) => jump(sentence)}
-                                isCurrent={isCurrent}
-                                isRepeat={singleRepeat}
-                            />
-                        </div>
-                    );
-                    if (isCurrent) {
-                        result = (
+            <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
+                <Virtuoso
+                    ref={listRef}
+                    className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
+                    data={subtitles}
+                    rangeChanged={({ startIndex, endIndex }) => {
+                        setVisibleRange([startIndex, endIndex]);
+                    }}
+                    itemContent={(index, item) => {
+                        const isCurrent = item === currentSentence;
+                        let result = (
                             <div
-                                key={`${item.getKey()}div`}
-                                ref={(ref) =>
-                                    updateCurrentRef(
-                                        ref,
-                                        currentSentence?.index ?? -1
-                                    )
-                                }
+                                className={`${index === 0 ? 'pt-3' : ''}
+                            ${index === subtitles.length - 1 ? 'pb-52' : ''}`}
                             >
-                                {result}
+                                <SideSentence
+                                    sentence={item}
+                                    onClick={(sentence) => jump(sentence)}
+                                    isCurrent={isCurrent}
+                                    isRepeat={singleRepeat}
+                                />
                             </div>
                         );
-                    }
-                    return result;
-                }}
-            />
-            // </div>
+                        if (isCurrent) {
+                            result = (
+                                <div
+                                    key={`${item.getKey()}div`}
+                                    ref={(ref) =>
+                                        updateCurrentRef(
+                                            ref,
+                                            currentSentence?.index ?? -1
+                                        )
+                                    }
+                                >
+                                    {result}
+                                </div>
+                            );
+                        }
+                        return result;
+                    }}
+                />
+            </div>
         );
     };
 

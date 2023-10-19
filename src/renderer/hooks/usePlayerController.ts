@@ -56,21 +56,23 @@ function onTimeUpdate(
 ) {
     const { currentSentence, singleRepeat, playing, internal } = getState();
     const { exactPlayTime, lastSeekToOn } = internal;
-    if (!singleRepeat) {
-        if (isTimeOverdue(lastSeekToOn)) {
-            getState().tryUpdateCurrentSentence();
-        }
-    } else if (currentSentence) {
-        if (playing) {
-            const isOverdue = isTimeOverdue(getState().internal.lastSeekToOn);
-            if (isOverdue && currentSentence) {
-                if (!currentSentence.isCurrentStrict(exactPlayTime)) {
-                    getState().seekTo({
-                        time: currentSentence.currentBegin ?? 0,
-                    });
+    if (singleRepeat) {
+        if (currentSentence) {
+            if (playing) {
+                const isOverdue = isTimeOverdue(
+                    getState().internal.lastSeekToOn
+                );
+                if (isOverdue && currentSentence) {
+                    if (!currentSentence.isCurrentStrict(exactPlayTime)) {
+                        getState().seekTo({
+                            time: currentSentence.currentBegin ?? 0,
+                        });
+                    }
                 }
             }
         }
+    } else if (isTimeOverdue(lastSeekToOn)) {
+        getState().tryUpdateCurrentSentence();
     }
 }
 
@@ -152,7 +154,6 @@ const usePlayerController = create(
                 }
                 const ns = useSubtitle.getState().getSubtitleAt(currentTime);
                 if (ns) {
-                    console.log('update current sentence', ns);
                     set({ currentSentence: ns });
                 }
             },
@@ -200,9 +201,10 @@ export const repeat = () => {
 export const next = () => {
     const { currentSentence } = usePlayerController.getState();
     if (currentSentence) {
-        const target = getElementAt(currentSentence.index + 1, [
-            ...useSubtitle.getState().subtitle,
-        ]);
+        const target = getElementAt(
+            currentSentence.index + 1,
+            useSubtitle.getState().subtitle
+        );
         usePlayerController.getState().setCurrentSentence(target);
         usePlayerController.getState().seekTo({
             time: target.currentBegin ?? 0,
@@ -213,9 +215,10 @@ export const next = () => {
 export const prev = () => {
     const { currentSentence } = usePlayerController.getState();
     if (currentSentence) {
-        const target = getElementAt(currentSentence.index - 1, [
-            ...useSubtitle.getState().subtitle,
-        ]);
+        const target = getElementAt(
+            currentSentence.index - 1,
+            useSubtitle.getState().subtitle
+        );
         usePlayerController.getState().setCurrentSentence(target);
         usePlayerController.getState().seekTo({
             time: target.currentBegin ?? 0,
