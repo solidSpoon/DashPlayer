@@ -117,6 +117,7 @@
         "@turf/turf": "^6.5.0",
         "applescript": "^1.0.0",
         "axios": "^1.5.0",
+        "clsx": "^2.0.0",
         "electron-debug": "^3.2.0",
         "electron-log": "^4.4.8",
         "electron-updater": "^5.2.3",
@@ -133,6 +134,7 @@
         "react-virtuoso": "^4.2.0",
         "request": "^2.88.2",
         "run-applescript": "^6.0.0",
+        "tailwind-merge": "^1.14.0",
         "tencentcloud-sdk-nodejs": "^4.0.489",
         "zustand": "^4.4.3"
     },

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useShallow } from 'zustand/react/shallow';
+import { twJoin } from 'tailwind-merge';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
@@ -143,7 +144,11 @@ export default function Subtitle() {
                     increaseViewportBy={50}
                     defaultItemHeight={55}
                     ref={listRef}
-                    className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
+                    className={twJoin(
+                        'h-full w-full overflow-y-scroll text-textColor',
+                        'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded',
+                        'scrollbar-thin scrollbar-track-scrollbarTrack'
+                    )}
                     data={subtitle}
                     rangeChanged={({ startIndex, endIndex }) => {
                         setVisibleRange([startIndex, endIndex]);

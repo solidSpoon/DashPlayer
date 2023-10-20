@@ -4,9 +4,11 @@ import {
     AiOutlinePlayCircle,
     AiOutlineTrademarkCircle,
 } from 'react-icons/ai';
+import { twJoin } from 'tailwind-merge';
 import SentenceT from '../lib/param/SentenceT';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
+import { cn } from '../../utils/Util';
 
 interface SideSentenceNewParam {
     sentence: SentenceT;
@@ -18,7 +20,6 @@ interface SideSentenceNewParam {
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
         const playing = usePlayerController((state) => state.playing);
-        const show = isCurrent ? 'visible' : 'invisible';
         const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
             (i) => i !== undefined && i !== ''
         );
@@ -38,30 +39,21 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         return (
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events
             <div
-                className="
-                m-1.5
-                px-1
-                py-2
-                border-0
-                flex
-                gap-1
-                content-start
-                rounded-lg
-                bg-sentenceBackground
-                hover:bg-sentenceHoverBackground
-                hover:drop-shadow-lg
-                text-subtitle
-                drop-shadow
-                "
+                className={cn(
+                    'm-1.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
+                    'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow'
+                )}
                 onClick={() => {
                     onClick(sentence);
                 }}
                 ref={ref}
             >
                 <div
-                    className={`flex flex-col items-center justify-center text-playIcon ${show} ${
+                    className={cn(
+                        'flex flex-col items-center justify-center text-playIcon',
+                        isCurrent ? 'visible' : 'invisible',
                         fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7'
-                    }`}
+                    )}
                 >
                     {icon()}
                 </div>

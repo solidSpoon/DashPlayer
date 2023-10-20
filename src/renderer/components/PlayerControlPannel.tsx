@@ -5,6 +5,7 @@ import { Slider } from './Slider';
 import { secondToDate } from './PlayTime';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
+import { cn } from '../../utils/Util';
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -88,7 +89,10 @@ const PlayerControlPannel = ({
         <div
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
-            className={`w-full flex flex-col-reverse pt-10 h-full ${className}`}
+            className={cn(
+                'w-full flex flex-col-reverse pt-10 h-full',
+                className
+            )}
         >
             <div
                 onMouseMove={(e) => {
@@ -98,9 +102,10 @@ const PlayerControlPannel = ({
                 onMouseLeave={() => {}}
             >
                 <div
-                    className={`flex flex-col items-center w-full gap-2 h-16 ${
-                        mouseOverOut ? '' : 'invisible'
-                    }`}
+                    className={cn(
+                        'flex flex-col items-center w-full gap-2 h-16',
+                        !mouseOverOut && 'invisible'
+                    )}
                 >
                     <Slider
                         className="bg-white/50"
@@ -158,8 +163,6 @@ const PlayerControlPannel = ({
 };
 PlayerControlPannel.defaultProps = {
     className: '',
-    getTotalTime: () => 0,
-    getCurrentTime: () => 0,
     onTimeChange: () => {},
     onPause: () => {},
     onPlay: () => {},
