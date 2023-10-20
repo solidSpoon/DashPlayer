@@ -13,9 +13,6 @@ const createSentenceSlice: StateCreator<
     [],
     SentenceSlice
 > = (set, get) => ({
-    internal: {
-        lastSeekToOn: 0,
-    },
     currentSentence: undefined,
     setCurrentSentence: (sentence) => {
         set((state) => {

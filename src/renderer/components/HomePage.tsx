@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import ProgressBar from '@ramonak/react-progress-bar';
 import { GoFile, GoHistory } from 'react-icons/go';
 import { logo } from '../../pic/img';
 import useSystem from '../hooks/useSystem';
 import TitleBar from './TitleBar/TitleBar';
 import { ProgressParam } from '../../main/controllers/ProgressController';
-import FileT from '../lib/param/FileT';
 import parseFile, { pathToFile } from '../lib/FileParser';
 import { secondToDate } from './PlayTime';
 import useFile from '../hooks/useFile';

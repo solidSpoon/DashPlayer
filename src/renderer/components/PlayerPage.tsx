@@ -1,7 +1,6 @@
 import React from 'react';
 import Split from 'react-split';
 import TitleBar from './TitleBar/TitleBar';
-import RecordProgress from './RecordProgress';
 import GlobalShortCut from './GlobalShortCut';
 import Player from './Player';
 import MainSubtitle from './MainSubtitle';
@@ -34,7 +33,6 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                 windowsButtonClassName="hover:bg-titlebarHover"
                 className="bg-titlebar"
             />
-            <RecordProgress />
             <GlobalShortCut />
 
             <Split
