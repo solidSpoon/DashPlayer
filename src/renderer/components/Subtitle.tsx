@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
+import useSystem from '../hooks/useSystem';
 
 interface Ele {
     /**
@@ -22,14 +23,15 @@ interface Ele {
  * @param e
  */
 
-const suggestScroll = (boundary: Ele, e: Ele): number[] => {
-    if (e.yt < boundary.yt) {
-        return [e.yt - boundary.yt, 0];
-    }
+const topShouldScroll = (boundary: Ele, e: Ele): boolean => {
+    return e.yt < boundary.yt;
+};
+
+const suggestScrollBottom = (boundary: Ele, e: Ele): number => {
     if (e.yb > boundary.yb) {
-        return [e.yb - boundary.yb, boundary.yb - boundary.yt - (e.yb - e.yt)];
+        return e.yb - boundary.yb;
     }
-    return [0, 0];
+    return 0;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -41,6 +43,7 @@ const getEle = (ele: HTMLDivElement): Ele => {
 };
 
 export default function Subtitle() {
+    const isWindows = useSystem((state) => state.isWindows);
     const { currentSentence, subtitle, jump, singleRepeat } =
         usePlayerController(
             useShallow((state) => ({
@@ -65,7 +68,7 @@ export default function Subtitle() {
             const wh = window.innerHeight;
             // 顶部高度
             setBoundary({
-                yt: 7,
+                yt: isWindows ? 27 : 7,
                 yb: wh - 15,
             });
         };
@@ -74,7 +77,7 @@ export default function Subtitle() {
         return () => {
             window.removeEventListener('resize', updateBoundary);
         };
-    }, []);
+    }, [isWindows]);
 
     useEffect(() => {
         if (currentSentence === lastCurrentSentence.current) {
@@ -104,15 +107,19 @@ export default function Subtitle() {
             return;
         }
         const currentEle = getEle(ref);
-        const [scroll, scrollTop] = suggestScroll(boundary, currentEle);
-        console.log('scro', scroll, scrollTop);
-        if (scroll !== 0) {
-            console.log('scroll', scroll, boundary, listRef.current);
-            listRef.current?.scrollBy({
-                top: scroll,
+        if (topShouldScroll(boundary, currentEle)) {
+            listRef.current?.scrollToIndex({
+                index,
             });
-        }
-        if (scrollTop !== 0) {
+        } else {
+            const scrollBottom = suggestScrollBottom(boundary, currentEle);
+            if (scrollBottom <= 0) {
+                return;
+            }
+            listRef.current?.scrollBy({
+                top: scrollBottom,
+            });
+
             if (timer.current) {
                 clearTimeout(timer.current);
             }
@@ -133,43 +140,35 @@ export default function Subtitle() {
         return (
             <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
                 <Virtuoso
+                    defaultItemHeight={55}
                     ref={listRef}
                     className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
                     data={subtitle}
                     rangeChanged={({ startIndex, endIndex }) => {
                         setVisibleRange([startIndex, endIndex]);
                     }}
-                    itemContent={(index, item) => {
+                    itemContent={(_index, item) => {
                         const isCurrent = item === currentSentence;
-                        let result = (
-                            <div
-                                className={`${index === 0 ? 'pt-3' : ''}
-                            ${index === subtitle.length - 1 ? 'pb-52' : ''}`}
-                            >
-                                <SideSentence
-                                    sentence={item}
-                                    onClick={(sentence) => jump(sentence)}
-                                    isCurrent={isCurrent}
-                                    isRepeat={singleRepeat}
-                                />
-                            </div>
-                        );
-                        if (isCurrent) {
-                            result = (
-                                <div
-                                    key={`${item.getKey()}div`}
-                                    ref={(ref) =>
+                        return (
+                            <SideSentence
+                                sentence={item}
+                                onClick={(sentence) => jump(sentence)}
+                                isCurrent={isCurrent}
+                                isRepeat={singleRepeat}
+                                ref={(ref) => {
+                                    if (isCurrent) {
                                         updateCurrentRef(
                                             ref,
                                             currentSentence?.index ?? -1
-                                        )
+                                        );
                                     }
-                                >
-                                    {result}
-                                </div>
-                            );
-                        }
-                        return result;
+                                }}
+                            />
+                        );
+                    }}
+                    components={{
+                        Footer: () => <div className="h-52" />,
+                        Header: () => <div className="h-3" />,
                     }}
                 />
             </div>
