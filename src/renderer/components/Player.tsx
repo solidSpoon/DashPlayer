@@ -165,9 +165,9 @@ export default function Player(): ReactElement {
                         onDuration={(duration) => {
                             setDuration(duration);
                         }}
-                        onStart={() => {
+                        onStart={async () => {
+                            await jumpToHistoryProgress(videoFile);
                             loadedVideo(videoFile);
-                            jumpToHistoryProgress(videoFile);
                         }}
                         onReady={() => {
                             play();

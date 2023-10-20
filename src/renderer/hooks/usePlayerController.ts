@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import axios from 'axios';
+import { shallow } from 'zustand/shallow';
 import createSubtitleSlice from './usePlayerControllerSlices/createSubtitleSlice';
 import {
     ControllerSlice,
@@ -22,7 +23,9 @@ import translate from '../lib/TranslateBuf';
 import useFile from './useFile';
 import { sleep } from '../../utils/Util';
 import useSetting from './useSetting';
+import { ProgressParam } from '../../main/controllers/ProgressController';
 
+const api = window.electron;
 const usePlayerController = create<
     PlayerSlice &
         SentenceSlice &
@@ -43,6 +46,10 @@ const usePlayerController = create<
 export default usePlayerController;
 
 let interval: number | null = null;
+
+/**
+ * 同步 exactPlayTime 到 playTime
+ */
 usePlayerController.subscribe(
     (state) => state.playing,
     (playing) => {
@@ -60,6 +67,36 @@ usePlayerController.subscribe(
         }
     }
 );
+
+/**
+ * 同步播放时间到后台
+ */
+let count = 0;
+usePlayerController.subscribe(
+    (state) => ({
+        playTime: state.playTime,
+        duration: state.duration,
+    }),
+    async ({ playTime, duration }) => {
+        if (useFile.getState().videoLoaded) {
+            count += 1;
+            if (count % 5 !== 0) {
+                return;
+            }
+            const file = useFile.getState();
+            const p: ProgressParam = {
+                fileName: file.videoFile?.fileName ?? '',
+                progress: playTime,
+                total: duration,
+                filePath: file.videoFile?.path ?? '',
+                subtitlePath: file.subtitleFile?.path,
+            };
+            await api.updateProgress(p);
+        }
+    },
+    { equalityFn: shallow }
+);
+
 async function loadSubtitle(subtitleFile: FileT) {
     const url = subtitleFile?.objectUrl ?? '';
 
