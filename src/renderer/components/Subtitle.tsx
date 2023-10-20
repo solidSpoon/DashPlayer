@@ -140,6 +140,7 @@ export default function Subtitle() {
         return (
             <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
                 <Virtuoso
+                    increaseViewportBy={50}
                     defaultItemHeight={55}
                     ref={listRef}
                     className="h-full w-full overflow-y-scroll scrollbar-thin  scrollbar-track-scrollbarTrack scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded text-textColor"
