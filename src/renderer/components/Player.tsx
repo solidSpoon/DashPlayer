@@ -170,7 +170,9 @@ export default function Player(): ReactElement {
                             loadedVideo(videoFile);
                         }}
                         onReady={() => {
-                            play();
+                            if (!videoLoaded) {
+                                play();
+                            }
                         }}
                     />
                     {!showControlPanel && (

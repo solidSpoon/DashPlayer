@@ -97,6 +97,29 @@ usePlayerController.subscribe(
     { equalityFn: shallow }
 );
 
+/**
+ * 视频暂停时也尝试更新当前句子
+ */
+let updateSentenceInterval: number | null = null;
+usePlayerController.subscribe(
+    (state) => ({
+        playing: state.playing,
+    }),
+    async ({ playing }) => {
+        if (!playing) {
+            updateSentenceInterval = window.setInterval(() => {
+                if (useFile.getState().videoLoaded) {
+                    usePlayerController.getState().tryUpdateCurrentSentence();
+                }
+            }, 1000);
+        } else if (updateSentenceInterval) {
+            window.clearInterval(updateSentenceInterval);
+            updateSentenceInterval = null;
+        }
+    },
+    { equalityFn: shallow }
+);
+
 async function loadSubtitle(subtitleFile: FileT) {
     const url = subtitleFile?.objectUrl ?? '';
 
@@ -158,6 +181,10 @@ const transUserCanSee = async (
     // eslint-disable-next-line no-await-in-loop
     return translate(groupSubtitles);
 };
+
+/**
+ * 加载与翻译
+ */
 useFile.subscribe(
     (s) => s.subtitleFile,
     async (subtitleFile) => {
@@ -183,6 +210,7 @@ useFile.subscribe(
             inited = true;
             // eslint-disable-next-line no-await-in-loop
             const seePart = await transUserCanSee(subtitle, finishedGroup);
+            console.log('seePart', JSON.stringify(seePart));
 
             if (CURRENT_FILE !== useFile.getState().subtitleFile) {
                 return;
@@ -194,6 +222,9 @@ useFile.subscribe(
     }
 );
 
+/**
+ * 监听腾讯密钥更新
+ */
 useSetting.subscribe(
     (s) => s.tencentSecret,
     (s, ps) => {
