@@ -12,6 +12,12 @@ function merge(sentences: SentenceApiParam[], dbDocs: TransCacheEntity[]) {
         mapping.set(doc.original, doc.translate ?? '');
     });
     const temp: SentenceApiParam[] = sentences.map((e) => {
+        if (mapping.has(e.text.trim() ?? '')) {
+            return {
+                ...e,
+                translate: mapping.get(e.text.trim() ?? ''),
+            } as SentenceApiParam;
+        }
         if (mapping.has(e.text ?? '')) {
             return {
                 ...e,
