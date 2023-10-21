@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand/esm';
 import SentenceT from '../../lib/param/SentenceT';
 import { InternalSlice, SubtitleSlice } from './SliceTypes';
 
-const GROUP_SECONDS = 30;
+const GROUP_SECONDS = 10;
 
 function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
     if (diff.length === 0) {
@@ -66,10 +66,7 @@ const createSubtitleSlice: StateCreator<
         );
     },
     getSubtitleAt: (time: number) => {
-        const groupIndex = Math.min(
-            Math.floor(time / GROUP_SECONDS),
-            get().internal.maxIndex
-        );
+        const groupIndex = Math.floor(time / GROUP_SECONDS);
         const group = get().internal.subtitleIndex.get(groupIndex) ?? [];
         const eleIndex = group.find((e) => e.isCurrent(time))?.index;
         if (eleIndex === undefined) {
