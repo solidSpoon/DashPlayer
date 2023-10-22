@@ -72,6 +72,7 @@ const AppearanceSetting = () => {
                             }
                         >
                             <ThemePreview
+                                theme={theme.name}
                                 className={`${theme.name} w-44 flex-1 h-0 flex-shrink-0 rounded overflow-hidden`}
                             />
                             <div className="text-center text-sm">

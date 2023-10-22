@@ -9,7 +9,7 @@ import parseFile, { pathToFile } from '../lib/FileParser';
 import { secondToDate } from './PlayTime';
 import useFile from '../hooks/useFile';
 import loading from '../../pic/loading.svg';
-import useSetting from '../hooks/useSetting';
+import useSetting, { usingThemeName } from '../hooks/useSetting';
 import { THEME } from '../../types/Types';
 import { cn } from '../../utils/Util';
 
@@ -17,9 +17,9 @@ const api = window.electron;
 
 const HomePage = () => {
     const appVersion = useSystem((s) => s.appVersion);
-    const themeName = useSetting((s) => s.appearance.theme);
+    const theme = useSetting((s) => s.appearance.theme);
     const dark =
-        THEME[THEME.map((t) => t.name).indexOf(themeName) ?? 0].type === 'dark';
+        THEME[THEME.map((t) => t.name).indexOf(theme) ?? 0].type === 'dark';
     const [recentPlaylists, setRecentPlaylists] = useState<ProgressParam[]>([]);
     const fileInputEl = useRef<HTMLInputElement>(null);
     const [currentClick, setCurrentClick] = useState<string | undefined>(
@@ -64,14 +64,18 @@ const HomePage = () => {
         <div
             className={cn(
                 'w-full h-screen flex-1 flex justify-center items-center select-none overflow-hidden text-black/80',
-               !dark && 'bg-gradient-to-br from-orange-500/50  via-red-500/50 to-rose-500/50',
+                !dark &&
+                    'bg-gradient-to-br from-orange-500/50  via-red-500/50 to-rose-500/50',
                 dark && 'bg-neutral-800 text-white/80'
             )}
         >
             <TitleBar
                 maximizable={false}
                 className="fixed top-0 left-0 w-full z-50"
-                windowsButtonClassName={cn("text-slate-700 hover:bg-slate-300",dark&&"hover:bg-titlebarHover")}
+                windowsButtonClassName={cn(
+                    'text-slate-700 hover:bg-slate-300',
+                    dark && 'hover:bg-titlebarHover'
+                )}
                 autoHideOnMac={false}
             />
             <div

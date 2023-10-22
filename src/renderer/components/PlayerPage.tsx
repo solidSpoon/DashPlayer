@@ -1,5 +1,6 @@
 import React from 'react';
 import Split from 'react-split';
+import { twJoin, twMerge } from 'tailwind-merge';
 import TitleBar from './TitleBar/TitleBar';
 import GlobalShortCut from './GlobalShortCut';
 import Player from './Player';
@@ -8,14 +9,21 @@ import Subtitle from './Subtitle';
 import BorderProgressBar from './BorderProgressBar';
 import UploadButton from './UploadButton';
 import useFile from '../hooks/useFile';
-import useSetting from '../hooks/useSetting';
+import useSetting, {
+    colorfulProp,
+    isColorfulTheme,
+    usingThemeName,
+} from '../hooks/useSetting';
+import { cn } from '../../utils/Util';
 
 export interface PlayerPageParam {
     isDragging: boolean;
 }
 
 const PlayerPage = ({ isDragging }: PlayerPageParam) => {
-    const themeName = useSetting((s) => s.appearance.theme);
+    const theme = useSetting((s) => s.appearance.theme);
+    const themeName = usingThemeName(theme);
+    console.log('themeName', themeName);
     const fontSize = useSetting((s) => s.appearance.fontSize);
     const videoFile = useFile((s) => s.videoFile);
     const subtitleFile = useFile((s) => s.subtitleFile);
@@ -24,51 +32,71 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     return (
-        <div
-            className={`select-none h-screen w-full bg-background font-face-arc overflow-hidden flex flex-col ${themeName} ${fontSize}`}
-        >
-            <TitleBar
-                hasSubTitle={subtitleFile !== undefined}
-                title={videoFile?.fileName}
-                windowsButtonClassName="hover:bg-titlebarHover"
-                className="bg-titlebar"
-            />
-            <GlobalShortCut />
-
-            <Split
-                className="split flex flex-row w-full flex-1"
-                sizes={JSON.parse(sizeA)}
-                onDragEnd={(sizes) => {
-                    localStorage.setItem('split-size-a', JSON.stringify(sizes));
-                }}
+        <>
+            {isColorfulTheme(themeName) && (
+                <div
+                    className={cn(
+                        'absolute h-screen w-full -z-50',
+                        colorfulProp(theme)
+                    )}
+                />
+            )}
+            <div
+                className={twJoin(
+                    `select-none h-screen w-full font-face-arc overflow-hidden flex flex-col `,
+                    themeName,
+                    fontSize,
+                    isColorfulTheme(themeName)
+                        ? 'bg-background/80 backdrop-blur'
+                        : 'bg-background'
+                )}
             >
+                <TitleBar
+                    hasSubTitle={subtitleFile !== undefined}
+                    title={videoFile?.fileName}
+                    windowsButtonClassName="hover:bg-titlebarHover"
+                    className="bg-titlebar"
+                />
+                <GlobalShortCut />
+
                 <Split
-                    minSize={10}
-                    className="split z-40"
-                    sizes={JSON.parse(sizeB)}
+                    className="split flex flex-row w-full flex-1"
+                    sizes={JSON.parse(sizeA)}
                     onDragEnd={(sizes) => {
                         localStorage.setItem(
-                            'split-size-b',
+                            'split-size-a',
                             JSON.stringify(sizes)
                         );
                     }}
-                    direction="vertical"
                 >
-                    <div className="h-full">
-                        <Player />
-                    </div>
-                    <div className="h-full">
-                        <MainSubtitle />
-                    </div>
+                    <Split
+                        minSize={10}
+                        className="split z-40"
+                        sizes={JSON.parse(sizeB)}
+                        onDragEnd={(sizes) => {
+                            localStorage.setItem(
+                                'split-size-b',
+                                JSON.stringify(sizes)
+                            );
+                        }}
+                        direction="vertical"
+                    >
+                        <div className="h-full">
+                            <Player />
+                        </div>
+                        <div className="h-full">
+                            <MainSubtitle />
+                        </div>
+                    </Split>
+                    <Subtitle />
                 </Split>
-                <Subtitle />
-            </Split>
-            {!isDragging && <UploadButton />}
+                {!isDragging && <UploadButton />}
 
-            <div id="progressBarRef" className="z-50">
-                <BorderProgressBar />
+                <div id="progressBarRef" className="z-50">
+                    <BorderProgressBar />
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

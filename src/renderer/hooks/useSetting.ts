@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { DEFAULT_SETTING, ShortCutValue } from '../../types/SettingType';
+import { THEME, ThemeType } from '../../types/Types';
 
 const api = window.electron;
 export interface Secret {
@@ -88,13 +89,35 @@ api.onUpdateSetting((serverSetting: SettingState) => {
 
 export default useSetting;
 
+const themes = THEME.map((theme) => theme.name);
 export const nextThemeName = (theme: string): string => {
-    const themes = ['light', 'bright', 'deep', 'dark'];
     const index = themes.indexOf(theme);
     return themes[(index + 1) % themes.length];
 };
 export const prevThemeName = (theme: string): string => {
-    const themes = ['light', 'bright', 'deep', 'dark'];
     const index = themes.indexOf(theme);
     return themes[(index - 1 + themes.length) % themes.length];
+};
+
+export const isColorfulTheme = (theme: string): boolean => {
+    return theme.startsWith('colorful');
+};
+
+export const colorfulProp = (theme: string): string => {
+    if (theme === 'colorful one') {
+        return 'bg-gradient-to-br from-orange-500  via-red-500 to-rose-500';
+    }
+    if (theme === 'colorful two') {
+        return 'bg-gradient-to-br from-green-500  via-teal-500 to-cyan-500';
+    }
+    if (theme === 'colorful three') {
+        return 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500';
+    }
+    return '';
+};
+export const usingThemeName = (theme: string): string => {
+    return (
+        THEME.find((item: ThemeType) => item.name === theme)?.usingThemeName ??
+        'light'
+    );
 };

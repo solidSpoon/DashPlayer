@@ -352,6 +352,87 @@ module.exports = {
                     },
                 },
                 {
+                    name: 'colorful',
+                    extend: {
+                        colors: {
+                            /**
+                             * 背景色
+                             */
+                            background: colors.white,
+                            /**
+                             * 句子背景色
+                             */
+                            sentenceBackground: colors.stone['200'],
+                            /**
+                             * 句子 hover 背景色
+                             */
+                            sentenceHoverBackground: colors.stone['100'],
+                            /**
+                             * 单词 hover 背景色
+                             */
+                            wordHoverBackground: colors.stone['100'],
+                            /**
+                             * 句子 inner shadow
+                             */
+                            sentenceInnerShadow: colors.stone['100'],
+                            /**
+                             * 文字色
+                             */
+                            textColor: colors.stone['600'],
+                            /**
+                             * main subtitle 1
+                             */
+                            mainSubtitleOneColor: colors.stone['700'],
+                            /**
+                             * main subtitle 2
+                             */
+                            mainSubtitleTwoColor: colors.stone['600'],
+                            /**
+                             * 滚动条背景色
+                             */
+                            scrollbarTrack: colors.sky['100'],
+                            /**
+                             * 滚动条把手色
+                             */
+                            scrollbarThumb: colors.zinc['400'],
+                            /**
+                             * 滚动条把手色 hover
+                             */
+                            scrollbarThumbHover: colors.zinc['500'],
+                            /**
+                             * 进度条完成色
+                             */
+                            progressbarComplete: colors.purple['600'],
+                            /**
+                             * gutter 背景色
+                             */
+                            gutterBackground: colors.zinc['200'],
+                            /**
+                             * 标题栏色
+                             */
+                            titlebar: colors.sky['100'],
+                            /**
+                             * 标题栏色 hover
+                             */
+                            titlebarHover: colors.sky['200'],
+                            /**
+                             * 标题栏文字色
+                             */
+                            titlebarText: colors.stone['900'],
+                            /**
+                             * upload button color
+                             */
+                            uploadButton: colors.lime['600'],
+                            /**
+                             * play icon color
+                             */
+                            playIcon: colors.red['500'],
+                            settingButton: colors.yellow['600'],
+                            settingButtonHover: colors.yellow['700'],
+                        },
+                    },
+                },
+                {
                     name: 'fontSizeSmall',
                     extend: {
                         fontSize: {

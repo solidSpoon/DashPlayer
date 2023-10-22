@@ -1,7 +1,10 @@
 import { ReactElement, useState } from 'react';
+import { twJoin, twMerge } from 'tailwind-merge';
 import hash from '../lib/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
+import { cn } from '../../utils/Util';
+import useSetting, { isColorfulTheme } from '../hooks/useSetting';
 
 interface TranslatableSubtitleLineParam {
     text: string;
@@ -14,6 +17,7 @@ interface Part {
 export const SPLIT_REGEX =
     /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
+    const themeName = useSetting((s) => s.appearance.theme);
     const show = usePlayerController((state) => state.showEn);
     console.log('TranslatableLine', text, 'dd');
     const [popELe, setPopEle] = useState<string | null>(null);
@@ -84,7 +88,12 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
             onMouseLeave={() => {
                 setHovered(false);
             }}
-            className="flex flex-wrap justify-center items-center gap-0 bg-sentenceBackground rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50"
+            className={twJoin(
+                'flex flex-wrap justify-center items-center gap-0 rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50',
+                isColorfulTheme(themeName)
+                    ? 'bg-sentenceBackground/80'
+                    : 'bg-sentenceBackground'
+            )}
         >
             {ele()}
         </div>
