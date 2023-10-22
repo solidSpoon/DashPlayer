@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import axios from 'axios';
 import { shallow } from 'zustand/shallow';
 import createSubtitleSlice from './usePlayerControllerSlices/createSubtitleSlice';
 import {
@@ -123,11 +122,9 @@ usePlayerController.subscribe(
 async function loadSubtitle(subtitleFile: FileT) {
     const url = subtitleFile?.objectUrl ?? '';
 
-    const axiosResponse = await axios.get(url);
+    const text = await fetch(url).then((res) => res.text());
 
-    const str = axiosResponse.data;
-
-    const srtSubtitles = parseSrtSubtitles(str);
+    const srtSubtitles = parseSrtSubtitles(text);
     srtSubtitles.forEach((item) => {
         item.fileUrl = url;
         item.setKey();
