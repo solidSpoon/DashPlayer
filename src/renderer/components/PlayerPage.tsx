@@ -15,6 +15,7 @@ import useSetting, {
     usingThemeName,
 } from '../hooks/useSetting';
 import { cn } from '../../utils/Util';
+import { THEME } from '../../types/Types';
 
 export interface PlayerPageParam {
     isDragging: boolean;
@@ -35,12 +36,21 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
         <>
             {isColorfulTheme(themeName) && (
                 <div
-                    className={cn(
+                    className={twJoin(
                         'absolute h-screen w-full -z-50',
                         colorfulProp(theme)
                     )}
                 />
             )}
+            <div
+                className={twJoin(
+                    'absolute -z-50',
+                    'light bright dark deep colorful',
+                    'fontSizeMedium',
+                    'fontSizeSmall',
+                    'fontSizeLarge'
+                )}
+            />
             <div
                 className={twJoin(
                     `select-none h-screen w-full font-face-arc overflow-hidden flex flex-col `,
