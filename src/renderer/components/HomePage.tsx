@@ -63,19 +63,20 @@ const HomePage = () => {
     return (
         <div
             className={cn(
-                'w-full h-screen flex-1 bg-gray-200 flex justify-center items-center select-none overflow-hidden text-black/80',
+                'w-full h-screen flex-1 flex justify-center items-center select-none overflow-hidden text-black/80',
+               !dark && 'bg-gradient-to-br from-orange-500/50  via-red-500/50 to-rose-500/50',
                 dark && 'bg-neutral-800 text-white/80'
             )}
         >
             <TitleBar
                 maximizable={false}
                 className="fixed top-0 left-0 w-full z-50"
-                windowsButtonClassName="hover:bg-titlebarHover"
+                windowsButtonClassName={cn("text-slate-700 hover:bg-slate-300",dark&&"hover:bg-titlebarHover")}
                 autoHideOnMac={false}
             />
             <div
                 className={cn(
-                    'w-1/3 h-full flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drop-shadow shadow-white',
+                    'w-1/3 h-full backdrop-blur flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drop-shadow shadow-white',
                     dark && 'shadow-black'
                 )}
             >
@@ -105,7 +106,7 @@ const HomePage = () => {
             </div>
             <div
                 className={cn(
-                    'h-full flex-1 w-0 flex flex-col justify-center items-center bg-stone-300/50 rounded-r-lg border-l border-stone-400 pl-8 pr-10 gap-6',
+                    'h-full flex-1 backdrop-blur w-0 flex flex-col justify-center items-center bg-stone-300/50 rounded-r-lg border-l border-stone-400 pl-8 pr-10 gap-6',
                     dark && 'border-neutral-800 bg-white/10'
                 )}
             >
