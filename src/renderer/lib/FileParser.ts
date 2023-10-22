@@ -27,8 +27,13 @@ const pathToFile = async (path: string): Promise<FileT> => {
     const fileSeparator = path.lastIndexOf('/') > 0 ? '/' : '\\';
     fileT.fileName = path.substring(path.lastIndexOf(fileSeparator) + 1);
     fileT.path = path;
-    fileT.objectUrl = (await api.openFile(path)) ?? '';
-    fileT.fileType = path.endsWith('srt') ? FileType.SUBTITLE : FileType.VIDEO;
+    const fileType = path.endsWith('srt') ? FileType.SUBTITLE : FileType.VIDEO;
+    fileT.objectUrl =
+        fileType === FileType.SUBTITLE
+            ? (await api.openFile(path)) ?? ''
+            : `dp:///${path}`;
+    fileT.fileType = fileType;
+
     console.log('fileT', fileT);
     return fileT;
 };
