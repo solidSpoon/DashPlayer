@@ -1,3 +1,4 @@
+import fs from 'fs';
 import ProgressEntity from '../ServerLib/entity/ProgressEntity';
 import ProgressCache from '../ServerLib/ProgressCache';
 
@@ -51,13 +52,16 @@ export async function queryProgress(fileName: string): Promise<number> {
  */
 export async function queryRecentPlay(size: number): Promise<ProgressParam[]> {
     const result = await ProgressCache.queryRecentPlay(size);
-    return result.map((item) => {
-        return {
-            fileName: item.fileName,
-            filePath: item.filePath,
-            subtitlePath: item.subtitlePath,
-            progress: item.progress ?? 0,
-            total: item.total ?? 0,
-        };
-    });
+    return result
+        .filter((e) => e.filePath)
+        .filter((e) => fs.existsSync(e.filePath ?? ''))
+        .map((item) => {
+            return {
+                fileName: item.fileName,
+                filePath: item.filePath,
+                subtitlePath: item.subtitlePath,
+                progress: item.progress ?? 0,
+                total: item.total ?? 0,
+            };
+        });
 }
