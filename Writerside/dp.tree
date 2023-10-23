@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="dp"
+                 name="Dash Player"
+                 start-page="AboutDashPlayer.md">
+
+    <toc-element topic="AboutDashPlayer.md"/>
+    <toc-element topic="Installation.md"/>
+    <toc-element topic="Usage.md"/>
+</instance-profile>
