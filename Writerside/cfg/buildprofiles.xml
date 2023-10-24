@@ -4,7 +4,7 @@
 
     <variables>
         <algolia-id>A8V0XP1IG6</algolia-id>
-        <algolia-index>Dash Player</algolia-index>
+        <algolia-index>dash_player_docs</algolia-index>
         <algolia-api-key>d6d4529422283154929eebd59f0dc766</algolia-api-key>
         <header-logo>logo.png</header-logo>
         <color-preset>Vivid</color-preset>
