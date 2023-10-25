@@ -4,9 +4,17 @@
 
 <instance-profile id="dp"
                  name="Dash Player"
-                 start-page="AboutDashPlayer.md">
+                 start-page="Home.topic">
 
-    <toc-element topic="AboutDashPlayer.md"/>
+    <toc-element topic="Home.topic">
+    </toc-element>
+    <toc-element topic="Introduction.md"/>
     <toc-element topic="Installation.md"/>
     <toc-element topic="Usage.md"/>
+    <toc-element topic="Config-Translate.md"/>
+    <toc-element topic="Use-Bluetooth-Game-Controller.md"/>
+    <toc-element topic="AI-Subtitles.md"/>
+    <toc-element topic="Download-Video.md"/>
+    <toc-element topic="Theory.md"/>
+    <toc-element topic="Software-Recommendation.md"/>
 </instance-profile>

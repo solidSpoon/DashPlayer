@@ -10,15 +10,10 @@
         <color-preset>Vivid</color-preset>
         <primary-color>halloween</primary-color>
     </variables>
-    <build-profile instance="hi">
-        <variables>
-            <noindex-content>true</noindex-content>
-        </variables>
-    </build-profile>
-    <build-profile instance="d">
-        <variables>
-            <noindex-content>true</noindex-content>
-        </variables>
-    </build-profile>
+
+    <build-profile instance="dp"/>
+        <footer>
+            <link href="https://github.com/solidSpoon/DashPlayer">GitHub</link>
+        </footer>
 
 </buildprofiles>

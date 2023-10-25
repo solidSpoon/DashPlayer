@@ -44,7 +44,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
             )}
             <div
                 className={twJoin(
-                    'absolute -z-50',
+                    'absolute -z-50 invisible',
                     'light bright dark deep colorful',
                     'fontSizeMedium',
                     'fontSizeSmall',
