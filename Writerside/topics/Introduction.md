@@ -18,13 +18,13 @@ DashPlayer 的目标就是方便你观看英文视频。无论你是想泛听，
 多种亮度不同的主题：
 
 <p align="center">
-    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/75f9a9fc-ef1c-4141-80e4-0aa6c38fd70b">
+    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/75f9a9fc-ef1c-4141-80e4-0aa6c38fd70b"/>
 </p>
 
 播放历史记录：
 
 <p align="center">
-    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/aebb2661-0079-4ffb-b07f-0c5f531468ea">
+    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/aebb2661-0079-4ffb-b07f-0c5f531468ea"/>
 </p>
 
 字幕翻译和单词翻译：
