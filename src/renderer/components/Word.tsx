@@ -108,15 +108,14 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
             ref={eleRef}
             className="rounded select-none mt-2"
             onMouseOver={() => {
-                console.log('avvv onMouseOver', word);
                 setHovered(true);
                 pause();
             }}
-            onMouseLeave={() => {
-                console.log('avvv onMouseLeave', word);
-            }}
             onClick={() => {
                 handleWordClick();
+                if (!hovered) {
+                    setHovered(true);
+                }
             }}
         >
             {pop && hovered && translationText ? (
