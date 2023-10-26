@@ -75,7 +75,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
             document.removeEventListener('mousemove', mouseEvent);
             clearTimeout(timeout);
         };
-    }, [hovered, requestPop, word]);
+    }, [hovered, requestPop]);
 
     useEffect(() => {
         const transFun = async (str: string) => {
