@@ -1,17 +1,16 @@
 import { Knex } from 'knex';
-import {
-    createAtTimestampTrigger,
-    updateAtTimestampTrigger,
-} from '../entity/util';
+import { createAtTimestampTrigger, updateAtTimestampTrigger } from '../service/BaseService';
 
 export async function up(knex: Knex): Promise<void> {
     return knex.schema
         .createTable('dp_kv', (table) => {
             table.increments('id').primary();
             table.string('key').notNullable();
-            table.string('value').nullable();
+            table.text('value').nullable();
             // create_at and update_at
             table.timestamps(true, false);
+            table.unique(['key']);
+            table.index(['key']);
         })
         .then(() => {
             return knex.raw(createAtTimestampTrigger('dp_kv'));

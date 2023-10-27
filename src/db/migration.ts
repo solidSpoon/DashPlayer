@@ -3,7 +3,7 @@ import path from 'path';
 
 const knexConfig = require('./knexfile');
 
-const knex = Knex(knexConfig.production);
+const knex = Knex(knexConfig);
 
 console.log('__dirname', __dirname);
 const migrationConfig = {
@@ -29,4 +29,3 @@ const migration = async () => {
 };
 
 export default migration;
-export { knex as knexDb };

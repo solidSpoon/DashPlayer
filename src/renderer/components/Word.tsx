@@ -83,6 +83,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
             if (r === null) {
                 return;
             }
+            console.log('rrrrr', r.query, JSON.stringify(r));
             setTranslationText(r);
         };
         if (hovered) {

@@ -1,3 +1,12 @@
+import Knex from 'knex';
+
+const knexConfig = require('../knexfile');
+
+const knex = Knex(knexConfig);
+
+export { knex as knexDb };
+
+// export const knex = require('knex')(require('../knexfile'));
 const createAtTimestampTrigger = (tableName: string) => {
     return `
         CREATE TRIGGER set_created_at_timestamp_for_${tableName}
@@ -7,7 +16,7 @@ const createAtTimestampTrigger = (tableName: string) => {
         END;
         `;
 };
-
+export { createAtTimestampTrigger };
 const updateAtTimestampTrigger = (tableName: string) => {
     return `
         CREATE TRIGGER set_updated_at_timestamp_for_${tableName}
@@ -17,5 +26,4 @@ const updateAtTimestampTrigger = (tableName: string) => {
         END;
         `;
 };
-
-export { createAtTimestampTrigger, updateAtTimestampTrigger };
+export { updateAtTimestampTrigger };
