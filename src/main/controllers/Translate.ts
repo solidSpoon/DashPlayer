@@ -4,6 +4,8 @@ import TransApi from '../ServerLib/TransApi';
 import { SentenceApiParam } from '../../types/TransApi';
 import SentenceTranslateService from '../../db/service/SentenceTranslateService';
 import { SentenceTranslate } from '../../db/entity/SentenceTranslate';
+import { WordLevel } from '../../db/entity/WordLevel';
+import WordLevelService from '../../db/service/WordLevelService';
 
 function merge(
     base: SentenceApiParam[],
@@ -79,3 +81,30 @@ export default async function batchTranslate(
         return temp;
     }
 }
+
+/**
+ * 单词翻译
+ */
+// export async function wordTranslate(
+//     word: string[]
+// ): Promise<Map<string, WordLevel>> {
+//     const tempWordMapping = await WordLevelService.queryWord(word);
+//     const needTrans = new Set<string>();
+//     word.forEach((item) => {
+//         if (!tempWordMapping.has(item)) {
+//             needTrans.add(item);
+//         }
+//     });
+//     tempWordMapping.forEach((v) => {
+//         if (!v.translate || v.translate === '') {
+//             if (v.word) {
+//                 needTrans.add(v.word);
+//             }
+//         }
+//     });
+//     const transRes: Map<string, string> = trans(needTrans);
+//     await transRes.forEach(async (v, k) => {
+//         await WordLevelService.recordWordTranslate(k, v);
+//     }
+//
+// }

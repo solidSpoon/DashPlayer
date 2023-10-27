@@ -1,12 +1,15 @@
 import { Knex } from 'knex';
-import { createAtTimestampTrigger, updateAtTimestampTrigger } from '../service/BaseService';
+import {
+    createAtTimestampTrigger,
+    updateAtTimestampTrigger,
+} from '../service/BaseService';
 
 export async function up(knex: Knex): Promise<void> {
     return knex.schema
         .createTable('dp_word_level', (table) => {
             table.increments('id').primary();
             table.string('word').notNullable();
-            table.integer('level').notNullable();
+            table.integer('level').notNullable().defaultTo(2);
             table.integer('translate').nullable();
             // create_at and update_at
             table.timestamps(true, false);
