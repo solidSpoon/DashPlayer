@@ -121,6 +121,7 @@
         "electron-debug": "^3.2.0",
         "electron-log": "^4.4.8",
         "electron-updater": "^5.2.3",
+        "knex": "^3.0.1",
         "nedb": "^1.8.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
@@ -134,6 +135,7 @@
         "react-virtuoso": "^4.2.0",
         "request": "^2.88.2",
         "run-applescript": "^6.0.0",
+        "sqlite3": "^5.1.6",
         "tailwind-merge": "^1.14.0",
         "tencentcloud-sdk-nodejs": "^4.0.489",
         "zustand": "^4.4.3"
