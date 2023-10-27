@@ -1,4 +1,5 @@
 import { Knex } from 'knex';
+import { DpKv } from '../entity/DpKv';
 
 // eslint-disable-next-line import/prefer-default-export
 export async function seed(knex: Knex): Promise<void> {
@@ -19,14 +20,16 @@ export async function seed(knex: Knex): Promise<void> {
     ]);
 
     // 更新或者插入 dp_kv 表中 'init_word_level' 的值为 'true'
-    await knex('dp_kv')
+    await knex<DpKv>('dp_kv')
         .insert({
             key: 'init_word_level',
             value: 'true',
         })
         .catch(async () => {
-            await knex('dp_kv').where({ key: 'init_word_level' }).update({
-                value: 'true',
-            });
+            await knex('dp_kv')
+                .where({ key: 'init_word_level' } as DpKv)
+                .update({
+                    value: 'true',
+                } as DpKv);
         });
 }
