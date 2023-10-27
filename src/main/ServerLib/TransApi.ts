@@ -2,9 +2,7 @@ import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import log from 'electron-log';
-import TransCacheEntity from './entity/TransCacheEntity';
-// eslint-disable-next-line import/no-cycle
-import KeyValueCache from './KeyValueCache';
+import { SentenceTranslate } from '../../db/entity/SentenceTranslate';
 
 class TransApi {
     private static client: Client;
@@ -33,13 +31,13 @@ class TransApi {
      * @param source
      */
     public static async batchTrans(
-        source: TransCacheEntity[]
-    ): Promise<TransCacheEntity[]> {
+        source: SentenceTranslate[]
+    ): Promise<SentenceTranslate[]> {
         const param = {
             Source: 'en',
             Target: 'zh',
             ProjectId: 0,
-            SourceTextList: source.map((item) => item.original),
+            SourceTextList: source.map((item) => item.sentence ?? ''),
         };
         log.info('do-trans:', param.SourceTextList);
 
@@ -50,9 +48,9 @@ class TransApi {
     }
 
     private static fillToSource(
-        source: TransCacheEntity[],
+        source: SentenceTranslate[],
         result: string[]
-    ): TransCacheEntity[] {
+    ): SentenceTranslate[] {
         source.forEach((item, index) => {
             item.translate = result[index];
         });

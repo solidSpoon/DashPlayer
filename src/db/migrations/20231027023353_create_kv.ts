@@ -10,7 +10,6 @@ export async function up(knex: Knex): Promise<void> {
             // create_at and update_at
             table.timestamps(true, false);
             table.unique(['key']);
-            table.index(['key']);
         })
         .then(() => {
             return knex.raw(createAtTimestampTrigger('dp_kv'));

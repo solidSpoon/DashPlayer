@@ -1,4 +1,3 @@
-import WordTransCache from '../ServerLib/WordTransCache';
 import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
 import { YdRes } from '../../renderer/lib/param/yd/a';
 import { getSetting } from './SettingController';

@@ -1,27 +1,29 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-
-import TransCacheEntity from '../ServerLib/entity/TransCacheEntity';
-import TranslateCache from '../ServerLib/TranslateCache';
 import TransApi from '../ServerLib/TransApi';
 
 import { SentenceApiParam } from '../../types/TransApi';
+import SentenceTranslateService from '../../db/service/SentenceTranslateService';
+import { SentenceTranslate } from '../../db/entity/SentenceTranslate';
 
-function merge(sentences: SentenceApiParam[], dbDocs: TransCacheEntity[]) {
+function merge(
+    base: SentenceApiParam[],
+    diff: SentenceTranslate[]
+): SentenceApiParam[] {
     const mapping = new Map<string, string>();
-    dbDocs.forEach((doc) => {
-        mapping.set(doc.original, doc.translate ?? '');
+    diff.forEach((e) => {
+        mapping.set(e.sentence ?? '', e.translate ?? '');
     });
-    const temp: SentenceApiParam[] = sentences.map((e) => {
-        if (mapping.has(e.text.trim() ?? '')) {
+    const temp: SentenceApiParam[] = base.map((e) => {
+        if (mapping.has(e.text?.trim() ?? '')) {
             return {
                 ...e,
-                translate: mapping.get(e.text.trim() ?? ''),
+                translate: mapping.get(e.text?.trim() ?? ''),
             } as SentenceApiParam;
         }
         if (mapping.has(e.text ?? '')) {
             return {
                 ...e,
-                translate: mapping.get(e.text ?? ''),
+                translate: mapping.get(e.translate ?? ''),
             } as SentenceApiParam;
         }
         return e;
@@ -32,12 +34,10 @@ function merge(sentences: SentenceApiParam[], dbDocs: TransCacheEntity[]) {
 export const loadTransCache = async (
     sentences: SentenceApiParam[]
 ): Promise<SentenceApiParam[]> => {
-    const sourceArr: TransCacheEntity[] = sentences.map(
-        (e) => new TransCacheEntity(e.text ?? '')
-    );
-    const dbDocs: TransCacheEntity[] = await TranslateCache.loadCache(
-        sourceArr
-    ).then((dbDoc) => dbDoc.filter((item) => item.translate));
+    const dbDocs: SentenceTranslate[] =
+        await SentenceTranslateService.fetchTranslates(
+            sentences.map((e) => e.text)
+        ).then((dbDoc) => dbDoc.filter((item) => item.translate));
     return merge(sentences, dbDocs);
 };
 
@@ -48,30 +48,30 @@ export const loadTransCache = async (
 export default async function batchTranslate(
     sentences: SentenceApiParam[]
 ): Promise<SentenceApiParam[]> {
-    const sourceArr: TransCacheEntity[] = sentences.map(
-        (item) => new TransCacheEntity(item.text ?? '')
-    );
-    const dbDocs: TransCacheEntity[] = await TranslateCache.loadCache(
-        sourceArr
-    ).then((dbDoc) => dbDoc.filter((item) => item.translate));
+    const dbDocs: SentenceTranslate[] =
+        await SentenceTranslateService.fetchTranslates(
+            sentences.map((e) => e.text ?? '')
+        );
     const temp = merge(sentences, dbDocs);
-    const retries: SentenceApiParam[] = temp.filter(
-        (doc) => doc.translate === undefined || doc.translate === ''
-    );
+    console.log('merge', JSON.stringify(temp));
+    const retries: SentenceTranslate[] = temp
+        .filter((doc) => doc.translate === undefined || doc.translate === '')
+        .map((e) => {
+            return {
+                sentence: e.text,
+            } as SentenceTranslate;
+        });
     if (retries.length === 0) {
         return temp;
     }
     try {
-        const retryDoc: TransCacheEntity[] = retries.map(
-            (item) => new TransCacheEntity(item.text ?? '')
-        );
-        const transResult: TransCacheEntity[] = await TransApi.batchTrans(
-            retryDoc
+        const transResult: SentenceTranslate[] = await TransApi.batchTrans(
+            retries
         );
         const validTrans = transResult.filter(
             (e) => e.translate !== undefined && e.translate !== null
         );
-        await TranslateCache.insertBatch(validTrans);
+        await SentenceTranslateService.recordBatch(validTrans);
         const res = merge(temp, validTrans);
         return res;
     } catch (e) {
