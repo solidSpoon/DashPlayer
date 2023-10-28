@@ -9,17 +9,13 @@ export default class SentenceTranslateService {
         sentences: string[]
     ): Promise<SentenceTranslate[]> {
         const value = (
-            await knexDb(SENTENCE_TRANSLATE_TABLE_NAME)
+            (await knexDb(SENTENCE_TRANSLATE_TABLE_NAME)
                 .whereIn('translate', sentences)
-                .select('translate')
-        )
-            .map((e) => e.translate)
-            .filter((e) => !e)
-            .map((e) => JSON.parse(e) as SentenceTranslate);
+                .select('*')) as SentenceTranslate[]
+        ).filter((e) => e.translate);
         if (knexDb.length === 0) {
             return [];
         }
-
         return value;
     }
 
@@ -33,7 +29,7 @@ export default class SentenceTranslateService {
                 sentence,
                 translate,
             } as SentenceTranslate)
-            .catch((_err) => {
+            .catch(() => {
                 // update
                 knexDb
                     .table(SENTENCE_TRANSLATE_TABLE_NAME)
