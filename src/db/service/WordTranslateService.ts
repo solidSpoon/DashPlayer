@@ -5,8 +5,6 @@ import {
 import { knexDb } from './BaseService';
 import { YdRes } from '../../renderer/lib/param/yd/a';
 
-const knex = require('knex')(require('../knexfile'));
-
 export default class WordTranslateService {
     public static async fetchWordTranslate(
         word: string

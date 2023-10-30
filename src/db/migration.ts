@@ -1,7 +1,7 @@
 import Knex from 'knex';
 import path from 'path';
 
-const knexConfig = require('./knexfile');
+import knexConfig from './knexfile';
 
 const knex = Knex(knexConfig);
 

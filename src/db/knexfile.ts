@@ -23,4 +23,4 @@ const config: Knex.Config = {
     useNullAsDefault: true,
 };
 
-module.exports = config;
+export default config;

@@ -1,6 +1,6 @@
 import Knex from 'knex';
 
-const knexConfig = require('../knexfile');
+import knexConfig from '../knexfile';
 
 const knex = Knex(knexConfig);
 
