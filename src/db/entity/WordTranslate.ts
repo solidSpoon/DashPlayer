@@ -6,4 +6,3 @@ export interface WordTranslate {
     updated_at?: string;
 }
 
-export const WORD_TRANSLATE_TABLE_NAME = 'dp_word_translate';

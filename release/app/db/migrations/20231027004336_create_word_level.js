@@ -1,10 +1,9 @@
-import { Knex } from 'knex';
 import {
     createAtTimestampTrigger,
     updateAtTimestampTrigger,
-} from '../service/BaseService';
+} from './util/util.js';
 
-export async function up(knex: Knex): Promise<void> {
+export async function up(knex) {
     return knex.schema
         .createTable('dp_word_level', (table) => {
             table.increments('id').primary();
@@ -23,6 +22,6 @@ export async function up(knex: Knex): Promise<void> {
         });
 }
 
-export async function down(knex: Knex): Promise<void> {
+export async function down(knex) {
     return knex.schema.dropTable('dp_word_level');
 }

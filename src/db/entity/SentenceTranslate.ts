@@ -6,4 +6,3 @@ export interface SentenceTranslate {
     updated_at?: string;
 }
 
-export const SENTENCE_TRANSLATE_TABLE_NAME = 'dp_sentence_translate';

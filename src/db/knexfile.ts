@@ -16,9 +16,10 @@ const config: Knex.Config = {
     },
     migrations: {
         tableName: 'dp_knex_migrations',
+        directory: 'resources/db/migrations',
     },
     seeds: {
-        directory: './seeds',
+        directory: 'resources/db/seeds',
     },
     useNullAsDefault: true,
 };

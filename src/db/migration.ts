@@ -17,14 +17,14 @@ const seedConfig = {
 console.info(`Running migrations in: ${migrationConfig.directory}`);
 
 const migration = async () => {
-    const [batchNo, log] = await knex.migrate.latest(migrationConfig);
+    const [batchNo, log] = await knex.migrate.latest();
     if (!log.length) {
         console.info('Database is already up to date');
     } else {
         console.info(`Ran migrations: ${log.join(', ')}`);
     }
 
-    await knex.seed.run(seedConfig);
+    await knex.seed.run();
     await knex.destroy();
 };
 
