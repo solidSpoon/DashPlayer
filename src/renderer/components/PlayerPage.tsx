@@ -16,6 +16,7 @@ import useSetting, {
 } from '../hooks/useSetting';
 import { cn } from '../../utils/Util';
 import { THEME } from '../../types/Types';
+import ControllerPage from './ControllerPage';
 
 export interface PlayerPageParam {
     isDragging: boolean;
@@ -106,6 +107,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                     <BorderProgressBar />
                 </div>
             </div>
+            <ControllerPage />
         </>
     );
 };

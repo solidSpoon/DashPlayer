@@ -60,15 +60,21 @@ export interface WordLevelSlice {
     syncWordsLevel: (words: string[]) => Promise<void>;
 }
 
+export type PopType = 'control' | 'none';
+
 export interface ModeSlice {
     showEn: boolean;
     showCn: boolean;
     singleRepeat: boolean;
+    showWordLevel: boolean;
+    popType: PopType;
 
     changeShowEn: () => void;
     changeShowCn: () => void;
     changeShowEnCn: () => void;
     changeSingleRepeat: () => void;
+    changeShowWordLevel: () => void;
+    changePopType: (popType: PopType) => void;
 }
 
 export interface ControllerSlice {

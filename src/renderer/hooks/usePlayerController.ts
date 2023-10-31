@@ -180,16 +180,10 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceT[]) {
     return groupSubtitles;
 }
 
-const transUserCanSee = async (
-    subtitle: SentenceT[],
-    finishedGroup: Set<number>
-): Promise<SentenceT[]> => {
-    const userCanSee = filterUserCanSee(finishedGroup, subtitle);
-    // eslint-disable-next-line no-await-in-loop
-    return translate(userCanSee);
-};
-
 async function syncWordsLevel(userCanSee: SentenceT[]) {
+    if (userCanSee.length === 0) {
+        return;
+    }
     const words = new Set<string>();
     userCanSee.forEach((item) => {
         splitToWords(item.text).forEach((w) => {
@@ -227,6 +221,7 @@ useFile.subscribe(
             inited = true;
             // eslint-disable-next-line no-await-in-loop
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
+            // eslint-disable-next-line no-await-in-loop
             await syncWordsLevel(userCanSee);
             // eslint-disable-next-line no-await-in-loop
             const seePartTranslated = await translate(userCanSee);

@@ -7,6 +7,8 @@ import { YdRes } from '../lib/param/yd/a';
 import WordPop from './WordPop';
 import { playUrl, playWord } from '../lib/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
+import useSetting from '../hooks/useSetting';
+import { THEME } from '../../types/Types';
 
 const api = window.electron;
 
@@ -39,16 +41,20 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
         undefined
     );
     const pause = usePlayerController((s) => s.pause);
-    const { getWordLevel, markWordLevel } = usePlayerController(
+    const { getWordLevel, markWordLevel, showWordLevel } = usePlayerController(
         useShallow((s) => ({
             getWordLevel: s.getWordLevel,
             markWordLevel: s.markWordLevel,
+            showWordLevel: s.showWordLevel,
         }))
     );
     const [hovered, setHovered] = useState(false);
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
+    const theme = useSetting((s) => s.appearance.theme);
+    const dark =
+        THEME[THEME.map((t) => t.name).indexOf(theme) ?? 0].type === 'dark';
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
         let timeout: NodeJS.Timeout;
@@ -133,7 +139,9 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
                     e.stopPropagation();
                     e.preventDefault();
                     console.log('onContextMenu');
-                    markWordLevel(word, wordLevel?.level === 2 ? 1 : 2);
+                    if (showWordLevel) {
+                        markWordLevel(word, wordLevel?.level === 2 ? 1 : 2);
+                    }
                 }}
             >
                 {pop && hovered && translationText ? (
@@ -144,11 +152,10 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
                     />
                 ) : (
                     <div
-                        className={`hover:bg-wordHoverBackground rounded select-none ${
-                            show
-                                ? ''
-                                : 'text-transparent bg-wordHoverBackground'
-                        }`}
+                        className={twMerge(
+                            'hover:bg-wordHoverBackground rounded select-none',
+                            !show && 'text-transparent bg-wordHoverBackground'
+                        )}
                         onMouseLeave={() => {
                             setHovered(false);
                         }}
@@ -157,10 +164,12 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
                     </div>
                 )}
             </div>
-            {wordLevel?.level === 2 && (
+            {showWordLevel && wordLevel?.level === 2 && (
                 <div
                     className={twMerge(
-                        'flex items-end justify-center text-xl text-amber-700/75'
+                        'flex items-end justify-center text-xl text-amber-700/75',
+                        dark && 'text-amber-400/75',
+                        !show && 'text-transparent'
                     )}
                 >
                     ({wordLevel.translate})
