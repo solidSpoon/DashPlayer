@@ -274,7 +274,7 @@
         "extraResources": [
             "./assets/**",
             {
-                "from": "./release/app/db/",
+                "from": "./db/",
                 "to": "db"
             }
         ],

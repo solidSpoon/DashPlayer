@@ -1,9 +1,9 @@
 import {
+    WORD_TRANSLATE_TABLE_NAME,
     WordTranslate,
 } from '../entity/WordTranslate';
 import { knexDb } from './BaseService';
 import { YdRes } from '../../renderer/lib/param/yd/a';
-import { WORD_TRANSLATE_TABLE_NAME } from '../../../release/app/db/migrations/util/util';
 
 export default class WordTranslateService {
     public static async fetchWordTranslate(

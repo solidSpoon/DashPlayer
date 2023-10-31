@@ -1,6 +1,5 @@
 import { knexDb } from './BaseService';
-import { SentenceTranslate } from '../entity/SentenceTranslate';
-import { SENTENCE_TRANSLATE_TABLE_NAME } from '../../../release/app/db/migrations/util/util';
+import { SENTENCE_TRANSLATE_TABLE_NAME, SentenceTranslate } from '../entity/SentenceTranslate';
 
 export default class SentenceTranslateService {
     public static async fetchTranslates(
