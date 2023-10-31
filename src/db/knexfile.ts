@@ -7,7 +7,7 @@ const path = require('path');
 
 const isDev = process.env.NODE_ENV === 'development';
 console.log('isDev', isDev);
-
+console.log('apppath', app?.getAppPath?.());
 const config: Knex.Config = {
     client: 'sqlite3',
     connection: {
@@ -19,10 +19,12 @@ const config: Knex.Config = {
     },
     migrations: {
         tableName: 'dp_knex_migrations',
-        directory: isDev ? 'db/migrations' : 'resources/db/migrations',
+        directory: isDev
+            ? 'db/migrations'
+            : `${app?.getAppPath?.()}/../db/migrations`,
     },
     seeds: {
-        directory: isDev ? 'db/seeds' : 'resources/db/seeds',
+        directory: isDev ? 'db/seeds' : `${app?.getAppPath?.()}/../db/seeds`,
     },
     useNullAsDefault: true,
 };
