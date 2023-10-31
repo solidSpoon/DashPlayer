@@ -1,12 +1,14 @@
 import React from 'react';
-import { HiOutlineMenu } from 'react-icons/hi';
+import { HiOutlineMenu, HiOutlinePencil, HiOutlinePuzzle } from 'react-icons/hi';
 import {
     VscChromeClose,
     VscChromeMaximize,
     VscChromeMinimize,
     VscChromeRestore,
 } from 'react-icons/vsc';
+import { useShallow } from 'zustand/react/shallow';
 import useSystem from '../../hooks/useSystem';
+import usePlayerController from '../../hooks/usePlayerController';
 
 export interface TitleBarWindowsProps {
     hasSubtitle?: boolean;
@@ -29,6 +31,12 @@ const TitleBarWindows = ({
 }: TitleBarWindowsProps) => {
     const windowState = useSystem((s) => s.windowState);
     const setWindowState = useSystem((s) => s.setWindowState);
+    const { popType, changePopType } = usePlayerController(
+        useShallow((s) => ({
+            popType: s.popType,
+            changePopType: s.changePopType,
+        }))
+    );
 
     const maximize = () => {
         setWindowState('maximized');
@@ -52,35 +60,41 @@ const TitleBarWindows = ({
 
     return (
         <div
-            className={`select-none w-full drag h-6 flex justify-between items-center text-titlebarText gap-x-2 drop-shadow ${className}`}
+            className={`select-none w-full drag h-7 flex justify-between items-center text-titlebarText gap-x-2 drop-shadow ${className}`}
         >
             {hasSettings && (
-                <HiOutlineMenu
-                    className={`no-drag w-6 h-6 p-1 ${buttonClassName}`}
-                    onClick={onMenu}
-                />
+                <div className="flex">
+                    <HiOutlineMenu
+                        className={`no-drag w-7 h-7 p-1.5 ${buttonClassName}`}
+                        onClick={onMenu}
+                    />
+                    <HiOutlinePencil
+                        className={`no-drag w-7 h-7 p-2 ${buttonClassName}`}
+                        onClick={() => changePopType('control')}
+                    />
+                </div>
             )}
             <div>{title}</div>
             <div className="no-drag flex h-full justify-center items-center">
                 <VscChromeMinimize
-                    className={` w-6 h-6 p-1 ${buttonClassName}`}
+                    className={` w-7 h-7 p-1.5 ${buttonClassName}`}
                     onClick={onMinimize}
                 />
                 {maximizable && windowState === 'maximized' && (
                     <VscChromeRestore
-                        className={` w-6 h-6 p-1 ${buttonClassName}`}
+                        className={` w-7 h-7 p-1.5 ${buttonClassName}`}
                         onClick={unMaximize}
                     />
                 )}
                 {maximizable && !(windowState === 'maximized') && (
                     <VscChromeMaximize
-                        className={` w-6 h-6 p-1 ${buttonClassName}`}
+                        className={` w-7 h-7 p-1.5 ${buttonClassName}`}
                         onClick={maximize}
                     />
                 )}
 
                 <VscChromeClose
-                    className={` w-6 h-6 p-1 ${buttonClassName}`}
+                    className={` w-7 h-7 p-1.5 ${buttonClassName}`}
                     onClick={onClose}
                 />
             </div>
@@ -89,7 +103,7 @@ const TitleBarWindows = ({
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 1 1"
-                        className="absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 translate-y-6 rotate-180"
+                        className="absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 translate-y-7 rotate-180"
                     >
                         <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
                     </svg>

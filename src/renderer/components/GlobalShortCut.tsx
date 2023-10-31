@@ -16,6 +16,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         changeShowEn,
         changeShowCn,
         changeShowEnCn,
+        changeShowWordLevel,
         changeSingleRepeat,
         prev,
         next,
@@ -26,6 +27,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
             changeShowEn: s.changeShowEn,
             changeShowCn: s.changeShowCn,
             changeShowEnCn: s.changeShowEnCn,
+            changeShowWordLevel: s.changeShowWordLevel,
             changeSingleRepeat: s.changeSingleRepeat,
             prev: s.prev,
             next: s.next,
@@ -71,6 +73,11 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     registerKey(keyBinds?.showEn, defaultShortcut.showEn, changeShowEn);
     registerKey(keyBinds?.showCn, defaultShortcut.showCn, changeShowCn);
     registerKey(keyBinds?.sowEnCn, defaultShortcut.sowEnCn, changeShowEnCn);
+    registerKey(
+        keyBinds?.showWordLevel,
+        defaultShortcut.showWordLevel,
+        changeShowWordLevel
+    );
     registerKey(
         keyBinds?.nextTheme,
         defaultShortcut.nextTheme,

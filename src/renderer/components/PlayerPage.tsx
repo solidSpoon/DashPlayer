@@ -17,6 +17,7 @@ import useSetting, {
 import { cn } from '../../utils/Util';
 import { THEME } from '../../types/Types';
 import ControllerPage from './ControllerPage';
+import usePlayerController from '../hooks/usePlayerController';
 
 export interface PlayerPageParam {
     isDragging: boolean;
@@ -33,6 +34,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
+    const popType = usePlayerController((s) => s.popType);
     return (
         <>
             {isColorfulTheme(themeName) && (
@@ -107,7 +109,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                     <BorderProgressBar />
                 </div>
             </div>
-            <ControllerPage />
+            {popType === 'control' && <ControllerPage />}
         </>
     );
 };

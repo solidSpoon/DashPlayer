@@ -167,7 +167,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
             {showWordLevel && wordLevel?.level === 2 && (
                 <div
                     className={twMerge(
-                        'flex items-end justify-center text-xl text-amber-700/75',
+                        'flex items-center pt-2 justify-center text-xl text-textColor/80',
                         dark && 'text-amber-400/75',
                         !show && 'text-transparent'
                     )}

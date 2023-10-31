@@ -8,6 +8,7 @@ export const defaultShortcut: ShortCutValue = {
     singleRepeat: 'r',
     showEn: 'e',
     showCn: 'c',
+    showWordLevel: 'l',
     sowEnCn: 'b',
     nextTheme: 't',
     prevTheme: 'y',
@@ -45,6 +46,10 @@ export interface ShortCutValue {
      * 显示/隐藏中英
      */
     sowEnCn: string;
+    /**
+     * 显示/隐藏单词等级
+     */
+    showWordLevel: string;
     /**
      * next theme
      */

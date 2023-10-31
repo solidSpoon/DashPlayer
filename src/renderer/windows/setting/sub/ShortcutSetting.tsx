@@ -103,6 +103,12 @@ const ShortcutSetting = () => {
                     setValue={update('sowEnCn')}
                 />
                 <SettingInput
+                    title="展示/隐藏生词翻译"
+                    placeHolder={defaultShortcut.showWordLevel}
+                    value={localKeyBindings.showWordLevel || ''}
+                    setValue={update('showWordLevel')}
+                />
+                <SettingInput
                     title="上一个主题"
                     placeHolder={defaultShortcut.prevTheme}
                     value={localKeyBindings.prevTheme || ''}
