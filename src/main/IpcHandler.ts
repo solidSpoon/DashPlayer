@@ -9,7 +9,6 @@ import {
     updateProgress,
 } from './controllers/ProgressController';
 import batchTranslate, { loadTransCache } from './controllers/Translate';
-import transWord from './controllers/AppleTrans';
 import youDaoTrans from './controllers/YouDaoTrans';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
@@ -23,6 +22,10 @@ import { SettingState } from '../renderer/hooks/useSetting';
 import { getSetting, updateSetting } from './controllers/SettingController';
 import { WindowState } from '../types/Types';
 import { SentenceApiParam } from '../types/TransApi';
+import {
+    markWordLevel,
+    wordsTranslate,
+} from './controllers/WordLevelController';
 
 const handle = (
     channel: Channels,
@@ -39,14 +42,6 @@ const sent = (channel: Channels, ...args: any[]) => {
 export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
         log.info('ipcMain update-process', arg);
-        event.reply('update-process', 'success');
-    });
-    /**
-     * Bob 翻译
-     */
-    ipcMain.on('trans-word', async (event, arg) => {
-        log.info('trans-words', arg);
-        transWord(arg[0]);
         event.reply('update-process', 'success');
     });
     handle('update-progress', async (progress: ProgressParam) => {
@@ -82,6 +77,16 @@ export default function registerHandler() {
     handle('is-windows', async () => {
         log.info('is-windows');
         return process.platform === 'win32';
+    });
+
+    handle('words-translate', async (words: string[]) => {
+        log.info('words-translate');
+        return wordsTranslate(words);
+    });
+
+    handle('mark-word-level', async (word: string, level: number) => {
+        log.info('mark-word-level');
+        return markWordLevel(word, level);
     });
 
     handle('you-dao-translate', async (word) => {

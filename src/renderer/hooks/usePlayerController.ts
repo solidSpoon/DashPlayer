@@ -9,6 +9,7 @@ import {
     PlayerSlice,
     SentenceSlice,
     SubtitleSlice,
+    WordLevelSlice,
 } from './usePlayerControllerSlices/SliceTypes';
 import createPlayerSlice from './usePlayerControllerSlices/createPlayerSlice';
 import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice';
@@ -20,9 +21,10 @@ import parseSrtSubtitles from '../lib/parseSrt';
 import SentenceT from '../lib/param/SentenceT';
 import translate from '../lib/TranslateBuf';
 import useFile from './useFile';
-import { sleep } from '../../utils/Util';
+import { sleep, splitToWords } from '../../utils/Util';
 import useSetting from './useSetting';
 import { ProgressParam } from '../../main/controllers/ProgressController';
+import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -31,7 +33,8 @@ const usePlayerController = create<
         ModeSlice &
         InternalSlice &
         SubtitleSlice &
-        ControllerSlice
+        ControllerSlice &
+        WordLevelSlice
 >()(
     subscribeWithSelector((...a) => ({
         ...createPlayerSlice(...a),
@@ -40,6 +43,7 @@ const usePlayerController = create<
         ...createInternalSlice(...a),
         ...createSubtitleSlice(...a),
         ...createControllerSlice(...a),
+        ...createWordLevelSlice(...a),
     }))
 );
 export default usePlayerController;
@@ -154,10 +158,8 @@ function groupSentence(
         });
     });
 }
-const transUserCanSee = async (
-    subtitle: SentenceT[],
-    finishedGroup: Set<number>
-): Promise<SentenceT[]> => {
+
+function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceT[]) {
     const currentGroup =
         usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
@@ -175,9 +177,27 @@ const transUserCanSee = async (
     shouldTransGroup.forEach((item) => {
         finishedGroup.add(item);
     });
+    return groupSubtitles;
+}
+
+const transUserCanSee = async (
+    subtitle: SentenceT[],
+    finishedGroup: Set<number>
+): Promise<SentenceT[]> => {
+    const userCanSee = filterUserCanSee(finishedGroup, subtitle);
     // eslint-disable-next-line no-await-in-loop
-    return translate(groupSubtitles);
+    return translate(userCanSee);
 };
+
+async function syncWordsLevel(userCanSee: SentenceT[]) {
+    const words = new Set<string>();
+    userCanSee.forEach((item) => {
+        splitToWords(item.text).forEach((w) => {
+            words.add(w);
+        });
+    });
+    await usePlayerController.getState().syncWordsLevel(Array.from(words));
+}
 
 /**
  * 加载与翻译
@@ -206,14 +226,17 @@ useFile.subscribe(
             }
             inited = true;
             // eslint-disable-next-line no-await-in-loop
-            const seePart = await transUserCanSee(subtitle, finishedGroup);
-            console.log('seePart', JSON.stringify(seePart));
+            const userCanSee = filterUserCanSee(finishedGroup, subtitle);
+            await syncWordsLevel(userCanSee);
+            // eslint-disable-next-line no-await-in-loop
+            const seePartTranslated = await translate(userCanSee);
+            console.log('seePart', JSON.stringify(seePartTranslated));
 
             if (CURRENT_FILE !== useFile.getState().subtitleFile) {
                 return;
             }
-            if (seePart.length > 0) {
-                usePlayerController.getState().mergeSubtitle(seePart);
+            if (seePartTranslated.length > 0) {
+                usePlayerController.getState().mergeSubtitle(seePartTranslated);
             }
         }
     }

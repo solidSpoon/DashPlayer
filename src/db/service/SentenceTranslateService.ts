@@ -7,7 +7,7 @@ export default class SentenceTranslateService {
     ): Promise<SentenceTranslate[]> {
         const value = (
             (await knexDb(SENTENCE_TRANSLATE_TABLE_NAME)
-                .whereIn('translate', sentences)
+                .whereIn('sentence', sentences)
                 .select('*')) as SentenceTranslate[]
         ).filter((e) => e.translate);
         if (knexDb.length === 0) {

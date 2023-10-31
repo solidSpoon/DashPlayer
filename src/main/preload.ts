@@ -5,6 +5,7 @@ import { ProgressParam } from './controllers/ProgressController';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
 import { SentenceApiParam } from '../types/TransApi';
+import { WordLevel } from '../db/entity/WordLevel';
 
 export type Channels =
     | 'main-state'
@@ -34,7 +35,9 @@ export type Channels =
     | 'home-size'
     | 'recent-play'
     | 'open-file'
-    | 'copy-to-clipboard';
+    | 'copy-to-clipboard'
+    | 'words-translate'
+    | 'mark-word-level';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -143,6 +146,15 @@ const electronHandler = {
     },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release | undefined;
+    },
+    markWordLevel: async (word: string, level: number) => {
+        return (await invoke('mark-word-level', word, level)) as void;
+    },
+    wordsTranslate: async (words: string[]) => {
+        return (await invoke('words-translate', words)) as Map<
+            string,
+            WordLevel
+        >;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;
