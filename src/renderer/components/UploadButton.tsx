@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import parseFile from '../lib/FileParser';
 import useFile from '../hooks/useFile';
+import { ACCEPTED_FILE_TYPES } from '../../utils/MediaTypeUitl';
 
 export default function UploadButton() {
     const fileInputEl = useRef<HTMLInputElement>(null);
@@ -19,7 +20,7 @@ export default function UploadButton() {
                 type="file"
                 multiple
                 ref={fileInputEl} // 挂载ref
-                accept=".mp4,.mkv,.srt,.webm" // 限制文件类型
+                accept={ACCEPTED_FILE_TYPES} // 限制文件类型
                 hidden // 隐藏input
                 onChange={(event) => handleFile(event)}
             />
