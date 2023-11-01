@@ -1,110 +1,34 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import TransApi from '../ServerLib/TransApi';
 
-import { SentenceApiParam } from '../../types/TransApi';
 import SentenceTranslateService from '../../db/service/SentenceTranslateService';
-import { SentenceTranslate } from '../../db/entity/SentenceTranslate';
-import { WordLevel } from '../../db/entity/WordLevel';
-import WordLevelService from '../../db/service/WordLevelService';
-
-function merge(
-    base: SentenceApiParam[],
-    diff: SentenceTranslate[]
-): SentenceApiParam[] {
-    const mapping = new Map<string, string>();
-    diff.forEach((e) => {
-        mapping.set(e.sentence ?? '', e.translate ?? '');
-    });
-    const temp: SentenceApiParam[] = base.map((e) => {
-        if (mapping.has(e.text?.trim() ?? '')) {
-            return {
-                ...e,
-                translate: mapping.get(e.text?.trim() ?? ''),
-            } as SentenceApiParam;
-        }
-        if (mapping.has(e.text ?? '')) {
-            return {
-                ...e,
-                translate: mapping.get(e.translate ?? ''),
-            } as SentenceApiParam;
-        }
-        return e;
-    });
-    return temp;
-}
-
-export const loadTransCache = async (
-    sentences: SentenceApiParam[]
-): Promise<SentenceApiParam[]> => {
-    const dbDocs: SentenceTranslate[] =
-        await SentenceTranslateService.fetchTranslates(
-            sentences.map((e) => e.text)
-        ).then((dbDoc) => dbDoc.filter((item) => item.translate));
-    return merge(sentences, dbDocs);
-};
-
+import { p } from '../../utils/Util';
+import TransHolder from '../../utils/TransHolder';
 /**
  * AI 翻译
  * @param str
  */
 export default async function batchTranslate(
-    sentences: SentenceApiParam[]
-): Promise<SentenceApiParam[]> {
-    const dbDocs: SentenceTranslate[] =
-        await SentenceTranslateService.fetchTranslates(
-            sentences.map((e) => e.text ?? '')
-        );
-    const temp = merge(sentences, dbDocs);
-    console.log('merge', JSON.stringify(temp));
-    const retries: SentenceTranslate[] = temp
-        .filter((doc) => doc.translate === undefined || doc.translate === '')
-        .map((e) => {
-            return {
-                sentence: e.text,
-            } as SentenceTranslate;
-        });
+    sentences: string[]
+): Promise<Map<string, string>> {
+    // eslint-disable-next-line no-param-reassign
+    sentences = sentences.map((s) => p(s));
+    const cache: TransHolder<string> =
+        await SentenceTranslateService.fetchTranslates(sentences);
+    console.log('cache', cache.getMapping());
+    const retries = sentences.filter((e) => !cache.get(e));
+    console.log('retries', retries);
     if (retries.length === 0) {
-        return temp;
+        return cache.getMapping();
     }
     try {
-        const transResult: SentenceTranslate[] = await TransApi.batchTrans(
+        const transResult: TransHolder<string> = await TransApi.batchTrans2(
             retries
         );
-        const validTrans = transResult.filter(
-            (e) => e.translate !== undefined && e.translate !== null
-        );
-        await SentenceTranslateService.recordBatch(validTrans);
-        const res = merge(temp, validTrans);
-        return res;
+        await SentenceTranslateService.recordBatch(transResult);
+        return cache.merge(transResult).getMapping();
     } catch (e) {
         console.error(e);
-        return temp;
+        return cache.getMapping();
     }
 }
-
-/**
- * 单词翻译
- */
-// export async function wordTranslate(
-//     word: string[]
-// ): Promise<Map<string, WordLevel>> {
-//     const tempWordMapping = await WordLevelService.queryWord(word);
-//     const needTrans = new Set<string>();
-//     word.forEach((item) => {
-//         if (!tempWordMapping.has(item)) {
-//             needTrans.add(item);
-//         }
-//     });
-//     tempWordMapping.forEach((v) => {
-//         if (!v.translate || v.translate === '') {
-//             if (v.word) {
-//                 needTrans.add(v.word);
-//             }
-//         }
-//     });
-//     const transRes: Map<string, string> = trans(needTrans);
-//     await transRes.forEach(async (v, k) => {
-//         await WordLevelService.recordWordTranslate(k, v);
-//     }
-//
-// }

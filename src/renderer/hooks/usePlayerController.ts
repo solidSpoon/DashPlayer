@@ -19,12 +19,12 @@ import createControllerSlice from './usePlayerControllerSlices/createControllerS
 import FileT from '../lib/param/FileT';
 import parseSrtSubtitles from '../lib/parseSrt';
 import SentenceT from '../lib/param/SentenceT';
-import translate from '../lib/TranslateBuf';
 import useFile from './useFile';
 import { sleep, splitToWords } from '../../utils/Util';
 import useSetting from './useSetting';
 import { ProgressParam } from '../../main/controllers/ProgressController';
 import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
+import TransHolder from '../../utils/TransHolder';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -204,13 +204,14 @@ useFile.subscribe(
         }
         const CURRENT_FILE = useFile.getState().subtitleFile;
         const subtitle: SentenceT[] = await loadSubtitle(subtitleFile);
-        groupSentence(subtitle, 25, (s, index) => {
+        groupSentence(subtitle, 20, (s, index) => {
             s.transGroup = index;
         });
         if (CURRENT_FILE !== useFile.getState().subtitleFile) {
             return;
         }
         usePlayerController.getState().setSubtitle(subtitle);
+        usePlayerController.getState().internal.wordLevel = new Map();
         const finishedGroup = new Set<number>();
         let inited = false;
         while (CURRENT_FILE === useFile.getState().subtitleFile) {
@@ -221,17 +222,24 @@ useFile.subscribe(
             inited = true;
             // eslint-disable-next-line no-await-in-loop
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
-            // eslint-disable-next-line no-await-in-loop
-            await syncWordsLevel(userCanSee);
-            // eslint-disable-next-line no-await-in-loop
-            const seePartTranslated = await translate(userCanSee);
-            console.log('seePart', JSON.stringify(seePartTranslated));
-
-            if (CURRENT_FILE !== useFile.getState().subtitleFile) {
-                return;
-            }
-            if (seePartTranslated.length > 0) {
-                usePlayerController.getState().mergeSubtitle(seePartTranslated);
+            if (userCanSee.length > 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await syncWordsLevel(userCanSee);
+                const transHolder = TransHolder.from(
+                    // eslint-disable-next-line no-await-in-loop
+                    await api.batchTranslate(
+                        userCanSee.map((s) => s.text ?? '')
+                    )
+                );
+                if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+                    return;
+                }
+                console.log('transHolder', transHolder);
+                if (!transHolder.isEmpty()) {
+                    usePlayerController
+                        .getState()
+                        .mergeSubtitleTrans(transHolder);
+                }
             }
         }
     }

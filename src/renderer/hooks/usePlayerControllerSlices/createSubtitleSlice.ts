@@ -65,6 +65,22 @@ const createSubtitleSlice: StateCreator<
             ...Array.from(get().internal.subtitleIndex.keys())
         );
     },
+    mergeSubtitleTrans: (holder) => {
+        const subtitle = get().subtitle.map((s) => {
+            const trans = holder.get(s.text ?? '');
+            if (!trans) {
+                return s;
+            }
+            const ns = s.clone();
+            ns.msTranslate = trans;
+            return ns;
+        });
+        set({ subtitle });
+        get().internal.subtitleIndex = indexSubtitle(subtitle);
+        get().internal.maxIndex = Math.max(
+            ...Array.from(get().internal.subtitleIndex.keys())
+        );
+    },
     getSubtitleAt: (time: number) => {
         const groupIndex = Math.floor(time / GROUP_SECONDS);
         const group = get().internal.subtitleIndex.get(groupIndex) ?? [];

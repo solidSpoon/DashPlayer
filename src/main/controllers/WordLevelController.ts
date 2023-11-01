@@ -38,7 +38,7 @@ export async function wordsTranslate(
 
     const transRes: Map<string, string> = (
         await TransApi.batchTrans2(Array.from(needTrans))
-    ).result;
+    ).getMapping();
     transRes.forEach(async (v, k) => {
         await WordLevelService.recordWordTranslate(k, v);
     });

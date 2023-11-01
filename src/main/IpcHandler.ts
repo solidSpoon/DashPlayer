@@ -8,7 +8,7 @@ import {
     queryRecentPlay,
     updateProgress,
 } from './controllers/ProgressController';
-import batchTranslate, { loadTransCache } from './controllers/Translate';
+import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
 import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
@@ -54,14 +54,13 @@ export default function registerHandler() {
         log.info(`query-progress file: ${fileName}, progress: ${progress}`);
         return progress;
     });
-    handle('batch-translate', async (sentences: SentenceApiParam[]) => {
-        log.info('batch-translate');
-        return batchTranslate(sentences);
-    });
-    handle('load-trans-cache', async (sentences: SentenceApiParam[]) => {
-        log.info('load-trans-cache');
-        return loadTransCache(sentences);
-    });
+    handle(
+        'batch-translate',
+        async (sentences: string[]): Promise<Map<string, string>> => {
+            log.info('batch-translate');
+            return batchTranslate(sentences);
+        }
+    );
     handle('update-setting', async (setting: SettingState) => {
         log.info('update-setting');
         await updateSetting(setting);

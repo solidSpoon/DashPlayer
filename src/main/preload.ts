@@ -6,6 +6,7 @@ import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
 import { SentenceApiParam } from '../types/TransApi';
 import { WordLevel } from '../db/entity/WordLevel';
+import TransHolder from '../utils/TransHolder';
 
 export type Channels =
     | 'main-state'
@@ -15,7 +16,6 @@ export type Channels =
     | 'trans-word'
     | 'query-progress'
     | 'batch-translate'
-    | 'load-trans-cache'
     | 'update-setting'
     | 'get-setting'
     | 'setting-update'
@@ -126,17 +126,14 @@ const electronHandler = {
     hideButton: async () => {
         await invoke('hide-button');
     },
-    loadTransCache: async (sentences: SentenceApiParam[]) => {
-        return (await invoke(
-            'load-trans-cache',
-            sentences
-        )) as SentenceApiParam[];
-    },
-    batchTranslate: async (sentences: SentenceApiParam[]) => {
-        return (await invoke(
-            'batch-translate',
-            sentences
-        )) as SentenceApiParam[];
+    batchTranslate: async (
+        sentences: string[]
+    ): Promise<Map<string, string>> => {
+        const mapping = (await invoke('batch-translate', sentences)) as Map<
+            string,
+            string
+        >;
+        return mapping;
     },
     updateProgress: async (progress: ProgressParam) => {
         await invoke('update-progress', progress);

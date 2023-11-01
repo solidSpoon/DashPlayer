@@ -1,10 +1,12 @@
 import SentenceT from '../../lib/param/SentenceT';
 import { WordLevel } from '../../../db/entity/WordLevel';
+import TransHolder from '../../../utils/TransHolder';
 
 export interface SubtitleSlice {
     subtitle: SentenceT[];
     setSubtitle: (subtitle: SentenceT[]) => void;
     mergeSubtitle: (subtitle: SentenceT[]) => void;
+    mergeSubtitleTrans: (holder: TransHolder<string>) => void;
     getSubtitleAt: (time: number) => SentenceT | undefined;
 }
 

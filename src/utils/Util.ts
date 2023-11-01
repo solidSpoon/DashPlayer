@@ -25,3 +25,6 @@ export function splitToWords(text: string | undefined): string[] {
         .filter((w) => w)
         .filter((w) => isWord(w));
 }
+export function p(str: string): string {
+    return (str ?? '').toLowerCase().trim();
+}

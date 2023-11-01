@@ -3,20 +3,22 @@ import {
     SENTENCE_TRANSLATE_TABLE_NAME,
     SentenceTranslate,
 } from '../entity/SentenceTranslate';
+import TransHolder from '../../utils/TransHolder';
 
 export default class SentenceTranslateService {
     public static async fetchTranslates(
         sentences: string[]
-    ): Promise<SentenceTranslate[]> {
+    ): Promise<TransHolder<string>> {
+        const result = new TransHolder<string>();
         const value = (
             (await knexDb(SENTENCE_TRANSLATE_TABLE_NAME)
                 .whereIn('sentence', sentences)
                 .select('*')) as SentenceTranslate[]
         ).filter((e) => e.translate);
-        if (knexDb.length === 0) {
-            return [];
-        }
-        return value;
+        value.forEach((e) => {
+            result.add(e.sentence ?? '', e.translate ?? '');
+        });
+        return result;
     }
 
     public static async recordTranslate(sentence: string, translate: string) {
@@ -40,9 +42,9 @@ export default class SentenceTranslateService {
             });
     }
 
-    static async recordBatch(validTrans: SentenceTranslate[]) {
-        validTrans.forEach((item) => {
-            this.recordTranslate(item.sentence ?? '', item.translate ?? '');
+    static async recordBatch(validTrans: TransHolder<string>) {
+        validTrans.getMapping().forEach((value, key) => {
+            this.recordTranslate(key, value);
         });
     }
 }
