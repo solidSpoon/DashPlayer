@@ -10,7 +10,7 @@ const parseFile = (file: File): FileT => {
     const isSrt = isSubtitle(file.name);
     if (isSrt) {
         fileT.fileType = FileType.SUBTITLE;
-    } else if (isVideo(file.type)) {
+    } else if (isVideo(file.path)) {
         fileT.fileType = FileType.VIDEO;
     } else {
         fileT.fileType = FileType.OTHER;
