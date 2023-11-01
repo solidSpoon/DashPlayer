@@ -1,5 +1,6 @@
 import {
     createAtTimestampTrigger,
+    toTrimLowerCaseTrigger,
     updateAtTimestampTrigger,
 } from './util/util.js';
 
@@ -18,6 +19,9 @@ export async function up(knex) {
         })
         .then(() => {
             return knex.raw(updateAtTimestampTrigger('dp_kv'));
+        })
+        .then(() => {
+            return knex.raw(toTrimLowerCaseTrigger('dp_kv', 'key'));
         });
 }
 

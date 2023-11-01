@@ -4,13 +4,14 @@ import {
 } from '../entity/WordTranslate';
 import { knexDb } from './BaseService';
 import { YdRes } from '../../renderer/lib/param/yd/a';
+import { p } from '../../utils/Util';
 
 export default class WordTranslateService {
     public static async fetchWordTranslate(
         word: string
     ): Promise<YdRes | undefined> {
         // eslint-disable-next-line no-param-reassign
-        word = word.trim().toLowerCase();
+        word = p(word);
         const value = (
             await knexDb(WORD_TRANSLATE_TABLE_NAME)
                 .where({ word } as WordTranslate)
@@ -29,7 +30,7 @@ export default class WordTranslateService {
 
     public static async recordWordTranslate(word: string, translate: YdRes) {
         // eslint-disable-next-line no-param-reassign
-        word = word.trim().toLowerCase();
+        word = p(word);
         const value = JSON.stringify(translate);
         await knexDb
             .table(WORD_TRANSLATE_TABLE_NAME)

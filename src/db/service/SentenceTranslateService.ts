@@ -4,11 +4,14 @@ import {
     SentenceTranslate,
 } from '../entity/SentenceTranslate';
 import TransHolder from '../../utils/TransHolder';
+import { p } from '../../utils/Util';
 
 export default class SentenceTranslateService {
     public static async fetchTranslates(
         sentences: string[]
     ): Promise<TransHolder<string>> {
+        // eslint-disable-next-line no-param-reassign
+        sentences = sentences.map((w) => p(w));
         const result = new TransHolder<string>();
         const value = (
             (await knexDb(SENTENCE_TRANSLATE_TABLE_NAME)
@@ -24,7 +27,7 @@ export default class SentenceTranslateService {
     public static async recordTranslate(sentence: string, translate: string) {
         console.log('recordTranslate', sentence, translate);
         // eslint-disable-next-line no-param-reassign
-        sentence = sentence.trim().toLowerCase();
+        sentence = p(sentence);
         await knexDb
             .table(SENTENCE_TRANSLATE_TABLE_NAME)
             .insert({
@@ -44,7 +47,7 @@ export default class SentenceTranslateService {
 
     static async recordBatch(validTrans: TransHolder<string>) {
         validTrans.getMapping().forEach((value, key) => {
-            this.recordTranslate(key, value);
+            this.recordTranslate(p(key), value);
         });
     }
 }

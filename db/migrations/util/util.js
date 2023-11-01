@@ -18,5 +18,16 @@ const updateAtTimestampTrigger = (tableName) => {
         `;
 };
 export { updateAtTimestampTrigger };
+
+const toTrimLowerCaseTrigger = (tableName, columnName) => {
+    return `
+        CREATE TRIGGER set_lowercase_for_${tableName}_${columnName}
+        AFTER UPDATE ON ${tableName}
+        BEGIN
+            UPDATE ${tableName} SET ${columnName} = lower(trim(${columnName})) WHERE rowid = new.rowid;
+        END;
+        `;
+};
+export { toTrimLowerCaseTrigger };
 export const SENTENCE_TRANSLATE_TABLE_NAME = 'dp_sentence_translate';
 export const WORD_TRANSLATE_TABLE_NAME = 'dp_word_translate';

@@ -2,13 +2,14 @@
 import TransApi from '../ServerLib/TransApi';
 import { WordLevel } from '../../db/entity/WordLevel';
 import WordLevelService from '../../db/service/WordLevelService';
+import { p } from '../../utils/Util';
 
 export async function markWordLevel(
     word: string,
     level: number
 ): Promise<void> {
     console.log('markWordLevel', word, level);
-    await WordLevelService.recordWordLevel(word, level);
+    await WordLevelService.recordWordLevel(p(word), level);
 }
 
 /**
@@ -17,6 +18,8 @@ export async function markWordLevel(
 export async function wordsTranslate(
     words: string[]
 ): Promise<Map<string, WordLevel>> {
+    // eslint-disable-next-line no-param-reassign
+    words = words.map((w) => p(w));
     const tempWordMapping = await WordLevelService.queryWords(words);
     const needTrans = new Set<string>();
     words.forEach((item) => {

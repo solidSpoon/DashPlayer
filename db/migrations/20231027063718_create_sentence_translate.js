@@ -1,6 +1,7 @@
 import {
     createAtTimestampTrigger,
     SENTENCE_TRANSLATE_TABLE_NAME,
+    toTrimLowerCaseTrigger,
     updateAtTimestampTrigger,
 } from './util/util.js';
 
@@ -22,6 +23,14 @@ export async function up(knex) {
         .then(() => {
             return knex.raw(
                 updateAtTimestampTrigger(SENTENCE_TRANSLATE_TABLE_NAME)
+            );
+        })
+        .then(() => {
+            return knex.raw(
+                toTrimLowerCaseTrigger(
+                    SENTENCE_TRANSLATE_TABLE_NAME,
+                    'sentence'
+                )
             );
         });
 }

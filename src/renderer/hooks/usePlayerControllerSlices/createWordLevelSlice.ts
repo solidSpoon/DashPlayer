@@ -7,8 +7,29 @@ import {
     WordLevelSlice,
 } from './SliceTypes';
 import SentenceT from '../../lib/param/SentenceT';
+import { p } from '../../../utils/Util';
+import { WordLevel } from '../../../db/entity/WordLevel';
 
 const api = window.electron;
+
+const isWord = (word: string) => {
+    if (!word) {
+        return false;
+    }
+    if (word.trim().length <= 2) {
+        return false;
+    }
+    return !/\d/.test(word);
+};
+
+const falseLevel = (word: string) => {
+    return {
+        word,
+        level: 1,
+        translate: word,
+    } as WordLevel;
+};
+
 const createWordLevelSlice: StateCreator<
     WordLevelSlice & InternalSlice,
     [],
@@ -16,18 +37,29 @@ const createWordLevelSlice: StateCreator<
     WordLevelSlice
 > = (set, get) => ({
     getWordLevel: (word) => {
-        return get().internal.wordLevel.get((word ?? '').trim());
+        if (!isWord(word)) {
+            return falseLevel(word);
+        }
+        return get().internal.wordLevel.get(p(word));
     },
     markWordLevel: async (word, level) => {
-        const w = (word ?? '').trim();
+        if (!isWord(word)) {
+            return;
+        }
+        const w = p(word);
         await api.markWordLevel(w, level);
         await get().syncWordsLevel([w]);
     },
     syncWordsLevel: async (words) => {
-        const ws = words.map((w) => (w ?? '').trim());
+        // eslint-disable-next-line no-param-reassign
+        words = words.filter((w) => isWord(w));
+        if (words.length === 0) {
+            return;
+        }
+        const ws = words.map((w) => p(w));
         const wordLevels = await api.wordsTranslate(ws);
         wordLevels.forEach((v, k) => {
-            get().internal.wordLevel.set(k, v);
+            get().internal.wordLevel.set(p(k), v);
         });
     },
 });
