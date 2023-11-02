@@ -16,7 +16,7 @@ import useSetting, {
 } from '../hooks/useSetting';
 import { cn } from '../../utils/Util';
 import { THEME } from '../../types/Types';
-import ControllerPage from './ControllerPage';
+import ControllerPage from './ControllerPage/ControllerPage';
 import usePlayerController from '../hooks/usePlayerController';
 
 export interface PlayerPageParam {
