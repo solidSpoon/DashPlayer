@@ -1,7 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+import { IWithPagination } from 'knex-paginate';
 import TransApi from '../ServerLib/TransApi';
 import { WordLevel } from '../../db/entity/WordLevel';
-import WordLevelService from '../../db/service/WordLevelService';
+import WordLevelService, { Pagination } from '../../db/service/WordLevelService';
 import { p } from '../../utils/Util';
 
 export async function markWordLevel(
@@ -47,4 +48,15 @@ export async function wordsTranslate(
     });
 
     return WordLevelService.queryWords(words);
+}
+
+export async function listWordsLevel(
+    perPage: number,
+    currentPage: number
+): Promise<Pagination<WordLevel>> {
+    return WordLevelService.list(perPage, currentPage);
+}
+
+export async function updateWordsLevel(words: WordLevel[]): Promise<void> {
+    await WordLevelService.batchUpdate(words);
 }

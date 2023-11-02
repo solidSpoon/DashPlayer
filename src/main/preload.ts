@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { IPagination, IWithPagination } from 'knex-paginate';
 import { YdRes } from '../renderer/lib/param/yd/a';
 import { Release } from './controllers/CheckUpdate';
 import { ProgressParam } from './controllers/ProgressController';
@@ -7,6 +8,7 @@ import { WindowState } from '../types/Types';
 import { SentenceApiParam } from '../types/TransApi';
 import { WordLevel } from '../db/entity/WordLevel';
 import TransHolder from '../utils/TransHolder';
+import { Pagination } from '../db/service/WordLevelService';
 
 export type Channels =
     | 'main-state'
@@ -37,6 +39,8 @@ export type Channels =
     | 'open-file'
     | 'copy-to-clipboard'
     | 'words-translate'
+    | 'list-level-words'
+    | 'batch-update-level-words'
     | 'mark-word-level';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -146,6 +150,17 @@ const electronHandler = {
     },
     markWordLevel: async (word: string, level: number) => {
         return (await invoke('mark-word-level', word, level)) as void;
+    },
+    listWordsLevel: async (perPage: number, currentPage: number) => {
+        return (await invoke(
+            'list-level-words',
+            perPage,
+            currentPage
+        )) as Pagination<WordLevel>;
+    },
+    batchUpdateLevelWords: async (words: WordLevel[]) => {
+        console.log('batchUpdateLevelWords', words);
+        return (await invoke('batch-update-level-words', words)) as void;
     },
     wordsTranslate: async (words: string[]) => {
         return (await invoke('words-translate', words)) as Map<

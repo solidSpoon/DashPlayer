@@ -23,9 +23,12 @@ import { getSetting, updateSetting } from './controllers/SettingController';
 import { WindowState } from '../types/Types';
 import { SentenceApiParam } from '../types/TransApi';
 import {
+    listWordsLevel,
     markWordLevel,
+    updateWordsLevel,
     wordsTranslate,
 } from './controllers/WordLevelController';
+import { WordLevel } from '../db/entity/WordLevel';
 
 const handle = (
     channel: Channels,
@@ -83,6 +86,14 @@ export default function registerHandler() {
         return wordsTranslate(words);
     });
 
+    handle('list-level-words', async (perPage: number, currentPage: number) => {
+        log.info('list-words-level');
+        return listWordsLevel(perPage, currentPage);
+    });
+    handle('batch-update-level-words', async (words: WordLevel[]) => {
+        log.info('update-words-level', words);
+        return updateWordsLevel(words);
+    });
     handle('mark-word-level', async (word: string, level: number) => {
         log.info('mark-word-level');
         return markWordLevel(word, level);
