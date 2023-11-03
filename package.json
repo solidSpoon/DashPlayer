@@ -111,6 +111,7 @@
     },
     "dependencies": {
         "@floating-ui/react": "^0.25.4",
+        "@inovua/reactdatagrid-community": "^5.10.2",
         "@radix-ui/react-slider": "^1.1.2",
         "@ramonak/react-progress-bar": "^5.0.3",
         "@turf/convex": "^6.5.0",

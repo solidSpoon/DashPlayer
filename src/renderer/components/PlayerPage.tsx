@@ -70,7 +70,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                     windowsButtonClassName="hover:bg-titlebarHover"
                     className="bg-titlebar"
                 />
-                <GlobalShortCut />
+                {/* <GlobalShortCut /> */}
 
                 <Split
                     className="split flex flex-row w-full flex-1"
