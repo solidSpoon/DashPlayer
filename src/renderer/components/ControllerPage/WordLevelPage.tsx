@@ -3,6 +3,20 @@ import ReactDataGrid from '@inovua/reactdatagrid-community';
 import '@inovua/reactdatagrid-community/index.css';
 import { TypeEditInfo } from '@inovua/reactdatagrid-community/types';
 import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
+import {
+    PiArrowFatUp,
+    PiArrowLeft,
+    PiArrowLineLeft,
+    PiArrowLineRight,
+    PiArrowRight,
+    PiArrowsCounterClockwiseLight,
+    PiArrowUUpLeft,
+    PiDownload,
+    PiDownloadSimple,
+    PiExport,
+    PiMinus,
+    PiPlus,
+} from 'react-icons/pi';
 import { WordLevel } from '../../../db/entity/WordLevel';
 import {
     convertSelect,
@@ -11,17 +25,42 @@ import {
     DataHolder,
     paste,
 } from '../../../utils/ClipBoardConverter';
+import { cn } from '../../../utils/Util';
+import { Pagination } from '../../../db/service/WordLevelService';
+import Separator from '../Separtor';
 
 export interface Row {
+    index: number;
     id: number;
     word: string;
     translation: string;
     level: number;
+    note?: string;
+    markup: 'default' | 'new' | 'delete' | 'update';
 }
 
 const api = window.electron;
 
+const rowStyle = ({ data }: any) => {
+    const colorMap = new Map([
+        ['default', ''],
+        ['new', 'green'],
+        ['delete', 'red'],
+        ['update', 'blue'],
+    ]);
+
+    return {
+        color: colorMap.get(data.markup),
+    };
+};
+
 const defaultColumns = [
+    {
+        name: 'index',
+        header: '',
+        minWidth: 50,
+        maxWidth: 50,
+    },
     {
         name: 'id',
         header: 'Id',
@@ -29,7 +68,7 @@ const defaultColumns = [
         minWidth: 300,
         type: 'number',
     },
-    { name: 'word', header: 'Word', minWidth: 50, defaultFlex: 2 },
+    { name: 'word', header: 'Word', minWidth: 50, defaultFlex: 1 },
     {
         name: 'translation',
         header: 'Translation',
@@ -37,21 +76,10 @@ const defaultColumns = [
         defaultFlex: 1,
     },
     { name: 'level', header: 'Level', maxWidth: 100, defaultFlex: 1 },
+    { name: 'note', header: 'Note', minWidth: 100, defaultFlex: 2 },
 ];
 
 const gridStyle = { minHeight: 550 };
-
-async function getData() {
-    const data = await api.listWordsLevel(1000, 1);
-    return data.data.map((item: WordLevel, index) => {
-        return {
-            id: item.id ?? 0,
-            word: item.word ?? '',
-            translation: item.translate ?? '',
-            level: item.level ?? 0,
-        } as Row;
-    });
-}
 
 const WordLevelPage = () => {
     const localClipboard = useRef<CPInfo[]>([]);
@@ -59,14 +87,30 @@ const WordLevelPage = () => {
         defaultColumns.map((item) => item.name)
     );
     const [dataSource, setDataSource] = useState<WordLevel[]>([]);
+    const [page, setPage] = useState<Pagination<WordLevel>>();
     const [cellSelection, setCellSelection] = useState<TypeCellSelection>({
         '1,word': true,
     });
     useEffect(() => {
         // eslint-disable-next-line promise/catch-or-return,promise/always-return
-        getData().then((d) => {
-            setDataSource(d);
-        });
+        const init = async () => {
+            const data = await api.listWordsLevel(1000, 1);
+            setDataSource(
+                data.data.map(
+                    (item: WordLevel, index) =>
+                        ({
+                            index,
+                            id: item.id ?? 0,
+                            word: item.word ?? '',
+                            translation: item.translate ?? '',
+                            level: item.level ?? 0,
+                            markup: 'default',
+                        } as Row)
+                )
+            );
+            setPage(data);
+        };
+        init();
     }, []);
     const [columns] = useState(defaultColumns);
 
@@ -83,30 +127,21 @@ const WordLevelPage = () => {
     );
 
     useEffect(() => {
-        const handleKeyDown = (event) => {
-            event.preventDefault();
+        const handleKeyDown = (event: KeyboardEvent) => {
             const code = event.which || event.keyCode;
-
             const charCode = String.fromCharCode(code).toLowerCase();
             if ((event.ctrlKey || event.metaKey) && charCode === 's') {
                 // setState('CTRL+S');
                 // alert('CTRL+S Pressed');
             } else if ((event.ctrlKey || event.metaKey) && charCode === 'c') {
-                console.log('handleCopy');
                 const dataHolder = new DataHolder(dataSource, columOrder);
-                console.log('dataHolder', dataHolder);
                 const selectResult = convertSelect(dataHolder, cellSelection);
-                console.log('selectResult', selectResult);
                 if (selectResult) {
-                    const copyResult = copy(dataHolder, selectResult);
-                    console.log('copyResult', copyResult);
-                    localClipboard.current = copyResult;
+                    localClipboard.current = copy(dataHolder, selectResult);
                 }
             } else if ((event.ctrlKey || event.metaKey) && charCode === 'v') {
                 const dataHolder = new DataHolder(dataSource, columOrder);
-                console.log('dataHolder', dataHolder);
                 const selectResult = convertSelect(dataHolder, cellSelection);
-                console.log('selectResult', selectResult);
                 if (selectResult) {
                     paste(dataHolder, selectResult, localClipboard.current);
                     setDataSource(dataHolder.getDataSource());
@@ -122,9 +157,70 @@ const WordLevelPage = () => {
     console.log('cellSelection', cellSelection);
     console.log('columOrder', columOrder);
 
+    const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';
     return (
-        <div>
+        <div className="w-full h-full flex flex-col">
+            <div
+                className={cn(
+                    'flex flex-row items-center justify-between h-9 px-2'
+                )}
+            >
+                <div
+                    className={cn(
+                        'flex flex-row items-center justify-start gap-1 h-10 px-2'
+                    )}
+                >
+                    <PiArrowLineLeft className={cn(buttonClass)} />
+                    <PiArrowLeft className={cn(buttonClass)} />
+                    <div
+                        className={cn(
+                            'flex items-center justify-center text-xs gap-1'
+                        )}
+                    >
+                        <span>
+                            {page?.from} - {page?.to}{' '}
+                        </span>
+                        <span className={cn('text-gray-500')}>/</span>
+                        <span>{page?.total}</span>
+                    </div>
+                    <PiArrowRight className={cn(buttonClass)} />
+                    <PiArrowLineRight className={cn(buttonClass)} />
+                    <Separator orientation="vertical" />
+                    <PiArrowsCounterClockwiseLight
+                        className={cn(buttonClass)}
+                    />
+                    <Separator orientation="vertical" />
+                    <PiPlus className={cn(buttonClass)} />
+                    <PiMinus className={cn(buttonClass)} />
+                    <PiArrowUUpLeft className={cn(buttonClass)} />
+                    <PiArrowFatUp
+                        className={cn(buttonClass, 'fill-green-600')}
+                    />
+                </div>
+                <div
+                    className={cn(
+                        'flex flex-row items-center justify-end gap-1 h-10 px-2'
+                    )}
+                >
+                    <PiDownload className={cn(buttonClass)} />
+                    <Separator orientation="vertical" />
+                    <PiDownloadSimple className={cn(buttonClass)} />
+                    <PiExport className={cn(buttonClass)} />
+                </div>
+            </div>
+            <div
+                className={cn(
+                    'flex flex-row items-center justify-between gap-1 h-8 px-2 bg-gray-100'
+                )}
+            >
+                /
+            </div>
             <ReactDataGrid
+                headerHeight={30}
+                rowHeight={25}
+                rowStyle={rowStyle}
+                className={cn('flex-1')}
+                copySpreadsheetCompatibleString
                 cellSelection={cellSelection}
                 onCellSelectionChange={setCellSelection}
                 onEditComplete={onEditComplete}

@@ -77,6 +77,7 @@ export class DataHolder {
         const columnId = this.columnOrder[c.columnIndex];
         const newElement = {
             ...this.allData[rowIndex],
+            markup: 'update',
             [columnId]: value,
         };
         this.allData = [

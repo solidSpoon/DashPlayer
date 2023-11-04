@@ -20,6 +20,7 @@ export default function Player(): ReactElement {
         updateExactPlayTime,
         setDuration,
         seekTo,
+        changePopType,
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -31,6 +32,7 @@ export default function Player(): ReactElement {
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
+            changePopType: state.changePopType,
         }))
     );
     const videoFile = useFile((s) => s.videoFile);
@@ -120,7 +122,7 @@ export default function Player(): ReactElement {
         return (
             <div
                 className="w-full h-full overflow-hidden"
-                onDoubleClick={() => setShowControlPanel(true)}
+                onDoubleClick={() => changePopType('control')}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
                 <div className="w-full h-full relative overflow-hidden">
