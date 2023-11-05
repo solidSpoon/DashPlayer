@@ -28,6 +28,7 @@ import {
 import { cn } from '../../../utils/Util';
 import { Pagination } from '../../../db/service/WordLevelService';
 import Separator from '../Separtor';
+import FilterEditor from './filterEidter/FilterEditor';
 
 export interface Row {
     index: number;
@@ -208,12 +209,8 @@ const WordLevelPage = () => {
                     <PiExport className={cn(buttonClass)} />
                 </div>
             </div>
-            <div
-                className={cn(
-                    'flex flex-row items-center justify-between gap-1 h-8 px-2 bg-gray-100'
-                )}
-            >
-                /
+            <div className={cn('z-50')}>
+                <FilterEditor />
             </div>
             <ReactDataGrid
                 headerHeight={30}

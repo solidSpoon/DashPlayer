@@ -112,6 +112,7 @@
     "dependencies": {
         "@floating-ui/react": "^0.25.4",
         "@inovua/reactdatagrid-community": "^5.10.2",
+        "@monaco-editor/react": "^4.6.0",
         "@radix-ui/react-slider": "^1.1.2",
         "@ramonak/react-progress-bar": "^5.0.3",
         "@turf/convex": "^6.5.0",
@@ -123,6 +124,8 @@
         "electron-log": "^4.4.8",
         "electron-updater": "^5.2.3",
         "knex-paginate": "^3.1.1",
+        "monaco-editor": "^0.44.0",
+        "monaco-editor-webpack-plugin": "^7.1.0",
         "nedb": "^1.8.0",
         "react": "^18.2.0",
         "react-data-grid": "^7.0.0-beta.40",
