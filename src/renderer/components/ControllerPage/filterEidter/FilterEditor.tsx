@@ -4,7 +4,7 @@ import { suggestOrderBy, suggestWhere } from '../../../../utils/SqliteSuggest';
 
 const FilterEditor = () => {
     const className =
-        'bg-gray-200 p-1 px-2 text-sm flex items-center justify-center';
+        'bg-gray-200 p-1 px-2 text-sm flex items-center justify-center h-[25px]';
     return (
         <div className={cn('w-full flex items-center')}>
             <div className={cn(className)}>WHERE</div>
@@ -12,7 +12,7 @@ const FilterEditor = () => {
                 <OneLineEditor
                     type="sqliteWhere"
                     completionItemProvider={suggestWhere}
-                    onChange={() => {}}
+                    onSubmit={() => {}}
                 />
             </div>
             <div className={cn(className)}>ORDER BY</div>
@@ -20,7 +20,7 @@ const FilterEditor = () => {
                 <OneLineEditor
                     type="sqliteOrderBy"
                     completionItemProvider={suggestOrderBy}
-                    onChange={() => {}}
+                    onSubmit={() => {}}
                 />
             </div>
         </div>

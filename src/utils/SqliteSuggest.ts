@@ -44,7 +44,7 @@ function extracted(position: Position, model: editor.ITextModel) {
             }
         };
         sqlConfigKey.forEach((key) => {
-            sqliteLanguage[key].forEach((sql) => {
+            sqliteLanguage[key].forEach((sql: any) => {
                 suggestions.suggestions.push({
                     label: sql, // 显示的提示内容;默认情况下，这也是选择完成时插入的文本。
                     insertText: sql, // 选择此完成时应插入到文档中的字符串或片段

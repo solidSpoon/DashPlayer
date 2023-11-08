@@ -1,5 +1,12 @@
 import { Editor, Monaco, useMonaco } from '@monaco-editor/react';
-import { CancellationToken, editor, languages, Position } from 'monaco-editor';
+import {
+    CancellationToken,
+    editor,
+    KeyCode,
+    KeyMod,
+    languages,
+    Position,
+} from 'monaco-editor';
 import { useEffect, useRef } from 'react';
 import { language as sqliteLanguage, conf as sqliteConf } from './sqlite';
 import CompletionList = languages.CompletionList;
@@ -8,7 +15,7 @@ import ProviderResult = languages.ProviderResult;
 import { monacoOptions } from './types';
 
 export interface OneLineEditorProps {
-    onChange: (value: string) => void;
+    onSubmit: (value: string) => void;
     type: 'sqliteWhere' | 'sqliteOrderBy';
     completionItemProvider: (
         model: editor.ITextModel,
@@ -18,12 +25,13 @@ export interface OneLineEditorProps {
     ) => ProviderResult<CompletionList>;
 }
 const OneLineEditor = ({
-    onChange,
+    onSubmit,
     type,
     completionItemProvider,
 }: OneLineEditorProps) => {
     const monaco = useMonaco();
     const editorRef = useRef<editor.IStandaloneCodeEditor>();
+    const suggestShow = useRef(false);
     useEffect(() => {
         if (!monaco) return;
         monaco.languages.register({ id: type });
@@ -42,6 +50,30 @@ const OneLineEditor = ({
     }, [completionItemProvider, monaco, type]);
     const handleEditorDidMount = (ed: editor.IStandaloneCodeEditor) => {
         editorRef.current = ed;
+        const isSuggestionOpen = false;
+
+        const suggestionWidget = (
+            ed.getContribution('editor.contrib.suggestController') as {
+                widget: {
+                    value: {
+                        onDidShow: (cb: () => void) => void;
+                        onDidHide: (cb: () => void) => void;
+                    };
+                };
+            } | null
+        )?.widget;
+
+        if (suggestionWidget) {
+            suggestionWidget.value.onDidShow(() => {
+                console.log('show');
+                suggestShow.current = true;
+            });
+            suggestionWidget.value.onDidHide(() => {
+                console.log('hide');
+                suggestShow.current = false;
+            });
+        }
+
         ed.onDidChangeCursorPosition((e) => {
             // Monaco tells us the line number after cursor position changed
             if (e.position.lineNumber > 1) {
@@ -56,15 +88,54 @@ const OneLineEditor = ({
                 });
             }
         });
+        // disable `Find` widget
+        // see: https://github.com/microsoft/monaco-editor/issues/287#issuecomment-328371787
+        // eslint-disable-next-line no-bitwise
+        ed.addCommand(KeyMod.CtrlCmd | KeyCode.KeyF, () => {});
+        ed.addAction({
+            id: 'my-submit',
+            label: 'my-submit',
+            keybindings: [KeyCode.Enter],
+            precondition:
+                '!suggestWidgetVisible && !markersNavigationVisible && !findWidgetVisible',
+            run(ce: editor.ICodeEditor, ...args): void | Promise<void> {
+                console.log('my-submit');
+                onSubmit(ed.getValue());
+                return undefined;
+            },
+        });
+        ed.onDidPaste((e) => {
+            console.log('paste');
+            // multiple rows will be merged to single row
+            const content = ed
+                .getValue()
+                .trim()
+                .split('\n')
+                .map((s) => s.trim())
+                .join(' ');
+            ed.setValue(content);
+            // Bring back the cursor to the end of the first line
+            ed.setPosition({
+                ...e.range.getStartPosition(),
+                // Setting column to Infinity would mean the end of the line
+                column: Infinity,
+            });
+            // scroll to cursor
+            ed.revealPositionInCenter({
+                ...e.range.getStartPosition(),
+                // Setting column to Infinity would mean the end of the line
+                column: Infinity,
+            });
+        });
     };
 
     return (
         <Editor
             path={type}
-            height="22px"
+            height="25px"
             onMount={handleEditorDidMount}
             defaultLanguage={type}
-            defaultValue="1 = 1"
+            // defaultValue="1 = 1"
             options={monacoOptions}
             theme="light"
         />
