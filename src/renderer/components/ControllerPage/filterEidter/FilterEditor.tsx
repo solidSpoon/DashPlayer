@@ -1,15 +1,20 @@
-import { Editor, loader, useMonaco } from '@monaco-editor/react';
-import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import { Editor, loader, Monaco, useMonaco } from '@monaco-editor/react';
+import { CancellationToken, editor, languages, Position } from 'monaco-editor';
+import { language as sqliteLanguage, conf as sqliteConf } from './sqlite';
 import IStandaloneEditorConstructionOptions = editor.IStandaloneEditorConstructionOptions;
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import CompletionList = languages.CompletionList;
+import CompletionContext = languages.CompletionContext;
+import ProviderResult = languages.ProviderResult;
 
 const monacoOptions: IStandaloneEditorConstructionOptions = {
+    acceptSuggestionOnCommitCharacter: true,
     renderLineHighlight: 'none',
-    quickSuggestions: false,
+    // quickSuggestions: false,
     glyphMargin: false,
     lineDecorationsWidth: 0,
     folding: false,
-    fixedOverflowWidgets: true,
+    // fixedOverflowWidgets: true,
     acceptSuggestionOnEnter: 'on',
     hover: {
         delay: 100,
@@ -21,7 +26,7 @@ const monacoOptions: IStandaloneEditorConstructionOptions = {
     links: false,
     minimap: { enabled: false },
     // see: https://github.com/microsoft/monaco-editor/issues/1746
-    wordBasedSuggestions: false,
+    wordBasedSuggestions: true,
     // disable `Find`
     find: {
         addExtraSpaceOnTop: false,
@@ -48,7 +53,89 @@ const monacoOptions: IStandaloneEditorConstructionOptions = {
 const FilterEditor = () => {
     const monaco = useMonaco();
     const editorRef = useRef<editor.IStandaloneCodeEditor>();
-
+    const handleEditorWillMount = (m: Monaco) => {
+        m.languages.typescript.javascriptDefaults.setCompilerOptions({
+            target: m.languages.typescript.ScriptTarget.Latest,
+            module: m.languages.typescript.ModuleKind.ES2015,
+            allowNonTsExtensions: true,
+            lib: ['es2018'],
+        });
+    };
+    useEffect(() => {
+        if (!monaco) return;
+        monaco.languages.register({ id: 'sqlite' });
+        monaco.languages.setLanguageConfiguration('sqlite', sqliteConf);
+        monaco.languages.setMonarchTokensProvider('sqlite', sqliteLanguage);
+        monaco.languages.registerCompletionItemProvider('sqlite', {
+            provideCompletionItems: (
+                model: editor.ITextModel,
+                position: Position,
+                context: CompletionContext,
+                token: CancellationToken
+            ): ProviderResult<CompletionList> => {
+                const suggestions: CompletionList = {
+                    suggestions: [],
+                };
+                const { lineNumber, column } = position;
+                const textUntilPosition = model.getValueInRange({
+                    startLineNumber: position.lineNumber,
+                    startColumn: 1,
+                    endLineNumber: position.lineNumber,
+                    endColumn: position.column,
+                });
+                const word = model.getWordUntilPosition(position);
+                console.log('word', word);
+                console.log('textUntilPosition', textUntilPosition);
+                const textBeforePointer = model.getValueInRange({
+                    startLineNumber: lineNumber,
+                    startColumn: 0,
+                    endLineNumber: lineNumber,
+                    endColumn: column,
+                });
+                const contents = textBeforePointer.trim().split(/\s+/);
+                const lastContents = contents[contents?.length - 1]; // 获取最后一段非空字符串
+                if (lastContents) {
+                    const sqlConfigKey = [
+                        'builtinFunctions',
+                        'keywords',
+                        'operators',
+                    ];
+                    const mapKind = (kind: string) => {
+                        switch (kind) {
+                            case 'builtinFunctions':
+                                return monaco.languages.CompletionItemKind
+                                    .Function;
+                            case 'keywords':
+                                return monaco.languages.CompletionItemKind
+                                    .Keyword;
+                            case 'operators':
+                                return monaco.languages.CompletionItemKind
+                                    .Operator;
+                            default:
+                                return monaco.languages.CompletionItemKind.Text;
+                        }
+                    };
+                    sqlConfigKey.forEach((key) => {
+                        // @ts-ignore
+                        sqliteLanguage[key].forEach((sql) => {
+                            suggestions.suggestions.push({
+                                label: sql, // 显示的提示内容;默认情况下，这也是选择完成时插入的文本。
+                                insertText: sql, // 选择此完成时应插入到文档中的字符串或片段
+                                kind: mapKind(key), // 此完成项的种类。编辑器根据图标的种类选择图标。
+                                range: {
+                                    startLineNumber: lineNumber,
+                                    endLineNumber: lineNumber,
+                                    startColumn: column - lastContents.length,
+                                    endColumn: column,
+                                },
+                            });
+                        });
+                    });
+                }
+                return suggestions;
+            },
+        });
+    }, [monaco]);
     const handleEditorDidMount = (ed: editor.IStandaloneCodeEditor) => {
         editorRef.current = ed;
         ed.onDidChangeCursorPosition((e) => {
@@ -65,62 +152,19 @@ const FilterEditor = () => {
                 });
             }
         });
-        ed.addAction({
-            id: 'submitInSingleMode',
-            label: 'Submit in single mode',
-            // Monaco ships with out of the box enums for keycodes and modifiers
-            keybindings: [KeyCode.Enter],
-            run: () => {
-                // clear the editor
-                ed.setValue('');
-            },
-        });
-        // disable `Find` widget
-        // see: https://github.com/microsoft/monaco-editor/issues/287#issuecomment-328371787
-        // eslint-disable-next-line no-bitwise
-        ed.addCommand(KeyMod.CtrlCmd | KeyCode.KeyF, () => {});
-
-        // disable press `Enter` in case of producing line breaks
-        ed.addCommand(KeyCode.Enter, () => {
-            // State: https://github.com/microsoft/vscode/blob/1.56.0/src/vs/editor/contrib/suggest/suggestWidget.ts#L50
-            const StateOpen = 3;
-            if (
-                // ed._contentWidgets['editor.widget.suggestWidget'].widget.state !==
-                // StateOpen
-                false
-            ) {
-                // this.onEnter(ed.getValue())
-            } else {
-                /**
-                 * Origin purpose: disable line breaks
-                 * Side Effect: If defining completions, will prevent `Enter` confirm selection
-                 * Side Effect Solution: always accept selected suggestion when `Enter`
-                 *
-                 * But it is hard to find out the name `acceptSelectedSuggestion` to trigger.
-                 *
-                 * Where to find the `acceptSelectedSuggestion` at monaco official documents ?
-                 * Below is some refs:
-                 * - https://stackoverflow.com/questions/64430041/get-a-list-of-monaco-commands-actions-ids
-                 * - command from: https://github.com/microsoft/vscode/blob/e216a598d3e02401f26459fb63a4f1b6365ec4ec/src/vs/editor/contrib/suggest/suggestController.ts#L632-L638
-                 * - https://github.com/microsoft/vscode/search?q=registerEditorCommand
-                 * - real list: https://github.com/microsoft/vscode/blob/e216a598d3e02401f26459fb63a4f1b6365ec4ec/src/vs/editor/browser/editorExtensions.ts#L611
-                 *
-                 *
-                 * Finally, `acceptSelectedSuggestion` appears here:
-                 * - `editorExtensions.js` Line 288
-                 */
-                ed.trigger('', 'acceptSelectedSuggestion', 'aaa');
-            }
-        });
     };
 
+    const defaultValue = `insert create table
+
+    where`;
     return (
         <Editor
             path="filter"
-            height="220px"
+            height="22px"
             onMount={handleEditorDidMount}
-            defaultLanguage="mysql"
-            // defaultValue="// some comment"
+            beforeMount={handleEditorWillMount}
+            defaultLanguage="sqlite"
+            // defaultValue={defaultValue}
             options={monacoOptions}
             theme="light"
         />
