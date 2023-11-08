@@ -1396,4 +1396,3 @@ export const language = <languages.IMonarchLanguage>{
         ],
     },
 };
-
