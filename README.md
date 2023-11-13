@@ -28,7 +28,7 @@
   </a>
 </p>
 
-> 安装与使用指南详见 [Wiki](https://github.com/solidSpoon/DashPlayer/wiki)
+> 安装与使用指南详见 [Wiki](https://solidspoon.xyz/docs/dash-player/intro)
 
 # DashPlayer
 
