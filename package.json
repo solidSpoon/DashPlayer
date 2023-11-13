@@ -143,6 +143,7 @@
         "run-applescript": "^6.0.0",
         "tailwind-merge": "^1.14.0",
         "tencentcloud-sdk-nodejs": "^4.0.489",
+        "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz",
         "zustand": "^4.4.3"
     },
     "devDependencies": {

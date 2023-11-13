@@ -37,11 +37,12 @@ export type Channels =
     | 'home-size'
     | 'recent-play'
     | 'open-file'
-    | 'copy-to-clipboard'
     | 'words-translate'
     | 'list-level-words'
     | 'batch-update-level-words'
-    | 'mark-word-level';
+    | 'mark-word-level'
+    | 'write-to-clipboard'
+    | 'read-from-clipboard';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -187,8 +188,11 @@ const electronHandler = {
         const blob = new Blob([data]);
         return URL.createObjectURL(blob);
     },
-    copyToClipboard: async (text: string) => {
-        await invoke('copy-to-clipboard', text);
+    writeToClipboard: async (text: string) => {
+        await invoke('write-to-clipboard', text);
+    },
+    readFromClipboard: async () => {
+        return (await invoke('read-from-clipboard')) as string;
     },
     recentPlay: async (size: number) => {
         return (await invoke('recent-play', size)) as ProgressParam[];

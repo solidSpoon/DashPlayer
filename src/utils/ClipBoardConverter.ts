@@ -169,3 +169,43 @@ export const paste = (
         );
     });
 };
+
+export const toCpInfos = (s: string): CPInfo[] => {
+    const lines = s.trim().split('\n');
+    const result: CPInfo[] = [];
+    lines.forEach((line, rowIndex) => {
+        const cells = line.split('\t');
+        cells.forEach((cell, columnIndex) => {
+            result.push({
+                coordinate: {
+                    rowIndex,
+                    columnIndex,
+                },
+                value: cell,
+            });
+        });
+    });
+    return result;
+};
+
+export const toCpString = (cpInfos: CPInfo[]): string => {
+    const maxRowIndex = Math.max(
+        ...cpInfos.map((cp) => cp.coordinate.rowIndex)
+    );
+    const maxColumnIndex = Math.max(
+        ...cpInfos.map((cp) => cp.coordinate.columnIndex)
+    );
+    const result: string[][] = [];
+    for (let i = 0; i <= maxRowIndex; i += 1) {
+        const row: string[] = [];
+        for (let j = 0; j <= maxColumnIndex; j += 1) {
+            row.push('');
+        }
+        result.push(row);
+    }
+    cpInfos.forEach((cp) => {
+        result[cp.coordinate.rowIndex][cp.coordinate.columnIndex] =
+            cp.value ?? '';
+    });
+    return result.map((row) => row.join('\t')).join('\n');
+};

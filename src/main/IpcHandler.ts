@@ -29,6 +29,10 @@ import {
     wordsTranslate,
 } from './controllers/WordLevelController';
 import { WordLevel } from '../db/entity/WordLevel';
+import {
+    readFromClipboard,
+    writeToClipboard,
+} from './controllers/ClopboardController';
 
 const handle = (
     channel: Channels,
@@ -236,9 +240,11 @@ export default function registerHandler() {
             });
         });
     });
-    handle('copy-to-clipboard', async (text: string) => {
-        console.log('copy-to-clipboard', text);
-        clipboard.writeText(text);
+    handle('write-to-clipboard', async (text: string) => {
+        writeToClipboard(text);
         return true;
+    });
+    handle('read-from-clipboard', async () => {
+        return readFromClipboard();
     });
 }

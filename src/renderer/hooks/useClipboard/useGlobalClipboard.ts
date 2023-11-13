@@ -1,76 +1,42 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
-export interface ClipboardContent {
-    id?: number;
-    type: 'text' | 'image' | 'dp-excel' | 'none';
-    content?: any;
-}
+const api = window.electron;
 
 export type GlobalClipboardState = {
-    internal: {
-        maxId: number;
-    };
-    content: ClipboardContent[];
-    copyCallbacks: (() => ClipboardContent)[];
-    pasteCallbacks: ((cs: ClipboardContent[]) => void)[];
-    addContent: (content: ClipboardContent) => void;
+    copyCallback: (() => string) | null;
+    pasteCallback: ((cs: string) => void) | null;
 };
 
 type GlobalClipboardActions = {
-    registerCopy: (callback: () => ClipboardContent) => () => void;
-    registerPaste: (callback: (cs: ClipboardContent[]) => void) => () => void;
+    registerCopy: (callback: () => string) => () => void;
+    registerPaste: (callback: (cs: string) => void) => () => void;
 };
 
 const useGlobalClipboard = create(
     subscribeWithSelector<GlobalClipboardState & GlobalClipboardActions>(
         (set) => ({
-            internal: {
-                maxId: 0,
-            },
-            content: [],
-            copyCallbacks: [],
-            pasteCallbacks: [],
-            registerCopy: (callback: () => ClipboardContent) => {
+            copyCallback: null,
+            pasteCallback: null,
+            registerCopy: (callback: () => string) => {
                 set((state) => ({
-                    copyCallbacks: [...state.copyCallbacks, callback],
+                    copyCallback: callback,
                 }));
                 return () => {
                     set((state) => ({
-                        copyCallbacks: state.copyCallbacks.filter(
-                            (cb) => cb !== callback
-                        ),
+                        copyCallback: null,
                     }));
                 };
             },
-            registerPaste: (callback: (cs: ClipboardContent[]) => void) => {
+            registerPaste: (callback: (cs: string) => void) => {
                 set((state) => ({
-                    pasteCallbacks: [...state.pasteCallbacks, callback],
+                    pasteCallback: callback,
                 }));
                 return () => {
                     set((state) => ({
-                        pasteCallbacks: state.pasteCallbacks.filter(
-                            (cb) => cb !== callback
-                        ),
+                        pasteCallback: null,
                     }));
                 };
-            },
-            addContent: (content: ClipboardContent) => {
-                set((state) => {
-                    const maxId = state.internal.maxId + 1;
-                    return {
-                        internal: {
-                            maxId,
-                        },
-                        content: [
-                            ...state.content,
-                            {
-                                ...content,
-                                id: maxId,
-                            },
-                        ],
-                    };
-                });
             },
         })
     )
@@ -79,26 +45,21 @@ export default useGlobalClipboard;
 
 window.addEventListener('copy', (e) => {
     console.log('copy', e);
-    const cpCbs = useGlobalClipboard.getState().copyCallbacks;
-    if (cpCbs.length === 0) {
+    const cpCb = useGlobalClipboard.getState().copyCallback;
+    if (cpCb === null) {
         return;
     }
     e.preventDefault();
-    const cpContents = cpCbs.map((cb) => cb());
-    console.log('text', cpContents);
-    cpContents.forEach((c) => {
-        useGlobalClipboard.getState().addContent(c);
-    });
+    const cpContent = cpCb();
+    api.writeToClipboard(cpContent);
 });
 
-window.addEventListener('paste', (e) => {
-    const pasteCbs = useGlobalClipboard.getState().pasteCallbacks;
-    if (pasteCbs.length === 0) {
+window.addEventListener('paste', async (e) => {
+    const pasteCb = useGlobalClipboard.getState().pasteCallback;
+    if (pasteCb === null) {
         return;
     }
     e.preventDefault();
-    console.log('paste', e);
-    const text = useGlobalClipboard.getState().content;
-    console.log('text', text);
-    pasteCbs.forEach((cb) => cb(text));
+    const text = await api.readFromClipboard();
+    pasteCb(text);
 });

@@ -24,15 +24,14 @@ import {
     CPInfo,
     DataHolder,
     paste,
+    toCpInfos,
+    toCpString,
 } from '../../../utils/ClipBoardConverter';
 import { cn } from '../../../utils/Util';
-import { Pagination } from '../../../db/service/WordLevelService';
 import Separator from '../Separtor';
 import FilterEditor from './filterEidter/FilterEditor';
 import useWordsLevelPage from '../../hooks/useWordsLevelPage';
-import useGlobalClipboard, {
-    ClipboardContent,
-} from '../../hooks/useClipboard/useGlobalClipboard';
+import useGlobalClipboard from '../../hooks/useClipboard/useGlobalClipboard';
 
 export interface Row {
     index: number;
@@ -116,51 +115,17 @@ const WordLevelPage = () => {
         },
         [dataSource, setDataSource]
     );
-
-    // useEffect(() => {
-    //     const handleKeyDown = (event: KeyboardEvent) => {
-    //         const code = event.which || event.keyCode;
-    //         const charCode = String.fromCharCode(code).toLowerCase();
-    //         if ((event.ctrlKey || event.metaKey) && charCode === 's') {
-    //             // setState('CTRL+S');
-    //             // alert('CTRL+S Pressed');
-    //         } else if ((event.ctrlKey || event.metaKey) && charCode === 'c') {
-    //             const dataHolder = new DataHolder(dataSource, columOrder);
-    //             const selectResult = convertSelect(dataHolder, cellSelection);
-    //             if (selectResult) {
-    //                 localClipboard.current = copy(dataHolder, selectResult);
-    //             }
-    //         } else if ((event.ctrlKey || event.metaKey) && charCode === 'v') {
-    //             const dataHolder = new DataHolder(dataSource, columOrder);
-    //             const selectResult = convertSelect(dataHolder, cellSelection);
-    //             if (selectResult) {
-    //                 paste(dataHolder, selectResult, localClipboard.current);
-    //                 setDataSource(dataHolder.getDataSource());
-    //             }
-    //         }
-    //     };
-    //
-    //     window.addEventListener('keydown', handleKeyDown);
-    //
-    //     return () => window.removeEventListener('keydown', handleKeyDown);
-    // }, [cellSelection, columOrder, dataSource, setDataSource]);
     useEffect(() => {
-        const removeCp = registerCopy(() => {
+        const removeCp = registerCopy((): string => {
             const dataHolder = new DataHolder(dataSource, columOrder);
             const selectResult = convertSelect(dataHolder, cellSelection);
             if (selectResult) {
-                return {
-                    type: 'dp-excel',
-                    content: copy(dataHolder, selectResult),
-                } as ClipboardContent;
+                return toCpString(copy(dataHolder, selectResult));
             }
-            return {
-                type: 'none',
-            } as ClipboardContent;
+            return '';
         });
-        const removePs = registerPaste((cs: ClipboardContent[]) => {
-            const cpInfo = cs.find((item) => item.type === 'dp-excel')
-                ?.content as CPInfo[] | undefined;
+        const removePs = registerPaste((cs: string) => {
+            const cpInfo = toCpInfos(cs);
             const dataHolder = new DataHolder(dataSource, columOrder);
             const selectResult = convertSelect(dataHolder, cellSelection);
             if (selectResult && cpInfo) {

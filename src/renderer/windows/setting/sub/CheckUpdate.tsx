@@ -28,7 +28,7 @@ const CheckUpdate = () => {
             type: 'info',
             text: 'copied',
         });
-        await api.copyToClipboard(newRelease?.url ?? '');
+        await api.writeToClipboard(newRelease?.url ?? '');
     };
 
     return (
