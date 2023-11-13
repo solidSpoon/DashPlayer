@@ -2,7 +2,9 @@
 import { IWithPagination } from 'knex-paginate';
 import TransApi from '../ServerLib/TransApi';
 import { WordLevel } from '../../db/entity/WordLevel';
-import WordLevelService, { Pagination } from '../../db/service/WordLevelService';
+import WordLevelService, {
+    Pagination,
+} from '../../db/service/WordLevelService';
 import { p } from '../../utils/Util';
 
 export async function markWordLevel(
@@ -51,10 +53,12 @@ export async function wordsTranslate(
 }
 
 export async function listWordsLevel(
+    whereSql: string,
+    orderBySql: string,
     perPage: number,
     currentPage: number
 ): Promise<Pagination<WordLevel>> {
-    return WordLevelService.list(perPage, currentPage);
+    return WordLevelService.list(whereSql, orderBySql, perPage, currentPage);
 }
 
 export async function updateWordsLevel(words: WordLevel[]): Promise<void> {

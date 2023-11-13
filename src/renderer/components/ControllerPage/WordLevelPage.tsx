@@ -17,7 +17,7 @@ import {
     PiMinus,
     PiPlus,
 } from 'react-icons/pi';
-import { WordLevel } from '../../../db/entity/WordLevel';
+import { useShallow } from 'zustand/react/shallow';
 import {
     convertSelect,
     copy,
@@ -29,6 +29,10 @@ import { cn } from '../../../utils/Util';
 import { Pagination } from '../../../db/service/WordLevelService';
 import Separator from '../Separtor';
 import FilterEditor from './filterEidter/FilterEditor';
+import useWordsLevelPage from '../../hooks/useWordsLevelPage';
+import useGlobalClipboard, {
+    ClipboardContent,
+} from '../../hooks/useClipboard/useGlobalClipboard';
 
 export interface Row {
     index: number;
@@ -83,36 +87,22 @@ const defaultColumns = [
 const gridStyle = { minHeight: 550 };
 
 const WordLevelPage = () => {
+    const { registerPaste, registerCopy } = useGlobalClipboard(
+        useShallow((s) => ({
+            registerPaste: s.registerPaste,
+            registerCopy: s.registerCopy,
+        }))
+    );
+
     const localClipboard = useRef<CPInfo[]>([]);
     const [columOrder, setColumOrder] = useState<string[]>(
         defaultColumns.map((item) => item.name)
     );
-    const [dataSource, setDataSource] = useState<WordLevel[]>([]);
-    const [page, setPage] = useState<Pagination<WordLevel>>();
+    const { dataSource, setDataSource, loading, page } = useWordsLevelPage();
     const [cellSelection, setCellSelection] = useState<TypeCellSelection>({
         '1,word': true,
     });
-    useEffect(() => {
-        // eslint-disable-next-line promise/catch-or-return,promise/always-return
-        const init = async () => {
-            const data = await api.listWordsLevel(1000, 1);
-            setDataSource(
-                data.data.map(
-                    (item: WordLevel, index) =>
-                        ({
-                            index,
-                            id: item.id ?? 0,
-                            word: item.word ?? '',
-                            translation: item.translate ?? '',
-                            level: item.level ?? 0,
-                            markup: 'default',
-                        } as Row)
-                )
-            );
-            setPage(data);
-        };
-        init();
-    }, []);
+
     const [columns] = useState(defaultColumns);
 
     const onEditComplete = useCallback(
@@ -124,36 +114,72 @@ const WordLevelPage = () => {
             setDataSource(data);
             console.log(value, columnId, rowIndex);
         },
-        [dataSource]
+        [dataSource, setDataSource]
     );
 
+    // useEffect(() => {
+    //     const handleKeyDown = (event: KeyboardEvent) => {
+    //         const code = event.which || event.keyCode;
+    //         const charCode = String.fromCharCode(code).toLowerCase();
+    //         if ((event.ctrlKey || event.metaKey) && charCode === 's') {
+    //             // setState('CTRL+S');
+    //             // alert('CTRL+S Pressed');
+    //         } else if ((event.ctrlKey || event.metaKey) && charCode === 'c') {
+    //             const dataHolder = new DataHolder(dataSource, columOrder);
+    //             const selectResult = convertSelect(dataHolder, cellSelection);
+    //             if (selectResult) {
+    //                 localClipboard.current = copy(dataHolder, selectResult);
+    //             }
+    //         } else if ((event.ctrlKey || event.metaKey) && charCode === 'v') {
+    //             const dataHolder = new DataHolder(dataSource, columOrder);
+    //             const selectResult = convertSelect(dataHolder, cellSelection);
+    //             if (selectResult) {
+    //                 paste(dataHolder, selectResult, localClipboard.current);
+    //                 setDataSource(dataHolder.getDataSource());
+    //             }
+    //         }
+    //     };
+    //
+    //     window.addEventListener('keydown', handleKeyDown);
+    //
+    //     return () => window.removeEventListener('keydown', handleKeyDown);
+    // }, [cellSelection, columOrder, dataSource, setDataSource]);
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            const code = event.which || event.keyCode;
-            const charCode = String.fromCharCode(code).toLowerCase();
-            if ((event.ctrlKey || event.metaKey) && charCode === 's') {
-                // setState('CTRL+S');
-                // alert('CTRL+S Pressed');
-            } else if ((event.ctrlKey || event.metaKey) && charCode === 'c') {
-                const dataHolder = new DataHolder(dataSource, columOrder);
-                const selectResult = convertSelect(dataHolder, cellSelection);
-                if (selectResult) {
-                    localClipboard.current = copy(dataHolder, selectResult);
-                }
-            } else if ((event.ctrlKey || event.metaKey) && charCode === 'v') {
-                const dataHolder = new DataHolder(dataSource, columOrder);
-                const selectResult = convertSelect(dataHolder, cellSelection);
-                if (selectResult) {
-                    paste(dataHolder, selectResult, localClipboard.current);
-                    setDataSource(dataHolder.getDataSource());
-                }
+        const removeCp = registerCopy(() => {
+            const dataHolder = new DataHolder(dataSource, columOrder);
+            const selectResult = convertSelect(dataHolder, cellSelection);
+            if (selectResult) {
+                return {
+                    type: 'dp-excel',
+                    content: copy(dataHolder, selectResult),
+                } as ClipboardContent;
             }
+            return {
+                type: 'none',
+            } as ClipboardContent;
+        });
+        const removePs = registerPaste((cs: ClipboardContent[]) => {
+            const cpInfo = cs.find((item) => item.type === 'dp-excel')
+                ?.content as CPInfo[] | undefined;
+            const dataHolder = new DataHolder(dataSource, columOrder);
+            const selectResult = convertSelect(dataHolder, cellSelection);
+            if (selectResult && cpInfo) {
+                paste(dataHolder, selectResult, cpInfo);
+                setDataSource(dataHolder.getDataSource());
+            }
+        });
+        return () => {
+            removeCp();
+            removePs();
         };
-
-        window.addEventListener('keydown', handleKeyDown);
-
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [cellSelection, columOrder, dataSource]);
+    }, [
+        cellSelection,
+        columOrder,
+        dataSource,
+        registerCopy,
+        registerPaste,
+        setDataSource,
+    ]);
 
     console.log('cellSelection', cellSelection);
     console.log('columOrder', columOrder);

@@ -63,43 +63,25 @@ export default class WordLevelService {
         return map;
     }
 
-    //     router.get("/", (req, res) => {
-    //     var reqData = req.query;
-    //     var pagination = {};
-    //     var per_page = reqData.per_page || 10;
-    //     var page = reqData.current_page || 1;
-    //     if (page < 1) page = 1;
-    //     var offset = (page - 1) * per_page;
-    //     return Promise.all([
-    //                            db.count('* as count').from("site.site_product").first(),
-    //                            db.select("*").from("site.site_product").offset(offset).limit(per_page)
-    //                        ]).then(([total, rows]) => {
-    //     var count = total.count;
-    //     var rows = rows;
-    //     pagination.total = count;
-    //     pagination.per_page = per_page;
-    //     pagination.offset = offset;
-    //     pagination.to = offset + rows.length;
-    //     pagination.last_page = Math.ceil(count / per_page);
-    //     pagination.current_page = page;
-    //     pagination.from = offset;
-    //     pagination.data = rows;
-    //     res.render("inventory/site_product", {
-    //     data: pagination
-    // });
-    // });
-    // });
-
     static async list(
+        whereSql: string,
+        orderBySql: string,
         perPage: number,
         currentPage: number
     ): Promise<Pagination<WordLevel>> {
         const offset = (currentPage - 1) * perPage;
         const [total, rows] = await Promise.all([
-            knexDb.count('* as count').from(WORD_LEVEL_TABLE_NAME).first(),
+            knexDb
+                .count('* as count')
+                .from(WORD_LEVEL_TABLE_NAME)
+                .whereRaw(whereSql)
+                .orderByRaw(orderBySql)
+                .first(),
             knexDb
                 .select('*')
                 .from(WORD_LEVEL_TABLE_NAME)
+                .whereRaw(whereSql)
+                .orderByRaw(orderBySql)
                 .offset(offset)
                 .limit(perPage),
         ]);

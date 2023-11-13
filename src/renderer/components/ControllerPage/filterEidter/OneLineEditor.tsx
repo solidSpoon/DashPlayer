@@ -2,20 +2,23 @@ import { Editor, Monaco, useMonaco } from '@monaco-editor/react';
 import {
     CancellationToken,
     editor,
+    IDisposable,
     KeyCode,
     KeyMod,
     languages,
     Position,
 } from 'monaco-editor';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { language as sqliteLanguage, conf as sqliteConf } from './sqlite';
 import CompletionList = languages.CompletionList;
 import CompletionContext = languages.CompletionContext;
 import ProviderResult = languages.ProviderResult;
 import { monacoOptions } from './types';
+import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
 
 export interface OneLineEditorProps {
-    onSubmit: (value: string) => void;
+    onValueUpdate: (value: string) => void;
+    onSubmit: () => void;
     type: 'sqliteWhere' | 'sqliteOrderBy';
     completionItemProvider: (
         model: editor.ITextModel,
@@ -25,31 +28,69 @@ export interface OneLineEditorProps {
     ) => ProviderResult<CompletionList>;
 }
 const OneLineEditor = ({
+    onValueUpdate,
     onSubmit,
     type,
     completionItemProvider,
 }: OneLineEditorProps) => {
     const monaco = useMonaco();
-    const editorRef = useRef<editor.IStandaloneCodeEditor>();
+    const [editorRef, setEditorRef] = useState<IStandaloneCodeEditor>();
     const suggestShow = useRef(false);
     useEffect(() => {
-        if (!monaco) return;
-        monaco.languages.register({ id: type });
-        monaco.languages.setLanguageConfiguration(type, sqliteConf);
-        monaco.languages.setMonarchTokensProvider(type, sqliteLanguage);
-        monaco.languages.registerCompletionItemProvider(type, {
-            provideCompletionItems: (
-                model: editor.ITextModel,
-                position: Position,
-                context: CompletionContext,
-                token: CancellationToken
-            ): ProviderResult<CompletionList> => {
-                return completionItemProvider(model, position, context, token);
-            },
-        });
+        const disposables: IDisposable[] = [];
+        if (monaco) {
+            monaco.languages.register({ id: type });
+            monaco.languages.setLanguageConfiguration(type, sqliteConf);
+            monaco.languages.setMonarchTokensProvider(type, sqliteLanguage);
+            disposables.push(
+                monaco.languages.registerCompletionItemProvider(type, {
+                    provideCompletionItems: (
+                        model: editor.ITextModel,
+                        position: Position,
+                        context: CompletionContext,
+                        token: CancellationToken
+                    ): ProviderResult<CompletionList> => {
+                        console.log('suggest sssss');
+                        return completionItemProvider(
+                            model,
+                            position,
+                            context,
+                            token
+                        );
+                    },
+                    triggerCharacters: [' ', '.', '(', '$'],
+                })
+            );
+        }
+        return () => {
+            disposables.forEach((d) => d.dispose());
+        };
     }, [completionItemProvider, monaco, type]);
+    useEffect(() => {
+        const disposables: IDisposable[] = [];
+        if (editorRef) {
+            disposables.push(
+                editorRef.addAction({
+                    id: 'my-submit',
+                    label: 'my-submit',
+                    keybindings: [KeyCode.Enter],
+                    precondition:
+                        '!suggestWidgetVisible && !markersNavigationVisible && !findWidgetVisible',
+                    run(ce: editor.ICodeEditor, ...args): void | Promise<void> {
+                        console.log('my-submit');
+                        onSubmit();
+                        return undefined;
+                    },
+                })
+            );
+        }
+        return () => {
+            disposables.forEach((d) => d.dispose());
+        };
+    }, [editorRef, onSubmit]);
     const handleEditorDidMount = (ed: editor.IStandaloneCodeEditor) => {
-        editorRef.current = ed;
+        onValueUpdate(ed.getValue());
+        setEditorRef(ed);
         const isSuggestionOpen = false;
 
         const suggestionWidget = (
@@ -92,17 +133,8 @@ const OneLineEditor = ({
         // see: https://github.com/microsoft/monaco-editor/issues/287#issuecomment-328371787
         // eslint-disable-next-line no-bitwise
         ed.addCommand(KeyMod.CtrlCmd | KeyCode.KeyF, () => {});
-        ed.addAction({
-            id: 'my-submit',
-            label: 'my-submit',
-            keybindings: [KeyCode.Enter],
-            precondition:
-                '!suggestWidgetVisible && !markersNavigationVisible && !findWidgetVisible',
-            run(ce: editor.ICodeEditor, ...args): void | Promise<void> {
-                console.log('my-submit');
-                onSubmit(ed.getValue());
-                return undefined;
-            },
+        ed.onDidChangeModelContent((e) => {
+            onValueUpdate(ed.getValue());
         });
         ed.onDidPaste((e) => {
             console.log('paste');

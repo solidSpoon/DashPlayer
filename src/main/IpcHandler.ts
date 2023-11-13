@@ -86,10 +86,18 @@ export default function registerHandler() {
         return wordsTranslate(words);
     });
 
-    handle('list-level-words', async (perPage: number, currentPage: number) => {
-        log.info('list-words-level');
-        return listWordsLevel(perPage, currentPage);
-    });
+    handle(
+        'list-level-words',
+        async (
+            whereSql: string,
+            orderBySql: string,
+            perPage: number,
+            currentPage: number
+        ) => {
+            log.info('list-words-level');
+            return listWordsLevel(whereSql, orderBySql, perPage, currentPage);
+        }
+    );
     handle('batch-update-level-words', async (words: WordLevel[]) => {
         log.info('update-words-level', words);
         return updateWordsLevel(words);

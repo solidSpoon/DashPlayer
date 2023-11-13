@@ -151,9 +151,16 @@ const electronHandler = {
     markWordLevel: async (word: string, level: number) => {
         return (await invoke('mark-word-level', word, level)) as void;
     },
-    listWordsLevel: async (perPage: number, currentPage: number) => {
+    listWordsLevel: async (
+        whereSql: string,
+        orderBySql: string,
+        perPage: number,
+        currentPage: number
+    ) => {
         return (await invoke(
             'list-level-words',
+            whereSql,
+            orderBySql,
             perPage,
             currentPage
         )) as Pagination<WordLevel>;

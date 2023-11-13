@@ -2,7 +2,7 @@ import { CancellationToken, editor, languages, Position } from 'monaco-editor';
 import CompletionList = languages.CompletionList;
 import CompletionContext = languages.CompletionContext;
 import CompletionItemKind = languages.CompletionItemKind;
-import { language as sqliteLanguage} from '../renderer/components/ControllerPage/filterEidter/sqlite';
+import { language as sqliteLanguage } from '../renderer/components/ControllerPage/filterEidter/sqlite';
 // const parser = new Parser();
 // const ast = parser.astify('SELECT * FROM t'); // mysql sql grammer parsed by default
 //
@@ -59,6 +59,21 @@ function extracted(position: Position, model: editor.ITextModel) {
             });
         });
     }
+    const fields = ['Word', 'Translation', 'Note', 'Level'];
+    fields.forEach((field) => {
+        suggestions.suggestions.push({
+            label: field,
+            insertText: field,
+            kind: CompletionItemKind.Field,
+            range: {
+                startLineNumber: lineNumber,
+                endLineNumber: lineNumber,
+                startColumn: column - lastContents.length,
+                endColumn: column,
+            },
+        });
+    });
+
     return suggestions;
 }
 export const suggestWhere = (
