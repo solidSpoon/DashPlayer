@@ -171,7 +171,11 @@ export const paste = (
 };
 
 export const toCpInfos = (s: string): CPInfo[] => {
-    const lines = s.trim().split('\n');
+    if (s.endsWith('\n')) {
+        // eslint-disable-next-line no-param-reassign
+        s = s.substring(0, s.length - 1);
+    }
+    const lines = s.split('\n');
     const result: CPInfo[] = [];
     lines.forEach((line, rowIndex) => {
         const cells = line.split('\t');
