@@ -69,6 +69,15 @@ export default class WordLevelService {
         perPage: number,
         currentPage: number
     ): Promise<Pagination<WordLevel>> {
+        if (whereSql.trim() === '') {
+            // eslint-disable-next-line no-param-reassign
+            whereSql = '1 = 1';
+        }
+        if (orderBySql.trim() === '') {
+            // eslint-disable-next-line no-param-reassign
+            orderBySql = 'word';
+        }
+        console.log('list', whereSql, orderBySql, perPage, currentPage);
         const offset = (currentPage - 1) * perPage;
         const [total, rows] = await Promise.all([
             knexDb

@@ -1,5 +1,6 @@
 import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
 import { WordLevel } from '../db/entity/WordLevel';
+import { WordLevelRow } from '../renderer/components/ControllerPage/WordLevelPage';
 
 export interface Coordinate {
     rowIndex: number;
@@ -29,7 +30,7 @@ const addCoordinate = (a: Coordinate, b: Coordinate) => {
 };
 
 export class DataHolder {
-    private allData: WordLevel[];
+    private allData: WordLevelRow[];
 
     private columnOrder: string[];
 
@@ -39,7 +40,7 @@ export class DataHolder {
 
     private RowIndexMapping = new Map<number, number>();
 
-    constructor(allData: WordLevel[], columnOrder: string[]) {
+    constructor(allData: WordLevelRow[], columnOrder: string[]) {
         this.allData = allData;
         this.columnOrder = columnOrder;
 
@@ -75,7 +76,7 @@ export class DataHolder {
     public setValueAt(c: Coordinate, value: string) {
         const { rowIndex } = c;
         const columnId = this.columnOrder[c.columnIndex];
-        const newElement = {
+        const newElement: WordLevelRow = {
             ...this.allData[rowIndex],
             markup: 'update',
             [columnId]: value,

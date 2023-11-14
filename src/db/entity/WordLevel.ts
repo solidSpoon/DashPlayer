@@ -6,6 +6,7 @@ export interface WordLevel {
      * 2: 正常
      */
     level?: number;
+    note?: string;
     translate?: string;
     created_at?: string;
     updated_at?: string;

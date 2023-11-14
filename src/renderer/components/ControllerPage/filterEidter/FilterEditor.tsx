@@ -1,19 +1,36 @@
 import { useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '../../../../utils/Util';
 import OneLineEditor from './OneLineEditor';
 import { suggestOrderBy, suggestWhere } from '../../../../utils/SqliteSuggest';
-import { build } from '../../../../utils/SqliteBuilder';
+import { parseQuery } from '../../../../utils/SqliteBuilder';
+import useDataPage, {
+    DataPageDataHolder,
+} from '../../../hooks/useDataPage/useDataPage';
 
-const FilterEditor = () => {
+export interface FilterEditorProps {
+    keyName: keyof DataPageDataHolder;
+}
+const FilterEditor = ({ keyName }: FilterEditorProps) => {
+    const { setPageParam, load, updatePageParam } = useDataPage(
+        useShallow((s) => ({
+            setPageParam: s.updatePageParam,
+            load: s.load,
+            updatePageParam: s.updatePageParam,
+        }))
+    );
     const where = useRef<string>();
     const orderBy = useRef<string>();
 
     const className =
         'bg-gray-200 p-1 px-2 text-sm flex items-center justify-center h-[25px]';
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         console.log('where', where.current);
         console.log('orderBy', orderBy.current);
-        build(where.current ?? '', orderBy.current ?? '');
+        setPageParam(keyName, 'whereSql', where.current?.trim() ?? '');
+        setPageParam(keyName, 'orderBySql', orderBy.current?.trim() ?? '');
+        updatePageParam(keyName, 'pageNum', 1);
+        await load(keyName);
     };
     return (
         <div className={cn('w-full flex items-center')}>

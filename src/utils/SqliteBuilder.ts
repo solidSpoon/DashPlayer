@@ -27,14 +27,33 @@ function proceedColumns(ast: any) {
         }
     });
 }
-const build = (where: string, orderBy: string) => {
+const parseQuery = (
+    where: string,
+    orderBy: string
+): {
+    whereSql: string;
+    orderBySql: string;
+} => {
     const sql = `SELECT * FROM t WHERE ${where} ORDER BY ${orderBy}`;
     const parser = new Parser();
     const ast = parser.astify(sql);
     proceedColumns(ast);
     console.log(ast);
     console.log(parser.sqlify(ast));
+    const res = {
+        whereSql: '',
+        orderBySql: '',
+    };
+    if ('where' in ast) {
+        res.whereSql = parser.exprToSQL(ast.where);
+    }
+    if ('orderby' in ast) {
+        console.log('obbb', ast.orderby, parser.exprToSQL(ast.orderby));
+        res.orderBySql = parser.exprToSQL(ast.orderby);
+    }
+    console.log(res);
+    return res;
 };
 
 // eslint-disable-next-line import/prefer-default-export
-export { build };
+export { parseQuery };
