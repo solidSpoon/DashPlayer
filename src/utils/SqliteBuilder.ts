@@ -1,5 +1,5 @@
 import { Parser } from 'node-sql-parser';
-import { p } from './Util';
+import { p, strBlank } from './Util';
 
 // const parser = new Parser();
 // const ast = parser.astify('SELECT * FROM t'); // mysql sql grammer parsed by default
@@ -27,6 +27,26 @@ function proceedColumns(ast: any) {
         }
     });
 }
+
+const processWhere = (sql: string): string => {
+    if (strBlank(sql)) return '';
+    const baseSql = 'SELECT * FROM `t` WHERE ';
+    const parser = new Parser();
+    const ast = parser.astify(baseSql + sql);
+    proceedColumns(ast);
+    const finalSql = parser.sqlify(ast);
+    return finalSql.substring(baseSql.length);
+};
+
+const processOrderBy = (sql: string): string => {
+    if (strBlank(sql)) return '';
+    const baseSql = 'SELECT * FROM `t` ORDER BY ';
+    const parser = new Parser();
+    const ast = parser.astify(baseSql + sql);
+    proceedColumns(ast);
+    const finalSql = parser.sqlify(ast);
+    return finalSql.substring(baseSql.length);
+};
 const parseQuery = (
     where: string,
     orderBy: string
@@ -34,26 +54,12 @@ const parseQuery = (
     whereSql: string;
     orderBySql: string;
 } => {
-    const sql = `SELECT * FROM t WHERE ${where} ORDER BY ${orderBy}`;
-    const parser = new Parser();
-    const ast = parser.astify(sql);
-    proceedColumns(ast);
-    console.log(ast);
-    console.log(parser.sqlify(ast));
     const res = {
-        whereSql: '',
-        orderBySql: '',
+        whereSql: processWhere(where),
+        orderBySql: processOrderBy(orderBy),
     };
-    if ('where' in ast) {
-        res.whereSql = parser.exprToSQL(ast.where);
-    }
-    if ('orderby' in ast) {
-        console.log('obbb', ast.orderby, parser.exprToSQL(ast.orderby));
-        res.orderBySql = parser.exprToSQL(ast.orderby);
-    }
-    console.log(res);
+    console.log('parseQuery', res);
     return res;
 };
-
 // eslint-disable-next-line import/prefer-default-export
 export { parseQuery };

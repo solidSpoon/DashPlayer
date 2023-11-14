@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '../../../../utils/Util';
 import OneLineEditor from './OneLineEditor';
@@ -27,8 +27,12 @@ const FilterEditor = ({ keyName }: FilterEditorProps) => {
     const handleSubmit = async () => {
         console.log('where', where.current);
         console.log('orderBy', orderBy.current);
-        setPageParam(keyName, 'whereSql', where.current?.trim() ?? '');
-        setPageParam(keyName, 'orderBySql', orderBy.current?.trim() ?? '');
+        const { whereSql, orderBySql } = parseQuery(
+            where.current ?? '',
+            orderBy.current ?? ''
+        );
+        setPageParam(keyName, 'whereSql', whereSql);
+        setPageParam(keyName, 'orderBySql', orderBySql);
         updatePageParam(keyName, 'pageNum', 1);
         await load(keyName);
     };

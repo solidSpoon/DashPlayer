@@ -3,6 +3,7 @@ import {
     CancellationToken,
     editor,
     IDisposable,
+    IRange,
     KeyCode,
     KeyMod,
     languages,
@@ -15,6 +16,7 @@ import CompletionContext = languages.CompletionContext;
 import ProviderResult = languages.ProviderResult;
 import { monacoOptions } from './types';
 import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
+import CompletionItem = languages.CompletionItem;
 
 export interface OneLineEditorProps {
     onValueUpdate: (value: string) => void;
@@ -27,6 +29,7 @@ export interface OneLineEditorProps {
         token: CancellationToken
     ) => ProviderResult<CompletionList>;
 }
+
 const OneLineEditor = ({
     onValueUpdate,
     onSubmit,
@@ -44,6 +47,10 @@ const OneLineEditor = ({
             monaco.languages.setMonarchTokensProvider(type, sqliteLanguage);
             disposables.push(
                 monaco.languages.registerCompletionItemProvider(type, {
+                    triggerCharacters:
+                        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@('.split(
+                            ''
+                        ),
                     provideCompletionItems: (
                         model: editor.ITextModel,
                         position: Position,
@@ -58,7 +65,6 @@ const OneLineEditor = ({
                             token
                         );
                     },
-                    triggerCharacters: [' ', '.', '(', '$'],
                 })
             );
         }
