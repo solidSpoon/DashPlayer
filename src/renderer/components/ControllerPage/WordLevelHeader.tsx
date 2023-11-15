@@ -13,6 +13,13 @@ import {
     PiPlus,
 } from 'react-icons/pi';
 import { useShallow } from 'zustand/react/shallow';
+import { useState } from 'react';
+import {
+    useClick,
+    useDismiss,
+    useFloating,
+    useInteractions,
+} from '@floating-ui/react';
 import { cn } from '../../../utils/Util';
 import Separator from '../Separtor';
 import useDataPage, {
@@ -23,6 +30,7 @@ import { convertSelect, DataHolder } from '../../../utils/ClipBoardConverter';
 export interface WordLevelHeaderProps {
     keyName: keyof DataPageDataHolder;
 }
+
 const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
     const {
         page,
@@ -50,7 +58,19 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         }))
     );
     const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';
+    const [pageSelectOpen, setPageSelectOpen] = useState(false);
+    const { refs, floatingStyles, context } = useFloating({
+        open: pageSelectOpen,
+        onOpenChange: setPageSelectOpen,
+    });
 
+    const click = useClick(context);
+    const dismiss = useDismiss(context);
+
+    const { getReferenceProps, getFloatingProps } = useInteractions([
+        click,
+        dismiss,
+    ]);
     const handleNextPage = async () => {
         updatePageParam(
             keyName,
@@ -99,81 +119,119 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         }
     };
 
-    return (
-        <div
-            className={cn(
-                'flex flex-row items-center justify-between h-9 px-2 select-none'
-            )}
-        >
+    const pageSelectItem = (num: number) => {
+        return (
             <div
+                onClick={() => {
+                    updatePageParam(keyName, 'pageSize', num);
+                    setPageSelectOpen(false);
+                    updatePageParam(keyName, 'pageNum', 1);
+                    load(keyName);
+                }}
                 className={cn(
-                    'flex flex-row items-center justify-start gap-1 h-10 px-2'
+                    'flex flex-row w-full items-center justify-start px-2 py-1 rounded hover:bg-stone-300 text-sm',
+                    'cursor-pointer'
                 )}
             >
-                <PiArrowLineLeft
-                    onClick={handleFirstPage}
-                    className={cn(buttonClass)}
-                />
-                <PiArrowLeft
-                    onClick={handlePrevPage}
-                    className={cn(buttonClass)}
-                />
+                {num}
+            </div>
+        );
+    };
+    return (
+        <>
+            <div
+                className={cn(
+                    'flex flex-row items-center justify-between h-9 px-2 select-none'
+                )}
+            >
                 <div
                     className={cn(
-                        'flex items-center justify-center text-xs gap-1'
+                        'flex flex-row items-center justify-start gap-1 h-10 px-2'
                     )}
                 >
-                    <span>
-                        {page?.from} - {page?.to}{' '}
-                    </span>
-                    <span className={cn('text-gray-500')}>/</span>
-                    <span>{page?.total}</span>
+                    <PiArrowLineLeft
+                        onClick={handleFirstPage}
+                        className={cn(buttonClass)}
+                    />
+                    <PiArrowLeft
+                        onClick={handlePrevPage}
+                        className={cn(buttonClass)}
+                    />
+                    <div
+                        ref={refs.setReference}
+                        className={cn(
+                            'flex items-center justify-center text-xs gap-1',
+                            'cursor-default hover:bg-gray-200 rounded p-1 h-6'
+                        )}
+                        {...getReferenceProps()}
+                    >
+                        <span>
+                            {page?.from} - {page?.to}{' '}
+                        </span>
+                        <span className={cn('text-gray-500')}>/</span>
+                        <span>{page?.total}</span>
+                    </div>
+                    <PiArrowRight
+                        onClick={handleNextPage}
+                        className={cn(buttonClass)}
+                    />
+                    <PiArrowLineRight
+                        onClick={handleLastPage}
+                        className={cn(buttonClass)}
+                    />
+                    <Separator orientation="vertical" />
+                    <PiArrowsCounterClockwiseLight
+                        onClick={async () => {
+                            await load(keyName);
+                        }}
+                        className={cn(buttonClass)}
+                    />
+                    <Separator orientation="vertical" />
+                    <PiPlus
+                        onClick={() => {
+                            addBlankRow(keyName);
+                        }}
+                        className={cn(buttonClass)}
+                    />
+                    <PiMinus
+                        onClick={handleDeleteRow}
+                        className={cn(buttonClass)}
+                    />
+                    <PiArrowUUpLeft className={cn(buttonClass)} />
+                    <PiArrowFatUp
+                        onClick={async () => {
+                            await submit(keyName);
+                        }}
+                        className={cn(buttonClass, 'fill-green-600')}
+                    />
                 </div>
-                <PiArrowRight
-                    onClick={handleNextPage}
-                    className={cn(buttonClass)}
-                />
-                <PiArrowLineRight
-                    onClick={handleLastPage}
-                    className={cn(buttonClass)}
-                />
-                <Separator orientation="vertical" />
-                <PiArrowsCounterClockwiseLight
-                    onClick={async () => {
-                        await load(keyName);
-                    }}
-                    className={cn(buttonClass)}
-                />
-                <Separator orientation="vertical" />
-                <PiPlus
-                    onClick={() => {
-                        addBlankRow(keyName);
-                    }}
-                    className={cn(buttonClass)}
-                />
-                <PiMinus
-                    onClick={handleDeleteRow}
-                    className={cn(buttonClass)}
-                />
-                <PiArrowUUpLeft className={cn(buttonClass)} />
-                <PiArrowFatUp
-                    onClick={async () => {
-                        await submit(keyName);
-                    }}
-                    className={cn(buttonClass, 'fill-green-600')}
-                />
+                <div
+                    className={cn(
+                        'flex flex-row items-center justify-end gap-1 h-10 px-2'
+                    )}
+                >
+                    <PiDownload className={cn(buttonClass)} />
+                    <Separator orientation="vertical" />
+                    <PiDownloadSimple className={cn(buttonClass)} />
+                    <PiExport className={cn(buttonClass)} />
+                </div>
             </div>
-            <div
-                className={cn(
-                    'flex flex-row items-center justify-end gap-1 h-10 px-2'
-                )}
-            >
-                <PiDownload className={cn(buttonClass)} />
-                <Separator orientation="vertical" />
-                <PiDownloadSimple className={cn(buttonClass)} />
-                <PiExport className={cn(buttonClass)} />
-            </div>
-        </div>
+            {pageSelectOpen && (
+                <div
+                    ref={refs.setFloating}
+                    style={floatingStyles}
+                    className={cn(
+                        'z-50 w-24 bg-stone-200 border-stone-500 border-[0.5px] rounded flex flex-col p-2'
+                    )}
+                >
+                    {pageSelectItem(10)}
+                    {pageSelectItem(100)}
+                    {pageSelectItem(250)}
+                    {pageSelectItem(500)}
+                    {pageSelectItem(1000)}
+                </div>
+            )}
+        </>
     );
 };
 

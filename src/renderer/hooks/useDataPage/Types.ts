@@ -1,6 +1,54 @@
 import { WordLevel } from '../../../db/entity/WordLevel';
-import { defaultColumns, WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
+import { WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
 import { DataPageData } from './useDataPage';
+
+const onRender = (
+    colName: keyof WordLevel,
+    cellProps: any,
+    { data }: { data: WordLevelRow }
+) => {
+    cellProps.style.background = data.updateColumns.includes(colName)
+        ? '#97aeff'
+        : 'inherit';
+};
+export const defaultColumns = [
+    {
+        name: 'fakeId',
+        header: '',
+        minWidth: 50,
+        maxWidth: 50,
+        type: 'number',
+        editable: false,
+    },
+    {
+        name: 'word',
+        header: 'Word',
+        minWidth: 50,
+        defaultFlex: 1,
+        onRender: onRender.bind(null, 'word'),
+    },
+    {
+        name: 'translate',
+        header: 'Translation',
+        maxWidth: 1000,
+        defaultFlex: 1,
+        onRender: onRender.bind(null, 'translate'),
+    },
+    {
+        name: 'level',
+        header: 'Level',
+        maxWidth: 100,
+        defaultFlex: 1,
+        onRender: onRender.bind(null, 'level'),
+    },
+    {
+        name: 'note',
+        header: 'Note',
+        minWidth: 100,
+        defaultFlex: 2,
+        onRender: onRender.bind(null, 'note'),
+    },
+];
 
 const api = window.electron;
 export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {

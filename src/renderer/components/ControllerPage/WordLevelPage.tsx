@@ -4,6 +4,7 @@ import '@inovua/reactdatagrid-community/index.css';
 import './WordLevelPage.model.css';
 import { TypeEditInfo } from '@inovua/reactdatagrid-community/types';
 import { useShallow } from 'zustand/react/shallow';
+import { number } from '@inovua/reactdatagrid-community/filterTypes';
 import {
     convertSelect,
     copy,
@@ -20,6 +21,7 @@ import useDataPage, {
 import { WordLevel } from '../../../db/entity/WordLevel';
 import FilterEditor from './filterEidter/FilterEditor';
 import WordLevelHeader from './WordLevelHeader';
+import { defaultColumns } from '../../hooks/useDataPage/Types';
 
 export type MarkupType = 'default' | 'new' | 'delete' | 'update';
 export interface WordLevelRow extends WordLevel {
@@ -56,54 +58,6 @@ const rowStyle = ({ data }: any) => {
     };
 };
 
-const onRender = (
-    colName: keyof WordLevel,
-    cellProps: any,
-    { data }: { data: WordLevelRow }
-) => {
-    cellProps.style.background = data.updateColumns.includes(colName)
-        ? '#97aeff'
-        : 'inherit';
-};
-
-export const defaultColumns = [
-    {
-        name: 'fakeId',
-        header: '',
-        minWidth: 50,
-        maxWidth: 50,
-        type: 'number',
-    },
-    {
-        name: 'word',
-        header: 'Word',
-        minWidth: 50,
-        defaultFlex: 1,
-        onRender: onRender.bind(null, 'word'),
-    },
-    {
-        name: 'translate',
-        header: 'Translation',
-        maxWidth: 1000,
-        defaultFlex: 1,
-        onRender: onRender.bind(null, 'translate'),
-    },
-    {
-        name: 'level',
-        header: 'Level',
-        maxWidth: 100,
-        defaultFlex: 1,
-        onRender: onRender.bind(null, 'level'),
-    },
-    {
-        name: 'note',
-        header: 'Note',
-        minWidth: 100,
-        defaultFlex: 2,
-        onRender: onRender.bind(null, 'note'),
-    },
-];
-
 const gridStyle = { minHeight: 550 };
 
 const KEY: keyof DataPageDataHolder = 'wordLevel';
@@ -113,6 +67,9 @@ const WordLevelPage = () => {
             registerPaste: s.registerPaste,
             registerCopy: s.registerCopy,
         }))
+    );
+    const [activeIndex, setActiveIndex] = useState<[number, number] | null>(
+        null
     );
     // const { dataSource, setDataSource, loading, page } = useWordsLevelPage();
     const {
@@ -217,7 +174,7 @@ const WordLevelPage = () => {
 
             <ReactDataGrid
                 headerHeight={30}
-                rowHeight={25}
+                rowHeight={30}
                 rowClassName={rowClassName}
                 // rowStyle={rowStyle}
                 className={cn('flex-1')}
