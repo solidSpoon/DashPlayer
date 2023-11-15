@@ -1,6 +1,9 @@
 import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
 import { WordLevel } from '../db/entity/WordLevel';
-import { WordLevelRow } from '../renderer/components/ControllerPage/WordLevelPage';
+import {
+    MarkupType,
+    WordLevelRow,
+} from '../renderer/components/ControllerPage/WordLevelPage';
 import { DEFAULT_WORD_LEVEL } from '../renderer/hooks/useDataPage/Types';
 
 export interface Coordinate {
@@ -97,13 +100,31 @@ export class DataHolder {
     }
 
     public setValueAt(c: Coordinate, value: string) {
+        let markup: MarkupType = 'update';
+        if (c.rowIndex > this.maxRowIndex()) {
+            this.addRowsToDs(c.rowIndex - this.maxRowIndex());
+            markup = 'new';
+        }
+        if (c.columnIndex > this.maxColumnIndex()) {
+            return;
+        }
         const { rowIndex } = c;
         const columnId = this.columnOrder[c.columnIndex];
         const newElement: WordLevelRow = {
             ...this.allData[rowIndex],
-            markup: 'update',
+            markup,
             [columnId]: value,
         };
+        if (markup === 'update') {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const oldVal = this.allData[rowIndex][columnId];
+            if (oldVal === value) {
+                newElement.markup = 'default';
+            } else {
+                newElement.updateColumns.push(columnId as keyof WordLevel);
+            }
+        }
         this.allData = [
             ...this.allData.slice(0, rowIndex),
             newElement,
@@ -234,8 +255,8 @@ export const paste = (
     cpInfo: CPInfo[]
 ) => {
     // eslint-disable-next-line no-param-reassign
-    cpInfo = filterInvalidColumns(cpInfo, selects, dataHolder);
-    addRowIfNeed(cpInfo, selects, dataHolder);
+    // cpInfo = filterInvalidColumns(cpInfo, selects, dataHolder);
+    // addRowIfNeed(cpInfo, selects, dataHolder);
     cpInfo.forEach((cp) => {
         dataHolder.setValueAt(
             addCoordinate(cp.coordinate, selects.baseIndex),

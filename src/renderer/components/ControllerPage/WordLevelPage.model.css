@@ -1,0 +1,50 @@
+.global-custom-row:hover,
+.global-custom-row:hover .InovuaReactDataGrid__cell {
+    background: inherit !important;
+}
+
+.global-custom-row-green {
+    background: #b9d0b9 !important;
+}
+.global-custom-row-green:hover,
+.global-custom-row-green:hover .InovuaReactDataGrid__cell {
+    background: #99ce99 !important;
+}
+
+.global-custom-row-blue {
+    background: rgba(189, 219, 232, 0.9) !important;
+}
+.global-custom-row-blue:hover,
+.global-custom-row-blue:hover .InovuaReactDataGrid__cell {
+    background: rgba(200, 236, 253, 0.9) !important;
+}
+
+.global-custom-row-red {
+    background: rgba(232, 194, 189, 0.9) !important;
+}
+.global-custom-row-red:hover,
+.global-custom-row-red:hover .InovuaReactDataGrid__cell {
+    background: rgba(253, 204, 200, 0.9) !important;
+}
+
+.global-custom-row-dark-magenta {
+    background: #382a38 !important;
+}
+.global-custom-row-dark-magenta:hover,
+.global-custom-row-dark-magenta:hover .InovuaReactDataGrid__cell {
+    background: #382a38 !important;
+}
+
+.global-custom-row.InovuaReactDataGrid__row--selected,
+.global-custom-row.InovuaReactDataGrid__row--selected
+.InovuaReactDataGrid__cell {
+    background: #0a265a !important;
+    color: white;
+}
+
+.global-custom-row.InovuaReactDataGrid__row--selected:hover,
+.global-custom-row.InovuaReactDataGrid__row--selected:hover
+.InovuaReactDataGrid__cell {
+    background: #13326d !important;
+    color: white;
+}

@@ -18,22 +18,37 @@ import Separator from '../Separtor';
 import useDataPage, {
     DataPageDataHolder,
 } from '../../hooks/useDataPage/useDataPage';
+import { convertSelect, DataHolder } from '../../../utils/ClipBoardConverter';
 
 export interface WordLevelHeaderProps {
     keyName: keyof DataPageDataHolder;
 }
 const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
-    const { page, submit, load, updatePageParam, pageParam, addBlankRow } =
-        useDataPage(
-            useShallow((s) => ({
-                page: s.data.wordLevel.resultPage,
-                submit: s.submit,
-                load: s.load,
-                updatePageParam: s.updatePageParam,
-                pageParam: s.data.wordLevel.pageParam,
-                addBlankRow: s.addBlankRow,
-            }))
-        );
+    const {
+        page,
+        submit,
+        load,
+        updatePageParam,
+        pageParam,
+        addBlankRow,
+        cellSelection,
+        dataSource,
+        setDataSource,
+        columOrder,
+    } = useDataPage(
+        useShallow((s) => ({
+            page: s.data.wordLevel.resultPage,
+            submit: s.submit,
+            load: s.load,
+            updatePageParam: s.updatePageParam,
+            pageParam: s.data.wordLevel.pageParam,
+            addBlankRow: s.addBlankRow,
+            cellSelection: s.data.wordLevel.cellSelection,
+            dataSource: s.data.wordLevel.dataSource,
+            setDataSource: s.setDataSource,
+            columOrder: s.data.wordLevel.columOrder,
+        }))
+    );
     const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';
 
     const handleNextPage = async () => {
@@ -64,6 +79,26 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         updatePageParam(keyName, 'pageNum', page.lastPage);
         await load(keyName);
     };
+
+    const handleDeleteRow = () => {
+        const dataHolder = new DataHolder(dataSource, columOrder);
+        const selectResult = convertSelect(dataHolder, cellSelection);
+
+        if (selectResult) {
+            const ds = [...dataSource];
+            const baseIndex = selectResult.baseIndex.rowIndex;
+            selectResult.selects
+                .map((e) => e.rowIndex)
+                .forEach((index) => {
+                    ds[baseIndex + index] = {
+                        ...ds[baseIndex + index],
+                        markup: 'delete',
+                    };
+                });
+            setDataSource(keyName, ds);
+        }
+    };
+
     return (
         <div
             className={cn(
@@ -116,7 +151,10 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                     }}
                     className={cn(buttonClass)}
                 />
-                <PiMinus className={cn(buttonClass)} />
+                <PiMinus
+                    onClick={handleDeleteRow}
+                    className={cn(buttonClass)}
+                />
                 <PiArrowUUpLeft className={cn(buttonClass)} />
                 <PiArrowFatUp
                     onClick={async () => {

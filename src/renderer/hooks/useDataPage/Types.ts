@@ -1,5 +1,5 @@
 import { WordLevel } from '../../../db/entity/WordLevel';
-import { WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
+import { defaultColumns, WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
 import { DataPageData } from './useDataPage';
 
 const api = window.electron;
@@ -21,6 +21,10 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
     loading: false,
     mounted: false,
     dataSource: [],
+    cellSelection: {
+        '1,word': true,
+    },
+    columOrder: defaultColumns.map((item) => item.name),
     loadFunc: async (pageParam) => {
         console.log('loadFunc', pageParam);
         return api.listWordsLevel(
@@ -36,6 +40,7 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
             index,
             fakeId: offset ? offset + index : index,
             markup: 'default',
+            updateColumns: [],
         }));
     },
     submitFunc: async () => {},
@@ -55,6 +60,7 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
                 note: '',
                 level: 2,
                 markup: 'new',
+                updateColumns: [],
             });
         }
         return [...ds, ...res];

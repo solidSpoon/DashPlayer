@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import ReactDataGrid from '@inovua/reactdatagrid-community';
 import '@inovua/reactdatagrid-community/index.css';
+import './WordLevelPage.model.css';
 import { TypeEditInfo } from '@inovua/reactdatagrid-community/types';
-import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
 import { useShallow } from 'zustand/react/shallow';
 import {
     convertSelect,
@@ -21,12 +21,28 @@ import { WordLevel } from '../../../db/entity/WordLevel';
 import FilterEditor from './filterEidter/FilterEditor';
 import WordLevelHeader from './WordLevelHeader';
 
+export type MarkupType = 'default' | 'new' | 'delete' | 'update';
 export interface WordLevelRow extends WordLevel {
     index: number;
     fakeId: number;
-    markup: 'default' | 'new' | 'delete' | 'update';
+    markup: MarkupType;
+    updateColumns: (keyof WordLevel)[];
 }
+const rowClassName = ({ data }: { data: WordLevelRow }) => {
+    if (data.markup === 'new') {
+        console.log('mark new');
+        return 'global-custom-row-green global-custom-row';
+    }
+    if (data.markup === 'delete') {
+        return 'global-custom-row-red global-custom-row';
+    }
 
+    if (data.markup === 'update') {
+        return 'global-custom-row-blue global-custom-row';
+    }
+
+    return 'global-custom-row';
+};
 const rowStyle = ({ data }: any) => {
     const colorMap = new Map([
         ['default', ''],
@@ -40,7 +56,17 @@ const rowStyle = ({ data }: any) => {
     };
 };
 
-const defaultColumns = [
+const onRender = (
+    colName: keyof WordLevel,
+    cellProps: any,
+    { data }: { data: WordLevelRow }
+) => {
+    cellProps.style.background = data.updateColumns.includes(colName)
+        ? '#97aeff'
+        : 'inherit';
+};
+
+export const defaultColumns = [
     {
         name: 'fakeId',
         header: '',
@@ -48,15 +74,34 @@ const defaultColumns = [
         maxWidth: 50,
         type: 'number',
     },
-    { name: 'word', header: 'Word', minWidth: 50, defaultFlex: 1 },
     {
-        name: 'translation',
+        name: 'word',
+        header: 'Word',
+        minWidth: 50,
+        defaultFlex: 1,
+        onRender: onRender.bind(null, 'word'),
+    },
+    {
+        name: 'translate',
         header: 'Translation',
         maxWidth: 1000,
         defaultFlex: 1,
+        onRender: onRender.bind(null, 'translate'),
     },
-    { name: 'level', header: 'Level', maxWidth: 100, defaultFlex: 1 },
-    { name: 'note', header: 'Note', minWidth: 100, defaultFlex: 2 },
+    {
+        name: 'level',
+        header: 'Level',
+        maxWidth: 100,
+        defaultFlex: 1,
+        onRender: onRender.bind(null, 'level'),
+    },
+    {
+        name: 'note',
+        header: 'Note',
+        minWidth: 100,
+        defaultFlex: 2,
+        onRender: onRender.bind(null, 'note'),
+    },
 ];
 
 const gridStyle = { minHeight: 550 };
@@ -69,30 +114,36 @@ const WordLevelPage = () => {
             registerCopy: s.registerCopy,
         }))
     );
-
-    const [columOrder, setColumOrder] = useState<string[]>(
-        defaultColumns.map((item) => item.name)
-    );
     // const { dataSource, setDataSource, loading, page } = useWordsLevelPage();
-    const { dataSource, setDataSource, loading, tryMount, unMount } =
-        useDataPage(
-            useShallow((s) => ({
-                dataSource: s.data.wordLevel.dataSource,
-                setDataSource: s.setDataSource,
-                loading: s.data.wordLevel.loading,
-                tryMount: s.tryMount,
-                unMount: s.unmount,
-            }))
-        );
+    const {
+        dataSource,
+        setDataSource,
+        loading,
+        tryMount,
+        unMount,
+        cellSelection,
+        setCellSelection,
+        columOrder,
+        setColumnOrder,
+    } = useDataPage(
+        useShallow((s) => ({
+            dataSource: s.data.wordLevel.dataSource,
+            setDataSource: s.setDataSource,
+            loading: s.data.wordLevel.loading,
+            tryMount: s.tryMount,
+            unMount: s.unmount,
+            cellSelection: s.data.wordLevel.cellSelection,
+            setCellSelection: s.setCellSelection,
+            columOrder: s.data.wordLevel.columOrder,
+            setColumnOrder: s.setColumnOrder,
+        }))
+    );
     useEffect(() => {
         tryMount(KEY);
         return () => {
             unMount(KEY);
         };
     }, [tryMount, unMount]);
-    const [cellSelection, setCellSelection] = useState<TypeCellSelection>({
-        '1,word': true,
-    });
 
     const [columns] = useState(defaultColumns);
 
@@ -101,7 +152,24 @@ const WordLevelPage = () => {
             const data = [...dataSource];
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            data[rowIndex] = { ...data[rowIndex], [columnId]: value };
+            const oldVal = data[rowIndex][columnId];
+            if (value === oldVal) {
+                return;
+            }
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const oldUpdateColumns = data[rowIndex].updateColumns || [];
+            data[rowIndex] = {
+                ...data[rowIndex],
+                [columnId]: value,
+                markup: 'update',
+                updateColumns: [
+                    ...new Set([
+                        ...oldUpdateColumns,
+                        columnId,
+                    ] as (keyof WordLevel)[]),
+                ],
+            };
             setDataSource(KEY, data);
             console.log(value, columnId, rowIndex);
         },
@@ -150,18 +218,19 @@ const WordLevelPage = () => {
             <ReactDataGrid
                 headerHeight={30}
                 rowHeight={25}
-                rowStyle={rowStyle}
+                rowClassName={rowClassName}
+                // rowStyle={rowStyle}
                 className={cn('flex-1')}
                 copySpreadsheetCompatibleString
                 cellSelection={cellSelection}
-                onCellSelectionChange={setCellSelection}
+                onCellSelectionChange={(s) => setCellSelection(KEY, s)}
                 onEditComplete={onEditComplete}
                 editable
                 style={gridStyle}
                 idProperty="id"
                 columns={columns}
                 columnOrder={columOrder}
-                onColumnOrderChange={setColumOrder}
+                onColumnOrderChange={(o) => setColumnOrder(KEY, o)}
                 dataSource={dataSource}
             />
         </div>

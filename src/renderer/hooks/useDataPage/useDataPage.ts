@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
 import { Pagination } from '../../../db/service/WordLevelService';
 import { WordLevel } from '../../../db/entity/WordLevel';
 import { WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
@@ -17,6 +18,8 @@ export type DataPageData<D, R> = {
     loading: boolean;
     mounted: boolean;
     dataSource: R[];
+    cellSelection: TypeCellSelection;
+    columOrder: string[];
     readonly loadFunc: (pageParam: PageParam) => Promise<Pagination<D>>;
     readonly toDataSourceFunc: (data: D[], offset?: number) => R[];
     readonly submitFunc: (data: R[]) => Promise<void>;
@@ -46,6 +49,14 @@ export type DataPageAction = {
     addBlankRow: (key: keyof DataPageDataHolder) => void;
     tryMount: (key: keyof DataPageDataHolder) => Promise<void>;
     unmount: (key: keyof DataPageDataHolder) => void;
+    setCellSelection: (
+        key: keyof DataPageDataHolder,
+        cellSelection: TypeCellSelection
+    ) => void;
+    setColumnOrder: (
+        key: keyof DataPageDataHolder,
+        columnOrder: string[]
+    ) => void;
 };
 
 const useDataPage = create<DataPageState & DataPageAction>((set) => ({
@@ -172,6 +183,37 @@ const useDataPage = create<DataPageState & DataPageAction>((set) => ({
                     [key]: {
                         ...data,
                         ...DEFAULT_DATA_HOLDER,
+                    },
+                },
+            };
+        });
+    },
+    setCellSelection: (
+        key: keyof DataPageDataHolder,
+        cellSelection: TypeCellSelection
+    ) => {
+        set((state) => {
+            const data = state.data[key];
+            return {
+                data: {
+                    ...state.data,
+                    [key]: {
+                        ...data,
+                        cellSelection,
+                    },
+                },
+            };
+        });
+    },
+    setColumnOrder: (key: keyof DataPageDataHolder, columnOrder: string[]) => {
+        set((state) => {
+            const data = state.data[key];
+            return {
+                data: {
+                    ...state.data,
+                    [key]: {
+                        ...data,
+                        columOrder: columnOrder,
                     },
                 },
             };
