@@ -1,6 +1,7 @@
 import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
 import { WordLevel } from '../db/entity/WordLevel';
 import { WordLevelRow } from '../renderer/components/ControllerPage/WordLevelPage';
+import { DEFAULT_WORD_LEVEL } from '../renderer/hooks/useDataPage/Types';
 
 export interface Coordinate {
     rowIndex: number;
@@ -65,6 +66,28 @@ export class DataHolder {
         });
     }
 
+    public addRowsToDs(num: number): void {
+        const newDs = DEFAULT_WORD_LEVEL.addRowsToDs(this.allData, num);
+        this.allData = newDs;
+        this.elements = [];
+        this.RowIndexMapping = new Map<number, number>();
+        newDs.forEach((row) => {
+            const elements: Element[] = [];
+            this.columnOrder.forEach((column) => {
+                elements.push({
+                    key: `${column}`,
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    value: row[column],
+                });
+            });
+            this.elements.push(elements);
+        });
+        newDs.forEach((row, index) => {
+            this.RowIndexMapping.set(row.id ?? 0, index);
+        });
+    }
+
     public getValueAt(c: Coordinate) {
         return this.elements[c.rowIndex][c.columnIndex].value;
     }
@@ -86,7 +109,16 @@ export class DataHolder {
             newElement,
             ...this.allData.slice(rowIndex + 1),
         ];
+        console.log('rowIndex', rowIndex, 'columnIndex', c.columnIndex);
         this.elements[rowIndex][c.columnIndex].value = value;
+    }
+
+    public maxRowIndex() {
+        return this.allData.length - 1;
+    }
+
+    public maxColumnIndex() {
+        return this.columnOrder.length - 1;
     }
 
     public getColumIndex(columnId: string) {
@@ -158,11 +190,52 @@ export const copy = (
     return result;
 };
 
+function addRowIfNeed(
+    cpInfo: CPInfo[],
+    selects: SelectResult,
+    dataHolder: DataHolder
+) {
+    let targetIndex = -1;
+    cpInfo.forEach((cp) => {
+        targetIndex = Math.max(
+            targetIndex,
+            addCoordinate(cp.coordinate, selects.baseIndex).rowIndex
+        );
+    });
+
+    if (targetIndex > dataHolder.maxRowIndex()) {
+        const addNum = targetIndex - dataHolder.maxRowIndex();
+        dataHolder.addRowsToDs(addNum);
+    }
+    console.log('addddd', dataHolder.getDataSource());
+}
+
+function filterInvalidColumns(
+    cpInfo: CPInfo[],
+    selects: SelectResult,
+    dataHolder: DataHolder
+): CPInfo[] {
+    // 过滤掉列大于当前表格列的数据
+    const result: CPInfo[] = [];
+    cpInfo.forEach((cp) => {
+        if (
+            addCoordinate(cp.coordinate, selects.baseIndex).columnIndex <=
+            dataHolder.maxColumnIndex()
+        ) {
+            result.push(cp);
+        }
+    });
+    return result;
+}
+
 export const paste = (
     dataHolder: DataHolder,
     selects: SelectResult,
     cpInfo: CPInfo[]
 ) => {
+    // eslint-disable-next-line no-param-reassign
+    cpInfo = filterInvalidColumns(cpInfo, selects, dataHolder);
+    addRowIfNeed(cpInfo, selects, dataHolder);
     cpInfo.forEach((cp) => {
         dataHolder.setValueAt(
             addCoordinate(cp.coordinate, selects.baseIndex),

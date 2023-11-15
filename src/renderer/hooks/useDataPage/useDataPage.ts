@@ -20,6 +20,7 @@ export type DataPageData<D, R> = {
     readonly loadFunc: (pageParam: PageParam) => Promise<Pagination<D>>;
     readonly toDataSourceFunc: (data: D[], offset?: number) => R[];
     readonly submitFunc: (data: R[]) => Promise<void>;
+    readonly addRowsToDs: (ds: R[], num: number) => R[];
 };
 
 export type DataPageDataHolder = {
@@ -42,6 +43,7 @@ export type DataPageAction = {
         key: keyof DataPageDataHolder,
         dataSource: DataPageDataHolder[typeof key]['dataSource']
     ) => void;
+    addBlankRow: (key: keyof DataPageDataHolder) => void;
     tryMount: (key: keyof DataPageDataHolder) => Promise<void>;
     unmount: (key: keyof DataPageDataHolder) => void;
 };
@@ -134,6 +136,22 @@ const useDataPage = create<DataPageState & DataPageAction>((set) => ({
                     [key]: {
                         ...data,
                         dataSource,
+                    },
+                },
+            };
+        });
+    },
+    addBlankRow: (key: keyof DataPageDataHolder) => {
+        set((state) => {
+            const data = state.data[key];
+            return {
+                data: {
+                    ...state.data,
+                    [key]: {
+                        ...data,
+                        dataSource: useDataPage
+                            .getState()
+                            .data[key].addRowsToDs(data.dataSource, 1),
                     },
                 },
             };

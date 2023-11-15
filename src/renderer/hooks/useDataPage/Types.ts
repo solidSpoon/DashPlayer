@@ -39,6 +39,26 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
         }));
     },
     submitFunc: async () => {},
+    addRowsToDs: (ds: WordLevelRow[], num: number): WordLevelRow[] => {
+        console.log('addRowsToDataSource', num);
+        const res: WordLevelRow[] = [];
+        const maxId = Math.max(...ds.map((item) => item.id ?? 0));
+        const maxFakeId = Math.max(...ds.map((item) => item.fakeId ?? 0));
+        const maxIndex = Math.max(...ds.map((item) => item.index ?? 0));
+        for (let i = 0; i < num; i += 1) {
+            res.push({
+                id: maxId + i + 1,
+                index: maxIndex + i + 1,
+                fakeId: maxFakeId + i + 1,
+                word: '',
+                translate: '',
+                note: '',
+                level: 2,
+                markup: 'new',
+            });
+        }
+        return [...ds, ...res];
+    },
 };
 
 export const DEFAULT_DATA_HOLDER = DEFAULT_WORD_LEVEL;

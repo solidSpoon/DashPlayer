@@ -23,15 +23,17 @@ export interface WordLevelHeaderProps {
     keyName: keyof DataPageDataHolder;
 }
 const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
-    const { page, submit, load, updatePageParam, pageParam } = useDataPage(
-        useShallow((s) => ({
-            page: s.data.wordLevel.resultPage,
-            submit: s.submit,
-            load: s.load,
-            updatePageParam: s.updatePageParam,
-            pageParam: s.data.wordLevel.pageParam,
-        }))
-    );
+    const { page, submit, load, updatePageParam, pageParam, addBlankRow } =
+        useDataPage(
+            useShallow((s) => ({
+                page: s.data.wordLevel.resultPage,
+                submit: s.submit,
+                load: s.load,
+                updatePageParam: s.updatePageParam,
+                pageParam: s.data.wordLevel.pageParam,
+                addBlankRow: s.addBlankRow,
+            }))
+        );
     const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';
 
     const handleNextPage = async () => {
@@ -108,10 +110,20 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                     className={cn(buttonClass)}
                 />
                 <Separator orientation="vertical" />
-                <PiPlus className={cn(buttonClass)} />
+                <PiPlus
+                    onClick={() => {
+                        addBlankRow(keyName);
+                    }}
+                    className={cn(buttonClass)}
+                />
                 <PiMinus className={cn(buttonClass)} />
                 <PiArrowUUpLeft className={cn(buttonClass)} />
-                <PiArrowFatUp className={cn(buttonClass, 'fill-green-600')} />
+                <PiArrowFatUp
+                    onClick={async () => {
+                        await submit(keyName);
+                    }}
+                    className={cn(buttonClass, 'fill-green-600')}
+                />
             </div>
             <div
                 className={cn(
