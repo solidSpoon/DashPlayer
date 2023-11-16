@@ -50,6 +50,7 @@ const createSubtitleSlice: StateCreator<
     SubtitleSlice
 > = (set, get) => ({
     subtitle: [],
+    subTitlesStructure: new Map(),
     setSubtitle: (subtitle: SentenceT[]) => {
         set({ subtitle });
         get().internal.subtitleIndex = indexSubtitle(subtitle);

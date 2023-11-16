@@ -33,6 +33,7 @@ import {
     readFromClipboard,
     writeToClipboard,
 } from './controllers/ClopboardController';
+import processSentences from './controllers/SubtitleProcesser';
 
 const handle = (
     channel: Channels,
@@ -246,5 +247,8 @@ export default function registerHandler() {
     });
     handle('read-from-clipboard', async () => {
         return readFromClipboard();
+    });
+    handle('process-sentences', async (sentences: string[]) => {
+        return processSentences(sentences);
     });
 }

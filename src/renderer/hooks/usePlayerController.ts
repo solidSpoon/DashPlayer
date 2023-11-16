@@ -20,11 +20,12 @@ import FileT from '../lib/param/FileT';
 import parseSrtSubtitles from '../lib/parseSrt';
 import SentenceT from '../lib/param/SentenceT';
 import useFile from './useFile';
-import { sleep, splitToWords } from '../../utils/Util';
+import { p, sleep, splitToWords } from '../../utils/Util';
 import useSetting from './useSetting';
 import { ProgressParam } from '../../main/controllers/ProgressController';
 import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
 import TransHolder from '../../utils/TransHolder';
+import { SentenceStruct } from '../../types/SentenceStruct';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -204,6 +205,21 @@ useFile.subscribe(
         }
         const CURRENT_FILE = useFile.getState().subtitleFile;
         const subtitle: SentenceT[] = await loadSubtitle(subtitleFile);
+        const structures = await api.processSentences(
+            subtitle.map((s) => s.text ?? '')
+        );
+        const sentencesStructures: Map<string, SentenceStruct> = new Map();
+        structures.forEach((item) => {
+            sentencesStructures.set(p(item.original), item);
+        });
+        if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+            return;
+        }
+        usePlayerController.setState((state) => {
+            return {
+                subTitlesStructure: sentencesStructures,
+            };
+        });
         groupSentence(subtitle, 20, (s, index) => {
             s.transGroup = index;
         });

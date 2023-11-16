@@ -9,6 +9,7 @@ import { SentenceApiParam } from '../types/TransApi';
 import { WordLevel } from '../db/entity/WordLevel';
 import TransHolder from '../utils/TransHolder';
 import { Pagination } from '../db/service/WordLevelService';
+import { SentenceStruct } from '../types/SentenceStruct';
 
 export type Channels =
     | 'main-state'
@@ -42,7 +43,8 @@ export type Channels =
     | 'batch-update-level-words'
     | 'mark-word-level'
     | 'write-to-clipboard'
-    | 'read-from-clipboard';
+    | 'read-from-clipboard'
+    | 'process-sentences';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -199,6 +201,12 @@ const electronHandler = {
     },
     isWindows: async () => {
         return (await invoke('is-windows')) as boolean;
+    },
+    processSentences: async (sentences: string[]) => {
+        return (await invoke(
+            'process-sentences',
+            sentences
+        )) as SentenceStruct[];
     },
     onUpdateSetting: (func: (setting: SettingState) => void) => {
         console.log('onUpdateSetting');
