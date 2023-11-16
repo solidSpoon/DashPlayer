@@ -6,24 +6,22 @@ import {
 
 export async function up(knex) {
     return knex.schema
-        .createTable('dp_word_level', (table) => {
+        .createTable('dp_stem_level', (table) => {
             table.increments('id').primary();
-            table.string('word').notNullable();
-            table.string('stem').nullable();
-            table.string('translate').nullable();
-            table.string('note').nullable();
+            table.string('stem').notNullable();
+            table.boolean('familiar').notNullable().defaultTo(false);
             // create_at and update_at
             table.timestamps(true, false);
-            table.unique(['word']);
+            table.unique(['stem']);
         })
         .then(() => {
-            return knex.raw(createAtTimestampTrigger('dp_word_level'));
+            return knex.raw(createAtTimestampTrigger('dp_stem_level'));
         })
         .then(() => {
-            return knex.raw(updateAtTimestampTrigger('dp_word_level'));
+            return knex.raw(updateAtTimestampTrigger('dp_stem_level'));
         })
         .then(() => {
-            return knex.raw(toTrimLowerCaseTrigger('dp_word_level', 'word'));
+            return knex.raw(toTrimLowerCaseTrigger('dp_stem_level', 'stem'));
         });
 }
 

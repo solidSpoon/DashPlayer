@@ -2,6 +2,7 @@ import SentenceT from '../../lib/param/SentenceT';
 import { WordLevel } from '../../../db/entity/WordLevel';
 import TransHolder from '../../../utils/TransHolder';
 import { SentenceStruct } from '../../../types/SentenceStruct';
+import { WordLevelRes } from '../../../main/controllers/WordLevelController';
 
 export interface SubtitleSlice {
     subtitle: SentenceT[];
@@ -17,7 +18,7 @@ export interface PlayerControllerInternal {
     exactPlayTime: number;
     subtitleIndex: Map<number, SentenceT[]>;
     maxIndex: number;
-    wordLevel: Map<string, WordLevel>;
+    wordLevel: Map<string, WordLevelRes>;
 }
 
 export interface InternalSlice {
@@ -59,8 +60,8 @@ export interface SentenceSlice {
 }
 
 export interface WordLevelSlice {
-    getWordLevel: (word: string) => WordLevel | undefined;
-    markWordLevel: (word: string, level: number) => Promise<void>;
+    getWordLevel: (word: string) => WordLevelRes | undefined;
+    markWordLevel: (word: string, familiar: boolean) => Promise<void>;
     syncWordsLevel: (words: string[]) => Promise<void>;
 }
 

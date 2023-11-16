@@ -92,17 +92,19 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
     }, [hovered, requestPop]);
 
     useEffect(() => {
+        let cancel = false;
         const transFun = async (str: string) => {
             const r = await api.transWord(str);
-            if (r === null) {
-                return;
+            if (r !== null && !cancel) {
+                setTranslationText(r);
             }
-            console.log('rrrrr', r.query, JSON.stringify(r));
-            setTranslationText(r);
         };
         if (hovered) {
             transFun(word);
         }
+        return () => {
+            cancel = true;
+        };
     }, [hovered, word]);
 
     const handleWordClick = async () => {
@@ -140,7 +142,8 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
                     e.preventDefault();
                     console.log('onContextMenu');
                     if (showWordLevel) {
-                        markWordLevel(word, wordLevel?.level === 2 ? 1 : 2);
+                        console.log('markWordLevel', wordLevel?.familiar);
+                        markWordLevel(word, !wordLevel?.familiar);
                     }
                 }}
             >
@@ -164,7 +167,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
                     </div>
                 )}
             </div>
-            {showWordLevel && wordLevel?.level === 2 && (
+            {showWordLevel && wordLevel?.familiar === false && (
                 <div
                     className={twMerge(
                         'flex items-center pt-2 justify-center text-xl text-textColor/80',

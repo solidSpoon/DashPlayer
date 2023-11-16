@@ -107,9 +107,9 @@ export default function registerHandler() {
         log.info('update-words-level', words);
         return updateWordsLevel(words);
     });
-    handle('mark-word-level', async (word: string, level: number) => {
+    handle('mark-word-level', async (word: string, familiar: boolean) => {
         log.info('mark-word-level');
-        return markWordLevel(word, level);
+        return markWordLevel(word, familiar);
     });
 
     handle('you-dao-translate', async (word) => {

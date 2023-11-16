@@ -10,6 +10,7 @@ import { WordLevel } from '../db/entity/WordLevel';
 import TransHolder from '../utils/TransHolder';
 import { Pagination } from '../db/service/WordLevelService';
 import { SentenceStruct } from '../types/SentenceStruct';
+import { WordLevelRes } from './controllers/WordLevelController';
 
 export type Channels =
     | 'main-state'
@@ -151,8 +152,8 @@ const electronHandler = {
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release | undefined;
     },
-    markWordLevel: async (word: string, level: number) => {
-        return (await invoke('mark-word-level', word, level)) as void;
+    markWordLevel: async (word: string, familiar: boolean) => {
+        return (await invoke('mark-word-level', word, familiar)) as void;
     },
     listWordsLevel: async (
         whereSql: string,
@@ -175,7 +176,7 @@ const electronHandler = {
     wordsTranslate: async (words: string[]) => {
         return (await invoke('words-translate', words)) as Map<
             string,
-            WordLevel
+            WordLevelRes
         >;
     },
     appVersion: async () => {

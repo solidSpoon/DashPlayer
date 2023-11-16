@@ -2,6 +2,7 @@ import { IWithPagination } from 'knex-paginate';
 import { WORD_LEVEL_TABLE_NAME, WordLevel } from '../entity/WordLevel';
 import { knexDb } from './BaseService';
 import { p } from '../../utils/Util';
+import { s } from './StemLevelService';
 
 export interface Pagination<T> {
     total: number;
@@ -15,30 +16,17 @@ export interface Pagination<T> {
 }
 
 export default class WordLevelService {
-    public static async recordWordLevel(word: string, level: number) {
-        console.log('recordWordLevel', word, level);
-        await knexDb(WORD_LEVEL_TABLE_NAME)
+    public static async recordWordTranslate(word: string, translate: string) {
+        console.log('recordWordTranslate bbbbss', word, translate);
+        await knexDb
+            .table(WORD_LEVEL_TABLE_NAME)
             .insert({
                 word: p(word),
-                level,
+                translate,
+                stem: s.stem(word),
             } as WordLevel)
             .onConflict('word')
             .merge();
-    }
-
-    public static async recordWordTranslate(word: string, translate: string) {
-        try {
-            await knexDb
-                .table(WORD_LEVEL_TABLE_NAME)
-                .insert({
-                    word: p(word),
-                    translate,
-                } as WordLevel)
-                .onConflict('word')
-                .merge();
-        } catch (err) {
-            console.log('update');
-        }
     }
 
     public static async queryWords(
@@ -58,7 +46,7 @@ export default class WordLevelService {
             })) as WordLevel[];
         const map = new Map<string, WordLevel>();
         result.forEach((item) => {
-            map.set(item.word ?? '', item);
+            map.set(p(item.word) ?? '', item);
         });
         return map;
     }
@@ -116,7 +104,8 @@ export default class WordLevelService {
                 .insert({
                     word: p(item.word ?? ''),
                     translate: item.translate,
-                    level: item.level,
+                    stem: item.stem,
+                    note: item.note,
                 } as WordLevel)
                 .onConflict('word')
                 .merge();

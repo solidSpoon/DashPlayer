@@ -9,6 +9,7 @@ import {
 import SentenceT from '../../lib/param/SentenceT';
 import { p } from '../../../utils/Util';
 import { WordLevel } from '../../../db/entity/WordLevel';
+import { WordLevelRes } from '../../../main/controllers/WordLevelController';
 
 const api = window.electron;
 
@@ -25,9 +26,9 @@ const isWord = (word: string) => {
 const falseLevel = (word: string) => {
     return {
         word,
-        level: 1,
+        familiar: true,
         translate: word,
-    } as WordLevel;
+    } as WordLevelRes;
 };
 
 const createWordLevelSlice: StateCreator<
@@ -42,12 +43,13 @@ const createWordLevelSlice: StateCreator<
         }
         return get().internal.wordLevel.get(p(word));
     },
-    markWordLevel: async (word, level) => {
+    markWordLevel: async (word, familiar) => {
         if (!isWord(word)) {
             return;
         }
         const w = p(word);
-        await api.markWordLevel(w, level);
+        console.log('markWordLevel', w, familiar);
+        await api.markWordLevel(w, familiar);
         await get().syncWordsLevel([w]);
     },
     syncWordsLevel: async (words) => {
@@ -59,6 +61,7 @@ const createWordLevelSlice: StateCreator<
         const ws = words.map((w) => p(w));
         const wordLevels = await api.wordsTranslate(ws);
         wordLevels.forEach((v, k) => {
+            console.log('syncWordsLevel', k, v);
             get().internal.wordLevel.set(p(k), v);
         });
     },

@@ -1,11 +1,7 @@
 export interface WordLevel {
     id?: number;
     word?: string;
-    /**
-     * 1: 掌握
-     * 2: 正常
-     */
-    level?: number;
+    stem?: string;
     note?: string;
     translate?: string;
     created_at?: string;
