@@ -35,13 +35,6 @@ export const defaultColumns = [
         onRender: onRender.bind(null, 'translate'),
     },
     {
-        name: 'level',
-        header: 'Level',
-        maxWidth: 100,
-        defaultFlex: 1,
-        onRender: onRender.bind(null, 'level'),
-    },
-    {
         name: 'note',
         header: 'Note',
         minWidth: 100,
@@ -106,7 +99,6 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
                 word: '',
                 translate: '',
                 note: '',
-                level: 2,
                 markup: 'new',
                 updateColumns: [],
             });
