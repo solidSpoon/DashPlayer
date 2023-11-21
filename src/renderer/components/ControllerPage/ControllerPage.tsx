@@ -85,7 +85,7 @@ const ControllerPage = () => {
                                 e.stopPropagation();
                             }}
                             className={twMerge(
-                                'w-full h-full bg-white rounded-lg overflow-hidden'
+                                'w-full h-full rounded-lg overflow-hidden'
                             )}
                         >
                             {pageType === 'control-center' && <ControlCenter />}

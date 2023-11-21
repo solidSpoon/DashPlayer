@@ -167,7 +167,7 @@ const WordLevelPage = () => {
     console.log('columOrder', columOrder);
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col bg-white">
             <WordLevelHeader keyName={KEY} />
 
             <FilterEditor keyName={KEY} />
