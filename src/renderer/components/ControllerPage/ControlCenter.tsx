@@ -39,7 +39,6 @@ const ControlCenter = () => {
         }))
     );
 
-
     return (
         <div className={cn('w-full h-full flex gap-2 select-none')}>
             <div
@@ -90,12 +89,8 @@ const ControlCenter = () => {
                     'flex-1 flex flex-col gap-2 items-center justify-center p-10 bg-white rounded-lg '
                 )}
             >
-                <OpenFile
-                    isDirectory={false}
-                    />
-                <OpenFile
-                    isDirectory={true}
-                />
+                <OpenFile isDirectory={false} />
+                <OpenFile isDirectory />
                 <WatchProjectBrowser />
             </div>
         </div>

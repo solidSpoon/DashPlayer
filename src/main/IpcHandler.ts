@@ -1,12 +1,13 @@
-import { ipcMain, clipboard } from 'electron';
+import { ipcMain, clipboard, dialog } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
 import {
     ProgressParam,
     queryProgress,
-    queryRecentPlay, recentWatch,
-    updateProgress
+    queryRecentPlay,
+    recentWatch,
+    updateProgress,
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -14,7 +15,7 @@ import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
     clearCache,
     openDataDir,
-    queryCacheSize
+    queryCacheSize,
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
@@ -26,15 +27,14 @@ import {
     listWordsLevel,
     markWordLevel,
     updateWordsLevel,
-    wordsTranslate
+    wordsTranslate,
 } from './controllers/WordLevelController';
 import { WordLevel } from '../db/entity/WordLevel';
 import {
     readFromClipboard,
-    writeToClipboard
+    writeToClipboard,
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
-import { dialog } from 'electron';
 import WatchProjectService from '../db/service/WatchProjectService';
 
 const handle = (
@@ -258,7 +258,6 @@ export default function registerHandler() {
         return processSentences(sentences);
     });
     handle('select-file', async (isFolder: boolean) => {
-            return WatchProjectService.selectFiles(isFolder);
-        }
-    );
+        return WatchProjectService.selectFiles(isFolder);
+    });
 }

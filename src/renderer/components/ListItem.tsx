@@ -1,9 +1,9 @@
-import { cn } from '../../utils/Util';
 import { GoFile } from 'react-icons/go';
 import React, { cloneElement, ReactElement } from 'react';
+import { VscFolder } from 'react-icons/vsc';
+import { cn } from '../../utils/Util';
 import { WatchProjectVO } from '../../db/service/WatchProjectService';
 import { WatchProjectType } from '../../db/entity/WatchProject';
-import { VscFolder } from 'react-icons/vsc';
 
 export interface ListItemProps {
     content: string;
@@ -11,8 +11,7 @@ export interface ListItemProps {
     icon?: ReactElement | null;
 }
 
-const ListItem = ({content, onClick, icon}: ListItemProps) => {
-
+const ListItem = ({ content, onClick, icon }: ListItemProps) => {
     return (
         <div
             onClick={() => onClick?.()}
@@ -20,12 +19,11 @@ const ListItem = ({content, onClick, icon}: ListItemProps) => {
                 'w-full h-10 flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6'
             )}
         >
-            {icon && cloneElement(icon, {
-                className: `w-4 h-4 fill-yellow-700/90`
-            })}
-            <div className='w-full truncate'>
-                {content}
-            </div>
+            {icon &&
+                cloneElement(icon, {
+                    className: `w-4 h-4 fill-yellow-700/90`,
+                })}
+            <div className="w-full truncate">{content}</div>
         </div>
     );
 };
@@ -33,6 +31,6 @@ const ListItem = ({content, onClick, icon}: ListItemProps) => {
 ListItem.defaultProps = {
     onClick: () => {},
     icon: null,
-}
+};
 
 export default ListItem;
