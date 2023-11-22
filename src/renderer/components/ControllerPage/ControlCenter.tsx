@@ -8,6 +8,10 @@ import { cn } from '../../../utils/Util';
 import { ProgressParam } from '../../../main/controllers/ProgressController';
 import { pathToFile } from '../../lib/FileParser';
 import useFile from '../../hooks/useFile';
+import OpenFile from '../OpenFile';
+import { WatchProjectVO } from '../../../db/service/WatchProjectService';
+import WatchProjectItem from '../WatchProjectItem';
+import WatchProjectBrowser from '../WatchProjectBrowser';
 
 const api = window.electron;
 const ControlCenter = () => {
@@ -34,33 +38,8 @@ const ControlCenter = () => {
             changePopType: s.changePopType,
         }))
     );
-    const [recentPlaylists, setRecentPlaylists] = useState<ProgressParam[]>([]);
-    useEffect(() => {
-        const init = async () => {
-            const playlists = await api.recentPlay(50);
-            setRecentPlaylists(playlists);
-        };
-        init();
-    }, []);
-    const [currentClick, setCurrentClick] = useState<string | undefined>(
-        undefined
-    );
-    const onFileChange = useFile((s) => s.updateFile);
-    const handleClick = async (item: ProgressParam) => {
-        if (currentClick === item.filePath) {
-            return;
-        }
-        setCurrentClick(item.filePath);
-        if (item.filePath && item.filePath.length > 0) {
-            const file = await pathToFile(item.filePath);
-            onFileChange(file);
-        }
-        if (item.subtitlePath && item.subtitlePath.length > 0) {
-            const file = await pathToFile(item.subtitlePath);
-            onFileChange(file);
-        }
-        // currentClick.current = '';
-    };
+
+
     return (
         <div className={cn('w-full h-full flex gap-2 select-none')}>
             <div
@@ -111,25 +90,13 @@ const ControlCenter = () => {
                     'flex-1 flex flex-col gap-2 items-center justify-center p-10 bg-white rounded-lg '
                 )}
             >
-                <div className={cn('text-xl font-bold w-full')}>最近播放</div>
-                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
-                    {recentPlaylists.map((playlist) => (
-                        <div
-                            key={playlist.fileName}
-                            onClick={() => handleClick(playlist)}
-                            className={cn(
-                                'w-full h-10 flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6'
-                            )}
-                        >
-                            <GoFile
-                                className={cn('w-4 h-4 fill-yellow-700/90')}
-                            />
-                            <div className="w-full truncate">
-                                {playlist.fileName}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <OpenFile
+                    isDirectory={false}
+                    />
+                <OpenFile
+                    isDirectory={true}
+                />
+                <WatchProjectBrowser />
             </div>
         </div>
     );

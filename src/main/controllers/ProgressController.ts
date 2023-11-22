@@ -1,6 +1,7 @@
 import fs from 'fs';
 import ProgressEntity from '../ServerLib/entity/ProgressEntity';
 import ProgressCache from '../ServerLib/ProgressCache';
+import WatchProjectService, { WatchProjectVO } from '../../db/service/WatchProjectService';
 
 export interface ProgressParam {
     fileName: string;
@@ -64,4 +65,7 @@ export async function queryRecentPlay(size: number): Promise<ProgressParam[]> {
                 total: item.total ?? 0,
             };
         });
+}
+export async function recentWatch(): Promise<WatchProjectVO[]> {
+    return WatchProjectService.listRecent();
 }

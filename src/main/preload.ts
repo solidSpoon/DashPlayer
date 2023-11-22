@@ -11,6 +11,7 @@ import TransHolder from '../utils/TransHolder';
 import { Pagination } from '../db/service/WordLevelService';
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
+import { WatchProjectVO } from '../db/service/WatchProjectService';
 
 export type Channels =
     | 'main-state'
@@ -38,6 +39,7 @@ export type Channels =
     | 'player-size'
     | 'home-size'
     | 'recent-play'
+    | 'recent-watch'
     | 'open-file'
     | 'words-translate'
     | 'list-level-words'
@@ -45,7 +47,8 @@ export type Channels =
     | 'mark-word-level'
     | 'write-to-clipboard'
     | 'read-from-clipboard'
-    | 'process-sentences';
+    | 'process-sentences'
+    | 'select-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -88,7 +91,7 @@ const electronHandler = {
                 console.error(error);
             }
             return null;
-        },
+        }
     },
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);
@@ -200,8 +203,14 @@ const electronHandler = {
     recentPlay: async (size: number) => {
         return (await invoke('recent-play', size)) as ProgressParam[];
     },
+    recentWatch: async () => {
+        return (await invoke('recent-watch')) as WatchProjectVO[];
+    },
     isWindows: async () => {
         return (await invoke('is-windows')) as boolean;
+    },
+    selectFile: async (isFolder:boolean) => {
+        return (await invoke('select-file',isFolder)) as string;
     },
     processSentences: async (sentences: string[]) => {
         return (await invoke(
@@ -218,7 +227,7 @@ const electronHandler = {
     },
     onSettingState: (func: (state: WindowState) => void) => {
         return on('setting-state', func as any);
-    },
+    }
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;

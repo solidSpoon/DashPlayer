@@ -5,8 +5,8 @@ import fs from 'fs';
 import {
     ProgressParam,
     queryProgress,
-    queryRecentPlay,
-    updateProgress,
+    queryRecentPlay, recentWatch,
+    updateProgress
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -14,7 +14,7 @@ import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
     clearCache,
     openDataDir,
-    queryCacheSize,
+    queryCacheSize
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
@@ -26,14 +26,16 @@ import {
     listWordsLevel,
     markWordLevel,
     updateWordsLevel,
-    wordsTranslate,
+    wordsTranslate
 } from './controllers/WordLevelController';
 import { WordLevel } from '../db/entity/WordLevel';
 import {
     readFromClipboard,
-    writeToClipboard,
+    writeToClipboard
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
+import { dialog } from 'electron';
+import WatchProjectService from '../db/service/WatchProjectService';
 
 const handle = (
     channel: Channels,
@@ -223,6 +225,10 @@ export default function registerHandler() {
         log.info('recent-play');
         return queryRecentPlay(size);
     });
+    handle('recent-watch', async () => {
+        log.info('recent-watch');
+        return recentWatch();
+    });
     handle('open-file', async (path: string) => {
         log.info('open-file', path);
         // 如果文件存在, 则返回文件流, 否则返回null
@@ -251,4 +257,8 @@ export default function registerHandler() {
     handle('process-sentences', async (sentences: string[]) => {
         return processSentences(sentences);
     });
+    handle('select-file', async (isFolder: boolean) => {
+            return WatchProjectService.selectFiles(isFolder);
+        }
+    );
 }
