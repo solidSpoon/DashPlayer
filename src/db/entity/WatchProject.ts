@@ -8,7 +8,6 @@ export interface WatchProject {
     type?: number;
     project_key?: string;
     project_path?: string;
-    current_video_id?: number;
     created_at?: string;
     updated_at?: string;
 }

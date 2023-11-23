@@ -36,6 +36,7 @@ export default function Player(): ReactElement {
         }))
     );
     const videoFile = useFile((s) => s.videoFile);
+    const projectVideo = useFile((s) => s.currentVideo);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const playerRef: React.RefObject<ReactPlayer> = useRef<ReactPlayer>(null);
@@ -105,10 +106,12 @@ export default function Player(): ReactElement {
             return;
         }
 
-        if (videoFile?.fileName === undefined) {
+        console.log('jumpToHistoryProgress', projectVideo);
+
+        if (projectVideo?.id === undefined) {
             return;
         }
-        const result = await api.queryProgress(videoFile.fileName);
+        const result = await api.queryProgress(projectVideo.id);
         const progress = result.current_time ?? 0;
         console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });

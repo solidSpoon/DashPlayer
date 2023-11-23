@@ -1,16 +1,10 @@
 import { twMerge } from 'tailwind-merge';
 import { useShallow } from 'zustand/react/shallow';
-import React, { useEffect, useState } from 'react';
-import { GoFile } from 'react-icons/go';
+import React from 'react';
 import Switch from '../Switch';
 import usePlayerController from '../../hooks/usePlayerController';
 import { cn } from '../../../utils/Util';
-import { ProgressParam } from '../../../main/controllers/ProgressController';
-import { pathToFile } from '../../lib/FileParser';
-import useFile from '../../hooks/useFile';
 import OpenFile from '../OpenFile';
-import { WatchProjectVO } from '../../../db/service/WatchProjectService';
-import WatchProjectItem from '../WatchProjectItem';
 import WatchProjectBrowser from '../WatchProjectBrowser';
 
 const api = window.electron;

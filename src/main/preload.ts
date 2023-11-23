@@ -1,13 +1,9 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import { IPagination, IWithPagination } from 'knex-paginate';
 import { YdRes } from '../renderer/lib/param/yd/a';
 import { Release } from './controllers/CheckUpdate';
-import { ProgressParam } from './controllers/ProgressController';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
-import { SentenceApiParam } from '../types/TransApi';
 import { WordLevel } from '../db/entity/WordLevel';
-import TransHolder from '../utils/TransHolder';
 import { Pagination } from '../db/service/WordLevelService';
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
@@ -39,7 +35,6 @@ export type Channels =
     | 'app-version'
     | 'player-size'
     | 'home-size'
-    | 'recent-play'
     | 'recent-watch'
     | 'open-file'
     | 'words-translate'
@@ -150,8 +145,8 @@ const electronHandler = {
     updateProgress: async (progress: WatchProjectVideo) => {
         await invoke('update-progress', progress);
     },
-    queryProgress: async (fileName: string) => {
-        return (await invoke('query-progress', fileName)) as WatchProjectVideo;
+    queryProgress: async (videoId: number) => {
+        return (await invoke('query-progress', videoId)) as WatchProjectVideo;
     },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release | undefined;
@@ -201,9 +196,6 @@ const electronHandler = {
     readFromClipboard: async () => {
         return (await invoke('read-from-clipboard')) as string;
     },
-    recentPlay: async (size: number) => {
-        return (await invoke('recent-play', size)) as ProgressParam[];
-    },
     recentWatch: async () => {
         return (await invoke('recent-watch')) as WatchProjectVO[];
     },
@@ -211,7 +203,7 @@ const electronHandler = {
         return (await invoke('is-windows')) as boolean;
     },
     selectFile: async (isFolder:boolean) => {
-        return (await invoke('select-file',isFolder)) as string;
+        return (await invoke('select-file',isFolder)) as WatchProjectVO | undefined;
     },
     processSentences: async (sentences: string[]) => {
         return (await invoke(

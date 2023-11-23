@@ -14,7 +14,7 @@ export interface WatchProjectItemProps {
 }
 
 const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
-    const file = item.videos.filter((v) => v.id === item.current_video_id)[0];
+    const file = item.videos.filter((v) => v.current_playing === 1)[0];
     console.log('watch project item', item);
     const { currentVideo, playFile } = useFile(useShallow((s) => ({
         currentVideo: s.currentVideo,

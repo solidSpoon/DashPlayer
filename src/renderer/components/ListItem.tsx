@@ -17,7 +17,7 @@ const ListItem = ({ content, onClick, icon, className }: ListItemProps) => {
         <div
             onClick={() => onClick?.()}
             className={cn(
-                'w-full h-10 flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6',
+                'w-full flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6 py-2',
                 className
             )}
         >

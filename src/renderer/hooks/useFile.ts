@@ -56,19 +56,12 @@ const useFile = create(
             });
         },
         playFile: async (f: WatchProjectVideo) => {
-            // updateFile(await pathToFile(video.video_path ?? ''));
-            // if (video.subtitle_path !== null) {
-            //     updateFile(await pathToFile(video.subtitle_path ?? ''));
-            // }
-
             const video = await pathToFile(f.video_path ?? '');
             const subtitle = await pathToFile(f.subtitle_path ?? '');
+            useFile.getState().updateFile(video);
+            useFile.getState().updateFile(subtitle);
             set((s) => {
                 return {
-                    videoFile: video,
-                    subtitleFile: subtitle,
-                    openedNum: s.openedNum + 1,
-                    videoLoaded: false,
                     currentVideo: f,
                 };
             });

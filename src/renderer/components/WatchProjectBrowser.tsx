@@ -35,9 +35,6 @@ const WatchProjectBrowser = () => {
             <div className='w-full flex-1 h-0 flex flex-col overflow-y-auto scrollbar-none text-sm'>
                 {!showDetail &&
                     recentPlaylists.map((pl) => {
-                        const file = pl.videos.filter(
-                            (v) => v.id === pl.current_video_id
-                        )[0];
                         return (
                             <WatchProjectItem
                                 item={pl}

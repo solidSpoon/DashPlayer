@@ -3,7 +3,7 @@ import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
 import {
-    queryRecentPlay, queryVideoProgress,
+    queryVideoProgress,
     recentWatch,
     updateVideoProgress
 } from './controllers/ProgressController';
@@ -219,10 +219,6 @@ export default function registerHandler() {
         mainWindow?.setSize(800, 600);
         mainWindow?.setResizable(false);
         mainWindow?.setMaximizable(false);
-    });
-    handle('recent-play', async (size: number) => {
-        log.info('recent-play');
-        return queryRecentPlay(size);
     });
     handle('recent-watch', async () => {
         log.info('recent-watch');

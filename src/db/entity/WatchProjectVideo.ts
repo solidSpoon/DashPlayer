@@ -6,6 +6,7 @@ export interface WatchProjectVideo {
     subtitle_path?: string;
     current_time?: number;
     duration?: number;
+    current_playing?: number;
     created_at?: string;
     updated_at?: string;
 }

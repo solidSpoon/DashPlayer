@@ -22,11 +22,9 @@ import SentenceT from '../lib/param/SentenceT';
 import useFile from './useFile';
 import { p, sleep, splitToWords } from '../../utils/Util';
 import useSetting from './useSetting';
-import { ProgressParam } from '../../main/controllers/ProgressController';
 import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
 import TransHolder from '../../utils/TransHolder';
 import { SentenceStruct } from '../../types/SentenceStruct';
-import { WatchProjectVideo } from '../../db/entity/WatchProjectVideo';
 
 const api = window.electron;
 const usePlayerController = create<

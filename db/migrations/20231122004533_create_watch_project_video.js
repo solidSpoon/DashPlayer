@@ -5,9 +5,10 @@ export async function up(knex) {
     return knex.schema
         .createTable(WATCH_PROJECT_VIDEO_TABLE_NAME, (table) => {
             table.increments('id').primary();
-            table.string('project_id').notNullable();
+            table.integer('project_id').notNullable();
             table.string('video_name').notNullable();
             table.string('video_path').notNullable();
+            table.boolean('current_playing').notNullable().defaultTo(false);
             table.string('subtitle_path').notNullable();
             table.integer('current_time').notNullable().defaultTo(0);
             table.integer('duration').notNullable().defaultTo(0);

@@ -13,17 +13,32 @@ export interface OpenFileProps {
 const api = window.electron;
 
 export default function OpenFile({ isDirectory, className }: OpenFileProps) {
+    const playFile = useFile(s=>s.playFile);
     const handleClick = async () => {
-        await api.selectFile(isDirectory ?? false);
+        let project = await api.selectFile(isDirectory ?? false);
+        if (!project) {
+            return;
+        }
+       const video = project.videos.filter((v) => {
+           return  v.current_playing === 1;
+        })[0];
+        if (!video) {
+            return;
+        }
+        playFile(video);
     };
 
     return (
         <>
             {isDirectory && (
-                <ListItem content="打开文件夹" onClick={() => handleClick()} />
+                <ListItem content="打开文件夹..."
+                          className={cn('',className)}
+                          onClick={() => handleClick()} />
             )}
             {!isDirectory && (
-                <ListItem content="打开文件" onClick={() => handleClick()} />
+                <ListItem content="打开文件..."
+                            className={cn('',className)}
+                          onClick={() => handleClick()} />
             )}
         </>
     );
