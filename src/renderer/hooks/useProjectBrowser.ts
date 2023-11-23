@@ -28,7 +28,8 @@ const useProjectBrowser = () => {
             .filter(p=>p.id === currentProject?.id);
     const routeTo = (projectId: number | undefined | null) => {
         if (projectId) {
-            const project = playList.filter((p) => p.id === projectId)[0];
+            const project = recentPlaylists.filter((p) => p.id === projectId)[0];
+            console.log('routeTo', playList);
             if (project) {
                 setCurrentProject(project);
             }

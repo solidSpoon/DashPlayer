@@ -7,6 +7,7 @@ import { WatchProjectType } from '../../db/entity/WatchProject';
 import ListItem from './ListItem';
 import useFile from '../hooks/useFile';
 import { useShallow } from 'zustand/react/shallow';
+import usePlayerController from '../hooks/usePlayerController';
 
 export interface WatchProjectItemProps {
     item: WatchProjectVO;
@@ -20,11 +21,13 @@ const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
         currentVideo: s.currentVideo,
         playFile: s.playFile
     })));
+    const changePopType = usePlayerController(s=>s.changePopType);
     const icon = item.videos.length === 1 ? <GoFile /> : <VscFolder />;
     const handleClick = () => {
         console.log('click', item);
         if (item.videos.length === 1) {
             playFile(item.videos[0]);
+            changePopType('none');
         } else {
             onRouteTo?.();
         }

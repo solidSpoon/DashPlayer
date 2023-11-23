@@ -7,6 +7,7 @@ import { cn } from '../../../utils/Util';
 import useSetting from '../../hooks/useSetting';
 import ControlCenter from './ControlCenter';
 import WordLevelPage from './WordLevelPage';
+import { IoMdClose } from 'react-icons/io';
 
 const ControllerPage = () => {
     const theme = useSetting((s) => s.appearance.theme);
@@ -32,7 +33,7 @@ const ControllerPage = () => {
         >
             <div className="h-7 w-full" />
 
-            <div className="flex-1 w-full px-2 pb-2 bg-titlebar">
+            <div className="flex-1 w-full h-0 px-2 pb-2 bg-titlebar">
                 <div
                     className={cn(
                         'w-full h-full flex flex-col bg-gray-200 rounded overflow-hidden shadow-inner shadow-gray-300'
@@ -40,10 +41,11 @@ const ControllerPage = () => {
                 >
                     <div
                         className={cn(
-                            'w-full flex items-center justify-center bg-white p-2 select-none'
+                            'w-full flex items-center justify-between bg-white p-2 select-none'
                         )}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        <div/>
                         <div
                             className={cn(
                                 'bg-gray-200 rounded-lg p-1 flex items-center justify-center gap-1 shadow-inner shadow-gray-300'
@@ -74,10 +76,19 @@ const ControllerPage = () => {
                                 Word Level
                             </div>
                         </div>
+                        <div
+                            onClick={() => {
+                                changePopType('none');
+                            }}
+                            className={cn('shadow-inner bg-gray-200 shadow-gray-300 rounded p-2',
+                            'hover:bg-gray-300 hover:shadow-gray-400 '
+                            )}>
+                            <IoMdClose />
+                        </div>
                     </div>
                     <div
                         className={cn(
-                            ' flex-1 flex items-center justify-center p-2 drop-shadow-lg'
+                            ' flex-1 h-0 flex items-center justify-center p-2 drop-shadow-lg'
                         )}
                     >
                         <div
