@@ -32,7 +32,7 @@ const WatchProjectBrowser = () => {
                     </>
                 )}
             </div>
-            <div className='w-full flex-1 h-0 flex flex-col overflow-y-auto scrollbar-none text-sm'>
+            <div className='w-full flex-1 h-0 flex flex-col text-sm scrollbar-none'>
                 {!showDetail &&
                     recentPlaylists.map((pl) => {
                         return (

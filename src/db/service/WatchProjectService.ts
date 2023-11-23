@@ -153,6 +153,7 @@ function mergeProject(base: WatchProjectVO | undefined, newProject: WatchProject
         return item;
     });
     const currentPlaying = newVideos.filter((item) => item.current_playing);
+    console.log('currentPlaying', currentPlaying);
     if (currentPlaying.length === 0) {
         newVideos[0].current_playing = 1;
     }
@@ -175,8 +176,9 @@ export default class WatchProjectService {
             return undefined;
         }
         console.log('selectFiles', select);
-        const watchProject = await this.detail(select.id ?? 0);
+        const watchProject = await this.detail(select.project_key ?? '');
         const finalProject = mergeProject(watchProject, select);
+        console.log('finalProject', finalProject);
         return this.tryReplace(finalProject);
     };
 
@@ -215,12 +217,12 @@ export default class WatchProjectService {
         });
     }
 
-    private static async detail(id: number): Promise<WatchProjectVO | undefined> {
+    private static async detail(key: string): Promise<WatchProjectVO | undefined> {
         const watchProject = await knexDb<WatchProject>(
             WATCH_PROJECT_TABLE_NAME
         )
             .select('*')
-            .where('id', id)
+            .where('project_key', key)
             .first();
         if (watchProject) {
             const watchProjectVideos = await knexDb<WatchProjectVideo>(
@@ -278,6 +280,7 @@ export default class WatchProjectService {
                 })
             )
             .returning('*');
+        console.log('tryReplace', watchProjectVideos);
         return {
             ...insertWatchProject[0],
             videos: watchProjectVideos

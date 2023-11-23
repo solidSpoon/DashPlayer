@@ -4,6 +4,7 @@ import FileT, { FileType } from '../lib/param/FileT';
 import WatchProjectItem from '../components/WatchProjectItem';
 import { pathToFile } from '../lib/FileParser';
 import { WatchProjectVideo } from '../../db/entity/WatchProjectVideo';
+import usePlayerController from './usePlayerController';
 
 type UseFileState = {
     videoFile: FileT | undefined;

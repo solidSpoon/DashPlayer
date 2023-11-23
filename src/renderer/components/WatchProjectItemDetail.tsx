@@ -4,6 +4,7 @@ import { WatchProjectVO } from '../../db/service/WatchProjectService';
 import ListItem from './ListItem';
 import useFile from '../hooks/useFile';
 import { useShallow } from 'zustand/react/shallow';
+import usePlayerController from '../hooks/usePlayerController';
 
 export interface WatchProjectItemDetailProps {
     item: WatchProjectVO;
@@ -12,13 +13,12 @@ export interface WatchProjectItemDetailProps {
 
 const WatchProjectItemDetail = ({ item, onRouteTo }: WatchProjectItemDetailProps) => {
     console.log('watch project item', item);
-    const { currentVideo, playFile } = useFile(useShallow((s) => ({
-        currentVideo: s.currentVideo,
+    const { playFile } = useFile(useShallow((s) => ({
         playFile: s.playFile
     })));
-
+    const changePopType = usePlayerController(s=>s.changePopType);
     return (
-        <div className="w-full flex flex-col gap-2 overflow-y-scroll">
+        <div className="w-full flex flex-col gap-2 overflow-y-scroll scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-thumb-rounded">
             <ListItem
                 onClick={() => {
                     onRouteTo?.(null);
@@ -30,6 +30,7 @@ const WatchProjectItemDetail = ({ item, onRouteTo }: WatchProjectItemDetailProps
                 <ListItem
                     onClick={() => {
                         playFile(video);
+                        changePopType('none');
                     }}
                     content={video.video_name ?? ''}
                     key={video.id}
@@ -38,10 +39,6 @@ const WatchProjectItemDetail = ({ item, onRouteTo }: WatchProjectItemDetailProps
             ))}
         </div>
     );
-};
-
-WatchProjectItemDetail.defaultProps = {
-    onRouteTo: () => {}
 };
 
 export default WatchProjectItemDetail;

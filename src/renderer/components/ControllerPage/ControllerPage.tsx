@@ -32,7 +32,7 @@ const ControllerPage = () => {
         >
             <div className="h-7 w-full" />
 
-            <div className="flex-1 w-full px-2 pb-2 bg-titlebar">
+            <div className="flex-1 w-full h-0 px-2 pb-2 bg-titlebar">
                 <div
                     className={cn(
                         'w-full h-full flex flex-col bg-gray-200 rounded overflow-hidden shadow-inner shadow-gray-300'
@@ -77,7 +77,7 @@ const ControllerPage = () => {
                     </div>
                     <div
                         className={cn(
-                            ' flex-1 flex items-center justify-center p-2 drop-shadow-lg'
+                            ' flex-1 h-0 flex items-center justify-center p-2 drop-shadow-lg'
                         )}
                     >
                         <div
