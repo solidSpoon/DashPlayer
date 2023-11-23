@@ -1,7 +1,7 @@
 import fs from 'fs';
-import ProgressEntity from '../ServerLib/entity/ProgressEntity';
 import ProgressCache from '../ServerLib/ProgressCache';
 import WatchProjectService, { WatchProjectVO } from '../../db/service/WatchProjectService';
+import { WatchProjectVideo } from '../../db/entity/WatchProjectVideo';
 
 export interface ProgressParam {
     fileName: string;
@@ -24,29 +24,6 @@ export interface ProgressParam {
     subtitlePath: string | undefined;
 }
 
-/**
- * 更新播放进度
- * @param fileName
- * @param progress
- */
-export async function updateProgress(progress: ProgressParam): Promise<void> {
-    const progressEntity = new ProgressEntity(progress.fileName);
-    progressEntity.filePath = progress.filePath;
-    progressEntity.subtitlePath = progress.subtitlePath;
-    progressEntity.progress = progress.progress;
-    progressEntity.total = progress.total;
-    await ProgressCache.updateProgress(progressEntity);
-}
-
-/**
- * 查询播放进度
- * @param fileName
- */
-export async function queryProgress(fileName: string): Promise<number> {
-    const progressEntity = new ProgressEntity(fileName);
-    const result = await ProgressCache.queryProcess(progressEntity);
-    return result.progress ?? 0;
-}
 
 /**
  * 最近播放
@@ -62,10 +39,24 @@ export async function queryRecentPlay(size: number): Promise<ProgressParam[]> {
                 filePath: item.filePath,
                 subtitlePath: item.subtitlePath,
                 progress: item.progress ?? 0,
-                total: item.total ?? 0,
+                total: item.total ?? 0
             };
         });
 }
+
 export async function recentWatch(): Promise<WatchProjectVO[]> {
     return WatchProjectService.listRecent();
+}
+
+export async function queryVideoProgress(
+    id: number
+): Promise<WatchProjectVideo> {
+    return WatchProjectService.queryVideoProgress(id);
+}
+
+
+export async function updateVideoProgress(
+    video: WatchProjectVideo
+): Promise<void> {
+    await WatchProjectService.updateVideoProgress(video);
 }

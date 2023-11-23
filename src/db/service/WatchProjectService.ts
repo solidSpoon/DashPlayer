@@ -232,4 +232,24 @@ export default class WatchProjectService {
             videos: watchProjectVideos,
         };
     }
+
+    static queryVideoProgress = async (id: number) : Promise<WatchProjectVideo> => {
+        let result = knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
+            .select('*')
+            .where('id', id)
+            .first();
+        if (result === undefined) {
+            throw new Error('not found');
+        }
+        return result as WatchProjectVideo;
+    }
+
+    static updateVideoProgress = async (video: WatchProjectVideo)=> {
+        await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
+            .update({
+                current_time: video.current_time,
+                duration: video.duration,
+            })
+            .where('id', video.id);
+    }
 }

@@ -3,11 +3,9 @@ import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
 import {
-    ProgressParam,
-    queryProgress,
-    queryRecentPlay,
+    queryRecentPlay, queryVideoProgress,
     recentWatch,
-    updateProgress,
+    updateVideoProgress
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -36,6 +34,7 @@ import {
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
 import WatchProjectService from '../db/service/WatchProjectService';
+import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
 
 const handle = (
     channel: Channels,
@@ -54,14 +53,14 @@ export default function registerHandler() {
         log.info('ipcMain update-process', arg);
         event.reply('update-process', 'success');
     });
-    handle('update-progress', async (progress: ProgressParam) => {
+    handle('update-progress', async (progress: WatchProjectVideo) => {
         log.info('update-progress', progress);
-        await updateProgress(progress);
+        await updateVideoProgress(progress);
     });
-    handle('query-progress', async (fileName: string) => {
-        log.info('query-progress', fileName);
-        const progress = await queryProgress(fileName);
-        log.info(`query-progress file: ${fileName}, progress: ${progress}`);
+    handle('query-progress', async (videoId: number) => {
+        log.info('query-progress', videoId);
+        const progress = await queryVideoProgress(videoId);
+        log.info(`query-progress file: ${videoId}, progress: ${progress}`);
         return progress;
     });
     handle(

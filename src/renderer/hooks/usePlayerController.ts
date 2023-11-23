@@ -26,6 +26,7 @@ import { ProgressParam } from '../../main/controllers/ProgressController';
 import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
 import TransHolder from '../../utils/TransHolder';
 import { SentenceStruct } from '../../types/SentenceStruct';
+import { WatchProjectVideo } from '../../db/entity/WatchProjectVideo';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -87,15 +88,16 @@ usePlayerController.subscribe(
             if (count % 5 !== 0) {
                 return;
             }
-            const file = useFile.getState();
-            const p: ProgressParam = {
-                fileName: file.videoFile?.fileName ?? '',
-                progress: playTime,
-                total: duration,
-                filePath: file.videoFile?.path ?? '',
-                subtitlePath: file.subtitleFile?.path,
-            };
-            await api.updateProgress(p);
+            const file = useFile.getState().currentVideo;
+            if (!file) {
+                return;
+            }
+
+            await api.updateProgress({
+                ...file,
+                current_time: playTime,
+                duration,
+            });
         }
     },
     { equalityFn: shallow }

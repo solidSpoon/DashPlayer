@@ -9,14 +9,16 @@ export interface ListItemProps {
     content: string;
     onClick?: () => void;
     icon?: ReactElement | null;
+    className?: string;
 }
 
-const ListItem = ({ content, onClick, icon }: ListItemProps) => {
+const ListItem = ({ content, onClick, icon, className }: ListItemProps) => {
     return (
         <div
             onClick={() => onClick?.()}
             className={cn(
-                'w-full h-10 flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6'
+                'w-full h-10 flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6',
+                className
             )}
         >
             {icon &&
@@ -31,6 +33,7 @@ const ListItem = ({ content, onClick, icon }: ListItemProps) => {
 ListItem.defaultProps = {
     onClick: () => {},
     icon: null,
+    className: '',
 };
 
 export default ListItem;

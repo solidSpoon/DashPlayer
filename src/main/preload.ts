@@ -12,6 +12,7 @@ import { Pagination } from '../db/service/WordLevelService';
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
 import { WatchProjectVO } from '../db/service/WatchProjectService';
+import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
 
 export type Channels =
     | 'main-state'
@@ -146,11 +147,11 @@ const electronHandler = {
         >;
         return mapping;
     },
-    updateProgress: async (progress: ProgressParam) => {
+    updateProgress: async (progress: WatchProjectVideo) => {
         await invoke('update-progress', progress);
     },
     queryProgress: async (fileName: string) => {
-        return (await invoke('query-progress', fileName)) as number;
+        return (await invoke('query-progress', fileName)) as WatchProjectVideo;
     },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release | undefined;
