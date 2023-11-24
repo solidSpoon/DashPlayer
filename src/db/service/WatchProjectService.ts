@@ -29,7 +29,7 @@ const findSubtitle = (
     );
 };
 
-const selectFiles = async (): Promise<WatchProjectVO | undefined> => {
+const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
     // 多选
     const files = await dialog.showOpenDialog({
         properties: ['openFile', 'multiSelections'],
@@ -45,12 +45,15 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined> => {
     const videoFilesList = files.filePaths.filter((fileName) =>
         isVideo(fileName)
     );
-    if (videoFilesList.length === 0) {
-        return undefined;
-    }
     const subtitleFilesList = files.filePaths.filter((fileName) =>
         isSubtitle(fileName)
     );
+    if (videoFilesList.length === 0) {
+        if (subtitleFilesList.length > 0) {
+            return subtitleFilesList[0];
+        }
+        return undefined;
+    }
     const videoFile = videoFilesList[0];
     console.log('selectFiles', subtitleFilesList, videoFile);
     const res: WatchProjectVO = {
@@ -172,12 +175,13 @@ function mergeProject(base: WatchProjectVO | undefined, newProject: WatchProject
 export default class WatchProjectService {
     public static selectFiles = async (
         isDirectory: boolean
-    ): Promise<WatchProjectVO | undefined> => {
+    ): Promise<WatchProjectVO | undefined | string> => {
         const select = isDirectory
             ? await selectDirectory()
             : await selectFiles();
-        if (!select) {
-            return undefined;
+        if (!select || typeof select === 'string') {
+            console.log('selectFiles', select);
+            return select;
         }
         console.log('selectFiles', select);
         const watchProject = await this.detail(select.project_key ?? '');
@@ -311,6 +315,7 @@ export default class WatchProjectService {
             .update({
                 current_time: video.current_time,
                 duration: video.duration,
+                subtitle_path: video.subtitle_path,
                 current_playing: 1
             })
             .where('id', video.id);

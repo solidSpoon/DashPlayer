@@ -45,6 +45,10 @@ const useFile = create(
                     return {
                         subtitleFile: file,
                         openedNum: ps.openedNum + 1,
+                        currentVideo: {
+                            ...ps.currentVideo,
+                            video_path: file.path,
+                        }
                     };
                 });
             }

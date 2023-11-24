@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import parseFile from '../lib/FileParser';
+import parseFile, { pathToFile } from '../lib/FileParser';
 import useFile from '../hooks/useFile';
 import { ACCEPTED_FILE_TYPES } from '../../utils/MediaTypeUitl';
 import { cn } from '../../utils/Util';
@@ -15,6 +15,7 @@ const api = window.electron;
 
 export default function OpenFile({ directory, className }: OpenFileProps) {
     const playFile = useFile(s=>s.playFile);
+    const updateFile = useFile(s=>s.updateFile);
     const changePopType = usePlayerController(s=>s.changePopType);
     const handleClick = async () => {
         let project = await api.selectFile(directory ?? false);
@@ -22,6 +23,14 @@ export default function OpenFile({ directory, className }: OpenFileProps) {
         if (!project) {
             return;
         }
+        if(typeof project === 'string'){
+            // 是字幕文件
+            const file = await pathToFile(project);
+            updateFile(file);
+            changePopType('none');
+            return;
+        }
+
        const video = project.videos.filter((v) => {
            return  v.current_playing === 1;
         })[0];

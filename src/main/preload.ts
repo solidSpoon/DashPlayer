@@ -207,7 +207,7 @@ const electronHandler = {
         return (await invoke('is-windows')) as boolean;
     },
     selectFile: async (isFolder:boolean) => {
-        return (await invoke('select-file',isFolder)) as WatchProjectVO | undefined;
+        return (await invoke('select-file',isFolder)) as WatchProjectVO | undefined | string;
     },
     processSentences: async (sentences: string[]) => {
         return (await invoke(

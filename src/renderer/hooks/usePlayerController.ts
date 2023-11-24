@@ -95,6 +95,7 @@ usePlayerController.subscribe(
                 ...file,
                 current_time: playTime,
                 duration,
+                subtitle_path: useFile.getState().subtitleFile?.path,
             });
         }
     },

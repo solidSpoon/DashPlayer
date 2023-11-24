@@ -16,33 +16,8 @@ export const THEME: ThemeType[] = [
         usingThemeName: 'light',
     },
     {
-        name: 'bright',
-        type: 'light',
-        usingThemeName: 'bright',
-    },
-    {
-        name: 'deep',
-        type: 'dark',
-        usingThemeName: 'deep',
-    },
-    {
         name: 'dark',
         type: 'dark',
         usingThemeName: 'dark',
-    },
-    {
-        name: 'colorful one',
-        type: 'light',
-        usingThemeName: 'colorful',
-    },
-    {
-        name: 'colorful two',
-        type: 'light',
-        usingThemeName: 'colorful',
-    },
-    {
-        name: 'colorful three',
-        type: 'light',
-        usingThemeName: 'colorful',
     },
 ];

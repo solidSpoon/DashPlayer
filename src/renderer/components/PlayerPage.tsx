@@ -26,7 +26,6 @@ export interface PlayerPageParam {
 const PlayerPage = ({ isDragging }: PlayerPageParam) => {
     const theme = useSetting((s) => s.appearance.theme);
     const themeName = usingThemeName(theme);
-    console.log('themeName', themeName);
     const fontSize = useSetting((s) => s.appearance.fontSize);
     const videoFile = useFile((s) => s.videoFile);
     const subtitleFile = useFile((s) => s.subtitleFile);
@@ -48,7 +47,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
             <div
                 className={twJoin(
                     'absolute -z-50 invisible',
-                    'light bright dark deep colorful',
+                    'light dark',
                     'fontSizeMedium',
                     'fontSizeSmall',
                     'fontSizeLarge'
@@ -56,12 +55,8 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
             />
             <div
                 className={twJoin(
-                    `select-none h-screen w-full font-face-arc overflow-hidden flex flex-col `,
-                    themeName,
+                    `select-none h-screen w-full font-face-arc overflow-hidden flex flex-col bg-background`,
                     fontSize,
-                    isColorfulTheme(themeName)
-                        ? 'bg-background/80 backdrop-blur'
-                        : 'bg-background'
                 )}
             >
                 <TitleBar
