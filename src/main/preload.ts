@@ -36,6 +36,7 @@ export type Channels =
     | 'player-size'
     | 'home-size'
     | 'recent-watch'
+    | 'reload-recent-from-disk'
     | 'open-file'
     | 'words-translate'
     | 'list-level-words'
@@ -198,6 +199,9 @@ const electronHandler = {
     },
     recentWatch: async () => {
         return (await invoke('recent-watch')) as WatchProjectVO[];
+    },
+    reloadRecentFromDisk: async () => {
+        return (await invoke('reload-recent-from-disk')) as WatchProjectVO[];
     },
     isWindows: async () => {
         return (await invoke('is-windows')) as boolean;

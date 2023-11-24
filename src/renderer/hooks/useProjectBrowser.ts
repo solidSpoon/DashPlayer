@@ -9,6 +9,7 @@ const useProjectBrowser = () => {
     );
     const videoFile = useFile((s) => s.currentVideo);
     const [currentProject, setCurrentProject] = useState<WatchProjectVO | null>(null);
+    const [loading, setLoading] = useState(false);
     useEffect(() => {
         const runEffect = async () => {
             const playlists = await api.recentWatch();
@@ -38,10 +39,18 @@ const useProjectBrowser = () => {
         }
     }
 
+    const refresh = async () => {
+        setLoading(true);
+        const playlists = await api.reloadRecentFromDisk();
+        setRecentPlaylists(playlists);
+        setLoading(false);
+    }
     return {
         recentPlaylists,
         currentProject,
         routeTo,
+        refresh,
+        loading,
     };
 }
 

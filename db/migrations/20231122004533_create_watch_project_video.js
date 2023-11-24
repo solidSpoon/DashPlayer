@@ -7,7 +7,7 @@ export async function up(knex) {
             table.increments('id').primary();
             table.integer('project_id').notNullable();
             table.string('video_name').notNullable();
-            table.string('video_path').notNullable();
+            table.string('video_path', 1024).notNullable();
             table.boolean('current_playing').notNullable().defaultTo(false);
             table.string('subtitle_path').notNullable();
             table.integer('current_time').notNullable().defaultTo(0);

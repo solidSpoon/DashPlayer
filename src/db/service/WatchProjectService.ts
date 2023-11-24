@@ -91,18 +91,10 @@ function tryInitProject(filePath: string) {
     return config.project_key;
 }
 
-const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
-    const files = await dialog.showOpenDialog({
-        properties: ['openDirectory']
-    });
-    let res: WatchProjectVO | undefined;
-    if (files.filePaths.length === 0) {
-        return res;
-    }
-    const filePath = files.filePaths[0];
+function doSelectDirectory(filePath: string) {
     const projectKey = tryInitProject(filePath);
     const filesList = fs.readdirSync(filePath);
-    res = {
+    const res: WatchProjectVO = {
         project_name: path.basename(filePath),
         type: WatchProjectType.DIRECTORY,
         project_key: projectKey,
@@ -127,6 +119,18 @@ const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
             duration: 0
         });
     });
+    return res;
+}
+
+const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
+    const files = await dialog.showOpenDialog({
+        properties: ['openDirectory']
+    });
+    if (files.filePaths.length === 0) {
+        return undefined;
+    }
+    const filePath = files.filePaths[0];
+    const res = doSelectDirectory(filePath);
     console.log('selectDirectory', res);
     return res;
 };
@@ -187,12 +191,14 @@ export default class WatchProjectService {
      */
     public static async listRecent(): Promise<WatchProjectVO[]> {
         console.log('listRecent');
-        const watchProjects = await knexDb<WatchProject>(
+        let watchProjects = await knexDb<WatchProject>(
             WATCH_PROJECT_TABLE_NAME
         )
             .select('*')
-            .orderBy('updated_at', 'desc')
+            .orderBy('last_watch_time', 'desc')
             .limit(50);
+        watchProjects = watchProjects.filter((wp) => fs.existsSync(wp.project_path ?? ''));
+
         const watchProjectIds = watchProjects.map((wp) => wp.id);
         const watchProjectVideos = await knexDb<WatchProjectVideo>(
             WATCH_PROJECT_VIDEO_TABLE_NAME
@@ -241,50 +247,45 @@ export default class WatchProjectService {
     private static async tryReplace(
         project: WatchProjectVO
     ): Promise<WatchProjectVO> {
-        const oldWatchProject = await knexDb<WatchProject>(
-            WATCH_PROJECT_TABLE_NAME
-        )
-            .select('*')
-            .where('project_key', project.project_key)
-            .first();
-        if (oldWatchProject) {
-            await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-                .delete()
-                .where('project_id', oldWatchProject.id);
-            await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
-                .delete()
-                .where('id', oldWatchProject.id);
-        }
-        //create new
-        const insertWatchProject = await knexDb<WatchProject>(
-            WATCH_PROJECT_TABLE_NAME
-        )
+        // Upsert the project
+        const [upsertedProject] = await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
             .insert({
                 project_name: project.project_name,
                 type: project.type,
                 project_key: project.project_key,
-                project_path: project.project_path,
-                id: undefined
+                project_path: project.project_path
             })
+            .onConflict('project_key')
+            .merge()
             .returning('*');
-        const watchProjectVideos = await knexDb<WatchProjectVideo>(
-            WATCH_PROJECT_VIDEO_TABLE_NAME
-        )
-            .insert(
-                project.videos.map((item) => {
-                    return {
-                        ...item,
-                        id: undefined,
-                        project_id: insertWatchProject[0].id
-                    };
+
+        // Upsert the videos
+        const videoPaths = project.videos.map(video => video.video_path);
+        for (const video of project.videos) {
+            await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
+                .insert({
+                    ...video,
+                    id: undefined,
+                    project_id: upsertedProject.id
                 })
-            )
-            .returning('*');
-        console.log('tryReplace', watchProjectVideos);
-        return {
-            ...insertWatchProject[0],
-            videos: watchProjectVideos
-        };
+                .onConflict(['project_id', 'video_path'])
+                .merge();
+        }
+
+        // Delete videos that are not in the new list
+        await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
+            .where('project_id', upsertedProject.id)
+            .andWhere('video_path', 'not in', videoPaths)
+            .del();
+
+        // Fetch the updated project with videos
+        const updatedProject = await this.detail(upsertedProject?.project_key ?? '');
+
+        if (!updatedProject) {
+            throw new Error('Failed to fetch the updated project');
+        }
+
+        return updatedProject;
     }
 
     static queryVideoProgress = async (id: number): Promise<WatchProjectVideo> => {
@@ -302,7 +303,7 @@ export default class WatchProjectService {
         // current_playing = false
         await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
             .update({
-                current_playing: 0,
+                current_playing: 0
             })
             .where('project_id', video.project_id);
 
@@ -310,14 +311,29 @@ export default class WatchProjectService {
             .update({
                 current_time: video.current_time,
                 duration: video.duration,
-                current_playing: 1,
+                current_playing: 1
             })
             .where('id', video.id);
         // 更新主表更新时间
         await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
             .update({
-                updated_at: new Date().toISOString()
+                last_watch_time: Date.now()
             })
             .where('id', video.project_id);
+    };
+    public static reloadRecentFromDisk = async (): Promise<WatchProjectVO[]> => {
+        const recent = await this.listRecent();
+        for (const item of recent) {
+            // 如果项目路径存在，就刷新一下
+            if (item.type === WatchProjectType.DIRECTORY && fs.existsSync(item?.project_path ?? '')) {
+                const newProject = doSelectDirectory(item.project_path ?? '');
+                if (newProject) {
+                    let finalProject = mergeProject(item, newProject);
+                    console.log('finalProject', finalProject);
+                    await this.tryReplace(finalProject);
+                }
+            }
+        }
+        return await this.listRecent();
     };
 }

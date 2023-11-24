@@ -7,17 +7,17 @@ import ListItem from './ListItem';
 import usePlayerController from '../hooks/usePlayerController';
 
 export interface OpenFileProps {
-    isDirectory?: boolean;
+    directory?: boolean;
     className?: string;
 }
 
 const api = window.electron;
 
-export default function OpenFile({ isDirectory, className }: OpenFileProps) {
+export default function OpenFile({ directory, className }: OpenFileProps) {
     const playFile = useFile(s=>s.playFile);
     const changePopType = usePlayerController(s=>s.changePopType);
     const handleClick = async () => {
-        let project = await api.selectFile(isDirectory ?? false);
+        let project = await api.selectFile(directory ?? false);
         console.log('project', project);
         if (!project) {
             return;
@@ -34,12 +34,12 @@ export default function OpenFile({ isDirectory, className }: OpenFileProps) {
 
     return (
         <>
-            {isDirectory && (
+            {directory && (
                 <ListItem content="打开文件夹..."
                           className={cn('',className)}
                           onClick={() => handleClick()} />
             )}
-            {!isDirectory && (
+            {!directory && (
                 <ListItem content="打开文件..."
                             className={cn('',className)}
                           onClick={() => handleClick()} />

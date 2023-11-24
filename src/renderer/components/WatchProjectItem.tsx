@@ -11,7 +11,7 @@ import usePlayerController from '../hooks/usePlayerController';
 
 export interface WatchProjectItemProps {
     item: WatchProjectVO;
-    onRouteTo?: () => void;
+    onRouteTo?: () => void | undefined;
 }
 
 const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
@@ -25,7 +25,7 @@ const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
     const icon = item.videos.length === 1 ? <GoFile /> : <VscFolder />;
     const handleClick = () => {
         console.log('click', item);
-        if (item.videos.length === 1) {
+        if (item.videos.length === 1 || onRouteTo === undefined) {
             playFile(item.videos[0]);
             changePopType('none');
         } else {
@@ -45,7 +45,7 @@ const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
 };
 
 WatchProjectItem.defaultProps = {
-    onRouteTo: () => {}
+    onRouteTo: undefined,
 };
 
 export default WatchProjectItem;

@@ -5,6 +5,10 @@ export async function recentWatch(): Promise<WatchProjectVO[]> {
     return WatchProjectService.listRecent();
 }
 
+export async function reloadRecentFromDisk(): Promise<WatchProjectVO[]> {
+   return WatchProjectService.reloadRecentFromDisk();
+}
+
 export async function queryVideoProgress(
     id: number
 ): Promise<WatchProjectVideo> {

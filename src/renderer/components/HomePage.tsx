@@ -13,10 +13,12 @@ import OpenFile from './OpenFile';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import ListItem from './ListItem';
 import { WatchProjectVO } from '../../db/service/WatchProjectService';
+import WatchProjectItem from './WatchProjectItem';
+import { IoRefreshCircleOutline } from 'react-icons/io5';
 
 
 const HomePage = () => {
-    const { recentPlaylists } = useProjectBrowser();
+    const { recentPlaylists, refresh, loading: isLoading } = useProjectBrowser();
     const playFile = useFile((s) => s.playFile);
     const appVersion = useSystem((s) => s.appVersion);
     const theme = useSetting((s) => s.appearance.theme);
@@ -41,7 +43,7 @@ const HomePage = () => {
         return v.current_playing === 1;
     })[0];
     const restPlay = recentPlaylists.length > 1 ? recentPlaylists.slice(1) : [];
-
+    console.log('lastplay', lastPlayVideo, lastPlay, restPlay);
     return (
         <div
             className={cn(
@@ -98,8 +100,8 @@ const HomePage = () => {
             >
                 <div className='w-full h-10' />
                 <div className={cn('flex w-full flex-col items-start')}>
-                    <OpenFile className={cn(' text-sm')} isDirectory={false} />
-                    <OpenFile className={cn(' text-sm')} isDirectory />
+                    <OpenFile className={cn('text-sm')} />
+                    <OpenFile className={cn('text-sm')} directory />
                 </div>
                 {lastPlay && (
                     <div
@@ -117,7 +119,7 @@ const HomePage = () => {
                         />
                         <span>Resume</span>
                         <span className='flex-1 truncate'>
-                            {lastPlay?.project_name??'' + lastPlayVideo?.video_name??''}
+                            {(lastPlay?.project_name ?? '') +' / '+ (lastPlayVideo?.video_name ?? '')}
                         </span>
                         <span
                             className={cn(
@@ -125,36 +127,33 @@ const HomePage = () => {
                                 dark && 'text-neutral-400'
                             )}
                         >
-                            {secondToDate(lastPlayVideo?.current_time??0)}
+                            {secondToDate(lastPlayVideo?.current_time ?? 0)}
                         </span>
                     </div>
                 )}
                 <div className='w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm'>
                     {restPlay.map((playlist) => {
-                            const video = playlist.videos.filter((v) => {
-                                return v.current_playing === 1;
-                            })[0];
-                            return <ListItem
-                                onClick={() => handleClick(playlist)}
-                                icon={<GoFile
-                                    className={cn(
-                                        'w-4 h-4 fill-yellow-700/90',
-                                        dark && 'fill-yellow-400/70'
-                                    )}
-                                />}
-                                content={`${playlist.project_name} ${video?.video_name}`}
-                            />;
+                            return <WatchProjectItem item={playlist} />;
                         }
                     )}
                 </div>
                 <div className='w-full h-16'>
-                    {currentClick && (
-                        <img
-                            src={loading}
-                            alt='loading'
-                            className='fixed bottom-1 right-1 w-8 h-8 bg-transparent'
-                        />
-                    )}
+                    <div
+                        onClick={() => {
+                            if (!isLoading) {
+                                refresh();
+                            }
+                        }}
+                        className={cn('ml-auto w-8 h-8 rounded hover:bg-gray-200 p-1')}>
+                        <IoRefreshCircleOutline className={cn('w-full h-full',isLoading && 'animate-spin')} />
+                    </div>
+                    {/*{currentClick && (*/}
+                    {/*    <img*/}
+                    {/*        src={loading}*/}
+                    {/*        alt='loading'*/}
+                    {/*        className='fixed bottom-1 right-1 w-8 h-8 bg-transparent'*/}
+                    {/*    />*/}
+                    {/*)}*/}
                 </div>
             </div>
         </div>

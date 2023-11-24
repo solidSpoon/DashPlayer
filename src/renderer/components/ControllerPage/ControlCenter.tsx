@@ -83,8 +83,8 @@ const ControlCenter = () => {
                     'flex-1 flex flex-col gap-2 items-center justify-center p-10 bg-white rounded-lg '
                 )}
             >
-                <OpenFile isDirectory={false} />
-                <OpenFile isDirectory />
+                <OpenFile directory={false} />
+                <OpenFile directory />
                 <WatchProjectBrowser />
             </div>
         </div>

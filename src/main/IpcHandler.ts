@@ -4,7 +4,7 @@ import axios from 'axios';
 import fs from 'fs';
 import {
     queryVideoProgress,
-    recentWatch,
+    recentWatch, reloadRecentFromDisk,
     updateVideoProgress
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
@@ -223,6 +223,10 @@ export default function registerHandler() {
     handle('recent-watch', async () => {
         log.info('recent-watch');
         return recentWatch();
+    });
+    handle('reload-recent-from-disk', async () => {
+        log.info('reload-recent-from-disk');
+        return await reloadRecentFromDisk();
     });
     handle('open-file', async (path: string) => {
         log.info('open-file', path);

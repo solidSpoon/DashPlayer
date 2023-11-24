@@ -8,8 +8,10 @@ export async function up(knex) {
             table.string('project_name').notNullable();
             table.integer('type').notNullable().defaultTo(0);
             table.string('project_key').notNullable();
-            table.string('project_path').notNullable();
+            table.string('project_path', 1024).notNullable();
             table.integer('current_video_id').notNullable().defaultTo(0);
+            //watch time
+            table.integer('last_watch_time').notNullable().defaultTo(0);
             // create_at and update_at
             table.timestamps(true, false);
             table.unique(['project_key']);
