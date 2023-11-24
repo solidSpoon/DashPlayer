@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { GoFile, GoHistory } from 'react-icons/go';
-import { logo } from '../../pic/img';
 import useSystem from '../hooks/useSystem';
 import TitleBar from './TitleBar/TitleBar';
 import { secondToDate } from './PlayTime';
@@ -15,7 +14,8 @@ import ListItem from './ListItem';
 import { WatchProjectVO } from '../../db/service/WatchProjectService';
 import WatchProjectItem from './WatchProjectItem';
 import { IoRefreshCircleOutline } from 'react-icons/io5';
-
+import logoLight from '../../../assets/logo-light.png'
+import logoDark from '../../../assets/logo-dark.png'
 
 const HomePage = () => {
     const { recentPlaylists, refresh, loading: isLoading } = useProjectBrowser();
@@ -70,7 +70,7 @@ const HomePage = () => {
             >
                 <div className='relative top-0 left-0 w-32 h-32'>
                     <img
-                        src={logo}
+                        src={dark ? logoDark : logoLight}
                         alt='logo'
                         className='w-32 h-32 absolute top-0 left-0 user-drag-none'
                     />
@@ -119,7 +119,7 @@ const HomePage = () => {
                         />
                         <span>Resume</span>
                         <span className='flex-1 truncate'>
-                            {(lastPlay?.project_name ?? '') +' / '+ (lastPlayVideo?.video_name ?? '')}
+                            {(lastPlay?.project_name ?? '') + ' / ' + (lastPlayVideo?.video_name ?? '')}
                         </span>
                         <span
                             className={cn(
@@ -145,7 +145,7 @@ const HomePage = () => {
                             }
                         }}
                         className={cn('ml-auto w-8 h-8 rounded hover:bg-gray-200 p-1')}>
-                        <IoRefreshCircleOutline className={cn('w-full h-full',isLoading && 'animate-spin')} />
+                        <IoRefreshCircleOutline className={cn('w-full h-full', isLoading && 'animate-spin')} />
                     </div>
                     {/*{currentClick && (*/}
                     {/*    <img*/}
