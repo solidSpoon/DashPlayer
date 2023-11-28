@@ -37,7 +37,7 @@ const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
             onClick={handleClick}
             icon={icon}
             className={cn(
-                currentVideo?.project_id === item.id ? 'bg-orange-500/20' : ''
+                currentVideo?.project_id === item.id && 'bg-orange-200 hover:bg-orange-200/50'
             )}
             content={`${item.project_name} ${file?.video_name}`}
         />

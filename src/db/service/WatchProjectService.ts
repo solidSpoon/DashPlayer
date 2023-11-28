@@ -269,6 +269,7 @@ export default class WatchProjectService {
             await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
                 .insert({
                     ...video,
+                    subtitle_path: video.subtitle_path ?? '',
                     id: undefined,
                     project_id: upsertedProject.id
                 })
