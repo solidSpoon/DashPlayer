@@ -274,7 +274,11 @@ export default class WatchProjectService {
                     project_id: upsertedProject.id
                 })
                 .onConflict(['project_id', 'video_path'])
-                .merge();
+                .merge({
+                    ...video,
+                    subtitle_path: video.subtitle_path ?? '',
+                    project_id: upsertedProject.id
+                });
         }
 
         // Delete videos that are not in the new list

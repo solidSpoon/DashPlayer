@@ -27,6 +27,7 @@ const config: Knex.Config = {
         directory: isDev ? 'db/seeds' : `${app?.getAppPath?.()}/../db/seeds`,
     },
     useNullAsDefault: true,
+    debug: isDev,
 };
 
 export default config;
