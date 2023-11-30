@@ -45,16 +45,16 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         columOrder,
     } = useDataPage(
         useShallow((s) => ({
-            page: s.data.wordLevel.resultPage,
+            page: s.data.wordView.resultPage,
             submit: s.submit,
             load: s.load,
             updatePageParam: s.updatePageParam,
-            pageParam: s.data.wordLevel.pageParam,
+            pageParam: s.data.wordView.pageParam,
             addBlankRow: s.addBlankRow,
-            cellSelection: s.data.wordLevel.cellSelection,
-            dataSource: s.data.wordLevel.dataSource,
+            cellSelection: s.data.wordView.cellSelection,
+            dataSource: s.data.wordView.dataSource,
             setDataSource: s.setDataSource,
-            columOrder: s.data.wordLevel.columOrder,
+            columOrder: s.data.wordView.columOrder,
         }))
     );
     const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';

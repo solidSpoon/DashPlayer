@@ -1,11 +1,12 @@
 import { WordLevel } from '../../../db/entity/WordLevel';
-import { WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
+import { WordViewRow } from '../../components/ControllerPage/WordLevelPage';
 import { DataPageData } from './useDataPage';
+import { WordView } from '../../../db/entity/WordView';
 
 const onRender = (
-    colName: keyof WordLevel,
+    colName: keyof WordView,
     cellProps: any,
-    { data }: { data: WordLevelRow }
+    { data }: { data: WordViewRow }
 ) => {
     cellProps.style.background = data.updateColumns.includes(colName)
         ? '#97aeff'
@@ -28,6 +29,13 @@ export const defaultColumns = [
         onRender: onRender.bind(null, 'word'),
     },
     {
+        name: 'familiar',
+        header: 'Familiar',
+        minWidth: 50,
+        maxWidth: 100,
+        type: 'boolean',
+    },
+    {
         name: 'translate',
         header: 'Translation',
         maxWidth: 1000,
@@ -44,7 +52,7 @@ export const defaultColumns = [
 ];
 
 const api = window.electron;
-export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
+export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
     pageParam: {
         pageNum: 1,
         pageSize: 10,
@@ -70,7 +78,7 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
         console.log('loadFunc', pageParam);
         return api.listWordsLevel(
             pageParam.whereSql ?? '1 = 1',
-            pageParam.orderBySql ?? 'id desc',
+            pageParam.orderBySql ?? 'word',
             pageParam.pageSize,
             pageParam.pageNum
         );
@@ -84,16 +92,16 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordLevelRow> = {
             updateColumns: [],
         }));
     },
-    submitFunc: async () => {},
-    addRowsToDs: (ds: WordLevelRow[], num: number): WordLevelRow[] => {
+    submitFunc: async (ds:WordLevel[]) => {
+        await api.batchUpdateLevelWords(ds);
+    },
+    addRowsToDs: (ds: WordViewRow[], num: number): WordViewRow[] => {
         console.log('addRowsToDataSource', num);
-        const res: WordLevelRow[] = [];
-        const maxId = Math.max(...ds.map((item) => item.id ?? 0));
+        const res: WordViewRow[] = [];
         const maxFakeId = Math.max(...ds.map((item) => item.fakeId ?? 0));
         const maxIndex = Math.max(...ds.map((item) => item.index ?? 0));
         for (let i = 0; i < num; i += 1) {
             res.push({
-                id: maxId + i + 1,
                 index: maxIndex + i + 1,
                 fakeId: maxFakeId + i + 1,
                 word: '',

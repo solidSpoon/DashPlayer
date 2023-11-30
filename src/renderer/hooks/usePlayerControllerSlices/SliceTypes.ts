@@ -65,7 +65,7 @@ export interface WordLevelSlice {
     syncWordsLevel: (words: string[]) => Promise<void>;
 }
 
-export type PopType = 'control' | 'none';
+export type PopType = 'control' | 'none' | 'word';
 
 export interface ModeSlice {
     showEn: boolean;

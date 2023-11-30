@@ -3,12 +3,12 @@ import { YdRes } from '../renderer/lib/param/yd/a';
 import { Release } from './controllers/CheckUpdate';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
-import { WordLevel } from '../db/entity/WordLevel';
-import { Pagination } from '../db/service/WordLevelService';
+import { Pagination } from '../db/service/WordViewService';
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
 import { WatchProjectVO } from '../db/service/WatchProjectService';
 import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
+import { WordView } from '../db/entity/WordView';
 
 export type Channels =
     | 'main-state'
@@ -39,7 +39,7 @@ export type Channels =
     | 'reload-recent-from-disk'
     | 'open-file'
     | 'words-translate'
-    | 'list-level-words'
+    | 'list-words-view'
     | 'batch-update-level-words'
     | 'mark-word-level'
     | 'write-to-clipboard'
@@ -162,14 +162,14 @@ const electronHandler = {
         currentPage: number
     ) => {
         return (await invoke(
-            'list-level-words',
+            'list-words-view',
             whereSql,
             orderBySql,
             perPage,
             currentPage
-        )) as Pagination<WordLevel>;
+        )) as Pagination<WordView>;
     },
-    batchUpdateLevelWords: async (words: WordLevel[]) => {
+    batchUpdateLevelWords: async (words: WordView[]) => {
         console.log('batchUpdateLevelWords', words);
         return (await invoke('batch-update-level-words', words)) as void;
     },

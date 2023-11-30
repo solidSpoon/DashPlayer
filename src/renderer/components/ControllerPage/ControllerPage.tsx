@@ -11,21 +11,18 @@ import { IoMdClose } from 'react-icons/io';
 
 const ControllerPage = () => {
     const theme = useSetting((s) => s.appearance.theme);
-    const { changePopType } = usePlayerController(
+    const { popType, changePopType } = usePlayerController(
         useShallow((s) => ({
+            popType: s.popType,
             changePopType: s.changePopType,
         }))
     );
 
-    const [pageType, setPageType] = useState<'control-center' | 'word-level'>(
-        'control-center'
-    );
-
     return (
         <div
-            onClick={() => {
-                changePopType('none');
-            }}
+            // onClick={() => {
+            //     changePopType('none');
+            // }}
             className={twMerge(
                 'fixed left-0 top-0 flex flex-col items-center justify-center z-50 w-full h-full text-black',
                 theme
@@ -53,11 +50,11 @@ const ControllerPage = () => {
                         >
                             <div
                                 onClick={() => {
-                                    setPageType('control-center');
+                                    changePopType('control');
                                 }}
                                 className={cn(
                                     'px-2 h-8 border-gray-200 rounded drop-shadow flex items-center justify-center cursor-default text-gray-500',
-                                    pageType === 'control-center' &&
+                                    popType === 'control' &&
                                         'bg-white text-black'
                                 )}
                             >
@@ -65,11 +62,11 @@ const ControllerPage = () => {
                             </div>{' '}
                             <div
                                 onClick={() => {
-                                    setPageType('word-level');
+                                    changePopType('word');
                                 }}
                                 className={cn(
                                     'px-2 h-8 border-gray-200 rounded drop-shadow flex items-center justify-center cursor-default text-gray-500',
-                                    pageType === 'word-level' &&
+                                    popType === 'word' &&
                                         'bg-white text-black'
                                 )}
                             >
@@ -99,8 +96,8 @@ const ControllerPage = () => {
                                 'w-full h-full rounded-lg overflow-hidden'
                             )}
                         >
-                            {pageType === 'control-center' && <ControlCenter />}
-                            {pageType === 'word-level' && <WordLevelPage />}
+                            {popType === 'control' && <ControlCenter />}
+                            {popType === 'word' && <WordLevelPage />}
                         </div>
                     </div>
                 </div>

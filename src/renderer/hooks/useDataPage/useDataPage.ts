@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
-import { Pagination } from '../../../db/service/WordLevelService';
+import { Pagination } from '../../../db/service/WordViewService';
 import { WordLevel } from '../../../db/entity/WordLevel';
-import { WordLevelRow } from '../../components/ControllerPage/WordLevelPage';
+import { WordViewRow } from '../../components/ControllerPage/WordLevelPage';
 import { DEFAULT_DATA_HOLDER, DEFAULT_WORD_LEVEL } from './Types';
 
 export type PageParam = {
@@ -27,8 +27,8 @@ export type DataPageData<D, R> = {
 };
 
 export type DataPageDataHolder = {
-    wordLevel: DataPageData<WordLevel, WordLevelRow>;
-    dataHolder: DataPageData<WordLevel, WordLevelRow>;
+    wordView: DataPageData<WordLevel, WordViewRow>;
+    dataHolder: DataPageData<WordLevel, WordViewRow>;
 };
 
 export type DataPageState = {
@@ -61,7 +61,7 @@ export type DataPageAction = {
 
 const useDataPage = create<DataPageState & DataPageAction>((set) => ({
     data: {
-        wordLevel: DEFAULT_WORD_LEVEL,
+        wordView: DEFAULT_WORD_LEVEL,
         dataHolder: DEFAULT_DATA_HOLDER,
     },
     updatePageParam: (key: keyof DataPageDataHolder, param, value) => {

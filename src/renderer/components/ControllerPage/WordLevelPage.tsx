@@ -22,15 +22,16 @@ import { WordLevel } from '../../../db/entity/WordLevel';
 import FilterEditor from './filterEidter/FilterEditor';
 import WordLevelHeader from './WordLevelHeader';
 import { defaultColumns } from '../../hooks/useDataPage/Types';
+import { WordView } from '../../../db/entity/WordView';
 
 export type MarkupType = 'default' | 'new' | 'delete' | 'update';
-export interface WordLevelRow extends WordLevel {
+export interface WordViewRow extends WordView {
     index: number;
     fakeId: number;
     markup: MarkupType;
-    updateColumns: (keyof WordLevel)[];
+    updateColumns: (keyof WordView)[];
 }
-const rowClassName = ({ data }: { data: WordLevelRow }) => {
+const rowClassName = ({ data }: { data: WordViewRow }) => {
     if (data.markup === 'new') {
         console.log('mark new');
         return 'global-custom-row-green global-custom-row';
@@ -60,7 +61,7 @@ const rowStyle = ({ data }: any) => {
 
 const gridStyle = { minHeight: 550 };
 
-const KEY: keyof DataPageDataHolder = 'wordLevel';
+const KEY: keyof DataPageDataHolder = 'wordView';
 const WordLevelPage = () => {
     const { registerPaste, registerCopy } = useGlobalClipboard(
         useShallow((s) => ({
@@ -84,14 +85,14 @@ const WordLevelPage = () => {
         setColumnOrder,
     } = useDataPage(
         useShallow((s) => ({
-            dataSource: s.data.wordLevel.dataSource,
+            dataSource: s.data.wordView.dataSource,
             setDataSource: s.setDataSource,
-            loading: s.data.wordLevel.loading,
+            loading: s.data.wordView.loading,
             tryMount: s.tryMount,
             unMount: s.unmount,
-            cellSelection: s.data.wordLevel.cellSelection,
+            cellSelection: s.data.wordView.cellSelection,
             setCellSelection: s.setCellSelection,
-            columOrder: s.data.wordLevel.columOrder,
+            columOrder: s.data.wordView.columOrder,
             setColumnOrder: s.setColumnOrder,
         }))
     );
@@ -124,7 +125,7 @@ const WordLevelPage = () => {
                     ...new Set([
                         ...oldUpdateColumns,
                         columnId,
-                    ] as (keyof WordLevel)[]),
+                    ] as (keyof WordView)[]),
                 ],
             };
             setDataSource(KEY, data);
@@ -184,7 +185,7 @@ const WordLevelPage = () => {
                 onEditComplete={onEditComplete}
                 editable
                 style={gridStyle}
-                idProperty="id"
+                idProperty="fakeId"
                 columns={columns}
                 columnOrder={columOrder}
                 onColumnOrderChange={(o) => setColumnOrder(KEY, o)}

@@ -1,11 +1,11 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import TransApi from '../ServerLib/TransApi';
-import { WordLevel } from '../../db/entity/WordLevel';
 import WordLevelService, {
-    Pagination,
 } from '../../db/service/WordLevelService';
 import { p } from '../../utils/Util';
 import StemLevelService from '../../db/service/StemLevelService';
+import WordViewService, { Pagination } from '../../db/service/WordViewService';
+import { WordView } from '../../db/entity/WordView';
 
 export async function markWordLevel(
     word: string,
@@ -21,72 +21,50 @@ export interface WordLevelRes {
     translate: string;
 }
 
-async function fillStem(
-    words: string[],
-    tempWordMapping: Map<string, WordLevel>
-) {
-    const stemFamiliarMapping = await StemLevelService.queryStems(words);
-    console.log('fillStem', stemFamiliarMapping);
-    const res = new Map<string, WordLevelRes>();
-    words.forEach((item) => {
-        res.set(item, {
-            word: item,
-            familiar: stemFamiliarMapping.get(p(item)) ?? false,
-            translate: tempWordMapping.get(p(item))?.translate ?? '',
-        });
-    });
-    return res;
+function toRes(
+    tempWordMapping: Map<string, WordView>
+): Map<string, WordLevelRes> {
+    return new Map([...tempWordMapping.entries()].map(([k, v]) => [k, {
+        word: k,
+        familiar: Boolean(v.familiar),
+        translate: v.translate || '',
+    }]));
 }
 
 /**
  * 单词翻译
  */
-export async function wordsTranslate(
-    words: string[]
-): Promise<Map<string, WordLevelRes>> {
-    // eslint-disable-next-line no-param-reassign
+export async function wordsTranslate(words: string[]): Promise<Map<string, WordLevelRes>> {
     words = words.map((w) => p(w));
-    const tempWordMapping = await WordLevelService.queryWords(words);
+    const tempWordMapping = toRes(await WordViewService.queryWords(words));
     const needTrans = new Set<string>();
-    words.forEach((item) => {
-        if (!tempWordMapping.has(item)) {
-            needTrans.add(item);
-        }
-    });
-    tempWordMapping.forEach((v) => {
-        if (!v.translate || v.translate === '') {
-            if (v.word) {
-                needTrans.add(v.word);
-            }
-        }
-    });
 
-    if (needTrans.size === 0) {
-        console.log('fillStem', words, tempWordMapping);
-        return fillStem(words, tempWordMapping);
+    for (const word of words) {
+        const wordView = tempWordMapping.get(word);
+        if (!wordView || !wordView.translate) {
+            needTrans.add(word);
+        }
     }
 
-    const transRes: Map<string, string> = (
-        await TransApi.batchTrans2(Array.from(needTrans))
-    ).getMapping();
-    transRes.forEach(async (v, k) => {
-        console.log('recordWordTranslate sss', k, v);
-        await WordLevelService.recordWordTranslate(k, v);
-        await StemLevelService.tryAddStem(k);
-    });
-    await StemLevelService.queryStems(words);
-    return fillStem(words, tempWordMapping);
+    if (needTrans.size > 0) {
+        const transRes = (await TransApi.batchTrans2(Array.from(needTrans))).getMapping();
+        for (const [k, v] of transRes) {
+            await WordLevelService.recordWordTranslate(k, v);
+            await StemLevelService.tryAddStem(k);
+        }
+    }
+    return toRes(await WordViewService.queryWords(words));
 }
 
-export async function listWordsLevel(
+export async function listWordsView(
     whereSql: string,
     orderBySql: string,
     perPage: number,
     currentPage: number
-): Promise<Pagination<WordLevel>> {
-    return WordLevelService.list(whereSql, orderBySql, perPage, currentPage);
+): Promise<Pagination<WordView>> {
+    return WordViewService.list(whereSql, orderBySql, perPage, currentPage);
 }
 
-export async function updateWordsLevel(words: WordLevel[]): Promise<void> {
-    await WordLevelService.batchUpdate(words);
+export async function updateWordsView(words: WordView[]): Promise<void> {
+    await WordViewService.batchUpdate(words);
 }

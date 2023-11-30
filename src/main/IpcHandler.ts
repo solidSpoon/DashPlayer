@@ -22,9 +22,9 @@ import { getSetting, updateSetting } from './controllers/SettingController';
 import { WindowState } from '../types/Types';
 import { SentenceApiParam } from '../types/TransApi';
 import {
-    listWordsLevel,
+    listWordsView,
     markWordLevel,
-    updateWordsLevel,
+    updateWordsView,
     wordsTranslate,
 } from './controllers/WordLevelController';
 import { WordLevel } from '../db/entity/WordLevel';
@@ -35,6 +35,7 @@ import {
 import processSentences from './controllers/SubtitleProcesser';
 import WatchProjectService from '../db/service/WatchProjectService';
 import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
+import { WordView } from '../db/entity/WordView';
 
 const handle = (
     channel: Channels,
@@ -93,7 +94,7 @@ export default function registerHandler() {
     });
 
     handle(
-        'list-level-words',
+        'list-words-view',
         async (
             whereSql: string,
             orderBySql: string,
@@ -101,12 +102,12 @@ export default function registerHandler() {
             currentPage: number
         ) => {
             log.info('list-words-level');
-            return listWordsLevel(whereSql, orderBySql, perPage, currentPage);
+            return listWordsView(whereSql, orderBySql, perPage, currentPage);
         }
     );
-    handle('batch-update-level-words', async (words: WordLevel[]) => {
+    handle('batch-update-level-words', async (words: WordView[]) => {
         log.info('update-words-level', words);
-        return updateWordsLevel(words);
+        return updateWordsView(words);
     });
     handle('mark-word-level', async (word: string, familiar: boolean) => {
         log.info('mark-word-level');

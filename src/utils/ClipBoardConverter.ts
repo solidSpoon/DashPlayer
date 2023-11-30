@@ -2,9 +2,10 @@ import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSel
 import { WordLevel } from '../db/entity/WordLevel';
 import {
     MarkupType,
-    WordLevelRow,
+    WordViewRow,
 } from '../renderer/components/ControllerPage/WordLevelPage';
 import { DEFAULT_WORD_LEVEL } from '../renderer/hooks/useDataPage/Types';
+import { WordView } from '../db/entity/WordView';
 
 export interface Coordinate {
     rowIndex: number;
@@ -34,7 +35,7 @@ const addCoordinate = (a: Coordinate, b: Coordinate) => {
 };
 
 export class DataHolder {
-    private allData: WordLevelRow[];
+    private allData: WordViewRow[];
 
     private columnOrder: string[];
 
@@ -44,7 +45,7 @@ export class DataHolder {
 
     private RowIndexMapping = new Map<number, number>();
 
-    constructor(allData: WordLevelRow[], columnOrder: string[]) {
+    constructor(allData: WordViewRow[], columnOrder: string[]) {
         this.allData = allData;
         this.columnOrder = columnOrder;
 
@@ -65,7 +66,7 @@ export class DataHolder {
             this.ColumnIndexMapping.set(column, index);
         });
         allData.forEach((row, index) => {
-            this.RowIndexMapping.set(row.id ?? 0, index);
+            this.RowIndexMapping.set(row.fakeId ?? 0, index);
         });
     }
 
@@ -87,7 +88,7 @@ export class DataHolder {
             this.elements.push(elements);
         });
         newDs.forEach((row, index) => {
-            this.RowIndexMapping.set(row.id ?? 0, index);
+            this.RowIndexMapping.set(row.fakeId ?? 0, index);
         });
     }
 
@@ -110,7 +111,7 @@ export class DataHolder {
         }
         const { rowIndex } = c;
         const columnId = this.columnOrder[c.columnIndex];
-        const newElement: WordLevelRow = {
+        const newElement: WordViewRow = {
             ...this.allData[rowIndex],
             markup,
             [columnId]: value,
@@ -122,7 +123,7 @@ export class DataHolder {
             if (oldVal === value) {
                 newElement.markup = 'default';
             } else {
-                newElement.updateColumns.push(columnId as keyof WordLevel);
+                newElement.updateColumns.push(columnId as keyof WordView);
             }
         }
         this.allData = [

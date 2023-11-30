@@ -53,7 +53,7 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                     'fontSizeLarge'
                 )}
             />
-            <div
+            {popType !=='word' && <div
                 className={twJoin(
                     `select-none h-screen w-full font-face-arc overflow-hidden flex flex-col bg-background`,
                     fontSize,
@@ -103,8 +103,8 @@ const PlayerPage = ({ isDragging }: PlayerPageParam) => {
                 <div id="progressBarRef" className="z-50">
                     <BorderProgressBar />
                 </div>
-            </div>
-            {popType === 'control' && <ControllerPage />}
+            </div>}
+            {(popType === 'control' || popType === 'word') && <ControllerPage />}
         </>
     );
 };
