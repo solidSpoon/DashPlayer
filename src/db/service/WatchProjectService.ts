@@ -72,6 +72,7 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
         video_path: videoFile,
         subtitle_path: subtitleFile || undefined,
         current_time: 0,
+        current_playing: 1,
         duration: 0
     });
     console.log('selectFiles', res);

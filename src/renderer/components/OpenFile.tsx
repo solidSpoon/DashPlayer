@@ -31,6 +31,7 @@ export default function OpenFile({ directory, className }: OpenFileProps) {
             return;
         }
 
+        console.log('project', project);
        const video = project.videos.filter((v) => {
            return  v.current_playing === 1;
         })[0];
