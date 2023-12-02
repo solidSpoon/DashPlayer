@@ -17,9 +17,7 @@ export async function up(knex) {
             table.unique(['project_id', 'video_path']);
         })
         .then(() => {
-            return knex.raw(
-                createAtTimestampTrigger(WATCH_PROJECT_VIDEO_TABLE_NAME)
-            );
+            return knex.raw(createAtTimestampTrigger(WATCH_PROJECT_VIDEO_TABLE_NAME));
         })
         .then(() => {
             return knex.raw(updateAtTimestampTrigger(WATCH_PROJECT_VIDEO_TABLE_NAME));
