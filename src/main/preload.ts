@@ -45,6 +45,7 @@ export type Channels =
     | 'write-to-clipboard'
     | 'read-from-clipboard'
     | 'process-sentences'
+    | 'get-video'
     | 'select-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -88,7 +89,7 @@ const electronHandler = {
                 console.error(error);
             }
             return null;
-        }
+        },
     },
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);
@@ -206,8 +207,16 @@ const electronHandler = {
     isWindows: async () => {
         return (await invoke('is-windows')) as boolean;
     },
-    selectFile: async (isFolder:boolean) => {
-        return (await invoke('select-file',isFolder)) as WatchProjectVO | undefined | string;
+    selectFile: async (isFolder: boolean) => {
+        return (await invoke('select-file', isFolder)) as
+            | WatchProjectVO
+            | undefined
+            | string;
+    },
+    getVideo: async (videoId: number) => {
+        return (await invoke('get-video', videoId)) as
+            | WatchProjectVideo
+            | undefined;
     },
     processSentences: async (sentences: string[]) => {
         return (await invoke(
@@ -224,7 +233,7 @@ const electronHandler = {
     },
     onSettingState: (func: (state: WindowState) => void) => {
         return on('setting-state', func as any);
-    }
+    },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;

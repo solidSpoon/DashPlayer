@@ -1,13 +1,11 @@
 import { GoFile } from 'react-icons/go';
-import React, { cloneElement, ReactElement } from 'react';
+import React from 'react';
 import { VscFolder } from 'react-icons/vsc';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/Util';
 import { WatchProjectVO } from '../../db/service/WatchProjectService';
-import { WatchProjectType } from '../../db/entity/WatchProject';
 import ListItem from './ListItem';
 import useFile from '../hooks/useFile';
-import { useShallow } from 'zustand/react/shallow';
-import usePlayerController from '../hooks/usePlayerController';
 
 export interface WatchProjectItemProps {
     item: WatchProjectVO;
@@ -17,27 +15,24 @@ export interface WatchProjectItemProps {
 const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
     const file = item.videos.filter((v) => v.current_playing === 1)[0];
     console.log('watch project item', item);
-    const { currentVideo, playFile } = useFile(useShallow((s) => ({
-        currentVideo: s.currentVideo,
-        playFile: s.playFile
-    })));
-    const changePopType = usePlayerController(s=>s.changePopType);
+    const currentVideo = useFile((e) => e.currentVideo);
+    const navigate = useNavigate();
     const icon = item.videos.length === 1 ? <GoFile /> : <VscFolder />;
     const handleClick = () => {
         console.log('click', item);
         if (item.videos.length === 1 || onRouteTo === undefined) {
-            playFile(item.videos[0]);
-            changePopType('none');
+            navigate(`/player/${item.videos[0].id}`);
         } else {
             onRouteTo?.();
         }
-    }
+    };
     return (
         <ListItem
             onClick={handleClick}
             icon={icon}
             className={cn(
-                currentVideo?.project_id === item.id && 'bg-orange-200 hover:bg-orange-200/50'
+                currentVideo?.project_id === item.id &&
+                    'bg-orange-200 hover:bg-orange-200/50'
             )}
             content={`${item.project_name} ${file?.video_name}`}
         />

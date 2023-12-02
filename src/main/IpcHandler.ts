@@ -4,8 +4,9 @@ import axios from 'axios';
 import fs from 'fs';
 import {
     queryVideoProgress,
-    recentWatch, reloadRecentFromDisk,
-    updateVideoProgress
+    recentWatch,
+    reloadRecentFromDisk,
+    updateVideoProgress,
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -227,7 +228,7 @@ export default function registerHandler() {
     });
     handle('reload-recent-from-disk', async () => {
         log.info('reload-recent-from-disk');
-        return await reloadRecentFromDisk();
+        return reloadRecentFromDisk();
     });
     handle('open-file', async (path: string) => {
         log.info('open-file', path);
@@ -260,4 +261,10 @@ export default function registerHandler() {
     handle('select-file', async (isFolder: boolean) => {
         return WatchProjectService.selectFiles(isFolder);
     });
+    handle(
+        'get-video',
+        async (videoId: number): Promise<WatchProjectVideo | undefined> => {
+            return WatchProjectService.getVideo(videoId);
+        }
+    );
 }

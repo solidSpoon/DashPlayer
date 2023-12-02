@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { GoHistory } from 'react-icons/go';
 import { IoRefreshCircleOutline } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
 import useSystem from '../hooks/useSystem';
 import TitleBar from './TitleBar/TitleBar';
 import { secondToDate } from './PlayTime';
-import useFile from '../hooks/useFile';
 import useSetting from '../hooks/useSetting';
 import { cn } from '../../utils/Util';
 import OpenFile from './OpenFile';
@@ -13,19 +13,19 @@ import { WatchProjectVO } from '../../db/service/WatchProjectService';
 import WatchProjectItem from './WatchProjectItem';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
+import useLayout from "../hooks/useLayout";
 
+const api = window.electron;
 const HomePage = () => {
     const {
         recentPlaylists,
         refresh,
         loading: isLoading,
     } = useProjectBrowser();
-    const playFile = useFile((s) => s.playFile);
+    const changeSideBar = useLayout((s) => s.changeSideBar);
     const appVersion = useSystem((s) => s.appVersion);
     const dark = useSetting((s) => s.appearance.theme) === 'dark';
-    const [currentClick, setCurrentClick] = useState<string | undefined>(
-        undefined
-    );
+    const navigate = useNavigate();
     const handleClick = (item: WatchProjectVO) => {
         const video = item.videos.filter((v) => {
             return v.current_playing === 1;
@@ -34,8 +34,13 @@ const HomePage = () => {
         if (!video) {
             return;
         }
-        playFile(video);
+        api.playerSize();
+        changeSideBar(false);
+        navigate(`/player/${video.id}`);
     };
+    useEffect(() => {
+        api.homeSize();
+    }, []);
     const lastPlay =
         recentPlaylists.length > 0 ? recentPlaylists[0] : undefined;
     const lastPlayVideo = lastPlay?.videos.filter((v) => {

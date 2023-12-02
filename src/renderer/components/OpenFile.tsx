@@ -14,16 +14,16 @@ export interface OpenFileProps {
 const api = window.electron;
 
 export default function OpenFile({ directory, className }: OpenFileProps) {
-    const playFile = useFile(s=>s.playFile);
-    const updateFile = useFile(s=>s.updateFile);
-    const changePopType = usePlayerController(s=>s.changePopType);
+    const playFile = useFile((s) => s.playFile);
+    const updateFile = useFile((s) => s.updateFile);
+    const changePopType = usePlayerController((s) => s.changePopType);
     const handleClick = async () => {
-        let project = await api.selectFile(directory ?? false);
+        const project = await api.selectFile(directory ?? false);
         console.log('project', project);
         if (!project) {
             return;
         }
-        if(typeof project === 'string'){
+        if (typeof project === 'string') {
             // 是字幕文件
             const file = await pathToFile(project);
             updateFile(file);
@@ -32,8 +32,8 @@ export default function OpenFile({ directory, className }: OpenFileProps) {
         }
 
         console.log('project', project);
-       const video = project.videos.filter((v) => {
-           return  v.current_playing === 1;
+        const video = project.videos.filter((v) => {
+            return v.current_playing === 1;
         })[0];
         if (!video) {
             return;
@@ -45,20 +45,24 @@ export default function OpenFile({ directory, className }: OpenFileProps) {
     return (
         <>
             {directory && (
-                <ListItem content="打开文件夹..."
-                          className={cn('',className)}
-                          onClick={() => handleClick()} />
+                <ListItem
+                    content="打开文件夹..."
+                    className={cn('', className)}
+                    onClick={() => handleClick()}
+                />
             )}
             {!directory && (
-                <ListItem content="打开文件..."
-                            className={cn('',className)}
-                          onClick={() => handleClick()} />
+                <ListItem
+                    content="打开文件..."
+                    className={cn('', className)}
+                    onClick={() => handleClick()}
+                />
             )}
         </>
     );
 }
 
 OpenFile.defaultProps = {
-    isDirectory: false,
+    directory: false,
     className: '',
 };

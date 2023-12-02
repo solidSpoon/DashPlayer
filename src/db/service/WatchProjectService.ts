@@ -2,9 +2,20 @@ import { dialog } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { knexDb } from './BaseService';
-import { WATCH_PROJECT_TABLE_NAME, WatchProject, WatchProjectType } from '../entity/WatchProject';
-import { WATCH_PROJECT_VIDEO_TABLE_NAME, WatchProjectVideo } from '../entity/WatchProjectVideo';
-import { ACCEPTED_FILE_TYPES, isSubtitle, isVideo } from '../../utils/MediaTypeUitl';
+import {
+    WATCH_PROJECT_TABLE_NAME,
+    WatchProject,
+    WatchProjectType,
+} from '../entity/WatchProject';
+import {
+    WATCH_PROJECT_VIDEO_TABLE_NAME,
+    WatchProjectVideo,
+} from '../entity/WatchProjectVideo';
+import {
+    ACCEPTED_FILE_TYPES,
+    isSubtitle,
+    isVideo,
+} from '../../utils/MediaTypeUitl';
 
 export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];
@@ -38,9 +49,9 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
                 name: 'Movies',
                 extensions: ACCEPTED_FILE_TYPES.split(',').map((item) =>
                     item.substring(1)
-                )
-            }
-        ]
+                ),
+            },
+        ],
     });
     const videoFilesList = files.filePaths.filter((fileName) =>
         isVideo(fileName)
@@ -63,7 +74,7 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
         type: WatchProjectType.FILE,
         project_key: videoFile,
         project_path: path.dirname(videoFile),
-        videos: []
+        videos: [],
     };
     const subtitleFile = findSubtitle(videoFile, subtitleFilesList);
     const videoName = path.basename(videoFile);
@@ -73,7 +84,7 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
         subtitle_path: subtitleFile || undefined,
         current_time: 0,
         current_playing: 1,
-        duration: 0
+        duration: 0,
     });
     console.log('selectFiles', res);
     return res;
@@ -89,7 +100,10 @@ function tryInitProject(filePath: string) {
     const configFilePath = path.join(configPath, './config.json');
     if (!fs.existsSync(configFilePath)) {
         const randomStr = Math.random().toString(36).substring(2);
-        fs.writeFileSync(configFilePath, JSON.stringify({ project_key: randomStr }));
+        fs.writeFileSync(
+            configFilePath,
+            JSON.stringify({ project_key: randomStr })
+        );
     }
     const config = JSON.parse(fs.readFileSync(configFilePath).toString());
     return config.project_key;
@@ -103,7 +117,7 @@ function doSelectDirectory(filePath: string) {
         type: WatchProjectType.DIRECTORY,
         project_key: projectKey,
         project_path: filePath,
-        videos: []
+        videos: [],
     };
 
     const videoFilesList = filesList.filter((fileName) => isVideo(fileName));
@@ -120,7 +134,7 @@ function doSelectDirectory(filePath: string) {
                 ? path.join(filePath, subtitleFile)
                 : undefined,
             current_time: 0,
-            duration: 0
+            duration: 0,
         });
     });
     return res;
@@ -128,7 +142,7 @@ function doSelectDirectory(filePath: string) {
 
 const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
     const files = await dialog.showOpenDialog({
-        properties: ['openDirectory']
+        properties: ['openDirectory'],
     });
     if (files.filePaths.length === 0) {
         return undefined;
@@ -139,7 +153,10 @@ const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
     return res;
 };
 
-function mergeProject(base: WatchProjectVO | undefined, newProject: WatchProjectVO) {
+function mergeProject(
+    base: WatchProjectVO | undefined,
+    newProject: WatchProjectVO
+) {
     if (!base) {
         return newProject;
     }
@@ -155,7 +172,7 @@ function mergeProject(base: WatchProjectVO | undefined, newProject: WatchProject
             return {
                 ...oldVideo,
                 video_path: item.video_path ?? oldVideo.video_path,
-                subtitle_path: item.subtitle_path ?? oldVideo.subtitle_path
+                subtitle_path: item.subtitle_path ?? oldVideo.subtitle_path,
             };
         }
         return item;
@@ -168,9 +185,8 @@ function mergeProject(base: WatchProjectVO | undefined, newProject: WatchProject
     return {
         ...base,
         project_path: newProject.project_path,
-        videos: newVideos
+        videos: newVideos,
     };
-
 }
 
 export default class WatchProjectService {
@@ -196,13 +212,13 @@ export default class WatchProjectService {
      */
     public static async listRecent(): Promise<WatchProjectVO[]> {
         console.log('listRecent');
-        let watchProjects = await knexDb<WatchProject>(
-            WATCH_PROJECT_TABLE_NAME
-        )
+        let watchProjects = await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
             .select('*')
             .orderBy('last_watch_time', 'desc')
             .limit(50);
-        watchProjects = watchProjects.filter((wp) => fs.existsSync(wp.project_path ?? ''));
+        watchProjects = watchProjects.filter((wp) =>
+            fs.existsSync(wp.project_path ?? '')
+        );
 
         const watchProjectIds = watchProjects.map((wp) => wp.id);
         const watchProjectVideos = await knexDb<WatchProjectVideo>(
@@ -223,12 +239,14 @@ export default class WatchProjectService {
             const wpvList = watchProjectVideoMap.get(wp.id ?? 0);
             return {
                 ...wp,
-                videos: wpvList ?? []
+                videos: wpvList ?? [],
             };
         });
     }
 
-    private static async detail(key: string): Promise<WatchProjectVO | undefined> {
+    private static async detail(
+        key: string
+    ): Promise<WatchProjectVO | undefined> {
         const watchProject = await knexDb<WatchProject>(
             WATCH_PROJECT_TABLE_NAME
         )
@@ -243,7 +261,7 @@ export default class WatchProjectService {
                 .where('project_id', watchProject.id);
             return {
                 ...watchProject,
-                videos: watchProjectVideos
+                videos: watchProjectVideos,
             };
         }
         return undefined;
@@ -253,32 +271,34 @@ export default class WatchProjectService {
         project: WatchProjectVO
     ): Promise<WatchProjectVO> {
         // Upsert the project
-        const [upsertedProject] = await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
+        const [upsertedProject] = await knexDb<WatchProject>(
+            WATCH_PROJECT_TABLE_NAME
+        )
             .insert({
                 project_name: project.project_name,
                 type: project.type,
                 project_key: project.project_key,
-                project_path: project.project_path
+                project_path: project.project_path,
             })
             .onConflict('project_key')
             .merge()
             .returning('*');
 
         // Upsert the videos
-        const videoPaths = project.videos.map(video => video.video_path);
+        const videoPaths = project.videos.map((video) => video.video_path);
         for (const video of project.videos) {
             await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
                 .insert({
                     ...video,
                     subtitle_path: video.subtitle_path ?? '',
                     id: undefined,
-                    project_id: upsertedProject.id
+                    project_id: upsertedProject.id,
                 })
                 .onConflict(['project_id', 'video_path'])
                 .merge({
                     ...video,
                     subtitle_path: video.subtitle_path ?? '',
-                    project_id: upsertedProject.id
+                    project_id: upsertedProject.id,
                 });
         }
 
@@ -289,7 +309,9 @@ export default class WatchProjectService {
             .del();
 
         // Fetch the updated project with videos
-        const updatedProject = await this.detail(upsertedProject?.project_key ?? '');
+        const updatedProject = await this.detail(
+            upsertedProject?.project_key ?? ''
+        );
 
         if (!updatedProject) {
             throw new Error('Failed to fetch the updated project');
@@ -298,8 +320,10 @@ export default class WatchProjectService {
         return updatedProject;
     }
 
-    static queryVideoProgress = async (id: number): Promise<WatchProjectVideo> => {
-        let result = knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
+    static queryVideoProgress = async (
+        id: number
+    ): Promise<WatchProjectVideo> => {
+        const result = knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
             .select('*')
             .where('id', id)
             .first();
@@ -313,7 +337,7 @@ export default class WatchProjectService {
         // current_playing = false
         await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
             .update({
-                current_playing: 0
+                current_playing: 0,
             })
             .where('project_id', video.project_id);
 
@@ -322,29 +346,42 @@ export default class WatchProjectService {
                 current_time: video.current_time,
                 duration: video.duration,
                 subtitle_path: video.subtitle_path,
-                current_playing: 1
+                current_playing: 1,
             })
             .where('id', video.id);
         // 更新主表更新时间
         await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
             .update({
-                last_watch_time: Date.now()
+                last_watch_time: Date.now(),
             })
             .where('id', video.project_id);
     };
-    public static reloadRecentFromDisk = async (): Promise<WatchProjectVO[]> => {
+
+    public static reloadRecentFromDisk = async (): Promise<
+        WatchProjectVO[]
+    > => {
         const recent = await this.listRecent();
         for (const item of recent) {
             // 如果项目路径存在，就刷新一下
-            if (item.type === WatchProjectType.DIRECTORY && fs.existsSync(item?.project_path ?? '')) {
+            if (
+                item.type === WatchProjectType.DIRECTORY &&
+                fs.existsSync(item?.project_path ?? '')
+            ) {
                 const newProject = doSelectDirectory(item.project_path ?? '');
                 if (newProject) {
-                    let finalProject = mergeProject(item, newProject);
+                    const finalProject = mergeProject(item, newProject);
                     console.log('finalProject', finalProject);
                     await this.tryReplace(finalProject);
                 }
             }
         }
-        return await this.listRecent();
+        return this.listRecent();
     };
+
+    static getVideo(videoId: number): Promise<WatchProjectVideo | undefined> {
+        return knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
+            .select('*')
+            .where('id', videoId)
+            .first();
+    }
 }
