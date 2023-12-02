@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GoHistory } from 'react-icons/go';
+import { IoRefreshCircleOutline } from 'react-icons/io5';
 import useSystem from '../hooks/useSystem';
 import TitleBar from './TitleBar/TitleBar';
 import { secondToDate } from './PlayTime';
@@ -10,12 +11,15 @@ import OpenFile from './OpenFile';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import { WatchProjectVO } from '../../db/service/WatchProjectService';
 import WatchProjectItem from './WatchProjectItem';
-import { IoRefreshCircleOutline } from 'react-icons/io5';
-import logoLight from '../../../assets/logo-light.png'
-import logoDark from '../../../assets/logo-dark.png'
+import logoLight from '../../../assets/logo-light.png';
+import logoDark from '../../../assets/logo-dark.png';
 
 const HomePage = () => {
-    const { recentPlaylists, refresh, loading: isLoading } = useProjectBrowser();
+    const {
+        recentPlaylists,
+        refresh,
+        loading: isLoading,
+    } = useProjectBrowser();
     const playFile = useFile((s) => s.playFile);
     const appVersion = useSystem((s) => s.appVersion);
     const dark = useSetting((s) => s.appearance.theme) === 'dark';
@@ -49,7 +53,7 @@ const HomePage = () => {
         >
             <TitleBar
                 maximizable={false}
-                className='fixed top-0 left-0 w-full z-50'
+                className="fixed top-0 left-0 w-full z-50"
                 windowsButtonClassName={cn(
                     'text-slate-700 hover:bg-slate-100',
                     'dark:hover:bg-titlebarHover'
@@ -62,14 +66,14 @@ const HomePage = () => {
                     'dark:shadow-black'
                 )}
             >
-                <div className='relative top-0 left-0 w-32 h-32'>
+                <div className="relative top-0 left-0 w-32 h-32">
                     <img
                         src={dark ? logoDark : logoLight}
-                        alt='logo'
-                        className='w-32 h-32 absolute top-0 left-0 user-drag-none'
+                        alt="logo"
+                        className="w-32 h-32 absolute top-0 left-0 user-drag-none"
                     />
                 </div>
-                <div className='flex flex-col items-center justify-center gap-2'>
+                <div className="flex flex-col items-center justify-center gap-2">
                     <h2
                         className={cn(
                             'text-lg text-black/80',
@@ -84,7 +88,7 @@ const HomePage = () => {
                         {appVersion}
                     </text>
                 </div>
-                <div className='w-full h-16' />
+                <div className="w-full h-16" />
             </div>
             <div
                 className={cn(
@@ -92,7 +96,7 @@ const HomePage = () => {
                     dark && 'border-neutral-800 bg-white/10'
                 )}
             >
-                <div className='w-full h-10' />
+                <div className="w-full h-10" />
                 <div className={cn('flex w-full flex-col items-start')}>
                     <OpenFile className={cn('text-sm')} />
                     <OpenFile className={cn('text-sm')} directory />
@@ -112,8 +116,10 @@ const HomePage = () => {
                             )}
                         />
                         <span>Resume</span>
-                        <span className='flex-1 truncate'>
-                            {(lastPlay?.project_name ?? '') + ' / ' + (lastPlayVideo?.video_name ?? '')}
+                        <span className="flex-1 truncate">
+                            {`${lastPlay?.project_name ?? ''} / ${
+                                lastPlayVideo?.video_name ?? ''
+                            }`}
                         </span>
                         <span
                             className={cn(
@@ -125,21 +131,28 @@ const HomePage = () => {
                         </span>
                     </div>
                 )}
-                <div className='w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm'>
+                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
                     {restPlay.map((playlist) => {
-                            return <WatchProjectItem item={playlist} />;
-                        }
-                    )}
+                        return <WatchProjectItem item={playlist} />;
+                    })}
                 </div>
-                <div className='w-full h-16'>
+                <div className="w-full h-16">
                     <div
                         onClick={() => {
                             if (!isLoading) {
                                 refresh();
                             }
                         }}
-                        className={cn('ml-auto w-8 h-8 rounded hover:bg-stone-300 p-1')}>
-                        <IoRefreshCircleOutline className={cn('w-full h-full', isLoading && 'animate-spin')} />
+                        className={cn(
+                            'ml-auto w-8 h-8 rounded hover:bg-stone-300 p-1'
+                        )}
+                    >
+                        <IoRefreshCircleOutline
+                            className={cn(
+                                'w-full h-full',
+                                isLoading && 'animate-spin'
+                            )}
+                        />
                     </div>
                 </div>
             </div>
