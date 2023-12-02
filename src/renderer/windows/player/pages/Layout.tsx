@@ -11,7 +11,6 @@ const Layout = () => {
     const videoFile = useFile((s) => s.videoFile);
     const subtitleFile = useFile((s) => s.subtitleFile);
     const showSideBar = useLayout((s) => s.showSideBar);
-    const location = useLocation();
     return (
         <div
             className={cn(

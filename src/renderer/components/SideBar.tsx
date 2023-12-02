@@ -35,7 +35,7 @@ const SideBar = () => {
                     onClick={() => navigate('/word-management')}
                     className={cn('w-full p-2 grid place-content-center')}
                 >
-                    Library
+                    Word Management
                 </div>
             </div>
         </div>

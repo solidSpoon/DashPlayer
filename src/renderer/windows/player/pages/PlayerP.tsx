@@ -12,10 +12,10 @@ import Player from '../../../components/Player';
 import UploadButton from '../../../components/UploadButton';
 import BorderProgressBar from '../../../components/BorderProgressBar';
 import useFile from '../../../hooks/useFile';
+import GlobalShortCut from "../../../components/GlobalShortCut";
 
 const api = window.electron;
 const PlayerP = () => {
-    const changeSideBar = useLayout((state) => state.changeSideBar);
     const showSideBar = useLayout((state) => state.showSideBar);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
@@ -146,6 +146,7 @@ const PlayerP = () => {
                 </div>
             </motion.div>
             <UploadButton />
+            <GlobalShortCut />
         </div>
     );
 };

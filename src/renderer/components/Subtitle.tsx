@@ -141,7 +141,7 @@ export default function Subtitle() {
         return (
             <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
                 <Virtuoso
-                    increaseViewportBy={50}
+                    increaseViewportBy={200}
                     defaultItemHeight={55}
                     ref={listRef}
                     className={twJoin(
