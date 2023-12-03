@@ -1,24 +1,30 @@
 import { dialog } from 'electron';
-import fs from 'fs';
 import path from 'path';
-import { knexDb } from './BaseService';
+import fs from 'fs';
+import { eq, desc, inArray, and } from 'drizzle-orm';
 import {
-    WATCH_PROJECT_TABLE_NAME,
+    InsertWatchProject,
     WatchProject,
+    watchProjects,
     WatchProjectType,
-} from '../entity/WatchProject';
+} from '../tables/watchProjects';
 import {
-    WATCH_PROJECT_VIDEO_TABLE_NAME,
+    InsertWatchProjectVideo,
     WatchProjectVideo,
-} from '../entity/WatchProjectVideo';
+    watchProjectVideos,
+} from '../tables/watchProjectVideos';
 import {
     ACCEPTED_FILE_TYPES,
     isSubtitle,
     isVideo,
 } from '../../utils/MediaTypeUitl';
+import db from '../db';
 
 export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];
+}
+export interface InsertWatchProjectVO extends InsertWatchProject {
+    videos: InsertWatchProjectVideo[];
 }
 
 const findSubtitle = (
@@ -40,7 +46,9 @@ const findSubtitle = (
     );
 };
 
-const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
+const selectFiles = async (): Promise<
+    InsertWatchProjectVO | undefined | string
+> => {
     // 多选
     const files = await dialog.showOpenDialog({
         properties: ['openFile', 'multiSelections'],
@@ -67,7 +75,7 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
     }
     const videoFile = videoFilesList[0];
     console.log('selectFiles', subtitleFilesList, videoFile);
-    const res: WatchProjectVO = {
+    const res: InsertWatchProjectVO = {
         project_name: path
             .basename(videoFile)
             .substring(0, videoFile.lastIndexOf('.')),
@@ -79,11 +87,12 @@ const selectFiles = async (): Promise<WatchProjectVO | undefined | string> => {
     const subtitleFile = findSubtitle(videoFile, subtitleFilesList);
     const videoName = path.basename(videoFile);
     res.videos.push({
+        project_id: -1,
         video_name: videoName.substring(0, videoName.lastIndexOf('.')),
         video_path: videoFile,
-        subtitle_path: subtitleFile || undefined,
+        subtitle_path: subtitleFile ?? null,
         current_time: 0,
-        current_playing: 1,
+        current_playing: true,
         duration: 0,
     });
     console.log('selectFiles', res);
@@ -112,7 +121,7 @@ function tryInitProject(filePath: string) {
 function doSelectDirectory(filePath: string) {
     const projectKey = tryInitProject(filePath);
     const filesList = fs.readdirSync(filePath);
-    const res: WatchProjectVO = {
+    const res: InsertWatchProjectVO = {
         project_name: path.basename(filePath),
         type: WatchProjectType.DIRECTORY,
         project_key: projectKey,
@@ -128,6 +137,7 @@ function doSelectDirectory(filePath: string) {
     videoFilesList.forEach((fileName) => {
         const subtitleFile = findSubtitle(fileName, subtitleFilesList);
         res?.videos.push({
+            project_id: -1,
             video_name: fileName.substring(0, fileName.lastIndexOf('.')),
             video_path: path.join(filePath, fileName),
             subtitle_path: subtitleFile
@@ -140,7 +150,7 @@ function doSelectDirectory(filePath: string) {
     return res;
 }
 
-const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
+const selectDirectory = async (): Promise<InsertWatchProjectVO | undefined> => {
     const files = await dialog.showOpenDialog({
         properties: ['openDirectory'],
     });
@@ -155,7 +165,7 @@ const selectDirectory = async (): Promise<WatchProjectVO | undefined> => {
 
 function mergeProject(
     base: WatchProjectVO | undefined,
-    newProject: WatchProjectVO
+    newProject: InsertWatchProjectVO
 ) {
     if (!base) {
         return newProject;
@@ -180,7 +190,7 @@ function mergeProject(
     const currentPlaying = newVideos.filter((item) => item.current_playing);
     console.log('currentPlaying', currentPlaying);
     if (currentPlaying.length === 0) {
-        newVideos[0].current_playing = 1;
+        newVideos[0].current_playing = true;
     }
     return {
         ...base,
@@ -211,32 +221,27 @@ export default class WatchProjectService {
      * list
      */
     public static async listRecent(): Promise<WatchProjectVO[]> {
-        console.log('listRecent');
-        let watchProjects = await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
-            .select('*')
-            .orderBy('last_watch_time', 'desc')
-            .limit(50);
-        watchProjects = watchProjects.filter((wp) =>
-            fs.existsSync(wp.project_path ?? '')
-        );
-
-        const watchProjectIds = watchProjects.map((wp) => wp.id);
-        const watchProjectVideos = await knexDb<WatchProjectVideo>(
-            WATCH_PROJECT_VIDEO_TABLE_NAME
-        )
-            .select('*')
-            .whereIn('project_id', watchProjectIds);
-        const watchProjectVideoMap = new Map<number, WatchProjectVideo[]>();
-        watchProjectVideos.forEach((wpv) => {
-            const wpvList = watchProjectVideoMap.get(wpv.project_id ?? 0);
+        let wps: WatchProject[] = await db
+            .select()
+            .from(watchProjects)
+            .orderBy(desc(watchProjects.last_watch_time));
+        wps = wps.filter((wp) => fs.existsSync(wp.project_path ?? ''));
+        const wpIds = wps.map((wp) => wp.id);
+        const wpvs: WatchProjectVideo[] = await db
+            .select()
+            .from(watchProjectVideos)
+            .where(inArray(watchProjectVideos.project_id, wpIds));
+        const wpvMap = new Map<number, WatchProjectVideo[]>();
+        wpvs.forEach((wpv) => {
+            const wpvList = wpvMap.get(wpv.project_id ?? 0);
             if (wpvList) {
                 wpvList.push(wpv);
             } else {
-                watchProjectVideoMap.set(wpv.project_id ?? 0, [wpv]);
+                wpvMap.set(wpv.project_id ?? 0, [wpv]);
             }
         });
-        return watchProjects.map((wp) => {
-            const wpvList = watchProjectVideoMap.get(wp.id ?? 0);
+        return wps.map((wp) => {
+            const wpvList = wpvMap.get(wp.id ?? 0);
             return {
                 ...wp,
                 videos: wpvList ?? [],
@@ -247,120 +252,127 @@ export default class WatchProjectService {
     private static async detail(
         key: string
     ): Promise<WatchProjectVO | undefined> {
-        const watchProject = await knexDb<WatchProject>(
-            WATCH_PROJECT_TABLE_NAME
-        )
-            .select('*')
-            .where('project_key', key)
-            .first();
-        if (watchProject) {
-            const watchProjectVideos = await knexDb<WatchProjectVideo>(
-                WATCH_PROJECT_VIDEO_TABLE_NAME
-            )
-                .select('*')
-                .where('project_id', watchProject.id);
-            return {
-                ...watchProject,
-                videos: watchProjectVideos,
-            };
+        const wps: WatchProject[] = await db
+            .select()
+            .from(watchProjects)
+            .where(eq(watchProjects.project_key, key));
+        if (wps.length === 0) {
+            return undefined;
         }
-        return undefined;
+        const wp = wps[0];
+        const wpvs: WatchProjectVideo[] = await db
+            .select()
+            .from(watchProjectVideos)
+            .where(eq(watchProjectVideos.project_id, wp.id));
+        return {
+            ...wp,
+            videos: wpvs,
+        };
     }
 
     private static async tryReplace(
-        project: WatchProjectVO
+        project: InsertWatchProjectVO
     ): Promise<WatchProjectVO> {
-        // Upsert the project
-        const [upsertedProject] = await knexDb<WatchProject>(
-            WATCH_PROJECT_TABLE_NAME
-        )
-            .insert({
-                project_name: project.project_name,
-                type: project.type,
-                project_key: project.project_key,
-                project_path: project.project_path,
+        const [upsertedProject] = await db
+            .insert(watchProjects)
+            .values(project)
+            .onConflictDoUpdate({
+                target: watchProjects.project_key,
+                set: {
+                    project_name: project.project_name,
+                    type: project.type,
+                    project_path: project.project_path,
+                    updated_at: new Date().toISOString(),
+                },
             })
-            .onConflict('project_key')
-            .merge()
-            .returning('*');
-
-        // Upsert the videos
+            .returning();
         const videoPaths = project.videos.map((video) => video.video_path);
+
+        // eslint-disable-next-line no-restricted-syntax
         for (const video of project.videos) {
-            await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-                .insert({
+            // eslint-disable-next-line no-await-in-loop
+            await db
+                .insert(watchProjectVideos)
+                .values({
                     ...video,
                     subtitle_path: video.subtitle_path ?? '',
                     id: undefined,
                     project_id: upsertedProject.id,
                 })
-                .onConflict(['project_id', 'video_path'])
-                .merge({
-                    ...video,
-                    subtitle_path: video.subtitle_path ?? '',
-                    project_id: upsertedProject.id,
+                .onConflictDoUpdate({
+                    target: [
+                        watchProjectVideos.project_id,
+                        watchProjectVideos.video_path,
+                    ],
+                    set: {
+                        ...video,
+                        subtitle_path: video.subtitle_path ?? '',
+                        project_id: upsertedProject.id,
+                    },
                 });
         }
-
-        // Delete videos that are not in the new list
-        await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-            .where('project_id', upsertedProject.id)
-            .andWhere('video_path', 'not in', videoPaths)
-            .del();
-
-        // Fetch the updated project with videos
+        await db
+            .delete(watchProjectVideos)
+            .where(
+                and(
+                    eq(watchProjectVideos.project_id, upsertedProject.id),
+                    inArray(watchProjectVideos.video_path, videoPaths)
+                )
+            );
         const updatedProject = await this.detail(
             upsertedProject?.project_key ?? ''
         );
-
         if (!updatedProject) {
             throw new Error('Failed to fetch the updated project');
         }
-
         return updatedProject;
     }
 
     static queryVideoProgress = async (
         id: number
     ): Promise<WatchProjectVideo> => {
-        const result = knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-            .select('*')
-            .where('id', id)
-            .first();
-        if (result === undefined) {
+        const res: WatchProjectVideo[] = await db
+            .select()
+            .from(watchProjectVideos)
+            .where(eq(watchProjectVideos.id, id));
+        if (res.length === 0) {
             throw new Error('not found');
         }
-        return result as WatchProjectVideo;
+        return res[0];
     };
 
     static updateVideoProgress = async (video: WatchProjectVideo) => {
-        // current_playing = false
-        await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-            .update({
-                current_playing: 0,
+        await db
+            .update(watchProjectVideos)
+            .set({
+                current_playing: false,
+                updated_at: new Date().toISOString(),
             })
-            .where('project_id', video.project_id);
-
-        await knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-            .update({
+            .where(eq(watchProjectVideos.project_id, video.project_id));
+        await db
+            .update(watchProjectVideos)
+            .set({
                 current_time: video.current_time,
                 duration: video.duration,
                 subtitle_path: video.subtitle_path,
-                current_playing: 1,
+                current_playing: true,
+                updated_at: new Date().toISOString(),
             })
-            .where('id', video.id);
-        // 更新主表更新时间
-        await knexDb<WatchProject>(WATCH_PROJECT_TABLE_NAME)
-            .update({
-                last_watch_time: Date.now(),
+            .where(eq(watchProjectVideos.id, video.id));
+
+        await db
+            .update(watchProjects)
+            .set({
+                last_watch_time: new Date().toISOString(),
             })
-            .where('id', video.project_id);
+            .where(eq(watchProjectVideos.project_id, video.project_id));
     };
 
     public static reloadRecentFromDisk = async (): Promise<
         WatchProjectVO[]
     > => {
         const recent = await this.listRecent();
+        // eslint-disable-next-line no-restricted-syntax
         for (const item of recent) {
             // 如果项目路径存在，就刷新一下
             if (
@@ -371,6 +383,7 @@ export default class WatchProjectService {
                 if (newProject) {
                     const finalProject = mergeProject(item, newProject);
                     console.log('finalProject', finalProject);
+                    // eslint-disable-next-line no-await-in-loop
                     await this.tryReplace(finalProject);
                 }
             }
@@ -378,10 +391,16 @@ export default class WatchProjectService {
         return this.listRecent();
     };
 
-    static getVideo(videoId: number): Promise<WatchProjectVideo | undefined> {
-        return knexDb<WatchProjectVideo>(WATCH_PROJECT_VIDEO_TABLE_NAME)
-            .select('*')
-            .where('id', videoId)
-            .first();
+    static async getVideo(
+        videoId: number
+    ): Promise<WatchProjectVideo | undefined> {
+        const res: WatchProjectVideo[] = await db
+            .select()
+            .from(watchProjectVideos)
+            .where(eq(watchProjectVideos.id, videoId));
+        if (res.length === 0) {
+            return undefined;
+        }
+        return res[0];
     }
 }

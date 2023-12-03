@@ -18,6 +18,7 @@ import { resolveHtmlPath } from './util';
 import registerHandler from './IpcHandler';
 import { WindowState } from '../types/Types';
 import migration from '../db/migration';
+import runMigrate from "../db2/migrate";
 
 const { net, protocol } = require('electron');
 
@@ -268,4 +269,4 @@ app.whenReady()
     })
     .catch(console.log);
 
-migration();
+runMigrate();

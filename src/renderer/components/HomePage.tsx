@@ -9,7 +9,7 @@ import useSetting from '../hooks/useSetting';
 import { cn } from '../../utils/Util';
 import OpenFile from './OpenFile';
 import useProjectBrowser from '../hooks/useProjectBrowser';
-import { WatchProjectVO } from '../../db/service/WatchProjectService';
+import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import WatchProjectItem from './WatchProjectItem';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';

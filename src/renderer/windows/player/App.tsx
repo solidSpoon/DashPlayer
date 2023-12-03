@@ -28,6 +28,7 @@ export default function App() {
             <div className="w-full h-screen font-face-arc text-black overflow-hidden select-none">
                 <HashRouter>
                     <Routes>
+                        <Route path="/" element={<HomePage />} />
                         <Route path="/" element={<TieleBarLayout />}>
                             <Route path="home" element={<HomePage />} />
                             <Route

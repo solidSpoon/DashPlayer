@@ -1,11 +1,10 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import TransApi from '../ServerLib/TransApi';
-import WordLevelService, {
-} from '../../db/service/WordLevelService';
+
 import { p } from '../../utils/Util';
-import StemLevelService from '../../db/service/StemLevelService';
-import WordViewService, { Pagination } from '../../db/service/WordViewService';
-import { WordView } from '../../db/entity/WordView';
+import StemLevelService from "../../db/services/StemLevelService";
+import WordLevelService from "../../db/services/WordLevelService";
+
 
 export async function markWordLevel(
     word: string,

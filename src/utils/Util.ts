@@ -1,7 +1,7 @@
 import clsx, { ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export const strBlank = (str: string | undefined): boolean => {
+export const strBlank = (str: string | undefined | null): boolean => {
     return !str || str.trim() === '';
 };
 export const sleep = (ms: number): Promise<void> => {

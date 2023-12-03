@@ -6,7 +6,7 @@ import { WindowState } from '../types/Types';
 import { Pagination } from '../db/service/WordViewService';
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
-import { WatchProjectVO } from '../db/service/WatchProjectService';
+import { WatchProjectVO } from '../db2/services/WatchProjectService';
 import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
 import { WordView } from '../db/entity/WordView';
 

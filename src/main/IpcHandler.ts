@@ -34,7 +34,7 @@ import {
     writeToClipboard,
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
-import WatchProjectService from '../db/service/WatchProjectService';
+import WatchProjectService from '../db2/services/WatchProjectService';
 import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
 import { WordView } from '../db/entity/WordView';
 

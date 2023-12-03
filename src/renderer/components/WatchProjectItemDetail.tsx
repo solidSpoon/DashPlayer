@@ -2,7 +2,7 @@ import { GoFile } from 'react-icons/go';
 import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useNavigate } from 'react-router-dom';
-import { WatchProjectVO } from '../../db/service/WatchProjectService';
+import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import ListItem from './ListItem';
 import useFile from '../hooks/useFile';
 import usePlayerController from '../hooks/usePlayerController';

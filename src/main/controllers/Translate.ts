@@ -1,9 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import TransApi from '../ServerLib/TransApi';
 
-import SentenceTranslateService from '../../db/service/SentenceTranslateService';
 import { p } from '../../utils/Util';
 import TransHolder from '../../utils/TransHolder';
+import SentenceTranslateService from "../../db/services/SentenceTranslateService";
 /**
  * AI 翻译
  * @param str

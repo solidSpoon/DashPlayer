@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { WatchProjectVO } from '../../db/service/WatchProjectService';
+import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import useFile from './useFile';
 
 const api = window.electron;

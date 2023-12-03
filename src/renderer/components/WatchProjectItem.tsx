@@ -3,7 +3,7 @@ import React from 'react';
 import { VscFolder } from 'react-icons/vsc';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/Util';
-import { WatchProjectVO } from '../../db/service/WatchProjectService';
+import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import ListItem from './ListItem';
 import useFile from '../hooks/useFile';
 
