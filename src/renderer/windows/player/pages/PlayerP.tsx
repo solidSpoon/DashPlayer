@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect } from 'react';
 import Split from 'react-split';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import useLayout from '../../../hooks/useLayout';
 import { cn } from '../../../../utils/Util';
 import FileBrowser from '../../../components/FileBrowser';
@@ -12,7 +12,8 @@ import Player from '../../../components/Player';
 import UploadButton from '../../../components/UploadButton';
 import BorderProgressBar from '../../../components/BorderProgressBar';
 import useFile from '../../../hooks/useFile';
-import GlobalShortCut from "../../../components/GlobalShortCut";
+import GlobalShortCut from '../../../components/GlobalShortCut';
+import SideBar from '../../../components/SideBar';
 
 const api = window.electron;
 const PlayerP = () => {
@@ -24,6 +25,10 @@ const PlayerP = () => {
     const { videoId } = useParams();
     const playFile = useFile((s) => s.playFile);
     const location = useLocation();
+    const sideBarAnimation =
+        (new URLSearchParams(location.search).get('sideBarAnimation') ??
+            'true') === 'true';
+    const [searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     console.log('referrer', referrer);
     useEffect(() => {
@@ -34,13 +39,17 @@ const PlayerP = () => {
             if (video === undefined) return;
             playFile(video);
         };
+
         runEffect();
     }, [playFile, videoId]);
+    useEffect(() => {
+        setSearchParams({ sideBarAnimation: 'true' });
+    }, [setSearchParams]);
     return (
         <div
-            className="w-full h-full grid grid-cols-2 grid-rows-2"
+            className="w-full h-screen grid grid-cols-3 grid-rows-2 overflow-hidden bg-neutral-500"
             style={{
-                gridTemplateColumns: '65% 35%', // 这里定义每列的大小
+                gridTemplateColumns: '15% 60% 25%', // 这里定义每列的大小
                 gridTemplateRows: '30% 70%', // 这里定义每行的大小
             }}
         >
@@ -49,7 +58,23 @@ const PlayerP = () => {
                     <>
                         <motion.div
                             className={cn(
-                                'col-start-2 col-end-3 row-start-1 row-end-3 p-4 pl-2'
+                                'col-start-1 col-end-2 row-start-1 row-end-3'
+                            )}
+                            initial={{ x: -1000 }}
+                            animate={{
+                                x: 0,
+                            }}
+                            exit={{ x: -1000 }}
+                            transition={{
+                                type: 'tween',
+                                duration: sideBarAnimation ? 0.2 : 0,
+                            }}
+                        >
+                            <SideBar />
+                        </motion.div>
+                        <motion.div
+                            className={cn(
+                                'col-start-3 col-end-4 row-start-1 row-end-3 p-4 pl-2'
                             )}
                             initial={{ x: 1000 }}
                             animate={{
@@ -66,7 +91,7 @@ const PlayerP = () => {
 
                         <motion.div
                             className={cn(
-                                'col-start-1 col-end-2 row-start-1 row-end-2 p-4 pb-2 pr-2 overflow-hidden'
+                                'col-start-2 col-end-3 row-start-1 row-end-2 p-4 pb-2 pr-2 overflow-hidden'
                             )}
                             initial={{ y: -1000 }}
                             animate={{
@@ -91,13 +116,13 @@ const PlayerP = () => {
                 )}
                 layout
                 transition={{
-                    type: 'tween',
+                    type: 'spring',
                     duration: 0.2,
-                    stiffness: 5000,
-                    damping: 200,
+                    stiffness: 700,
+                    damping: 30,
                 }}
                 style={{
-                    gridArea: showSideBar ? '2 / 1 / 2 / 2' : '1 / 1 / -1 / -1',
+                    gridArea: showSideBar ? '2 / 2 / 2 / 3' : '1 / 1 / -1 / -1',
                 }}
             >
                 <div
@@ -106,6 +131,9 @@ const PlayerP = () => {
                         showSideBar &&
                             'rounded-lg overflow-hidden border-2 border-gray-300]'
                     )}
+                    style={{
+                        zoom: showSideBar ? 0.65 : 1,
+                    }}
                 >
                     <Split
                         className={cn(

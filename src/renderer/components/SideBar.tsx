@@ -26,7 +26,7 @@ const SideBar = () => {
                     Home
                 </div>
                 <div
-                    onClick={() => navigate(`/player/${video?.id}`)}
+                    onClick={() => navigate(`/player/${video?.id}?sideBarAnimation=false`)}
                     className={cn('w-full p-2 grid place-content-center')}
                 >
                     Player

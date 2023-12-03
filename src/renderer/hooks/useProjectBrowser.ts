@@ -8,7 +8,9 @@ const useProjectBrowser = () => {
         []
     );
     const videoFile = useFile((s) => s.currentVideo);
-    const [currentProject, setCurrentProject] = useState<WatchProjectVO | null>(null);
+    const [currentProject, setCurrentProject] = useState<WatchProjectVO | null>(
+        null
+    );
     const [loading, setLoading] = useState(false);
     useEffect(() => {
         const runEffect = async () => {
@@ -23,13 +25,14 @@ const useProjectBrowser = () => {
             recentPlaylists.filter((p) => p.id === videoFile?.project_id)[0]
         );
     }, [recentPlaylists, videoFile]);
-    const playList = !currentProject ?
-        recentPlaylists :
-        recentPlaylists
-            .filter(p=>p.id === currentProject?.id);
+    const playList = !currentProject
+        ? recentPlaylists
+        : recentPlaylists.filter((p) => p.id === currentProject?.id);
     const routeTo = (projectId: number | undefined | null) => {
         if (projectId) {
-            const project = recentPlaylists.filter((p) => p.id === projectId)[0];
+            const project = recentPlaylists.filter(
+                (p) => p.id === projectId
+            )[0];
             console.log('routeTo', playList);
             if (project) {
                 setCurrentProject(project);
@@ -37,14 +40,14 @@ const useProjectBrowser = () => {
         } else {
             setCurrentProject(null);
         }
-    }
+    };
 
     const refresh = async () => {
         setLoading(true);
         const playlists = await api.reloadRecentFromDisk();
         setRecentPlaylists(playlists);
         setLoading(false);
-    }
+    };
     return {
         recentPlaylists,
         currentProject,
@@ -52,6 +55,6 @@ const useProjectBrowser = () => {
         refresh,
         loading,
     };
-}
+};
 
 export default useProjectBrowser;
