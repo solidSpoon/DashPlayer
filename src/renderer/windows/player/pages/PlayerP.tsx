@@ -47,7 +47,7 @@ const PlayerP = () => {
     }, [setSearchParams]);
     return (
         <div
-            className="w-full h-screen grid grid-cols-3 grid-rows-2 overflow-hidden bg-neutral-500"
+            className="w-full h-full grid grid-cols-3 grid-rows-2 overflow-hidden bg-neutral-500"
             style={{
                 gridTemplateColumns: '15% 60% 25%', // 这里定义每列的大小
                 gridTemplateRows: '30% 70%', // 这里定义每行的大小
@@ -116,7 +116,7 @@ const PlayerP = () => {
                 )}
                 layout
                 transition={{
-                    type: 'spring',
+                    type: 'tween',
                     duration: 0.2,
                     stiffness: 700,
                     damping: 30,
