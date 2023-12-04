@@ -28,15 +28,14 @@ import {
     updateWordsView,
     wordsTranslate,
 } from './controllers/WordLevelController';
-import { WordLevel } from '../db/entity/WordLevel';
 import {
     readFromClipboard,
     writeToClipboard,
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
-import WatchProjectService from '../db2/services/WatchProjectService';
-import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
-import { WordView } from '../db/entity/WordView';
+import { WordView } from "../db/tables/wordView";
+import { WatchProjectVideo } from "../db/tables/watchProjectVideos";
+import WatchProjectService from "../db/services/WatchProjectService";
 
 const handle = (
     channel: Channels,

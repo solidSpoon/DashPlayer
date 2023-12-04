@@ -227,6 +227,7 @@ export default class WatchProjectService {
             .orderBy(desc(watchProjects.last_watch_time));
         wps = wps.filter((wp) => fs.existsSync(wp.project_path ?? ''));
         const wpIds = wps.map((wp) => wp.id);
+        wpIds.push(-1);
         const wpvs: WatchProjectVideo[] = await db
             .select()
             .from(watchProjectVideos)

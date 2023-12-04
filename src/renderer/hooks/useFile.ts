@@ -1,10 +1,8 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import FileT, { FileType } from '../lib/param/FileT';
-import WatchProjectItem from '../components/WatchProjectItem';
 import { pathToFile } from '../lib/FileParser';
-import { WatchProjectVideo } from '../../db/entity/WatchProjectVideo';
-import usePlayerController from './usePlayerController';
+import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
 
 type UseFileState = {
     videoFile: FileT | undefined;
@@ -48,7 +46,7 @@ const useFile = create(
                         currentVideo: {
                             ...ps.currentVideo,
                             video_path: file.path,
-                        }
+                        },
                     };
                 });
             }

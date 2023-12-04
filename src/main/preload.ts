@@ -3,12 +3,15 @@ import { YdRes } from '../renderer/lib/param/yd/a';
 import { Release } from './controllers/CheckUpdate';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
-import { Pagination } from '../db/service/WordViewService';
+
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
-import { WatchProjectVO } from '../db2/services/WatchProjectService';
-import { WatchProjectVideo } from '../db/entity/WatchProjectVideo';
-import { WordView } from '../db/entity/WordView';
+import { WatchProjectVideo } from "../db/tables/watchProjectVideos";
+import { WordView } from "../db/tables/wordView";
+import { Pagination } from "../db/services/WordViewService";
+import { WatchProjectVO } from "../db/services/WatchProjectService";
+
+
 
 export type Channels =
     | 'main-state'
