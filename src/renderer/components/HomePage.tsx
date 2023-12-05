@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { GoHistory } from 'react-icons/go';
 import { IoRefreshCircleOutline } from 'react-icons/io5';
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,12 @@ import useSetting from '../hooks/useSetting';
 import { cn } from '../../utils/Util';
 import OpenFile from './OpenFile';
 import useProjectBrowser from '../hooks/useProjectBrowser';
-import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import WatchProjectItem from './WatchProjectItem';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useLayout from "../hooks/useLayout";
+import { WatchProjectVO } from '../../db/services/WatchProjectService';
+import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
 
 const api = window.electron;
 const HomePage = () => {
@@ -27,8 +28,8 @@ const HomePage = () => {
     const dark = useSetting((s) => s.appearance.theme) === 'dark';
     const navigate = useNavigate();
     const handleClick = (item: WatchProjectVO) => {
-        const video = item.videos.filter((v) => {
-            return v.current_playing === 1;
+        const video = item.videos.filter((v: WatchProjectVideo) => {
+            return v.current_playing === true;
         })[0];
         console.log('click', item);
         if (!video) {
@@ -44,7 +45,7 @@ const HomePage = () => {
     const lastPlay =
         recentPlaylists.length > 0 ? recentPlaylists[0] : undefined;
     const lastPlayVideo = lastPlay?.videos.filter((v) => {
-        return v.current_playing === 1;
+        return v.current_playing === true;
     })[0];
     const restPlay = recentPlaylists.length > 1 ? recentPlaylists.slice(1) : [];
     console.log('lastplay', lastPlayVideo, lastPlay, restPlay);

@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const watchProjectVideos = sqliteTable('dp_watch_project_videos', {
@@ -20,7 +20,9 @@ export const watchProjectVideos = sqliteTable('dp_watch_project_videos', {
     updated_at: text('updated_at')
         .notNull()
         .default(sql`CURRENT_TIMESTAMP`),
-});
+},(t) => ({
+    unq: unique().on(t.project_id, t.video_path),
+}));
 
 export type WatchProjectVideo = typeof watchProjectVideos.$inferSelect; // return type when queried
 export type InsertWatchProjectVideo = typeof watchProjectVideos.$inferInsert; // insert type

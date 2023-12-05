@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import useFile from './useFile';
+import { WatchProjectVO } from '../../db/services/WatchProjectService';
 
 const api = window.electron;
 const useProjectBrowser = () => {
