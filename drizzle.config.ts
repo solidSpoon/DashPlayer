@@ -4,7 +4,7 @@ import path from 'path';
 import { app } from 'electron';
 
 export default {
-    schema: './src/db2/tables',
+    schema: './src/db/tables',
     out: './drizzle/migrations',
     driver: 'better-sqlite', // 'pg' | 'mysql2' | 'better-sqlite' | 'libsql' | 'turso'
     dbCredentials: {
