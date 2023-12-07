@@ -10,6 +10,7 @@ import { WatchProjectVideo } from "../db/tables/watchProjectVideos";
 import { WordView } from "../db/tables/wordView";
 import { Pagination } from "../db/services/WordViewService";
 import { WatchProjectVO } from "../db/services/WatchProjectService";
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
 
 
 
@@ -49,6 +50,7 @@ export type Channels =
     | 'read-from-clipboard'
     | 'process-sentences'
     | 'get-video'
+    | 'get-word-rows'
     | 'select-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -226,6 +228,9 @@ const electronHandler = {
             'process-sentences',
             sentences
         )) as SentenceStruct[];
+    },
+    getWordRows(request: IServerSideGetRowsRequest) {
+        return invoke('get-word-rows', request) as Promise<WordView[]>;
     },
     onUpdateSetting: (func: (setting: SettingState) => void) => {
         console.log('onUpdateSetting');

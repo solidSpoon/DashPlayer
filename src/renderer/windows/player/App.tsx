@@ -14,6 +14,13 @@ import TieleBarLayout from './pages/TieleBarLayout';
 
 loader.config({ monaco });
 export const api = window.electron;
+import { LicenseManager } from 'ag-grid-enterprise';
+
+LicenseManager.prototype.validateLicense = () => {
+};
+LicenseManager.prototype.isDisplayWatermark = () => {
+    return false;
+};
 export default function App() {
     const [isDragging, setIsDragging] = React.useState<boolean>(false);
     const theme = useSetting((s) => s.appearance.theme);
@@ -25,19 +32,19 @@ export default function App() {
     }, [theme]);
     return (
         <FileDrop isDragging={isDragging} setIsDragging={setIsDragging}>
-            <div className="w-full h-screen font-face-arc text-black overflow-hidden select-none">
+            <div className='w-full h-screen font-face-arc text-black overflow-hidden select-none'>
                 <HashRouter>
                     <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="home" element={<HomePage />} />
-                        <Route path="/" element={<TieleBarLayout />}>
+                        <Route path='/' element={<HomePage />} />
+                        <Route path='home' element={<HomePage />} />
+                        <Route path='/' element={<TieleBarLayout />}>
                             <Route
-                                path="player/:videoId"
+                                path='player/:videoId'
                                 element={<PlayerP />}
                             />
-                            <Route path="*" element={<Layout />}>
+                            <Route path='*' element={<Layout />}>
                                 <Route
-                                    path="word-management"
+                                    path='word-management'
                                     element={<WordManagement />}
                                 />
                             </Route>

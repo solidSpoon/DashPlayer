@@ -6,6 +6,7 @@ import StemLevelService from '../../db/services/StemLevelService';
 import WordLevelService from '../../db/services/WordLevelService';
 import { WordView } from '../../db/tables/wordView';
 import WordViewService, { Pagination } from '../../db/services/WordViewService';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
 
 export async function markWordLevel(
     word: string,
@@ -81,4 +82,11 @@ export async function listWordsView(
 
 export async function updateWordsView(words: WordView[]): Promise<void> {
     await WordViewService.batchUpdate(words);
+}
+
+export class WordLevelController  {
+
+     static async getRows(request: IServerSideGetRowsRequest): Promise<WordView[]> {
+         return await WordViewService.getRows(request);
+    }
 }

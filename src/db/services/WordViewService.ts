@@ -1,10 +1,11 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import db from '../db';
 
 import { p } from '../../utils/Util';
 import { InsertWord, words } from '../tables/words';
 import { InsertStem, stems } from '../tables/stems';
 import { WordView } from '../tables/wordView';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
 
 export interface Pagination<T> {
     total: number;
@@ -152,5 +153,24 @@ export default class WordViewService {
                     },
                 });
         }
+    }
+
+    static async getRows(request: IServerSideGetRowsRequest): Promise<WordView[]> {
+        const { startRow, endRow, filterModel } = request;
+
+        let query = db.select().from(this.wordView);
+
+        if (filterModel) {
+            let tq = and(sql`1 = 1`);
+            for (const [key, value] of Object.entries(filterModel)) {
+                if (value) {
+                    tq = and(tq, sql`${key} like ${value}`);
+                }
+            }
+             query.where(tq);
+        }
+        query.limit(endRow! - startRow!).offset(startRow!);
+
+        return query;
     }
 }

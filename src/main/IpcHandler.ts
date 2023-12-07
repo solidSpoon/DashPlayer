@@ -6,7 +6,7 @@ import {
     queryVideoProgress,
     recentWatch,
     reloadRecentFromDisk,
-    updateVideoProgress,
+    updateVideoProgress
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -14,7 +14,7 @@ import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
     clearCache,
     openDataDir,
-    queryCacheSize,
+    queryCacheSize
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
@@ -25,17 +25,19 @@ import { SentenceApiParam } from '../types/TransApi';
 import {
     listWordsView,
     markWordLevel,
-    updateWordsView,
-    wordsTranslate,
+    updateWordsView, WordLevelController,
+    wordsTranslate
 } from './controllers/WordLevelController';
 import {
     readFromClipboard,
-    writeToClipboard,
+    writeToClipboard
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
-import { WordView } from "../db/tables/wordView";
-import { WatchProjectVideo } from "../db/tables/watchProjectVideos";
-import WatchProjectService from "../db/services/WatchProjectService";
+import { WordView } from '../db/tables/wordView';
+import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
+import WatchProjectService from '../db/services/WatchProjectService';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
+import WordViewService from '../db/services/WordViewService';
 
 const handle = (
     channel: Channels,
@@ -105,6 +107,10 @@ export default function registerHandler() {
             return listWordsView(whereSql, orderBySql, perPage, currentPage);
         }
     );
+    handle('get-word-rows', async (request: IServerSideGetRowsRequest) => {
+        log.info('get-word-rows');
+        return WordLevelController.getRows(request);
+    });
     handle('batch-update-level-words', async (words: WordView[]) => {
         log.info('update-words-level', words);
         return updateWordsView(words);
