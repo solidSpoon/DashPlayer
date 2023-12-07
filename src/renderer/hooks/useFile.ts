@@ -45,8 +45,8 @@ const useFile = create(
                         openedNum: ps.openedNum + 1,
                         currentVideo: {
                             ...ps.currentVideo,
-                            video_path: file.path,
-                        },
+                            subtitle_path: file.path,
+                        } as WatchProjectVideo,
                     };
                 });
             }

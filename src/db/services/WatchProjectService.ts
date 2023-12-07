@@ -1,7 +1,7 @@
 import { dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { eq, desc, inArray, and } from 'drizzle-orm';
+import { eq, desc, inArray, and, not } from "drizzle-orm";
 import {
     InsertWatchProject,
     WatchProject,
@@ -288,6 +288,7 @@ export default class WatchProjectService {
             })
             .returning();
         const videoPaths = project.videos.map((video) => video.video_path);
+        videoPaths.push('-1');
 
         // eslint-disable-next-line no-restricted-syntax
         for (const video of project.videos) {
@@ -317,7 +318,7 @@ export default class WatchProjectService {
             .where(
                 and(
                     eq(watchProjectVideos.project_id, upsertedProject.id),
-                    inArray(watchProjectVideos.video_path, videoPaths)
+                    not(inArray(watchProjectVideos.video_path, videoPaths))
                 )
             );
         const updatedProject = await this.detail(
@@ -366,7 +367,7 @@ export default class WatchProjectService {
             .set({
                 last_watch_time: new Date().toISOString(),
             })
-            .where(eq(watchProjectVideos.project_id, video.project_id));
+            .where(eq(watchProjects.id, video.project_id));
     };
 
     public static reloadRecentFromDisk = async (): Promise<

@@ -2,9 +2,10 @@
 import TransApi from '../ServerLib/TransApi';
 
 import { p } from '../../utils/Util';
-import StemLevelService from "../../db/services/StemLevelService";
-import WordLevelService from "../../db/services/WordLevelService";
-
+import StemLevelService from '../../db/services/StemLevelService';
+import WordLevelService from '../../db/services/WordLevelService';
+import { WordView } from '../../db/tables/wordView';
+import WordViewService, { Pagination } from '../../db/services/WordViewService';
 
 export async function markWordLevel(
     word: string,
@@ -23,21 +24,30 @@ export interface WordLevelRes {
 function toRes(
     tempWordMapping: Map<string, WordView>
 ): Map<string, WordLevelRes> {
-    return new Map([...tempWordMapping.entries()].map(([k, v]) => [k, {
-        word: k,
-        familiar: Boolean(v.familiar),
-        translate: v.translate || '',
-    }]));
+    return new Map(
+        [...tempWordMapping.entries()].map(([k, v]) => [
+            k,
+            {
+                word: k,
+                familiar: Boolean(v.familiar),
+                translate: v.translate || '',
+            },
+        ])
+    );
 }
 
 /**
  * 单词翻译
  */
-export async function wordsTranslate(words: string[]): Promise<Map<string, WordLevelRes>> {
+export async function wordsTranslate(
+    words: string[]
+): Promise<Map<string, WordLevelRes>> {
+    // eslint-disable-next-line no-param-reassign
     words = words.map((w) => p(w));
     const tempWordMapping = toRes(await WordViewService.queryWords(words));
     const needTrans = new Set<string>();
 
+    // eslint-disable-next-line no-restricted-syntax
     for (const word of words) {
         const wordView = tempWordMapping.get(word);
         if (!wordView || !wordView.translate) {
@@ -46,9 +56,14 @@ export async function wordsTranslate(words: string[]): Promise<Map<string, WordL
     }
 
     if (needTrans.size > 0) {
-        const transRes = (await TransApi.batchTrans2(Array.from(needTrans))).getMapping();
+        const transRes = (
+            await TransApi.batchTrans2(Array.from(needTrans))
+        ).getMapping();
+        // eslint-disable-next-line no-restricted-syntax
         for (const [k, v] of transRes) {
+            // eslint-disable-next-line no-await-in-loop
             await WordLevelService.recordWordTranslate(k, v);
+            // eslint-disable-next-line no-await-in-loop
             await StemLevelService.tryAddStem(k);
         }
     }

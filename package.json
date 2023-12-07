@@ -235,7 +235,8 @@
         "files": [
             "dist",
             "node_modules",
-            "package.json"
+            "package.json",
+            "drizzle"
         ],
         "afterSign": ".erb/scripts/notarize.js",
         "mac": {

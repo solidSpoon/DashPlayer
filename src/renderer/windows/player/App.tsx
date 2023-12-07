@@ -29,8 +29,8 @@ export default function App() {
                 <HashRouter>
                     <Routes>
                         <Route path="/" element={<HomePage />} />
+                        <Route path="home" element={<HomePage />} />
                         <Route path="/" element={<TieleBarLayout />}>
-                            <Route path="home" element={<HomePage />} />
                             <Route
                                 path="player/:videoId"
                                 element={<PlayerP />}

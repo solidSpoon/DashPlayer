@@ -8,8 +8,8 @@ const file = path.join(
     'useradd',
     'dp_db.sqlite3'
 );
-
+const isDev = process.env.NODE_ENV === 'development';
 const sqlite = new Database(file);
-const db = drizzle(sqlite);
+const db = drizzle(sqlite, { logger: isDev });
 
 export default db;

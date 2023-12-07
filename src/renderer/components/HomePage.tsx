@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect } from 'react';
 import { GoHistory } from 'react-icons/go';
 import { IoRefreshCircleOutline } from 'react-icons/io5';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import useProjectBrowser from '../hooks/useProjectBrowser';
 import WatchProjectItem from './WatchProjectItem';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
-import useLayout from "../hooks/useLayout";
+import useLayout from '../hooks/useLayout';
 import { WatchProjectVO } from '../../db/services/WatchProjectService';
 import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
 
