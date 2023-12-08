@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
 import { YdRes } from '../renderer/lib/param/yd/a';
 import { Release } from './controllers/CheckUpdate';
 import { SettingState } from '../renderer/hooks/useSetting';
@@ -6,13 +7,10 @@ import { WindowState } from '../types/Types';
 
 import { SentenceStruct } from '../types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
-import { WatchProjectVideo } from "../db/tables/watchProjectVideos";
-import { WordView } from "../db/tables/wordView";
-import { Pagination } from "../db/services/WordViewService";
-import { WatchProjectVO } from "../db/services/WatchProjectService";
-import { IServerSideGetRowsRequest } from 'ag-grid-community';
-
-
+import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
+import { WordView } from '../db/tables/wordView';
+import { Pagination } from '../db/services/WordViewService';
+import { WatchProjectVO } from '../db/services/WatchProjectService';
 
 export type Channels =
     | 'main-state'
@@ -51,6 +49,8 @@ export type Channels =
     | 'process-sentences'
     | 'get-video'
     | 'get-word-rows'
+    | 'store-set'
+    | 'store-get'
     | 'select-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -95,6 +95,12 @@ const electronHandler = {
             }
             return null;
         },
+    },
+    storeSet: async (key: string, value: any) => {
+        await invoke('store-set', key, value);
+    },
+    storeGet: async (key: string) => {
+        return (await invoke('store-get', key)) as any;
     },
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);

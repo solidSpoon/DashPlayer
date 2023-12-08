@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import SettingButton from '../../../components/setting/SettingButton';
-import SettingInput from '../../../components/setting/SettingInput';
 import ItemWrapper from '../../../components/setting/ItemWapper';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
 import Header from '../../../components/setting/Header';
-import useSetting, { Appearance, Secret } from '../../../hooks/useSetting';
+import useSetting, { Appearance } from '../../../hooks/useSetting';
 import ThemePreview from '../../../components/ThemePreview';
-import { Slider } from '../../../components/Slider';
 import SliderInput from '../../../components/setting/SliderInput';
-import Title from '../../../components/setting/Title';
 import { THEME } from '../../../../types/Types';
 
 const AppearanceSetting = () => {
