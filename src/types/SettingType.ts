@@ -1,5 +1,3 @@
-import { Appearance, SettingState } from '../renderer/hooks/useSetting';
-
 export const defaultShortcut: ShortCutValue = {
     last: 'left,a',
     next: 'right,d',
@@ -59,18 +57,3 @@ export interface ShortCutValue {
      */
     prevTheme: string;
 }
-export const DEFAULT_SETTING: SettingState = {
-    keyBinds: defaultShortcut,
-    tencentSecret: {
-        secretId: '',
-        secretKey: '',
-    },
-    youdaoSecret: {
-        secretId: '',
-        secretKey: '',
-    },
-    appearance: {
-        theme: 'light',
-        fontSize: 'fontSizeLarge',
-    },
-};

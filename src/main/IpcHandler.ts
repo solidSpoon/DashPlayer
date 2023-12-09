@@ -8,7 +8,7 @@ import {
     queryVideoProgress,
     recentWatch,
     reloadRecentFromDisk,
-    updateVideoProgress,
+    updateVideoProgress
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -16,7 +16,7 @@ import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
     clearCache,
     openDataDir,
-    queryCacheSize,
+    queryCacheSize
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
@@ -28,18 +28,19 @@ import {
     markWordLevel,
     updateWordsView,
     WordLevelController,
-    wordsTranslate,
+    wordsTranslate
 } from './controllers/WordLevelController';
 import {
     readFromClipboard,
-    writeToClipboard,
+    writeToClipboard
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
 import { WordView } from '../db/tables/wordView';
 import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
 import WatchProjectService from '../db/services/WatchProjectService';
+import { schema } from '../types/store_schema';
 
-const store = new Store();
+const store = new Store({ schema });
 
 const handle = (
     channel: Channels,

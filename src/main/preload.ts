@@ -11,6 +11,7 @@ import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
 import { WordView } from '../db/tables/wordView';
 import { Pagination } from '../db/services/WordViewService';
 import { WatchProjectVO } from '../db/services/WatchProjectService';
+import { SettingKey } from '../types/store_schema';
 
 export type Channels =
     | 'main-state'
@@ -96,11 +97,11 @@ const electronHandler = {
             return null;
         },
     },
-    storeSet: async (key: string, value: any) => {
+    storeSet: async (key: SettingKey, value: string) => {
         await invoke('store-set', key, value);
     },
-    storeGet: async (key: string) => {
-        return (await invoke('store-get', key)) as any;
+    storeGet: async (key: SettingKey) => {
+        return (await invoke('store-get', key)) as string;
     },
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);
@@ -239,6 +240,10 @@ const electronHandler = {
         return invoke('get-word-rows', request) as Promise<WordView[]>;
     },
     onUpdateSetting: (func: (setting: SettingState) => void) => {
+        console.log('onUpdateSetting');
+        return on('update-setting', func as any);
+    },
+    onStoreUpdate: (func: (key: SettingKey) => void) => {
         console.log('onUpdateSetting');
         return on('update-setting', func as any);
     },

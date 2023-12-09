@@ -6,7 +6,7 @@ import {
 } from 'react-icons/ai';
 import { twJoin } from 'tailwind-merge';
 import SentenceT from '../lib/param/SentenceT';
-import useSetting, { isColorfulTheme, usingThemeName } from '../hooks/useSetting';
+import useSetting, { usingThemeName } from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '../../utils/Util';
 
@@ -19,13 +19,13 @@ interface SideSentenceNewParam {
 
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
-        const themeName = useSetting((s) => usingThemeName(s.appearance.theme));
+        const themeName = useSetting((s) => s.values.get('appearance.theme'));
         const playing = usePlayerController((state) => state.playing);
         const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
             (i) => i !== undefined && i !== ''
         );
 
-        const fontSize = useSetting((state) => state.appearance.fontSize);
+        const fontSize = useSetting((state) => state.values.get(''));
         const icon = () => {
             if (!playing) {
                 return <AiOutlinePlayCircle className="w-full h-full" />;

@@ -1,8 +1,6 @@
 import React from 'react';
 import { twJoin } from 'tailwind-merge';
 import {
-    colorfulProp,
-    isColorfulTheme,
     usingThemeName,
 } from '../hooks/useSetting';
 
@@ -11,25 +9,15 @@ export interface ThemePreviewParam {
     className: string;
 }
 const themePreview = ({ className, theme }: ThemePreviewParam) => {
-    const isColorful = isColorfulTheme(usingThemeName(theme));
     return (
         <div
             className={twJoin(
                 `${className} bg-background relative top-0 left-0`
             )}
         >
-            {isColorful && (
-                <div
-                    className={twJoin(
-                        'absolute top-0 left-0 h-full w-full',
-                        colorfulProp(theme)
-                    )}
-                />
-            )}
             <div
                 className={twJoin(
-                    `absolute w-full h-full  flex`,
-                    isColorful ? 'bg-white/80 backdrop-blur' : 'bg-background'
+                    `absolute w-full h-full  flex bg-background`,
                 )}
             >
                 <div className="flex-1 flex flex-col">
@@ -44,10 +32,7 @@ const themePreview = ({ className, theme }: ThemePreviewParam) => {
                     {[...Array(10)].map((_, i) => (
                         <div
                             className={twJoin(
-                                'flex-shrink-0 rounded h-4',
-                                isColorful
-                                    ? 'bg-sentenceBackground/80'
-                                    : 'bg-sentenceBackground'
+                                'flex-shrink-0 rounded h-4 bg-sentenceBackground',
                             )}
                         />
                     ))}
