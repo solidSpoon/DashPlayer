@@ -43,11 +43,11 @@ const WordManagement = () => {
         },
         {
             field: 'familiar',
-            width: 225
+            width: 225,
         },
         {
             field: 'note',
-            width: 225
+            width: 225,
         },
     ]);
 
@@ -57,11 +57,10 @@ const WordManagement = () => {
         editable: true,
     }), []);
 
-
-    console.log('aaaaaaaaaaaaaaaa');
     // Container: Defines the grid's theme & dimensions.
     return (
         <div
+            className="ag-theme-quartz bg-write"
             style={{ width: '100%', height: '100%' }}
         >
             <AgGridReact

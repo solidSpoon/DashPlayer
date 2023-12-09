@@ -1,15 +1,11 @@
-import React, { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '../../../../utils/Util';
-import TitleBar from '../../../components/TitleBar/TitleBar';
-import useFile from '../../../hooks/useFile';
 import useLayout from '../../../hooks/useLayout';
 import SideBar from '../../../components/SideBar';
 
 const Layout = () => {
-    const videoFile = useFile((s) => s.videoFile);
-    const subtitleFile = useFile((s) => s.subtitleFile);
     const showSideBar = useLayout((s) => s.showSideBar) || true;
     return (
         <div className={cn('h-full w-full bg-green-100')}>

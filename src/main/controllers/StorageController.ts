@@ -1,7 +1,7 @@
-import { shell } from 'electron';
+import { app, shell } from "electron";
 import fs from 'fs';
-import CacheConfig, { BASE_PATH } from '../ServerLib/basecache/CacheConfig';
-
+import path from "path";
+export const BASE_PATH = path.join(app.getPath('userData'), 'useradd');
 /**
  * 打开数据目录
  */
@@ -32,10 +32,7 @@ const formatBytes = (bytes: number): string => {
  */
 export const queryCacheSize = async () => {
     const filePaths: string[] = [];
-    filePaths.push(CacheConfig.progressConfig.filename);
-    filePaths.push(CacheConfig.transConfig.filename);
-    filePaths.push(CacheConfig.wordConfig.filename);
-    filePaths.push(CacheConfig.keyValueConfig.filename);
+    //todo
     const promises = filePaths.map((filePath) => fs.promises.stat(filePath));
     const stats = await Promise.all(promises);
     const size = stats.reduce((acc, stat) => acc + stat.size, 0);

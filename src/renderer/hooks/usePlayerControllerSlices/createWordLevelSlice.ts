@@ -1,14 +1,6 @@
 import { StateCreator } from 'zustand/esm';
-import {
-    InternalSlice,
-    PlayerSlice,
-    SentenceSlice,
-    SubtitleSlice,
-    WordLevelSlice,
-} from './SliceTypes';
-import SentenceT from '../../lib/param/SentenceT';
+import { InternalSlice, WordLevelSlice } from './SliceTypes';
 import { p } from '../../../utils/Util';
-import { WordLevel } from '../../../db/entity/WordLevel';
 import { WordLevelRes } from '../../../main/controllers/WordLevelController';
 
 const api = window.electron;

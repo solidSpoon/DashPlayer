@@ -2,7 +2,6 @@ import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import log from 'electron-log';
-import { SentenceTranslate } from '../../db/entity/SentenceTranslate';
 import TransHolder from '../../utils/TransHolder';
 
 class TransApi {

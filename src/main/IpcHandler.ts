@@ -1,12 +1,14 @@
-import { ipcMain, clipboard, dialog } from 'electron';
+import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
+import Store from 'electron-store';
 import {
     queryVideoProgress,
     recentWatch,
     reloadRecentFromDisk,
-    updateVideoProgress
+    updateVideoProgress,
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
@@ -14,31 +16,31 @@ import { createSettingWindowIfNeed, mainWindow, settingWindow } from './main';
 import {
     clearCache,
     openDataDir,
-    queryCacheSize
+    queryCacheSize,
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
-import { SettingState } from '../renderer/hooks/useSetting';
-import { getSetting, updateSetting } from './controllers/SettingController';
 import { WindowState } from '../types/Types';
-import { SentenceApiParam } from '../types/TransApi';
 import {
     listWordsView,
     markWordLevel,
-    updateWordsView, WordLevelController,
-    wordsTranslate
+    updateWordsView,
+    WordLevelController,
+    wordsTranslate,
 } from './controllers/WordLevelController';
 import {
     readFromClipboard,
-    writeToClipboard
+    writeToClipboard,
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
 import { WordView } from '../db/tables/wordView';
 import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
 import WatchProjectService from '../db/services/WatchProjectService';
-import { IServerSideGetRowsRequest } from 'ag-grid-community';
-import WordViewService from '../db/services/WordViewService';
+import { SettingKey, SettingKeyObj } from '../types/store_schema';
+import { strBlank } from '../utils/Util';
+import { storeGet, storeSet } from './store';
 
+const store = new Store();
 const handle = (
     channel: Channels,
     listenerWrapper: (...args: any[]) => Promise<void> | any
@@ -55,6 +57,18 @@ export default function registerHandler() {
     ipcMain.on('update-process', async (event, arg) => {
         log.info('ipcMain update-process', arg);
         event.reply('update-process', 'success');
+    });
+    handle(
+        'store-set',
+        async (key: SettingKey, value: string | undefined | null) => {
+            if (storeSet(key, value)) {
+                mainWindow?.webContents.send('store-update', key, value);
+                settingWindow?.webContents.send('store-update', key, value);
+            }
+        }
+    );
+    handle('store-get', async (key: SettingKey) => {
+        return storeGet(key);
     });
     handle('update-progress', async (progress: WatchProjectVideo) => {
         log.info('update-progress', progress);
@@ -73,18 +87,6 @@ export default function registerHandler() {
             return batchTranslate(sentences);
         }
     );
-    handle('update-setting', async (setting: SettingState) => {
-        log.info('update-setting');
-        await updateSetting(setting);
-        console.log('update-setting', setting);
-        mainWindow?.webContents.send('update-setting', setting);
-        settingWindow?.webContents.send('update-setting', setting);
-    });
-    handle('get-setting', async () => {
-        log.info('get-setting');
-        return getSetting();
-    });
-
     handle('is-windows', async () => {
         log.info('is-windows');
         return process.platform === 'win32';
@@ -178,7 +180,6 @@ export default function registerHandler() {
         mainWindow?.setResizable(true);
         mainWindow?.setMaximizable(true);
         mainWindow?.maximize();
-        // mainWindow?.setMaximizable(true);
     });
     handle('main-state', async (state: WindowState) => {
         switch (state) {
