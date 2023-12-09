@@ -21,9 +21,6 @@ export type Channels =
     | 'trans-word'
     | 'query-progress'
     | 'batch-translate'
-    | 'update-setting'
-    | 'get-setting'
-    | 'setting-update'
     | 'show-button'
     | 'hide-button'
     | 'is-windows'
@@ -52,6 +49,7 @@ export type Channels =
     | 'get-word-rows'
     | 'store-set'
     | 'store-get'
+    | 'store-update'
     | 'select-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -97,7 +95,7 @@ const electronHandler = {
             return null;
         },
     },
-    storeSet: async (key: SettingKey, value: string) => {
+    storeSet: async (key: SettingKey, value: string|null|undefined) => {
         await invoke('store-set', key, value);
     },
     storeGet: async (key: SettingKey) => {
@@ -108,12 +106,6 @@ const electronHandler = {
     },
     setSettingState: async (state: WindowState) => {
         await invoke('setting-state', state);
-    },
-    updateSetting: async (setting: SettingState) => {
-        await invoke('update-setting', setting);
-    },
-    getSetting: async () => {
-        return (await invoke('get-setting')) as SettingState;
     },
     transWord: async (word: string) => {
         return (await invoke('you-dao-translate', word)) as YdRes;
@@ -239,13 +231,9 @@ const electronHandler = {
     getWordRows(request: IServerSideGetRowsRequest) {
         return invoke('get-word-rows', request) as Promise<WordView[]>;
     },
-    onUpdateSetting: (func: (setting: SettingState) => void) => {
-        console.log('onUpdateSetting');
-        return on('update-setting', func as any);
-    },
-    onStoreUpdate: (func: (key: SettingKey) => void) => {
-        console.log('onUpdateSetting');
-        return on('update-setting', func as any);
+    onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
+        console.log('onStoreUpdate');
+        return on('store-update', func as any);
     },
     onMainState: (func: (state: WindowState) => void) => {
         return on('main-state', func as any);

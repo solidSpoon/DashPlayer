@@ -1,28 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import SettingButton from '../../../components/setting/SettingButton';
 import ItemWrapper from '../../../components/setting/ItemWapper';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
 import Header from '../../../components/setting/Header';
-import useSetting, { Appearance } from '../../../hooks/useSetting';
 import ThemePreview from '../../../components/ThemePreview';
 import SliderInput from '../../../components/setting/SliderInput';
-import { THEME } from '../../../../types/Types';
-
+import useSettingForm from "../../../hooks/useSettingForm";
 const AppearanceSetting = () => {
-    const appearance = useSetting((s) => s.appearance);
-    console.log(appearance);
-    const setAppearance = useSetting((s) => s.setAppearance);
-    const [localAppearance, setLocalAppearance] =
-        useState<Appearance>(appearance);
+    const {setting, setSetting, submit, eqServer} = useSettingForm([
+        'appearance.theme',
+        'appearance.fontSize',
+    ]);
 
-    const eqServer =
-        JSON.stringify(appearance) === JSON.stringify(localAppearance);
-    const update = (key: keyof Appearance) => (value: string) => {
-        setLocalAppearance({ ...localAppearance, [key]: value });
-    };
-    const handleSubmit = async () => {
-        setAppearance(localAppearance);
-    };
     const seletedRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (seletedRef.current) {
@@ -31,10 +20,8 @@ const AppearanceSetting = () => {
                 block: 'center',
             });
         }
-    }, [localAppearance.theme]);
-    useEffect(() => {
-        setLocalAppearance(appearance);
-    }, [appearance]);
+    }, [setting('appearance.theme')]);
+
     const fontSizeToValue = (fontSize: string) => {
         if (fontSize === 'fontSizeSmall') {
             return '小';
@@ -47,33 +34,35 @@ const AppearanceSetting = () => {
         }
         return '中';
     };
+    const theme = setting('appearance.theme');
+    const fontSize = setting('appearance.fontSize');
     return (
         <form className="w-full h-full flex flex-col gap-4">
             <Header title="外观" description="设置主题与字号" />
             <div className="px-3 py-2 h-40 border-t border-b flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
-                {THEME.map((theme) => {
+                {['dark','light'].map((t) => {
                     return (
                         <div
                             className={`h-full flex flex-col gap-2 bg-black/5 p-2 rounded-lg ${
-                                localAppearance.theme === theme.name
+                                theme === t
                                     ? 'border-2 border-yellow-500'
                                     : 'border-2 border-transparent'
                             }`}
                             onClick={() => {
-                                update('theme')(theme.name);
+                                setSetting('appearance.theme', t);
                             }}
                             ref={
-                                localAppearance.theme === theme.name
+                                theme === t
                                     ? seletedRef
                                     : null
                             }
                         >
                             <ThemePreview
-                                theme={theme.name}
-                                className={`${theme.name} w-44 flex-1 h-0 flex-shrink-0 rounded overflow-hidden`}
+                                theme={t}
+                                className={`${t} w-44 flex-1 h-0 flex-shrink-0 rounded overflow-hidden`}
                             />
                             <div className="text-center text-sm">
-                                {theme.name}
+                                {t}
                             </div>
                         </div>
                     );
@@ -83,17 +72,17 @@ const AppearanceSetting = () => {
                 <SliderInput
                     title="字体大小"
                     values={['小', '中', '大']}
-                    defaultValue={fontSizeToValue(localAppearance.fontSize)}
+                    defaultValue={fontSizeToValue(fontSize??'fontSizeMedium')}
                     inputWidth="w-56"
                     setValue={(v) => {
                         if (v === '小') {
-                            update('fontSize')('fontSizeSmall');
+                            setSetting('appearance.fontSize', 'fontSizeSmall');
                         }
                         if (v === '中') {
-                            update('fontSize')('fontSizeMedium');
+                            setSetting('appearance.fontSize', 'fontSizeMedium');
                         }
                         if (v === '大') {
-                            update('fontSize')('fontSizeLarge');
+                            setSetting('appearance.fontSize', 'fontSizeLarge');
                         }
                     }}
                 />
@@ -101,7 +90,7 @@ const AppearanceSetting = () => {
             <FooterWrapper>
                 <SettingButton
                     disabled={eqServer}
-                    handleSubmit={handleSubmit}
+                    handleSubmit={submit}
                 />
             </FooterWrapper>
         </form>

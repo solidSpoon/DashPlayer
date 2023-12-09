@@ -25,7 +25,7 @@ const HomePage = () => {
     } = useProjectBrowser();
     const changeSideBar = useLayout((s) => s.changeSideBar);
     const appVersion = useSystem((s) => s.appVersion);
-    const dark = useSetting((s) => s.appearance.theme) === 'dark';
+    const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
     const navigate = useNavigate();
     const handleClick = (item: WatchProjectVO) => {
         const video = item.videos.filter((v: WatchProjectVideo) => {

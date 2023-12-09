@@ -23,11 +23,11 @@ LicenseManager.prototype.isDisplayWatermark = () => {
 };
 export default function App() {
     const [isDragging, setIsDragging] = React.useState<boolean>(false);
-    const theme = useSetting((s) => s.appearance.theme);
+    const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
-        document.documentElement.classList.add(theme);
+        document.documentElement.classList.add(theme??'dark');
         return () => {
-            document.documentElement.classList.remove(theme);
+            document.documentElement.classList.remove(theme??'dark');
         };
     }, [theme]);
     return (
@@ -37,7 +37,7 @@ export default function App() {
                     <Routes>
                         <Route path='/' element={<HomePage />} />
                         <Route path='home' element={<HomePage />} />
-                        <Route path='/' element={<TieleBarLayout />}>
+                        <Route element={<TieleBarLayout />}>
                             <Route
                                 path='player/:videoId'
                                 element={<PlayerP />}

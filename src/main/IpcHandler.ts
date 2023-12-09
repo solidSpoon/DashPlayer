@@ -1,4 +1,4 @@
-import { ipcMain, clipboard, dialog } from 'electron';
+import { ipcMain } from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import fs from 'fs';
@@ -20,8 +20,6 @@ import {
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
-import { SettingState } from '../renderer/hooks/useSetting';
-import { getSetting, updateSetting } from './controllers/SettingController';
 import { WindowState } from '../types/Types';
 import {
     listWordsView,
@@ -38,10 +36,10 @@ import processSentences from './controllers/SubtitleProcesser';
 import { WordView } from '../db/tables/wordView';
 import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
 import WatchProjectService from '../db/services/WatchProjectService';
-import { schema } from '../types/store_schema';
+import { SettingKey, SettingKeyObj } from "../types/store_schema";
+import { strBlank } from "../utils/Util";
 
-const store = new Store({ schema });
-
+const store = new Store();
 const handle = (
     channel: Channels,
     listenerWrapper: (...args: any[]) => Promise<void> | any
@@ -59,11 +57,20 @@ export default function registerHandler() {
         log.info('ipcMain update-process', arg);
         event.reply('update-process', 'success');
     });
-    handle('store-set', async (key: string, value: any) => {
+    handle('store-set', async (key: SettingKey, value: string|undefined|null) => {
+        if (strBlank(value)) {
+            value = SettingKeyObj[key];
+        }
+        const oldValue = store.get(key, SettingKeyObj[key]);
+        if (oldValue === value) {
+            return;
+        }
         store.set(key, value);
+        mainWindow?.webContents.send('store-update', key, value);
+        settingWindow?.webContents.send('store-update', key, value);
     });
-    handle('store-get', async (key: string) => {
-        store.get(key);
+    handle('store-get', async (key: SettingKey) => {
+        return store.get(key, SettingKeyObj[key]);
     });
     handle('update-progress', async (progress: WatchProjectVideo) => {
         log.info('update-progress', progress);
@@ -82,18 +89,6 @@ export default function registerHandler() {
             return batchTranslate(sentences);
         }
     );
-    handle('update-setting', async (setting: SettingState) => {
-        log.info('update-setting');
-        await updateSetting(setting);
-        console.log('update-setting', setting);
-        mainWindow?.webContents.send('update-setting', setting);
-        settingWindow?.webContents.send('update-setting', setting);
-    });
-    handle('get-setting', async () => {
-        log.info('get-setting');
-        return getSetting();
-    });
-
     handle('is-windows', async () => {
         log.info('is-windows');
         return process.platform === 'win32';
@@ -187,7 +182,6 @@ export default function registerHandler() {
         mainWindow?.setResizable(true);
         mainWindow?.setMaximizable(true);
         mainWindow?.maximize();
-        // mainWindow?.setMaximizable(true);
     });
     handle('main-state', async (state: WindowState) => {
         switch (state) {

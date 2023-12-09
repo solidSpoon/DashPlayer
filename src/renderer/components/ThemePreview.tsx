@@ -1,8 +1,5 @@
 import React from 'react';
 import { twJoin } from 'tailwind-merge';
-import {
-    usingThemeName,
-} from '../hooks/useSetting';
 
 export interface ThemePreviewParam {
     theme: string;

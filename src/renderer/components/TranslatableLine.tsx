@@ -3,7 +3,7 @@ import { twJoin } from 'tailwind-merge';
 import hash from '../lib/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
-import useSetting, { isColorfulTheme } from '../hooks/useSetting';
+import useSetting from '../hooks/useSetting';
 import { cn, p } from '../../utils/Util';
 
 interface TranslatableSubtitleLineParam {
@@ -20,7 +20,7 @@ const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     );
 };
 const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
-    const themeName = useSetting((s) => s.appearance.theme);
+    const themeName = useSetting((s) => s.values.get('appearance.theme'));
     const show = usePlayerController((state) => state.showEn);
     const sentenceStruct = usePlayerController((state) =>
         state.subTitlesStructure.get(p(text))
@@ -47,9 +47,7 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
             }}
             className={twJoin(
                 'flex flex-wrap justify-center items-center rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50 gap-2',
-                isColorfulTheme(themeName)
-                    ? 'bg-sentenceBackground/80'
-                    : 'bg-sentenceBackground'
+                'bg-sentenceBackground'
             )}
         >
             {sentenceStruct?.blocks.map((block, blockIndex) => {

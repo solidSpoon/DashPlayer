@@ -8,7 +8,6 @@ import WordPop from './WordPop';
 import { playUrl, playWord } from '../lib/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
-import { THEME } from '../../types/Types';
 
 const api = window.electron;
 
@@ -52,9 +51,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
-    const theme = useSetting((s) => s.appearance.theme);
-    const dark =
-        THEME[THEME.map((t) => t.name).indexOf(theme) ?? 0].type === 'dark';
+    const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
         let timeout: NodeJS.Timeout;
@@ -171,7 +168,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
                 <div
                     className={twMerge(
                         'flex items-center pt-2 justify-center text-xl text-textColor/80',
-                        dark && 'text-amber-400/75',
+                        theme === 'dark' && 'text-amber-400/75',
                         !show && 'text-transparent'
                     )}
                 >

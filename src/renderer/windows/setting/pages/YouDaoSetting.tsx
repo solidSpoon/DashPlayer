@@ -1,47 +1,36 @@
-import { useState } from 'react';
-import SettingInput from '../../../components/setting/SettingInput';
-import SettingButton from '../../../components/setting/SettingButton';
-import FooterWrapper from '../../../components/setting/FooterWrapper';
-import ItemWrapper from '../../../components/setting/ItemWapper';
-import Header from '../../../components/setting/Header';
-import useSetting, { Secret } from '../../../hooks/useSetting';
+import SettingInput from "../../../components/setting/SettingInput";
+import SettingButton from "../../../components/setting/SettingButton";
+import FooterWrapper from "../../../components/setting/FooterWrapper";
+import ItemWrapper from "../../../components/setting/ItemWapper";
+import Header from "../../../components/setting/Header";
+import useSettingForm from "../../../hooks/useSettingForm";
 
 const YouDaoSetting = () => {
-    const youdaoSecret = useSetting((s) => s.youdaoSecret);
-    const setYoudaoSecret = useSetting((s) => s.setYoudaoSecret);
-    const [localYoudaoSecret, setLocalYoudaoSecret] =
-        useState<Secret>(youdaoSecret);
-
-    const eqServer =
-        JSON.stringify(youdaoSecret) === JSON.stringify(localYoudaoSecret);
-    const update = (key: keyof Secret) => (value: string) => {
-        setLocalYoudaoSecret((s) => ({ ...s, [key]: value }));
-    };
-
-    const handleSubmit = async () => {
-        setYoudaoSecret(localYoudaoSecret);
-    };
+    const {setting, setSettingFunc, submit, eqServer} = useSettingForm([
+        'apiKeys.youdao.secretId',
+        'apiKeys.youdao.secretKey',
+    ]);
     return (
         <form className="w-full h-full flex flex-col gap-4">
             <Header title="查单词" description="配置有道密钥以启用查词功能" />
             <ItemWrapper>
                 <SettingInput
                     inputWidth="w-64"
-                    setValue={update('secretId')}
+                    setValue={setSettingFunc('apiKeys.youdao.secretId')}
                     title="secretId"
-                    value={localYoudaoSecret.secretId ?? ''}
+                    value={setting('apiKeys.youdao.secretId')}
                 />
                 <SettingInput
                     inputWidth="w-64"
-                    setValue={update('secretKey')}
+                    setValue={setSettingFunc('apiKeys.youdao.secretKey')}
                     title="secretKey"
-                    value={localYoudaoSecret.secretKey ?? ''}
+                    value={setting('apiKeys.youdao.secretKey')}
                     type="password"
                 />
             </ItemWrapper>
             <FooterWrapper>
                 <SettingButton
-                    handleSubmit={handleSubmit}
+                    handleSubmit={submit}
                     disabled={eqServer}
                 />
             </FooterWrapper>
