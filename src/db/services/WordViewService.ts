@@ -21,6 +21,7 @@ export interface Pagination<T> {
 export default class WordViewService {
     private static wordView = db
         .select({
+            id: words.id,
             word: words.word,
             translate: words.translate,
             stem: words.stem,
@@ -156,21 +157,22 @@ export default class WordViewService {
     }
 
     static async getRows(request: IServerSideGetRowsRequest): Promise<WordView[]> {
-        const { startRow, endRow, filterModel } = request;
+        console.log('getRows', request);
+        const {startRow, endRow, filterModel } = request;
 
         let query = db.select().from(this.wordView);
 
-        if (filterModel) {
-            let tq = and(sql`1 = 1`);
-            for (const [key, value] of Object.entries(filterModel)) {
-                if (value) {
-                    tq = and(tq, sql`${key} like ${value}`);
-                }
-            }
-             query.where(tq);
-        }
+        // if (filterModel) {
+        //     let tq = and(sql`1 = 1`);
+        //     for (const [key, value] of Object.entries(filterModel)) {
+        //         if (value) {
+        //             tq = and(tq, sql`${key} like '%${value.filter}%'`);
+        //         }
+        //     }
+        //      query.where(tq);
+        // }
         query.limit(endRow! - startRow!).offset(startRow!);
-
+        console.log('query', query);
         return query;
     }
 }

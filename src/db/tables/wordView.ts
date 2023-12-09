@@ -1,4 +1,5 @@
 export interface WordView {
+    id: number;
     word: string;
     stem: string | null;
     translate: string | null;
