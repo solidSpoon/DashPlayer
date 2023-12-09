@@ -6,7 +6,7 @@ import ItemWrapper from '../../../components/setting/ItemWapper';
 import Header from '../../../components/setting/Header';
 import useSetting, { Secret } from '../../../hooks/useSetting';
 
-const TenantSetting = () => {
+const YouDaoSetting = () => {
     const youdaoSecret = useSetting((s) => s.youdaoSecret);
     const setYoudaoSecret = useSetting((s) => s.setYoudaoSecret);
     const [localYoudaoSecret, setLocalYoudaoSecret] =
@@ -48,4 +48,4 @@ const TenantSetting = () => {
         </form>
     );
 };
-export default TenantSetting;
+export default YouDaoSetting;

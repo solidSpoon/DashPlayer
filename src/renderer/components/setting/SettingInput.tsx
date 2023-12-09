@@ -1,3 +1,5 @@
+import { cn } from '../../../utils/Util';
+
 export interface SettingInputProps {
     title: string;
     placeHolder?: string;
@@ -6,19 +8,22 @@ export interface SettingInputProps {
     type?: string;
     inputWidth?: string;
 }
+
 const SettingInput = ({
-    title,
-    placeHolder,
-    value,
-    setValue,
-    type,
-    inputWidth,
-}: SettingInputProps) => {
+                          title,
+                          placeHolder,
+                          value,
+                          setValue,
+                          type,
+                          inputWidth
+                      }: SettingInputProps) => {
     return (
-        <div className="flex items-center gap-4  text-gray-700 text-sm select-none">
-            <div className="text-sm text-right w-28">{title} :</div>
+        <div className='flex items-center gap-4  text-gray-700 text-sm select-none'>
+            <div className='text-sm text-right w-28'>{title} :</div>
             <input
-                className={`appearance-none border h-6 rounded text-sm px-3 text-gray-700  focus:outline-none focus:shadow-outline ${inputWidth}`}
+                className={cn(
+                    `appearance-none border h-6 rounded text-sm px-3 text-gray-700  outline-2 outline-yellow-500`
+                    , inputWidth)}
                 type={type}
                 placeholder={placeHolder}
                 value={value || ''}
@@ -31,6 +36,6 @@ const SettingInput = ({
 SettingInput.defaultProps = {
     placeHolder: '',
     type: 'text',
-    inputWidth: 'w-44',
+    inputWidth: 'w-44'
 };
 export default SettingInput;
