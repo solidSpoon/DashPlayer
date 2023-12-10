@@ -1,5 +1,4 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
-import FileT from '../lib/param/FileT';
 import parseFile from '../lib/FileParser';
 import useFile from '../hooks/useFile';
 

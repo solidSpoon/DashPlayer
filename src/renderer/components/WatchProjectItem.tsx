@@ -3,9 +3,9 @@ import React from 'react';
 import { VscFolder } from 'react-icons/vsc';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/Util';
-import { WatchProjectVO } from '../../db2/services/WatchProjectService';
 import ListItem from './ListItem';
 import useFile from '../hooks/useFile';
+import { WatchProjectVO } from '../../db/services/WatchProjectService';
 
 export interface WatchProjectItemProps {
     item: WatchProjectVO;
@@ -13,7 +13,7 @@ export interface WatchProjectItemProps {
 }
 
 const WatchProjectItem = ({ item, onRouteTo }: WatchProjectItemProps) => {
-    const file = item.videos.filter((v) => v.current_playing === 1)[0];
+    const file = item.videos.filter((v) => v.current_playing)[0];
     console.log('watch project item', item);
     const currentVideo = useFile((e) => e.currentVideo);
     const navigate = useNavigate();

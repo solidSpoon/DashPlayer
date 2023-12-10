@@ -2,10 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaPause, FaPlay } from 'react-icons/fa';
 import { useShallow } from 'zustand/react/shallow';
 import { Slider } from './Slider';
-import { secondToDate } from './PlayTime';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '../../utils/Util';
+import { cn, secondToDate } from '../../utils/Util';
 
 export interface PlayerControlPannelProps {
     className?: string;

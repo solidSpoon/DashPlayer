@@ -8,6 +8,7 @@ import SentenceT from '../lib/param/SentenceT';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '../../utils/Util';
+import useLayout from '../hooks/useLayout';
 
 interface SideSentenceNewParam {
     sentence: SentenceT;
@@ -18,12 +19,11 @@ interface SideSentenceNewParam {
 
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
-        const themeName = useSetting((s) => s.values.get('appearance.theme'));
         const playing = usePlayerController((state) => state.playing);
         const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
             (i) => i !== undefined && i !== ''
         );
-
+        let showSideBar = useLayout(s=>s.showSideBar);
         const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
         const icon = () => {
             if (!playing) {
@@ -43,6 +43,9 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     'm-1.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
                     'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow',
                 )}
+                style={{
+                    zoom: showSideBar ? 0.65 : 1,
+                }}
                 onClick={() => {
                     onClick(sentence);
                 }}

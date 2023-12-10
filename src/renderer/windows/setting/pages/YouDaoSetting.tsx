@@ -1,7 +1,7 @@
 import SettingInput from "../../../components/setting/SettingInput";
 import SettingButton from "../../../components/setting/SettingButton";
 import FooterWrapper from "../../../components/setting/FooterWrapper";
-import ItemWrapper from "../../../components/setting/ItemWapper";
+import ItemWrapper from "../../../components/setting/ItemWrapper";
 import Header from "../../../components/setting/Header";
 import useSettingForm from "../../../hooks/useSettingForm";
 

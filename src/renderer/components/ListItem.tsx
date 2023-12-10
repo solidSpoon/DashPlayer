@@ -1,9 +1,5 @@
-import { GoFile } from 'react-icons/go';
 import React, { cloneElement, ReactElement } from 'react';
-import { VscFolder } from 'react-icons/vsc';
 import { cn } from '../../utils/Util';
-import { WatchProjectVO } from '../../db2/services/WatchProjectService';
-import { WatchProjectType } from '../../db/entity/WatchProject';
 
 export interface ListItemProps {
     content: string;

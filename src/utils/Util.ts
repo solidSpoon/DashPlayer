@@ -33,3 +33,15 @@ export const arrayChanged = <T>(a: T[], b: T[]): boolean => {
     if (a.length !== b.length) return true;
     return a.some((item, index) => item !== b[index]);
 }
+export const secondToDate = (seconds = 0) => {
+    if (seconds === undefined) {
+        return '00:00:00';
+    }
+    const h: number = Math.floor((seconds / 60 / 60) % 24);
+    const hs = h < 10 ? `0${h}` : h;
+    const m = Math.floor((seconds / 60) % 60);
+    const ms = m < 10 ? `0${m}` : m;
+    const s = Math.floor(seconds % 60);
+    const ss = s < 10 ? `0${s}` : s;
+    return `${hs}:${ms}:${ss}`;
+};

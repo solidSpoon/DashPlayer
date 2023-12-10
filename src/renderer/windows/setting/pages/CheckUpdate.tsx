@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Release } from '../../../../main/controllers/CheckUpdate';
 import Header from '../../../components/setting/Header';
-import ItemWrapper from '../../../components/setting/ItemWapper';
+import ItemWrapper from '../../../components/setting/ItemWrapper';
 import useNotification from '../../../hooks/useNotification';
 
 const api = window.electron;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Header from '../../../components/setting/Header';
-import ItemWrapper from '../../../components/setting/ItemWapper';
+import ItemWrapper from '../../../components/setting/ItemWrapper';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
 import SettingButton from '../../../components/setting/SettingButton';
 

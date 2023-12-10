@@ -14,7 +14,7 @@ import { ColDef } from 'ag-grid-community/dist/lib/entities/colDef';
 import { useShallow } from 'zustand/react/shallow'; // Theme
 import { RowClassParams } from 'ag-grid-community/dist/lib/entities/gridOptions';
 import WordLevelHeader from '../../../components/WordLevelHeader';
-import FilterEditor from '../../../components/filterEidter/FilterEditor';
+import FilterEditor from '../../../components/filterEidter';
 import useDataPage from '../../../hooks/useDataPage/useDataPage';
 
 const WordManagement = () => {

@@ -171,13 +171,7 @@ const PlayerP = () => {
                                 <MainSubtitle />
                             </div>
                         </Split>
-                        <div
-                            style={{
-                                zoom: showSideBar ? 0.65 : 1,
-                            }}
-                            className="wf-full h-full">
                         <Subtitle />
-                        </div>
                     </Split>
                     <div className={cn('h-2')}>
                         <BorderProgressBar />

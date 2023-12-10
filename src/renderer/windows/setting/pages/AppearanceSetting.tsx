@@ -1,13 +1,11 @@
 import { useEffect, useRef } from 'react';
 import SettingButton from '../../../components/setting/SettingButton';
-import ItemWrapper from '../../../components/setting/ItemWapper';
-import FooterWrapper from '../../../components/setting/FooterWrapper';
-import Header from '../../../components/setting/Header';
+import { ItemWrapper, FooterWrapper, Header, SliderInput } from '../../../components/setting';
 import ThemePreview from '../../../components/ThemePreview';
-import SliderInput from '../../../components/setting/SliderInput';
-import useSettingForm from "../../../hooks/useSettingForm";
+import useSettingForm from '../../../hooks/useSettingForm';
+
 const AppearanceSetting = () => {
-    const {setting, setSetting, submit, eqServer} = useSettingForm([
+    const { setting, setSetting, submit, eqServer } = useSettingForm([
         'appearance.theme',
         'appearance.fontSize',
     ]);
@@ -40,7 +38,7 @@ const AppearanceSetting = () => {
         <form className="w-full h-full flex flex-col gap-4">
             <Header title="外观" description="设置主题与字号" />
             <div className="px-3 py-2 h-40 border-t border-b flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
-                {['dark','light'].map((t) => {
+                {['dark', 'light'].map((t) => {
                     return (
                         <div
                             className={`h-full flex flex-col gap-2 bg-black/5 p-2 rounded-lg ${
@@ -51,19 +49,13 @@ const AppearanceSetting = () => {
                             onClick={() => {
                                 setSetting('appearance.theme', t);
                             }}
-                            ref={
-                                theme === t
-                                    ? seletedRef
-                                    : null
-                            }
+                            ref={theme === t ? seletedRef : null}
                         >
                             <ThemePreview
                                 theme={t}
                                 className={`${t} w-44 flex-1 h-0 flex-shrink-0 rounded overflow-hidden`}
                             />
-                            <div className="text-center text-sm">
-                                {t}
-                            </div>
+                            <div className="text-center text-sm">{t}</div>
                         </div>
                     );
                 })}
@@ -72,7 +64,7 @@ const AppearanceSetting = () => {
                 <SliderInput
                     title="字体大小"
                     values={['小', '中', '大']}
-                    defaultValue={fontSizeToValue(fontSize??'fontSizeMedium')}
+                    defaultValue={fontSizeToValue(fontSize ?? 'fontSizeMedium')}
                     inputWidth="w-56"
                     setValue={(v) => {
                         if (v === '小') {
@@ -88,10 +80,7 @@ const AppearanceSetting = () => {
                 />
             </ItemWrapper>
             <FooterWrapper>
-                <SettingButton
-                    disabled={eqServer}
-                    handleSubmit={submit}
-                />
+                <SettingButton disabled={eqServer} handleSubmit={submit} />
             </FooterWrapper>
         </form>
     );

@@ -4,7 +4,7 @@ export interface TieleProps {
     title: string;
 }
 
-const Tiele = ({ title }: TieleProps) => {
+const Title = ({ title }: TieleProps) => {
     return (
         <div className="pl-6">
             <h2 className="text-xl font-bold">{title}</h2>
@@ -12,4 +12,4 @@ const Tiele = ({ title }: TieleProps) => {
     );
 };
 
-export default Tiele;
+export default Title;

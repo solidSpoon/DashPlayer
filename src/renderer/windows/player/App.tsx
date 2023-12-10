@@ -6,7 +6,7 @@ import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { LicenseManager } from 'ag-grid-enterprise';
-import HomePage from '../../components/HomePage';
+import HomePage from './pages/HomePage';
 import FileDrop from '../../components/FileDrop';
 import useSetting from '../../hooks/useSetting';
 import Layout from './pages/Layout';

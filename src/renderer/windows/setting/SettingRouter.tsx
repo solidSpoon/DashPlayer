@@ -1,5 +1,5 @@
 import { HashRouter, Route, Routes } from 'react-router-dom';
-import HomePage from '../../components/HomePage';
+import HomePage from '../player/pages/HomePage';
 import TieleBarLayout from '../player/pages/TieleBarLayout';
 import { PlayerP, WordManagement } from '../player/pages';
 import Layout from '../player/pages/Layout';
