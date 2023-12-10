@@ -1,3 +1,5 @@
+import { MarkupType } from '../../renderer/hooks/useDataPage/Types';
+
 export interface WordView {
     id: number;
     word: string;
@@ -5,4 +7,5 @@ export interface WordView {
     translate: string | null;
     note: string | null;
     familiar: boolean | null;
+    markup: MarkupType;
 }

@@ -5,7 +5,6 @@ export type MarkupType = 'default' | 'new' | 'delete' | 'update' | 'new-delete';
 export interface WordViewRow extends WordView {
     index: number;
     fakeId: number;
-    markup: MarkupType;
     updateColumns: (keyof WordView)[];
 }
 const onRender = (

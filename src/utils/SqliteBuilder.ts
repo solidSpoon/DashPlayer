@@ -35,8 +35,7 @@ const processWhere = (sql: string): string => {
     const ast = parser.astify(baseSql + sql);
     proceedColumns(ast);
     const finalSql = parser.sqlify(ast);
-    let s = finalSql.substring(baseSql.length);
-    return s.replace(/`/g, '');
+    return finalSql.substring(baseSql.length);
 };
 
 const processOrderBy = (sql: string): string => {

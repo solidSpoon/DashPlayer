@@ -1,12 +1,13 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
+import natural from 'natural';
 import db from '../db';
 
 import { p } from '../../utils/Util';
 import { InsertWord, words } from '../tables/words';
 import { InsertStem, stems } from '../tables/stems';
 import { WordView } from '../tables/wordView';
-import { IServerSideGetRowsRequest } from 'ag-grid-community';
-import natural from 'natural';
+import { MarkupType } from '../../renderer/hooks/useDataPage/Types';
 
 export interface Pagination<T> {
     total: number;
@@ -28,6 +29,7 @@ export default class WordViewService {
             stem: words.stem,
             note: words.note,
             familiar: stems.familiar,
+            markup: sql<MarkupType>`'default'`.as('markup'),
         })
         .from(words)
         .leftJoin(stems, eq(words.stem, stems.stem))
@@ -60,7 +62,7 @@ export default class WordViewService {
     ): Promise<Pagination<WordView>> {
         if (whereSql.trim() === '') {
             // eslint-disable-next-line no-param-reassign
-            whereSql = 'length(word) = 3';
+            whereSql = '1 = 1';
         }
         if (orderBySql.trim() === '') {
             // eslint-disable-next-line no-param-reassign
@@ -68,28 +70,21 @@ export default class WordViewService {
         }
         console.log('list', whereSql, orderBySql, perPage, currentPage);
         const offset = (currentPage - 1) * perPage;
-
-        let sql1 = db
-            .select()
-            .from(this.wordView)
-            .where(sql<boolean>`${whereSql}`)
-            .orderBy(sql`${orderBySql}`)
-            .offset(offset)
-            .limit(perPage).getSQL();
-        console.log('sql1', sql1);
         const [total, rows]: [{ count: number }[], WordView[]] =
             await Promise.all([
                 db
                     .select({
                         count: sql<number>`cast(count(1) as int)`,
                     })
-                    .from(this.wordView),
+                    .from(this.wordView)
+                    .where(sql.raw(whereSql))
+                ,
 
                 db
                     .select()
                     .from(this.wordView)
-                    .where(sql<boolean>`${whereSql}`)
-                    .orderBy(sql`${orderBySql}`)
+                    .where(sql.raw(whereSql))
+                    .orderBy(sql.raw(orderBySql))
                     .offset(offset)
                     .limit(perPage),
             ]);
@@ -112,6 +107,9 @@ export default class WordViewService {
     }
 
     static async batchUpdate(views: WordView[]) {
+        views = views
+            .filter((item) => item.markup !== 'default')
+            .filter((item) => item.markup !== 'new-delete');
         views.forEach((item) => {
             item.word = p(item.word);
             item.stem = natural.PorterStemmer.stem(p(item.word));
@@ -172,25 +170,23 @@ export default class WordViewService {
                     },
                 });
         }
+        const deleteIds = views
+            .filter((item) => item.markup === 'delete')
+            .map((item) => item.id);
+        if (deleteIds.length > 0) {
+            await db.delete(words).where(inArray(words.id, deleteIds));
+        }
     }
 
-    static async getRows(request: IServerSideGetRowsRequest): Promise<WordView[]> {
-        console.log('getRows', request);
-        const {startRow, endRow, filterModel } = request;
-
-        let query = db.select().from(this.wordView);
-
-        // if (filterModel) {
-        //     let tq = and(sql`1 = 1`);
-        //     for (const [key, value] of Object.entries(filterModel)) {
-        //         if (value) {
-        //             tq = and(tq, sql`${key} like '%${value.filter}%'`);
-        //         }
-        //     }
-        //      query.where(tq);
-        // }
-        query.limit(endRow! - startRow!).offset(startRow!);
-        console.log('query', query);
-        return query;
+    static async getRows(
+        request: IServerSideGetRowsRequest
+    ): Promise<WordView[]> {
+        // console.log('getRows', request);
+        // const {startRow, endRow, filterModel } = request;
+        //
+        // let query = db.select().from(this.wordView);
+        // query.limit(endRow! - startRow!).offset(startRow!);
+        // return query;
+        return [];
     }
 }

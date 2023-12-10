@@ -83,10 +83,3 @@ export async function updateWordsView(words: WordView[]): Promise<void> {
 
     await WordViewService.batchUpdate(words);
 }
-
-export class WordLevelController  {
-
-     static async getRows(request: IServerSideGetRowsRequest): Promise<WordView[]> {
-         return await WordViewService.getRows(request);
-    }
-}

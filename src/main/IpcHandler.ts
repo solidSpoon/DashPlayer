@@ -25,7 +25,6 @@ import {
     listWordsView,
     markWordLevel,
     updateWordsView,
-    WordLevelController,
     wordsTranslate,
 } from './controllers/WordLevelController';
 import {
@@ -109,10 +108,6 @@ export default function registerHandler() {
             return listWordsView(whereSql, orderBySql, perPage, currentPage);
         }
     );
-    handle('get-word-rows', async (request: IServerSideGetRowsRequest) => {
-        log.info('get-word-rows');
-        return WordLevelController.getRows(request);
-    });
     handle('batch-update-level-words', async (words: WordView[]) => {
         log.info('update-words-level', words);
         return updateWordsView(words);

@@ -46,7 +46,6 @@ export type Channels =
     | 'read-from-clipboard'
     | 'process-sentences'
     | 'get-video'
-    | 'get-word-rows'
     | 'store-set'
     | 'store-get'
     | 'store-update'
@@ -227,9 +226,6 @@ const electronHandler = {
             'process-sentences',
             sentences
         )) as SentenceStruct[];
-    },
-    getWordRows(request: IServerSideGetRowsRequest) {
-        return invoke('get-word-rows', request) as Promise<WordView[]>;
     },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');
