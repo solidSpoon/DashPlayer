@@ -44,7 +44,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow',
                 )}
                 style={{
-                    zoom: showSideBar ? 0.65 : 1,
+                    // zoom: showSideBar ? 0.65 : 1,
                 }}
                 onClick={() => {
                     onClick(sentence);

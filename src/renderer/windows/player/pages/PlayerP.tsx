@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import useLayout from '../../../hooks/useLayout';
@@ -45,6 +45,23 @@ const PlayerP = () => {
     useEffect(() => {
         setSearchParams({ sideBarAnimation: 'true' });
     }, [setSearchParams]);
+    const posRef = useRef<HTMLDivElement>(null);
+    const [pos, setPos] = useState({ x: 0, y: 0 });
+    useEffect(() => {
+        const updatePos = () => {
+            if (posRef.current === null) return 0;
+            const rect = posRef.current.getBoundingClientRect();
+            setPos({
+                x: rect.x,
+                y: rect.y + window.innerHeight * 0.05,
+            });
+        }
+        updatePos();
+        window.addEventListener('resize', updatePos);
+        return () => {
+            window.removeEventListener('resize', updatePos);
+        }
+    }, []);
     return (
         <div
             className="w-full h-full grid grid-cols-3 grid-rows-2 overflow-hidden bg-gray-100"
@@ -111,19 +128,22 @@ const PlayerP = () => {
                 )}
             </AnimatePresence>
             <div
+                className={""}
+                ref={posRef}
+                style={{
+                    gridArea: '2 / 2 / 2 / 3',
+                }}
+            />
+            <div
                 className={cn(
                     'flex flex-col',
-                    showSideBar && 'p-4 pt-2 pr-2'
+                    showSideBar && 'p-4 pt-2 pr-2',
                 )}
-                // layout
-                // transition={{
-                //     type: 'tween',
-                //     duration: 0.2,
-                //     stiffness: 700,
-                //     damping: 30,
-                // }}
                 style={{
-                    gridArea: showSideBar ? '2 / 2 / 2 / 3' : '1 / 1 / -1 / -1',
+                    // gridArea: showSideBar ? '2 / 2 / 2 / 3' : '1 / 1 / -1 / -1',
+                    gridArea: '1 / 1 / -1 / -1',
+                    transform: showSideBar?`translate(${pos.x}px, ${pos.y}px) scale(0.6)`:'translate(0px, 0px) scale(1)',
+                    transformOrigin: 'top left',
                 }}
             >
                 <div
@@ -165,7 +185,7 @@ const PlayerP = () => {
                             </div>
                             <div
                                 style={{
-                                    zoom: showSideBar ? 0.65 : 1,
+                                    // zoom: showSideBar ? 0.65 : 1,
                                 }}
                                 className="h-full">
                                 <MainSubtitle />
