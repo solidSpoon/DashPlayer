@@ -285,7 +285,18 @@ setInterval(() => {
     const keys: (keyof DataPageDataHolder)[] = ['wordView', 'dataHolder'];
     for (const key of keys) {
         if (useDataPage.getState().data[key].shouldDiff) {
-            useDataPage.getState().data[key].shouldDiff = false;
+            useDataPage.setState((state) => {
+                const data = state.data[key];
+                return {
+                    data: {
+                        ...state.data,
+                        [key]: {
+                            ...data,
+                            shouldDiff: false,
+                        },
+                    },
+                };
+            });
             const change = diff(key);
             if (change) {
                 useDataPage.getState().data[key].ele.current?.api?.refreshCells({

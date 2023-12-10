@@ -6,6 +6,7 @@ import SentenceT from '../lib/param/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useSystem from '../hooks/useSystem';
+import useLayout from '../hooks/useLayout';
 
 interface Ele {
     /**
@@ -45,6 +46,7 @@ const getEle = (ele: HTMLDivElement): Ele => {
 
 export default function Subtitle() {
     const isWindows = useSystem((state) => state.isWindows);
+    let showSideBar = useLayout((state) => state.showSideBar);
     const { currentSentence, subtitle, jump, singleRepeat } =
         usePlayerController(
             useShallow((state) => ({
@@ -66,20 +68,23 @@ export default function Subtitle() {
     useEffect(() => {
         const updateBoundary = () => {
             // 窗口高度
-            const wh = window.innerHeight;
+            const wh = boundaryRef.current?.getBoundingClientRect().height ?? 0;
             // 顶部高度
             setBoundary({
                 yt: isWindows ? 27 : 7,
                 yb: wh - 15,
             });
         };
+        const timeout = setTimeout(() => {
+            updateBoundary();
+        }, 5000);
         updateBoundary();
         window.addEventListener('resize', updateBoundary);
         return () => {
             window.removeEventListener('resize', updateBoundary);
+            clearTimeout(timeout);
         };
-    }, [isWindows]);
-
+    }, [isWindows, showSideBar]);
     useEffect(() => {
         if (currentSentence === lastCurrentSentence.current) {
             return;
@@ -105,6 +110,14 @@ export default function Subtitle() {
             return;
         }
         if (lastIndex === index) {
+            return;
+        }
+        if (showSideBar) {
+            listRef.current?.scrollToIndex({
+                behavior: 'smooth',
+                index,
+                align: 'start',
+            });
             return;
         }
         const currentEle = getEle(ref);
@@ -139,7 +152,7 @@ export default function Subtitle() {
 
     const render = () => {
         return (
-            <div className="w-full h-full overflow-y-auto" ref={boundaryRef}>
+            <div className="w-full h-full" ref={boundaryRef}>
                 <Virtuoso
                     increaseViewportBy={200}
                     defaultItemHeight={55}

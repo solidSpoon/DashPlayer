@@ -185,7 +185,7 @@ export default function Player(): ReactElement {
                             onTimeChange={(time) => {
                                 seekTo({ time });
                             }}
-                            className='absolute bottom-0 left-0 px-3'
+                            className='absolute bottom-0 left-0'
                             onPause={() => {
                                 pause();
                             }}

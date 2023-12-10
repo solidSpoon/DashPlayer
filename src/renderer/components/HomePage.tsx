@@ -37,7 +37,9 @@ const HomePage = () => {
         }
         api.playerSize();
         changeSideBar(false);
-        navigate(`/player/${video.id}`);
+        setTimeout(() => {
+            navigate(`/player/${video.id}`);
+        }, 500);
     };
     useEffect(() => {
         api.homeSize();

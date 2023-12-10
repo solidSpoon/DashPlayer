@@ -47,12 +47,13 @@ const PlayerP = () => {
     }, [setSearchParams]);
     return (
         <div
-            className="w-full h-full grid grid-cols-3 grid-rows-2 overflow-hidden bg-neutral-500"
+            className="w-full h-full grid grid-cols-3 grid-rows-2 overflow-hidden bg-gray-100"
             style={{
                 gridTemplateColumns: '15% 60% 25%', // 这里定义每列的大小
                 gridTemplateRows: '30% 70%', // 这里定义每行的大小
             }}
         >
+
             <AnimatePresence>
                 {showSideBar && (
                     <>
@@ -91,7 +92,7 @@ const PlayerP = () => {
 
                         <motion.div
                             className={cn(
-                                'col-start-2 col-end-3 row-start-1 row-end-2 p-4 pb-2 pr-2 overflow-hidden'
+                                'col-start-2 col-end-3 row-start-1 row-end-2 p-4 pb-2 pr-2'
                             )}
                             initial={{ y: -1000 }}
                             animate={{
@@ -109,18 +110,18 @@ const PlayerP = () => {
                     </>
                 )}
             </AnimatePresence>
-            <motion.div
+            <div
                 className={cn(
                     'flex flex-col',
-                    showSideBar && 'p-4 pt-2 pr-2 overflow-hidden'
+                    showSideBar && 'p-4 pt-2 pr-2'
                 )}
-                layout
-                transition={{
-                    type: 'tween',
-                    duration: 0.2,
-                    stiffness: 700,
-                    damping: 30,
-                }}
+                // layout
+                // transition={{
+                //     type: 'tween',
+                //     duration: 0.2,
+                //     stiffness: 700,
+                //     damping: 30,
+                // }}
                 style={{
                     gridArea: showSideBar ? '2 / 2 / 2 / 3' : '1 / 1 / -1 / -1',
                 }}
@@ -129,10 +130,10 @@ const PlayerP = () => {
                     className={cn(
                         'w-full h-full flex flex-col',
                         showSideBar &&
-                            'rounded-lg overflow-hidden border-2 border-gray-300]'
+                        'overflow-hidden border-2 border-gray-300 rounded-lg'
                     )}
                     style={{
-                        zoom: showSideBar ? 0.65 : 1,
+                        // zoom: showSideBar ? 0.65 : 1,
                     }}
                 >
                     <Split
@@ -162,17 +163,27 @@ const PlayerP = () => {
                             <div className="h-full">
                                 <Player />
                             </div>
-                            <div className="h-full">
+                            <div
+                                style={{
+                                    zoom: showSideBar ? 0.65 : 1,
+                                }}
+                                className="h-full">
                                 <MainSubtitle />
                             </div>
                         </Split>
+                        <div
+                            style={{
+                                zoom: showSideBar ? 0.65 : 1,
+                            }}
+                            className="wf-full h-full">
                         <Subtitle />
+                        </div>
                     </Split>
                     <div className={cn('h-2')}>
                         <BorderProgressBar />
                     </div>
                 </div>
-            </motion.div>
+            </div>
             <UploadButton />
             <GlobalShortCut />
         </div>

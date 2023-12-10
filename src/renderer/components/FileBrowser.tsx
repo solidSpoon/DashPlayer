@@ -10,7 +10,8 @@ const FileBrowser = () => {
                 e.stopPropagation();
             }}
             className={twMerge(
-                'flex-1 flex flex-col gap-2 items-center justify-center p-10 rounded-lg w-full h-full text-black bg-neutral-200'
+                'flex-1 flex flex-col gap-2 items-center justify-center p-10 rounded-lg w-full h-full text-black',
+                'bg-white drop-shadow-lg'
             )}
         >
             <OpenFile directory={false} />

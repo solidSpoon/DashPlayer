@@ -90,11 +90,12 @@ const PlayerControlPannel = ({
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
             className={cn(
-                'w-full flex flex-col-reverse pt-10 h-full',
+                'w-full flex flex-col-reverse pt-10 h-full text-white/80',
                 className
             )}
         >
             <div
+                className={cn('pt-8', mouseOverOut && 'bg-gradient-to-t from-black/25 to-transparent')}
                 onMouseMove={(e) => {
                     e.stopPropagation();
                     handleMouseMoveIn();
@@ -103,7 +104,7 @@ const PlayerControlPannel = ({
             >
                 <div
                     className={cn(
-                        'flex flex-col items-center w-full gap-2 h-16',
+                        'flex flex-col items-center w-full gap-2 h-16 px-2',
                         !mouseOverOut && 'invisible'
                     )}
                 >
@@ -137,9 +138,9 @@ const PlayerControlPannel = ({
                                 className="flex justify-center items-center rounded-lg"
                             >
                                 {playing ? (
-                                    <FaPause className="w-6 h-6 text-white/80" />
+                                    <FaPause className="w-6 h-6" />
                                 ) : (
-                                    <FaPlay className="w-6 h-6 text-white/80" />
+                                    <FaPlay className="w-6 h-6" />
                                 )}
                             </div>
                             <div className=" h-full flex items-center">

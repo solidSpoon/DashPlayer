@@ -33,38 +33,39 @@ const ControlBox = () => {
     return (
         <div
             className={twMerge(
-                'flex gap-4 justify-center items-center p-10 bg-white rounded-lg w-full h-full text-black '
+                'flex gap-4 justify-center items-center p-8 rounded-lg w-full h-full text-black flex-col',
+                'drop-shadow-lg  bg-white'
             )}
         >
-            <div className={cn('text-xl font-bold h-0')}>控制中心</div>
+            <div className={cn('text-xl font-bold w-full')}>控制中心</div>
             <div
                 className={cn(
-                    'flex flex-col gap-2 flex-wrap items-start justify-around p-4 rounded-lg bg-gray-50 flex-1 h-full w-0 overflow-x-auto'
+                    'flex flex-col gap-2 flex-wrap items-start justify-around p-4 rounded-lg flex-1 w-full h-0 overflow-x-auto'
                 )}
             >
                 <Switch
                     checked={showEn}
                     onChange={() => changeShowEn()}
                     title="展示英文字幕"
-                    className={cn('w-60 hover:bg-stone-200 bg-stone-100')}
+                    className={cn('w-60')}
                 />
                 <Switch
                     checked={showCn}
                     onChange={() => changeShowCn()}
                     title="展示中文字幕"
-                    className={cn('w-60 hover:bg-stone-200 bg-stone-100')}
+                    className={cn('w-60')}
                 />
                 <Switch
                     checked={showWordLevel}
                     onChange={() => changeShowWordLevel()}
                     title="展示生词翻译"
-                    className={cn('w-60 hover:bg-stone-200 bg-stone-100')}
+                    className={cn('w-60')}
                 />
                 <Switch
                     checked={singleRepeat}
                     onChange={() => changeSingleRepeat()}
                     title="单句循环"
-                    className={cn('w-60 hover:bg-stone-200 bg-stone-100')}
+                    className={cn('w-60')}
                 />
             </div>
         </div>
