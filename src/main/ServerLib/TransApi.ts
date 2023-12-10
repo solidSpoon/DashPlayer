@@ -3,25 +3,28 @@ import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import log from 'electron-log';
 import TransHolder from '../../utils/TransHolder';
+import { strBlank } from '../../utils/Util';
+import { storeGet } from '../store';
 
 class TransApi {
-    private static client: Client;
+    private static client: Client | null = null;
 
     private static SIZE_LIMIT = 1500;
 
     private static pass = false;
 
     static {
-        TransApi.init('', '');
         setInterval(() => {
             TransApi.pass = true;
         }, 300);
     }
 
-    public static async init(
-        secretId: string,
-        secretKey: string
-    ): Promise<void> {
+    private static async tryInit(): Promise<void> {
+        const secretId = storeGet('apiKeys.tencent.secretId');
+        const secretKey = storeGet('apiKeys.tencent.secretKey');
+        if (strBlank(secretId) || strBlank(secretKey)) {
+            return;
+        }
         const TmtClient = tencentcloud.tmt.v20180321.Client;
         const clientConfig = {
             credential: {
@@ -53,6 +56,12 @@ class TransApi {
     public static async batchTrans2(
         source: string[]
     ): Promise<TransHolder<string>> {
+        if (!this.client) {
+            await this.tryInit();
+            if (!this.client) {
+                return new TransHolder<string>();
+            }
+        }
         let temp = [];
         let tempSize = 0;
         let res = new TransHolder<string>();
@@ -76,6 +85,9 @@ class TransApi {
     }
 
     private static async trans2(source: string[]) {
+        if (!this.client) {
+            return new TransHolder<string>();
+        }
         await this.waitPass();
         const param = {
             Source: 'en',

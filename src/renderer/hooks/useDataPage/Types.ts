@@ -1,8 +1,13 @@
-import { WordLevel } from '../../../db/entity/WordLevel';
-import { WordViewRow } from '../../components/ControllerPage/WordLevelPage';
 import { DataPageData } from './useDataPage';
-import { WordView } from '../../../db/entity/WordView';
-
+import { WordView } from '../../../db/tables/wordView';
+import { createRef } from 'react';
+export type MarkupType = 'default' | 'new' | 'delete' | 'update' | 'new-delete';
+export interface WordViewRow extends WordView {
+    index: number;
+    fakeId: number;
+    markup: MarkupType;
+    updateColumns: (keyof WordView)[];
+}
 const onRender = (
     colName: keyof WordView,
     cellProps: any,
@@ -12,50 +17,17 @@ const onRender = (
         ? '#97aeff'
         : 'inherit';
 };
-export const defaultColumns = [
-    {
-        name: 'fakeId',
-        header: '',
-        minWidth: 50,
-        maxWidth: 50,
-        type: 'number',
-        editable: false,
-    },
-    {
-        name: 'word',
-        header: 'Word',
-        minWidth: 50,
-        defaultFlex: 1,
-        onRender: onRender.bind(null, 'word'),
-    },
-    {
-        name: 'familiar',
-        header: 'Familiar',
-        minWidth: 50,
-        maxWidth: 100,
-        type: 'boolean',
-    },
-    {
-        name: 'translate',
-        header: 'Translation',
-        maxWidth: 1000,
-        defaultFlex: 1,
-        onRender: onRender.bind(null, 'translate'),
-    },
-    {
-        name: 'note',
-        header: 'Note',
-        minWidth: 100,
-        defaultFlex: 2,
-        onRender: onRender.bind(null, 'note'),
-    },
-];
 
 const api = window.electron;
-export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
+export const DEFAULT_WORD_LEVEL: DataPageData<WordView, WordViewRow> = {
+    ele: {
+        current: null,
+    },
+    shouldDiff: false,
+    cellSelection: [],
     pageParam: {
         pageNum: 1,
-        pageSize: 10,
+        pageSize: 500,
     },
     resultPage: {
         total: 0,
@@ -70,10 +42,6 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
     loading: false,
     mounted: false,
     dataSource: [],
-    cellSelection: {
-        '1,word': true,
-    },
-    columOrder: defaultColumns.map((item) => item.name),
     loadFunc: async (pageParam) => {
         console.log('loadFunc', pageParam);
         return api.listWordsLevel(
@@ -84,7 +52,7 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
         );
     },
     toDataSourceFunc: (data, offset) => {
-        return data.map((item: WordLevel, index) => ({
+        return data.map((item: WordView, index) => ({
             ...item,
             index,
             fakeId: offset ? offset + index : index,
@@ -92,7 +60,7 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
             updateColumns: [],
         }));
     },
-    submitFunc: async (ds:WordLevel[]) => {
+    submitFunc: async (ds: WordView[]) => {
         await api.batchUpdateLevelWords(ds);
     },
     addRowsToDs: (ds: WordViewRow[], num: number): WordViewRow[] => {
@@ -102,6 +70,9 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
         const maxIndex = Math.max(...ds.map((item) => item.index ?? 0));
         for (let i = 0; i < num; i += 1) {
             res.push({
+                id: -1,
+                stem: '',
+                familiar: false,
                 index: maxIndex + i + 1,
                 fakeId: maxFakeId + i + 1,
                 word: '',
@@ -113,6 +84,12 @@ export const DEFAULT_WORD_LEVEL: DataPageData<WordLevel, WordViewRow> = {
         }
         return [...ds, ...res];
     },
+    keys: [
+        'word',
+        'translate',
+        'familiar',
+        'note',
+    ],
 };
 
 export const DEFAULT_DATA_HOLDER = DEFAULT_WORD_LEVEL;

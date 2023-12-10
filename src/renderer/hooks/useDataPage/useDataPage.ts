@@ -1,9 +1,11 @@
 import { create } from 'zustand';
-import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
-import { Pagination } from '../../../db/service/WordViewService';
-import { WordLevel } from '../../../db/entity/WordLevel';
-import { WordViewRow } from '../../components/ControllerPage/WordLevelPage';
-import { DEFAULT_DATA_HOLDER, DEFAULT_WORD_LEVEL } from './Types';
+import { CellRange } from 'ag-grid-community';
+import { DEFAULT_DATA_HOLDER, DEFAULT_WORD_LEVEL, WordViewRow } from './Types';
+import { Pagination } from '../../../db/services/WordViewService';
+import { WordView } from '../../../db/tables/wordView';
+import { arrayChanged } from '../../../utils/Util';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { AgGridReact } from 'ag-grid-react';
 
 export type PageParam = {
     pageNum: number;
@@ -13,22 +15,26 @@ export type PageParam = {
 };
 
 export type DataPageData<D, R> = {
+    shouldDiff: boolean;
+    ele: {
+        current:AgGridReact<any> | null
+    };
     pageParam: PageParam;
     resultPage: Pagination<D>;
     loading: boolean;
     mounted: boolean;
     dataSource: R[];
-    cellSelection: TypeCellSelection;
-    columOrder: string[];
+    cellSelection: CellRange[];
     readonly loadFunc: (pageParam: PageParam) => Promise<Pagination<D>>;
     readonly toDataSourceFunc: (data: D[], offset?: number) => R[];
     readonly submitFunc: (data: R[]) => Promise<void>;
     readonly addRowsToDs: (ds: R[], num: number) => R[];
+    readonly keys: (keyof D)[];
 };
 
 export type DataPageDataHolder = {
-    wordView: DataPageData<WordLevel, WordViewRow>;
-    dataHolder: DataPageData<WordLevel, WordViewRow>;
+    wordView: DataPageData<WordView, WordViewRow>;
+    dataHolder: DataPageData<WordView, WordViewRow>;
 };
 
 export type DataPageState = {
@@ -47,22 +53,40 @@ export type DataPageAction = {
         dataSource: DataPageDataHolder[typeof key]['dataSource']
     ) => void;
     addBlankRow: (key: keyof DataPageDataHolder) => void;
+    diff: (key: keyof DataPageDataHolder) => void;
     tryMount: (key: keyof DataPageDataHolder) => Promise<void>;
     unmount: (key: keyof DataPageDataHolder) => void;
     setCellSelection: (
         key: keyof DataPageDataHolder,
-        cellSelection: TypeCellSelection
+        ranges: CellRange[]
     ) => void;
-    setColumnOrder: (
+    setRef: (
         key: keyof DataPageDataHolder,
-        columnOrder: string[]
+        ele: AgGridReact<any> | null
     ) => void;
 };
 
-const useDataPage = create<DataPageState & DataPageAction>((set) => ({
+const useDataPage = create<DataPageState & DataPageAction>()(subscribeWithSelector((set, get) => ({
     data: {
         wordView: DEFAULT_WORD_LEVEL,
         dataHolder: DEFAULT_DATA_HOLDER,
+    },
+    setRef: (key: keyof DataPageDataHolder, ele: AgGridReact<any> | null) => {
+        get().data[key].ele.current = ele;
+    },
+    setCellSelection: (key: keyof DataPageDataHolder, ranges: CellRange[]) => {
+        set((state) => {
+            const data = state.data[key];
+            return {
+                data: {
+                    ...state.data,
+                    [key]: {
+                        ...data,
+                        cellSelection: ranges,
+                    },
+                },
+            };
+        });
     },
     updatePageParam: (key: keyof DataPageDataHolder, param, value) => {
         console.log('updatePageParam', key, param, value);
@@ -168,6 +192,21 @@ const useDataPage = create<DataPageState & DataPageAction>((set) => ({
             };
         });
     },
+    diff: (key: keyof DataPageDataHolder) => {
+        // set shouldDiff to true
+        set((state) => {
+            const data = state.data[key];
+            return {
+                data: {
+                    ...state.data,
+                    [key]: {
+                        ...data,
+                        shouldDiff: true,
+                    },
+                },
+            };
+        });
+    },
     tryMount: async (key: keyof DataPageDataHolder) => {
         if (!useDataPage.getState().data[key].mounted) {
             await useDataPage.getState().load(key);
@@ -188,37 +227,72 @@ const useDataPage = create<DataPageState & DataPageAction>((set) => ({
             };
         });
     },
-    setCellSelection: (
-        key: keyof DataPageDataHolder,
-        cellSelection: TypeCellSelection
-    ) => {
-        set((state) => {
-            const data = state.data[key];
-            return {
-                data: {
-                    ...state.data,
-                    [key]: {
-                        ...data,
-                        cellSelection,
-                    },
-                },
-            };
-        });
-    },
-    setColumnOrder: (key: keyof DataPageDataHolder, columnOrder: string[]) => {
-        set((state) => {
-            const data = state.data[key];
-            return {
-                data: {
-                    ...state.data,
-                    [key]: {
-                        ...data,
-                        columOrder: columnOrder,
-                    },
-                },
-            };
-        });
-    },
-}));
+})));
 
 export default useDataPage;
+
+const diff =(key: keyof DataPageDataHolder):boolean => {
+    console.log('diff', key);
+    const resultPage  = useDataPage.getState().data[key].resultPage;
+    const originalData = useDataPage
+        .getState()
+        .data[key].toDataSourceFunc(resultPage.data, resultPage.offset);
+    const originalMapping = new Map<number, WordViewRow>();
+    originalData.forEach((item) => {
+        originalMapping.set(item.fakeId ?? 0, item);
+    });
+    const dataSource = useDataPage.getState().data[key].dataSource;
+    let change = false;
+    for (const item of dataSource) {
+        const tempMarkup = item.markup;
+        const tempUpdateColumns = [...item.updateColumns];
+        if (item.markup === 'delete' || item.markup === 'new-delete') {
+            item.updateColumns = [];
+            console.log('delete item', item);
+            if (tempMarkup !== item.markup || arrayChanged(tempUpdateColumns, item.updateColumns)) {
+                change = true;
+            }
+            continue;
+        }
+        const originalItem = originalMapping.get(item.fakeId ?? 0);
+        if (originalItem === undefined) {
+            item.markup = 'new';
+            item.updateColumns = [];
+            console.log('new item', item);
+            if (tempMarkup !== item.markup || arrayChanged(tempUpdateColumns, item.updateColumns)) {
+                change = true;
+            }
+            continue;
+        }
+        const keys = useDataPage.getState().data[key].keys;
+        keys.forEach((key) => {
+            if (item[key] !== originalItem?.[key]) {
+                item.markup = 'update';
+                if (!item.updateColumns.includes(key)) {
+                    item.updateColumns.push(key);
+                }
+                console.log('update item', item);
+            }
+        });
+        if (tempMarkup !== item.markup || arrayChanged(tempUpdateColumns, item.updateColumns)) {
+            change = true;
+        }
+    }
+    return change;
+}
+
+setInterval(() => {
+    const keys: (keyof DataPageDataHolder)[] = ['wordView', 'dataHolder'];
+    for (const key of keys) {
+        if (useDataPage.getState().data[key].shouldDiff) {
+            useDataPage.getState().data[key].shouldDiff = false;
+            const change = diff(key);
+            if (change) {
+                useDataPage.getState().data[key].ele.current?.api?.refreshCells({
+                    force: true,
+                });
+            }
+        }
+    }
+}, 500);
+

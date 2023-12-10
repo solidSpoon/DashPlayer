@@ -5,7 +5,7 @@ import {
     languages,
     Position,
 } from 'monaco-editor';
-import { language as sqliteLanguage } from '../renderer/components/ControllerPage/filterEidter/sqlite';
+import { language as sqliteLanguage } from '../renderer/components/filterEidter/sqlite';
 import CompletionList = languages.CompletionList;
 import CompletionContext = languages.CompletionContext;
 import CompletionItemKind = languages.CompletionItemKind;

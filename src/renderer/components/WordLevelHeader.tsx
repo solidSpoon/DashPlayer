@@ -20,12 +20,12 @@ import {
     useFloating,
     useInteractions,
 } from '@floating-ui/react';
-import { cn } from '../../../utils/Util';
-import Separator from '../Separtor';
+import { cn } from '../../utils/Util';
+import Separator from './Separtor';
 import useDataPage, {
     DataPageDataHolder,
-} from '../../hooks/useDataPage/useDataPage';
-import { convertSelect, DataHolder } from '../../../utils/ClipBoardConverter';
+} from '../hooks/useDataPage/useDataPage';
+import { convertSelect, DataHolder } from '../../utils/ClipBoardConverter';
 
 export interface WordLevelHeaderProps {
     keyName: keyof DataPageDataHolder;
@@ -42,7 +42,7 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         cellSelection,
         dataSource,
         setDataSource,
-        columOrder,
+        ele,
     } = useDataPage(
         useShallow((s) => ({
             page: s.data.wordView.resultPage,
@@ -54,7 +54,7 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
             cellSelection: s.data.wordView.cellSelection,
             dataSource: s.data.wordView.dataSource,
             setDataSource: s.setDataSource,
-            columOrder: s.data.wordView.columOrder,
+            ele: s.data[keyName].ele,
         }))
     );
     const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';
@@ -101,21 +101,28 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
     };
 
     const handleDeleteRow = () => {
-        const dataHolder = new DataHolder(dataSource, columOrder);
-        const selectResult = convertSelect(dataHolder, cellSelection);
-
-        if (selectResult) {
-            const ds = [...dataSource];
-            const baseIndex = selectResult.baseIndex.rowIndex;
-            selectResult.selects
-                .map((e) => e.rowIndex)
-                .forEach((index) => {
-                    ds[baseIndex + index] = {
-                        ...ds[baseIndex + index],
-                        markup: 'delete',
-                    };
-                });
-            setDataSource(keyName, ds);
+        console.log('cellSelection', cellSelection);
+        const rows: number[] = [];
+        cellSelection.forEach((row) => {
+            for (
+                let i = row.startRow?.rowIndex ?? 0;
+                i <= (row.endRow?.rowIndex ?? 0);
+                i++
+            ) {
+                rows.push(i);
+            }
+        });
+        const deleted = dataSource.filter((_, index) => rows.includes(index));
+        deleted.forEach((row, index) => {
+            if (row.markup === 'new' || row.markup === 'new-delete') {
+                row.markup = 'new-delete';
+            } else {
+                row.markup = 'delete';
+            }
+        });
+        if (rows.length > 0) {
+            console.log('newDataSource', ele.current);
+            ele.current?.api?.redrawRows();
         }
     };
 
@@ -141,7 +148,7 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         <>
             <div
                 className={cn(
-                    'flex flex-row items-center justify-between h-9 px-2 select-none'
+                    'flex flex-row items-center justify-between h-9 px-2 select-none bg-stone-100 border-t-[0.5px] border-b-[0.5px] border-stone-300'
                 )}
             >
                 <div
@@ -190,6 +197,16 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                     <PiPlus
                         onClick={() => {
                             addBlankRow(keyName);
+                            ele.current?.api?.ensureIndexVisible(
+                                dataSource.length - 2,
+                                'middle'
+                            );
+                            setTimeout(() => {
+                                ele.current?.api?.ensureIndexVisible(
+                                    dataSource.length - 1,
+                                    'middle'
+                                );
+                            }, 500);
                         }}
                         className={cn(buttonClass)}
                     />

@@ -7,7 +7,6 @@ import WordLevelService from '../../db/services/WordLevelService';
 import { WordView } from '../../db/tables/wordView';
 import WordViewService, { Pagination } from '../../db/services/WordViewService';
 import { IServerSideGetRowsRequest } from 'ag-grid-community';
-
 export async function markWordLevel(
     word: string,
     familiar: boolean
@@ -81,6 +80,7 @@ export async function listWordsView(
 }
 
 export async function updateWordsView(words: WordView[]): Promise<void> {
+
     await WordViewService.batchUpdate(words);
 }
 

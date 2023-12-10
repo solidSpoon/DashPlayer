@@ -95,7 +95,7 @@ usePlayerController.subscribe(
                 ...file,
                 current_time: playTime,
                 duration,
-                subtitle_path: useFile.getState().subtitleFile?.path,
+                subtitle_path: useFile.getState().subtitleFile?.path ?? null,
             });
         }
     },
@@ -266,11 +266,11 @@ useFile.subscribe(
  * 监听腾讯密钥更新
  */
 useSetting.subscribe(
-    (s) => s.tencentSecret,
+    (s) =>
+        `${s.setting('apiKeys.tencent.secretId')}:${s.setting(
+            'apiKeys.tencent.secretKey'
+        )}`,
     (s, ps) => {
-        if (JSON.stringify(s) === JSON.stringify(ps)) {
-            return;
-        }
         useFile.setState((state) => {
             return {
                 subtitleFile: state.subtitleFile

@@ -6,6 +6,7 @@ import { InsertWord, words } from '../tables/words';
 import { InsertStem, stems } from '../tables/stems';
 import { WordView } from '../tables/wordView';
 import { IServerSideGetRowsRequest } from 'ag-grid-community';
+import natural from 'natural';
 
 export interface Pagination<T> {
     total: number;
@@ -59,7 +60,7 @@ export default class WordViewService {
     ): Promise<Pagination<WordView>> {
         if (whereSql.trim() === '') {
             // eslint-disable-next-line no-param-reassign
-            whereSql = '1 = 1';
+            whereSql = 'length(word) = 3';
         }
         if (orderBySql.trim() === '') {
             // eslint-disable-next-line no-param-reassign
@@ -68,6 +69,14 @@ export default class WordViewService {
         console.log('list', whereSql, orderBySql, perPage, currentPage);
         const offset = (currentPage - 1) * perPage;
 
+        let sql1 = db
+            .select()
+            .from(this.wordView)
+            .where(sql<boolean>`${whereSql}`)
+            .orderBy(sql`${orderBySql}`)
+            .offset(offset)
+            .limit(perPage).getSQL();
+        console.log('sql1', sql1);
         const [total, rows]: [{ count: number }[], WordView[]] =
             await Promise.all([
                 db
@@ -79,12 +88,16 @@ export default class WordViewService {
                 db
                     .select()
                     .from(this.wordView)
-                    .where(sql`${whereSql}`)
+                    .where(sql<boolean>`${whereSql}`)
                     .orderBy(sql`${orderBySql}`)
                     .offset(offset)
                     .limit(perPage),
             ]);
         const { count } = total[0] as any;
+        rows.forEach((item) => {
+            item.stem = item.stem ?? natural.PorterStemmer.stem(p(item.word));
+            item.familiar = item.familiar ?? false;
+        });
         const pagination: Pagination<WordView> = {
             total: count,
             perPage,
@@ -99,10 +112,15 @@ export default class WordViewService {
     }
 
     static async batchUpdate(views: WordView[]) {
+        views.forEach((item) => {
+            item.word = p(item.word);
+            item.stem = natural.PorterStemmer.stem(p(item.word));
+            item.familiar = item.familiar ?? false;
+        });
         const wordsToUpdate = views.map(
             (item) =>
                 ({
-                    word: p(item.word),
+                    word: item.word,
                     translate: item.translate,
                     stem: item.stem,
                     note: item.note,

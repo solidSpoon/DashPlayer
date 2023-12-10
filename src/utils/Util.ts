@@ -28,3 +28,8 @@ export function splitToWords(text: string | undefined): string[] {
 export function p(str: string | undefined | null): string {
     return (str ?? '').toLowerCase().trim();
 }
+
+export const arrayChanged = <T>(a: T[], b: T[]): boolean => {
+    if (a.length !== b.length) return true;
+    return a.some((item, index) => item !== b[index]);
+}

@@ -1,11 +1,6 @@
 import { TypeCellSelection } from '@inovua/reactdatagrid-community/types/TypeSelected';
-import { WordLevel } from '../db/entity/WordLevel';
-import {
-    MarkupType,
-    WordViewRow,
-} from '../renderer/components/ControllerPage/WordLevelPage';
-import { DEFAULT_WORD_LEVEL } from '../renderer/hooks/useDataPage/Types';
-import { WordView } from '../db/entity/WordView';
+import { DEFAULT_WORD_LEVEL, MarkupType, WordViewRow } from '../renderer/hooks/useDataPage/Types';
+import { WordView } from '../db/tables/wordView';
 
 export interface Coordinate {
     rowIndex: number;
