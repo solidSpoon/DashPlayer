@@ -14,16 +14,19 @@ import BorderProgressBar from '../../../components/BorderProgressBar';
 import useFile from '../../../hooks/useFile';
 import GlobalShortCut from '../../../components/GlobalShortCut';
 import SideBar from '../../../components/SideBar';
+import useSystem from '../../../hooks/useSystem';
 
 const api = window.electron;
 const PlayerP = () => {
     const showSideBar = useLayout((state) => state.showSideBar);
+    const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     const { videoId } = useParams();
     const playFile = useFile((s) => s.playFile);
+   const isWindows = useSystem(s=>s.isWindows);
     const location = useLocation();
     const sideBarAnimation =
         (new URLSearchParams(location.search).get('sideBarAnimation') ??
@@ -53,7 +56,7 @@ const PlayerP = () => {
             const rect = posRef.current.getBoundingClientRect();
             setPos({
                 x: rect.x,
-                y: rect.y + window.innerHeight * 0.05,
+                y: rect.y - titleBarHeight + (window.innerHeight - titleBarHeight) * 0.05,
             });
         }
         updatePos();

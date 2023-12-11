@@ -20,7 +20,6 @@ export interface TitleBarWindowsProps {
 }
 
 const api = window.electron;
-
 const TitleBarWindows = ({
     title,
     hasSubtitle,
