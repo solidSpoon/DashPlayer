@@ -23,7 +23,6 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
             (i) => i !== undefined && i !== ''
         );
-        let showSideBar = useLayout(s=>s.showSideBar);
         const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
         const icon = () => {
             if (!playing) {

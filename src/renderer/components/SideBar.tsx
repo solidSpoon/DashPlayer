@@ -2,11 +2,12 @@ import { useLocation, useNavigate, useRoutes } from 'react-router-dom';
 import { cn } from '../../utils/Util';
 import logoLight from '../../../assets/logo-light.png';
 import useFile from '../hooks/useFile';
-import { IoHomeOutline } from 'react-icons/io5';
 import { HiOutlineAcademicCap, HiOutlineHome, HiOutlineVideoCamera } from 'react-icons/hi';
 import { cloneElement, ReactElement } from 'react';
-
-const SideBar = () => {
+export interface SideBarProps {
+    compact?: boolean;
+}
+const SideBar = ({compact}:SideBarProps) => {
     const navigate = useNavigate();
     const location = useLocation()
     const video = useFile((s) => s.currentVideo);
@@ -15,11 +16,14 @@ const SideBar = () => {
             <div
                 onClick={() => navigate(path)}
                 className={cn('w-full px-2 flex justify-start items-center gap-2 rounded-lg',
-                    location.pathname.includes(key) && 'bg-stone-300'
+                    location.pathname.includes(key) && 'bg-stone-300',
+                    compact && 'justify-center'
                 )}
             >
-                {cloneElement(icon, {className: cn('w-5 h-5 text-amber-600')})}
-                <div className={cn('py-2 h-full text-base font-thin grid place-content-center')}>{text}</div>
+                {cloneElement(icon, {className: cn('w-5 h-5 text-amber-600 flex-shrink-0')})}
+                {!compact && (
+                    <div className={cn('py-2 text-base font-thin  truncate w-0 flex-1')}>{text}</div>
+                )}
             </div>
         )
     }
@@ -32,7 +36,7 @@ const SideBar = () => {
         >
             <div className={cn('basis-1/4 flex items-center justify-center')}>
                 <img
-                    className={cn('w-24 h-24 aspect-square user-drag-none')}
+                    className={cn('w-24 h-24 user-drag-none flex-shrink-0')}
                     src={logoLight}
                 />
             </div>
@@ -43,6 +47,10 @@ const SideBar = () => {
             </div>
         </div>
     );
+};
+
+SideBar.defaultProps = {
+    compact: false,
 };
 
 export default SideBar;

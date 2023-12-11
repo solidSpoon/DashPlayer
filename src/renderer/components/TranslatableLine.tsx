@@ -5,6 +5,7 @@ import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
 import { cn, p } from '../../utils/Util';
+import { FontSize } from '../styles/style';
 
 interface TranslatableSubtitleLineParam {
     text: string;
@@ -20,7 +21,7 @@ const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     );
 };
 const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
-    const themeName = useSetting((s) => s.values.get('appearance.theme'));
+    const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
     const show = usePlayerController((state) => state.showEn);
     const sentenceStruct = usePlayerController((state) =>
         state.subTitlesStructure.get(p(text))
@@ -45,9 +46,12 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
             onMouseLeave={() => {
                 setHovered(false);
             }}
-            className={twJoin(
+            className={cn(
                 'flex flex-wrap justify-center items-center rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50 gap-2',
-                'bg-sentenceBackground'
+                'bg-sentenceBackground',
+                fontSize === 'fontSizeSmall' && FontSize.mainSubtitleOne.small,
+                fontSize === 'fontSizeMedium' && FontSize.mainSubtitleOne.medium,
+                fontSize === 'fontSizeLarge' && FontSize.mainSubtitleOne.large,
             )}
         >
             {sentenceStruct?.blocks.map((block, blockIndex) => {

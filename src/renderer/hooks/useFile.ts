@@ -16,6 +16,7 @@ type UseFileActions = {
     updateFile: (file: FileT) => void;
     loadedVideo: (file: FileT) => void;
     playFile: (f: WatchProjectVideo) => void;
+    clear: () => void;
 };
 
 const useFile = create(
@@ -66,6 +67,17 @@ const useFile = create(
             set((s) => {
                 return {
                     currentVideo: f,
+                };
+            });
+        },
+        clear: () => {
+            set((s) => {
+                return {
+                    videoFile: undefined,
+                    subtitleFile: undefined,
+                    videoLoaded: false,
+                    openedNum: s.openedNum + 1,
+                    currentVideo: undefined,
                 };
             });
         },

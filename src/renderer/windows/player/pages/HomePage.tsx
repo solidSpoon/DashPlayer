@@ -6,50 +6,38 @@ import useSystem from '../../../hooks/useSystem';
 import TitleBar from '../../../components/TitleBar/TitleBar';
 import useSetting from '../../../hooks/useSetting';
 import { cn, secondToDate } from '../../../../utils/Util';
-import OpenFile from '../../../components/OpenFile';
+import FileSelector from '../../../components/fileBowser/atom/FileSelector';
 import useProjectBrowser from '../../../hooks/useProjectBrowser';
-import WatchProjectItem from '../../../components/WatchProjectItem';
+import WatchProjectItem from '../../../components/fileBowser/WatchProjectItem';
 import logoLight from '../../../../../assets/logo-light.png';
 import logoDark from '../../../../../assets/logo-dark.png';
 import useLayout from '../../../hooks/useLayout';
-import { WatchProjectVO } from '../../../../db/services/WatchProjectService';
-import { WatchProjectVideo } from '../../../../db/tables/watchProjectVideos';
+import FileItem from '../../../components/fileBowser/FileItem';
+import useFile from '../../../hooks/useFile';
 
 const api = window.electron;
 const HomePage = () => {
-    const {
-        recentPlaylists,
-        refresh,
-        loading: isLoading,
-    } = useProjectBrowser();
-    const changeSideBar = useLayout((s) => s.changeSideBar);
-    const appVersion = useSystem((s) => s.appVersion);
-    const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
-    const navigate = useNavigate();
-    const handleClick = (item: WatchProjectVO) => {
-        const video = item.videos.filter((v: WatchProjectVideo) => {
-            return v.current_playing === true;
-        })[0];
-        console.log('click', item);
-        if (!video) {
-            return;
-        }
+    function handleClickById(videoId: number) {
         api.playerSize();
         changeSideBar(false);
         setTimeout(() => {
-            navigate(`/player/${video.id}`);
+            navigate(`/player/${videoId}`);
         }, 500);
-    };
+    }
+
+    const navigate = useNavigate();
+    const { list, refresh, loading } =
+        useProjectBrowser('play', handleClickById);
+    const changeSideBar = useLayout((s) => s.changeSideBar);
+    const appVersion = useSystem((s) => s.appVersion);
+    const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
+    const clear = useFile((s) => s.clear);
     useEffect(() => {
         api.homeSize();
+        clear();
     }, []);
-    const lastPlay =
-        recentPlaylists.length > 0 ? recentPlaylists[0] : undefined;
-    const lastPlayVideo = lastPlay?.videos.filter((v) => {
-        return v.current_playing === true;
-    })[0];
-    const restPlay = recentPlaylists.length > 1 ? recentPlaylists.slice(1) : [];
-    console.log('lastplay', lastPlayVideo, lastPlay, restPlay);
+    const lastPlay = list.length > 0 ? list[0] : undefined;
+    const restPlay = list.length > 1 ? list.slice(1) : [];
     return (
         <div
             className={cn(
@@ -60,7 +48,7 @@ const HomePage = () => {
         >
             <TitleBar
                 maximizable={false}
-                className="fixed top-0 left-0 w-full z-50"
+                className='fixed top-0 left-0 w-full z-50'
                 windowsButtonClassName={cn(
                     'text-slate-700 hover:bg-slate-100',
                     'dark:hover:bg-titlebarHover'
@@ -73,14 +61,14 @@ const HomePage = () => {
                     'dark:shadow-black'
                 )}
             >
-                <div className="relative top-0 left-0 w-32 h-32">
+                <div className='relative top-0 left-0 w-32 h-32'>
                     <img
                         src={dark ? logoDark : logoLight}
-                        alt="logo"
-                        className="w-32 h-32 absolute top-0 left-0 user-drag-none"
+                        alt='logo'
+                        className='w-32 h-32 absolute top-0 left-0 user-drag-none'
                     />
                 </div>
-                <div className="flex flex-col items-center justify-center gap-2">
+                <div className='flex flex-col items-center justify-center gap-2'>
                     <h2
                         className={cn(
                             'text-lg text-black/80',
@@ -95,7 +83,7 @@ const HomePage = () => {
                         {appVersion}
                     </text>
                 </div>
-                <div className="w-full h-16" />
+                <div className='w-full h-16' />
             </div>
             <div
                 className={cn(
@@ -103,14 +91,14 @@ const HomePage = () => {
                     dark && 'border-neutral-800 bg-white/10'
                 )}
             >
-                <div className="w-full h-10" />
+                <div className='w-full h-10' />
                 <div className={cn('flex w-full flex-col items-start')}>
-                    <OpenFile className={cn('text-sm')} />
-                    <OpenFile className={cn('text-sm')} directory />
+                    <FileSelector className={cn('text-sm')} />
+                    <FileSelector className={cn('text-sm')} directory />
                 </div>
                 {lastPlay && (
                     <div
-                        onClick={() => handleClick(lastPlay)}
+                        onClick={lastPlay.callback}
                         className={cn(
                             'w-full bg-black/10 hover:bg-black/20 px-4 h-12 rounded-lg flex items-center justify-start gap-2 text-sm',
                             dark && 'bg-white/10 hover:bg-white/20'
@@ -123,10 +111,8 @@ const HomePage = () => {
                             )}
                         />
                         <span>Resume</span>
-                        <span className="flex-1 truncate">
-                            {`${lastPlay?.project_name ?? ''} / ${
-                                lastPlayVideo?.video_name ?? ''
-                            }`}
+                        <span className='flex-1 truncate'>
+                            {lastPlay?.name}
                         </span>
                         <span
                             className={cn(
@@ -134,19 +120,21 @@ const HomePage = () => {
                                 dark && 'text-neutral-400'
                             )}
                         >
-                            {secondToDate(lastPlayVideo?.current_time ?? 0)}
+                            {/*{secondToDate(lastPlayVideo?.current_time ?? 0)}*/}
                         </span>
                     </div>
                 )}
-                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
-                    {restPlay.map((playlist) => {
-                        return <WatchProjectItem item={playlist} />;
+                <div className='w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm'>
+                    {restPlay.map((item) => {
+                        return (
+                            <FileItem key={item.key} icon={item.icon} onClick={item.callback} content={item.name} />
+                        );
                     })}
                 </div>
-                <div className="w-full h-16">
+                <div className='w-full h-16'>
                     <div
                         onClick={() => {
-                            if (!isLoading) {
+                            if (!loading) {
                                 refresh();
                             }
                         }}
@@ -157,7 +145,7 @@ const HomePage = () => {
                         <IoRefreshCircleOutline
                             className={cn(
                                 'w-full h-full',
-                                isLoading && 'animate-spin'
+                                loading && 'animate-spin'
                             )}
                         />
                     </div>
