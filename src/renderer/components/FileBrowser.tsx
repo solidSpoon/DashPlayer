@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import FileItem from './fileBowser/FileItem';
 import { cn } from '../../utils/Util';
-import { VscHistory } from 'react-icons/vsc';
+import { VscFolderOpened, VscHistory } from 'react-icons/vsc';
 import { IoRefreshCircleOutline } from 'react-icons/io5';
 
 const FileBrowser = () => {
@@ -25,7 +25,7 @@ const FileBrowser = () => {
             <FileSelector directory={false} />
             <FileSelector directory />
             <div className={cn('w-full flex items-center gap-2')}>
-                <VscHistory className={'flex-shrink-0'}/>
+                {path ? <VscFolderOpened className={'flex-shrink-0'} /> : <VscHistory className={'flex-shrink-0'} />}
                 <div className={cn('flex-1 truncate')}>
                     {path ?? '最近播放'}
                 </div>
@@ -51,7 +51,9 @@ const FileBrowser = () => {
             <div className={cn('w-full h-0 flex-1 overflow-y-auto scrollbar-none')}>
                 {list.map((item) => {
                     return (
-                        <FileItem key={item.key} icon={item.icon} onClick={item.callback} content={item.name} />
+                        <FileItem
+                            className={cn(item.playing?'bg-orange-200 hover:bg-orange-200/50':'')}
+                            key={item.key} icon={item.icon} onClick={item.callback} content={item.name} />
                     );
                 })}
             </div>

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import useLayout from '../../../hooks/useLayout';
@@ -26,7 +26,6 @@ const PlayerP = () => {
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     const { videoId } = useParams();
     const playFile = useFile((s) => s.playFile);
-   const isWindows = useSystem(s=>s.isWindows);
     const location = useLocation();
     const sideBarAnimation =
         (new URLSearchParams(location.search).get('sideBarAnimation') ??
@@ -50,9 +49,11 @@ const PlayerP = () => {
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x: 0, y: 0 });
-    useEffect(() => {
+    useLayoutEffect(() => {
         const updatePos = () => {
-            if (posRef.current === null) {return 0;
+            if (posRef.current === null) {
+                return;
+            }
             const rect = posRef.current.getBoundingClientRect();
             setPos({
                 x: rect.x,
@@ -64,7 +65,7 @@ const PlayerP = () => {
         return () => {
             window.removeEventListener('resize', updatePos);
         }
-    }, []);
+    }, [titleBarHeight]);
     return (
         <div
             className="w-full h-full grid grid-cols-3 grid-rows-2 overflow-hidden bg-gray-100"

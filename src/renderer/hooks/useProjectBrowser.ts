@@ -19,7 +19,7 @@ export interface BrowserItem {
 
 function isSingleVideo(recentPlaylists: WatchProjectVO[], routeProject: number) {
     const cp = recentPlaylists.find((p) => p.id === routeProject)!;
-    let single = cp?.videos?.length ?? 0 > 0;
+    let single = (cp?.videos?.length ?? 0) > 1;
     return { cp, single };
 }
 
