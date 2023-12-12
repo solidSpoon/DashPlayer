@@ -15,14 +15,14 @@ const SideBar = ({compact}:SideBarProps) => {
         return (
             <div
                 onClick={() => navigate(path)}
-                className={cn('w-full px-2 flex justify-start items-center gap-2 rounded-lg',
+                className={cn('w-full px-2 flex justify-start items-center gap-2 rounded-lg h-10',
                     location.pathname.includes(key) && 'bg-stone-300',
                     compact && 'justify-center'
                 )}
             >
                 {cloneElement(icon, {className: cn('w-5 h-5 text-amber-600 flex-shrink-0')})}
                 {!compact && (
-                    <div className={cn('py-2 text-base font-thin  truncate w-0 flex-1')}>{text}</div>
+                    <div className={cn('text-base font-thin  truncate w-0 flex-1')}>{text}</div>
                 )}
             </div>
         )
@@ -34,13 +34,15 @@ const SideBar = ({compact}:SideBarProps) => {
                 'w-full h-full flex flex-col text-black bg-stone-200 border-r border-stone-300'
             )}
         >
-            <div className={cn('basis-1/4 flex items-center justify-center')}>
+            <div className={cn('flex-1 flex items-center justify-center')}>
                 <img
-                    className={cn('w-24 h-24 user-drag-none flex-shrink-0')}
+                    className={cn('w-24 h-24 user-drag-none',
+                        compact && 'w-14 h-14'
+                        )}
                     src={logoLight}
                 />
             </div>
-            <div className={cn('flex-1 flex flex-col p-3')}>
+            <div className={cn('basis-3/4 flex flex-col p-3')}>
                 {item('Home', '/home', 'home', <HiOutlineHome />)}
                 {item('Player', `/player/${video?.id}?sideBarAnimation=false`,'player', <HiOutlineVideoCamera />)}
                 {item('Word Management', '/word-management','word-management', <HiOutlineAcademicCap />)}

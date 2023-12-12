@@ -1,5 +1,4 @@
 import SentenceT from '../../lib/param/SentenceT';
-import { WordLevel } from '../../../db/entity/WordLevel';
 import TransHolder from '../../../utils/TransHolder';
 import { SentenceStruct } from '../../../types/SentenceStruct';
 import { WordLevelRes } from '../../../main/controllers/WordLevelController';
