@@ -52,7 +52,7 @@ const PlayerP = () => {
     const [pos, setPos] = useState({ x: 0, y: 0 });
     useEffect(() => {
         const updatePos = () => {
-            if (posRef.current === null) return 0;
+            if (posRef.current === null) {return 0;
             const rect = posRef.current.getBoundingClientRect();
             setPos({
                 x: rect.x,
