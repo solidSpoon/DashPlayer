@@ -18,15 +18,15 @@ const FileBrowser = () => {
                 e.stopPropagation();
             }}
             className={twMerge(
-                'flex-1 flex flex-col gap-2 items-center justify-center p-10 rounded-lg w-full h-full text-black',
+                'flex-1 flex flex-col gap-2 items-center justify-center p-5 xl:p-10 rounded-lg w-full h-full text-black',
                 'bg-white drop-shadow-lg'
             )}
         >
-            <FileSelector directory={false} />
+            <FileSelector className={'text-base'} directory={false} />
             <FileSelector directory />
             <div className={cn('w-full flex items-center gap-2')}>
-                {path ? <VscFolderOpened className={'flex-shrink-0'} /> : <VscHistory className={'flex-shrink-0'} />}
-                <div className={cn('flex-1 truncate')}>
+                {path ? <VscFolderOpened className={'flex-shrink-0 w-4 h-4'} /> : <VscHistory className={'flex-shrink-0 w-4 h-4'} />}
+                <div className={cn('flex-1 truncate text-lg')}>
                     {path ?? '最近播放'}
                 </div>
                 <div
@@ -36,12 +36,12 @@ const FileBrowser = () => {
                         }
                     }}
                     className={cn(
-                        'ml-auto w-8 h-8 rounded hover:bg-gray-200 p-1'
+                        'ml-auto w-8 h-8 rounded hover:bg-gray-200 p-1 grid place-content-center'
                     )}
                 >
                     <IoRefreshCircleOutline
                         className={cn(
-                            'w-full h-full flex-shrink-0',
+                            'w-5 h-5 flex-shrink-0 ',
                             loading && 'animate-spin'
                         )}
                     />
@@ -52,7 +52,7 @@ const FileBrowser = () => {
                 {list.map((item) => {
                     return (
                         <FileItem
-                            className={cn(item.playing?'bg-orange-200 hover:bg-orange-200/50':'')}
+                            className={cn('text-sm', item.playing?'bg-orange-200 hover:bg-orange-200/50':'')}
                             key={item.key} icon={item.icon} onClick={item.callback} content={item.name} />
                     );
                 })}

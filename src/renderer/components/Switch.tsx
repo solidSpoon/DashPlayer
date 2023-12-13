@@ -18,20 +18,29 @@ const Switch = ({ checked, onChange, title, className }: SwitchParam) => {
                 onChange?.(!checked);
             }}
             className={cn(
-                'flex gap-2 rounded-lg hover:bg-gray-100 p-2 w-full justify-between',
+                'flex gap-2 rounded-lg hover:bg-gray-100 px-2 py-1 w-full text-base justify-start items-center h-10',
                 className
             )}
         >
-            <div className={cn('flex flex-col justify-center')}>
-                <span>{title}</span>
-            </div>
             {checked ? (
                 <PiToggleRightLight
-                    className={cn('text-green-500 w-10 h-10')}
+                    className={cn('text-green-500 w-8 h-8')}
                 />
             ) : (
-                <PiToggleLeftLight className="text-gray-500 w-10 h-10" />
+                <PiToggleLeftLight className="text-gray-500 w-8 h-8" />
             )}
+            <div className={cn('flex flex-col justify-center'
+                // checked ? 'text-green-500' : 'text-gray-500'
+            )}>
+                <span>{title}</span>
+            </div>
+            {/*{checked ? (*/}
+            {/*    <PiToggleRightLight*/}
+            {/*        className={cn('text-green-500 w-8 h-8')}*/}
+            {/*    />*/}
+            {/*) : (*/}
+            {/*    <PiToggleLeftLight className="text-gray-500 w-8 h-8" />*/}
+            {/*)}*/}
         </div>
     );
 };

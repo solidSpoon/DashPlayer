@@ -20,7 +20,7 @@ const FileItem = ({ icon, content, onClick, className }: FileItemProps) => {
         <div
             onClick={() => onClick?.()}
             className={cn(
-                'w-full flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-6 py-2',
+                'w-full flex-shrink-0 flex justify-center items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2',
                 className
             )}
         >
