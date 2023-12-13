@@ -1,5 +1,3 @@
-import { Appearance, SettingState } from '../renderer/hooks/useSetting';
-
 export const defaultShortcut: ShortCutValue = {
     last: 'left,a',
     next: 'right,d',
@@ -8,6 +6,7 @@ export const defaultShortcut: ShortCutValue = {
     singleRepeat: 'r',
     showEn: 'e',
     showCn: 'c',
+    showWordLevel: 'l',
     sowEnCn: 'b',
     nextTheme: 't',
     prevTheme: 'y',
@@ -46,6 +45,10 @@ export interface ShortCutValue {
      */
     sowEnCn: string;
     /**
+     * 显示/隐藏单词等级
+     */
+    showWordLevel: string;
+    /**
      * next theme
      */
     nextTheme: string;
@@ -54,18 +57,3 @@ export interface ShortCutValue {
      */
     prevTheme: string;
 }
-export const DEFAULT_SETTING: SettingState = {
-    keyBinds: defaultShortcut,
-    tencentSecret: {
-        secretId: '',
-        secretKey: '',
-    },
-    youdaoSecret: {
-        secretId: '',
-        secretKey: '',
-    },
-    appearance: {
-        theme: 'light',
-        fontSize: 'fontSizeLarge',
-    },
-};

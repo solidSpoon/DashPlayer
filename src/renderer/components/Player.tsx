@@ -20,6 +20,7 @@ export default function Player(): ReactElement {
         updateExactPlayTime,
         setDuration,
         seekTo,
+        changePopType
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -31,9 +32,11 @@ export default function Player(): ReactElement {
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
+            changePopType: state.changePopType
         }))
     );
     const videoFile = useFile((s) => s.videoFile);
+    const projectVideo = useFile((s) => s.currentVideo);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const playerRef: React.RefObject<ReactPlayer> = useRef<ReactPlayer>(null);
@@ -103,11 +106,13 @@ export default function Player(): ReactElement {
             return;
         }
 
-        if (videoFile?.fileName === undefined) {
+        console.log('jumpToHistoryProgress', projectVideo);
+
+        if (projectVideo?.id === undefined) {
             return;
         }
-        const result = await api.queryProgress(videoFile.fileName);
-        const progress = result as number;
+        const result = await api.queryProgress(projectVideo.id);
+        const progress = result.current_time ?? 0;
         console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });
         lastFile = file;
@@ -119,39 +124,39 @@ export default function Player(): ReactElement {
         }
         return (
             <div
-                className="w-full h-full overflow-hidden"
-                onDoubleClick={() => setShowControlPanel(true)}
+                className='w-full h-full overflow-hidden'
+                onDoubleClick={() => changePopType('control')}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
-                <div className="w-full h-full relative overflow-hidden">
+                <div className='w-full h-full relative overflow-hidden'>
                     <canvas
-                        className="absolute top-0 left-0 w-full h-full -z-0"
+                        className='absolute top-0 left-0 w-full h-full -z-0'
                         ref={playerRefBackground}
                         style={{
                             filter: 'blur(100px)',
                             // transform: 'scale(1.1)',
-                            objectFit: 'cover',
+                            objectFit: 'cover'
                         }}
                     />
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <ReactPlayer
                         muted={muted}
-                        className="w-full h-full absolute top-0 left-0 z-0"
-                        id="react-player-id"
+                        className='w-full h-full absolute top-0 left-0 z-0'
+                        id='react-player-id'
                         ref={playerRef}
                         url={videoFile.objectUrl ? videoFile.objectUrl : ''}
                         playing={playing}
                         controls={showControlPanel}
-                        width="100%"
-                        height="100%"
+                        width='100%'
+                        height='100%'
                         progressInterval={50}
                         volume={volume}
                         config={{
                             file: {
                                 attributes: {
-                                    controlsList: 'nofullscreen',
-                                },
-                            },
+                                    controlsList: 'nofullscreen'
+                                }
+                            }
                         }}
                         onPlay={() => {
                             play();
@@ -180,7 +185,7 @@ export default function Player(): ReactElement {
                             onTimeChange={(time) => {
                                 seekTo({ time });
                             }}
-                            className="absolute bottom-0 left-0 px-3"
+                            className='absolute bottom-0 left-0'
                             onPause={() => {
                                 pause();
                             }}

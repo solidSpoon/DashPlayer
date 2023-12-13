@@ -1,11 +1,10 @@
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import App from './App';
-import useSystem, { syncStatus } from '../../hooks/useSystem';
+import { syncStatus } from '../../hooks/useSystem';
 
 const container = document.getElementById('root')!;
 const root = createRoot(container);
-const api = window.electron;
 root.render(
     <>
         <App />

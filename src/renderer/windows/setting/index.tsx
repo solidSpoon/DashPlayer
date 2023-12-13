@@ -1,14 +1,14 @@
 import { createRoot } from 'react-dom/client';
-import SettingKey from './SettingKey';
 import Notification from '../../components/Notification';
 import { syncStatus } from '../../hooks/useSystem';
-
+import SettingRouter from './SettingRouter';
+import 'tailwindcss/tailwind.css';
 const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(
     <>
         <Notification />
-        <SettingKey />
+        <SettingRouter />
     </>
 );
 

@@ -50,6 +50,7 @@ const createSubtitleSlice: StateCreator<
     SubtitleSlice
 > = (set, get) => ({
     subtitle: [],
+    subTitlesStructure: new Map(),
     setSubtitle: (subtitle: SentenceT[]) => {
         set({ subtitle });
         get().internal.subtitleIndex = indexSubtitle(subtitle);
@@ -61,6 +62,22 @@ const createSubtitleSlice: StateCreator<
         const newSubtitle = mergeArr(get().subtitle, diff);
         set({ subtitle: newSubtitle });
         get().internal.subtitleIndex = indexSubtitle(newSubtitle);
+        get().internal.maxIndex = Math.max(
+            ...Array.from(get().internal.subtitleIndex.keys())
+        );
+    },
+    mergeSubtitleTrans: (holder) => {
+        const subtitle = get().subtitle.map((s) => {
+            const trans = holder.get(s.text ?? '');
+            if (!trans) {
+                return s;
+            }
+            const ns = s.clone();
+            ns.msTranslate = trans;
+            return ns;
+        });
+        set({ subtitle });
+        get().internal.subtitleIndex = indexSubtitle(subtitle);
         get().internal.maxIndex = Math.max(
             ...Array.from(get().internal.subtitleIndex.keys())
         );

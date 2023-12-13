@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import * as turf from '@turf/turf';
 import { Feature, Polygon } from '@turf/turf';
+import { twMerge } from 'tailwind-merge';
+import { useShallow } from 'zustand/react/shallow';
 import { YdRes } from '../lib/param/yd/a';
 import WordPop from './WordPop';
 import { playUrl, playWord } from '../lib/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
+import useSetting from '../hooks/useSetting';
 
 const api = window.electron;
 
@@ -37,10 +40,18 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
         undefined
     );
     const pause = usePlayerController((s) => s.pause);
+    const { getWordLevel, markWordLevel, showWordLevel } = usePlayerController(
+        useShallow((s) => ({
+            getWordLevel: s.getWordLevel,
+            markWordLevel: s.markWordLevel,
+            showWordLevel: s.showWordLevel,
+        }))
+    );
     const [hovered, setHovered] = useState(false);
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
+    const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
         let timeout: NodeJS.Timeout;
@@ -75,19 +86,22 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
             document.removeEventListener('mousemove', mouseEvent);
             clearTimeout(timeout);
         };
-    }, [hovered, requestPop, word]);
+    }, [hovered, requestPop]);
 
     useEffect(() => {
+        let cancel = false;
         const transFun = async (str: string) => {
             const r = await api.transWord(str);
-            if (r === null) {
-                return;
+            if (r !== null && !cancel) {
+                setTranslationText(r);
             }
-            setTranslationText(r);
         };
         if (hovered) {
             transFun(word);
         }
+        return () => {
+            cancel = true;
+        };
     }, [hovered, word]);
 
     const handleWordClick = async () => {
@@ -103,38 +117,62 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
         }
     };
 
+    const wordLevel = getWordLevel(word);
+
     return (
-        <div
-            ref={eleRef}
-            className="rounded select-none mt-2"
-            onMouseOver={() => {
-                console.log('avvv onMouseOver', word);
-                setHovered(true);
-                pause();
-            }}
-            onMouseLeave={() => {
-                console.log('avvv onMouseLeave', word);
-            }}
-            onClick={() => {
-                handleWordClick();
-            }}
-        >
-            {pop && hovered && translationText ? (
-                <WordPop
-                    word={word}
-                    translation={translationText}
-                    ref={popperRef}
-                />
-            ) : (
+        <div className={twMerge('flex gap-1')}>
+            <div
+                ref={eleRef}
+                className="rounded select-none mt-2"
+                onMouseOver={() => {
+                    setHovered(true);
+                    pause();
+                }}
+                onClick={(e) => {
+                    handleWordClick();
+                    if (!hovered) {
+                        setHovered(true);
+                    }
+                }}
+                onContextMenu={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    console.log('onContextMenu');
+                    if (showWordLevel) {
+                        console.log('markWordLevel', wordLevel?.familiar);
+                        markWordLevel(word, !wordLevel?.familiar);
+                    }
+                }}
+            >
+                {pop && hovered && translationText ? (
+                    <WordPop
+                        word={word}
+                        translation={translationText}
+                        ref={popperRef}
+                    />
+                ) : (
+                    <div
+                        className={twMerge(
+                            'hover:bg-wordHoverBackground rounded select-none',
+                            !show && 'text-transparent bg-wordHoverBackground'
+                        )}
+                        onMouseLeave={() => {
+                            setHovered(false);
+                        }}
+                    >
+                        {word}
+                    </div>
+                )}
+            </div>
+            {showWordLevel && wordLevel?.familiar === false && (
                 <div
-                    className={`hover:bg-wordHoverBackground rounded select-none ${
-                        show ? '' : 'text-transparent bg-wordHoverBackground'
-                    }`}
-                    onMouseLeave={() => {
-                        setHovered(false);
-                    }}
+                    className={twMerge(
+                        'flex items-center pt-2 justify-center text-xl text-textColor/80',
+                        theme === 'dark' && 'text-amber-400/75',
+                        !show && 'text-transparent'
+                    )}
                 >
-                    {word}
+                    ({wordLevel.translate})
                 </div>
             )}
         </div>

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useSystem from '../../hooks/useSystem';
+import useLayout from '../../hooks/useLayout';
+import { cn } from '../../../utils/Util';
 
 export interface TitleBarProps {
     hasSubtitle?: boolean;
@@ -17,6 +19,7 @@ const TitleBarMac = ({
     className,
 }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
+    const showSideBar = useLayout((s) => s.showSideBar);
     const showTitleBar = !autoHide || isMouseOver;
     const windowState = useSystem((s) => s.windowState);
     const setWindowState = useSystem((s) => s.setWindowState);
@@ -70,9 +73,11 @@ const TitleBarMac = ({
         <div onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
-                className={`drag w-full h-10 absolute top-0 z-50 content-center text-titlebarText flex flex-col justify-center items-center select-none ${
-                    showTitleBar ? className : ''
-                } ${hasSubtitle ? '-translate-x-2' : ''}`}
+                className={cn(
+                    'drag w-full h-10 absolute top-0 z-50 content-center text-titlebarText flex flex-col justify-center items-center select-none',
+                    showTitleBar && className,
+                    hasSubtitle && !showSideBar && '-translate-x-2'
+                )}
                 onDoubleClick={() => {
                     onDoubleClick();
                 }}
@@ -80,11 +85,11 @@ const TitleBarMac = ({
                 {showTitleBar ? title : ''}
             </div>
 
-            {hasSubtitle && (
+            {hasSubtitle && !showSideBar && (
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 1 1"
-                    className={`absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 rotate-180
+                    className={`absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 rotate-180 z-50
                         ${showTitleBar ? 'translate-y-10' : ''}
                 `}
                 >

@@ -9,6 +9,7 @@ import {
     PlayerSlice,
     SentenceSlice,
     SubtitleSlice,
+    WordLevelSlice,
 } from './usePlayerControllerSlices/SliceTypes';
 import createPlayerSlice from './usePlayerControllerSlices/createPlayerSlice';
 import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice';
@@ -18,11 +19,12 @@ import createControllerSlice from './usePlayerControllerSlices/createControllerS
 import FileT from '../lib/param/FileT';
 import parseSrtSubtitles from '../lib/parseSrt';
 import SentenceT from '../lib/param/SentenceT';
-import translate from '../lib/TranslateBuf';
 import useFile from './useFile';
-import { sleep } from '../../utils/Util';
+import { p, sleep, splitToWords } from '../../utils/Util';
 import useSetting from './useSetting';
-import { ProgressParam } from '../../main/controllers/ProgressController';
+import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
+import TransHolder from '../../utils/TransHolder';
+import { SentenceStruct } from '../../types/SentenceStruct';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -31,7 +33,8 @@ const usePlayerController = create<
         ModeSlice &
         InternalSlice &
         SubtitleSlice &
-        ControllerSlice
+        ControllerSlice &
+        WordLevelSlice
 >()(
     subscribeWithSelector((...a) => ({
         ...createPlayerSlice(...a),
@@ -40,6 +43,7 @@ const usePlayerController = create<
         ...createInternalSlice(...a),
         ...createSubtitleSlice(...a),
         ...createControllerSlice(...a),
+        ...createWordLevelSlice(...a),
     }))
 );
 export default usePlayerController;
@@ -82,15 +86,17 @@ usePlayerController.subscribe(
             if (count % 5 !== 0) {
                 return;
             }
-            const file = useFile.getState();
-            const p: ProgressParam = {
-                fileName: file.videoFile?.fileName ?? '',
-                progress: playTime,
-                total: duration,
-                filePath: file.videoFile?.path ?? '',
-                subtitlePath: file.subtitleFile?.path,
-            };
-            await api.updateProgress(p);
+            const file = useFile.getState().currentVideo;
+            if (!file) {
+                return;
+            }
+
+            await api.updateProgress({
+                ...file,
+                current_time: playTime,
+                duration,
+                subtitle_path: useFile.getState().subtitleFile?.path ?? null,
+            });
         }
     },
     { equalityFn: shallow }
@@ -154,10 +160,8 @@ function groupSentence(
         });
     });
 }
-const transUserCanSee = async (
-    subtitle: SentenceT[],
-    finishedGroup: Set<number>
-): Promise<SentenceT[]> => {
+
+function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceT[]) {
     const currentGroup =
         usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
@@ -175,9 +179,21 @@ const transUserCanSee = async (
     shouldTransGroup.forEach((item) => {
         finishedGroup.add(item);
     });
-    // eslint-disable-next-line no-await-in-loop
-    return translate(groupSubtitles);
-};
+    return groupSubtitles;
+}
+
+async function syncWordsLevel(userCanSee: SentenceT[]) {
+    if (userCanSee.length === 0) {
+        return;
+    }
+    const words = new Set<string>();
+    userCanSee.forEach((item) => {
+        splitToWords(item.text).forEach((w) => {
+            words.add(w);
+        });
+    });
+    await usePlayerController.getState().syncWordsLevel(Array.from(words));
+}
 
 /**
  * 加载与翻译
@@ -190,13 +206,29 @@ useFile.subscribe(
         }
         const CURRENT_FILE = useFile.getState().subtitleFile;
         const subtitle: SentenceT[] = await loadSubtitle(subtitleFile);
-        groupSentence(subtitle, 25, (s, index) => {
+        const structures = await api.processSentences(
+            subtitle.map((s) => s.text ?? '')
+        );
+        const sentencesStructures: Map<string, SentenceStruct> = new Map();
+        structures.forEach((item) => {
+            sentencesStructures.set(p(item.original), item);
+        });
+        if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+            return;
+        }
+        usePlayerController.setState((state) => {
+            return {
+                subTitlesStructure: sentencesStructures,
+            };
+        });
+        groupSentence(subtitle, 20, (s, index) => {
             s.transGroup = index;
         });
         if (CURRENT_FILE !== useFile.getState().subtitleFile) {
             return;
         }
         usePlayerController.getState().setSubtitle(subtitle);
+        usePlayerController.getState().internal.wordLevel = new Map();
         const finishedGroup = new Set<number>();
         let inited = false;
         while (CURRENT_FILE === useFile.getState().subtitleFile) {
@@ -206,14 +238,25 @@ useFile.subscribe(
             }
             inited = true;
             // eslint-disable-next-line no-await-in-loop
-            const seePart = await transUserCanSee(subtitle, finishedGroup);
-            console.log('seePart', JSON.stringify(seePart));
-
-            if (CURRENT_FILE !== useFile.getState().subtitleFile) {
-                return;
-            }
-            if (seePart.length > 0) {
-                usePlayerController.getState().mergeSubtitle(seePart);
+            const userCanSee = filterUserCanSee(finishedGroup, subtitle);
+            if (userCanSee.length > 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await syncWordsLevel(userCanSee);
+                const transHolder = TransHolder.from(
+                    // eslint-disable-next-line no-await-in-loop
+                    await api.batchTranslate(
+                        userCanSee.map((s) => s.text ?? '')
+                    )
+                );
+                if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+                    return;
+                }
+                console.log('transHolder', transHolder);
+                if (!transHolder.isEmpty()) {
+                    usePlayerController
+                        .getState()
+                        .mergeSubtitleTrans(transHolder);
+                }
             }
         }
     }
@@ -223,11 +266,11 @@ useFile.subscribe(
  * 监听腾讯密钥更新
  */
 useSetting.subscribe(
-    (s) => s.tencentSecret,
+    (s) =>
+        `${s.setting('apiKeys.tencent.secretId')}:${s.setting(
+            'apiKeys.tencent.secretKey'
+        )}`,
     (s, ps) => {
-        if (JSON.stringify(s) === JSON.stringify(ps)) {
-            return;
-        }
         useFile.setState((state) => {
             return {
                 subtitleFile: state.subtitleFile

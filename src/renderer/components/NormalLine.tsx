@@ -1,6 +1,9 @@
 import { ReactElement } from 'react';
 import hash from '../lib/hash';
 import usePlayerController from '../hooks/usePlayerController';
+import { cn } from '../../utils/Util';
+import useSetting from '../hooks/useSetting';
+import { FontSize } from '../styles/style';
 
 interface NormalLineParam {
     text: string;
@@ -15,6 +18,7 @@ export const SPLIT_REGEX =
     /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 const NormalLine = ({ text, order }: NormalLineParam) => {
     const show = usePlayerController((state) => state.showCn);
+    const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
     if (text === undefined) {
         return <div />;
     }
@@ -59,11 +63,11 @@ const NormalLine = ({ text, order }: NormalLineParam) => {
     };
     return (
         <div
-            className={`my-0 mx-10 py-2.5 px-1 text-mainSubtitleTwoColor ${
-                order === 'second'
-                    ? 'text-mainSubtitleTwo'
-                    : 'text-mainSubtitleThree'
-            }`}
+            className={cn(`my-0 mx-10 py-2.5 px-1 text-mainSubtitleTwoColor`,
+                fontSize === 'fontSizeSmall' &&(order === 'second' ? FontSize.mainSubtitleTwo.small : FontSize.mainSubtitleThree.small),
+                fontSize === 'fontSizeMedium' &&(order === 'second' ? FontSize.mainSubtitleTwo.medium : FontSize.mainSubtitleThree.medium),
+                fontSize === 'fontSizeLarge' &&(order === 'second' ? FontSize.mainSubtitleTwo.large : FontSize.mainSubtitleThree.large),
+                )}
         >
             {words.map((w) => {
                 if (w.isWord) {

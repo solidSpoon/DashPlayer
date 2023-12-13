@@ -4,11 +4,11 @@ import {
     AiOutlinePlayCircle,
     AiOutlineTrademarkCircle,
 } from 'react-icons/ai';
-import { twJoin } from 'tailwind-merge';
 import SentenceT from '../lib/param/SentenceT';
-import useSetting, { isColorfulTheme, usingThemeName } from '../hooks/useSetting';
+import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '../../utils/Util';
+import useLayout from '../hooks/useLayout';
 
 interface SideSentenceNewParam {
     sentence: SentenceT;
@@ -19,13 +19,11 @@ interface SideSentenceNewParam {
 
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
-        const themeName = useSetting((s) => usingThemeName(s.appearance.theme));
         const playing = usePlayerController((state) => state.playing);
         const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
             (i) => i !== undefined && i !== ''
         );
-
-        const fontSize = useSetting((state) => state.appearance.fontSize);
+        const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
         const icon = () => {
             if (!playing) {
                 return <AiOutlinePlayCircle className="w-full h-full" />;
@@ -43,9 +41,10 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 className={cn(
                     'm-1.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
                     'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow',
-                    isColorfulTheme(themeName) &&
-                        'bg-sentenceBackground/80 hover:bg-sentenceHoverBackground/80'
                 )}
+                style={{
+                    // zoom: showSideBar ? 0.65 : 1,
+                }}
                 onClick={() => {
                     onClick(sentence);
                 }}

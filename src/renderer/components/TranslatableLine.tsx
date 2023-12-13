@@ -1,86 +1,44 @@
 import { ReactElement, useState } from 'react';
-import { twJoin, twMerge } from 'tailwind-merge';
+import { twJoin } from 'tailwind-merge';
 import hash from '../lib/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '../../utils/Util';
-import useSetting, { isColorfulTheme } from '../hooks/useSetting';
+import useSetting from '../hooks/useSetting';
+import { cn, p } from '../../utils/Util';
+import { FontSize } from '../styles/style';
 
 interface TranslatableSubtitleLineParam {
     text: string;
 }
-interface Part {
-    content: string;
-    isWord: boolean;
-    id: string;
-}
-export const SPLIT_REGEX =
-    /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
+const notWord = (str: string, key: string, showE: boolean): ReactElement => {
+    return (
+        <div
+            className={`select-none mt-2 ${showE ? '' : 'text-transparent'}`}
+            key={key}
+        >
+            {str}
+        </div>
+    );
+};
 const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
-    const themeName = useSetting((s) => s.appearance.theme);
+    const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
     const show = usePlayerController((state) => state.showEn);
+    const sentenceStruct = usePlayerController((state) =>
+        state.subTitlesStructure.get(p(text))
+    );
     console.log('TranslatableLine', text, 'dd');
     const [popELe, setPopEle] = useState<string | null>(null);
     const [hovered, setHovered] = useState(false);
-    if (text === undefined) {
-        return <div />;
-    }
-
-    const isWord = (str: string): boolean => {
-        const noWordRegex = /[^A-Za-z0-9-]/;
-        return !noWordRegex.test(str);
-    };
     const textHash = hash(text);
-    const words: Part[] = text
-        .replace(/\s+/g, ' ')
-        .split(SPLIT_REGEX)
-        .filter((w) => w)
-        .map((w, index) => {
-            return {
-                content: w,
-                isWord: isWord(w),
-                id: `${textHash}:${index}`,
-            };
-        });
-    const notWord = (
-        str: string,
-        key: string,
-        showE: boolean
-    ): ReactElement => {
-        return (
-            <div
-                className={`select-none mt-2 ${
-                    showE ? '' : 'text-transparent'
-                }`}
-                key={key}
-            >
-                {str === ' ' ? <>&nbsp;</> : str}
-            </div>
-        );
-    };
     const handleRequestPop = (k: string) => {
         if (popELe !== k) {
             setPopEle(k);
         }
     };
-    function ele(): ReactElement[] {
-        return words.map((w) => {
-            if (w.isWord) {
-                return (
-                    <Word
-                        key={w.id}
-                        word={w.content}
-                        pop={popELe === w.id}
-                        requestPop={() => handleRequestPop(w.id)}
-                        show={show || hovered}
-                    />
-                );
-            }
-            return notWord(w.content, w.id, show || hovered);
-        });
-    }
 
-    return (
+    return text === undefined ? (
+        <div />
+    ) : (
         <div
             onMouseOver={() => {
                 setHovered(true);
@@ -88,14 +46,41 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
             onMouseLeave={() => {
                 setHovered(false);
             }}
-            className={twJoin(
-                'flex flex-wrap justify-center items-center gap-0 rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50',
-                isColorfulTheme(themeName)
-                    ? 'bg-sentenceBackground/80'
-                    : 'bg-sentenceBackground'
+            className={cn(
+                'flex flex-wrap justify-center items-center rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50 gap-2',
+                'bg-sentenceBackground',
+                fontSize === 'fontSizeSmall' && FontSize.mainSubtitleOne.small,
+                fontSize === 'fontSizeMedium' && FontSize.mainSubtitleOne.medium,
+                fontSize === 'fontSizeLarge' && FontSize.mainSubtitleOne.large,
             )}
         >
-            {ele()}
+            {sentenceStruct?.blocks.map((block, blockIndex) => {
+                return (
+                    <div className={cn('flex')}>
+                        {block.blockParts.map((part, partIndex) => {
+                            const partId = `${textHash}:${blockIndex}:${partIndex}`;
+                            if (part.isWord) {
+                                return (
+                                    <Word
+                                        key={partId}
+                                        word={part.content}
+                                        pop={popELe === partId}
+                                        requestPop={() =>
+                                            handleRequestPop(partId)
+                                        }
+                                        show={show || hovered}
+                                    />
+                                );
+                            }
+                            return notWord(
+                                part.content,
+                                partId,
+                                show || hovered
+                            );
+                        })}
+                    </div>
+                );
+            }) || []}
         </div>
     );
 };

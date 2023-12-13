@@ -1,9 +1,14 @@
 import SentenceT from '../../lib/param/SentenceT';
+import TransHolder from '../../../utils/TransHolder';
+import { SentenceStruct } from '../../../types/SentenceStruct';
+import { WordLevelRes } from '../../../main/controllers/WordLevelController';
 
 export interface SubtitleSlice {
     subtitle: SentenceT[];
+    subTitlesStructure: Map<string, SentenceStruct>;
     setSubtitle: (subtitle: SentenceT[]) => void;
     mergeSubtitle: (subtitle: SentenceT[]) => void;
+    mergeSubtitleTrans: (holder: TransHolder<string>) => void;
     getSubtitleAt: (time: number) => SentenceT | undefined;
 }
 
@@ -12,6 +17,7 @@ export interface PlayerControllerInternal {
     exactPlayTime: number;
     subtitleIndex: Map<number, SentenceT[]>;
     maxIndex: number;
+    wordLevel: Map<string, WordLevelRes>;
 }
 
 export interface InternalSlice {
@@ -52,15 +58,27 @@ export interface SentenceSlice {
     tryUpdateCurrentSentence: () => void;
 }
 
+export interface WordLevelSlice {
+    getWordLevel: (word: string) => WordLevelRes | undefined;
+    markWordLevel: (word: string, familiar: boolean) => Promise<void>;
+    syncWordsLevel: (words: string[]) => Promise<void>;
+}
+
+export type PopType = 'control' | 'none' | 'word';
+
 export interface ModeSlice {
     showEn: boolean;
     showCn: boolean;
     singleRepeat: boolean;
+    showWordLevel: boolean;
+    popType: PopType;
 
     changeShowEn: () => void;
     changeShowCn: () => void;
     changeShowEnCn: () => void;
     changeSingleRepeat: () => void;
+    changeShowWordLevel: () => void;
+    changePopType: (popType: PopType) => void;
 }
 
 export interface ControllerSlice {

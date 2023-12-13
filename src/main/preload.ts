@@ -1,10 +1,17 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
 import { YdRes } from '../renderer/lib/param/yd/a';
 import { Release } from './controllers/CheckUpdate';
-import { ProgressParam } from './controllers/ProgressController';
 import { SettingState } from '../renderer/hooks/useSetting';
 import { WindowState } from '../types/Types';
-import { SentenceApiParam } from '../types/TransApi';
+
+import { SentenceStruct } from '../types/SentenceStruct';
+import { WordLevelRes } from './controllers/WordLevelController';
+import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
+import { WordView } from '../db/tables/wordView';
+import { Pagination } from '../db/services/WordViewService';
+import { WatchProjectVO } from '../db/services/WatchProjectService';
+import { SettingKey } from '../types/store_schema';
 
 export type Channels =
     | 'main-state'
@@ -14,10 +21,6 @@ export type Channels =
     | 'trans-word'
     | 'query-progress'
     | 'batch-translate'
-    | 'load-trans-cache'
-    | 'update-setting'
-    | 'get-setting'
-    | 'setting-update'
     | 'show-button'
     | 'hide-button'
     | 'is-windows'
@@ -32,9 +35,21 @@ export type Channels =
     | 'app-version'
     | 'player-size'
     | 'home-size'
-    | 'recent-play'
+    | 'recent-watch'
+    | 'reload-recent-from-disk'
     | 'open-file'
-    | 'copy-to-clipboard';
+    | 'words-translate'
+    | 'list-words-view'
+    | 'batch-update-level-words'
+    | 'mark-word-level'
+    | 'write-to-clipboard'
+    | 'read-from-clipboard'
+    | 'process-sentences'
+    | 'get-video'
+    | 'store-set'
+    | 'store-get'
+    | 'store-update'
+    | 'select-file';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -79,17 +94,17 @@ const electronHandler = {
             return null;
         },
     },
+    storeSet: async (key: SettingKey, value: string|null|undefined) => {
+        await invoke('store-set', key, value);
+    },
+    storeGet: async (key: SettingKey) => {
+        return (await invoke('store-get', key)) as string;
+    },
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);
     },
     setSettingState: async (state: WindowState) => {
         await invoke('setting-state', state);
-    },
-    updateSetting: async (setting: SettingState) => {
-        await invoke('update-setting', setting);
-    },
-    getSetting: async () => {
-        return (await invoke('get-setting')) as SettingState;
     },
     transWord: async (word: string) => {
         return (await invoke('you-dao-translate', word)) as YdRes;
@@ -123,26 +138,50 @@ const electronHandler = {
     hideButton: async () => {
         await invoke('hide-button');
     },
-    loadTransCache: async (sentences: SentenceApiParam[]) => {
-        return (await invoke(
-            'load-trans-cache',
-            sentences
-        )) as SentenceApiParam[];
+    batchTranslate: async (
+        sentences: string[]
+    ): Promise<Map<string, string>> => {
+        const mapping = (await invoke('batch-translate', sentences)) as Map<
+            string,
+            string
+        >;
+        return mapping;
     },
-    batchTranslate: async (sentences: SentenceApiParam[]) => {
-        return (await invoke(
-            'batch-translate',
-            sentences
-        )) as SentenceApiParam[];
-    },
-    updateProgress: async (progress: ProgressParam) => {
+    updateProgress: async (progress: WatchProjectVideo) => {
         await invoke('update-progress', progress);
     },
-    queryProgress: async (fileName: string) => {
-        return (await invoke('query-progress', fileName)) as number;
+    queryProgress: async (videoId: number) => {
+        return (await invoke('query-progress', videoId)) as WatchProjectVideo;
     },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release | undefined;
+    },
+    markWordLevel: async (word: string, familiar: boolean) => {
+        return (await invoke('mark-word-level', word, familiar)) as void;
+    },
+    listWordsLevel: async (
+        whereSql: string,
+        orderBySql: string,
+        perPage: number,
+        currentPage: number
+    ) => {
+        return (await invoke(
+            'list-words-view',
+            whereSql,
+            orderBySql,
+            perPage,
+            currentPage
+        )) as Pagination<WordView>;
+    },
+    batchUpdateLevelWords: async (words: WordView[]) => {
+        console.log('batchUpdateLevelWords', words);
+        return (await invoke('batch-update-level-words', words)) as void;
+    },
+    wordsTranslate: async (words: string[]) => {
+        return (await invoke('words-translate', words)) as Map<
+            string,
+            WordLevelRes
+        >;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;
@@ -156,18 +195,41 @@ const electronHandler = {
         const blob = new Blob([data]);
         return URL.createObjectURL(blob);
     },
-    copyToClipboard: async (text: string) => {
-        await invoke('copy-to-clipboard', text);
+    writeToClipboard: async (text: string) => {
+        await invoke('write-to-clipboard', text);
     },
-    recentPlay: async (size: number) => {
-        return (await invoke('recent-play', size)) as ProgressParam[];
+    readFromClipboard: async () => {
+        return (await invoke('read-from-clipboard')) as string;
+    },
+    recentWatch: async () => {
+        return (await invoke('recent-watch')) as WatchProjectVO[];
+    },
+    reloadRecentFromDisk: async () => {
+        return (await invoke('reload-recent-from-disk')) as WatchProjectVO[];
     },
     isWindows: async () => {
         return (await invoke('is-windows')) as boolean;
     },
-    onUpdateSetting: (func: (setting: SettingState) => void) => {
-        console.log('onUpdateSetting');
-        return on('update-setting', func as any);
+    selectFile: async (isFolder: boolean) => {
+        return (await invoke('select-file', isFolder)) as
+            | WatchProjectVO
+            | undefined
+            | string;
+    },
+    getVideo: async (videoId: number) => {
+        return (await invoke('get-video', videoId)) as
+            | WatchProjectVideo
+            | undefined;
+    },
+    processSentences: async (sentences: string[]) => {
+        return (await invoke(
+            'process-sentences',
+            sentences
+        )) as SentenceStruct[];
+    },
+    onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
+        console.log('onStoreUpdate');
+        return on('store-update', func as any);
     },
     onMainState: (func: (state: WindowState) => void) => {
         return on('main-state', func as any);

@@ -1,4 +1,5 @@
 import FileT, { FileType } from './param/FileT';
+import { isSubtitle, isVideo } from '../../utils/MediaTypeUitl';
 
 const api = window.electron;
 const parseFile = (file: File): FileT => {
@@ -6,15 +7,10 @@ const parseFile = (file: File): FileT => {
     fileT.fileName = file.name;
     fileT.path = file.path;
     fileT.objectUrl = URL.createObjectURL(file);
-    // ".mp4,.mkv,.srt,.webm"
-    const isSrt = file.name.endsWith('srt');
-    const isVideo =
-        file.type.endsWith('mp4') ||
-        file.type.endsWith('webm') ||
-        file.type.endsWith('mkv');
+    const isSrt = isSubtitle(file.name);
     if (isSrt) {
         fileT.fileType = FileType.SUBTITLE;
-    } else if (isVideo) {
+    } else if (isVideo(file.path)) {
         fileT.fileType = FileType.VIDEO;
     } else {
         fileT.fileType = FileType.OTHER;
@@ -27,7 +23,12 @@ const pathToFile = async (path: string): Promise<FileT> => {
     const fileSeparator = path.lastIndexOf('/') > 0 ? '/' : '\\';
     fileT.fileName = path.substring(path.lastIndexOf(fileSeparator) + 1);
     fileT.path = path;
-    const fileType = path.endsWith('srt') ? FileType.SUBTITLE : FileType.VIDEO;
+    let fileType = FileType.OTHER;
+    if (isSubtitle(path)) {
+        fileType = FileType.SUBTITLE;
+    } else if (isVideo(path)) {
+        fileType = FileType.VIDEO;
+    }
     fileT.objectUrl =
         fileType === FileType.SUBTITLE
             ? (await api.openFile(path)) ?? ''

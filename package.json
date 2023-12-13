@@ -111,31 +111,40 @@
     },
     "dependencies": {
         "@floating-ui/react": "^0.25.4",
+        "@inovua/reactdatagrid-community": "5.10.1",
+        "@monaco-editor/react": "^4.6.0",
         "@radix-ui/react-slider": "^1.1.2",
         "@ramonak/react-progress-bar": "^5.0.3",
-        "@turf/convex": "^6.5.0",
         "@turf/turf": "^6.5.0",
-        "applescript": "^1.0.0",
+        "ag-grid-community": "^31.0.0",
+        "ag-grid-enterprise": "^31.0.0",
+        "ag-grid-react": "^31.0.0",
         "axios": "^1.5.0",
         "clsx": "^2.0.0",
+        "drizzle-orm": "^0.29.1",
         "electron-debug": "^3.2.0",
         "electron-log": "^4.4.8",
+        "electron-store": "^8.1.0",
         "electron-updater": "^5.2.3",
-        "nedb": "^1.8.0",
+        "framer-motion": "^10.16.12",
+        "knex-paginate": "^3.1.1",
+        "monaco-editor": "^0.44.0",
+        "natural": "^6.8.0",
+        "node-sql-parser": "^4.11.0",
         "react": "^18.2.0",
+        "react-data-grid": "^7.0.0-beta.40",
         "react-dom": "^18.2.0",
         "react-icons": "^4.11.0",
         "react-keyevent": "^1.1.0",
         "react-player": "^2.13.0",
         "react-resizable-layout": "^0.4.0",
-        "react-router-dom": "^6.4.0",
+        "react-router-dom": "^6.20.1",
         "react-slider": "^2.0.6",
         "react-split": "^2.0.14",
         "react-virtuoso": "^4.2.0",
-        "request": "^2.88.2",
-        "run-applescript": "^6.0.0",
         "tailwind-merge": "^1.14.0",
         "tencentcloud-sdk-nodejs": "^4.0.489",
+        "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz",
         "zustand": "^4.4.3"
     },
     "devDependencies": {
@@ -144,6 +153,7 @@
         "@teamsupercell/typings-for-css-modules-loader": "^2.5.1",
         "@testing-library/jest-dom": "^5.16.5",
         "@testing-library/react": "^13.3.0",
+        "@types/better-sqlite3": "^7.6.8",
         "@types/jest": "^28.1.7",
         "@types/nedb": "^1.8.12",
         "@types/node": "18.7.6",
@@ -165,6 +175,7 @@
         "css-loader": "^6.7.1",
         "css-minimizer-webpack-plugin": "^4.0.0",
         "detect-port": "^1.3.0",
+        "drizzle-kit": "^0.20.6",
         "electron": "^20.3.12",
         "electron-builder": "^23.3.3",
         "electron-devtools-installer": "^3.2.0",
@@ -193,7 +204,7 @@
         "mini-css-extract-plugin": "^2.6.1",
         "postcss": "^8.4.19",
         "postcss-loader": "^7.0.2",
-        "prettier": "^2.7.1",
+        "prettier": "2.8.8",
         "react-refresh": "^0.14.0",
         "react-test-renderer": "^18.2.0",
         "rimraf": "^3.0.2",
@@ -223,7 +234,8 @@
         "files": [
             "dist",
             "node_modules",
-            "package.json"
+            "package.json",
+            "drizzle"
         ],
         "afterSign": ".erb/scripts/notarize.js",
         "mac": {
@@ -271,7 +283,11 @@
             "output": "release/build"
         },
         "extraResources": [
-            "./assets/**"
+            "./assets/**",
+            {
+                "from": "./drizzle/",
+                "to": "drizzle"
+            }
         ],
         "publish": {
             "provider": "github",

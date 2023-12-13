@@ -1,10 +1,7 @@
-import { app, shell } from 'electron';
+import { app, shell } from "electron";
 import fs from 'fs';
-import CacheConfig, { BASE_PATH } from '../ServerLib/basecache/CacheConfig';
-import ProgressCache from '../ServerLib/ProgressCache';
-import TranslateCache from '../ServerLib/TranslateCache';
-import WordTransCache from '../ServerLib/WordTransCache';
-
+import path from "path";
+export const BASE_PATH = path.join(app.getPath('userData'), 'useradd');
 /**
  * 打开数据目录
  */
@@ -16,9 +13,9 @@ export const openDataDir = async () => {
  * 清理一个月前的缓存
  */
 export const clearCache = async () => {
-    await ProgressCache.clearCache();
-    await TranslateCache.clearCache();
-    await WordTransCache.clearCache();
+    // await ProgressCache.clearCache();
+    // await TranslateCache.clearCache();
+    // await WordTransCache.clearCache();
 };
 const formatBytes = (bytes: number): string => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']; // 文件大小单位
@@ -35,10 +32,7 @@ const formatBytes = (bytes: number): string => {
  */
 export const queryCacheSize = async () => {
     const filePaths: string[] = [];
-    filePaths.push(CacheConfig.progressConfig.filename);
-    filePaths.push(CacheConfig.transConfig.filename);
-    filePaths.push(CacheConfig.wordConfig.filename);
-    filePaths.push(CacheConfig.keyValueConfig.filename);
+    //todo
     const promises = filePaths.map((filePath) => fs.promises.stat(filePath));
     const stats = await Promise.all(promises);
     const size = stats.reduce((acc, stat) => acc + stat.size, 0);

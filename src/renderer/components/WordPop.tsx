@@ -54,6 +54,7 @@ const WordPop = React.forwardRef(
                 return <div className="text-2xl">loading</div>;
             }
             const { basic } = translation;
+            console.log('aaaa', translation.query);
             return (
                 <div
                     className={`relative top-0 left-0 max-w-sm max-h-96 overflow-y-auto flex flex-col items-start  bg-gray-200 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none ${
