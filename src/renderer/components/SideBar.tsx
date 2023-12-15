@@ -43,7 +43,7 @@ const SideBar = ({compact}:SideBarProps) => {
                 />
             </div>
             <div className={cn('basis-3/4 flex flex-col p-3')}>
-                {item('Home', '/home', 'home', <HiOutlineHome />)}
+                {/*{item('Home', '/home', 'home', <HiOutlineHome />)}*/}
                 {item('Player', `/player/${video?.id}?sideBarAnimation=false`,'player', <HiOutlineVideoCamera />)}
                 {item('Word Management', '/word-management','word-management', <HiOutlineAcademicCap />)}
             </div>
