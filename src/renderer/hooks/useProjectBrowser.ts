@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react';
 import useFile from './useFile';
 import { WatchProjectVO } from '../../db/services/WatchProjectService';
 import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
+import { FileBrowserIcon } from '../components/fileBowser/FileBrowserIcon';
 
 const api = window.electron;
 
 export interface UseProjectBrowserProps {
     onPlay: (videoId: number) => void;
 }
-
+export type FileType = 'video' | 'folder';
+export type WatchType = 'watched' | 'playing' | 'unwatched';
 export interface BrowserItem {
     key: string;
-    icon: 'file' | 'folder';
+    icon: keyof typeof FileBrowserIcon;
     name: string;
-    playing: boolean;
+    playing: WatchType;
     callback: () => void;
 }
 
@@ -53,11 +55,22 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
     };
     const mapVideos = (v: WatchProjectVO): BrowserItem[] => {
         return (v.videos ?? []).map((v) => {
+            let playing:WatchType = v.id === videoFile?.id ? 'playing' : 'unwatched';
+            if (playing === 'unwatched') {
+                playing = v.current_time > 5 ? 'watched' : 'unwatched';
+            }
+            let icon: keyof typeof FileBrowserIcon = 'video';
+            if (playing === 'watched') {
+                icon = 'videoWatched';
+            }
+            if (playing === 'playing') {
+                icon = 'videoPlaying';
+            }
             return {
                 key: v.id.toString(),
-                icon: 'file',
+                icon,
                 name: v.video_name,
-                playing: v.id === videoFile?.id,
+                playing,
                 callback: () => {
                     onPlay(v.id);
                 }
@@ -69,11 +82,22 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
         const single = p.videos.length === 1;
         const video: WatchProjectVideo = p.videos.find(e => e.current_playing) ?? p.videos[0];
         let callBack = click === 'play' ? () => onPlay(video?.id) : () => routeTo(p.id);
+        let playing:WatchType = video?.id === videoFile?.id ? 'playing' : 'unwatched';
+        if (playing === 'unwatched') {
+            playing = video?.current_time > 5 ? 'watched' : 'unwatched';
+        }
+        let icon: keyof typeof FileBrowserIcon = single ? 'video' : 'folder';
+        if (playing === 'watched') {
+            icon = single ? 'videoWatched' : 'folderWatched';
+        }
+        if (playing === 'playing') {
+            icon = single ? 'videoPlaying' : 'folderPlaying';
+        }
         return {
             key: p.id.toString() + (single ? 's' : ''),
-            icon: single ? 'file' : 'folder',
+            icon,
             name: p.project_name,
-            playing: p.videos.find(e => e.id === videoFile?.id) !== undefined,
+            playing: playing,
             callback: () => {
                 single ? onPlay(video?.id) : callBack();
             }

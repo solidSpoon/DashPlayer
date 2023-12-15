@@ -1,17 +1,19 @@
 import React from 'react';
 import { twMerge } from 'tailwind-merge';
-import FileSelector from './fileBowser/atom/FileSelector';
+import FileSelector from './fileBowser/FileSelector';
 import { useNavigate } from 'react-router-dom';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import FileItem from './fileBowser/FileItem';
 import { cn } from '../../utils/Util';
 import { VscFolderOpened, VscHistory } from 'react-icons/vsc';
 import { IoRefreshCircleOutline } from 'react-icons/io5';
+import { FileBrowserIcon } from './fileBowser/FileBrowserIcon';
 
 const FileBrowser = () => {
     const navigate = useNavigate();
     const { list, refresh, loading, path, routeTo } =
         useProjectBrowser('route', (videoId) => navigate(`/player/${videoId}`));
+    console.log('list', list);
     return (
         <div
             onClick={(e) => {
@@ -52,8 +54,13 @@ const FileBrowser = () => {
                 {list.map((item) => {
                     return (
                         <FileItem
-                            className={cn('text-sm', item.playing?'bg-orange-200 hover:bg-orange-200/50':'')}
-                            key={item.key} icon={item.icon} onClick={item.callback} content={item.name} />
+                            className={cn('text-sm',
+                                item.playing === 'playing' ? 'bg-orange-200 hover:bg-orange-200/50':''
+                            )}
+                            key={item.key}
+                            icon={item.icon}
+                            onClick={item.callback}
+                            content={item.name} />
                     );
                 })}
             </div>

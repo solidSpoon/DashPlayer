@@ -1,11 +1,10 @@
-import React, { useRef } from 'react';
-import parseFile, { pathToFile } from '../../../lib/FileParser';
-import useFile from '../../../hooks/useFile';
-import { ACCEPTED_FILE_TYPES } from '../../../../utils/MediaTypeUitl';
-import { cn } from '../../../../utils/Util';
-import ListItem from './ListItem';
-import usePlayerController from '../../../hooks/usePlayerController';
+import React from 'react';
+import { pathToFile } from '../../lib/FileParser';
+import useFile from '../../hooks/useFile';
+import { cn } from '../../../utils/Util';
+import usePlayerController from '../../hooks/usePlayerController';
 import { useNavigate } from "react-router-dom";
+import FileItem from './FileItem';
 
 export interface OpenFileProps {
     directory?: boolean;
@@ -47,16 +46,16 @@ export default function FileSelector({ directory, className }: OpenFileProps) {
     return (
         <>
             {directory && (
-                <ListItem
+                <FileItem
                     content="打开文件夹..."
-                    className={cn('', className)}
+                    className={cn('w-full', className)}
                     onClick={() => handleClick()}
                 />
             )}
             {!directory && (
-                <ListItem
+                <FileItem
                     content="打开文件..."
-                    className={cn('', className)}
+                    className={cn('w-full', className)}
                     onClick={() => handleClick()}
                 />
             )}
