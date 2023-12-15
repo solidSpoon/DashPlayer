@@ -12,7 +12,6 @@ import useSetting from '../../hooks/useSetting';
 import Layout from './pages/Layout';
 import { PlayerP, WordManagement } from './pages';
 import TieleBarLayout from './pages/TieleBarLayout';
-import usePointer from '../../hooks/usePointer';
 
 loader.config({ monaco });
 LicenseManager.prototype.validateLicense = () => {};

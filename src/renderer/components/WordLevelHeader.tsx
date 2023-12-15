@@ -1,16 +1,17 @@
 import {
+    PiAddressBook,
     PiArrowFatUp,
     PiArrowLeft,
     PiArrowLineLeft,
     PiArrowLineRight,
     PiArrowRight,
-    PiArrowsCounterClockwiseLight,
+    PiArrowsCounterClockwiseLight, PiArrowUpLeft,
     PiArrowUUpLeft,
     PiDownload,
     PiDownloadSimple,
     PiExport,
     PiMinus,
-    PiPlus,
+    PiPlus
 } from 'react-icons/pi';
 import { useShallow } from 'zustand/react/shallow';
 import { useState } from 'react';
@@ -18,14 +19,15 @@ import {
     useClick,
     useDismiss,
     useFloating,
-    useInteractions,
+    useInteractions
 } from '@floating-ui/react';
 import { cn } from '../../utils/Util';
 import Separator from './Separtor';
 import useDataPage, {
-    DataPageDataHolder,
+    DataPageDataHolder
 } from '../hooks/useDataPage/useDataPage';
 import { convertSelect, DataHolder } from '../../utils/ClipBoardConverter';
+import IconButton from './toolTip/IconButton';
 
 export interface WordLevelHeaderProps {
     keyName: keyof DataPageDataHolder;
@@ -42,7 +44,7 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
         cellSelection,
         dataSource,
         setDataSource,
-        ele,
+        ele
     } = useDataPage(
         useShallow((s) => ({
             page: s.data.wordView.resultPage,
@@ -54,14 +56,14 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
             cellSelection: s.data.wordView.cellSelection,
             dataSource: s.data.wordView.dataSource,
             setDataSource: s.setDataSource,
-            ele: s.data[keyName].ele,
+            ele: s.data[keyName].ele
         }))
     );
     const buttonClass = 'cursor-default hover:bg-gray-200 rounded p-1 h-6 w-6';
     const [pageSelectOpen, setPageSelectOpen] = useState(false);
     const { refs, floatingStyles, context } = useFloating({
         open: pageSelectOpen,
-        onOpenChange: setPageSelectOpen,
+        onOpenChange: setPageSelectOpen
     });
 
     const click = useClick(context);
@@ -69,7 +71,7 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
 
     const { getReferenceProps, getFloatingProps } = useInteractions([
         click,
-        dismiss,
+        dismiss
     ]);
     const handleNextPage = async () => {
         updatePageParam(
@@ -156,14 +158,10 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                         'flex flex-row items-center justify-start gap-1 h-10 px-2'
                     )}
                 >
-                    <PiArrowLineLeft
-                        onClick={handleFirstPage}
-                        className={cn(buttonClass)}
-                    />
-                    <PiArrowLeft
-                        onClick={handlePrevPage}
-                        className={cn(buttonClass)}
-                    />
+                    <IconButton onClick={handleFirstPage} icon={<PiArrowLineLeft />} tooltip={'首页'}
+                                className={cn(buttonClass)} />
+                    <IconButton onClick={handlePrevPage} icon={<PiArrowLeft />} tooltip={'上一页'}
+                                className={cn(buttonClass)} />
                     <div
                         ref={refs.setReference}
                         className={cn(
@@ -178,23 +176,26 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                         <span className={cn('text-gray-500')}>/</span>
                         <span>{page?.total}</span>
                     </div>
-                    <PiArrowRight
-                        onClick={handleNextPage}
-                        className={cn(buttonClass)}
-                    />
-                    <PiArrowLineRight
-                        onClick={handleLastPage}
-                        className={cn(buttonClass)}
-                    />
-                    <Separator orientation="vertical" />
-                    <PiArrowsCounterClockwiseLight
+                    <IconButton onClick={handleNextPage} icon={<PiArrowRight />} tooltip={'下一页'}
+                                className={cn(buttonClass)} />
+                    <IconButton onClick={handleLastPage} icon={<PiArrowLineRight />} tooltip={'尾页'}
+                                className={cn(buttonClass)} />
+                    <Separator orientation='vertical' />
+                    {/*<PiArrowsCounterClockwiseLight*/}
+                    {/*    onClick={async () => {*/}
+                    {/*        await load(keyName);*/}
+                    {/*    }}*/}
+                    {/*    className={cn(buttonClass)}*/}
+                    {/*/>*/}
+                    <IconButton
                         onClick={async () => {
                             await load(keyName);
                         }}
-                        className={cn(buttonClass)}
-                    />
-                    <Separator orientation="vertical" />
-                    <PiPlus
+                        icon={<PiArrowsCounterClockwiseLight />} tooltip={'刷新'} className={cn(buttonClass)} />
+                    <Separator orientation='vertical' />
+                    <IconButton
+                        icon={<PiPlus />}
+                        tooltip={'添加'}
                         onClick={() => {
                             addBlankRow(keyName);
                             ele.current?.api?.ensureIndexVisible(
@@ -210,12 +211,22 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                         }}
                         className={cn(buttonClass)}
                     />
-                    <PiMinus
+                    <IconButton
+                        icon={<PiMinus />}
+                        tooltip={'删除'}
                         onClick={handleDeleteRow}
                         className={cn(buttonClass)}
                     />
-                    <PiArrowUUpLeft className={cn(buttonClass)} />
-                    <PiArrowFatUp
+                    <IconButton
+                        icon={<PiArrowUUpLeft />}
+                        tooltip={'回退'}
+                        onClick={() => {
+                        }}
+                        className={cn(buttonClass)}
+                    />
+                    <IconButton
+                        icon={<PiArrowFatUp />}
+                        tooltip={'提交'}
                         onClick={async () => {
                             await submit(keyName);
                         }}
@@ -227,10 +238,13 @@ const WordLevelHeader = ({ keyName }: WordLevelHeaderProps) => {
                         'flex flex-row items-center justify-end gap-1 h-10 px-2'
                     )}
                 >
-                    <PiDownload className={cn(buttonClass)} />
-                    <Separator orientation="vertical" />
-                    <PiDownloadSimple className={cn(buttonClass)} />
-                    <PiExport className={cn(buttonClass)} />
+                    <IconButton onClick={() => {
+                    }} icon={<PiDownload />} tooltip={'TOTO'} className={cn(buttonClass)} />
+                    <Separator orientation='vertical' />
+                    <IconButton onClick={() => {
+                    }} icon={<PiDownloadSimple />} tooltip={'TOTO'} className={cn(buttonClass)} />
+                    <IconButton onClick={() => {
+                    }} icon={<PiExport />} tooltip={'TOTO'} className={cn(buttonClass)} />
                 </div>
             </div>
             {pageSelectOpen && (

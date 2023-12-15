@@ -111,7 +111,6 @@
     },
     "dependencies": {
         "@floating-ui/react": "^0.25.4",
-        "@inovua/reactdatagrid-community": "5.10.1",
         "@monaco-editor/react": "^4.6.0",
         "@radix-ui/react-slider": "^1.1.2",
         "@ramonak/react-progress-bar": "^5.0.3",
@@ -127,7 +126,6 @@
         "electron-store": "^8.1.0",
         "electron-updater": "^5.2.3",
         "framer-motion": "^10.16.12",
-        "knex-paginate": "^3.1.1",
         "monaco-editor": "^0.44.0",
         "natural": "^6.8.0",
         "node-sql-parser": "^4.11.0",

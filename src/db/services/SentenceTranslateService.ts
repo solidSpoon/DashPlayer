@@ -11,6 +11,7 @@ export default class SentenceTranslateService {
     public static async fetchTranslates(
         sentences: string[]
     ): Promise<TransHolder<string>> {
+        sentences = [...sentences, '-1'];
         const result = new TransHolder<string>();
         const values: SentenceTranslate[] = await db
             .select()

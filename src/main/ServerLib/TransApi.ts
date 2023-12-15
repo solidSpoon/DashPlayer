@@ -19,7 +19,7 @@ class TransApi {
         }, 300);
     }
 
-    private static async tryInit(): Promise<void> {
+    private static tryInit(): void {
         const secretId = storeGet('apiKeys.tencent.secretId');
         const secretKey = storeGet('apiKeys.tencent.secretKey');
         if (strBlank(secretId) || strBlank(secretKey)) {
@@ -57,7 +57,7 @@ class TransApi {
         source: string[]
     ): Promise<TransHolder<string>> {
         if (!this.client) {
-            await this.tryInit();
+            this.tryInit();
             if (!this.client) {
                 return new TransHolder<string>();
             }
