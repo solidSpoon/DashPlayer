@@ -30,12 +30,6 @@ const TitleBarWindows = ({
 }: TitleBarWindowsProps) => {
     const windowState = useSystem((s) => s.windowState);
     const setWindowState = useSystem((s) => s.setWindowState);
-    const { popType, changePopType } = usePlayerController(
-        useShallow((s) => ({
-            popType: s.popType,
-            changePopType: s.changePopType,
-        }))
-    );
 
     const maximize = () => {
         setWindowState('maximized');
@@ -66,10 +60,6 @@ const TitleBarWindows = ({
                     <HiOutlineMenu
                         className={`no-drag w-7 h-7 p-1.5 ${buttonClassName}`}
                         onClick={onMenu}
-                    />
-                    <HiOutlinePencil
-                        className={`no-drag w-7 h-7 p-2 ${buttonClassName}`}
-                        onClick={() => changePopType('control')}
                     />
                 </div>
             )}

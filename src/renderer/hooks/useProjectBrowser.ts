@@ -17,13 +17,19 @@ export interface BrowserItem {
     callback: () => void;
 }
 
-function isSingleVideo(recentPlaylists: WatchProjectVO[], routeProject: number) {
+function isSingleVideo(
+    recentPlaylists: WatchProjectVO[],
+    routeProject: number
+) {
     const cp = recentPlaylists.find((p) => p.id === routeProject)!;
-    let single = (cp?.videos?.length ?? 0) > 1;
+    const single = (cp?.videos?.length ?? 0) > 1;
     return { cp, single };
 }
 
-const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) => void) => {
+const useProjectBrowser = (
+    click: 'play' | 'route',
+    onPlay: (videoId: number) => void
+) => {
     const [recentPlaylists, setRecentPlaylists] = useState<WatchProjectVO[]>(
         []
     );
@@ -35,7 +41,9 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
         runEffect();
     }, []);
     const videoFile = useFile((s) => s.currentVideo);
-    const [routeProject, setRouteProject] = useState<number | null>(videoFile?.project_id ?? null);
+    const [routeProject, setRouteProject] = useState<number | null>(
+        videoFile?.project_id ?? null
+    );
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -60,30 +68,31 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
                 playing: v.id === videoFile?.id,
                 callback: () => {
                     onPlay(v.id);
-                }
+                },
             };
         });
     };
 
     const mapProject = (p: WatchProjectVO): BrowserItem => {
         const single = p.videos.length === 1;
-        const video: WatchProjectVideo = p.videos.find(e => e.current_playing) ?? p.videos[0];
-        let callBack = click === 'play' ? () => onPlay(video?.id) : () => routeTo(p.id);
+        const video: WatchProjectVideo =
+            p.videos.find((e) => e.current_playing) ?? p.videos[0];
+        const callBack =
+            click === 'play' ? () => onPlay(video?.id) : () => routeTo(p.id);
         return {
             key: p.id.toString() + (single ? 's' : ''),
             icon: single ? 'file' : 'folder',
             name: p.project_name,
-            playing: p.videos.find(e => e.id === videoFile?.id) !== undefined,
+            playing: p.videos.find((e) => e.id === videoFile?.id) !== undefined,
             callback: () => {
                 single ? onPlay(video?.id) : callBack();
-            }
+            },
         };
     };
 
-
     const list: BrowserItem[] = [];
     if (routeProject !== null) {
-        let { cp, single } = isSingleVideo(recentPlaylists, routeProject);
+        const { cp, single } = isSingleVideo(recentPlaylists, routeProject);
         if (single) {
             list.push(...mapVideos(cp));
         } else {
