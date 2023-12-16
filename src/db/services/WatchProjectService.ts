@@ -1,7 +1,7 @@
 import { dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { eq, desc, inArray, and, not } from "drizzle-orm";
+import { eq, desc, inArray, and, not } from 'drizzle-orm';
 import {
     InsertWatchProject,
     WatchProject,
@@ -228,10 +228,11 @@ export default class WatchProjectService {
         wps = wps.filter((wp) => fs.existsSync(wp.project_path ?? ''));
         const wpIds = wps.map((wp) => wp.id);
         wpIds.push(-1);
-        const wpvs: WatchProjectVideo[] = await db
+        let wpvs: WatchProjectVideo[] = await db
             .select()
             .from(watchProjectVideos)
             .where(inArray(watchProjectVideos.project_id, wpIds));
+        wpvs = wpvs.filter((wpv) => fs.existsSync(wpv.video_path ?? ''));
         const wpvMap = new Map<number, WatchProjectVideo[]>();
         wpvs.forEach((wpv) => {
             const wpvList = wpvMap.get(wpv.project_id ?? 0);
@@ -241,13 +242,15 @@ export default class WatchProjectService {
                 wpvMap.set(wpv.project_id ?? 0, [wpv]);
             }
         });
-        return wps.map((wp) => {
-            const wpvList = wpvMap.get(wp.id ?? 0);
-            return {
-                ...wp,
-                videos: wpvList ?? [],
-            };
-        });
+        return wps
+            .map((wp) => {
+                const wpvList = wpvMap.get(wp.id ?? 0);
+                return {
+                    ...wp,
+                    videos: wpvList ?? [],
+                };
+            })
+            .filter((wp) => wp.videos.length > 0);
     }
 
     private static async detail(

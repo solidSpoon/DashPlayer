@@ -3,7 +3,7 @@ import TransApi from '../ServerLib/TransApi';
 
 import { p } from '../../utils/Util';
 import TransHolder from '../../utils/TransHolder';
-import SentenceTranslateService from "../../db/services/SentenceTranslateService";
+import SentenceTranslateService from '../../db/services/SentenceTranslateService';
 /**
  * AI 翻译
  * @param str

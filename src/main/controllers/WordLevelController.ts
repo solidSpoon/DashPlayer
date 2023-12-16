@@ -1,4 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+import { IServerSideGetRowsRequest } from 'ag-grid-community';
 import TransApi from '../ServerLib/TransApi';
 
 import { p } from '../../utils/Util';
@@ -6,7 +7,7 @@ import StemLevelService from '../../db/services/StemLevelService';
 import WordLevelService from '../../db/services/WordLevelService';
 import { WordView } from '../../db/tables/wordView';
 import WordViewService, { Pagination } from '../../db/services/WordViewService';
-import { IServerSideGetRowsRequest } from 'ag-grid-community';
+
 export async function markWordLevel(
     word: string,
     familiar: boolean
@@ -80,6 +81,5 @@ export async function listWordsView(
 }
 
 export async function updateWordsView(words: WordView[]): Promise<void> {
-
     await WordViewService.batchUpdate(words);
 }
