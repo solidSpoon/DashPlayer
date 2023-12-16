@@ -1,18 +1,19 @@
 import React from 'react';
 import { twMerge } from 'tailwind-merge';
-import FileSelector from './fileBowser/FileSelector';
 import { useNavigate } from 'react-router-dom';
+import { VscFolderOpened, VscHistory } from 'react-icons/vsc';
+import { IoRefreshCircleOutline } from 'react-icons/io5';
+import FileSelector from './fileBowser/FileSelector';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import FileItem from './fileBowser/FileItem';
 import { cn } from '../../utils/Util';
-import { VscFolderOpened, VscHistory } from 'react-icons/vsc';
-import { IoRefreshCircleOutline } from 'react-icons/io5';
-import { FileBrowserIcon } from './fileBowser/FileBrowserIcon';
 
 const FileBrowser = () => {
     const navigate = useNavigate();
-    const { list, refresh, loading, path, routeTo } =
-        useProjectBrowser('route', (videoId) => navigate(`/player/${videoId}`));
+    const { list, refresh, loading, path, routeTo } = useProjectBrowser(
+        'route',
+        (videoId) => navigate(`/player/${videoId}`)
+    );
     console.log('list', list);
     return (
         <div
@@ -24,10 +25,14 @@ const FileBrowser = () => {
                 'bg-white drop-shadow-lg'
             )}
         >
-            <FileSelector className={'text-base'} directory={false} />
+            <FileSelector className="text-base" directory={false} />
             <FileSelector directory />
             <div className={cn('w-full flex items-center gap-2')}>
-                {path ? <VscFolderOpened className={'flex-shrink-0 w-4 h-4'} /> : <VscHistory className={'flex-shrink-0 w-4 h-4'} />}
+                {path ? (
+                    <VscFolderOpened className="flex-shrink-0 w-4 h-4" />
+                ) : (
+                    <VscHistory className="flex-shrink-0 w-4 h-4" />
+                )}
                 <div className={cn('flex-1 truncate text-lg')}>
                     {path ?? '最近播放'}
                 </div>
@@ -49,22 +54,33 @@ const FileBrowser = () => {
                     />
                 </div>
             </div>
-            <FileItem key={'back'} onClick={() => routeTo(null)} content={path ? '..' : '.'} />
-            <div className={cn('w-full h-0 flex-1 overflow-y-auto scrollbar-none')}>
+            <FileItem
+                key="back"
+                onClick={() => routeTo(null)}
+                content={path ? '..' : '.'}
+            />
+            <div
+                className={cn(
+                    'w-full h-0 flex-1 overflow-y-auto scrollbar-none'
+                )}
+            >
                 {list.map((item) => {
                     return (
                         <FileItem
-                            className={cn('text-sm',
-                                item.playing === 'playing' ? 'bg-orange-200 hover:bg-orange-200/50':''
+                            className={cn(
+                                'text-sm',
+                                item.playing === 'playing'
+                                    ? 'bg-orange-200 hover:bg-orange-200/50'
+                                    : ''
                             )}
                             key={item.key}
                             icon={item.icon}
                             onClick={item.callback}
-                            content={item.name} />
+                            content={item.name}
+                        />
                     );
                 })}
             </div>
-
         </div>
     );
 };

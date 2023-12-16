@@ -2,13 +2,9 @@ import { useEffect, useState } from 'react';
 import useFile from './useFile';
 import { WatchProjectVO } from '../../db/services/WatchProjectService';
 import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
-import { FileBrowserIcon } from '../components/fileBowser/FileBrowserIcon';
+import FileBrowserIcon from '../components/fileBowser/FileBrowserIcon';
 
 const api = window.electron;
-
-export interface UseProjectBrowserProps {
-    onPlay: (videoId: number) => void;
-}
 export type FileType = 'video' | 'folder';
 export type WatchType = 'watched' | 'playing' | 'unwatched';
 export interface BrowserItem {
@@ -19,13 +15,19 @@ export interface BrowserItem {
     callback: () => void;
 }
 
-function isSingleVideo(recentPlaylists: WatchProjectVO[], routeProject: number) {
+function isSingleVideo(
+    recentPlaylists: WatchProjectVO[],
+    routeProject: number
+) {
     const cp = recentPlaylists.find((p) => p.id === routeProject)!;
-    let single = (cp?.videos?.length ?? 0) > 1;
+    const single = (cp?.videos?.length ?? 0) > 1;
     return { cp, single };
 }
 
-const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) => void) => {
+const useProjectBrowser = (
+    click: 'play' | 'route',
+    onPlay: (videoId: number) => void
+) => {
     const [recentPlaylists, setRecentPlaylists] = useState<WatchProjectVO[]>(
         []
     );
@@ -37,7 +39,9 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
         runEffect();
     }, []);
     const videoFile = useFile((s) => s.currentVideo);
-    const [routeProject, setRouteProject] = useState<number | null>(videoFile?.project_id ?? null);
+    const [routeProject, setRouteProject] = useState<number | null>(
+        videoFile?.project_id ?? null
+    );
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -53,9 +57,10 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
         setRecentPlaylists(playlists);
         setLoading(false);
     };
-    const mapVideos = (v: WatchProjectVO): BrowserItem[] => {
-        return (v.videos ?? []).map((v) => {
-            let playing:WatchType = v.id === videoFile?.id ? 'playing' : 'unwatched';
+    const mapVideos = (watchProjectVO: WatchProjectVO): BrowserItem[] => {
+        return (watchProjectVO.videos ?? []).map((v) => {
+            let playing: WatchType =
+                v.id === videoFile?.id ? 'playing' : 'unwatched';
             if (playing === 'unwatched') {
                 playing = v.current_time > 5 ? 'watched' : 'unwatched';
             }
@@ -73,16 +78,19 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
                 playing,
                 callback: () => {
                     onPlay(v.id);
-                }
+                },
             };
         });
     };
 
     const mapProject = (p: WatchProjectVO): BrowserItem => {
         const single = p.videos.length === 1;
-        const video: WatchProjectVideo = p.videos.find(e => e.current_playing) ?? p.videos[0];
-        let callBack = click === 'play' ? () => onPlay(video?.id) : () => routeTo(p.id);
-        let playing:WatchType = video?.id === videoFile?.id ? 'playing' : 'unwatched';
+        const video: WatchProjectVideo =
+            p.videos.find((e) => e.current_playing) ?? p.videos[0];
+        const callBack =
+            click === 'play' ? () => onPlay(video?.id) : () => routeTo(p.id);
+        let playing: WatchType =
+            video?.id === videoFile?.id ? 'playing' : 'unwatched';
         if (playing === 'unwatched') {
             playing = video?.current_time > 5 ? 'watched' : 'unwatched';
         }
@@ -97,17 +105,20 @@ const useProjectBrowser = (click: 'play' | 'route', onPlay: (videoId: number) =>
             key: p.id.toString() + (single ? 's' : ''),
             icon,
             name: p.project_name,
-            playing: playing,
+            playing,
             callback: () => {
-                single ? onPlay(video?.id) : callBack();
-            }
+                if (single) {
+                    onPlay(video?.id);
+                } else {
+                    callBack();
+                }
+            },
         };
     };
 
-
     const list: BrowserItem[] = [];
     if (routeProject !== null) {
-        let { cp, single } = isSingleVideo(recentPlaylists, routeProject);
+        const { cp, single } = isSingleVideo(recentPlaylists, routeProject);
         if (single) {
             list.push(...mapVideos(cp));
         } else {
