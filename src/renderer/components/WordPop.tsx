@@ -8,6 +8,7 @@ import {
 import { AiOutlineSound } from 'react-icons/ai';
 import { YdRes } from '../lib/param/yd/a';
 import { playUrl } from '../lib/AudioPlayer';
+import { cn } from '../../utils/Util';
 
 export interface WordSubParam {
     word: string;
@@ -57,9 +58,10 @@ const WordPop = React.forwardRef(
             console.log('aaaa', translation.query);
             return (
                 <div
-                    className={`relative top-0 left-0 max-w-sm max-h-96 overflow-y-auto flex flex-col items-start  bg-gray-200 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none ${
+                    className={cn(
+                        'select-text relative top-0 left-0 max-w-sm max-h-96 overflow-y-auto flex flex-col items-start  bg-gray-200 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none',
                         basic && 'pt-4'
-                    }`}
+                    )}
                 >
                     {basic && (
                         <>

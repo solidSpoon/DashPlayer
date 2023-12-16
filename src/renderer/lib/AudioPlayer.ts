@@ -30,7 +30,7 @@ export const playWord = async (word: string) => {
         return;
     }
     const trans = await api.transWord(word);
-    if (!trans.basic) {
+    if (!trans?.basic) {
         return;
     }
     const outUrl = trans.basic['us-speech'] ?? trans.basic['uk-speech'];
