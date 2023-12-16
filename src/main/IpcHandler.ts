@@ -39,6 +39,8 @@ import { SettingKey, SettingKeyObj } from '../types/store_schema';
 import { strBlank } from '../utils/Util';
 import { storeGet, storeSet } from './store';
 
+const { shell } = require('electron');
+
 const store = new Store();
 const handle = (
     channel: Channels,
@@ -169,6 +171,9 @@ export default function registerHandler() {
     });
     handle('open-url', async (url: string) => {
         log.info('open-url', url);
+        await shell.openExternal(
+            'https://github.com/solidSpoon/DashPlayer/releases/latest'
+        );
     });
     handle('player-size', async () => {
         log.info('player-size');

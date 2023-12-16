@@ -3,10 +3,10 @@ import SettingInput from '../../../components/setting/SettingInput';
 import ItemWrapper from '../../../components/setting/ItemWrapper';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
 import Header from '../../../components/setting/Header';
-import useSettingForm from "../../../hooks/useSettingForm";
+import useSettingForm from '../../../hooks/useSettingForm';
 
 const ShortcutSetting = () => {
-    const {setting, setSettingFunc, submit, eqServer} = useSettingForm([
+    const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
         'shortcut.previousSentence',
         'shortcut.nextSentence',
         'shortcut.repeatSentence',
@@ -75,10 +75,7 @@ const ShortcutSetting = () => {
             </ItemWrapper>
 
             <FooterWrapper>
-                <SettingButton
-                    handleSubmit={submit}
-                    disabled={eqServer}
-                />
+                <SettingButton handleSubmit={submit} disabled={eqServer} />
             </FooterWrapper>
         </form>
     );

@@ -4,9 +4,19 @@ import { app } from 'electron';
 export interface Release {
     url: string;
     version: string;
+    content: string;
 }
 
+let cache: Release | null = null;
+let cacheUpdateTime = 0;
+
 export const checkUpdate = async (): Promise<Release | null> => {
+    const now = Date.now();
+    // 5分钟内不重复检查更新
+    if (cache && now - cacheUpdateTime < 5 * 60 * 1000) {
+        return cache;
+    }
+
     const currentVersion = app.getVersion();
 
     const result = await axios
@@ -26,10 +36,15 @@ export const checkUpdate = async (): Promise<Release | null> => {
         return null;
     }
 
-    return {
+    cache = {
         url: result.data.html_url,
         version: result.data.tag_name,
+        content: result.data.body,
     };
+    cacheUpdateTime = now;
+    return cache;
+
+    //
 };
 
 export const appVersion = (): string => {
