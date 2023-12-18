@@ -33,9 +33,6 @@ jobs:
           npm run postinstall
           npm run build
 
-      - name: Rebuild native modules
-        run: npm run rebuild
-
       - name: Publish releases
         env:
           # This is used for uploading release assets to github
