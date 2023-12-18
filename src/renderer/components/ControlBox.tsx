@@ -4,8 +4,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn } from '../../utils/Util';
 import Switch from './Switch';
 import usePlayerController from '../hooks/usePlayerController';
+import useLayout, { cpH, cpW } from '../hooks/useLayout';
 
 const ControlBox = () => {
+    const w = cpW.bind(null, useLayout(s => s.width));
+    const h = cpH.bind(null, useLayout(s => s.height));
     const {
         showEn,
         showCn,
@@ -15,7 +18,7 @@ const ControlBox = () => {
         changeShowCn,
         changeShowWordLevel,
         changeSingleRepeat,
-        changePopType,
+        changePopType
     } = usePlayerController(
         useShallow((s) => ({
             showEn: s.showEn,
@@ -26,45 +29,48 @@ const ControlBox = () => {
             changeShowWordLevel: s.changeShowWordLevel,
             singleRepeat: s.singleRepeat,
             changeSingleRepeat: s.changeSingleRepeat,
-            changePopType: s.changePopType,
+            changePopType: s.changePopType
         }))
     );
 
     return (
         <div
             className={twMerge(
-                'flex gap-4 justify-center items-center p-8 rounded-lg w-full h-full text-black flex-col',
-                'drop-shadow-lg  bg-white'
+                'flex justify-center items-center gap-4 p-8 rounded-lg w-full h-full text-black flex-col',
+                'drop-shadow-lg  bg-white',
+                h('md') && 'gap-1 p-2',
+                h('xl') && 'gap-4 p-8'
             )}
         >
             <div className={cn('text-xl font-bold w-full')}>控制中心</div>
             <div
                 className={cn(
-                    'flex gap-6 flex-wrap items-center justify-start p-4 flex-1 w-full h-0 overflow-x-auto scrollbar-none'
+                    'flex gap-6 flex-wrap items-center justify-start  flex-1 w-full h-0 overflow-auto',
+                    'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-thumb-rounded scrollbar-track-gray-100 scrollbar-track-rounded',
                 )}
             >
                 <Switch
                     checked={showEn}
                     onChange={() => changeShowEn()}
-                    title="展示英文字幕"
+                    title='展示英文字幕'
                     className={cn('w-60 rounded')}
                 />
                 <Switch
                     checked={showCn}
                     onChange={() => changeShowCn()}
-                    title="展示中文字幕"
+                    title='展示中文字幕'
                     className={cn('w-60 rounded')}
                 />
                 <Switch
                     checked={showWordLevel}
                     onChange={() => changeShowWordLevel()}
-                    title="展示生词翻译"
+                    title='展示生词翻译'
                     className={cn('w-60 rounded-l-lg')}
                 />
                 <Switch
                     checked={singleRepeat}
                     onChange={() => changeSingleRepeat()}
-                    title="单句循环"
+                    title='单句循环'
                     className={cn('w-60 rounded')}
                 />
             </div>
