@@ -1,6 +1,6 @@
 import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
-import { YdRes } from '../../renderer/lib/param/yd/a';
-import WordTranslateService from '../../db/services/WordTranslateService';
+import { YdRes } from '../../common/types/YdRes';
+import WordTranslateService from '../services/WordTranslateService';
 import { storeGet } from '../store';
 
 const config: YouDaoConfig = {

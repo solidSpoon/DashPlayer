@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { CellRange } from 'ag-grid-community';
 import { DEFAULT_DATA_HOLDER, DEFAULT_WORD_LEVEL, WordViewRow } from './Types';
-import { Pagination } from '../../../db/services/WordViewService';
-import { WordView } from '../../../db/tables/wordView';
-import { arrayChanged } from '../../../utils/Util';
+import { Pagination } from '../../../main/services/WordViewService';
+import { WordView } from '../../../main/tables/wordView';
+import { arrayChanged } from '../../../common/utils/Util';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { AgGridReact } from 'ag-grid-react';
 

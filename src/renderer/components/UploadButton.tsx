@@ -4,7 +4,7 @@ import { IoIosSwitch } from 'react-icons/io';
 import { motion } from 'framer-motion';
 import { TbArrowsMaximize } from 'react-icons/tb';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 import useLayout from '../hooks/useLayout';
 import { CgMaximizeAlt } from "react-icons/cg";
 import { FaMaximize } from "react-icons/fa6";

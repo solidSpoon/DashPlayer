@@ -4,7 +4,7 @@ import Header from '../../../components/setting/Header';
 import ItemWrapper from '../../../components/setting/ItemWrapper';
 import { SettingButton } from '../../../components/setting';
 import FooterWrapper from '../../../components/setting/FooterWrapper';
-import { cn } from '../../../../utils/Util';
+import { cn } from '../../../../common/utils/Util';
 
 const api = window.electron;
 

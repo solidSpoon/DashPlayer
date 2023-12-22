@@ -1,10 +1,10 @@
 import { ReactElement, useState } from 'react';
 import { twJoin } from 'tailwind-merge';
-import hash from '../lib/hash';
+import hash from '../../common/utils/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
-import { cn, p } from '../../utils/Util';
+import { cn, p } from '../../common/utils/Util';
 import { FontSize } from '../styles/style';
 
 interface TranslatableSubtitleLineParam {

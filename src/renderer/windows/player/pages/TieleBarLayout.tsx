@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { cn } from '../../../../utils/Util';
+import { cn } from '../../../../common/utils/Util';
 import TitleBar from '../../../components/TitleBar/TitleBar';
 import useFile from '../../../hooks/useFile';
 import useLayout from '../../../hooks/useLayout';

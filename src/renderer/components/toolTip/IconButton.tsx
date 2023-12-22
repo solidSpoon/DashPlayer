@@ -1,4 +1,4 @@
-import { cn } from '../../../utils/Util';
+import { cn } from '../../../common/utils/Util';
 import { cloneElement, useRef, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ToolTip';
 

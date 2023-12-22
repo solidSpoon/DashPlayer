@@ -8,7 +8,7 @@
  * @param  string srt 字幕文件的内容
  * @return *[]
  */
-import SentenceT from './param/SentenceT';
+import SentenceT from '../types/SentenceT';
 
 /**
  * 把字符串格式的字幕时间转换为浮点数

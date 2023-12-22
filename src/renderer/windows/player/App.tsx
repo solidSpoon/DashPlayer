@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import './App.css';
-import '../../fonts/Archivo-VariableFont_wdth,wght.ttf';
+import '../../../common/fonts/Archivo-VariableFont_wdth,wght.ttf';
 import 'tailwindcss/tailwind.css';
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
@@ -12,6 +12,7 @@ import useSetting from '../../hooks/useSetting';
 import Layout from './pages/Layout';
 import { PlayerP, WordManagement } from './pages';
 import TieleBarLayout from './pages/TieleBarLayout';
+import Background from '../../components/bg/Background';
 
 loader.config({ monaco });
 LicenseManager.prototype.validateLicense = () => {};
@@ -46,6 +47,7 @@ export default function App() {
                                 />
                             </Route>
                         </Route>
+                        <Route path="bg" element={<Background />} />
                     </Routes>
                 </HashRouter>
             </div>

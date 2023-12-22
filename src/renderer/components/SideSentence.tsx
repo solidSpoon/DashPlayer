@@ -4,10 +4,10 @@ import {
     AiOutlinePlayCircle,
     AiOutlineTrademarkCircle,
 } from 'react-icons/ai';
-import SentenceT from '../lib/param/SentenceT';
+import SentenceT from '../../common/types/SentenceT';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 import useLayout from '../hooks/useLayout';
 
 interface SideSentenceNewParam {
@@ -23,7 +23,9 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
             (i) => i !== undefined && i !== ''
         );
-        const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
+        const fontSize = useSetting((state) =>
+            state.values.get('appearance.fontSize')
+        );
         const icon = () => {
             if (!playing) {
                 return <AiOutlinePlayCircle className="w-full h-full" />;
@@ -40,11 +42,13 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             <div
                 className={cn(
                     'm-1.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
-                    'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow',
+                    'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow'
                 )}
-                style={{
-                    // zoom: showSideBar ? 0.65 : 1,
-                }}
+                style={
+                    {
+                        // zoom: showSideBar ? 0.65 : 1,
+                    }
+                }
                 onClick={() => {
                     onClick(sentence);
                 }}

@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
-import parseFile from '../lib/FileParser';
+import parseFile from '../../common/utils/FileParser';
 import useFile from '../hooks/useFile';
 
 export type FileDropParam = {

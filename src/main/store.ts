@@ -1,6 +1,6 @@
 import Store from 'electron-store';
-import { SettingKey, SettingKeyObj } from '../types/store_schema';
-import { strBlank } from '../utils/Util';
+import { SettingKey, SettingKeyObj } from '../common/types/store_schema';
+import { strBlank } from '../common/utils/Util';
 import { mainWindow, settingWindow } from './main';
 import TransApi from './ServerLib/TransApi';
 

@@ -1,11 +1,11 @@
 import { inArray } from 'drizzle-orm';
-import TransHolder from '../../utils/TransHolder';
-import db from '../db';
+import TransHolder from '../../common/utils/TransHolder';
+import db from '../../db/db';
 import {
     SentenceTranslate,
     sentenceTranslates,
 } from '../tables/sentenceTranslates';
-import { p } from '../../utils/Util';
+import { p } from '../../common/utils/Util';
 
 export default class SentenceTranslateService {
     public static async fetchTranslates(

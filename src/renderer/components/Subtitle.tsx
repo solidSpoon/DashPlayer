@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useShallow } from 'zustand/react/shallow';
 import { twJoin } from 'tailwind-merge';
-import SentenceT from '../lib/param/SentenceT';
+import SentenceT from '../../common/types/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useSystem from '../hooks/useSystem';

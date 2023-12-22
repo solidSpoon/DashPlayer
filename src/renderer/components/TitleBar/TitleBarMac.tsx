@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useSystem from '../../hooks/useSystem';
 import useLayout from '../../hooks/useLayout';
-import { cn } from '../../../utils/Util';
+import { cn } from '../../../common/utils/Util';
 
 export interface TitleBarProps {
     hasSubtitle?: boolean;
@@ -20,7 +20,7 @@ const TitleBarMac = ({
 }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const showSideBar = useLayout((s) => s.showSideBar);
-    const showTitleBar = !autoHide || isMouseOver;
+    const showTitleBar = (!autoHide || isMouseOver) && false;
     const windowState = useSystem((s) => s.windowState);
     const setWindowState = useSystem((s) => s.setWindowState);
     const isMain = useSystem((s) => s.isMain);
@@ -55,18 +55,18 @@ const TitleBarMac = ({
         console.log('handleMouseLeave');
     };
 
-    useEffect(() => {
-        const init = async () => {
-            if (isMain) {
-                if (autoHide) {
-                    await api.hideButton();
-                } else {
-                    await api.showButton();
-                }
-            }
-        };
-        init();
-    }, [autoHide, isMain]);
+    // useEffect(() => {
+    //     const init = async () => {
+    //         if (isMain) {
+    //             if (autoHide) {
+    //                 await api.hideButton();
+    //             } else {
+    //                 await api.showButton();
+    //             }
+    //         }
+    //     };
+    //     init();
+    // }, [autoHide, isMain]);
 
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events

@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Slider } from './Slider';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn, secondToDate } from '../../utils/Util';
+import { cn, secondToDate } from '../../common/utils/Util';
 
 export interface PlayerControlPannelProps {
     className?: string;

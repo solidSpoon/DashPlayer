@@ -1,4 +1,4 @@
-import { cn } from '../../../utils/Util';
+import { cn } from '../../../common/utils/Util';
 
 export interface SettingInputProps {
     title: string;

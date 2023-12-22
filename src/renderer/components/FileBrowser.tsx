@@ -6,7 +6,7 @@ import { IoRefreshCircleOutline } from 'react-icons/io5';
 import FileSelector from './fileBowser/FileSelector';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import FileItem from './fileBowser/FileItem';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 
 const FileBrowser = () => {
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ const FileBrowser = () => {
             }}
             className={twMerge(
                 'flex-1 flex flex-col gap-2 items-center justify-center p-5 xl:p-10 rounded-lg w-full h-full text-black',
-                'bg-white drop-shadow-lg'
+                'bg-white/90 drop-shadow-lg'
             )}
         >
             <FileSelector className="text-base" directory={false} />

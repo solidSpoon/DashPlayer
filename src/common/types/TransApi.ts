@@ -1,4 +1,4 @@
-import SentenceT from '../renderer/lib/param/SentenceT';
+import SentenceT from './SentenceT';
 
 export interface SentenceApiParam {
     index: number;

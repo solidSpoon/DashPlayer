@@ -3,9 +3,9 @@ import * as turf from '@turf/turf';
 import { Feature, Polygon } from '@turf/turf';
 import { twMerge } from 'tailwind-merge';
 import { useShallow } from 'zustand/react/shallow';
-import { YdRes } from '../lib/param/yd/a';
+import { YdRes } from '../../common/types/YdRes';
 import WordPop from './WordPop';
-import { playUrl, playWord } from '../lib/AudioPlayer';
+import { playUrl, playWord } from '../../common/utils/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
 

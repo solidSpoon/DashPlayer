@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { SettingKey, SettingKeyObj } from '../../types/store_schema';
+import { SettingKey, SettingKeyObj } from '../../common/types/store_schema';
 
 const api = window.electron;
 

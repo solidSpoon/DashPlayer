@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import useSystem from '../../../hooks/useSystem';
 import TitleBar from '../../../components/TitleBar/TitleBar';
 import useSetting from '../../../hooks/useSetting';
-import { cn, secondToDate } from '../../../../utils/Util';
+import { cn, secondToDate } from '../../../../common/utils/Util';
 import FileSelector from '../../../components/fileBowser/FileSelector';
 import useProjectBrowser from '../../../hooks/useProjectBrowser';
 import logoLight from '../../../../../assets/logo-light.png';

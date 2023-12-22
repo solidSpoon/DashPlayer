@@ -1,9 +1,9 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { IServerSideGetRowsRequest } from 'ag-grid-community';
 import natural from 'natural';
-import db from '../db';
+import db from '../../db/db';
 
-import { p } from '../../utils/Util';
+import { p } from '../../common/utils/Util';
 import { InsertWord, words } from '../tables/words';
 import { InsertStem, stems } from '../tables/stems';
 import { WordView } from '../tables/wordView';

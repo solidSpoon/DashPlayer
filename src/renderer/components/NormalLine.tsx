@@ -1,7 +1,7 @@
 import { ReactElement } from 'react';
-import hash from '../lib/hash';
+import hash from '../../common/utils/hash';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 import useSetting from '../hooks/useSetting';
 import { FontSize } from '../styles/style';
 

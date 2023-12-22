@@ -1,6 +1,6 @@
-import SentenceT from '../../lib/param/SentenceT';
-import TransHolder from '../../../utils/TransHolder';
-import { SentenceStruct } from '../../../types/SentenceStruct';
+import SentenceT from '../../../common/types/SentenceT';
+import TransHolder from '../../../common/utils/TransHolder';
+import { SentenceStruct } from '../../../common/types/SentenceStruct';
 import { WordLevelRes } from '../../../main/controllers/WordLevelController';
 
 export interface SubtitleSlice {

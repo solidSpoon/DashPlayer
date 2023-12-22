@@ -1,17 +1,17 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { IServerSideGetRowsRequest } from 'ag-grid-community';
-import { YdRes } from '../renderer/lib/param/yd/a';
+import { YdRes } from '../common/types/YdRes';
 import { Release } from './controllers/CheckUpdate';
 import { SettingState } from '../renderer/hooks/useSetting';
-import { WindowState } from '../types/Types';
+import { WindowState } from '../common/types/Types';
 
-import { SentenceStruct } from '../types/SentenceStruct';
+import { SentenceStruct } from '../common/types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
-import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
-import { WordView } from '../db/tables/wordView';
-import { Pagination } from '../db/services/WordViewService';
-import { WatchProjectVO } from '../db/services/WatchProjectService';
-import { SettingKey } from '../types/store_schema';
+import { WatchProjectVideo } from './tables/watchProjectVideos';
+import { WordView } from './tables/wordView';
+import { Pagination } from './services/WordViewService';
+import { WatchProjectVO } from './services/WatchProjectService';
+import { SettingKey } from '../common/types/store_schema';
 
 export type Channels =
     | 'main-state'

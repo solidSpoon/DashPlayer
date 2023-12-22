@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 import natural from 'natural';
-import { p } from '../../utils/Util';
-import db from '../db';
+import { p } from '../../common/utils/Util';
+import db from '../../db/db';
 import { InsertStem, Stem, stems } from '../tables/stems';
 
 export const s = natural.PorterStemmer;

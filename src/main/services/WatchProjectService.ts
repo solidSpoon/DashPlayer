@@ -17,8 +17,8 @@ import {
     ACCEPTED_FILE_TYPES,
     isSubtitle,
     isVideo,
-} from '../../utils/MediaTypeUitl';
-import db from '../db';
+} from '../../common/utils/MediaTypeUitl';
+import db from '../../db/db';
 
 export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];

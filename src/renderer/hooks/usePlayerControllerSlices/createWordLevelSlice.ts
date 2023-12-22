@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand/esm';
 import { InternalSlice, WordLevelSlice } from './SliceTypes';
-import { p } from '../../../utils/Util';
+import { p } from '../../../common/utils/Util';
 import { WordLevelRes } from '../../../main/controllers/WordLevelController';
 
 const api = window.electron;

@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import useFile from '../hooks/useFile';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 
 const BorderProgressBar = () => {
     const hasSubTitle = useFile((s) => s.subtitleFile !== undefined);

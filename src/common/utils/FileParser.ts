@@ -1,5 +1,5 @@
-import FileT, { FileType } from './param/FileT';
-import { isSubtitle, isVideo } from '../../utils/MediaTypeUitl';
+import FileT, { FileType } from '../types/FileT';
+import { isSubtitle, isVideo } from './MediaTypeUitl';
 
 const api = window.electron;
 const parseFile = (file: File): FileT => {

@@ -5,7 +5,7 @@ import {
     SentenceSlice,
     SubtitleSlice,
 } from './SliceTypes';
-import SentenceT from '../../lib/param/SentenceT';
+import SentenceT from '../../../common/types/SentenceT';
 
 function getElementAt(index: number, subtitles: SentenceT[]): SentenceT {
     let targetIndex = index;

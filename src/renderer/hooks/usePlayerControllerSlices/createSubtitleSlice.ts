@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand/esm';
-import SentenceT from '../../lib/param/SentenceT';
+import SentenceT from '../../../common/types/SentenceT';
 import { InternalSlice, SubtitleSlice } from './SliceTypes';
 
 const GROUP_SECONDS = 10;

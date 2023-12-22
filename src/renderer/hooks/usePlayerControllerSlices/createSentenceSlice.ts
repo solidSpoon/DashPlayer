@@ -5,7 +5,7 @@ import {
     SentenceSlice,
     SubtitleSlice,
 } from './SliceTypes';
-import SentenceT from '../../lib/param/SentenceT';
+import SentenceT from '../../../common/types/SentenceT';
 
 const createSentenceSlice: StateCreator<
     PlayerSlice & SentenceSlice & InternalSlice & SubtitleSlice,

@@ -1,6 +1,6 @@
-import { p } from '../../utils/Util';
+import { p } from '../../common/utils/Util';
 import { InsertWord, words } from '../tables/words';
-import db from '../db';
+import db from '../../db/db';
 import natural from 'natural';
 
 export default class WordLevelService {

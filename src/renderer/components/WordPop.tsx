@@ -6,9 +6,9 @@ import {
     useInteractions,
 } from '@floating-ui/react';
 import { AiOutlineSound } from 'react-icons/ai';
-import { YdRes } from '../lib/param/yd/a';
-import { playUrl } from '../lib/AudioPlayer';
-import { cn } from '../../utils/Util';
+import { YdRes } from '../../common/types/YdRes';
+import { playUrl } from '../../common/utils/AudioPlayer';
+import { cn } from '../../common/utils/Util';
 
 export interface WordSubParam {
     word: string;

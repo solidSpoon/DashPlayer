@@ -16,15 +16,15 @@ import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice
 import createInternalSlice from './usePlayerControllerSlices/createInternalSlice';
 import createModeSlice from './usePlayerControllerSlices/createModeSlice';
 import createControllerSlice from './usePlayerControllerSlices/createControllerSlice';
-import FileT from '../lib/param/FileT';
-import parseSrtSubtitles from '../lib/parseSrt';
-import SentenceT from '../lib/param/SentenceT';
+import FileT from '../../common/types/FileT';
+import parseSrtSubtitles from '../../common/utils/parseSrt';
+import SentenceT from '../../common/types/SentenceT';
 import useFile from './useFile';
-import { p, sleep, splitToWords } from '../../utils/Util';
+import { p, sleep, splitToWords } from '../../common/utils/Util';
 import useSetting from './useSetting';
 import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
-import TransHolder from '../../utils/TransHolder';
-import { SentenceStruct } from '../../types/SentenceStruct';
+import TransHolder from '../../common/utils/TransHolder';
+import { SentenceStruct } from '../../common/types/SentenceStruct';
 
 const api = window.electron;
 const usePlayerController = create<

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import FileT, { FileType } from '../lib/param/FileT';
-import { pathToFile } from '../lib/FileParser';
-import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
+import FileT, { FileType } from '../../common/types/FileT';
+import { pathToFile } from '../../common/utils/FileParser';
+import { WatchProjectVideo } from '../../main/tables/watchProjectVideos';
 
 type UseFileState = {
     videoFile: FileT | undefined;

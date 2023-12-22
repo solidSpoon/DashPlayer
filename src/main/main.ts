@@ -16,7 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import registerHandler from './IpcHandler';
-import { WindowState } from '../types/Types';
+import { WindowState } from '../common/types/Types';
 import runMigrate from "../db/migrate";
 
 const { net, protocol } = require('electron');

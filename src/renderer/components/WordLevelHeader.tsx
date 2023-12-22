@@ -21,12 +21,12 @@ import {
     useFloating,
     useInteractions
 } from '@floating-ui/react';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 import Separator from './Separtor';
 import useDataPage, {
     DataPageDataHolder
 } from '../hooks/useDataPage/useDataPage';
-import { convertSelect, DataHolder } from '../../utils/ClipBoardConverter';
+import { convertSelect, DataHolder } from '../../common/utils/ClipBoardConverter';
 import IconButton from './toolTip/IconButton';
 
 export interface WordLevelHeaderProps {

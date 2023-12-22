@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { cn } from '../../../utils/Util';
+import { cn } from '../../../common/utils/Util';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../toolTip/ToolTip';
 import FileBrowserIcon from './FileBrowserIcon';
 

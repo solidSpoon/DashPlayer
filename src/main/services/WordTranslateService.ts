@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { YdRes } from '../../renderer/lib/param/yd/a';
-import { p, strBlank } from '../../utils/Util';
-import db from '../db';
+import { YdRes } from '../../common/types/YdRes';
+import { p, strBlank } from '../../common/utils/Util';
+import db from '../../db/db';
 import {
     InsertWordTranslate,
     WordTranslate,

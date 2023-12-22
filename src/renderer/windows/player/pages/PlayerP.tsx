@@ -3,7 +3,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import useLayout, { cpW } from '../../../hooks/useLayout';
-import { cn } from '../../../../utils/Util';
+import { cn } from '../../../../common/utils/Util';
 import FileBrowser from '../../../components/FileBrowser';
 import ControlBox from '../../../components/ControlBox';
 import MainSubtitle from '../../../components/MainSubtitle';
@@ -14,6 +14,7 @@ import BorderProgressBar from '../../../components/BorderProgressBar';
 import useFile from '../../../hooks/useFile';
 import GlobalShortCut from '../../../components/GlobalShortCut';
 import SideBar from '../../../components/SideBar';
+import Background from '../../../components/bg/Background';
 
 const api = window.electron;
 const PlayerP = () => {
@@ -92,142 +93,146 @@ const PlayerP = () => {
         return '65px calc((100% - 65px) * 1 / 2) calc((100% - 65px) * 1 / 2)';
     };
     return (
-        <div
-            className="w-full h-full grid grid-cols-3 grid-rows-2 overflow-hidden bg-gray-100"
-            style={{
-                gridTemplateColumns: gridTemplate(),
-                gridTemplateRows: '30% 70%', // 这里定义每行的大小
-            }}
-        >
-            <AnimatePresence>
-                {showSideBar && (
-                    <>
-                        <motion.div
-                            className={cn(
-                                'col-start-1 col-end-2 row-start-1 row-end-3'
-                            )}
-                            initial={{ x: -1000 }}
-                            animate={{
-                                x: 0,
-                            }}
-                            exit={{ x: -1000 }}
-                            transition={{
-                                type: 'tween',
-                                duration: sideBarAnimation ? 0.2 : 0,
-                            }}
-                        >
-                            <SideBar compact={!w('lg')} />
-                        </motion.div>
-                        <motion.div
-                            className={cn(
-                                'col-start-2 row-start-1 col-end-4 row-end-3 p-4',
-                                h('md') && 'row-start-2',
-                                w('md') && 'row-start-1 col-start-3 pl-2'
-                            )}
-                            initial={{ x: 1000 }}
-                            animate={{
-                                x: 0,
-                            }}
-                            exit={{ x: 1000 }}
-                            transition={{
-                                type: 'tween',
-                                duration: 0.2,
-                            }}
-                        >
-                            <FileBrowser />
-                        </motion.div>
-
-                        <motion.div
-                            className={cn(
-                                'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-4',
-                                w('md') && 'block col-end-3',
-                                h('md') && 'block row-end-2'
-                            )}
-                            initial={{ y: -1000 }}
-                            animate={{
-                                y: 0,
-                                x: 0,
-                            }}
-                            exit={{ y: -1000 }}
-                            transition={{
-                                type: 'tween',
-                                duration: 0.2,
-                            }}
-                        >
-                            <ControlBox />
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+        <div className={cn('relative w-full h-full')}>
+            <Background />
             <div
-                className=""
-                ref={posRef}
+                className="absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden"
                 style={{
-                    gridArea: '2 / 2 / 2 / 3',
-                }}
-            />
-            <div
-                className={cn(
-                    'flex flex-col',
-                    showSideBar && 'p-4 pt-2 pr-2',
-                    !((w('md') && h('md')) || !showSideBar) && 'hidden'
-                )}
-                style={{
-                    gridArea: '1 / 1 / -1 / -1',
-                    transform: showSideBar
-                        ? `translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`
-                        : 'translate(0px, 0px) scale(1)',
-                    transformOrigin: 'top left',
+                    gridTemplateColumns: gridTemplate(),
+                    gridTemplateRows: '30% 70%', // 这里定义每行的大小
                 }}
             >
+                <AnimatePresence>
+                    {showSideBar && (
+                        <>
+                            <motion.div
+                                className={cn(
+                                    'col-start-1 col-end-2 row-start-1 row-end-3'
+                                )}
+                                initial={{ x: -1000 }}
+                                animate={{
+                                    x: 0,
+                                }}
+                                exit={{ x: -1000 }}
+                                transition={{
+                                    type: 'tween',
+                                    duration: sideBarAnimation ? 0 : 0,
+                                }}
+                            >
+                                <SideBar compact={!w('lg')} />
+                            </motion.div>
+                            <motion.div
+                                className={cn(
+                                    'col-start-2 row-start-1 col-end-4 row-end-3 p-2',
+                                    h('md') && 'row-start-2',
+                                    w('md') && 'row-start-1 col-start-3 pl-1'
+                                )}
+                                initial={{ x: 1000 }}
+                                animate={{
+                                    x: 0,
+                                }}
+                                exit={{ x: 1000 }}
+                                transition={{
+                                    type: 'tween',
+                                    duration: 0.2,
+                                }}
+                            >
+                                <FileBrowser />
+                            </motion.div>
+
+                            <motion.div
+                                className={cn(
+                                    'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-2',
+                                    w('md') && 'block col-end-3',
+                                    h('md') && 'block row-end-2'
+                                )}
+                                initial={{ y: -1000 }}
+                                animate={{
+                                    y: 0,
+                                    x: 0,
+                                }}
+                                exit={{ y: -1000 }}
+                                transition={{
+                                    type: 'tween',
+                                    duration: 0.2,
+                                }}
+                            >
+                                <ControlBox />
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+                <div
+                    className="p-4"
+                    style={{
+                        gridArea: '2 / 2 / 2 / 3',
+                    }}
+                >
+                    <div className="w-full h-full" ref={posRef} />
+                </div>
                 <div
                     className={cn(
-                        'w-full h-full flex flex-col',
-
-                        showSideBar &&
-                            'overflow-hidden border-2 border-gray-300 rounded-lg'
+                        'flex flex-col',
+                        showSideBar && 'p-4 pt-2 pr-2 drop-shadow-2xl',
+                        !((w('md') && h('md')) || !showSideBar) && 'hidden'
                     )}
+                    style={{
+                        gridArea: '1 / 1 / -1 / -1',
+                        transform: showSideBar
+                            ? `translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`
+                            : 'translate(0px, 0px) scale(1)',
+                        transformOrigin: 'top left',
+                    }}
                 >
-                    <Split
+                    <div
                         className={cn(
-                            'flex flex-row h-0 flex-1 w-full bg-background'
+                            'w-full h-full flex flex-col',
+
+                            showSideBar &&
+                                'overflow-hidden border-[30px] border-white/90 rounded-[45px]'
                         )}
-                        sizes={JSON.parse(sizeA)}
-                        onDragEnd={(sizes) => {
-                            localStorage.setItem(
-                                'split-size-a',
-                                JSON.stringify(sizes)
-                            );
-                        }}
                     >
                         <Split
-                            minSize={10}
-                            className="split z-40"
-                            sizes={JSON.parse(sizeB)}
+                            className={cn(
+                                'flex flex-row h-0 flex-1 w-full bg-background'
+                            )}
+                            sizes={JSON.parse(sizeA)}
                             onDragEnd={(sizes) => {
                                 localStorage.setItem(
-                                    'split-size-b',
+                                    'split-size-a',
                                     JSON.stringify(sizes)
                                 );
                             }}
-                            direction="vertical"
                         >
-                            <div className="h-full">
-                                <Player />
-                            </div>
-                            <div className="h-full">
-                                <MainSubtitle />
-                            </div>
+                            <Split
+                                minSize={10}
+                                className="split z-40"
+                                sizes={JSON.parse(sizeB)}
+                                onDragEnd={(sizes) => {
+                                    localStorage.setItem(
+                                        'split-size-b',
+                                        JSON.stringify(sizes)
+                                    );
+                                }}
+                                direction="vertical"
+                            >
+                                <div className="h-full">
+                                    <Player />
+                                </div>
+                                <div className="h-full">
+                                    <MainSubtitle />
+                                </div>
+                            </Split>
+                            <Subtitle />
                         </Split>
-                        <Subtitle />
-                    </Split>
-                    <div className={cn('h-2')}>
-                        <BorderProgressBar />
+                        {/* <div className={cn('h-2')}> */}
+                        {/*     <BorderProgressBar /> */}
+                        {/* </div> */}
                     </div>
                 </div>
+                <UploadButton />
+                <GlobalShortCut />
             </div>
-            <UploadButton />
-            <GlobalShortCut />
         </div>
     );
 };

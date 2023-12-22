@@ -20,7 +20,7 @@ import {
 } from './controllers/StorageController';
 import { Channels } from './preload';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
-import { WindowState } from '../types/Types';
+import { WindowState } from '../common/types/Types';
 import {
     listWordsView,
     markWordLevel,
@@ -32,11 +32,11 @@ import {
     writeToClipboard,
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
-import { WordView } from '../db/tables/wordView';
-import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
-import WatchProjectService from '../db/services/WatchProjectService';
-import { SettingKey, SettingKeyObj } from '../types/store_schema';
-import { strBlank } from '../utils/Util';
+import { WordView } from './tables/wordView';
+import { WatchProjectVideo } from './tables/watchProjectVideos';
+import WatchProjectService from './services/WatchProjectService';
+import { SettingKey, SettingKeyObj } from '../common/types/store_schema';
+import { strBlank } from '../common/utils/Util';
 import { storeGet, storeSet } from './store';
 
 const { shell } = require('electron');

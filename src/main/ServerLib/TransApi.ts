@@ -2,8 +2,8 @@ import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import log from 'electron-log';
-import TransHolder from '../../utils/TransHolder';
-import { strBlank } from '../../utils/Util';
+import TransHolder from '../../common/utils/TransHolder';
+import { strBlank } from '../../common/utils/Util';
 import { storeGet } from '../store';
 
 class TransApi {

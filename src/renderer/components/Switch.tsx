@@ -3,7 +3,7 @@ import {
     PiToggleRight,
     PiToggleRightLight,
 } from 'react-icons/pi';
-import { cn } from '../../utils/Util';
+import { cn } from '../../common/utils/Util';
 
 export interface SwitchParam {
     checked?: boolean;

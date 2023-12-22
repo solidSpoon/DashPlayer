@@ -1,7 +1,7 @@
 import React from 'react';
-import { pathToFile } from '../../lib/FileParser';
+import { pathToFile } from '../../../common/utils/FileParser';
 import useFile from '../../hooks/useFile';
-import { cn } from '../../../utils/Util';
+import { cn } from '../../../common/utils/Util';
 import usePlayerController from '../../hooks/usePlayerController';
 import { useNavigate } from "react-router-dom";
 import FileItem from './FileItem';

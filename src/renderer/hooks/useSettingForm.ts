@@ -1,6 +1,6 @@
 import useSetting from "./useSetting";
 import { useEffect, useState } from "react";
-import { SettingKey } from "../../types/store_schema";
+import { SettingKey } from "../../common/types/store_schema";
 
 const useSettingForm = (keys: SettingKey[]) => {
     const setting = useSetting(s=>s.setting);

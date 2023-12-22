@@ -2,11 +2,11 @@
 import { IServerSideGetRowsRequest } from 'ag-grid-community';
 import TransApi from '../ServerLib/TransApi';
 
-import { p } from '../../utils/Util';
-import StemLevelService from '../../db/services/StemLevelService';
-import WordLevelService from '../../db/services/WordLevelService';
-import { WordView } from '../../db/tables/wordView';
-import WordViewService, { Pagination } from '../../db/services/WordViewService';
+import { p } from '../../common/utils/Util';
+import StemLevelService from '../services/StemLevelService';
+import WordLevelService from '../services/WordLevelService';
+import { WordView } from '../tables/wordView';
+import WordViewService, { Pagination } from '../services/WordViewService';
 
 export async function markWordLevel(
     word: string,

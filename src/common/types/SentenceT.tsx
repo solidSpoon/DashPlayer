@@ -1,4 +1,4 @@
-import hash from '../hash';
+import hash from '../utils/hash';
 
 class SentenceT {
     public index: number;

@@ -2,7 +2,7 @@ import natural from 'natural';
 import {
     SentenceBlockBySpace,
     SentenceStruct,
-} from '../../types/SentenceStruct';
+} from '../../common/types/SentenceStruct';
 
 const tokenizer = new natural.TreebankWordTokenizer();
 

@@ -1,7 +1,7 @@
 import { GoFile } from 'react-icons/go';
 import React from 'react';
 import { VscFolder } from 'react-icons/vsc';
-import { cn } from '../../../utils/Util';
+import { cn } from '../../../common/utils/Util';
 
 const baseClass = 'w-4 h-4 fill-yellow-700/90 flex-shrink-0';
 export default class FileBrowserIcon {

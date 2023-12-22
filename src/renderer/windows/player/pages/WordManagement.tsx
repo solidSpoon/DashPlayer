@@ -16,21 +16,29 @@ import { RowClassParams } from 'ag-grid-community/dist/lib/entities/gridOptions'
 import WordLevelHeader from '../../../components/WordLevelHeader';
 import FilterEditor from '../../../components/filterEidter';
 import useDataPage from '../../../hooks/useDataPage/useDataPage';
+import { cn } from '../../../../common/utils/Util';
 
 const WordManagement = () => {
     const gridRef = useRef<AgGridReact>(null);
-    const { dataSource, tryMount, unMount, diff, setRef, setCellSelection, ele } =
-        useDataPage(
-            useShallow((s) => ({
-                dataSource: s.data.wordView.dataSource,
-                tryMount: s.tryMount,
-                unMount: s.unmount,
-                diff: s.diff,
-                setRef: s.setRef,
-                setCellSelection: s.setCellSelection,
-                ele: s.data.wordView.ele,
-            }))
-        );
+    const {
+        dataSource,
+        tryMount,
+        unMount,
+        diff,
+        setRef,
+        setCellSelection,
+        ele,
+    } = useDataPage(
+        useShallow((s) => ({
+            dataSource: s.data.wordView.dataSource,
+            tryMount: s.tryMount,
+            unMount: s.unmount,
+            diff: s.diff,
+            setRef: s.setRef,
+            setCellSelection: s.setCellSelection,
+            ele: s.data.wordView.ele,
+        }))
+    );
     const cellStyle = (field: string) => {
         // 淡蓝色
         return (params: any) => {
@@ -108,17 +116,17 @@ const WordManagement = () => {
         return () => {
             unMount('wordView');
         };
-    }, []);
+    }, [tryMount, unMount]);
 
     const handleRangeSelectionChanged = (event: any) => {
         const cellRanges = ele.current?.api.getCellRanges();
         console.log('cellRanges', cellRanges);
-        setCellSelection('wordView', cellRanges??[]);
+        setCellSelection('wordView', cellRanges ?? []);
     };
     // Container: Defines the grid's theme & dimensions.
     return (
         <div
-            className="w-full h-full flex flex-col bg-white"
+            className="w-full h-full flex flex-col"
             style={{ width: '100%', height: '100%' }}
         >
             <div className="h-10 grid place-content-center">
@@ -126,26 +134,28 @@ const WordManagement = () => {
             </div>
             <WordLevelHeader keyName="wordView" />
             <FilterEditor keyName="wordView" />
-            <AgGridReact
-                onRangeSelectionChanged={(event) => {
-                    handleRangeSelectionChanged(event);
-                }}
-                ref={(r) => setRef('wordView', r)}
-                getRowStyle={getRowStyle}
-                onStateUpdated={() => diff('wordView')}
-                animateRows={false}
-                className="ag-theme-balham flex-1"
-                rowData={dataSource}
-                columnDefs={colDefs}
-                defaultColDef={defaultColDef}
-                enableRangeSelection
-                getRowId={(params) => params.data.fakeId}
-                rowSelection="multiple"
-                onSelectionChanged={(event) => console.log('Row Selected!')}
-                onCellValueChanged={(event) =>
-                    console.log(`New Cell Value: ${event.value}`)
-                }
-            />
+            <div className="flex-1 p-2 pt-0">
+                <AgGridReact
+                    onRangeSelectionChanged={(event) => {
+                        handleRangeSelectionChanged(event);
+                    }}
+                    ref={(r) => setRef('wordView', r)}
+                    getRowStyle={getRowStyle}
+                    onStateUpdated={() => diff('wordView')}
+                    animateRows={false}
+                    className="ag-theme-balham flex-1"
+                    rowData={dataSource}
+                    columnDefs={colDefs}
+                    defaultColDef={defaultColDef}
+                    enableRangeSelection
+                    getRowId={(params) => params.data.fakeId}
+                    rowSelection="multiple"
+                    onSelectionChanged={(event) => console.log('Row Selected!')}
+                    onCellValueChanged={(event) =>
+                        console.log(`New Cell Value: ${event.value}`)
+                    }
+                />
+            </div>
         </div>
     );
 };
