@@ -1,9 +1,9 @@
-import SettingButton from '../../../components/setting/SettingButton';
-import SettingInput from '../../../components/setting/SettingInput';
-import ItemWrapper from '../../../components/setting/ItemWrapper';
-import FooterWrapper from '../../../components/setting/FooterWrapper';
-import Header from '../../../components/setting/Header';
-import useSettingForm from "../../../hooks/useSettingForm";
+import SettingButton from '../../../../components/setting/SettingButton';
+import SettingInput from '../../../../components/setting/SettingInput';
+import ItemWrapper from '../../../../components/setting/ItemWrapper';
+import FooterWrapper from '../../../../components/setting/FooterWrapper';
+import Header from '../../../../components/setting/Header';
+import useSettingForm from "../../../../hooks/useSettingForm";
 
 
 const TenantSetting = () => {

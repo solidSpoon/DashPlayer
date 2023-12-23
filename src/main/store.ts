@@ -2,7 +2,7 @@ import Store from 'electron-store';
 import { SettingKey, SettingKeyObj } from '../common/types/store_schema';
 import { strBlank } from '../common/utils/Util';
 import { mainWindow, settingWindow } from './main';
-import TransApi from './ServerLib/TransApi';
+import TransApi from './services/TransApi';
 
 const store = new Store();
 

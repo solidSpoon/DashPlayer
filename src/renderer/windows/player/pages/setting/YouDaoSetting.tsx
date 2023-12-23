@@ -1,9 +1,9 @@
-import SettingInput from "../../../components/setting/SettingInput";
-import SettingButton from "../../../components/setting/SettingButton";
-import FooterWrapper from "../../../components/setting/FooterWrapper";
-import ItemWrapper from "../../../components/setting/ItemWrapper";
-import Header from "../../../components/setting/Header";
-import useSettingForm from "../../../hooks/useSettingForm";
+import SettingInput from "../../../../components/setting/SettingInput";
+import SettingButton from "../../../../components/setting/SettingButton";
+import FooterWrapper from "../../../../components/setting/FooterWrapper";
+import ItemWrapper from "../../../../components/setting/ItemWrapper";
+import Header from "../../../../components/setting/Header";
+import useSettingForm from "../../../../hooks/useSettingForm";
 
 const YouDaoSetting = () => {
     const {setting, setSettingFunc, submit, eqServer} = useSettingForm([

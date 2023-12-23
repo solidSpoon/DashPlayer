@@ -160,7 +160,7 @@ export default function Subtitle() {
                     className={twJoin(
                         'h-full w-full overflow-y-scroll text-textColor',
                         'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded',
-                        'scrollbar-thin scrollbar-track-scrollbarTrack'
+                        'scrollbar-thin scrollbar-track-white'
                     )}
                     data={subtitle}
                     rangeChanged={({ startIndex, endIndex }) => {

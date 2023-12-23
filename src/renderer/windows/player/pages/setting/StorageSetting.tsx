@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import Header from '../../../components/setting/Header';
-import ItemWrapper from '../../../components/setting/ItemWrapper';
-import FooterWrapper from '../../../components/setting/FooterWrapper';
-import SettingButton from '../../../components/setting/SettingButton';
+import Header from '../../../../components/setting/Header';
+import ItemWrapper from '../../../../components/setting/ItemWrapper';
+import FooterWrapper from '../../../../components/setting/FooterWrapper';
+import SettingButton from '../../../../components/setting/SettingButton';
 
 const api = window.electron;
 const StorageSetting = () => {
@@ -50,6 +50,7 @@ const StorageSetting = () => {
                     text="打开缓存文件夹"
                 />
                 <SettingButton
+                    kind={'secondary'}
                     disabled
                     handleSubmit={handleClear}
                     text="清除一个月前的缓存"

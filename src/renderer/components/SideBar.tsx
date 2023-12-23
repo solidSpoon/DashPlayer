@@ -1,10 +1,10 @@
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom';
 import {
-    HiOutlineAcademicCap,
-    HiOutlineHome,
-    HiOutlineVideoCamera,
+    HiOutlineAcademicCap, HiOutlineCog,
+    HiOutlineHome, HiOutlineUser,
+    HiOutlineVideoCamera
 } from 'react-icons/hi';
-import { cloneElement, ReactElement } from 'react';
+import React, { cloneElement, ReactElement } from 'react';
 import { cn } from '../../common/utils/Util';
 import logoLight from '../../../assets/logo-light.png';
 import useFile from '../hooks/useFile';
@@ -74,7 +74,8 @@ const SideBar = ({ compact }: SideBarProps) => {
                     'word-management',
                     <HiOutlineAcademicCap />
                 )}
-                {/* {item('Background', '/bg', 'bg', <HiOutlineAcademicCap />)} */}
+                 {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
+                {item('About', '/about', 'about', <HiOutlineUser />)}
             </div>
         </div>
     );

@@ -1,4 +1,5 @@
 import { cn } from '../../../common/utils/Util';
+import Title from './Title';
 
 export interface SettingInputProps {
     title: string;
@@ -18,17 +19,21 @@ const SettingInput = ({
                           inputWidth
                       }: SettingInputProps) => {
     return (
-        <div className='flex items-center gap-4  text-gray-700 text-sm select-none'>
-            <div className='text-sm text-right w-28'>{title} :</div>
+        <div className='text-gray-700 text-sm select-none pr-10'>
+            <Title title={title} />
+            {/*<div className='text-sm text-left w-full'>{title} :</div>*/}
             <input
                 className={cn(
-                    `appearance-none border h-6 rounded text-sm px-3 text-gray-700  outline-2 outline-yellow-500`
-                    , inputWidth)}
+                    `appearance-none border h-10 rounded px-3 text-gray-700  outline-2 outline-black w-full drop-shadow`
+                    )}
                 type={type}
                 placeholder={placeHolder}
                 value={value || ''}
                 onChange={(event) => setValue(event.target.value)}
             />
+            <div className={cn('text-sm text-left w-full text-gray-500 mt-2')}>
+                这是一个示例
+            </div>
         </div>
     );
 };
@@ -36,6 +41,6 @@ const SettingInput = ({
 SettingInput.defaultProps = {
     placeHolder: '',
     type: 'text',
-    inputWidth: 'w-44'
+    inputWidth: 'w-96'
 };
 export default SettingInput;

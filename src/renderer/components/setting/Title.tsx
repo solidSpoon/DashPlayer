@@ -1,15 +1,21 @@
 import { ReactElement } from 'react';
 
-export interface TieleProps {
+export interface HeaderProps {
     title: string;
+    description?: string | undefined | ReactElement;
 }
 
-const Title = ({ title }: TieleProps) => {
+const Title = ({ title, description }: HeaderProps) => {
     return (
-        <div className="pl-6">
-            <h2 className="text-xl font-bold">{title}</h2>
+        <div>
+            <h1 className='text-lg font-bold mb-2'>{title}</h1>
+            <text className='text-base text-gray-600'>{description}</text>
         </div>
     );
+};
+
+Title.defaultProps = {
+    description: undefined
 };
 
 export default Title;

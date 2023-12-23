@@ -94,7 +94,6 @@ const PlayerP = () => {
     };
     return (
         <div className={cn('relative w-full h-full')}>
-            <Background />
             <div
                 className="absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden"
                 style={{
@@ -172,8 +171,8 @@ const PlayerP = () => {
                 </div>
                 <div
                     className={cn(
-                        'flex flex-col',
-                        showSideBar && 'p-4 pt-2 pr-2 drop-shadow-2xl',
+                        'flex flex-col p-2 pt-0',
+                        showSideBar && 'p-4 pt-2 pr-2',
                         !((w('md') && h('md')) || !showSideBar) && 'hidden'
                     )}
                     style={{
@@ -186,7 +185,7 @@ const PlayerP = () => {
                 >
                     <div
                         className={cn(
-                            'w-full h-full flex flex-col',
+                            'w-full h-full flex flex-col border-4 border-r-0 rounded border-white/90 drop-shadow-lg overflow-hidden',
 
                             showSideBar &&
                                 'overflow-hidden border-[30px] border-white/90 rounded-[45px]'
@@ -194,7 +193,7 @@ const PlayerP = () => {
                     >
                         <Split
                             className={cn(
-                                'flex flex-row h-0 flex-1 w-full bg-background'
+                                'flex flex-row h-0 flex-1 w-full bg-background overflow-hidden'
                             )}
                             sizes={JSON.parse(sizeA)}
                             onDragEnd={(sizes) => {

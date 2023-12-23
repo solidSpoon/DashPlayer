@@ -6,6 +6,7 @@ import TitleBar from '../../../components/TitleBar/TitleBar';
 import useFile from '../../../hooks/useFile';
 import useLayout from '../../../hooks/useLayout';
 import SideBar from '../../../components/SideBar';
+import Background from '../../../components/bg/Background';
 
 const TitleBarLayout = () => {
     const videoFile = useFile((s) => s.videoFile);
@@ -13,20 +14,24 @@ const TitleBarLayout = () => {
     return (
         <div
             className={cn(
-                'flex flex-col w-full h-screen font-face-arc overflow-hidden select-none text-black'
+                'w-full h-screen relative'
             )}
         >
-            <TitleBar
-                hasSubTitle={subtitleFile !== undefined}
-                title={videoFile?.fileName}
-                windowsButtonClassName="hover:bg-titlebarHover"
-                className="bg-titlebar"
-            />
-            <Suspense fallback={<div>Loading...</div>}>
-                <div className={cn('flex-1 h-0 w-full bg-green-100')}>
-                    <Outlet key="ddddddddddddd" />
-                </div>
-            </Suspense>
+            <Background />
+            <div
+                className={cn('absolute w-full h-full top-0 left-0 flex flex-col font-face-arc overflow-hidden select-none text-black')}>
+                <TitleBar
+                    hasSubTitle={subtitleFile !== undefined}
+                    title={videoFile?.fileName}
+                    windowsButtonClassName='hover:bg-titlebarHover'
+                    className=''
+                />
+                <Suspense fallback={<div>Loading...</div>}>
+                    <div className={cn('flex-1 h-0 w-full')}>
+                        <Outlet />
+                    </div>
+                </Suspense>
+            </div>
         </div>
     );
 };

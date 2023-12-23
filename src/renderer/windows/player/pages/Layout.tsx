@@ -13,8 +13,7 @@ const Layout = () => {
         useLayout((s) => s.width)
     );
     return (
-        <div className={cn('relative h-full w-full bg-green-100')}>
-            <Background className={cn('w-full h-full')} />
+        <div className={cn('relative h-full w-full')}>
             <div className={cn('absolute inset-0')}>
                 <div
                     className={cn('grid grid-cols-2 grid-rows-1 h-full')}
@@ -62,7 +61,7 @@ const Layout = () => {
                         <AnimatePresence mode="wait">
                             <div
                                 className={cn(
-                                    'w-full h-full bg-white drop-shadow-lg rounded overflow-hidden'
+                                    'w-full h-full drop-shadow-lg rounded overflow-hidden'
                                 )}
                             >
                                 <Outlet />

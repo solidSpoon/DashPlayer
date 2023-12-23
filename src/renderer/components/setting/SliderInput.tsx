@@ -17,8 +17,8 @@ const SliderInput = ({
 }: SliderInputProps) => {
     const [localValue, setLocalValue] = useState<string>(defaultValue);
     return (
-        <div className="flex items-center gap-4  text-gray-700 text-sm select-none">
-            <div className="text-sm text-right w-28">{title} :</div>
+        <div className="flex items-center gap-4  text-gray-700 select-none">
+            <div className="text-right w-28">{title} :</div>
             <Slider
                 sliderClassName="bg-stone-300"
                 className={`border rounded ${inputWidth}`}

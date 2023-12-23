@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import TransApi from '../ServerLib/TransApi';
+import TransApi from '../services/TransApi';
 
 import { p } from '../../common/utils/Util';
 import TransHolder from '../../common/utils/TransHolder';

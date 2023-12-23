@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { IServerSideGetRowsRequest } from 'ag-grid-community';
-import TransApi from '../ServerLib/TransApi';
+import TransApi from '../services/TransApi';
 
 import { p } from '../../common/utils/Util';
 import StemLevelService from '../services/StemLevelService';

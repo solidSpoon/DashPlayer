@@ -53,7 +53,7 @@ const TitleBarWindows = ({
 
     return (
         <div
-            className={`select-none w-full drag h-7 flex justify-between items-center text-titlebarText gap-x-2 drop-shadow ${className}`}
+            className={`select-none w-full drag h-7 flex justify-between items-center text-titlebarText gap-x-2  ${className}`}
         >
             {hasSettings && (
                 <div className="flex">

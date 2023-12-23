@@ -3,7 +3,7 @@ export interface FooterWrapperProps {
 }
 const FooterWrapper = ({ children }: FooterWrapperProps) => {
     return (
-        <div className="h-10 w-full flex items-center justify-end px-8 pb-4 gap-2">
+        <div className="h-20 w-full flex items-center justify-end px-8 pb-4 gap-2">
             {children}
         </div>
     );

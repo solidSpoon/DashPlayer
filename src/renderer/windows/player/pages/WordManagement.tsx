@@ -126,7 +126,7 @@ const WordManagement = () => {
     // Container: Defines the grid's theme & dimensions.
     return (
         <div
-            className="w-full h-full flex flex-col"
+            className="w-full h-full flex flex-col bg-white"
             style={{ width: '100%', height: '100%' }}
         >
             <div className="h-10 grid place-content-center">

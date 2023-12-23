@@ -1,9 +1,10 @@
-import SettingButton from '../../../components/setting/SettingButton';
-import SettingInput from '../../../components/setting/SettingInput';
-import ItemWrapper from '../../../components/setting/ItemWrapper';
-import FooterWrapper from '../../../components/setting/FooterWrapper';
-import Header from '../../../components/setting/Header';
-import useSettingForm from '../../../hooks/useSettingForm';
+import SettingButton from '../../../../components/setting/SettingButton';
+import SettingInput from '../../../../components/setting/SettingInput';
+import ItemWrapper from '../../../../components/setting/ItemWrapper';
+import FooterWrapper from '../../../../components/setting/FooterWrapper';
+import Header from '../../../../components/setting/Header';
+import useSettingForm from '../../../../hooks/useSettingForm';
+import Separator from '../../../../components/Separtor';
 
 const ShortcutSetting = () => {
     const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
@@ -21,6 +22,7 @@ const ShortcutSetting = () => {
     return (
         <form className=" h-full overflow-y-auto flex flex-col gap-4">
             <Header title="快捷键" description="多个快捷键用 , 分割" />
+            <Separator orientation={'horizontal'} />
             <ItemWrapper>
                 <SettingInput
                     title="上一句"

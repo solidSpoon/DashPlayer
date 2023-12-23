@@ -1,4 +1,4 @@
-import YouDaoTranslater, { YouDaoConfig } from '../ServerLib/YouDaoTranslater';
+import YouDaoTranslater, { YouDaoConfig } from '../services/YouDaoTranslater';
 import { YdRes } from '../../common/types/YdRes';
 import WordTranslateService from '../services/WordTranslateService';
 import { storeGet } from '../store';
