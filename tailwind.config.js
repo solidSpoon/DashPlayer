@@ -1,7 +1,6 @@
 const colors = require('tailwindcss/colors');
 const themer = require('tailwindcss-themer');
 const scrollbar = require('tailwind-scrollbar');
-const { fontSize } = require('tailwindcss/defaultTheme');
 
 module.exports = {
     content: ['./src/renderer/**/*.{js,jsx,ts,tsx,ejs}'],
@@ -99,12 +98,6 @@ module.exports = {
                         settingButton: colors.yellow['600'],
                         settingButtonHover: colors.yellow['300'],
                     },
-                    fontSize: {
-                        mainSubtitleOne: fontSize['3xl'],
-                        mainSubtitleTwo: fontSize['3xl'],
-                        mainSubtitleThree: fontSize['2xl'],
-                        subtitle: fontSize.lg,
-                    },
                 },
             },
             themes: [
@@ -186,28 +179,6 @@ module.exports = {
                             playIcon: colors.red['500'],
                             settingButton: colors.yellow['600'],
                             settingButtonHover: colors.yellow['700'],
-                        },
-                    },
-                },
-                {
-                    name: 'fontSizeSmall',
-                    extend: {
-                        fontSize: {
-                            mainSubtitleOne: fontSize.xl,
-                            mainSubtitleTwo: fontSize.xl,
-                            mainSubtitleThree: fontSize.lg,
-                            subtitle: fontSize.base,
-                        },
-                    },
-                },
-                {
-                    name: 'fontSizeMedium',
-                    extend: {
-                        fontSize: {
-                            mainSubtitleOne: fontSize['2xl'],
-                            mainSubtitleTwo: fontSize['2xl'],
-                            mainSubtitleThree: fontSize.xl,
-                            subtitle: fontSize.lg,
                         },
                     },
                 },

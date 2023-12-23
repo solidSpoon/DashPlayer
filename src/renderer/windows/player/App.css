@@ -1,13 +1,3 @@
-@font-face
-{
-    font-family: 'Archivo';
-    src: url('../../../common/fonts/Archivo-VariableFont_wdth,wght.ttf') format("truetype");
-    font-weight: normal;
-    font-style: normal;
-}
-.font-face-arc {
-    font-family: "Archivo";
-}
 html {
   /*background-color: rgb(32, 34, 37);*/
   color: #fff;
@@ -28,11 +18,6 @@ body {
 .user-drag-none {
     -webkit-user-drag: none;
 }
-
-/*.split {*/
-/*    display: flex;*/
-/*    flex-direction: row;*/
-/*}*/
 
 .gutter {
     background-color: rgb(var(--colors-gutterBackground));

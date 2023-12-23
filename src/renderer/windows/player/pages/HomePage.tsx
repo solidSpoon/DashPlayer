@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import useSystem from '../../../hooks/useSystem';
 import TitleBar from '../../../components/TitleBar/TitleBar';
 import useSetting from '../../../hooks/useSetting';
-import { cn, secondToDate } from '../../../../common/utils/Util';
+import { cn } from '../../../../common/utils/Util';
 import FileSelector from '../../../components/fileBowser/FileSelector';
 import useProjectBrowser from '../../../hooks/useProjectBrowser';
 import logoLight from '../../../../../assets/logo-light.png';
@@ -16,6 +16,8 @@ import useFile from '../../../hooks/useFile';
 
 const api = window.electron;
 const HomePage = () => {
+    const navigate = useNavigate();
+    const changeSideBar = useLayout((s) => s.changeSideBar);
     function handleClickById(videoId: number) {
         api.playerSize();
         changeSideBar(false);
@@ -23,13 +25,10 @@ const HomePage = () => {
             navigate(`/player/${videoId}`);
         }, 500);
     }
-
-    const navigate = useNavigate();
     const { list, refresh, loading } = useProjectBrowser(
         'play',
         handleClickById
     );
-    const changeSideBar = useLayout((s) => s.changeSideBar);
     const appVersion = useSystem((s) => s.appVersion);
     const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
     const clear = useFile((s) => s.clear);

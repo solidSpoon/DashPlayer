@@ -21,7 +21,9 @@ const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     );
 };
 const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
-    const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
+    const fontSize = useSetting((state) =>
+        state.values.get('appearance.fontSize')
+    );
     const show = usePlayerController((state) => state.showEn);
     const sentenceStruct = usePlayerController((state) =>
         state.subTitlesStructure.get(p(text))
@@ -47,11 +49,13 @@ const TranslatableLine = ({ text }: TranslatableSubtitleLineParam) => {
                 setHovered(false);
             }}
             className={cn(
-                'flex flex-wrap justify-center items-center rounded-lg drop-shadow-md text-mainSubtitleOne text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50 gap-2',
+                'flex flex-wrap justify-center items-center rounded-lg drop-shadow-md text-mainSubtitleOneColor mx-10 mt-2.5 px-10 pt-0.5 pb-2.5 shadow-inner shadow-sentenceInnerShadow z-50 gap-2',
                 'bg-sentenceBackground',
+                FontSize.mainSubtitleOne.large,
                 fontSize === 'fontSizeSmall' && FontSize.mainSubtitleOne.small,
-                fontSize === 'fontSizeMedium' && FontSize.mainSubtitleOne.medium,
-                fontSize === 'fontSizeLarge' && FontSize.mainSubtitleOne.large,
+                fontSize === 'fontSizeMedium' &&
+                    FontSize.mainSubtitleOne.medium,
+                fontSize === 'fontSizeLarge' && FontSize.mainSubtitleOne.large
             )}
         >
             {sentenceStruct?.blocks.map((block, blockIndex) => {

@@ -23,7 +23,7 @@ const PlayerP = () => {
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
-    const isWindows = useSystem(s=>s.isWindows);
+    const isWindows = useSystem((s) => s.isWindows);
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     const w = cpW.bind(
@@ -95,7 +95,7 @@ const PlayerP = () => {
         return '65px calc((100% - 65px) * 1 / 2) calc((100% - 65px) * 1 / 2)';
     };
     return (
-        <div className={cn('relative w-full h-full')}>
+        <div className={cn('relative w-full h-full ')}>
             <div
                 className="absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden"
                 style={{

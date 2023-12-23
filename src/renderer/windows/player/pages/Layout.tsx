@@ -13,7 +13,7 @@ const Layout = () => {
         useLayout((s) => s.width)
     );
     return (
-        <div className={cn('relative h-full w-full')}>
+        <div className={cn('relative h-full w-full ')}>
             <div className={cn('absolute inset-0')}>
                 <div
                     className={cn('grid grid-cols-2 grid-rows-1 h-full')}

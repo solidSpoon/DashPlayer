@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import './App.css';
-import '../../../common/fonts/Archivo-VariableFont_wdth,wght.ttf';
 import 'tailwindcss/tailwind.css';
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
@@ -11,8 +10,7 @@ import FileDrop from '../../components/FileDrop';
 import useSetting from '../../hooks/useSetting';
 import Layout from './pages/Layout';
 import { PlayerP, WordManagement } from './pages';
-import TieleBarLayout from './pages/TieleBarLayout';
-import Background from '../../components/bg/Background';
+import TitleBarLayout from './pages/TieleBarLayout';
 import ShortcutSetting from './pages/setting/ShortcutSetting';
 import YouDaoSetting from './pages/setting/YouDaoSetting';
 import TenantSetting from './pages/setting/TenantSetting';
@@ -38,12 +36,12 @@ export default function App() {
     }, [theme]);
     return (
         <FileDrop isDragging={isDragging} setIsDragging={setIsDragging}>
-            <div className="w-full h-screen font-face-arc text-black overflow-hidden select-none">
+            <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
                 <HashRouter>
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="home" element={<HomePage />} />
-                        <Route element={<TieleBarLayout />}>
+                        <Route element={<TitleBarLayout />}>
                             <Route
                                 path="player/:videoId"
                                 element={<PlayerP />}

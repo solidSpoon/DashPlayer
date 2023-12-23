@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Slider } from '../Slider';
+import { cn } from '../../../common/utils/Util';
 
 export interface SliderInputProps {
     title: string;
@@ -16,15 +17,18 @@ const SliderInput = ({
     inputWidth,
 }: SliderInputProps) => {
     const [localValue, setLocalValue] = useState<string>(defaultValue);
+    useEffect(() => {
+        setLocalValue(defaultValue);
+    }, [defaultValue]);
     return (
         <div className="flex items-center gap-4  text-gray-700 select-none">
             <div className="text-right w-28">{title} :</div>
             <Slider
                 sliderClassName="bg-stone-300"
-                className={`border rounded ${inputWidth}`}
+                className={cn('border rounded', inputWidth)}
                 max={values.length - 1}
                 min={0}
-                defaultValue={[values.indexOf(defaultValue)]}
+                value={[values.indexOf(localValue)]}
                 onValueChange={(value) => {
                     setLocalValue(values[value[0]]);
                 }}

@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import SettingButton from '../../../../components/setting/SettingButton';
 import {
     ItemWrapper,
@@ -19,6 +18,7 @@ const AppearanceSetting = () => {
     ]);
 
     const fontSizeToValue = (fontSize: string) => {
+        console.log('fonttt', fontSize);
         if (fontSize === 'fontSizeSmall') {
             return '小';
         }
@@ -32,6 +32,7 @@ const AppearanceSetting = () => {
     };
     const theme = setting('appearance.theme');
     const fontSize = setting('appearance.fontSize');
+    console.log('fontsize', fontSize);
     return (
         <form className="w-full h-full flex flex-col gap-5">
             <Header title="外观" description="设置主题与字号" />

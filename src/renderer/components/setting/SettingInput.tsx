@@ -24,7 +24,7 @@ const SettingInput = ({
             {/* <div className='text-sm text-left w-full'>{title} :</div> */}
             <input
                 className={cn(
-                    `appearance-none border h-10 rounded px-3 text-gray-700  outline-2 outline-black w-full rounded-xl`
+                    `appearance-none border h-10 px-3 text-gray-700  outline-2 outline-black w-full rounded-xl font-mono`
                 )}
                 type={type}
                 placeholder={placeHolder}

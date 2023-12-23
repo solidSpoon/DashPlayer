@@ -62,7 +62,7 @@ const SettingLayout = () => {
     return (
         <div
             className={cn(
-                'w-full h-screen flex flex-col overflow-hidden select-none bg-white p-6 pt-12 gap-4 '
+                'w-full h-screen flex flex-col overflow-hidden select-none bg-white p-6 pt-12 gap-4'
             )}
         >
             <div className={cn('p-4')}>
