@@ -35,17 +35,24 @@ const TitleBarMac = ({
     const handleMouseOver = async () => {
         const fullScreen = windowState === 'fullscreen';
         setIsMouseOver(!fullScreen);
+        if (showSideBar) {
+            await api.showButton();
+            return;
+        }
         if (!fullScreen && autoHide) {
             if (isMain) {
                 await api.showButton();
             }
         }
-        console.log('handleMouseOver');
     };
 
     const handleMouseLeave = async () => {
         const fullScreen = windowState === 'fullscreen';
         setIsMouseOver(false);
+        if (showSideBar) {
+            await api.showButton();
+            return;
+        }
         if (!fullScreen && autoHide) {
             setIsMouseOver(false);
             if (isMain) {
@@ -55,18 +62,20 @@ const TitleBarMac = ({
         console.log('handleMouseLeave');
     };
 
-    // useEffect(() => {
-    //     const init = async () => {
-    //         if (isMain) {
-    //             if (autoHide) {
-    //                 await api.hideButton();
-    //             } else {
-    //                 await api.showButton();
-    //             }
-    //         }
-    //     };
-    //     init();
-    // }, [autoHide, isMain]);
+    useEffect(() => {
+        const runEffect = async () => {
+            if (showSideBar) {
+                await api.showButton();
+                return;
+            }
+            if (isMouseOver) {
+                await api.showButton();
+            } else {
+                await api.hideButton();
+            }
+        };
+        runEffect();
+    }, [isMouseOver, showSideBar]);
 
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events
@@ -74,16 +83,14 @@ const TitleBarMac = ({
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
                 className={cn(
-                    'drag w-full h-10 absolute top-0 z-50 content-center text-titlebarText flex flex-col justify-center items-center select-none',
+                    'drag w-full h-10 absolute top-0 z-50',
                     showTitleBar && className,
                     hasSubtitle && !showSideBar && '-translate-x-2'
                 )}
                 onDoubleClick={() => {
                     onDoubleClick();
                 }}
-            >
-                {showTitleBar ? title : ''}
-            </div>
+            />
         </div>
     );
 };

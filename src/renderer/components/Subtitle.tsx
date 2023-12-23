@@ -46,7 +46,7 @@ const getEle = (ele: HTMLDivElement): Ele => {
 
 export default function Subtitle() {
     const isWindows = useSystem((state) => state.isWindows);
-    let showSideBar = useLayout((state) => state.showSideBar);
+    const showSideBar = useLayout((state) => state.showSideBar);
     const { currentSentence, subtitle, jump, singleRepeat } =
         usePlayerController(
             useShallow((state) => ({
@@ -160,7 +160,10 @@ export default function Subtitle() {
                     className={twJoin(
                         'h-full w-full overflow-y-scroll text-textColor',
                         'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded',
-                        'scrollbar-thin scrollbar-track-white',
+                        'scrollbar-thin  dark:scrollbar-track-stone-600',
+                        isWindows
+                            ? 'scrollbar-track-white'
+                            : 'scrollbar-track-sky-100',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}
