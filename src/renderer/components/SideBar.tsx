@@ -1,8 +1,10 @@
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom';
 import {
-    HiOutlineAcademicCap, HiOutlineCog,
-    HiOutlineHome, HiOutlineUser,
-    HiOutlineVideoCamera
+    HiOutlineAcademicCap,
+    HiOutlineCog,
+    HiOutlineHome,
+    HiOutlineUser,
+    HiOutlineVideoCamera,
 } from 'react-icons/hi';
 import React, { cloneElement, ReactElement } from 'react';
 import { cn } from '../../common/utils/Util';
@@ -34,7 +36,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                 )}
             >
                 {cloneElement(icon, {
-                    className: cn('w-5 h-5 text-amber-600 flex-shrink-0'),
+                    className: cn('w-5 h-5 text-amber-700 flex-shrink-0'),
                 })}
                 {!compact && (
                     <div
@@ -74,7 +76,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                     'word-management',
                     <HiOutlineAcademicCap />
                 )}
-                 {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
+                {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
                 {item('About', '/about', 'about', <HiOutlineUser />)}
             </div>
         </div>

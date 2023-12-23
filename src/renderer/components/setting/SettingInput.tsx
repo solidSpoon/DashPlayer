@@ -11,21 +11,21 @@ export interface SettingInputProps {
 }
 
 const SettingInput = ({
-                          title,
-                          placeHolder,
-                          value,
-                          setValue,
-                          type,
-                          inputWidth
-                      }: SettingInputProps) => {
+    title,
+    placeHolder,
+    value,
+    setValue,
+    type,
+    inputWidth,
+}: SettingInputProps) => {
     return (
-        <div className='text-gray-700 text-sm select-none pr-10'>
+        <div className="text-gray-700 text-sm select-none pr-10">
             <Title title={title} />
-            {/*<div className='text-sm text-left w-full'>{title} :</div>*/}
+            {/* <div className='text-sm text-left w-full'>{title} :</div> */}
             <input
                 className={cn(
-                    `appearance-none border h-10 rounded px-3 text-gray-700  outline-2 outline-black w-full drop-shadow`
-                    )}
+                    `appearance-none border h-10 rounded px-3 text-gray-700  outline-2 outline-black w-full rounded-xl`
+                )}
                 type={type}
                 placeholder={placeHolder}
                 value={value || ''}
@@ -41,6 +41,6 @@ const SettingInput = ({
 SettingInput.defaultProps = {
     placeHolder: '',
     type: 'text',
-    inputWidth: 'w-96'
+    inputWidth: 'w-96',
 };
 export default SettingInput;

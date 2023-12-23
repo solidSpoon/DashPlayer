@@ -129,8 +129,10 @@ const WordManagement = () => {
             className="w-full h-full flex flex-col bg-white"
             style={{ width: '100%', height: '100%' }}
         >
-            <div className="h-10 grid place-content-center">
-                Word Management
+            <div className={cn('pl-10 pt-8 pb-2')}>
+                <h1 className={cn('text-4xl font-bold font-serif')}>
+                    Word Management
+                </h1>
             </div>
             <WordLevelHeader keyName="wordView" />
             <FilterEditor keyName="wordView" />

@@ -25,8 +25,10 @@ const HomePage = () => {
     }
 
     const navigate = useNavigate();
-    const { list, refresh, loading } =
-        useProjectBrowser('play', handleClickById);
+    const { list, refresh, loading } = useProjectBrowser(
+        'play',
+        handleClickById
+    );
     const changeSideBar = useLayout((s) => s.changeSideBar);
     const appVersion = useSystem((s) => s.appVersion);
     const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
@@ -34,7 +36,7 @@ const HomePage = () => {
     useEffect(() => {
         api.homeSize();
         clear();
-    }, []);
+    }, [clear]);
     const lastPlay = list.length > 0 ? list[0] : undefined;
     const restPlay = list.length > 1 ? list.slice(1) : [];
     return (
@@ -47,7 +49,7 @@ const HomePage = () => {
         >
             <TitleBar
                 maximizable={false}
-                className='fixed top-0 left-0 w-full z-50'
+                className="fixed top-0 left-0 w-full z-50"
                 windowsButtonClassName={cn(
                     'text-slate-700 hover:bg-slate-100',
                     'dark:hover:bg-titlebarHover'
@@ -60,14 +62,14 @@ const HomePage = () => {
                     'dark:shadow-black'
                 )}
             >
-                <div className='relative top-0 left-0 w-32 h-32'>
+                <div className="relative top-0 left-0 w-32 h-32">
                     <img
                         src={dark ? logoDark : logoLight}
-                        alt='logo'
-                        className='w-32 h-32 absolute top-0 left-0 user-drag-none'
+                        alt="logo"
+                        className="w-32 h-32 absolute top-0 left-0 user-drag-none"
                     />
                 </div>
-                <div className='flex flex-col items-center justify-center gap-2'>
+                <div className="flex flex-col items-center justify-center gap-2">
                     <h2
                         className={cn(
                             'text-lg text-black/80',
@@ -82,7 +84,7 @@ const HomePage = () => {
                         {appVersion}
                     </text>
                 </div>
-                <div className='w-full h-16' />
+                <div className="w-full h-16" />
             </div>
             <div
                 className={cn(
@@ -90,7 +92,7 @@ const HomePage = () => {
                     dark && 'border-neutral-800 bg-white/10'
                 )}
             >
-                <div className='w-full h-10' />
+                <div className="w-full h-10" />
                 <div className={cn('flex w-full flex-col items-start')}>
                     <FileSelector className={cn('text-sm')} />
                     <FileSelector className={cn('text-sm')} directory />
@@ -110,7 +112,7 @@ const HomePage = () => {
                             )}
                         />
                         <span>Resume</span>
-                        <span className='flex-1 truncate'>
+                        <span className="flex-1 truncate">
                             {lastPlay?.name}
                         </span>
                         <span
@@ -119,18 +121,23 @@ const HomePage = () => {
                                 dark && 'text-neutral-400'
                             )}
                         >
-                            {/*{secondToDate(lastPlayVideo?.current_time ?? 0)}*/}
+                            {/* {secondToDate(lastPlayVideo?.current_time ?? 0)} */}
                         </span>
                     </div>
                 )}
-                <div className='w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm'>
+                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
                     {restPlay.map((item) => {
                         return (
-                            <FileItem key={item.key} icon={item.icon} onClick={item.callback} content={item.name} />
+                            <FileItem
+                                key={item.key}
+                                icon={item.icon}
+                                onClick={item.callback}
+                                content={item.name}
+                            />
                         );
                     })}
                 </div>
-                <div className='w-full h-16'>
+                <div className="w-full h-16">
                     <div
                         onClick={() => {
                             if (!loading) {

@@ -34,13 +34,13 @@ export default function UploadButton() {
                 {showSideBar ? (
                     <FaMaximize
                         className={cn(
-                            'w-full h-full fill-white dark:fill-black'
+                            'w-full h-full fill-white '
                         )}
                     />
                 ) : (
                     <IoIosSwitch
                         className={cn(
-                            'w-full h-full fill-white dark:fill-black'
+                            'w-full h-full fill-white '
                         )}
                     />
                 )}

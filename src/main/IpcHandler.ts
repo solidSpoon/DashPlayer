@@ -171,9 +171,7 @@ export default function registerHandler() {
     });
     handle('open-url', async (url: string) => {
         log.info('open-url', url);
-        await shell.openExternal(
-            'https://github.com/solidSpoon/DashPlayer/releases/latest'
-        );
+        await shell.openExternal(url);
     });
     handle('player-size', async () => {
         log.info('player-size');

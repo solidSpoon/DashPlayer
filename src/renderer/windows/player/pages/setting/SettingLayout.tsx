@@ -1,6 +1,13 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import React, { cloneElement, ReactElement } from 'react';
-import { MdBuild, MdColorLens, MdKeyboard, MdOutlineGTranslate, MdStorage, MdTranslate } from 'react-icons/md';
+import {
+    MdBuild,
+    MdColorLens,
+    MdKeyboard,
+    MdOutlineGTranslate,
+    MdStorage,
+    MdTranslate,
+} from 'react-icons/md';
 import { cn } from '../../../../../common/utils/Util';
 import Separator from '../../../../components/Separtor';
 
@@ -15,11 +22,15 @@ const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const ele = (name: string, key: SettingType, icon: ReactElement) => {
-        const isCurrent = location.pathname.includes(key);
+        const pathname =
+            location.pathname === '/settings'
+                ? '/settings/shortcut'
+                : location.pathname;
+        const isCurrent = pathname.includes(key);
         return (
             <ul
                 onClick={() => {
-                    let s = `/settings/${key}`;
+                    const s = `/settings/${key}`;
                     console.log(s);
                     navigate(s);
                 }}
@@ -29,15 +40,14 @@ const Sidebar = () => {
                 )}
             >
                 {cloneElement(icon, {
-                    className: cn('w-6 h-6 fill-black'
-                    )
+                    className: cn('w-6 h-6 fill-black'),
                 })}
                 {name}
             </ul>
         );
     };
     return (
-        <div className='w-full h-full flex flex-col gap-2'>
+        <div className="w-full h-full flex flex-col gap-2">
             {ele('快捷键', 'shortcut', <MdKeyboard />)}
             {ele('外观', 'appearance', <MdColorLens />)}
             {ele('字幕翻译', 'tenant', <MdOutlineGTranslate />)}
@@ -49,11 +59,12 @@ const Sidebar = () => {
 };
 
 const SettingLayout = () => {
-
     return (
-        <div className={cn(
-            'w-full h-screen flex flex-col overflow-hidden select-none bg-white p-6 pt-12 gap-4 '
-        )}>
+        <div
+            className={cn(
+                'w-full h-screen flex flex-col overflow-hidden select-none bg-white p-6 pt-12 gap-4 '
+            )}
+        >
             <div className={cn('p-4')}>
                 <h1 className={cn('text-4xl font-bold font-serif')}>
                     Settings
@@ -61,18 +72,14 @@ const SettingLayout = () => {
                 <h2 className={cn('text-xl text-neutral-500 mt-2 mb-4')}>
                     Dash Player
                 </h2>
-                <Separator orientation={'horizontal'} />
+                <Separator orientation="horizontal" className="px-0" />
             </div>
 
-
-            <div className='flex flex-1 h-0 gap-8'>
-                <aside className='w-56 flex-shrink-0'>
+            <div className="flex flex-1 h-0 gap-8">
+                <aside className="w-56 flex-shrink-0">
                     <Sidebar />
                 </aside>
-                <main
-                    role='main'
-                    className='w-[1000px] overflow-hidden h-full'
-                >
+                <main role="main" className="w-[1000px] overflow-hidden h-full">
                     <Outlet />
                 </main>
             </div>

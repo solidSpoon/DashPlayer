@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import SettingButton from '../../../../components/setting/SettingButton';
-import { ItemWrapper, FooterWrapper, Header, SliderInput, Title } from '../../../../components/setting';
+import {
+    ItemWrapper,
+    FooterWrapper,
+    Header,
+    SliderInput,
+    Title,
+} from '../../../../components/setting';
 import ThemePreview from '../../../../components/ThemePreview';
 import useSettingForm from '../../../../hooks/useSettingForm';
 import Separator from '../../../../components/Separtor';
@@ -9,18 +15,8 @@ import { cn } from '../../../../../common/utils/Util';
 const AppearanceSetting = () => {
     const { setting, setSetting, submit, eqServer } = useSettingForm([
         'appearance.theme',
-        'appearance.fontSize'
+        'appearance.fontSize',
     ]);
-
-    const seletedRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        if (seletedRef.current) {
-            seletedRef.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-        }
-    }, [setting('appearance.theme')]);
 
     const fontSizeToValue = (fontSize: string) => {
         if (fontSize === 'fontSizeSmall') {
@@ -37,27 +33,28 @@ const AppearanceSetting = () => {
     const theme = setting('appearance.theme');
     const fontSize = setting('appearance.fontSize');
     return (
-        <form className='w-full h-full flex flex-col gap-5'>
-            <Header title='外观' description='设置主题与字号' />
-            <Separator orientation={'horizontal'} />
+        <form className="w-full h-full flex flex-col gap-5">
+            <Header title="外观" description="设置主题与字号" />
+            <Separator orientation="horizontal" className="px-0" />
             <ItemWrapper>
-                <Title title={'Theme'} description={'设置主题'} />
-                <div
-                    className='px-3 py-2 h-60 flex-shrink-0  flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25'>
+                <Title title="Theme" description="设置主题" />
+                <div className="px-3 py-2 h-60 flex-shrink-0  flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
                     {['dark', 'light'].map((t) => {
                         return (
                             <div
-                                className={cn(
-                                    `h-full flex flex-col gap-2`
-                                )}
+                                className={cn(`h-full flex flex-col gap-2`)}
                                 onClick={() => {
                                     setSetting('appearance.theme', t);
                                 }}
-                                ref={theme === t ? seletedRef : null}
                             >
-                                <div className={cn('p-1 h-full rounded-lg', theme === t
-                                    ? 'border-2 border-black'
-                                    : 'border-2 border-gray-200')}>
+                                <div
+                                    className={cn(
+                                        'p-1 h-full rounded-lg',
+                                        theme === t
+                                            ? 'border-2 border-black'
+                                            : 'border-2 border-gray-200'
+                                    )}
+                                >
                                     <ThemePreview
                                         theme={t}
                                         className={cn(
@@ -65,17 +62,17 @@ const AppearanceSetting = () => {
                                         )}
                                     />
                                 </div>
-                                <div className='text-center'>{t}</div>
+                                <div className="text-center">{t}</div>
                             </div>
                         );
                     })}
                 </div>
-                <Title title={'Font Size'} description={'设置字号'} />
+                <Title title="Font Size" description="设置字号" />
                 <SliderInput
-                    title='字体大小'
+                    title="字体大小"
                     values={['小', '中', '大']}
                     defaultValue={fontSizeToValue(fontSize ?? 'fontSizeMedium')}
-                    inputWidth='w-56'
+                    inputWidth="w-56"
                     setValue={(v) => {
                         if (v === '小') {
                             setSetting('appearance.fontSize', 'fontSizeSmall');

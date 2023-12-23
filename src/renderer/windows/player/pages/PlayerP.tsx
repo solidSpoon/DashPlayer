@@ -15,6 +15,7 @@ import useFile from '../../../hooks/useFile';
 import GlobalShortCut from '../../../components/GlobalShortCut';
 import SideBar from '../../../components/SideBar';
 import Background from '../../../components/bg/Background';
+import useSystem from '../../../hooks/useSystem';
 
 const api = window.electron;
 const PlayerP = () => {
@@ -22,6 +23,7 @@ const PlayerP = () => {
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const sizeA =
         localStorage.getItem('split-size-a') ?? JSON.stringify([75, 25]);
+    const isWindows = useSystem(s=>s.isWindows);
     const sizeB =
         localStorage.getItem('split-size-b') ?? JSON.stringify([80, 20]);
     const w = cpW.bind(
@@ -101,66 +103,64 @@ const PlayerP = () => {
                     gridTemplateRows: '30% 70%', // 这里定义每行的大小
                 }}
             >
-                <AnimatePresence>
-                    {showSideBar && (
-                        <>
-                            <motion.div
-                                className={cn(
-                                    'col-start-1 col-end-2 row-start-1 row-end-3'
-                                )}
-                                initial={{ x: -1000 }}
-                                animate={{
-                                    x: 0,
-                                }}
-                                exit={{ x: -1000 }}
-                                transition={{
-                                    type: 'tween',
-                                    duration: sideBarAnimation ? 0 : 0,
-                                }}
-                            >
-                                <SideBar compact={!w('lg')} />
-                            </motion.div>
-                            <motion.div
-                                className={cn(
-                                    'col-start-2 row-start-1 col-end-4 row-end-3 p-2',
-                                    h('md') && 'row-start-2',
-                                    w('md') && 'row-start-1 col-start-3 pl-1'
-                                )}
-                                initial={{ x: 1000 }}
-                                animate={{
-                                    x: 0,
-                                }}
-                                exit={{ x: 1000 }}
-                                transition={{
-                                    type: 'tween',
-                                    duration: 0.2,
-                                }}
-                            >
-                                <FileBrowser />
-                            </motion.div>
+                {showSideBar && (
+                    <>
+                        <motion.div
+                            className={cn(
+                                'col-start-1 col-end-2 row-start-1 row-end-3'
+                            )}
+                            initial={{ x: -1000 }}
+                            animate={{
+                                x: 0,
+                            }}
+                            exit={{ x: -1000 }}
+                            transition={{
+                                type: 'tween',
+                                duration: sideBarAnimation ? 0 : 0,
+                            }}
+                        >
+                            <SideBar compact={!w('lg')} />
+                        </motion.div>
+                        <motion.div
+                            className={cn(
+                                'col-start-2 row-start-1 col-end-4 row-end-3 p-2',
+                                h('md') && 'row-start-2',
+                                w('md') && 'row-start-1 col-start-3 pl-1'
+                            )}
+                            initial={{ x: 1000 }}
+                            animate={{
+                                x: 0,
+                            }}
+                            exit={{ x: 1000 }}
+                            transition={{
+                                type: 'tween',
+                                duration: 0.2,
+                            }}
+                        >
+                            <FileBrowser />
+                        </motion.div>
 
-                            <motion.div
-                                className={cn(
-                                    'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-2',
-                                    w('md') && 'block col-end-3',
-                                    h('md') && 'block row-end-2'
-                                )}
-                                initial={{ y: -1000 }}
-                                animate={{
-                                    y: 0,
-                                    x: 0,
-                                }}
-                                exit={{ y: -1000 }}
-                                transition={{
-                                    type: 'tween',
-                                    duration: 0.2,
-                                }}
-                            >
-                                <ControlBox />
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
+                        <motion.div
+                            className={cn(
+                                'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-2',
+                                w('md') && 'block col-end-3',
+                                h('md') && 'block row-end-2'
+                            )}
+                            initial={{ y: -1000 }}
+                            animate={{
+                                y: 0,
+                                x: 0,
+                            }}
+                            exit={{ y: -1000 }}
+                            transition={{
+                                type: 'tween',
+                                duration: 0.2,
+                            }}
+                        >
+                            <ControlBox />
+                        </motion.div>
+                    </>
+                )}
                 <div
                     className="p-4"
                     style={{
@@ -172,6 +172,7 @@ const PlayerP = () => {
                 <div
                     className={cn(
                         'flex flex-col p-2 pt-0',
+                        !isWindows && 'p-0',
                         showSideBar && 'p-4 pt-2 pr-2',
                         !((w('md') && h('md')) || !showSideBar) && 'hidden'
                     )}
@@ -186,7 +187,7 @@ const PlayerP = () => {
                     <div
                         className={cn(
                             'w-full h-full flex flex-col border-4 border-r-0 rounded border-white/90 drop-shadow-lg overflow-hidden',
-
+                            !isWindows && 'border-0',
                             showSideBar &&
                                 'overflow-hidden border-[30px] border-white/90 rounded-[45px]'
                         )}

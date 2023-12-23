@@ -84,18 +84,6 @@ const TitleBarMac = ({
             >
                 {showTitleBar ? title : ''}
             </div>
-
-            {hasSubtitle && !showSideBar && (
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 1 1"
-                    className={`absolute top-0 right-0 w-1 h-1 fill-scrollbarTrack -translate-x-2 rotate-180 z-50
-                        ${showTitleBar ? 'translate-y-10' : ''}
-                `}
-                >
-                    <path d="M 0 0 L 0 1 L 1 1 C 0 1 0 0 0 0 Z" />
-                </svg>
-            )}
         </div>
     );
 };

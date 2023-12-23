@@ -22,7 +22,7 @@ const ShortcutSetting = () => {
     return (
         <form className=" h-full overflow-y-auto flex flex-col gap-4">
             <Header title="快捷键" description="多个快捷键用 , 分割" />
-            <Separator orientation={'horizontal'} />
+            <Separator orientation="horizontal" className="px-0" />
             <ItemWrapper>
                 <SettingInput
                     title="上一句"

@@ -17,7 +17,7 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import registerHandler from './IpcHandler';
 import { WindowState } from '../common/types/Types';
-import runMigrate from "../db/migrate";
+import runMigrate from '../db/migrate';
 
 const { net, protocol } = require('electron');
 

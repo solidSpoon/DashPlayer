@@ -23,8 +23,7 @@ import SettingLayout from './pages/setting/SettingLayout';
 import About from './pages/About';
 
 loader.config({ monaco });
-LicenseManager.prototype.validateLicense = () => {
-};
+LicenseManager.prototype.validateLicense = () => {};
 LicenseManager.prototype.isDisplayWatermark = () => {
     return false;
 };
@@ -39,46 +38,54 @@ export default function App() {
     }, [theme]);
     return (
         <FileDrop isDragging={isDragging} setIsDragging={setIsDragging}>
-            <div className='w-full h-screen font-face-arc text-black overflow-hidden select-none'>
+            <div className="w-full h-screen font-face-arc text-black overflow-hidden select-none">
                 <HashRouter>
                     <Routes>
-                        <Route path='/' element={<HomePage />} />
-                        <Route path='home' element={<HomePage />} />
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="home" element={<HomePage />} />
                         <Route element={<TieleBarLayout />}>
                             <Route
-                                path='player/:videoId'
+                                path="player/:videoId"
                                 element={<PlayerP />}
                             />
-                            <Route path='*' element={<Layout />}>
+                            <Route path="*" element={<Layout />}>
                                 <Route
-                                    path='word-management'
+                                    path="word-management"
                                     element={<WordManagement />}
                                 />
+                                <Route path="about" element={<About />} />
                                 <Route
-                                    path='about'
-                                    element={<About />}
-                                />
-                                <Route path={'settings'} element={<SettingLayout />}>
-                                    <Route path='*' element={<ShortcutSetting />} />
+                                    path="settings"
+                                    element={<SettingLayout />}
+                                >
                                     <Route
-                                        path='shortcut'
+                                        path="*"
                                         element={<ShortcutSetting />}
                                     />
                                     <Route
-                                        path='you-dao'
-                                        element={<YouDaoSetting />} />
+                                        path="shortcut"
+                                        element={<ShortcutSetting />}
+                                    />
                                     <Route
-                                        path='tenant'
-                                        element={<TenantSetting />} />
+                                        path="you-dao"
+                                        element={<YouDaoSetting />}
+                                    />
                                     <Route
-                                        path='storage'
-                                        element={<StorageSetting />} />
+                                        path="tenant"
+                                        element={<TenantSetting />}
+                                    />
                                     <Route
-                                        path='update'
-                                        element={<CheckUpdate />} />
+                                        path="storage"
+                                        element={<StorageSetting />}
+                                    />
                                     <Route
-                                        path='appearance'
-                                        element={<AppearanceSetting />} />
+                                        path="update"
+                                        element={<CheckUpdate />}
+                                    />
+                                    <Route
+                                        path="appearance"
+                                        element={<AppearanceSetting />}
+                                    />
                                 </Route>
                             </Route>
                         </Route>
