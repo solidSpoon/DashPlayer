@@ -21,9 +21,8 @@ const TitleBarLayout = () => {
             <div
                 className={cn('absolute w-full h-full top-0 left-0 flex flex-col font-face-arc overflow-hidden select-none text-black')}>
                 <TitleBar
-                    hasSubTitle={subtitleFile !== undefined}
                     title={videoFile?.fileName}
-                    windowsButtonClassName='hover:bg-titlebarHover'
+                    windowsButtonClassName='hover:bg-black/10'
                     className=''
                 />
                 <Suspense fallback={<div>Loading...</div>}>
