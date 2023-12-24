@@ -1,5 +1,9 @@
 import React from 'react';
-import { HiOutlineMenu, HiOutlinePencil, HiOutlinePuzzle } from 'react-icons/hi';
+import {
+    HiOutlineMenu,
+    HiOutlinePencil,
+    HiOutlinePuzzle,
+} from 'react-icons/hi';
 import {
     VscChromeClose,
     VscChromeMaximize,
@@ -51,7 +55,7 @@ const TitleBarWindows = ({
         <div
             className={`select-none w-full drag h-7 flex justify-between items-center text-titlebarText gap-x-2  ${className}`}
         >
-            <div className={'h-7 w-20'}></div>
+            <div className="h-7 w-20" />
             <div>{title}</div>
             <div className="no-drag flex h-full justify-center items-center">
                 <VscChromeMinimize
