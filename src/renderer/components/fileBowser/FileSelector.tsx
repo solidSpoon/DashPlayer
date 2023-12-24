@@ -1,19 +1,24 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { pathToFile } from '../../../common/utils/FileParser';
 import useFile from '../../hooks/useFile';
 import { cn } from '../../../common/utils/Util';
 import usePlayerController from '../../hooks/usePlayerController';
-import { useNavigate } from "react-router-dom";
 import FileItem from './FileItem';
 
 export interface OpenFileProps {
     directory?: boolean;
     className?: string;
+    onSelected?: () => void;
 }
 
 const api = window.electron;
 
-export default function FileSelector({ directory, className }: OpenFileProps) {
+export default function FileSelector({
+    directory,
+    className,
+    onSelected,
+}: OpenFileProps) {
     const updateFile = useFile((s) => s.updateFile);
     const changePopType = usePlayerController((s) => s.changePopType);
     const navigate = useNavigate();
@@ -27,19 +32,21 @@ export default function FileSelector({ directory, className }: OpenFileProps) {
             // 是字幕文件
             const file = await pathToFile(project);
             updateFile(file);
-            changePopType('none');
+            onSelected?.();
             return;
         }
 
         console.log('project', project);
-        const video = project.videos.filter((v) => {
-            return v.current_playing === true;
-        })[0];
+        const video =
+            project.videos.filter((v) => {
+                return v.current_playing === true;
+            })[0] ?? project.videos[0];
         if (!video) {
             return;
         }
         api.playerSize();
         navigate(`/player/${video.id}`);
+        onSelected?.();
         changePopType('none');
     };
 
@@ -66,4 +73,5 @@ export default function FileSelector({ directory, className }: OpenFileProps) {
 FileSelector.defaultProps = {
     directory: false,
     className: '',
+    onSelected: () => {},
 };

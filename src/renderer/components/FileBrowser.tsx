@@ -25,8 +25,12 @@ const FileBrowser = () => {
                 'bg-white/90 drop-shadow-lg'
             )}
         >
-            <FileSelector className="text-base" directory={false} />
-            <FileSelector directory />
+            <FileSelector
+                className="text-base"
+                directory={false}
+                onSelected={refresh}
+            />
+            <FileSelector directory onSelected={refresh} />
             <div className={cn('w-full flex items-center gap-2')}>
                 {path ? (
                     <VscFolderOpened className="flex-shrink-0 w-4 h-4" />

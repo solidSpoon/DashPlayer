@@ -9,6 +9,7 @@ import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '../../common/utils/Util';
 import useLayout from '../hooks/useLayout';
+import { FontSize } from '../styles/style';
 
 interface SideSentenceNewParam {
     sentence: SentenceT;
@@ -44,11 +45,6 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     'm-1.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
                     'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow'
                 )}
-                style={
-                    {
-                        // zoom: showSideBar ? 0.65 : 1,
-                    }
-                }
                 onClick={() => {
                     onClick(sentence);
                 }}
@@ -58,7 +54,8 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     className={cn(
                         'flex flex-col items-center justify-center text-playIcon',
                         isCurrent ? 'visible' : 'invisible',
-                        fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7'
+                        fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7',
+                        fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg'
                     )}
                 >
                     {icon()}
