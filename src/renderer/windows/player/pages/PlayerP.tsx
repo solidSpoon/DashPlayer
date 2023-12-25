@@ -43,6 +43,7 @@ const PlayerP = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     console.log('referrer', referrer);
+    const hasSubTitle = useFile((s) => s.subtitleFile !== undefined);
     useEffect(() => {
         const runEffect = async () => {
             if (videoId === undefined) return;
@@ -124,6 +125,7 @@ const PlayerP = () => {
                         <motion.div
                             className={cn(
                                 'col-start-2 row-start-1 col-end-4 row-end-3 p-2',
+                                isWindows && 'pt-1',
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
@@ -143,6 +145,7 @@ const PlayerP = () => {
                         <motion.div
                             className={cn(
                                 'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-2',
+                                isWindows && 'pt-1',
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
@@ -186,7 +189,8 @@ const PlayerP = () => {
                 >
                     <div
                         className={cn(
-                            'w-full h-full flex flex-col border-4 border-r-0 rounded border-white/90 drop-shadow-lg overflow-hidden',
+                            'w-full h-full flex flex-col border-4 rounded border-white/90 drop-shadow-lg overflow-hidden',
+                            hasSubTitle && 'border-r-0',
                             !isWindows && 'border-0',
                             showSideBar &&
                                 'overflow-hidden border-[30px] border-white/90 rounded-[45px]'
