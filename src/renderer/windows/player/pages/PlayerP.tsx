@@ -225,7 +225,7 @@ const PlayerP = () => {
                             <div className={cn('h-full w-full relative', isWindows && !showSideBar && 'pt-2')}>
                                 {isWindows && !showSideBar && (
                                     <div
-                                        className={cn('absolute z-50 top-0 left-0 backdrop-blur h-10 w-full',
+                                        className={cn('absolute z-50 top-0 left-0 backdrop-blur h-9 w-full',
                                             'bg-gradient-to-b from-gray-300 to-gray-300/50',
                                             'dark:from-neutral-800 dark:to-neutral-800/50',
                                         )}>
