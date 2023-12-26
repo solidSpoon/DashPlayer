@@ -68,7 +68,7 @@ const lightColor: {
 const darkColor: {
     [key in ColorType]: string;
 } = {
-    'bg-background': 'bg-gray-800',
+    'bg-background': 'bg-neutral-800',
     'bg-sentenceBackground': 'bg-neutral-700',
     'bg-wordHoverBackground': 'bg-neutral-600',
     'bg-sentenceHoverBackground': 'bg-neutral-600',

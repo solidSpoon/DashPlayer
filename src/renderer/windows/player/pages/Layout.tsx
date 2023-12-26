@@ -36,7 +36,7 @@ const Layout = () => {
                         )}
                     <motion.div
                         layout
-                        className={cn('p-2', isWindows && 'pt-1')}
+                        className={cn('p-2')}
                         style={{
                             gridArea: showSideBar
                                 ? '1 / 2 / -1 / -1'

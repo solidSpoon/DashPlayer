@@ -7,6 +7,7 @@ import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useSystem from '../hooks/useSystem';
 import useLayout from '../hooks/useLayout';
+import { cn } from '../../common/utils/Util';
 
 interface Ele {
     /**
@@ -162,7 +163,7 @@ export default function Subtitle() {
                         'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded',
                         'scrollbar-thin  dark:scrollbar-track-stone-600',
                         isWindows
-                            ? 'scrollbar-track-white'
+                            ? ''
                             : 'scrollbar-track-sky-100',
                         showSideBar && 'scrollbar-none'
                     )}
@@ -191,7 +192,7 @@ export default function Subtitle() {
                     }}
                     components={{
                         Footer: () => <div className="h-52" />,
-                        Header: () => <div className="h-3" />,
+                        Header: () => <div className={cn("h-3", isWindows && "h-0")} />,
                     }}
                 />
             </div>

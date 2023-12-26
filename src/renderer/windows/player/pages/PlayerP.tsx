@@ -10,11 +10,9 @@ import MainSubtitle from '../../../components/MainSubtitle';
 import Subtitle from '../../../components/Subtitle';
 import Player from '../../../components/Player';
 import UploadButton from '../../../components/UploadButton';
-import BorderProgressBar from '../../../components/BorderProgressBar';
 import useFile from '../../../hooks/useFile';
 import GlobalShortCut from '../../../components/GlobalShortCut';
 import SideBar from '../../../components/SideBar';
-import Background from '../../../components/bg/Background';
 import useSystem from '../../../hooks/useSystem';
 
 const api = window.electron;
@@ -72,7 +70,7 @@ const PlayerP = () => {
                     rect.y -
                     titleBarHeight +
                     (window.innerHeight - titleBarHeight) * 0.05,
-                scale: rect.width / window.innerWidth,
+                scale: rect.width / window.innerWidth
             });
         };
         updatePos();
@@ -98,10 +96,10 @@ const PlayerP = () => {
     return (
         <div className={cn('relative w-full h-full ')}>
             <div
-                className="absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden"
+                className='absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden'
                 style={{
                     gridTemplateColumns: gridTemplate(),
-                    gridTemplateRows: '30% 70%', // 这里定义每行的大小
+                    gridTemplateRows: '30% 70%' // 这里定义每行的大小
                 }}
             >
                 {showSideBar && (
@@ -112,12 +110,12 @@ const PlayerP = () => {
                             )}
                             initial={{ x: -1000 }}
                             animate={{
-                                x: 0,
+                                x: 0
                             }}
                             exit={{ x: -1000 }}
                             transition={{
                                 type: 'tween',
-                                duration: sideBarAnimation ? 0 : 0,
+                                duration: sideBarAnimation ? 0 : 0
                             }}
                         >
                             <SideBar compact={!w('lg')} />
@@ -125,18 +123,17 @@ const PlayerP = () => {
                         <motion.div
                             className={cn(
                                 'col-start-2 row-start-1 col-end-4 row-end-3 p-2',
-                                isWindows && 'pt-1',
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
                             initial={{ x: 1000 }}
                             animate={{
-                                x: 0,
+                                x: 0
                             }}
                             exit={{ x: 1000 }}
                             transition={{
                                 type: 'tween',
-                                duration: 0.2,
+                                duration: 0.2
                             }}
                         >
                             <FileBrowser />
@@ -145,19 +142,18 @@ const PlayerP = () => {
                         <motion.div
                             className={cn(
                                 'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-2',
-                                isWindows && 'pt-1',
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
                             initial={{ y: -1000 }}
                             animate={{
                                 y: 0,
-                                x: 0,
+                                x: 0
                             }}
                             exit={{ y: -1000 }}
                             transition={{
                                 type: 'tween',
-                                duration: 0.2,
+                                duration: 0.2
                             }}
                         >
                             <ControlBox />
@@ -165,17 +161,16 @@ const PlayerP = () => {
                     </>
                 )}
                 <div
-                    className="p-4"
+                    className='p-4'
                     style={{
-                        gridArea: '2 / 2 / 2 / 3',
+                        gridArea: '2 / 2 / 2 / 3'
                     }}
                 >
-                    <div className="w-full h-full" ref={posRef} />
+                    <div className='w-full h-full' ref={posRef} />
                 </div>
                 <div
                     className={cn(
-                        'flex flex-col p-2 pt-0',
-                        !isWindows && 'p-0',
+                        'flex flex-col',
                         showSideBar && 'p-4 pt-2 pr-2',
                         !((w('md') && h('md')) || !showSideBar) && 'hidden'
                     )}
@@ -184,16 +179,16 @@ const PlayerP = () => {
                         transform: showSideBar
                             ? `translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`
                             : 'translate(0px, 0px) scale(1)',
-                        transformOrigin: 'top left',
+                        transformOrigin: 'top left'
                     }}
                 >
                     <div
                         className={cn(
-                            'w-full h-full flex flex-col border-4 rounded border-white/90 drop-shadow-lg overflow-hidden',
+                            'w-full h-full flex flex-col border-0 rounded border-white/90 drop-shadow-lg overflow-hidden',
                             hasSubTitle && 'border-r-0',
                             !isWindows && 'border-0',
                             showSideBar &&
-                                'overflow-hidden border-[30px] border-white/90 rounded-[45px]'
+                            'overflow-hidden border-[30px] border-white/90 rounded-[45px]'
                         )}
                     >
                         <Split
@@ -210,7 +205,7 @@ const PlayerP = () => {
                         >
                             <Split
                                 minSize={10}
-                                className="split z-40"
+                                className='split z-40'
                                 sizes={JSON.parse(sizeB)}
                                 onDragEnd={(sizes) => {
                                     localStorage.setItem(
@@ -218,20 +213,26 @@ const PlayerP = () => {
                                         JSON.stringify(sizes)
                                     );
                                 }}
-                                direction="vertical"
+                                direction='vertical'
                             >
-                                <div className="h-full">
+                                <div className='h-full'>
                                     <Player />
                                 </div>
-                                <div className="h-full">
+                                <div className='h-full'>
                                     <MainSubtitle />
                                 </div>
                             </Split>
-                            <Subtitle />
+                            <div className={cn('h-full w-full relative', isWindows && !showSideBar && 'pt-2')}>
+                                {isWindows && !showSideBar && (
+                                    <div
+                                        className={cn('absolute z-50 top-0 left-0 backdrop-blur h-10 w-full',
+                                            'bg-gradient-to-b from-gray-300 to-gray-300/50',
+                                            'dark:from-neutral-800 dark:to-neutral-800/50',
+                                        )}>
+                                    </div>)}
+                                <Subtitle />
+                            </div>
                         </Split>
-                        {/* <div className={cn('h-2')}> */}
-                        {/*     <BorderProgressBar /> */}
-                        {/* </div> */}
                     </div>
                 </div>
                 <UploadButton />
