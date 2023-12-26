@@ -13,7 +13,7 @@ const TitleBar = ({ autoHideOnMac, className, maximizable }: TitleBarProps) => {
 
     return (
         <>
-            {!isWindows ? (
+            {isWindows ? (
                 <TitleBarWindows
                     className={className}
                     maximizable={maximizable}
