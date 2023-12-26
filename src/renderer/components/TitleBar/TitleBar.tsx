@@ -28,8 +28,6 @@ const TitleBar = ({ autoHideOnMac, className, maximizable }: TitleBarProps) => {
 TitleBar.defaultProps = {
     autoHideOnMac: true,
     className: '',
-    windowsButtonClassName: '',
     maximizable: true,
-    title: '',
 };
 export default TitleBar;
