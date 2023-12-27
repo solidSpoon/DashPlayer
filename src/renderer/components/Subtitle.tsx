@@ -162,9 +162,6 @@ export default function Subtitle() {
                         'h-full w-full overflow-y-scroll text-textColor',
                         'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded',
                         'scrollbar-thin  dark:scrollbar-track-stone-600',
-                        isWindows
-                            ? ''
-                            : 'scrollbar-track-sky-100',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}
@@ -192,7 +189,7 @@ export default function Subtitle() {
                     }}
                     components={{
                         Footer: () => <div className="h-52" />,
-                        Header: () => <div className={cn("h-3", isWindows && "h-0")} />,
+                        Header: () => <div className={cn("h-0.5")} />,
                     }}
                 />
             </div>
