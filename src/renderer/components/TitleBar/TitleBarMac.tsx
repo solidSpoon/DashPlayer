@@ -9,15 +9,17 @@ export interface TitleBarProps {
 
 const api = window.electron;
 
-const TitleBarMac = ({
-    autoHide,
-}: TitleBarProps) => {
+const TitleBarMac = ({ autoHide }: TitleBarProps) => {
     const [isMouseOver, setIsMouseOver] = useState(false);
     const showSideBar = useLayout((s) => s.showSideBar);
     const windowState = useSystem((s) => s.windowState);
     const setWindowState = useSystem((s) => s.setWindowState);
     const isMain = useSystem((s) => s.isMain);
+    const fullScreen = windowState === 'fullscreen';
     const onDoubleClick = async () => {
+        if (fullScreen) {
+            return;
+        }
         if (windowState === 'maximized') {
             setWindowState('normal');
         } else {
@@ -26,7 +28,9 @@ const TitleBarMac = ({
     };
 
     const handleMouseOver = async () => {
-        const fullScreen = windowState === 'fullscreen';
+        if (fullScreen) {
+            return;
+        }
         setIsMouseOver(!fullScreen);
         if (showSideBar) {
             await api.showButton();
@@ -40,7 +44,9 @@ const TitleBarMac = ({
     };
 
     const handleMouseLeave = async () => {
-        const fullScreen = windowState === 'fullscreen';
+        if (fullScreen) {
+            return;
+        }
         setIsMouseOver(false);
         if (showSideBar) {
             await api.showButton();
@@ -57,7 +63,7 @@ const TitleBarMac = ({
 
     useEffect(() => {
         const runEffect = async () => {
-            if (showSideBar) {
+            if (showSideBar || fullScreen) {
                 await api.showButton();
                 return;
             }
@@ -68,16 +74,14 @@ const TitleBarMac = ({
             }
         };
         runEffect();
-    }, [isMouseOver, showSideBar]);
+    }, [fullScreen, isMouseOver, showSideBar]);
 
     return (
         // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events
         <div onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
             <div
-                className={cn(
-                    'drag w-full h-10 absolute top-0 z-50'
-                )}
+                className={cn('drag w-full h-10 absolute top-0 z-50')}
                 onDoubleClick={() => {
                     onDoubleClick();
                 }}

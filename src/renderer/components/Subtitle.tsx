@@ -46,6 +46,7 @@ const getEle = (ele: HTMLDivElement): Ele => {
 };
 
 export default function Subtitle() {
+    const [mouseOver, setMouseOver] = useState(false);
     const isWindows = useSystem((state) => state.isWindows);
     const showSideBar = useLayout((state) => state.showSideBar);
     const { currentSentence, subtitle, jump, singleRepeat } =
@@ -155,13 +156,21 @@ export default function Subtitle() {
         return (
             <div className="w-full h-full" ref={boundaryRef}>
                 <Virtuoso
+                    onMouseOver={() => {
+                        setMouseOver(true);
+                    }}
+                    onMouseLeave={() => {
+                        setMouseOver(false);
+                    }}
                     increaseViewportBy={200}
                     defaultItemHeight={55}
                     ref={listRef}
                     className={twJoin(
                         'h-full w-full overflow-y-scroll text-textColor',
-                        'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover scrollbar-thumb-rounded',
+                        'scrollbar-thumb-rounded',
                         'scrollbar-thin',
+                        mouseOver &&
+                            'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}
@@ -189,7 +198,7 @@ export default function Subtitle() {
                     }}
                     components={{
                         Footer: () => <div className="h-52" />,
-                        Header: () => <div className={cn("h-0.5")} />,
+                        Header: () => <div className={cn('h-0.5')} />,
                     }}
                 />
             </div>
