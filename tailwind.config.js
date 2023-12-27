@@ -62,11 +62,11 @@ module.exports = {
                         /**
                          * 滚动条把手色
                          */
-                        scrollbarThumb: colors.stone['400'],
+                        scrollbarThumb: colors.stone['600'],
                         /**
                          * 滚动条把手色 hover
                          */
-                        scrollbarThumbHover: colors.stone['300'],
+                        scrollbarThumbHover: colors.stone['500'],
                         /**
                          * 进度条完成色
                          */

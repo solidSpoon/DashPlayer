@@ -42,7 +42,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
-                    'm-1.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
+                    'm-1.5 mr-0 px-1 py-2 border-0 flex gap-1 content-start rounded-lg bg-sentenceBackground',
                     'hover:drop-shadow-lg hover:bg-sentenceHoverBackground text-subtitle drop-shadow'
                 )}
                 onClick={() => {

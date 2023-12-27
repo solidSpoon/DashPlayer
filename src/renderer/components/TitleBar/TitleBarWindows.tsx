@@ -40,13 +40,12 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
                 />
                 <button
                     onClick={() => {
-                        if (
-                            (maximizable ?? true) &&
-                            windowState === 'maximized'
-                        ) {
-                            unMaximize();
-                        } else {
-                            maximize();
+                        if (maximizable ?? true) {
+                            if (windowState === 'maximized') {
+                                unMaximize();
+                            } else {
+                                maximize();
+                            }
                         }
                     }}
                     className="traffic-light traffic-light-maximize"
