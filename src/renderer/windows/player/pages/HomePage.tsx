@@ -49,15 +49,11 @@ const HomePage = () => {
             <TitleBar
                 maximizable={false}
                 className="fixed top-0 left-0 w-full z-50"
-                windowsButtonClassName={cn(
-                    'text-slate-700 hover:bg-slate-100',
-                    'dark:hover:bg-titlebarHover'
-                )}
                 autoHideOnMac={false}
             />
             <div
                 className={cn(
-                    'w-1/3 h-full backdrop-blur flex flex-col justify-center items-center bg-white/20 rounded-l-lg gap-14 drop-shadow shadow-white',
+                    'w-1/3 h-full backdrop-blur flex flex-col justify-center items-center bg-white/20 gap-14 drop-shadow shadow-white',
                     'dark:shadow-black'
                 )}
             >
@@ -87,7 +83,7 @@ const HomePage = () => {
             </div>
             <div
                 className={cn(
-                    'h-full flex-1 backdrop-blur w-0 flex flex-col justify-center items-center bg-stone-200 rounded-r-lg border-l border-stone-400 pl-8 pr-10 gap-6',
+                    'h-full flex-1 backdrop-blur w-0 flex flex-col justify-center items-center bg-stone-200 border-l border-stone-400 pl-8 pr-10 gap-6',
                     dark && 'border-neutral-800 bg-white/10'
                 )}
             >
@@ -119,9 +115,7 @@ const HomePage = () => {
                                 'text-neutral-600',
                                 dark && 'text-neutral-400'
                             )}
-                        >
-                            {/* {secondToDate(lastPlayVideo?.current_time ?? 0)} */}
-                        </span>
+                        />
                     </div>
                 )}
                 <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
