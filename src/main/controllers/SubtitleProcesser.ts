@@ -8,11 +8,18 @@ const tokenizer = new natural.TreebankWordTokenizer();
 
 function tokenizeAndProcess(text: string) {
     let tokens = tokenizer.tokenize(text);
-    tokens = tokens
-        .map((token) =>
-            token.endsWith('.') ? [token.slice(0, -1), '.'] : [token]
-        )
-        .flat();
+
+    function process(token: string, separator: string) {
+        return token.endsWith(separator)
+            ? [token.slice(0, -1), separator]
+            : [token];
+    }
+
+    const separators = ['.', ',', '!', '?', ';'];
+    separators.forEach((separator) => {
+        tokens = tokens.map((token) => process(token, separator)).flat();
+    });
+
     return tokens;
 }
 
@@ -23,6 +30,7 @@ function isWord(token: string) {
 
 const processSentence = (sentence: string): SentenceStruct => {
     const tokens = tokenizeAndProcess(sentence);
+    console.log('aaaaa', tokens);
     const structure: SentenceBlockBySpace[] = [];
     let currentBlock: SentenceBlockBySpace = {
         blockParts: [],
