@@ -5,6 +5,9 @@ import { cn } from '../../common/utils/Util';
 import Switch from './Switch';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout, { cpH, cpW } from '../hooks/useLayout';
+import Button from './Button';
+import { AiOutlineFieldTime } from 'react-icons/ai';
+import { sentenceClearAllAdjust } from '../hooks/usePlayerControllerSlices/createSentenceSlice';
 
 const ControlBox = () => {
     const w = cpW.bind(
@@ -79,6 +82,15 @@ const ControlBox = () => {
                     title="单句循环"
                     className={cn('w-60 rounded')}
                 />
+                <Button
+                    onClick={() => {
+                        // sentenceClearAllAdjust();
+                    }}
+                    title="清除调整的时间"
+                    className={cn('w-60 rounded')}
+                >
+                    <AiOutlineFieldTime/>
+                </Button>
             </div>
         </div>
     );

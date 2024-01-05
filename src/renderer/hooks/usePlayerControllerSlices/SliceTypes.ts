@@ -56,6 +56,9 @@ export interface SentenceSlice {
             | ((prev: SentenceT | undefined) => SentenceT | undefined)
     ) => void;
     tryUpdateCurrentSentence: () => void;
+    adjustStart: (time: number) => void;
+    adjustEnd: (time: number) => void;
+    clearAdjust: () => void;
 }
 
 export interface WordLevelSlice {

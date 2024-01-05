@@ -7,6 +7,9 @@ class SentenceT {
 
     public currentEnd: number | undefined;
 
+    public originalBegin: number | undefined;
+    public originalEnd: number | undefined;
+
     public nextBegin: number | undefined;
 
     /**

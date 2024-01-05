@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';

@@ -12,6 +12,7 @@ import { WordView } from './tables/wordView';
 import { Pagination } from './services/WordViewService';
 import { WatchProjectVO } from './services/WatchProjectService';
 import { SettingKey } from '../common/types/store_schema';
+import { InsertSubtitleTimestampAdjustment, SubtitleTimestampAdjustment } from './tables/subtitleTimestampAdjustment';
 
 export type Channels =
     | 'main-state'
@@ -49,7 +50,11 @@ export type Channels =
     | 'store-set'
     | 'store-get'
     | 'store-update'
-    | 'select-file';
+    | 'select-file'
+    | 'subtitle-timestamp-record'
+    | 'subtitle-timestamp-delete-key'
+    | 'subtitle-timestamp-delete-path'
+    | 'subtitle-timestamp-get-key';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -93,6 +98,20 @@ const electronHandler = {
             }
             return null;
         },
+    },
+    subtitleTimestampRecord: async (
+        e: InsertSubtitleTimestampAdjustment
+    ): Promise<void> => {
+        await invoke('subtitle-timestamp-record', e);
+    },
+    subtitleTimestampDeleteByKey: async (key: string): Promise<void> => {
+        await invoke('subtitle-timestamp-delete-key', key);
+    },
+    subtitleTimestampDeleteByPath: async (subtitlePath: string): Promise<void> => {
+        await invoke('subtitle-timestamp-delete-path', subtitlePath);
+    },
+    subtitleTimestampGetByKey: async (key: string): Promise<SubtitleTimestampAdjustment | undefined> => {
+        return (await invoke('subtitle-timestamp-get-key', key)) as SubtitleTimestampAdjustment | undefined;
     },
     storeSet: async (key: SettingKey, value: string|null|undefined) => {
         await invoke('store-set', key, value);

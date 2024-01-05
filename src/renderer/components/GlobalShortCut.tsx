@@ -20,6 +20,9 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         prev,
         next,
         repeat,
+        adjustStart,
+        adjustEnd,
+        clearAdjust
     } = usePlayerController(
         useShallow((s) => ({
             space: s.space,
@@ -31,6 +34,9 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
             prev: s.prev,
             next: s.next,
             repeat: s.repeat,
+            adjustStart: s.adjustStart,
+            adjustEnd: s.adjustEnd,
+            clearAdjust: s.clearAdjust,
         }))
     );
     const setting = useSetting((s) => s.setting);
@@ -61,6 +67,11 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     registerKey(setting('shortcut.toggleEnglishDisplay'), changeShowEn);
     registerKey(setting('shortcut.toggleChineseDisplay'), changeShowCn);
     registerKey(setting('shortcut.toggleBilingualDisplay'), changeShowEnCn);
+    registerKey(setting('shortcut.adjustBeginMinus'), adjustStart.bind(null, -0.2));
+    registerKey(setting('shortcut.adjustBeginPlus'), adjustStart.bind(null, 0.2));
+    registerKey(setting('shortcut.adjustEndMinus'), adjustEnd.bind(null, -0.2));
+    registerKey(setting('shortcut.adjustEndPlus'), adjustEnd.bind(null, 0.2));
+    registerKey(setting('shortcut.clearAdjust'), clearAdjust);
     registerKey(
         setting('shortcut.toggleWordLevelDisplay'),
         changeShowWordLevel

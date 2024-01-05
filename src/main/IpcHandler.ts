@@ -38,10 +38,10 @@ import WatchProjectService from './services/WatchProjectService';
 import { SettingKey, SettingKeyObj } from '../common/types/store_schema';
 import { strBlank } from '../common/utils/Util';
 import { storeGet, storeSet } from './store';
+import { SubtitleTimestampAdjustmentController } from './controllers/SubtitleTimestampAdjustmentController';
+import { InsertSubtitleTimestampAdjustment } from './tables/subtitleTimestampAdjustment';
 
 const { shell } = require('electron');
-
-const store = new Store();
 const handle = (
     channel: Channels,
     listenerWrapper: (...args: any[]) => Promise<void> | any
@@ -271,4 +271,16 @@ export default function registerHandler() {
             return WatchProjectService.getVideo(videoId);
         }
     );
+    handle('subtitle-timestamp-record', async (e: InsertSubtitleTimestampAdjustment) => {
+        await SubtitleTimestampAdjustmentController.record(e);
+    });
+    handle('subtitle-timestamp-delete-key', async (key: string) => {
+        await SubtitleTimestampAdjustmentController.deleteByKey(key);
+    });
+    handle('subtitle-timestamp-delete-path', async (subtitlePath: string) => {
+        await SubtitleTimestampAdjustmentController.deleteByPath(subtitlePath);
+    });
+    handle('subtitle-timestamp-get-key', async (key: string) => {
+        return SubtitleTimestampAdjustmentController.getByKey(key);
+    });
 }

@@ -4,12 +4,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ToolTip';
 
 export interface IconButtonProps {
     onClick: () => void;
-    icon: React.ReactElement;
+    icon?: React.ReactElement;
     tooltip: string;
     className?: string;
+    children?: React.ReactNode;
 }
 
-const IconButton = ({ onClick, icon, tooltip, className: ic }: IconButtonProps) => {
+const IconButton = ({ onClick, icon, tooltip, className: ic, children }: IconButtonProps) => {
+    if (icon === undefined) {
+        icon = children as React.ReactElement;
+    }
     const [open, setOpen] = useState(false);
     const timeout = useRef<NodeJS.Timeout>();
 
