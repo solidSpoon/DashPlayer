@@ -7,9 +7,8 @@ import {
     SubtitleSlice,
 } from './SliceTypes';
 import SentenceT from '../../../common/types/SentenceT';
-import { SubtitleAdjustmentTypeConverter } from '../../../common/types/SubtitleAdjustmentTypeConverter';
+import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
-import hash from '../../../common/utils/hash';
 
 const api = window.electron;
 const createSentenceSlice: StateCreator<
@@ -134,9 +133,7 @@ const createSentenceSlice: StateCreator<
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampDeleteByKey(
-            hash(`${subtitleFile.path}-${clone.index}-${clone.text}`)
-        );
+        api.subtitleTimestampDeleteByKey(clone.key);
     },
 });
 

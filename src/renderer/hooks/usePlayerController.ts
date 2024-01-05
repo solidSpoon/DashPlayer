@@ -25,6 +25,8 @@ import useSetting from './useSetting';
 import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
 import TransHolder from '../../common/utils/TransHolder';
 import { SentenceStruct } from '../../common/types/SentenceStruct';
+import { SubtitleTimestampAdjustment } from '../../db/tables/subtitleTimestampAdjustment';
+import hash, { sentenceKey } from '../../common/utils/hash';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -134,6 +136,34 @@ async function loadSubtitle(subtitleFile: FileT) {
     srtSubtitles.forEach((item) => {
         item.fileUrl = url;
         item.setKey();
+    });
+
+    const adjs: SubtitleTimestampAdjustment[] =
+        await api.subtitleTimestampGetByPath(subtitleFile.path ?? '');
+    const mapping: Map<string, SubtitleTimestampAdjustment> = new Map();
+    adjs.forEach((item) => {
+        mapping.set(item.key, item);
+    });
+    srtSubtitles.forEach((item) => {
+        const key = sentenceKey(
+            subtitleFile.path ?? '',
+            item.index,
+            item.text ?? ''
+        );
+        const adj = mapping.get(key);
+        if (adj) {
+            if (
+                Math.abs((adj.start_at ?? 0) - (item.currentBegin ?? 0)) < 0.05
+            ) {
+                item.originalBegin = item.currentBegin;
+                item.currentBegin = adj.end_at ?? undefined;
+            }
+
+            if (Math.abs((adj.end_at ?? 0) - (item.currentEnd ?? 0)) < 0.05) {
+                item.originalEnd = item.currentEnd;
+                item.currentEnd = adj.end_at ?? undefined;
+            }
+        }
     });
     return srtSubtitles;
 }
