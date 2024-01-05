@@ -7,12 +7,12 @@ import { WindowState } from '../common/types/Types';
 
 import { SentenceStruct } from '../common/types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
-import { WatchProjectVideo } from './tables/watchProjectVideos';
-import { WordView } from './tables/wordView';
+import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
+import { WordView } from '../common/types/wordView';
 import { Pagination } from './services/WordViewService';
 import { WatchProjectVO } from './services/WatchProjectService';
 import { SettingKey } from '../common/types/store_schema';
-import { InsertSubtitleTimestampAdjustment, SubtitleTimestampAdjustment } from './tables/subtitleTimestampAdjustment';
+import { InsertSubtitleTimestampAdjustment, SubtitleTimestampAdjustment } from '../db/tables/subtitleTimestampAdjustment';
 
 export type Channels =
     | 'main-state'

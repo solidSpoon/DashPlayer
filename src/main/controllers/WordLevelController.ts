@@ -5,7 +5,7 @@ import TransApi from '../services/TransApi';
 import { p } from '../../common/utils/Util';
 import StemLevelService from '../services/StemLevelService';
 import WordLevelService from '../services/WordLevelService';
-import { WordView } from '../tables/wordView';
+import { WordView } from '../../common/types/wordView';
 import WordViewService, { Pagination } from '../services/WordViewService';
 
 export async function markWordLevel(

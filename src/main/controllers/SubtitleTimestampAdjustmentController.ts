@@ -5,7 +5,7 @@ import { p } from '../../common/utils/Util';
 import TransHolder from '../../common/utils/TransHolder';
 import SentenceTranslateService from '../services/SentenceTranslateService';
 import SubtitleTimestampAdjustmentService from '../services/SubtitleTimestampAdjustmentService';
-import { InsertSubtitleTimestampAdjustment, SubtitleTimestampAdjustment } from '../tables/subtitleTimestampAdjustment';
+import { InsertSubtitleTimestampAdjustment, SubtitleTimestampAdjustment } from '../../db/tables/subtitleTimestampAdjustment';
 
 /**
  * AI 翻译

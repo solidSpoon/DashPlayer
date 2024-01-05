@@ -1,5 +1,5 @@
 import { DataPageData } from './useDataPage';
-import { WordView } from '../../../main/tables/wordView';
+import { WordView } from '../../../common/types/wordView';
 import { createRef } from 'react';
 export type MarkupType = 'default' | 'new' | 'delete' | 'update' | 'new-delete';
 export interface WordViewRow extends WordView {

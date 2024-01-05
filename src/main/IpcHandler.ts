@@ -32,14 +32,14 @@ import {
     writeToClipboard,
 } from './controllers/ClopboardController';
 import processSentences from './controllers/SubtitleProcesser';
-import { WordView } from './tables/wordView';
-import { WatchProjectVideo } from './tables/watchProjectVideos';
+import { WordView } from '../common/types/wordView';
+import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
 import WatchProjectService from './services/WatchProjectService';
 import { SettingKey, SettingKeyObj } from '../common/types/store_schema';
 import { strBlank } from '../common/utils/Util';
 import { storeGet, storeSet } from './store';
 import { SubtitleTimestampAdjustmentController } from './controllers/SubtitleTimestampAdjustmentController';
-import { InsertSubtitleTimestampAdjustment } from './tables/subtitleTimestampAdjustment';
+import { InsertSubtitleTimestampAdjustment } from '../db/tables/subtitleTimestampAdjustment';
 
 const { shell } = require('electron');
 const handle = (

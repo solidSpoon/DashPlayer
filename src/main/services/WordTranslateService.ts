@@ -6,7 +6,7 @@ import {
     InsertWordTranslate,
     WordTranslate,
     wordTranslates,
-} from '../tables/wordTranslates';
+} from '../../db/tables/wordTranslates';
 
 export default class WordTranslateService {
     public static async fetchWordTranslate(

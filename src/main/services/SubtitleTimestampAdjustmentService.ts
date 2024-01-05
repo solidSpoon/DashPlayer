@@ -1,12 +1,12 @@
 import { p } from '../../common/utils/Util';
-import { InsertWord, words } from '../tables/words';
+import { InsertWord, words } from '../../db/tables/words';
 import db from '../../db/db';
 import natural from 'natural';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment,
     subtitleTimestampAdjustments
-} from '../tables/subtitleTimestampAdjustment';
+} from '../../db/tables/subtitleTimestampAdjustment';
 import { eq } from 'drizzle-orm';
 
 export default class SubtitleTimestampAdjustmentService {

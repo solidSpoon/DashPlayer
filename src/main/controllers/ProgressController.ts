@@ -1,7 +1,7 @@
 import WatchProjectService, {
     WatchProjectVO,
 } from '../services/WatchProjectService';
-import { WatchProjectVideo } from '../tables/watchProjectVideos';
+import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
 
 export async function recentWatch(): Promise<WatchProjectVO[]> {
     return WatchProjectService.listRecent();

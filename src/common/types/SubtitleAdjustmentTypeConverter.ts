@@ -1,5 +1,5 @@
 import SentenceT from './SentenceT';
-import { InsertSubtitleTimestampAdjustment } from '../../main/tables/subtitleTimestampAdjustment';
+import { InsertSubtitleTimestampAdjustment } from '../../db/tables/subtitleTimestampAdjustment';
 import FileT from './FileT';
 import hash from '../utils/hash';
 
