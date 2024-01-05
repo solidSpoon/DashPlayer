@@ -114,8 +114,8 @@ const ShortcutSetting = () => {
                     setValue={setSettingFunc('shortcut.adjustEndPlus')}
                 />
                 <SettingInput
-                    title="清除时间调整"
-                    description="清除当前句子的时间调整"
+                    title="重置时间调整"
+                    description="调整后可以用这个快捷键重置当前句子的时间"
                     value={setting('shortcut.clearAdjust')}
                     setValue={setSettingFunc('shortcut.clearAdjust')}
                 />

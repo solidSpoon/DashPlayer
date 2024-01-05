@@ -1,5 +1,4 @@
 import React, { ReactElement, useState } from 'react';
-import { twJoin } from 'tailwind-merge';
 import hash from '../../common/utils/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
@@ -67,7 +66,7 @@ const TranslatableLine = ({ text, adjusted, clearAdjust }: TranslatableSubtitleL
                 {adjusted &&
                 <IconButton
                     onClick={clearAdjust}
-                    tooltip={'balba'}
+                    tooltip="点击重置当前句子时间戳"
                 >
                     <AiOutlineFieldTime
                         className={cn('w-8 h-8 text-white')} />
