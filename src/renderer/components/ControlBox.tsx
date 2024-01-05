@@ -8,7 +8,7 @@ import useLayout, { cpH, cpW } from '../hooks/useLayout';
 import Button from './Button';
 import { AiOutlineFieldTime } from 'react-icons/ai';
 import { sentenceClearAllAdjust } from '../hooks/usePlayerControllerSlices/createSentenceSlice';
-
+import toast, { Toaster } from 'react-hot-toast';
 const ControlBox = () => {
     const w = cpW.bind(
         null,
@@ -85,6 +85,9 @@ const ControlBox = () => {
                 <Button
                     onClick={() => {
                         // sentenceClearAllAdjust();
+                        toast('清除了', {
+                            icon: '👏',
+                        });
                     }}
                     title="清除调整的时间"
                     className={cn('w-60 rounded')}

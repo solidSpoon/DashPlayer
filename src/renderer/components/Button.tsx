@@ -34,7 +34,7 @@ const Button = ({ children, onClick, title, className }: ButtonParam) => {
         >
             {children && React.cloneElement(children as React.ReactElement, {
                 className: cn('text-gray-500 w-8 h-8 transition-all duration-500',
-                    clicked && 'text-green-500 scale-125 ')
+                    clicked && 'text-green-500 scale-105'),
             })}
             <div className={cn('flex flex-col justify-center'
             )}>

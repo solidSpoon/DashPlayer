@@ -19,9 +19,11 @@ import CheckUpdate from './pages/setting/CheckUpdate';
 import AppearanceSetting from './pages/setting/AppearanceSetting';
 import SettingLayout from './pages/setting/SettingLayout';
 import About from './pages/About';
+import toast, { Toaster } from 'react-hot-toast';
 
 loader.config({ monaco });
-LicenseManager.prototype.validateLicense = () => {};
+LicenseManager.prototype.validateLicense = () => {
+};
 LicenseManager.prototype.isDisplayWatermark = () => {
     return false;
 };
@@ -36,60 +38,63 @@ export default function App() {
     }, [theme]);
     return (
         <FileDrop isDragging={isDragging} setIsDragging={setIsDragging}>
-            <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
-                <HashRouter>
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="home" element={<HomePage />} />
-                        <Route element={<TitleBarLayout />}>
-                            <Route
-                                path="player/:videoId"
-                                element={<PlayerP />}
-                            />
-                            <Route path="*" element={<Layout />}>
+            <>
+                <div className='w-full h-screen text-black overflow-hidden select-none font-sans'>
+                    <HashRouter>
+                        <Routes>
+                            <Route path='/' element={<HomePage />} />
+                            <Route path='home' element={<HomePage />} />
+                            <Route element={<TitleBarLayout />}>
                                 <Route
-                                    path="word-management"
-                                    element={<WordManagement />}
+                                    path='player/:videoId'
+                                    element={<PlayerP />}
                                 />
-                                <Route path="about" element={<About />} />
-                                <Route
-                                    path="settings"
-                                    element={<SettingLayout />}
-                                >
+                                <Route path='*' element={<Layout />}>
                                     <Route
-                                        path="*"
-                                        element={<ShortcutSetting />}
+                                        path='word-management'
+                                        element={<WordManagement />}
                                     />
+                                    <Route path='about' element={<About />} />
                                     <Route
-                                        path="shortcut"
-                                        element={<ShortcutSetting />}
-                                    />
-                                    <Route
-                                        path="you-dao"
-                                        element={<YouDaoSetting />}
-                                    />
-                                    <Route
-                                        path="tenant"
-                                        element={<TenantSetting />}
-                                    />
-                                    <Route
-                                        path="storage"
-                                        element={<StorageSetting />}
-                                    />
-                                    <Route
-                                        path="update"
-                                        element={<CheckUpdate />}
-                                    />
-                                    <Route
-                                        path="appearance"
-                                        element={<AppearanceSetting />}
-                                    />
+                                        path='settings'
+                                        element={<SettingLayout />}
+                                    >
+                                        <Route
+                                            path='*'
+                                            element={<ShortcutSetting />}
+                                        />
+                                        <Route
+                                            path='shortcut'
+                                            element={<ShortcutSetting />}
+                                        />
+                                        <Route
+                                            path='you-dao'
+                                            element={<YouDaoSetting />}
+                                        />
+                                        <Route
+                                            path='tenant'
+                                            element={<TenantSetting />}
+                                        />
+                                        <Route
+                                            path='storage'
+                                            element={<StorageSetting />}
+                                        />
+                                        <Route
+                                            path='update'
+                                            element={<CheckUpdate />}
+                                        />
+                                        <Route
+                                            path='appearance'
+                                            element={<AppearanceSetting />}
+                                        />
+                                    </Route>
                                 </Route>
                             </Route>
-                        </Route>
-                    </Routes>
-                </HashRouter>
-            </div>
+                        </Routes>
+                    </HashRouter>
+                </div>
+                <Toaster />
+            </>
         </FileDrop>
     );
 }

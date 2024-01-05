@@ -8,10 +8,12 @@ export interface SettingInputProps {
     setValue: (value: string) => void;
     type?: string;
     inputWidth?: string;
+    description?: string;
 }
 
 const SettingInput = ({
     title,
+    description,
     placeHolder,
     value,
     setValue,
@@ -32,7 +34,7 @@ const SettingInput = ({
                 onChange={(event) => setValue(event.target.value)}
             />
             <div className={cn('text-sm text-left w-full text-gray-500 mt-2')}>
-                这是一个示例
+                {description}
             </div>
         </div>
     );
@@ -42,5 +44,6 @@ SettingInput.defaultProps = {
     placeHolder: '',
     type: 'text',
     inputWidth: 'w-96',
+    description: '',
 };
 export default SettingInput;
