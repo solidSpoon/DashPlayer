@@ -25,3 +25,11 @@ export default function hash(str: string, seed = 0) {
     // eslint-disable-next-line no-bitwise
     return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString();
 }
+
+export const sentenceKey = (
+    filePath: string,
+    index: number,
+    content: string
+) => {
+    return hash(`${filePath}-${index}-${content}`);
+};

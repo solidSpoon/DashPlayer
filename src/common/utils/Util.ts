@@ -32,7 +32,7 @@ export function p(str: string | undefined | null): string {
 export const arrayChanged = <T>(a: T[], b: T[]): boolean => {
     if (a.length !== b.length) return true;
     return a.some((item, index) => item !== b[index]);
-}
+};
 export const secondToDate = (seconds = 0) => {
     if (seconds === undefined) {
         return '00:00:00';

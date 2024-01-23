@@ -7,12 +7,12 @@ import {
     WatchProject,
     watchProjects,
     WatchProjectType,
-} from '../tables/watchProjects';
+} from '../../db/tables/watchProjects';
 import {
     InsertWatchProjectVideo,
     WatchProjectVideo,
     watchProjectVideos,
-} from '../tables/watchProjectVideos';
+} from '../../db/tables/watchProjectVideos';
 import {
     ACCEPTED_FILE_TYPES,
     isSubtitle,

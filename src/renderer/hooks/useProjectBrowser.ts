@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useFile from './useFile';
 import { WatchProjectVO } from '../../main/services/WatchProjectService';
-import { WatchProjectVideo } from '../../main/tables/watchProjectVideos';
+import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
 import FileBrowserIcon from '../components/fileBowser/FileBrowserIcon';
 
 const api = window.electron;

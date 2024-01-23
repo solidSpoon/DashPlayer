@@ -4,15 +4,19 @@ import {
     InternalSlice,
     PlayerSlice,
     SentenceSlice,
-    SubtitleSlice
+    SubtitleSlice,
 } from './SliceTypes';
 import SentenceT from '../../../common/types/SentenceT';
-import { SubtitleAdjustmentTypeConverter } from '../../../common/types/SubtitleAdjustmentTypeConverter';
+import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
-import hash from '../../../common/utils/hash';
+
 const api = window.electron;
 const createSentenceSlice: StateCreator<
-    PlayerSlice & SentenceSlice & InternalSlice & SubtitleSlice & ControllerSlice,
+    PlayerSlice &
+        SentenceSlice &
+        InternalSlice &
+        SubtitleSlice &
+        ControllerSlice,
     [],
     [],
     SentenceSlice
@@ -27,7 +31,7 @@ const createSentenceSlice: StateCreator<
                 newSentence = sentence;
             }
             return {
-                currentSentence: newSentence
+                currentSentence: newSentence,
             };
         });
     },
@@ -47,83 +51,105 @@ const createSentenceSlice: StateCreator<
     },
 
     adjustStart: (time) => {
-        let clone = get().currentSentence?.clone();
+        const clone = get().currentSentence?.clone();
         if (!clone) {
             return;
         }
         if (clone.originalBegin === undefined) {
             clone.originalBegin = clone.currentBegin;
         }
-        clone.currentBegin = (clone.originalBegin??0) + time;
+        clone.currentBegin = (clone.currentBegin ?? 0) + time;
+        // abs < 50
+        if (
+            Math.abs((clone.currentBegin ?? 0) - (clone.originalBegin ?? 0)) <
+            0.05
+        ) {
+            clone.currentBegin = clone.originalBegin;
+            clone.originalBegin = undefined;
+        }
         get().mergeSubtitle([clone]);
         set({
-            currentSentence: clone
-        })
+            currentSentence: clone,
+        });
         get().repeat();
-        let subtitleFile = useFile.getState().subtitleFile;
+        const { subtitleFile } = useFile.getState();
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampRecord(SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile));
+        api.subtitleTimestampRecord(
+            SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
+        );
     },
 
     adjustEnd: (time) => {
-        let clone = get().currentSentence?.clone();
+        const clone = get().currentSentence?.clone();
         if (!clone) {
             return;
         }
         if (clone.originalEnd === undefined) {
             clone.originalEnd = clone.currentEnd;
         }
-        clone.currentEnd = (clone.originalEnd??0) + time;
+        clone.currentEnd = (clone.currentEnd ?? 0) + time;
+        // abs < 50
+        if (
+            Math.abs((clone.currentEnd ?? 0) - (clone.originalEnd ?? 0)) < 0.05
+        ) {
+            clone.currentEnd = clone.originalEnd;
+            clone.originalEnd = undefined;
+        }
         get().mergeSubtitle([clone]);
         set({
-            currentSentence: clone
-        })
+            currentSentence: clone,
+        });
         get().repeat();
-        let subtitleFile = useFile.getState().subtitleFile;
+        const { subtitleFile } = useFile.getState();
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampRecord(SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile));
+        api.subtitleTimestampRecord(
+            SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
+        );
     },
 
     clearAdjust: () => {
-        let clone = get().currentSentence?.clone();
+        const clone = get().currentSentence?.clone();
         if (!clone) {
             return;
         }
         if (clone.originalBegin !== undefined) {
             clone.currentBegin = clone.originalBegin;
+            clone.originalBegin = undefined;
         }
         if (clone.originalEnd !== undefined) {
             clone.currentEnd = clone.originalEnd;
+            clone.originalEnd = undefined;
         }
         get().mergeSubtitle([clone]);
         set({
-            currentSentence: clone
-        })
+            currentSentence: clone,
+        });
         get().repeat();
-        let subtitleFile = useFile.getState().subtitleFile;
+        const { subtitleFile } = useFile.getState();
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampDeleteByKey(hash(`${subtitleFile.path}-${clone.index}-${clone.text}`));
-    }
+        api.subtitleTimestampDeleteByKey(clone.key);
+    },
 });
 
-export const sentenceClearAllAdjust =async () => {
-    await api.subtitleTimestampDeleteByPath(useFile.getState().subtitleFile?.path ?? '');
+export const sentenceClearAllAdjust = async () => {
+    await api.subtitleTimestampDeleteByPath(
+        useFile.getState().subtitleFile?.path ?? ''
+    );
     useFile.setState((state) => {
         return {
             subtitleFile: state.subtitleFile
                 ? {
-                    ...state.subtitleFile,
-                }
+                      ...state.subtitleFile,
+                  }
                 : undefined,
         };
     });
-}
-
+};
 
 export default createSentenceSlice;

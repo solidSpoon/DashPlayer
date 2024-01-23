@@ -4,9 +4,9 @@ import natural from 'natural';
 import db from '../../db/db';
 
 import { p } from '../../common/utils/Util';
-import { InsertWord, words } from '../tables/words';
-import { InsertStem, stems } from '../tables/stems';
-import { WordView } from '../tables/wordView';
+import { InsertWord, words } from '../../db/tables/words';
+import { InsertStem, stems } from '../../db/tables/stems';
+import { WordView } from '../../common/types/wordView';
 import { MarkupType } from '../../renderer/hooks/useDataPage/Types';
 
 export interface Pagination<T> {

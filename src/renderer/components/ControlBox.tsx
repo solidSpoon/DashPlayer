@@ -1,14 +1,15 @@
 import { twMerge } from 'tailwind-merge';
 import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { AiOutlineFieldTime } from 'react-icons/ai';
+import toast, { Toaster } from 'react-hot-toast';
 import { cn } from '../../common/utils/Util';
 import Switch from './Switch';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout, { cpH, cpW } from '../hooks/useLayout';
 import Button from './Button';
-import { AiOutlineFieldTime } from 'react-icons/ai';
 import { sentenceClearAllAdjust } from '../hooks/usePlayerControllerSlices/createSentenceSlice';
-import toast, { Toaster } from 'react-hot-toast';
+
 const ControlBox = () => {
     const w = cpW.bind(
         null,
@@ -84,7 +85,7 @@ const ControlBox = () => {
                 />
                 <Button
                     onClick={() => {
-                        // sentenceClearAllAdjust();
+                        sentenceClearAllAdjust();
                         toast('清除了', {
                             icon: '👏',
                         });
@@ -92,7 +93,7 @@ const ControlBox = () => {
                     title="清除调整的时间"
                     className={cn('w-60 rounded')}
                 >
-                    <AiOutlineFieldTime/>
+                    <AiOutlineFieldTime />
                 </Button>
             </div>
         </div>

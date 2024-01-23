@@ -1,4 +1,4 @@
-import hash from '../utils/hash';
+import hash, { sentenceKey } from '../utils/hash';
 
 class SentenceT {
     public index: number;
@@ -8,6 +8,7 @@ class SentenceT {
     public currentEnd: number | undefined;
 
     public originalBegin: number | undefined;
+
     public originalEnd: number | undefined;
 
     public nextBegin: number | undefined;
@@ -91,6 +92,8 @@ class SentenceT {
         result.key = this.key;
         result.transGroup = this.transGroup;
         result.displayGroup = this.displayGroup;
+        result.originalBegin = this.originalBegin;
+        result.originalEnd = this.originalEnd;
         return result;
     }
 }

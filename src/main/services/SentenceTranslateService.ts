@@ -4,7 +4,7 @@ import db from '../../db/db';
 import {
     SentenceTranslate,
     sentenceTranslates,
-} from '../tables/sentenceTranslates';
+} from '../../db/tables/sentenceTranslates';
 import { p } from '../../common/utils/Util';
 
 export default class SentenceTranslateService {

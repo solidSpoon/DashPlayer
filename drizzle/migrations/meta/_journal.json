@@ -8,6 +8,13 @@
       "when": 1702460599620,
       "tag": "0000_sticky_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1704453219641,
+      "tag": "0001_spicy_snowbird",
+      "breakpoints": true
     }
   ]
 }

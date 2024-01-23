@@ -7,12 +7,15 @@ import { WindowState } from '../common/types/Types';
 
 import { SentenceStruct } from '../common/types/SentenceStruct';
 import { WordLevelRes } from './controllers/WordLevelController';
-import { WatchProjectVideo } from './tables/watchProjectVideos';
-import { WordView } from './tables/wordView';
+import { WatchProjectVideo } from '../db/tables/watchProjectVideos';
+import { WordView } from '../common/types/wordView';
 import { Pagination } from './services/WordViewService';
 import { WatchProjectVO } from './services/WatchProjectService';
 import { SettingKey } from '../common/types/store_schema';
-import { InsertSubtitleTimestampAdjustment, SubtitleTimestampAdjustment } from './tables/subtitleTimestampAdjustment';
+import {
+    InsertSubtitleTimestampAdjustment,
+    SubtitleTimestampAdjustment,
+} from '../db/tables/subtitleTimestampAdjustment';
 
 export type Channels =
     | 'main-state'
@@ -54,7 +57,8 @@ export type Channels =
     | 'subtitle-timestamp-record'
     | 'subtitle-timestamp-delete-key'
     | 'subtitle-timestamp-delete-path'
-    | 'subtitle-timestamp-get-key';
+    | 'subtitle-timestamp-get-key'
+    | 'subtitle-timestamp-get-path';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -107,13 +111,27 @@ const electronHandler = {
     subtitleTimestampDeleteByKey: async (key: string): Promise<void> => {
         await invoke('subtitle-timestamp-delete-key', key);
     },
-    subtitleTimestampDeleteByPath: async (subtitlePath: string): Promise<void> => {
+    subtitleTimestampDeleteByPath: async (
+        subtitlePath: string
+    ): Promise<void> => {
         await invoke('subtitle-timestamp-delete-path', subtitlePath);
     },
-    subtitleTimestampGetByKey: async (key: string): Promise<SubtitleTimestampAdjustment | undefined> => {
-        return (await invoke('subtitle-timestamp-get-key', key)) as SubtitleTimestampAdjustment | undefined;
+    subtitleTimestampGetByKey: async (
+        key: string
+    ): Promise<SubtitleTimestampAdjustment | undefined> => {
+        return (await invoke('subtitle-timestamp-get-key', key)) as
+            | SubtitleTimestampAdjustment
+            | undefined;
     },
-    storeSet: async (key: SettingKey, value: string|null|undefined) => {
+    subtitleTimestampGetByPath: async (
+        subtitlePath: string
+    ): Promise<SubtitleTimestampAdjustment[]> => {
+        return (await invoke(
+            'subtitle-timestamp-get-path',
+            subtitlePath
+        )) as SubtitleTimestampAdjustment[];
+    },
+    storeSet: async (key: SettingKey, value: string | null | undefined) => {
         await invoke('store-set', key, value);
     },
     storeGet: async (key: SettingKey) => {

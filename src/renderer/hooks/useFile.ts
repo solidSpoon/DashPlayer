@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import FileT, { FileType } from '../../common/types/FileT';
 import { pathToFile } from '../../common/utils/FileParser';
-import { WatchProjectVideo } from '../../main/tables/watchProjectVideos';
+import { WatchProjectVideo } from '../../db/tables/watchProjectVideos';
 
 type UseFileState = {
     videoFile: FileT | undefined;
