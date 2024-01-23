@@ -28,13 +28,14 @@ class AppUpdater {
         autoUpdater.checkForUpdatesAndNotify();
     }
 }
+
 const events = [
     'maximize',
     'unmaximize',
     'enter-full-screen',
     'leave-full-screen',
     'minimize',
-    'restore',
+    'restore'
 ];
 const windowStateChange = (w: BrowserWindow) => {
     let targetState: WindowState = 'closed';
@@ -109,12 +110,12 @@ export const createPlayerWindow = async () => {
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
-                : path.join(__dirname, '../../.erb/dll/preload.js'),
+                : path.join(__dirname, '../../.erb/dll/preload.js')
         },
         resizable: false,
         maximizable: false,
         // titleBarStyle: 'hidden',
-        frame: false,
+        frame: false
     });
     // mainWindow.maximize();
     mainWindow.loadURL(resolveHtmlPath('player.html'));
@@ -193,9 +194,9 @@ const createSettingWindow = async () => {
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
-                : path.join(__dirname, '../../.erb/dll/preload.js'),
+                : path.join(__dirname, '../../.erb/dll/preload.js')
         },
-        titleBarStyle: 'hidden',
+        titleBarStyle: 'hidden'
     });
     settingWindow.loadURL(resolveHtmlPath('setting.html'));
 
@@ -249,8 +250,9 @@ app.on('window-all-closed', () => {
     }
 });
 app.whenReady()
-    .then(() => {
-        createPlayerWindow();
+    .then(async () => {
+        await runMigrate();
+        await createPlayerWindow();
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the
             // dock icon is clicked and there are no other windows open.
@@ -267,5 +269,3 @@ app.whenReady()
         });
     })
     .catch(console.log);
-
-runMigrate();
