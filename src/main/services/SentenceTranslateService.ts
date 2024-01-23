@@ -1,11 +1,11 @@
-import { inArray } from 'drizzle-orm';
+import { and, inArray, isNotNull } from 'drizzle-orm';
 import TransHolder from '../../common/utils/TransHolder';
 import db from '../../db/db';
 import {
     SentenceTranslate,
     sentenceTranslates,
 } from '../../db/tables/sentenceTranslates';
-import { p } from '../../common/utils/Util';
+import { p, strBlank } from '../../common/utils/Util';
 
 export default class SentenceTranslateService {
     public static async fetchTranslates(
@@ -17,12 +17,14 @@ export default class SentenceTranslateService {
             .select()
             .from(sentenceTranslates)
             .where(
-                inArray(
+                and(inArray(
                     sentenceTranslates.sentence,
                     sentences.map((w) => p(w))
-                )
+                ), isNotNull(sentenceTranslates.translate))
             );
-        values.forEach((e) => {
+        values
+            .filter((e) => !strBlank(e.translate))
+            .forEach((e) => {
             result.add(e.sentence ?? '', e.translate ?? '');
         });
 
