@@ -9,6 +9,7 @@ import {
 import SentenceT from '../../../common/types/SentenceT';
 import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
+import { sentenceKey } from '../../../common/utils/hash';
 
 const api = window.electron;
 const createSentenceSlice: StateCreator<
@@ -133,7 +134,9 @@ const createSentenceSlice: StateCreator<
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampDeleteByKey(clone.key);
+        api.subtitleTimestampDeleteByKey(
+            sentenceKey(subtitleFile.path ?? '', clone.index, clone.text ?? '')
+        );
     },
 });
 

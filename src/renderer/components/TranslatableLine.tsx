@@ -1,11 +1,11 @@
 import React, { ReactElement, useState } from 'react';
+import { AiOutlineFieldTime } from 'react-icons/ai';
 import hash from '../../common/utils/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
 import { cn, p } from '../../common/utils/Util';
 import { FontSize } from '../styles/style';
-import { AiOutlineFieldTime } from 'react-icons/ai';
 import IconButton from './toolTip/IconButton';
 
 interface TranslatableSubtitleLineParam {
@@ -17,14 +17,18 @@ interface TranslatableSubtitleLineParam {
 const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     return (
         <div
-            className={`select-none mt-2 ${showE ? '' : 'text-transparent'}`}
+            className={`select-none ${showE ? '' : 'text-transparent'}`}
             key={key}
         >
             {str}
         </div>
     );
 };
-const TranslatableLine = ({ text, adjusted, clearAdjust }: TranslatableSubtitleLineParam) => {
+const TranslatableLine = ({
+    text,
+    adjusted,
+    clearAdjust,
+}: TranslatableSubtitleLineParam) => {
     const fontSize = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
@@ -53,30 +57,35 @@ const TranslatableLine = ({ text, adjusted, clearAdjust }: TranslatableSubtitleL
                 setHovered(false);
             }}
             className={cn(
-                'flex justify-between items-center rounded-lg drop-shadow-md text-mainSubtitleOneColor mx-10 mt-2.5 shadow-inner shadow-sentenceInnerShadow z-50',
+                'flex justify-between items-start rounded-lg drop-shadow-md text-mainSubtitleOneColor mx-10 mt-2.5 shadow-inner shadow-sentenceInnerShadow z-50',
                 'bg-sentenceBackground',
                 FontSize.mainSubtitleOne.large,
                 fontSize === 'fontSizeSmall' && FontSize.mainSubtitleOne.small,
                 fontSize === 'fontSizeMedium' &&
-                FontSize.mainSubtitleOne.medium,
+                    FontSize.mainSubtitleOne.medium,
                 fontSize === 'fontSizeLarge' && FontSize.mainSubtitleOne.large
             )}
         >
-            <div className={cn('w-10 h-full p-2')}>
-                {adjusted &&
-                <IconButton
-                    onClick={clearAdjust}
-                    tooltip="点击重置当前句子时间戳"
-                >
-                    <AiOutlineFieldTime
-                        className={cn('w-8 h-8 text-white')} />
-                </IconButton>}
+            <div className={cn('w-10 h-full p-2.5')}>
+                {adjusted && (
+                    <IconButton
+                        onClick={clearAdjust}
+                        tooltip="点击重置当前句子时间戳"
+                    >
+                        <AiOutlineFieldTime
+                            className={cn('w-8 h-8 text-white')}
+                        />
+                    </IconButton>
+                )}
             </div>
             <div
-                className={cn('flex flex-wrap justify-center items-center w-0 flex-1 px-10 pt-0.5 pb-2.5 gap-2')}>
+                className={cn(
+                    'flex flex-wrap justify-center items-end w-0 flex-1 px-10 pt-2.5 pb-2.5 gap-x-2 gap-y-1'
+                )}
+            >
                 {sentenceStruct?.blocks.map((block, blockIndex) => {
                     return (
-                        <div className={cn('flex')}>
+                        <div className={cn('flex items-end')}>
                             {block.blockParts.map((part, partIndex) => {
                                 const partId = `${textHash}:${blockIndex}:${partIndex}`;
                                 if (part.isWord) {
@@ -102,8 +111,7 @@ const TranslatableLine = ({ text, adjusted, clearAdjust }: TranslatableSubtitleL
                     );
                 }) || []}
             </div>
-            <div className={cn('w-10 h-full')}>
-            </div>
+            <div className={cn('w-10 h-full')} />
         </div>
     );
 };

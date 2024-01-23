@@ -123,7 +123,7 @@ const Word = ({ word, pop, requestPop, show }: WordParam) => {
         <div className={twMerge('flex gap-1')}>
             <div
                 ref={eleRef}
-                className="rounded select-none mt-2"
+                className="rounded select-none"
                 onMouseOver={() => {
                     setHovered(true);
                     pause();
