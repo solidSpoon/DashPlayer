@@ -179,7 +179,9 @@ DashPlayer 默认快捷键如下
 - 展示/隐藏中文字幕：“c”（chinese）
 - 展示/隐藏中英文字幕：“b”（both）
 - 切换主题：“t”（theme）
-
+- 调整当前句开始时间，提前 0.2 秒：“z”
+- 调整当前句开始时间，延后 0.2 秒：“x”
+  
 具体快捷键可在设置界面查看
 
 <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/2b869c73-000d-45cb-9914-2bf2e7147e8f">
@@ -197,6 +199,26 @@ DashPlayer 默认快捷键如下
     <img width="384" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/15daaa68-4444-4fc7-b941-29545f8bce61">
 </p>
 
+八位堂家的 [Micro](https://www.8bitdo.cn/micro/) 和 [Zero2](https://www.8bitdo.cn/zero2/) 蓝牙手柄可当做蓝牙键盘使用。它们非常小巧, 单手握持很舒服, 所以可以用它来操控 DashPlayer。
+
+<table>
+    <thead>
+    <tr>
+        <th>产品名称</th>
+        <th>图片</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Micro 蓝牙手柄</td>
+        <td><img src="https://github.com/solidSpoon/DashPlayer/assets/39454841/778a38e6-880e-4c5b-bec2-2b3c7a41de7a"></td>
+    </tr>
+    <tr>
+        <td>Zero2 蓝牙手柄</td>
+        <td><img src="https://github.com/solidSpoon/DashPlayer/assets/39454841/d2d480d2-7449-4f7a-82bb-b351b0db60f6"></td>
+    </tr>
+    </tbody>
+</table>
 
 ## 机器翻译
 
