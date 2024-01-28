@@ -153,13 +153,13 @@ async function loadSubtitle(subtitleFile: FileT) {
         const adj = mapping.get(key);
         if (adj) {
             if (
-                Math.abs((adj.start_at ?? 0) - (item.currentBegin ?? 0)) < 0.05
+                Math.abs((adj.start_at ?? 0) - (item.currentBegin ?? 0)) > 0.05
             ) {
                 item.originalBegin = item.currentBegin;
-                item.currentBegin = adj.end_at ?? undefined;
+                item.currentBegin = adj.start_at ?? undefined;
             }
 
-            if (Math.abs((adj.end_at ?? 0) - (item.currentEnd ?? 0)) < 0.05) {
+            if (Math.abs((adj.end_at ?? 0) - (item.currentEnd ?? 0)) > 0.05) {
                 item.originalEnd = item.currentEnd;
                 item.currentEnd = adj.end_at ?? undefined;
             }
