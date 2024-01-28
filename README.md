@@ -190,16 +190,10 @@ DashPlayer 默认快捷键如下
 
 #### 蓝牙手柄控制的原理
 
-八位堂家的 [Zero2](https://www.8bitdo.cn/zero2/) 蓝牙手柄可当做蓝牙键盘使用，单手握持非常舒服，所以可以用它来操控 DashPlayer。
+八位堂家的 [Micro](https://www.8bitdo.cn/micro/) 和 [Zero2](https://www.8bitdo.cn/zero2/) 蓝牙手柄可当做蓝牙键盘使用。它们非常小巧, 单手握持很舒服, 所以可以用它来操控 DashPlayer。
 
 - 将手柄通过键盘模式链接到电脑
 - 打开 DashPlayer 设置界面，进入快捷键设置，设置手柄对应按键为快捷键
-
-<p align="center">
-    <img width="384" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/15daaa68-4444-4fc7-b941-29545f8bce61">
-</p>
-
-八位堂家的 [Micro](https://www.8bitdo.cn/micro/) 和 [Zero2](https://www.8bitdo.cn/zero2/) 蓝牙手柄可当做蓝牙键盘使用。它们非常小巧, 单手握持很舒服, 所以可以用它来操控 DashPlayer。
 
 <table>
     <thead>
