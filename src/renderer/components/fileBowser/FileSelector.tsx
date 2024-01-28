@@ -62,6 +62,7 @@ export default function FileSelector({
             {!directory && (
                 <FileItem
                     content="打开文件..."
+                    tip="打开文件，可多选（同时选择视频和对应的字幕）"
                     className={cn('w-full', className)}
                     onClick={() => handleClick()}
                 />

@@ -47,13 +47,13 @@ const StorageSetting = () => {
             <FooterWrapper>
                 <SettingButton
                     handleSubmit={handleOpen}
-                    text="打开缓存文件夹"
+                    children="打开缓存文件夹"
                 />
                 <SettingButton
                     kind={'secondary'}
                     disabled
                     handleSubmit={handleClear}
-                    text="清除一个月前的缓存"
+                    children="清除一个月前的缓存"
                 />
             </FooterWrapper>
         </div>

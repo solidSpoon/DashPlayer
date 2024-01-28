@@ -1,16 +1,23 @@
 import React, { useRef, useState } from 'react';
-import { cn } from '../../../common/utils/Util';
+import { cn, strBlank } from '../../../common/utils/Util';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../toolTip/ToolTip';
 import FileBrowserIcon from './FileBrowserIcon';
 
 export interface FileItemProps {
     icon?: keyof typeof FileBrowserIcon;
     content: string;
+    tip?: string;
     onClick: () => void;
     className?: string;
 }
 
-const FileItem = ({ icon, content, onClick, className }: FileItemProps) => {
+const FileItem = ({
+    icon,
+    content,
+    tip,
+    onClick,
+    className,
+}: FileItemProps) => {
     const [open, setOpen] = useState(false);
     const timeout = useRef<NodeJS.Timeout>();
 
@@ -55,7 +62,7 @@ const FileItem = ({ icon, content, onClick, className }: FileItemProps) => {
                 </>
             </TooltipTrigger>
             <TooltipContent className="bg-stone-50 rounded border border-gray-300 py-1 px-2 text-sm text-stone-500 drop-shadow-lg">
-                {content}
+                {strBlank(tip) ? content : tip}
             </TooltipContent>
         </Tooltip>
     );
@@ -64,6 +71,7 @@ const FileItem = ({ icon, content, onClick, className }: FileItemProps) => {
 FileItem.defaultProps = {
     className: '',
     icon: 'none',
+    tip: '',
 };
 
 export default FileItem;

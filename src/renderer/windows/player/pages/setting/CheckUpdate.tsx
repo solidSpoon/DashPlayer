@@ -56,7 +56,7 @@ const CheckUpdate = () => {
                         );
                     }}
                     disabled={false}
-                    text="前往发布页"
+                    children="前往发布页"
                 />
             </FooterWrapper>
         </div>
