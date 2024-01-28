@@ -131,7 +131,7 @@ const WordManagement = () => {
         >
             <div className={cn('pl-10 pt-8 pb-2')}>
                 <h1 className={cn('text-4xl font-bold font-serif')}>
-                    Word Management
+                    Word Management (开发中...)
                 </h1>
             </div>
             <WordLevelHeader keyName="wordView" />
