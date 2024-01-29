@@ -56,8 +56,9 @@ const CheckUpdate = () => {
                         );
                     }}
                     disabled={false}
-                    children="前往发布页"
-                />
+                >
+                    前往发布页
+                </SettingButton>
             </FooterWrapper>
         </div>
     );

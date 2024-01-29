@@ -46,7 +46,6 @@ const YouDaoSetting = () => {
                 </div>
             </ItemWrapper>
             <FooterWrapper>
-                <SettingButton handleSubmit={submit} disabled={eqServer} />
                 <SettingButton
                     kind="secondary"
                     handleSubmit={() => {
@@ -57,6 +56,7 @@ const YouDaoSetting = () => {
                 >
                     查看文档
                 </SettingButton>
+                <SettingButton handleSubmit={submit} disabled={eqServer} />
             </FooterWrapper>
         </form>
     );

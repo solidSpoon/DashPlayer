@@ -46,15 +46,15 @@ const StorageSetting = () => {
             </ItemWrapper>
             <FooterWrapper>
                 <SettingButton
-                    handleSubmit={handleOpen}
-                    children="打开缓存文件夹"
-                />
-                <SettingButton
-                    kind={'secondary'}
+                    kind="secondary"
                     disabled
                     handleSubmit={handleClear}
-                    children="清除一个月前的缓存"
-                />
+                >
+                    清除一个月前的缓存
+                </SettingButton>
+                <SettingButton handleSubmit={handleOpen}>
+                    打开缓存文件夹
+                </SettingButton>
             </FooterWrapper>
         </div>
     );

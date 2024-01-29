@@ -48,7 +48,6 @@ const TenantSetting = () => {
                 </div>
             </ItemWrapper>
             <FooterWrapper>
-                <SettingButton disabled={eqServer} handleSubmit={submit} />
                 <SettingButton
                     kind="secondary"
                     handleSubmit={() => {
@@ -59,6 +58,7 @@ const TenantSetting = () => {
                 >
                     查看文档
                 </SettingButton>
+                <SettingButton disabled={eqServer} handleSubmit={submit} />
             </FooterWrapper>
         </form>
     );
