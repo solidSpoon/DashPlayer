@@ -40,7 +40,7 @@ const Sidebar = () => {
                 )}
             >
                 {cloneElement(icon, {
-                    className: cn('w-6 h-6 fill-black'),
+                    className: cn('w-6 h-6 fill-gray-600'),
                 })}
                 {name}
             </ul>
