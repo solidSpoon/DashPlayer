@@ -39,11 +39,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                     className: cn('w-5 h-5 text-amber-700 flex-shrink-0'),
                 })}
                 {!compact && (
-                    <div
-                        className={cn(
-                            'text-base  truncate w-0 flex-1'
-                        )}
-                    >
+                    <div className={cn('text-base  truncate w-0 flex-1')}>
                         {text}
                     </div>
                 )}
@@ -53,7 +49,11 @@ const SideBar = ({ compact }: SideBarProps) => {
 
     return (
         <div className={cn('w-full h-full flex flex-col text-black ')}>
-            <div className={cn('flex-1 flex items-center justify-center')}>
+            <div
+                className={cn(
+                    'flex-1 flex items-center justify-center min-h-fit py-10'
+                )}
+            >
                 <img
                     className={cn(
                         'w-24 h-24 user-drag-none',

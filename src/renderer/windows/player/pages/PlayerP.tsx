@@ -82,13 +82,13 @@ const PlayerP = () => {
 
     const showPlayer = w('md') && h('md');
     const gridTemplate = () => {
-        if (showPlayer && w('lg')) {
+        if (showPlayer && w('xl')) {
             return '15% 60% 25%';
         }
         if (showPlayer) {
             return '65px calc((100% - 65px) * 12 / 17) calc((100% - 65px) * 5 / 17)';
         }
-        if (!showPlayer && w('lg')) {
+        if (!showPlayer && w('xl')) {
             return '15% 42.5% 42.5%';
         }
         return '65px calc((100% - 65px) * 1 / 2) calc((100% - 65px) * 1 / 2)';
@@ -118,7 +118,7 @@ const PlayerP = () => {
                                 duration: sideBarAnimation ? 0 : 0,
                             }}
                         >
-                            <SideBar compact={!w('lg')} />
+                            <SideBar compact={!w('xl')} />
                         </motion.div>
                         <motion.div
                             className={cn(
