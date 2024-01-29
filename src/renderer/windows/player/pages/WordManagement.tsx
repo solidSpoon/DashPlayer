@@ -19,7 +19,6 @@ import useDataPage from '../../../hooks/useDataPage/useDataPage';
 import { cn } from '../../../../common/utils/Util';
 
 const WordManagement = () => {
-    const gridRef = useRef<AgGridReact>(null);
     const {
         dataSource,
         tryMount,
@@ -130,7 +129,7 @@ const WordManagement = () => {
             style={{ width: '100%', height: '100%' }}
         >
             <div className={cn('pl-10 pt-8 pb-2')}>
-                <h1 className={cn('text-4xl font-bold font-serif')}>
+                <h1 className={cn('text-4xl font-bold font-serif truncate')}>
                     Word Management (开发中...)
                 </h1>
             </div>
