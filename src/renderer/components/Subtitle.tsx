@@ -5,20 +5,9 @@ import { twJoin } from 'tailwind-merge';
 import SentenceT from '../../common/types/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
-import useSystem from '../hooks/useSystem';
 import useLayout from '../hooks/useLayout';
 import { cn } from '../../common/utils/Util';
-
-interface Ele {
-    /**
-     * y 顶部
-     */
-    yt: number;
-    /**
-     * y 底部
-     */
-    yb: number;
-}
+import useBoundary, { Ele } from '../hooks/useBoundary';
 
 /**
  * e 超出边界时, 滚动回边界内
@@ -47,7 +36,6 @@ const getEle = (ele: HTMLDivElement): Ele => {
 
 export default function Subtitle() {
     const [mouseOver, setMouseOver] = useState(false);
-    const isWindows = useSystem((state) => state.isWindows);
     const showSideBar = useLayout((state) => state.showSideBar);
     const { currentSentence, subtitle, jump, singleRepeat } =
         usePlayerController(
@@ -58,35 +46,15 @@ export default function Subtitle() {
                 jump: state.jump,
             }))
         );
-    const boundaryRef = useRef<HTMLDivElement>(null);
     const currentRef = useRef<number>(-1);
     const listRef = useRef<VirtuosoHandle>(null);
     const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
-    const [boundary, setBoundary] = useState<Ele | undefined>(undefined);
+    const { boundary, setBoundaryRef } = useBoundary();
 
     const timer = useRef<number | undefined>(undefined);
 
     const lastCurrentSentence = useRef<SentenceT | undefined>(undefined);
-    useEffect(() => {
-        const updateBoundary = () => {
-            // 窗口高度
-            const wh = boundaryRef.current?.getBoundingClientRect().height ?? 0;
-            // 顶部高度
-            setBoundary({
-                yt: isWindows ? 27 : 7,
-                yb: wh - 15,
-            });
-        };
-        const timeout = setTimeout(() => {
-            updateBoundary();
-        }, 5000);
-        updateBoundary();
-        window.addEventListener('resize', updateBoundary);
-        return () => {
-            window.removeEventListener('resize', updateBoundary);
-            clearTimeout(timeout);
-        };
-    }, [isWindows, showSideBar]);
+
     useEffect(() => {
         if (currentSentence === lastCurrentSentence.current) {
             return;
@@ -154,7 +122,7 @@ export default function Subtitle() {
 
     const render = () => {
         return (
-            <div className="w-full h-full" ref={boundaryRef}>
+            <div className="w-full h-full" ref={setBoundaryRef}>
                 <Virtuoso
                     onMouseOver={() => {
                         setMouseOver(true);
