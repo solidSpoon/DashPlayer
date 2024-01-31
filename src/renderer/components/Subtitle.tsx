@@ -2,37 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useShallow } from 'zustand/react/shallow';
 import { twJoin } from 'tailwind-merge';
-import SentenceT from '../../common/types/SentenceT';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
 import { cn } from '../../common/utils/Util';
-import useBoundary, { Ele } from '../hooks/useBoundary';
-
-/**
- * e 超出边界时, 滚动回边界内
- * @param boundary
- * @param e
- */
-
-const topShouldScroll = (boundary: Ele, e: Ele): boolean => {
-    return e.yt < boundary.yt;
-};
-
-const suggestScrollBottom = (boundary: Ele, e: Ele): number => {
-    if (e.yb > boundary.yb) {
-        return e.yb - boundary.yb;
-    }
-    return 0;
-};
-
-const getEle = (ele: HTMLDivElement): Ele => {
-    const rect = ele.getBoundingClientRect();
-    return {
-        yt: rect.top,
-        yb: rect.bottom,
-    };
-};
+import useScroll from '../hooks/useScroll';
 
 export default function Subtitle() {
     const [mouseOver, setMouseOver] = useState(false);
@@ -43,87 +17,56 @@ export default function Subtitle() {
                 singleRepeat: state.singleRepeat,
                 currentSentence: state.currentSentence,
                 subtitle: state.subtitle,
-                jump: state.jump,
+                jump: state.jump
             }))
         );
-    const currentRef = useRef<number>(-1);
-    const listRef = useRef<VirtuosoHandle>(null);
-    const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
-    const { boundary, setBoundaryRef } = useBoundary();
 
-    const timer = useRef<number | undefined>(undefined);
+    const scrollerRef = useRef<HTMLElement | Window | null>(null);
 
-    const lastCurrentSentence = useRef<SentenceT | undefined>(undefined);
+    const {
+        setVisibleRange,
+        setListRef,
+        setBoundaryRef,
+        updateCurrentRef ,
+        onScrolling,
+        scrollState,
+        onUserFinishScrolling,
+    } = useScroll();
 
     useEffect(() => {
-        if (currentSentence === lastCurrentSentence.current) {
-            return;
-        }
-        lastCurrentSentence.current = currentSentence;
+        const handleWheel = (e: { preventDefault: () => void; }) => {
+            e.preventDefault();
+            console.log('wheel');
+        };
 
-        const idx = currentSentence?.index ?? -1;
-        if (idx === -1) {
-            return;
-        }
-        if (idx < visibleRange[0] || idx > visibleRange[1]) {
-            listRef.current?.scrollToIndex({
-                behavior: 'smooth',
-                index: idx,
-            });
-        }
-    }, [visibleRange, currentSentence]);
+        const listRefCurrent = scrollerRef.current; // listRef 是你的 ref
 
-    const updateCurrentRef = (ref: HTMLDivElement | null, index: number) => {
-        const lastIndex = currentRef.current ?? -1;
-        currentRef.current = index;
-        if (!ref || !boundary) {
-            return;
+        if (listRefCurrent && scrollState === 'AUTO_SCROLLING') {
+            listRefCurrent.addEventListener('wheel', handleWheel, { passive: false });
         }
-        if (lastIndex === index) {
-            return;
-        }
-        if (showSideBar) {
-            listRef.current?.scrollToIndex({
-                behavior: 'smooth',
-                index,
-                align: 'start',
-            });
-            return;
-        }
-        const currentEle = getEle(ref);
-        if (topShouldScroll(boundary, currentEle)) {
-            listRef.current?.scrollToIndex({
-                index,
-            });
-        } else {
-            const scrollBottom = suggestScrollBottom(boundary, currentEle);
-            if (scrollBottom <= 0) {
-                return;
+
+        return () => {
+            if (listRefCurrent) {
+                listRefCurrent.removeEventListener('wheel', handleWheel);
             }
-            listRef.current?.scrollBy({
-                top: scrollBottom,
-            });
-
-            if (timer.current) {
-                clearTimeout(timer.current);
-            }
-            timer.current = setTimeout(
-                (st: number) => {
-                    listRef.current?.scrollToIndex({
-                        behavior: 'smooth',
-                        index,
-                    });
-                },
-                150,
-                [index]
-            );
-        }
-    };
-
+        };
+    }, [scrollState]);
     const render = () => {
         return (
-            <div className="w-full h-full" ref={setBoundaryRef}>
+            <div className='w-full h-full relative' ref={setBoundaryRef}>
+                <div
+                    onClick={() => {
+                        onUserFinishScrolling();
+                    }}
+                    className={cn(
+                    'absolute top-10 right-10 rounded-full w-10 h-10 flex justify-center items-center bg-green-50 z-50',
+                    scrollState !== 'USER_BROWSING' && 'hidden'
+                )}></div>
                 <Virtuoso
+                    onScroll={onScrolling}
+                    scrollerRef={(ref) => {
+                        scrollerRef.current = ref;
+                    }}
                     onMouseOver={() => {
                         setMouseOver(true);
                     }}
@@ -132,13 +75,13 @@ export default function Subtitle() {
                     }}
                     increaseViewportBy={200}
                     defaultItemHeight={55}
-                    ref={listRef}
+                    ref={setListRef}
                     className={twJoin(
                         'h-full w-full overflow-y-scroll text-textColor',
                         'scrollbar-thumb-rounded',
                         'scrollbar-thin',
                         mouseOver &&
-                            'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover',
+                        'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}
@@ -165,8 +108,8 @@ export default function Subtitle() {
                         );
                     }}
                     components={{
-                        Footer: () => <div className="h-52" />,
-                        Header: () => <div className={cn('h-0.5')} />,
+                        Footer: () => <div className='h-52' />,
+                        Header: () => <div className={cn('h-0.5')} />
                     }}
                 />
             </div>
