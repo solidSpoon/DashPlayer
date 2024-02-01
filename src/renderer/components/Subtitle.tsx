@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import { useShallow } from 'zustand/react/shallow';
 import { twJoin } from 'tailwind-merge';
+import { MdOutlineVerticalAlignCenter } from 'react-icons/md';
+import { AnimatePresence, motion } from 'framer-motion';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
 import { cn } from '../../common/utils/Util';
-import { MdOutlineVerticalAlignCenter } from 'react-icons/md';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
 import useBoundary from '../hooks/useBoundary';
 
@@ -19,7 +20,7 @@ export default function Subtitle() {
                 singleRepeat: state.singleRepeat,
                 currentSentence: state.currentSentence,
                 subtitle: state.subtitle,
-                jump: state.jump
+                jump: state.jump,
             }))
         );
     const { setBoundaryRef } = useBoundary();
@@ -32,18 +33,18 @@ export default function Subtitle() {
         onUserFinishScrolling,
         updateCurrentRef,
         setVirtuoso,
-        updateVisibleRange
-    } = useSubtitleScroll(s => ({
+        updateVisibleRange,
+    } = useSubtitleScroll((s) => ({
         scrollState: s.scrollState,
         onScrolling: s.onScrolling,
         updateCurrentRef: s.updateCurrentRef,
         onUserFinishScrolling: s.onUserFinishScrolling,
         setVirtuoso: s.setVirtuoso,
-        updateVisibleRange: s.updateVisibleRange
+        updateVisibleRange: s.updateVisibleRange,
     }));
 
     useEffect(() => {
-        const handleWheel = (e: { preventDefault: () => void; }) => {
+        const handleWheel = (e: { preventDefault: () => void }) => {
             e.preventDefault();
             console.log('wheel');
         };
@@ -51,7 +52,9 @@ export default function Subtitle() {
         const listRefCurrent = scrollerRef.current; // listRef 是你的 ref
 
         if (listRefCurrent && scrollState === 'AUTO_SCROLLING') {
-            listRefCurrent.addEventListener('wheel', handleWheel, { passive: false });
+            listRefCurrent.addEventListener('wheel', handleWheel, {
+                passive: false,
+            });
         }
 
         return () => {
@@ -62,17 +65,27 @@ export default function Subtitle() {
     }, [scrollState]);
     const render = () => {
         return (
-            <div className='w-full h-full relative' ref={setBoundaryRef}>
-                <div
-                    onClick={() => {
-                        onUserFinishScrolling();
-                    }}
-                    className={cn(
-                        'absolute top-12 right-12 rounded-full w-12 h-12 p-3 flex justify-center items-center z-50 bg-purple-600',
-                        scrollState !== 'USER_BROWSING' && 'hidden'
-                    )}>
-                    <MdOutlineVerticalAlignCenter className={'w-full h-full fill-purple-50'} />
-                </div>
+            <div className="w-full h-full relative" ref={setBoundaryRef}>
+                <AnimatePresence>
+                    {scrollState === 'USER_BROWSING' && (
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            onClick={() => {
+                                onUserFinishScrolling();
+                            }}
+                            className={cn(
+                                'absolute top-12 right-12 rounded-full w-12 h-12 p-3 flex justify-center items-center z-50 drop-shadow-md',
+                                'bg-purple-600 hover:bg-purple-700',
+                                'dark:bg-purple-700 dark:hover:bg-purple-800',
+                                'transition-colors duration-200'
+                            )}
+                        >
+                            <MdOutlineVerticalAlignCenter className="w-full h-full fill-purple-50" />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 <Virtuoso
                     onScroll={onScrolling}
                     scrollerRef={(ref) => {
@@ -92,7 +105,7 @@ export default function Subtitle() {
                         'scrollbar-thumb-rounded',
                         'scrollbar-thin',
                         mouseOver &&
-                        'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover',
+                            'scrollbar-thumb-scrollbarThumb hover:scrollbar-thumb-scrollbarThumbHover',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}
@@ -119,8 +132,8 @@ export default function Subtitle() {
                         );
                     }}
                     components={{
-                        Footer: () => <div className='h-52' />,
-                        Header: () => <div className={cn('h-0.5')} />
+                        Footer: () => <div className="h-52" />,
+                        Header: () => <div className={cn('h-0.5')} />,
                     }}
                 />
             </div>
