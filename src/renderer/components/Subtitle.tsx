@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { Virtuoso } from 'react-virtuoso';
 import { useShallow } from 'zustand/react/shallow';
 import { twJoin } from 'tailwind-merge';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
 import { cn } from '../../common/utils/Util';
-import useScroll from '../hooks/useScroll';
 import { MdOutlineVerticalAlignCenter } from 'react-icons/md';
+import useSubtitleScroll from '../hooks/useSubtitleScroll';
+import useBoundary from '../hooks/useBoundary';
 
 export default function Subtitle() {
     const [mouseOver, setMouseOver] = useState(false);
@@ -21,17 +22,25 @@ export default function Subtitle() {
                 jump: state.jump
             }))
         );
+    const { setBoundaryRef } = useBoundary();
 
     const scrollerRef = useRef<HTMLElement | Window | null>(null);
+
     const {
-        setVisibleRange,
-        setListRef,
-        setBoundaryRef,
-        updateCurrentRef ,
-        onScrolling,
         scrollState,
+        onScrolling,
         onUserFinishScrolling,
-    } = useScroll();
+        updateCurrentRef,
+        setVirtuoso,
+        updateVisibleRange
+    } = useSubtitleScroll(s => ({
+        scrollState: s.scrollState,
+        onScrolling: s.onScrolling,
+        updateCurrentRef: s.updateCurrentRef,
+        onUserFinishScrolling: s.onUserFinishScrolling,
+        setVirtuoso: s.setVirtuoso,
+        updateVisibleRange: s.updateVisibleRange
+    }));
 
     useEffect(() => {
         const handleWheel = (e: { preventDefault: () => void; }) => {
@@ -59,10 +68,10 @@ export default function Subtitle() {
                         onUserFinishScrolling();
                     }}
                     className={cn(
-                    'absolute top-12 right-12 rounded-full w-12 h-12 p-3 flex justify-center items-center z-50 bg-purple-600',
-                    scrollState !== 'USER_BROWSING' && 'hidden'
-                )}>
-                    <MdOutlineVerticalAlignCenter className={'w-full h-full fill-purple-50'}/>
+                        'absolute top-12 right-12 rounded-full w-12 h-12 p-3 flex justify-center items-center z-50 bg-purple-600',
+                        scrollState !== 'USER_BROWSING' && 'hidden'
+                    )}>
+                    <MdOutlineVerticalAlignCenter className={'w-full h-full fill-purple-50'} />
                 </div>
                 <Virtuoso
                     onScroll={onScrolling}
@@ -77,7 +86,7 @@ export default function Subtitle() {
                     }}
                     increaseViewportBy={200}
                     defaultItemHeight={55}
-                    ref={setListRef}
+                    ref={setVirtuoso}
                     className={twJoin(
                         'h-full w-full overflow-y-scroll text-textColor',
                         'scrollbar-thumb-rounded',
@@ -88,7 +97,7 @@ export default function Subtitle() {
                     )}
                     data={subtitle}
                     rangeChanged={({ startIndex, endIndex }) => {
-                        setVisibleRange([startIndex, endIndex]);
+                        updateVisibleRange([startIndex, endIndex]);
                     }}
                     itemContent={(_index, item) => {
                         const isCurrent = item === currentSentence;

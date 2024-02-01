@@ -3,6 +3,7 @@ import Keyevent from 'react-keyevent';
 import { useShallow } from 'zustand/react/shallow';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
+import useSubtitleScroll from '../hooks/useSubtitleScroll';
 
 interface ReactParam {
     // eslint-disable-next-line react/require-default-props
@@ -36,15 +37,36 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
             repeat: s.repeat,
             adjustStart: s.adjustStart,
             adjustEnd: s.adjustEnd,
-            clearAdjust: s.clearAdjust,
+            clearAdjust: s.clearAdjust
         }))
     );
+    const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
+        onUserFinishScrolling: s.onUserFinishScrolling,
+        scrollState: s.scrollState
+    }));
+
+
     const setting = useSetting((s) => s.setting);
     const setSetting = useSetting((s) => s.setSetting);
     const events: { [key: string]: () => void } = {};
-    events.onLeft = prev;
-    events.onRight = next;
-    events.onDown = repeat;
+    events.onLeft = ()=> {
+        prev();
+        if (scrollState === 'USER_BROWSING') {
+            onUserFinishScrolling();
+        }
+    }
+    events.onRight = ()=> {
+        next();
+        if (scrollState === 'USER_BROWSING') {
+            onUserFinishScrolling();
+        }
+    }
+    events.onDown = ()=> {
+        repeat();
+        if (scrollState === 'USER_BROWSING') {
+            onUserFinishScrolling();
+        }
+    }
     events.onSpace = space;
     events.onUp = space;
 
@@ -59,9 +81,24 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         });
     };
 
-    registerKey(setting('shortcut.previousSentence'), prev);
-    registerKey(setting('shortcut.nextSentence'), next);
-    registerKey(setting('shortcut.repeatSentence'), repeat);
+    registerKey(setting('shortcut.previousSentence'), () => {
+        prev();
+        if (scrollState === 'USER_BROWSING') {
+            onUserFinishScrolling();
+        }
+    });
+    registerKey(setting('shortcut.nextSentence'), () => {
+        next();
+        if (scrollState === 'USER_BROWSING') {
+            onUserFinishScrolling();
+        }
+    });
+    registerKey(setting('shortcut.repeatSentence'), () => {
+        repeat();
+        if (scrollState === 'USER_BROWSING') {
+            onUserFinishScrolling();
+        }
+    });
     registerKey(setting('shortcut.playPause'), space);
     registerKey(setting('shortcut.repeatSingleSentence'), changeSingleRepeat);
     registerKey(setting('shortcut.toggleEnglishDisplay'), changeShowEn);
@@ -85,7 +122,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         )
     );
     return (
-        <Keyevent className="TopSide" events={events} needFocusing={false}>
+        <Keyevent className='TopSide' events={events} needFocusing={false}>
             {children}
         </Keyevent>
     );
