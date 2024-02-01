@@ -7,6 +7,7 @@ import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
 import { cn } from '../../common/utils/Util';
 import useScroll from '../hooks/useScroll';
+import { MdOutlineVerticalAlignCenter } from 'react-icons/md';
 
 export default function Subtitle() {
     const [mouseOver, setMouseOver] = useState(false);
@@ -22,7 +23,6 @@ export default function Subtitle() {
         );
 
     const scrollerRef = useRef<HTMLElement | Window | null>(null);
-
     const {
         setVisibleRange,
         setListRef,
@@ -59,13 +59,15 @@ export default function Subtitle() {
                         onUserFinishScrolling();
                     }}
                     className={cn(
-                    'absolute top-10 right-10 rounded-full w-10 h-10 flex justify-center items-center bg-green-50 z-50',
+                    'absolute top-12 right-12 rounded-full w-12 h-12 p-3 flex justify-center items-center z-50 bg-purple-600',
                     scrollState !== 'USER_BROWSING' && 'hidden'
-                )}></div>
+                )}>
+                    <MdOutlineVerticalAlignCenter className={'w-full h-full fill-purple-50'}/>
+                </div>
                 <Virtuoso
                     onScroll={onScrolling}
                     scrollerRef={(ref) => {
-                        scrollerRef.current = ref;
+                        scrollerRef.current = ref as HTMLElement;
                     }}
                     onMouseOver={() => {
                         setMouseOver(true);
