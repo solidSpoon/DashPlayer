@@ -91,18 +91,32 @@ const SpeedSlider = ({ speed, onSpeedChange }: VolumeSliderProps) => {
                             defaultValue={speed}
                             type={'number'}
                             min={0.25} // 最小速度
-                            max={6} // 最大速度
+                            max={16} // 最大速度
                             step={0.25} // 步进值
                             className={cn('w-full bg-neutral-700 rounded border-neutral-600 border-[0.5px] text-white p-1 focus:outline-none mt-1')}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     setOpen(false);
-                                    onSpeedChange(parseFloat(parseFloat(e.currentTarget.value).toFixed(2)));
+                                    let s = parseFloat(parseFloat(e.currentTarget.value).toFixed(2));
+                                    if(s > 20) {
+                                        s = 20;
+                                    }
+                                    if(s < 0.25) {
+                                        s = 0.25;
+                                    }
+                                    onSpeedChange(s);
                                 }
                             }}
                             onChange={(e) => {
                                 console.log('onChange', e.currentTarget.value);
-                                onSpeedChange(parseFloat(parseFloat(e.currentTarget.value).toFixed(2)));
+                                let s = parseFloat(parseFloat(e.currentTarget.value).toFixed(2));
+                                if(s > 20) {
+                                    s = 20;
+                                }
+                                if(s < 0.25) {
+                                    s = 0.25;
+                                }
+                                onSpeedChange(s);
                             }}
                         />
                     </div>
