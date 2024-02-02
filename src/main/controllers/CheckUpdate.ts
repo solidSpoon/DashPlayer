@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { app } from 'electron';
+import { compareVersions } from 'compare-versions';
 
 export interface Release {
     url: string;
@@ -7,10 +8,10 @@ export interface Release {
     content: string;
 }
 
-let cache: Release | null = null;
+let cache: Release[] = [];
 let cacheUpdateTime = 0;
 
-export const checkUpdate = async (): Promise<Release | null> => {
+export const checkUpdate = async (): Promise<Release[]> => {
     const now = Date.now();
     // 5分钟内不重复检查更新
     if (cache && now - cacheUpdateTime < 5 * 60 * 1000) {
@@ -21,7 +22,7 @@ export const checkUpdate = async (): Promise<Release | null> => {
 
     const result = await axios
         .get(
-            'https://api.github.com/repos/solidSpoon/DashPlayer/releases/latest'
+            'https://api.github.com/repos/solidSpoon/DashPlayer/releases'
         )
         .catch((err) => {
             console.error(err);
@@ -29,22 +30,19 @@ export const checkUpdate = async (): Promise<Release | null> => {
         });
 
     if (result?.status !== 200) {
-        return null;
+        return [];
     }
 
-    if (result.data.tag_name === `v${currentVersion}`) {
-        return null;
-    }
-
-    cache = {
-        url: result.data.html_url,
-        version: result.data.tag_name,
-        content: result.data.body,
-    };
+    const releases: Release[] = result.data.map((release: any) => ({
+        url: release.html_url,
+        version: release.tag_name,
+        content: release.body,
+    }));
+    cache = releases
+        .filter(release => compareVersions(release.version, `v${currentVersion}`) > 0)
+        .sort((a, b) => compareVersions(b.version, a.version));
     cacheUpdateTime = now;
     return cache;
-
-    //
 };
 
 export const appVersion = (): string => {

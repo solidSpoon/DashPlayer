@@ -120,6 +120,7 @@
         "ag-grid-react": "^31.0.0",
         "axios": "^1.5.0",
         "clsx": "^2.0.0",
+        "compare-versions": "^6.1.0",
         "drizzle-orm": "^0.29.1",
         "electron-debug": "^3.2.0",
         "electron-log": "^4.4.8",

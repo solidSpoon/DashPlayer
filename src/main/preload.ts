@@ -191,7 +191,7 @@ const electronHandler = {
         return (await invoke('query-progress', videoId)) as WatchProjectVideo;
     },
     checkUpdate: async () => {
-        return (await invoke('check-update')) as Release | undefined;
+        return (await invoke('check-update')) as Release[];
     },
     markWordLevel: async (word: string, familiar: boolean) => {
         return (await invoke('mark-word-level', word, familiar)) as void;

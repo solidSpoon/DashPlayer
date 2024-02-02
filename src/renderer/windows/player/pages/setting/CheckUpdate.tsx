@@ -9,9 +9,7 @@ import { cn } from '../../../../../common/utils/Util';
 const api = window.electron;
 
 const CheckUpdate = () => {
-    const [newRelease, setNewRelease] = useState<Release | undefined>(
-        undefined
-    );
+    const [newRelease, setNewRelease] = useState<Release[]>([]);
 
     const [checking, setChecking] = useState<boolean>(true);
 
@@ -29,21 +27,21 @@ const CheckUpdate = () => {
             <Header title="检查更新" />
             <ItemWrapper>
                 {checking && <div>检查更新中...</div>}
-                {!checking && !newRelease && (
+                {!checking && newRelease.length === 0 && (
                     <div className="text-lg">已经是最新版本</div>
                 )}
-                {!checking && newRelease && (
+                {!checking && newRelease.length > 0 && (
                     <div className="mr-6">
-                        <h1 className="text-lg">
-                            最新版本: {newRelease.version}
-                        </h1>
-                        <pre
-                            className={cn(
-                                'mt-4 border rounded-lg border-gray-300 p-2 select-text bg-white text-sm'
-                            )}
-                        >
-                            {newRelease.content}
-                        </pre>
+                        {newRelease.map((release) => (
+                            <pre key={release.version}>
+                                <h2 className="text-base mt-2">
+                                    {release.version}
+                                </h2>
+                                <p className="text-sm mt-2">
+                                    {release.content}
+                                </p>
+                            </pre>
+                        ))}
                     </div>
                 )}
             </ItemWrapper>
@@ -51,7 +49,6 @@ const CheckUpdate = () => {
                 <SettingButton
                     handleSubmit={() => {
                         api.openUrl(
-                            newRelease?.url ??
                                 'https://github.com/solidSpoon/DashPlayer/releases/latest'
                         );
                     }}
