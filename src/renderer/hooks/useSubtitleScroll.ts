@@ -210,4 +210,4 @@ const scrollTask = () => {
     }
 };
 
-setInterval(scrollTask, 1000);
+setInterval(scrollTask, 500);
