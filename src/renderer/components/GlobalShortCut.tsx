@@ -23,7 +23,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         repeat,
         adjustStart,
         adjustEnd,
-        clearAdjust
+        clearAdjust,
     } = usePlayerController(
         useShallow((s) => ({
             space: s.space,
@@ -37,36 +37,35 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
             repeat: s.repeat,
             adjustStart: s.adjustStart,
             adjustEnd: s.adjustEnd,
-            clearAdjust: s.clearAdjust
+            clearAdjust: s.clearAdjust,
         }))
     );
     const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
         onUserFinishScrolling: s.onUserFinishScrolling,
-        scrollState: s.scrollState
+        scrollState: s.scrollState,
     }));
-
 
     const setting = useSetting((s) => s.setting);
     const setSetting = useSetting((s) => s.setSetting);
     const events: { [key: string]: () => void } = {};
-    events.onLeft = ()=> {
+    events.onLeft = () => {
         prev();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }
-    events.onRight = ()=> {
+    };
+    events.onRight = () => {
         next();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }
-    events.onDown = ()=> {
+    };
+    events.onDown = () => {
         repeat();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }
+    };
     events.onSpace = space;
     events.onUp = space;
 
@@ -104,8 +103,14 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     registerKey(setting('shortcut.toggleEnglishDisplay'), changeShowEn);
     registerKey(setting('shortcut.toggleChineseDisplay'), changeShowCn);
     registerKey(setting('shortcut.toggleBilingualDisplay'), changeShowEnCn);
-    registerKey(setting('shortcut.adjustBeginMinus'), adjustStart.bind(null, -0.2));
-    registerKey(setting('shortcut.adjustBeginPlus'), adjustStart.bind(null, 0.2));
+    registerKey(
+        setting('shortcut.adjustBeginMinus'),
+        adjustStart.bind(null, -0.2)
+    );
+    registerKey(
+        setting('shortcut.adjustBeginPlus'),
+        adjustStart.bind(null, 0.2)
+    );
     registerKey(setting('shortcut.adjustEndMinus'), adjustEnd.bind(null, -0.2));
     registerKey(setting('shortcut.adjustEndPlus'), adjustEnd.bind(null, 0.2));
     registerKey(setting('shortcut.clearAdjust'), clearAdjust);
@@ -122,7 +127,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         )
     );
     return (
-        <Keyevent className='TopSide' events={events} needFocusing={false}>
+        <Keyevent className="TopSide" events={events} needFocusing={false}>
             {children}
         </Keyevent>
     );
