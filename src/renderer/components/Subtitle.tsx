@@ -71,9 +71,12 @@ export default function Subtitle() {
                 <AnimatePresence>
                     {scrollState === 'USER_BROWSING' && (
                         <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
+                            initial={{
+                                scale: 0,
+                                opacity: 0,
+                            }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
                             onClick={() => {
                                 onUserFinishScrolling();
                             }}

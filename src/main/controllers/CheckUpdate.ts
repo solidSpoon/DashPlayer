@@ -14,7 +14,7 @@ let cacheUpdateTime = 0;
 export const checkUpdate = async (): Promise<Release[]> => {
     const now = Date.now();
     // 5分钟内不重复检查更新
-    if (cache && now - cacheUpdateTime < 5 * 60 * 1000) {
+    if (now - cacheUpdateTime < 5 * 60 * 1000) {
         return cache;
     }
 
