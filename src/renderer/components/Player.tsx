@@ -21,6 +21,7 @@ export default function Player(): ReactElement {
         setDuration,
         seekTo,
         changePopType,
+        playbackRate
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -33,6 +34,7 @@ export default function Player(): ReactElement {
             setDuration: state.setDuration,
             seekTo: state.seekTo,
             changePopType: state.changePopType,
+            playbackRate: state.playbackRate,
         }))
     );
     const videoFile = useFile((s) => s.videoFile);
@@ -140,6 +142,7 @@ export default function Player(): ReactElement {
                     />
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <ReactPlayer
+                        playbackRate={playbackRate}
                         muted={muted}
                         className="w-full h-full absolute top-0 left-0 z-0"
                         id="react-player-id"

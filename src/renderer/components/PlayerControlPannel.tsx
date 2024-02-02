@@ -5,6 +5,7 @@ import { Slider } from './Slider';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn, secondToDate } from '../../common/utils/Util';
+import SpeedSlider from './speed-slider';
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -20,12 +21,14 @@ const PlayerControlPannel = ({
     onPlay,
     playing,
 }: PlayerControlPannelProps) => {
-    const { playTime, duration, volume, setVolume } = usePlayerController(
+    const { playTime, duration, volume, setVolume, playbackRate, setPlaybackRate } = usePlayerController(
         useShallow((s) => ({
             playTime: s.playTime,
             duration: s.duration,
             volume: s.volume,
             setVolume: s.setVolume,
+            playbackRate: s.playbackRate,
+            setPlaybackRate: s.setPlaybackRate,
         }))
     );
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
@@ -104,9 +107,10 @@ const PlayerControlPannel = ({
                 <div
                     className={cn(
                         'flex flex-col items-center w-full gap-2 h-16 px-2',
-                        !mouseOverOut && 'invisible'
+                        // !mouseOverOut && 'invisible'
                     )}
                 >
+                    {mouseOverOut && (<>
                     <Slider
                         className="bg-white/50"
                         max={duration}
@@ -149,13 +153,18 @@ const PlayerControlPannel = ({
                             </div>
                         </div>
                         <div className="h-full flex-1" />
-                        <div className="flex justify-center items-center">
+                        <div className="flex justify-center items-center gap-4">
+                            <SpeedSlider
+                                speed={playbackRate}
+                                onSpeedChange={setPlaybackRate}
+                            />
                             <VolumeSlider
-                                volume={volume ?? 1}
+                                volume={volume}
                                 onVolumeChange={setVolume}
                             />
                         </div>
                     </div>
+                    </>)}
                 </div>
             </div>
         </div>

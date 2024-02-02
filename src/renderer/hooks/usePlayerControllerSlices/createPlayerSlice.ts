@@ -50,6 +50,7 @@ const createPlayerSlice: StateCreator<
     playTime: 0,
     duration: 0,
     seekTime: { time: 0 },
+    playbackRate: 1,
     setMuted: (muted) => set({ muted }),
     setVolume: (volume) => set({ volume }),
     play: () => set({ playing: true }),
@@ -76,6 +77,7 @@ const createPlayerSlice: StateCreator<
         onTimeUpdate(get);
     },
     getExactPlayTime: () => get().internal.exactPlayTime,
+    setPlaybackRate: (rate) => set({ playbackRate: rate }),
 });
 
 export default createPlayerSlice;

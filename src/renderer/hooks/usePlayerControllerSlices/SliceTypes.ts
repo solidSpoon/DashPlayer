@@ -35,6 +35,7 @@ export interface PlayerSlice {
     playTime: number;
     duration: number;
     seekTime: SeekAction;
+    playbackRate: number;
 
     setMuted: (muted: boolean) => void;
     setVolume: (volume: number) => void;
@@ -45,6 +46,7 @@ export interface PlayerSlice {
     setDuration: (duration: number) => void;
     updateExactPlayTime: (currentTime: number) => void;
     getExactPlayTime: () => number;
+    setPlaybackRate: (rate: number) => void;
 }
 
 export interface SentenceSlice {

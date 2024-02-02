@@ -9,8 +9,6 @@ import SideBar from '../../../components/SideBar';
 import Background from '../../../components/bg/Background';
 
 const TitleBarLayout = () => {
-    const videoFile = useFile((s) => s.videoFile);
-    const subtitleFile = useFile((s) => s.subtitleFile);
     return (
         <div
             className={cn(
@@ -21,8 +19,6 @@ const TitleBarLayout = () => {
             <div
                 className={cn('absolute w-full h-full top-0 left-0 flex flex-col font-face-arc overflow-hidden select-none text-black')}>
                 <TitleBar
-                    title={videoFile?.fileName}
-                    windowsButtonClassName='hover:bg-black/10'
                     className=''
                 />
                 <Suspense fallback={<div>Loading...</div>}>
