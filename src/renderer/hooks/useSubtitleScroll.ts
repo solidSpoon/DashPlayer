@@ -3,12 +3,14 @@ import { Ele } from './useBoundary';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import useLayout from './useLayout';
+import usePlayerController from './usePlayerController';
 
-export type ScrollState = 'USER_BROWSING' | 'AUTO_SCROLLING' | 'NORMAL';
+export type ScrollState = 'USER_BROWSING' | 'AUTO_SCROLLING' | 'NORMAL' | 'PAUSE_MEASUREMENT';
 export type SubtitleScrollState = {
     internal: {
         virtuoso: VirtuosoHandle | null;
         currentIndex: number;
+        currentRef: HTMLDivElement | null;
         scrollStatusTimer: number | undefined | NodeJS.Timeout;
         scrollTopTimer: number | undefined | NodeJS.Timeout;
     };
@@ -35,6 +37,18 @@ const getEle = (ele: HTMLDivElement): Ele => {
         yb: rect.bottom
     };
 };
+
+const inBoundary = (ref: HTMLDivElement) => {
+    const index = useSubtitleScroll.getState().internal.currentIndex;
+    const visibleRange = useSubtitleScroll.getState().visibleRange;
+    if (index < visibleRange[0] || index > visibleRange[1]) {
+        return false;
+    }
+    const boundary = useSubtitleScroll.getState().boundary;
+    const ele = getEle(ref);
+    return ele.yt >= boundary.yt && ele.yb <= boundary.yb;
+};
+
 export type SubtitleScrollActions = {
     onScrolling: () => void;
     updateCurrentRef: (ref: HTMLDivElement | null, index: number) => void;
@@ -42,7 +56,19 @@ export type SubtitleScrollActions = {
     setVirtuoso: (virtuoso: VirtuosoHandle) => void;
     updateBoundary: (boundary: Ele) => void;
     updateVisibleRange: (range: [number, number]) => void;
+    pauseMeasurement: () => void;
+    delaySetNormal: () => void;
 }
+const delaySetNormal = () => {
+    const scrollTimer = useSubtitleScroll.getState().internal.scrollStatusTimer;
+    if (scrollTimer) {
+        clearTimeout(scrollTimer);
+    }
+    useSubtitleScroll.getState().internal.scrollStatusTimer = setTimeout(() => {
+        useSubtitleScroll.setState({ scrollState: 'NORMAL' });
+    }, 300);
+};
+
 
 const useSubtitleScroll = create(
     subscribeWithSelector<SubtitleScrollState & SubtitleScrollActions>((set, get) => ({
@@ -50,7 +76,8 @@ const useSubtitleScroll = create(
             virtuoso: null,
             currentIndex: -1,
             scrollStatusTimer: undefined,
-            scrollTopTimer: undefined
+            scrollTopTimer: undefined,
+            currentRef: null
         },
         scrollState: 'NORMAL',
         boundary: {
@@ -60,17 +87,24 @@ const useSubtitleScroll = create(
         visibleRange: [0, 0],
         onScrolling: () => {
             const cs = get().scrollState;
-            if (cs === 'NORMAL' || cs === 'USER_BROWSING') {
-                set({ scrollState: 'USER_BROWSING' });
+            if (cs === 'PAUSE_MEASUREMENT') {
                 return;
             }
-            const scrollTimer = get().internal.scrollStatusTimer;
-            if (scrollTimer) {
-                clearTimeout(scrollTimer);
+            if (cs === 'USER_BROWSING') {
+                const ref = get().internal.currentRef;
+                if (ref && inBoundary(ref)) {
+                    set({ scrollState: 'NORMAL' });
+                }
+                return;
             }
-            get().internal.scrollStatusTimer = setTimeout(() => {
-                set({ scrollState: 'NORMAL' });
-            }, 200);
+            if (cs === 'NORMAL') {
+                const ref = get().internal.currentRef;
+                if (ref && !inBoundary(ref)) {
+                    set({ scrollState: 'USER_BROWSING' });
+                }
+                return;
+            }
+            delaySetNormal();
         },
         updateCurrentRef: (ref: HTMLDivElement | null, index: number) => {
             const lastIndex = get().internal.currentIndex;
@@ -78,7 +112,11 @@ const useSubtitleScroll = create(
             if (!ref || !get().boundary) {
                 return;
             }
+            get().internal.currentRef = ref;
             if (lastIndex === index) {
+                return;
+            }
+            if (get().scrollState === 'PAUSE_MEASUREMENT') {
                 return;
             }
             const showSideBar = useLayout.getState().showSideBar;
@@ -98,6 +136,11 @@ const useSubtitleScroll = create(
             } else {
                 const scrollBottom = suggestScrollBottom(get().boundary, currentEle);
                 if (scrollBottom <= 0) {
+                    if (get().scrollState === 'USER_BROWSING') {
+                        if (inBoundary(ref)) {
+                            set({ scrollState: 'NORMAL' });
+                        }
+                    }
                     return;
                 }
                 if (get().scrollState !== 'USER_BROWSING') {
@@ -109,23 +152,24 @@ const useSubtitleScroll = create(
                 }
                 if (get().scrollState !== 'USER_BROWSING') {
                     console.log('aaa scroll');
-                    get().internal.scrollTopTimer = setTimeout(({indx}) => {
+                    get().internal.scrollTopTimer = setTimeout(({ indx }) => {
                         console.log('scroll to index', indx);
                         set({ scrollState: 'AUTO_SCROLLING' });
                         get().internal.virtuoso?.scrollToIndex({
                             behavior: 'smooth',
-                            index:indx
+                            index: indx
                         });
-                    }, 150,{indx: index});
+                    }, 150, { indx: index });
                 }
             }
         },
         onUserFinishScrolling: () => {
             set({ scrollState: 'AUTO_SCROLLING' });
-            get().internal.virtuoso?.scrollToIndex({
+            get().internal.virtuoso?.scrollIntoView({
                 behavior: 'smooth',
                 index: get().internal.currentIndex
             });
+            delaySetNormal();
         },
         updateBoundary: (boundary: Ele) => {
             set({ boundary });
@@ -135,22 +179,35 @@ const useSubtitleScroll = create(
         },
         updateVisibleRange: (range: [number, number]) => {
             set({ visibleRange: range });
-        }
+        },
+        pauseMeasurement: () => {
+            const scrollState = get().scrollState;
+            if (scrollState === 'PAUSE_MEASUREMENT') {
+                return;
+            }
+            set({ scrollState: 'PAUSE_MEASUREMENT' });
+            setTimeout(() => {
+                set({ scrollState });
+            }, 500);
+        },
+        delaySetNormal
     }))
 );
 export default useSubtitleScroll;
 const scrollTask = () => {
-    if (useSubtitleScroll.getState().scrollState === 'USER_BROWSING') {
+    if (useSubtitleScroll.getState().scrollState === 'USER_BROWSING' || useSubtitleScroll.getState().scrollState === 'PAUSE_MEASUREMENT') {
         return;
     }
-    const index = useSubtitleScroll.getState().internal.currentIndex;
+    const index = usePlayerController.getState().currentSentence?.index ?? 0;
     const visibleRange = useSubtitleScroll.getState().visibleRange;
     if (index < visibleRange[0] || index > visibleRange[1]) {
+        useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
         useSubtitleScroll.getState().internal.virtuoso?.scrollToIndex({
             behavior: 'smooth',
             index
         });
+        delaySetNormal();
     }
-}
+};
 
-setTimeout(scrollTask, 1000);
+setInterval(scrollTask, 1000);

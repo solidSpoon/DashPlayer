@@ -34,6 +34,7 @@ export default function Subtitle() {
         updateCurrentRef,
         setVirtuoso,
         updateVisibleRange,
+        delaySetNormal,
     } = useSubtitleScroll((s) => ({
         scrollState: s.scrollState,
         onScrolling: s.onScrolling,
@@ -41,6 +42,7 @@ export default function Subtitle() {
         onUserFinishScrolling: s.onUserFinishScrolling,
         setVirtuoso: s.setVirtuoso,
         updateVisibleRange: s.updateVisibleRange,
+        delaySetNormal: s.delaySetNormal,
     }));
 
     useEffect(() => {
@@ -117,7 +119,12 @@ export default function Subtitle() {
                         return (
                             <SideSentence
                                 sentence={item}
-                                onClick={(sentence) => jump(sentence)}
+                                onClick={(sentence) => {
+                                    jump(sentence);
+                                    if (scrollState === 'USER_BROWSING') {
+                                        delaySetNormal();
+                                    }
+                                }}
                                 isCurrent={isCurrent}
                                 isRepeat={singleRepeat}
                                 ref={(ref) => {
