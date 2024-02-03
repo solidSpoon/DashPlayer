@@ -21,7 +21,7 @@ export default function Player(): ReactElement {
         setDuration,
         seekTo,
         changePopType,
-        playbackRate
+        playbackRate,
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -59,49 +59,79 @@ export default function Player(): ReactElement {
 
     useEffect(() => {
         let animationFrameId: number | undefined;
+        let lastDrawTime = Date.now(); // 用来限制绘制的帧率
+        const fps = 25; // 把这个调整成需要的帧率
+
+        // 绘制频率的间隔（毫秒）
+        const drawInterval = 1000 / fps;
+
         const syncVideos = async () => {
-            const mainVideo = playerRef?.current;
-            const backgroundCanvas = playerRefBackground?.current;
+            const now = Date.now();
+            const timeSinceLastDraw = now - lastDrawTime;
 
-            if (mainVideo !== null && backgroundCanvas !== null) {
-                const { width, height } =
-                    backgroundCanvas.getBoundingClientRect();
-                const ctx = backgroundCanvas.getContext('2d');
-                if (ctx !== null) {
-                    if (
-                        backgroundCanvas.width !== width ||
-                        backgroundCanvas.height !== height
-                    ) {
-                        const { devicePixelRatio: ratio = 1 } = window;
-                        backgroundCanvas.width = width * ratio;
-                        backgroundCanvas.height = height * ratio;
-                        ctx.scale(ratio, ratio);
+            if (timeSinceLastDraw >= drawInterval) {
+                const mainVideo =
+                    playerRef?.current?.getInternalPlayer() as HTMLVideoElement;
+                const backgroundCanvas = playerRefBackground?.current;
+
+                if (
+                    mainVideo &&
+                    backgroundCanvas &&
+                    mainVideo.readyState >= 2
+                ) {
+                    // 确保视频已经有数据
+                    const ctx = backgroundCanvas.getContext('2d');
+
+                    if (ctx) {
+                        const { width, height } =
+                            backgroundCanvas.getBoundingClientRect();
+                        const ratio = window.devicePixelRatio || 1;
+
+                        // 调整目标分辨率的系数，例如变为 1/2
+                        const resolutionFactor = 0.1;
+                        const scaledWidth = width * ratio * resolutionFactor;
+                        const scaledHeight = height * ratio * resolutionFactor;
+
+                        // 设置画布的实际尺寸，即物理尺寸和分辨率
+                        backgroundCanvas.width = scaledWidth;
+                        backgroundCanvas.height = scaledHeight;
+
+                        // 调整画布绘制尺寸与元素的显示尺寸
+                        ctx.scale(
+                            ratio * resolutionFactor,
+                            ratio * resolutionFactor
+                        );
+
+                        try {
+                            // 使用 createImageBitmap 改进性能
+                            const bitmap = await createImageBitmap(mainVideo);
+                            ctx.drawImage(bitmap, 0, 0, width, height);
+                            bitmap.close(); // 如果有提供此方法，关闭 bitmap 释放内存
+                        } catch (error) {
+                            console.error('Error drawing video frame:', error);
+                        }
+
+                        // 更新最后绘画时间
+                        lastDrawTime = now;
                     }
-
-                    const canvasWidth = backgroundCanvas?.clientWidth ?? 0;
-                    const canvasHeight = backgroundCanvas?.clientHeight ?? 0;
-                    ctx?.drawImage(
-                        mainVideo?.getInternalPlayer() as CanvasImageSource,
-                        0,
-                        0,
-                        canvasWidth,
-                        canvasHeight
-                    );
                 }
             }
 
-            // 在每一帧中调用 syncVideos
+            // 在下一帧中重新调用 syncVideos
             animationFrameId = requestAnimationFrame(syncVideos);
         };
+
         if (videoLoaded) {
             syncVideos();
         }
+
+        // 清理操作
         return () => {
-            if (animationFrameId !== undefined) {
+            if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [videoLoaded]);
+    }, [videoLoaded, playerRef, playerRefBackground]);
 
     const jumpToHistoryProgress = async (file: FileT) => {
         if (file === lastFile) {
