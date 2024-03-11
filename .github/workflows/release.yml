@@ -1,0 +1,28 @@
+# .github/workflows/release.yml
+name: Release app
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          [
+            { name: 'linux', image: 'ubuntu-latest' },
+            { name: 'windows', image: 'windows-latest' },
+            { name: 'macos-x64', image: 'macos-12' },
+            { name: 'macos-arm64', image: 'macos-14' },
+          ]
+    runs-on: ${{ matrix.os.image }}
+    steps:
+      - name: Github checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: yarn install --frozen-lockfile
+      - name: Publish app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run publish

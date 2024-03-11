@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1708658238024,
+      "tag": "0000_nostalgic_northstar",
+      "breakpoints": true
+    }
+  ]
+}
