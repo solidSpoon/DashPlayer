@@ -1,4 +1,4 @@
-import hash, { sentenceKey } from '../utils/hash';
+import hash from '../utils/hash';
 
 class SentenceT {
     public index: number;
@@ -30,17 +30,17 @@ class SentenceT {
      */
     public msTranslate: string | undefined;
 
-    public key: string = '';
+    public key = '';
 
     /**
      * 批量翻译的分组, 从1开始
      */
-    public transGroup: number = 0;
+    public transGroup = 0;
 
     /**
      * 展示在界面的分组
      */
-    public displayGroup: number = 0;
+    public displayGroup = 0;
 
     public getKey = (): string => {
         return this.key;

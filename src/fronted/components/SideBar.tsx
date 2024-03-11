@@ -1,8 +1,6 @@
-import { useLocation, useNavigate, useRoutes } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    HiOutlineAcademicCap,
     HiOutlineCog,
-    HiOutlineHome,
     HiOutlineUser,
     HiOutlineVideoCamera,
 } from 'react-icons/hi';
@@ -11,8 +9,6 @@ import { cn } from '@/common/utils/Util';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
-import {useTheme} from "next-themes";
-import useSystem from "@/fronted/hooks/useSystem";
 import useSetting from "@/fronted/hooks/useSetting";
 
 export interface SideBarProps {

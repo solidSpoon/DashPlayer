@@ -1,5 +1,4 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { app } from 'electron';
 import fs from 'fs';
 import db, { clearDB } from './db';
 

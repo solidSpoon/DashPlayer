@@ -1,7 +1,4 @@
 import * as React from 'react';
-// import * as SliderPrimitive from '@radix-ui/react-slider';
-// import { SliderProps } from '@radix-ui/react-slider';
-import { cn } from '@/common/utils/Util';
 
 export interface MySliderProps {
     className?: string;

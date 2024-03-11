@@ -43,13 +43,13 @@ const Word = ({word, pop, requestPop, show, alwaysDark}: WordParam) => {
         undefined
     );
     const pause = usePlayerController((s) => s.pause);
-    const {getWordLevel, markWordLevel, showWordLevel} = usePlayerController(
-        useShallow((s) => ({
-            getWordLevel: s.getWordLevel,
-            markWordLevel: s.markWordLevel,
-            showWordLevel: s.showWordLevel,
-        }))
-    );
+    // const {getWordLevel, markWordLevel, showWordLevel} = usePlayerController(
+    //     useShallow((s) => ({
+    //         getWordLevel: s.getWordLevel,
+    //         markWordLevel: s.markWordLevel,
+    //         showWordLevel: s.showWordLevel,
+    //     }))
+    // );
     const [hovered, setHovered] = useState(false);
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
@@ -120,7 +120,7 @@ const Word = ({word, pop, requestPop, show, alwaysDark}: WordParam) => {
         }
     };
 
-    const wordLevel = getWordLevel(word);
+    // const wordLevel = getWordLevel(word);
 
     return (
         <div className={twMerge('flex gap-1')}>
@@ -137,15 +137,15 @@ const Word = ({word, pop, requestPop, show, alwaysDark}: WordParam) => {
                         setHovered(true);
                     }
                 }}
-                onContextMenu={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    console.log('onContextMenu');
-                    if (showWordLevel) {
-                        console.log('markWordLevel', wordLevel?.familiar);
-                        markWordLevel(word, !wordLevel?.familiar);
-                    }
-                }}
+                // onContextMenu={(e) => {
+                //     e.stopPropagation();
+                //     e.preventDefault();
+                //     console.log('onContextMenu');
+                //     if (showWordLevel) {
+                //         console.log('markWordLevel', wordLevel?.familiar);
+                //         markWordLevel(word, !wordLevel?.familiar);
+                //     }
+                // }}
             >
                 {pop && hovered && translationText ? (
                     <WordPop
@@ -169,17 +169,17 @@ const Word = ({word, pop, requestPop, show, alwaysDark}: WordParam) => {
                     </div>
                 )}
             </div>
-            {showWordLevel && wordLevel?.familiar === false && (
-                <div
-                    className={twMerge(
-                        'flex items-center pt-2 justify-center text-xl text-textColor/80',
-                        theme === 'dark' && 'text-amber-400/75',
-                        !show && 'text-transparent'
-                    )}
-                >
-                    ({wordLevel.translate})
-                </div>
-            )}
+            {/* {showWordLevel && wordLevel?.familiar === false && ( */}
+            {/*     <div */}
+            {/*         className={twMerge( */}
+            {/*             'flex items-center pt-2 justify-center text-xl text-textColor/80', */}
+            {/*             theme === 'dark' && 'text-amber-400/75', */}
+            {/*             !show && 'text-transparent' */}
+            {/*         )} */}
+            {/*     > */}
+            {/*         ({wordLevel.translate}) */}
+            {/*     </div> */}
+            {/* )} */}
         </div>
     );
 };

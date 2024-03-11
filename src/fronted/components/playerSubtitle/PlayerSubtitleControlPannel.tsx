@@ -149,10 +149,13 @@ const PlayerControlPannel = ({
 PlayerControlPannel.defaultProps = {
     className: '',
     onTimeChange: () => {
+        //
     },
     onPause: () => {
+        //
     },
     onPlay: () => {
+        //
     },
     playing: false,
 };

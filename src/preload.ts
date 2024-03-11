@@ -117,7 +117,7 @@ const electronHandler = {
         return (await invoke('you-dao-translate', word)) as YdRes;
     },
     fetchAudio: async (url: string) => {
-        const data = (await invoke('get-audio', url)) as any;
+        const data = (await invoke('get-audio', url)) as never;
         const blob = new Blob([data], { type: 'audio/mpeg' });
         return URL.createObjectURL(blob);
     },
@@ -236,13 +236,13 @@ const electronHandler = {
     },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');
-        return on('store-update', func as any);
+        return on('store-update', func as never);
     },
     onMainState: (func: (state: WindowState) => void) => {
-        return on('main-state', func as any);
+        return on('main-state', func as never);
     },
     onSettingState: (func: (state: WindowState) => void) => {
-        return on('setting-state', func as any);
+        return on('setting-state', func as never);
     },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

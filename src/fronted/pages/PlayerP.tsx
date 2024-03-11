@@ -1,6 +1,5 @@
 import {motion} from 'framer-motion';
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import Split from 'react-split';
 import {useLocation, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
 import {cn} from '@/common/utils/Util';
@@ -13,8 +12,7 @@ import UploadButton from '@/fronted/components/UploadButton';
 import useFile from '@/fronted/hooks/useFile';
 import GlobalShortCut from '@/fronted/components/GlobalShortCut';
 import SideBar from '@/fronted/components/SideBar';
-import useSystem from '@/fronted/hooks/useSystem';
-import {darkColor, FONT_SIZE, lightColor, themeProvider} from "@/fronted/styles/style";
+import {darkColor, lightColor} from "@/fronted/styles/style";
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/fronted/components/ui/resizable";
 import {useLocalStorage} from "@uidotdev/usehooks";
 
@@ -49,7 +47,7 @@ const PlayerP = () => {
     const sideBarAnimation =
         (new URLSearchParams(location.search).get('sideBarAnimation') ??
             'true') === 'true';
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     console.log('referrer', referrer);
     const hasSubTitle = useFile((s) => s.subtitleFile !== undefined);

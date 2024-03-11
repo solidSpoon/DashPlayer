@@ -28,7 +28,11 @@ export const checkUpdate = async (): Promise<Release[]> => {
         return [];
     }
 
-    const releases: Release[] = result.data.map((release: any) => ({
+    const releases: Release[] = result.data.map((release: {
+        html_url: string;
+        tag_name: string;
+        body: string;
+    }) => ({
         url: release.html_url,
         version: release.tag_name,
         content: release.body,

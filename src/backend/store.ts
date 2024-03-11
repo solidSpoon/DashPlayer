@@ -11,7 +11,7 @@ export const storeSet = (key: SettingKey, value: string | undefined | null): boo
     }
     const oldValue = store.get(key, SettingKeyObj[key]);
     if (oldValue === value) {
-        false;
+       return false;
     }
     store.set(key, value);
     return true;

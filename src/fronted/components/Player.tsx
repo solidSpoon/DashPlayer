@@ -6,7 +6,6 @@ import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
 import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
-import PlayerSubtitle from "@/fronted/components/playerSubtitle/PlayerSubtitle";
 import PlayerSubtitlePannel from "@/fronted/components/playerSubtitle/PlayerSubtitlePannel";
 import useLayout from "@/fronted/hooks/useLayout";
 import PlaySpeedToaster from "@/fronted/components/PlaySpeedToaster";

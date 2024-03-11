@@ -21,7 +21,6 @@ export type SettingType =
     | 'appearance';
 const Sidebar = () => {
     const location = useLocation();
-    const navigate = useNavigate();
     const ele = (name: string, key: SettingType, icon: ReactElement) => {
         const pathname =
             location.pathname === '/settings'

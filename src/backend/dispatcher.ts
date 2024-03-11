@@ -28,6 +28,7 @@ import {readFromClipboard, writeToClipboard} from "@/backend/controllers/Clopboa
 import processSentences from "@/backend/controllers/SubtitleProcesser";
 import fs from "fs";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
 
 const handle = (

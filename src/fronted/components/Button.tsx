@@ -40,7 +40,9 @@ const Button = ({ children, onClick, title, className }: ButtonParam) => {
 };
 Button.defaultProps = {
     checked: false,
-    onChange: (checked: boolean) => {},
+    onChange: (checked: boolean) => {
+        //
+    },
     title: 'Toggle me',
     className: '',
 };

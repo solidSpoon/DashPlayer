@@ -9,7 +9,6 @@ import {
     PlayerSlice,
     SentenceSlice,
     SubtitleSlice,
-    WordLevelSlice,
 } from './usePlayerControllerSlices/SliceTypes';
 import createPlayerSlice from './usePlayerControllerSlices/createPlayerSlice';
 import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice';
@@ -20,13 +19,12 @@ import FileT from '../../common/types/FileT';
 import parseSrtSubtitles from '../../common/utils/parseSrt';
 import SentenceT from '../../common/types/SentenceT';
 import useFile from './useFile';
-import { p, sleep, splitToWords } from '@/common/utils/Util';
+import { p, sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
-import createWordLevelSlice from './usePlayerControllerSlices/createWordLevelSlice';
 import TransHolder from '../../common/utils/TransHolder';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import hash, { sentenceKey } from '../../common/utils/hash';
+import { sentenceKey } from '@/common/utils/hash';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -35,8 +33,8 @@ const usePlayerController = create<
         ModeSlice &
         InternalSlice &
         SubtitleSlice &
-        ControllerSlice &
-        WordLevelSlice
+        ControllerSlice
+        // WordLevelSlice
 >()(
     subscribeWithSelector((...a) => ({
         ...createPlayerSlice(...a),
@@ -45,7 +43,7 @@ const usePlayerController = create<
         ...createInternalSlice(...a),
         ...createSubtitleSlice(...a),
         ...createControllerSlice(...a),
-        ...createWordLevelSlice(...a),
+        // ...createWordLevelSlice(...a),
     }))
 );
 export default usePlayerController;
@@ -212,18 +210,18 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceT[]) {
     return groupSubtitles;
 }
 
-async function syncWordsLevel(userCanSee: SentenceT[]) {
-    if (userCanSee.length === 0) {
-        return;
-    }
-    const words = new Set<string>();
-    userCanSee.forEach((item) => {
-        splitToWords(item.text).forEach((w) => {
-            words.add(w);
-        });
-    });
-    await usePlayerController.getState().syncWordsLevel(Array.from(words));
-}
+// async function syncWordsLevel(userCanSee: SentenceT[]) {
+//     if (userCanSee.length === 0) {
+//         return;
+//     }
+//     const words = new Set<string>();
+//     userCanSee.forEach((item) => {
+//         splitToWords(item.text).forEach((w) => {
+//             words.add(w);
+//         });
+//     });
+//     await usePlayerController.getState().syncWordsLevel(Array.from(words));
+// }
 
 /**
  * 加载与翻译

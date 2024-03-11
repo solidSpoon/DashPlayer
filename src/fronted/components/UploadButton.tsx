@@ -1,11 +1,7 @@
 import React from 'react';
-import { MdVideoSettings } from 'react-icons/md';
 import { IoIosSwitch } from 'react-icons/io';
 import {AnimatePresence, motion} from 'framer-motion';
-import { TbArrowsMaximize } from 'react-icons/tb';
-import { CgMaximizeAlt } from 'react-icons/cg';
 import { FaMaximize } from 'react-icons/fa6';
-import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '@/common/utils/Util';
 import useLayout from '../hooks/useLayout';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';

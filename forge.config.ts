@@ -19,7 +19,7 @@ const config: ForgeConfig = {
             name: 'DashPlayer',
             loadingGif: './assets/icons/install.png',
             setupIcon: './assets/icons/icon.ico',
-            iconUrl: 'https://raw.githubusercontent.com/solidSpoon/dp2/master/assets/icons/icon.ico',
+            iconUrl: 'https://raw.githubusercontent.com/solidSpoon/DashPlayer/master/assets/icons/icon.ico',
         }),
         new MakerDMG({
             icon: './assets/icons/icon.icns',
@@ -68,7 +68,7 @@ const config: ForgeConfig = {
             config: {
                 repository: {
                     owner: 'solidSpoon',
-                    name: 'dp2'
+                    name: 'DashPlayer'
                 },
                 prerelease: true
             }

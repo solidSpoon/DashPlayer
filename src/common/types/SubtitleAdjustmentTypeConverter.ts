@@ -1,7 +1,7 @@
 import SentenceT from './SentenceT';
-import { InsertSubtitleTimestampAdjustment } from '../../db/tables/subtitleTimestampAdjustment';
+import { InsertSubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import FileT from './FileT';
-import hash, { sentenceKey } from '../utils/hash';
+import { sentenceKey } from '../utils/hash';
 
 export default class SubtitleAdjustmentTypeConverter {
     public static fromSentence(

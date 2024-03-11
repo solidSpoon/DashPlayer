@@ -26,13 +26,10 @@ const ControlBox = () => {
     const {
         showEn,
         showCn,
-        showWordLevel,
         singleRepeat,
         changeShowEn,
         changeShowCn,
-        changeShowWordLevel,
         changeSingleRepeat,
-        changePopType,
     } = usePlayerController(
         useShallow((s) => ({
             showEn: s.showEn,

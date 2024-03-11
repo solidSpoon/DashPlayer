@@ -74,5 +74,7 @@ export default function FileSelector2({
 FileSelector2.defaultProps = {
     directory: false,
     className: '',
-    onSelected: () => {},
+    onSelected: () => {
+        //
+    },
 };

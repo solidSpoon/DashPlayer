@@ -110,7 +110,9 @@ const PlayerControlPannel = ({
                     e.stopPropagation();
                     handleMouseMoveIn();
                 }}
-                onMouseLeave={() => {}}
+                onMouseLeave={() => {
+                    //
+                }}
             >
                 <div
                     className={cn(
@@ -192,9 +194,15 @@ const PlayerControlPannel = ({
 };
 PlayerControlPannel.defaultProps = {
     className: '',
-    onTimeChange: () => {},
-    onPause: () => {},
-    onPlay: () => {},
+    onTimeChange: () => {
+        //
+    },
+    onPause: () => {
+        //
+    },
+    onPlay: () => {
+        //
+    },
     playing: false,
 };
 
