@@ -1,13 +1,14 @@
 import React, { ReactElement, useState } from 'react';
 import { AiOutlineFieldTime } from 'react-icons/ai';
-import useSetting from "@/fronted/hooks/useSetting";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {p} from "@/common/utils/Util";
-import hash from "@/common/utils/hash";
-import {FONT_SIZE} from "@/fronted/styles/style";
-import IconButton from "@/fronted/components/toolTip/IconButton";
-import {cn} from "@/fronted/lib/utils";
-import Word from "@/fronted/components/Word";
+import useSetting from '@/fronted/hooks/useSetting';
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { p } from '@/common/utils/Util';
+import hash from '@/common/utils/hash';
+import { FONT_SIZE } from '@/fronted/styles/style';
+import { cn } from '@/fronted/lib/utils';
+import Word from '@/fronted/components/Word';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { Button } from '@/fronted/components/ui/button';
 
 interface PlayerTranslatableSubtitleLineParam {
     text: string;
@@ -26,10 +27,10 @@ const notWord = (str: string, key: string): ReactElement => {
     );
 };
 const PlayerTranslatableLine = ({
-    text,
-    adjusted,
-    clearAdjust,
-}: PlayerTranslatableSubtitleLineParam) => {
+                                    text,
+                                    adjusted,
+                                    clearAdjust
+                                }: PlayerTranslatableSubtitleLineParam) => {
     const fontSize = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
@@ -61,11 +62,11 @@ const PlayerTranslatableLine = ({
             className={cn(
                 'flex justify-center items-center',
                 // 'bg-background/50 text-foreground',
-                FONT_SIZE["ms1-large"],
-                fontSize === 'fontSizeSmall' && FONT_SIZE["ms1-small"],
+                FONT_SIZE['ms1-large'],
+                fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
                 fontSize === 'fontSizeMedium' &&
-                FONT_SIZE["ms1-medium"],
-                fontSize === 'fontSizeLarge' && FONT_SIZE["ms1-large"]
+                FONT_SIZE['ms1-medium'],
+                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large']
             )}
         >
             <div
@@ -75,15 +76,23 @@ const PlayerTranslatableLine = ({
             >
 
                     {adjusted && (
-                        <div className={cn('w-8 h-8')}>
-                        <IconButton
-                            onClick={clearAdjust}
-                            tooltip="点击重置当前句子时间戳"
-                        >
-                            <AiOutlineFieldTime
-                                className={cn('w-8 h-8 text-white')}
-                            />
-                        </IconButton>
+                        <div className={cn('w-18 h-8 flex justify-center items-center')}>
+                            {adjusted && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                onClick={clearAdjust}
+                                                variant={'ghost'} size={'icon'} className={'p-0.5 w-8 h-8'}>
+                                                <AiOutlineFieldTime className={cn('w-full h-full fill-black')} />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            点击重置当前句子时间戳
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
                         </div>
                     )}
                 {sentenceStruct?.blocks.map((block, blockIndex) => {
@@ -115,7 +124,7 @@ const PlayerTranslatableLine = ({
                 }) || []}
 
                 {adjusted && (
-                    <div className={cn('w-10 h-full flex-shrink-0')}/>
+                    <div className={cn('w-10 h-full flex-shrink-0')} />
                 )}
             </div>
 

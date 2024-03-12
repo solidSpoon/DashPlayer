@@ -6,7 +6,8 @@ import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
 import { cn, p } from '@/common/utils/Util';
 import { FONT_SIZE } from '../styles/style';
-import IconButton from './toolTip/IconButton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { Button } from '@/fronted/components/ui/button';
 
 interface TranslatableSubtitleLineParam {
     text: string;
@@ -25,10 +26,10 @@ const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     );
 };
 const TranslatableLine = ({
-    text,
-    adjusted,
-    clearAdjust,
-}: TranslatableSubtitleLineParam) => {
+                              text,
+                              adjusted,
+                              clearAdjust
+                          }: TranslatableSubtitleLineParam) => {
     const fontSize = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
@@ -62,23 +63,29 @@ const TranslatableLine = ({
                 'bg-stone-200 dark:bg-neutral-700',
                 'text-stone-700 dark:text-neutral-100',
                 'shadow-stone-100 dark:shadow-neutral-600',
-                FONT_SIZE["ms1-large"],
-                fontSize === 'fontSizeSmall' && FONT_SIZE["ms1-small"],
+                FONT_SIZE['ms1-large'],
+                fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
                 fontSize === 'fontSizeMedium' &&
-                FONT_SIZE["ms1-medium"],
-                fontSize === 'fontSizeLarge' && FONT_SIZE["ms1-large"]
+                FONT_SIZE['ms1-medium'],
+                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large']
             )}
         >
-            <div className={cn('w-10 h-full p-2.5')}>
+            <div className={cn('w-10 h-full translate-x-2.5 flex justify-center items-center')}>
                 {adjusted && (
-                    <IconButton
-                        onClick={clearAdjust}
-                        tooltip="点击重置当前句子时间戳"
-                    >
-                        <AiOutlineFieldTime
-                            className={cn('w-8 h-8 text-white')}
-                        />
-                    </IconButton>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    onClick={clearAdjust}
+                                    variant={'ghost'} size={'icon'} className={'p-1'}>
+                                    <AiOutlineFieldTime className={cn('w-full h-full fill-black')} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                点击重置当前句子时间戳
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 )}
             </div>
             <div
