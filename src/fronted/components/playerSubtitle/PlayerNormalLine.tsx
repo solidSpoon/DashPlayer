@@ -20,7 +20,7 @@ export const SPLIT_REGEX =
 const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
     const show = usePlayerController((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
-    if (text === undefined) {
+    if (text === undefined || !show) {
         return <div />;
     }
     const isWord = (str: string): boolean => {
@@ -41,26 +41,11 @@ const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
         });
 
     const word = (str: string, key: string): ReactElement => {
-        return (
-            <span
-                className={`${
-                    show
-                        ? ''
-                        : 'text-transparent bg-wordHoverBackground/50 rounded'
-                }`}
-                key={key}
-            >
-                {str}
-            </span>
-        );
+        return <span key={key}>{str}</span>;
     };
 
     const notWord = (str: string, key: string): ReactElement => {
-        return (
-            <span className={`${show ? '' : 'text-transparent'} `} key={key}>
-                {str === ' ' ? <>&nbsp;</> : str}
-            </span>
-        );
+        return <span key={key}>{str === ' ' ? <>&nbsp;</> : str}</span>;
     };
     return (
         <div

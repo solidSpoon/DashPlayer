@@ -96,4 +96,4 @@ const App = () => {
 
 const root = createRoot(document.body);
 root.render(<App/>);
-syncStatus(true);
+syncStatus();

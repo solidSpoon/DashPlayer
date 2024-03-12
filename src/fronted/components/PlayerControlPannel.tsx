@@ -5,10 +5,11 @@ import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn, secondToDate } from '@/common/utils/Util';
 import SpeedSlider from './speed-slider';
-import {Slider} from "@/fronted/components/ui/slider";
-import {Card} from "@/fronted/components/ui/card";
-import useLayout from "@/fronted/hooks/useLayout";
-import {Toggle} from "@/fronted/components/ui/toggle";
+import { Slider } from '@/fronted/components/ui/slider';
+import { Card } from '@/fronted/components/ui/card';
+import useLayout from '@/fronted/hooks/useLayout';
+import { Toggle } from '@/fronted/components/ui/toggle';
+import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -17,14 +18,24 @@ export interface PlayerControlPannelProps {
     playing?: boolean;
     onTimeChange?: (time: number) => void;
 }
+
 const PlayerControlPannel = ({
-    className,
-    onTimeChange,
-    onPause,
-    onPlay,
-    playing,
-}: PlayerControlPannelProps) => {
-    const { playTime, duration, volume, setVolume, playbackRate, setPlaybackRate, muted, setMuted } = usePlayerController(
+                                 className,
+                                 onTimeChange,
+                                 onPause,
+                                 onPlay,
+                                 playing
+                             }: PlayerControlPannelProps) => {
+    const {
+        playTime,
+        duration,
+        volume,
+        setVolume,
+        playbackRate,
+        setPlaybackRate,
+        muted,
+        setMuted
+    } = usePlayerController(
         useShallow((s) => ({
             playTime: s.playTime,
             duration: s.duration,
@@ -33,7 +44,7 @@ const PlayerControlPannel = ({
             playbackRate: s.playbackRate,
             setPlaybackRate: s.setPlaybackRate,
             setMuted: s.setMuted,
-            muted: s.muted,
+            muted: s.muted
         }))
     );
     const fullScreen = useLayout(s => s.fullScreen);
@@ -116,76 +127,67 @@ const PlayerControlPannel = ({
             >
                 <div
                     className={cn(
-                        'flex flex-col items-center justify-between w-full gap-4',
+                        'flex flex-col items-center justify-between w-full gap-4'
                         // !mouseOverOut && 'invisible'
                     )}
                 >
                     {mouseOverOut && (<>
-                    <Slider
-                        className=""
-                        max={duration}
-                        min={0}
-                        value={[currentValue]}
-                        onValueChange={(value) => {
-                            console.log('onValueChange', value);
-                            setCurrentValue(value[0]);
-                            setSelecting(true);
-                            onPause?.();
-                        }}
-                        onValueCommit={(value) => {
-                            currentValueUpdateTime.current = Date.now();
-                            onTimeChange?.(value[0]);
-                            setSelecting(false);
-                        }}
-                    />
-                    <div className="w-full flex justify-between items-center">
-                        <div className="flex gap-4">
-                            <div
-                                onClick={() => {
-                                    if (playing) {
-                                        onPause?.();
-                                    } else {
-                                        onPlay?.();
-                                    }
-                                }}
-                                className="flex justify-center items-center rounded-lg"
-                            >
-                                {playing ? (
-                                    <FaPause className="w-6 h-6 fill-foreground" />
-                                ) : (
-                                    <FaPlay className="w-6 h-6  fill-foreground" />
-                                )}
+                        <Slider
+                            className=''
+                            max={duration}
+                            min={0}
+                            value={[currentValue]}
+                            onValueChange={(value) => {
+                                console.log('onValueChange', value);
+                                setCurrentValue(value[0]);
+                                setSelecting(true);
+                                onPause?.();
+                            }}
+                            onValueCommit={(value) => {
+                                currentValueUpdateTime.current = Date.now();
+                                onTimeChange?.(value[0]);
+                                setSelecting(false);
+                            }}
+                        />
+                        <div className='w-full flex justify-between items-center'>
+                            <div className='flex gap-4'>
+                                <div
+                                    onClick={() => {
+                                        if (playing) {
+                                            onPause?.();
+                                        } else {
+                                            onPlay?.();
+                                        }
+                                    }}
+                                    className='flex justify-center items-center rounded-lg'
+                                >
+                                    {playing ? (
+                                        <FaPause className='w-6 h-6 fill-foreground' />
+                                    ) : (
+                                        <FaPlay className='w-6 h-6  fill-foreground' />
+                                    )}
+                                </div>
+                                <div className=' h-full flex items-center'>
+                                    {`${secondToDate(
+                                        currentValue
+                                    )} / ${secondToDate(duration)}`}
+                                </div>
                             </div>
-                            <div className=" h-full flex items-center">
-                                {`${secondToDate(
-                                    currentValue
-                                )} / ${secondToDate(duration)}`}
+                            <div className='h-full flex-1' />
+                            <div className='flex justify-center items-end gap-4'>
+                                <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
+                                <SpeedSlider
+                                    speed={playbackRate}
+                                    onSpeedChange={setPlaybackRate}
+                                />
+                                <VolumeSlider
+                                    muted={muted}
+                                    onMutedChange={setMuted}
+                                    volume={volume}
+                                    onVolumeChange={setVolume}
+                                />
                             </div>
                         </div>
-                        <div className="h-full flex-1" />
-                        <div className="flex justify-center items-end gap-4">
-                            <Toggle
-                                size={'sm'}
-                                pressed={fullScreen}
-                                onPressedChange={(v) => {
-                                    changeFullScreen(!fullScreen);
-                                }}
-                                className="flex items-center justify-center"
-                            >
-                                Full Screen
-                            </Toggle>
-                            <SpeedSlider
-                                speed={playbackRate}
-                                onSpeedChange={setPlaybackRate}
-                            />
-                            <VolumeSlider
-                                muted={muted}
-                                onMutedChange={setMuted}
-                                volume={volume}
-                                onVolumeChange={setVolume}
-                            />
-                        </div>
-                    </div>
                     </>)}
                 </div>
             </Card>
@@ -203,7 +205,7 @@ PlayerControlPannel.defaultProps = {
     onPlay: () => {
         //
     },
-    playing: false,
+    playing: false
 };
 
 export default PlayerControlPannel;

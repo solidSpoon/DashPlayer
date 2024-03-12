@@ -1,13 +1,14 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {cn} from '@/common/utils/Util';
-import {Popover, PopoverContent, PopoverTrigger} from "@/fronted/components/ui/popover";
-import {Button} from "@/fronted/components/ui/button";
-import {Label} from "@/fronted/components/ui/label";
-import {Input} from "@/fronted/components/ui/input";
-import {Checkbox} from "@/fronted/components/ui/checkbox";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {useShallow} from "zustand/react/shallow";
-import useSetting from "@/fronted/hooks/useSetting";
+import React, { useEffect, useRef, useState } from 'react';
+import { cn } from '@/common/utils/Util';
+import { Popover, PopoverContent, PopoverTrigger } from '@/fronted/components/ui/popover';
+import { Button } from '@/fronted/components/ui/button';
+import { Label } from '@/fronted/components/ui/label';
+import { Input } from '@/fronted/components/ui/input';
+import { Checkbox } from '@/fronted/components/ui/checkbox';
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { useShallow } from 'zustand/react/shallow';
+import useSetting from '@/fronted/hooks/useSetting';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 
 export interface VolumeSliderProps {
     speed: number;
@@ -15,7 +16,7 @@ export interface VolumeSliderProps {
     onSelectFinish?: () => void;
 }
 
-const SpeedSlider = ({speed, onSpeedChange, onSelectFinish}: VolumeSliderProps) => {
+const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps) => {
     const [open, setOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
@@ -25,7 +26,7 @@ const SpeedSlider = ({speed, onSpeedChange, onSelectFinish}: VolumeSliderProps) 
             }, 0);
         }
     }, [open]);
-    const {setting, setSetting} = useSetting(useShallow(s => ({
+    const { setting, setSetting } = useSetting(useShallow(s => ({
         setting: s.setting,
         setSetting: s.setSetting
     })));
@@ -48,22 +49,31 @@ const SpeedSlider = ({speed, onSpeedChange, onSelectFinish}: VolumeSliderProps) 
                 </div>
                 <div className={cn('h-full pl-2 border-l border-border')}
                 >
-                    <Checkbox
-                        checked={setting('userSelect.playbackRateStack').split(',').includes(num.toString())}
-                        onCheckedChange={(checked) => {
-                            let arr = setting('userSelect.playbackRateStack')
-                                .split(',')
-                                .map((v) => parseFloat(v))
-                                .filter((v) => !isNaN(v));
-                            if (checked) {
-                                arr.push(num);
-                            } else {
-                                arr = arr.filter((v) => v !== num);
-                            }
-                            setSetting('userSelect.playbackRateStack', arr.join(','));
-                        }}
-                        id={`speed-${num}`}
-                    />
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Checkbox
+                                    checked={setting('userSelect.playbackRateStack').split(',').includes(num.toString())}
+                                    onCheckedChange={(checked) => {
+                                        let arr = setting('userSelect.playbackRateStack')
+                                            .split(',')
+                                            .map((v) => parseFloat(v))
+                                            .filter((v) => !isNaN(v));
+                                        if (checked) {
+                                            arr.push(num);
+                                        } else {
+                                            arr = arr.filter((v) => v !== num);
+                                        }
+                                        setSetting('userSelect.playbackRateStack', arr.join(','));
+                                    }}
+                                    id={`speed-${num}`}
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                点击勾选几个常用的速度, 使用快捷键 {useSetting.getState().setting('shortcut.nextPlaybackRate')} 在这些速度中切换
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
 
             </>
@@ -76,13 +86,13 @@ const SpeedSlider = ({speed, onSpeedChange, onSelectFinish}: VolumeSliderProps) 
         >
             <PopoverTrigger asChild>
                 <Button
-                    role="combobox"
+                    role='combobox'
                     aria-expanded={open}
-                    size={"sm"} variant="outline"><span className={cn('w-12')}>{speed.toFixed(2)}x</span></Button>
+                    size={'sm'} variant='outline'><span className={cn('w-12')}>{speed.toFixed(2)}x</span></Button>
             </PopoverTrigger>
             <PopoverContent
                 side={'top'} align={'start'}
-                className="w-56 px-4 py-2">
+                className='w-56 px-4 py-2'>
 
                 <div
                     style={{
@@ -140,7 +150,7 @@ const SpeedSlider = ({speed, onSpeedChange, onSelectFinish}: VolumeSliderProps) 
 
             </PopoverContent>
         </Popover>
-    )
+    );
 };
 
 export default SpeedSlider;

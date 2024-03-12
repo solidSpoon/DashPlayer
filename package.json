@@ -55,6 +55,7 @@
     "@radix-ui/react-switch": "^1.0.3",
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-toggle": "^1.0.3",
+    "@radix-ui/react-tooltip": "^1.0.7",
     "@turf/turf": "^6.5.0",
     "@uidotdev/usehooks": "^2.4.1",
     "@vitejs/plugin-react": "^4.2.1",

@@ -27,49 +27,35 @@ const useSystem = create(
         setAppVersion: (appVersion: string) => set({ appVersion }),
         setIsMain: (isMain: boolean) => set({ isMain }),
         setWindowState: (windowsState: WindowState) =>
-            set({ windowState: windowsState }),
+            set({ windowState: windowsState })
     }))
 );
 
-export const syncStatus = (main: boolean) => {
-    if (main) {
-        api.onMainState((state) => {
-            useSystem.setState({
-                windowState: state,
-            });
-        });
-    } else {
-        api.onSettingState((state) => {
-            useSystem.setState({
-                windowState: state,
-            });
-        });
-    }
+export const syncStatus = () => {
 
-    useSystem.setState({
-        isMain: main,
+    api.onMainState((state) => {
+        useSystem.setState({
+            windowState: state
+        });
     });
+
 
     api.isWindows().then((isWindows) => {
         useSystem.setState({
-            isWindows,
+            isWindows
         });
     });
 
     api.appVersion().then((appVersion) => {
         useSystem.setState({
-            appVersion,
+            appVersion
         });
     });
 
     useSystem.subscribe(
         (s) => s.windowState,
         (state) => {
-            if (main) {
-                api.setMainState(state);
-            } else {
-                api.setSettingState(state);
-            }
+            api.setMainState(state);
         }
     );
     useSystem.subscribe(console.log);

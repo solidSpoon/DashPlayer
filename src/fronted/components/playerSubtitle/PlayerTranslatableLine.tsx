@@ -15,10 +15,10 @@ interface PlayerTranslatableSubtitleLineParam {
     clearAdjust: () => void;
 }
 
-const notWord = (str: string, key: string, showE: boolean): ReactElement => {
+const notWord = (str: string, key: string): ReactElement => {
     return (
         <div
-            className={`select-none ${showE ? '' : 'text-transparent'}`}
+            className={`select-none`}
             key={key}
         >
             {str}
@@ -48,7 +48,7 @@ const PlayerTranslatableLine = ({
         }
     };
 
-    return !p(text) ? (
+    return (!p(text) || !show) ? (
         <div />
     ) : (
         <div
@@ -101,14 +101,13 @@ const PlayerTranslatableLine = ({
                                             requestPop={() =>
                                                 handleRequestPop(partId)
                                             }
-                                            show={show || hovered}
+                                            show
                                         />
                                     );
                                 }
                                 return notWord(
                                     part.content,
-                                    partId,
-                                    show || hovered
+                                    partId
                                 );
                             })}
                         </div>
