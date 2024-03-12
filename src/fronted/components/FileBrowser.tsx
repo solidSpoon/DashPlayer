@@ -1,20 +1,20 @@
 import React from 'react';
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useProjectBrowser from '../hooks/useProjectBrowser';
 import FileItem from './fileBowser/FileItem';
-import {cn} from '@/common/utils/Util';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import { cn } from '@/common/utils/Util';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbList, BreadcrumbSeparator
-} from "@/fronted/components/ui/breadcrumb";
-import FileSelector2 from "@/fronted/components/fileBowser/FileSelector2";
+} from '@/fronted/components/ui/breadcrumb';
+import FileSelector2 from '@/fronted/components/fileBowser/FileSelector2';
 
 const FileBrowser = () => {
     const navigate = useNavigate();
-    const {list, refresh, loading, path, routeTo} = useProjectBrowser(
+    const { list, refresh, loading, path, routeTo } = useProjectBrowser(
         'route',
         (videoId) => navigate(`/player/${videoId}`)
     );
@@ -24,11 +24,11 @@ const FileBrowser = () => {
             onClick={(e) => {
                 e.stopPropagation();
             }}
-            className={cn("h-full w-full flex flex-col")}
+            className={cn('h-full w-full flex flex-col')}
         >
             <CardHeader>
-                <CardTitle>Create project</CardTitle>
-                <CardDescription>Deploy your new project in one-click.</CardDescription>
+                <CardTitle>Video Explorer</CardTitle>
+                <CardDescription>Browse and play your favorite videos</CardDescription>
             </CardHeader>
             <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-2')}>
                 <div
@@ -47,11 +47,13 @@ const FileBrowser = () => {
                     <BreadcrumbList>
                         <BreadcrumbItem>
                             <BreadcrumbLink
-                                onClick={() => {routeTo(null);}}
+                                onClick={() => {
+                                    routeTo(null);
+                                }}
                             >Recent</BreadcrumbLink>
                             {path && <>
-                            <BreadcrumbSeparator/>
-                            <BreadcrumbLink>{path}</BreadcrumbLink>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbLink>{path}</BreadcrumbLink>
                             </>}
                         </BreadcrumbItem>
                     </BreadcrumbList>

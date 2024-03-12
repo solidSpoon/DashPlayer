@@ -99,8 +99,8 @@ const ControlBox = () => {
         <Card
             className={cn('w-full h-full flex flex-col')}
         ><CardHeader>
-            <CardTitle>Control Center</CardTitle>
-            <CardDescription>Control the subtitle and video</CardDescription>
+            <CardTitle>Player Controls</CardTitle>
+            <CardDescription>Manage player settings and behavior</CardDescription>
         </CardHeader>
             <CardContent
                 className={cn('grid place-content-start overflow-y-auto gap-y-4 w-full h-0 flex-1 pt-1',

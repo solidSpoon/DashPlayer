@@ -1,11 +1,11 @@
 import React from 'react';
-import {useNavigate} from 'react-router-dom';
-import {pathToFile} from '../../../common/utils/FileParser';
+import { useNavigate } from 'react-router-dom';
+import { pathToFile } from '@/common/utils/FileParser';
 import useFile from '../../hooks/useFile';
-import {cn} from '../../../common/utils/Util';
+import { cn } from '@/common/utils/Util';
 import usePlayerController from '../../hooks/usePlayerController';
-import FileItem from './FileItem';
-import {Button} from "@/fronted/components/ui/button";
+import { Button } from '@/fronted/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 
 export interface OpenFileProps {
     directory?: boolean;
@@ -18,7 +18,7 @@ const api = window.electron;
 export default function FileSelector2({
                                           directory,
                                           className,
-                                          onSelected,
+                                          onSelected
                                       }: OpenFileProps) {
     const updateFile = useFile((s) => s.updateFile);
     const changePopType = usePlayerController((s) => s.changePopType);
@@ -54,18 +54,37 @@ export default function FileSelector2({
     return (
         <>
             {directory && (
-                <Button
-                    onClick={() => handleClick()}
-                    variant={"outline"}
-                    className={cn('w-28')}
-                >Open Folder</Button>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                onClick={() => handleClick()}
+                                variant={'outline'}
+                                className={cn('w-28')}
+                            >Open Folder</Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            文件夹内的视频和对应的字幕文件名称最好保持一致
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
             )}
             {!directory && (
-                <Button
-                    onClick={() => handleClick()}
-                    variant={"outline"}
-                    className={cn('w-28')}
-                >Open File</Button>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                onClick={() => handleClick()}
+                                variant={'outline'}
+                                className={cn('w-28')}
+                            >Open File</Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            可以同时选择一个视频文件及其对应的字幕文件
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             )}
         </>
     );
@@ -76,5 +95,5 @@ FileSelector2.defaultProps = {
     className: '',
     onSelected: () => {
         //
-    },
+    }
 };
