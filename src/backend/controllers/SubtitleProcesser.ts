@@ -142,3 +142,9 @@ const processSentences = (sentences: string[]): SentenceStruct[] => {
     return sentences.map(processSentence);
 };
 export default processSentences;
+
+export {
+    processSentence,
+    processSentences,
+};
+
