@@ -28,13 +28,14 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         return turf.polygon([[]]);
     }
     const rect = ele.getBoundingClientRect();
+    let number = 2;
     return turf.polygon([
         [
-            [rect.left, rect.top],
-            [rect.right, rect.top],
-            [rect.right, rect.bottom],
-            [rect.left, rect.bottom],
-            [rect.left, rect.top],
+            [rect.left - number, rect.top - number],
+            [rect.right + number, rect.top - number],
+            [rect.right + number, rect.bottom + number],
+            [rect.left - number, rect.bottom + number],
+            [rect.left - number, rect.top - number],
         ],
     ]);
 };
