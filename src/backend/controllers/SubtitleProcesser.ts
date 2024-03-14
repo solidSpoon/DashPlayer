@@ -36,6 +36,7 @@ function tokenizeAndProcess(text: string): TokenRes[] {
             };
         });
     const res: TokenRes[] = [];
+    console.log(JSON.stringify(temp, null, 2));
     for (const item of temp) {
         if (item.pos.length > 0) {
             res.push(item);
@@ -54,7 +55,7 @@ function tokenizeAndProcess(text: string): TokenRes[] {
         last.word = strings[0];
         last.pos.length = last.word.length;
         item.word = strings[1] + item.word;
-        item.pos.start -= strings[0].length;
+        item.pos.start -= strings[1].length;
         item.pos.length += strings[1].length;
         res.push(last);
         res.push(item);
