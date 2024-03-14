@@ -13,6 +13,7 @@ const api = window.electron;
 
 export interface WordParam {
     word: string;
+    original: string;
     pop: boolean;
     requestPop: () => void;
     show: boolean;
@@ -39,7 +40,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word, pop, requestPop, show, alwaysDark}: WordParam) => {
+const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => {
     const [translationText, setTranslationText] = useState<YdRes | undefined>(
         undefined
     );
@@ -101,12 +102,12 @@ const Word = ({word, pop, requestPop, show, alwaysDark}: WordParam) => {
             }
         };
         if (hovered) {
-            transFun(word);
+            transFun(original);
         }
         return () => {
             cancel = true;
         };
-    }, [hovered, word]);
+    }, [hovered, original]);
 
     const handleWordClick = async () => {
         let url = '';

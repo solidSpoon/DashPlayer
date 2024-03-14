@@ -103,6 +103,7 @@ const TranslatableLine = ({
                                         <Word
                                             key={partId}
                                             word={part.content}
+                                            original={part.implicit}
                                             pop={popELe === partId}
                                             requestPop={() =>
                                                 handleRequestPop(partId)
