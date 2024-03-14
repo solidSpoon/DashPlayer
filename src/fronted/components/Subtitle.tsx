@@ -47,24 +47,22 @@ export default function Subtitle() {
 
     useEffect(() => {
         const handleWheel = (e: { preventDefault: () => void }) => {
-            e.preventDefault();
-            console.log('wheel');
+            if (useSubtitleScroll.getState().scrollState === 'AUTO_SCROLLING') {
+                e.preventDefault();
+            }
         };
-
         const listRefCurrent = scrollerRef.current; // listRef 是你的 ref
-
-        if (listRefCurrent && scrollState === 'AUTO_SCROLLING') {
+        if (listRefCurrent) {
             listRefCurrent.addEventListener('wheel', handleWheel, {
                 passive: false,
             });
         }
-
         return () => {
             if (listRefCurrent) {
                 listRefCurrent.removeEventListener('wheel', handleWheel);
             }
         };
-    }, [scrollState]);
+    }, []);
     const render = () => {
         return (
             <div className="w-full h-full relative" ref={setBoundaryRef}>

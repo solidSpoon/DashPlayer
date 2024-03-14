@@ -222,6 +222,7 @@ const useSubtitleScroll = create(
                 set({ scrollState: 'PAUSE_MEASUREMENT' });
                 setTimeout(() => {
                     set({ scrollState });
+                    useSubtitleScroll.getState().onScrolling();
                 }, 500);
             },
             delaySetNormal,
