@@ -19,14 +19,6 @@ const getShortcut = (key: SettingKey) => {
 };
 
 const ControlBox = () => {
-    const w = cpW.bind(
-        null,
-        useLayout((s) => s.width)
-    );
-    const h = cpH.bind(
-        null,
-        useLayout((s) => s.height)
-    );
     const {
         showEn,
         showCn,
@@ -62,7 +54,8 @@ const ControlBox = () => {
         podcstMode: s.podcastMode,
         setPodcastMode: s.setPodcastMode
     })));
-
+    // const fullScreen = useLayout(s => s.fullScreen);
+    const changeFullScreen = useLayout(s => s.changeFullScreen);
 
     const controlItem = ({
                              checked, onCheckedChange, id, label, tooltip
@@ -158,6 +151,7 @@ const ControlBox = () => {
                     checked: podcstMode,
                     onCheckedChange: () => {
                         setPodcastMode(!podcstMode);
+                        changeFullScreen(false);
                     },
                     id: 'podcstMode',
                     label: '播客模式',

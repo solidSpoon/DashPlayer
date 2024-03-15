@@ -16,7 +16,7 @@ export interface PlayerControlPannelProps {
 }
 
 const ViewerControlPannel = ({
-                                 className,
+                                 className
                              }: PlayerControlPannelProps) => {
     const {
         playTime,
@@ -59,15 +59,14 @@ const ViewerControlPannel = ({
         }
         setCurrentValue(playTime);
     }, [playTime, duration, selecting]);
-    const fullScreen = useLayout(s => s.fullScreen);
-    const changeFullScreen = useLayout(s => s.changeFullScreen);
 
 
     return (
-        <div className={cn(' h-16 flex w-full flex-col justify-end', className)}>
+        <div className={cn(' h-32 flex w-full flex-col justify-end', className)}>
+
             <Card
-                className={cn('w-full p-2 backdrop-blur bg-background/50 rounded-none border-0 border-t',
-                    !mouseOver && 'bg-transparent border-none backdrop-blur-0'
+                className={cn('w-full p-4 pt-6 backdrop-blur bg-background/50 rounded-none border-0 border-t shadow-2xl',
+                    !mouseOver && 'bg-transparent border-none backdrop-blur-0 shadow-none'
                 )}
                 onMouseOver={(e) => {
                     setMouseOver(true);
@@ -78,37 +77,13 @@ const ViewerControlPannel = ({
             >
                 <div
                     className={cn(
-                        'flex items-center w-full gap-4',
+                        'flex flex-col items-center justify-between w-full gap-4',
                         !mouseOver && 'invisible'
                     )}
                 >
 
-
-                    <div className='flex gap-4'>
-                        <div
-                            onClick={() => {
-                                if (playing) {
-                                    onPause?.();
-                                } else {
-                                    onPlay?.();
-                                }
-                            }}
-                            className='flex justify-center items-center rounded-lg'
-                        >
-                            {playing ? (
-                                <FaPause className='w-6 h-6 fill-foreground' />
-                            ) : (
-                                <FaPlay className='w-6 h-6  fill-foreground' />
-                            )}
-                        </div>
-                        <div className=' h-full flex items-center w-40'>
-                            {`${secondToDate(
-                                currentValue
-                            )} / ${secondToDate(duration)}`}
-                        </div>
-                    </div>
                     <Slider
-                        className='flex-1'
+                        className=""
                         max={duration}
                         min={0}
                         value={[currentValue]}
@@ -120,27 +95,48 @@ const ViewerControlPannel = ({
                         }}
                         onValueCommit={(value) => {
                             currentValueUpdateTime.current = Date.now();
-                            onTimeChange?.({
-                                time:value[0]
-                            });
+                            onTimeChange?.({time: value[0]});
                             setSelecting(false);
                         }}
                     />
-                    <div className='flex justify-center items-end gap-4'>
-                        <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
-                        <SpeedSlider
-                            speed={playbackRate}
-                            onSpeedChange={setPlaybackRate}
-                            onSelectFinish={() => {
-                                setMouseOver(false);
-                            }}
-                        />
-                        <VolumeSlider
-                            muted={muted}
-                            onMutedChange={setMuted}
-                            volume={volume}
-                            onVolumeChange={setVolume}
-                        />
+                    <div className="w-full flex justify-between items-center">
+                        <div className="flex gap-4">
+                            <div
+                                onClick={() => {
+                                    if (playing) {
+                                        onPause?.();
+                                    } else {
+                                        onPlay?.();
+                                    }
+                                }}
+                                className="flex justify-center items-center rounded-lg"
+                            >
+                                {playing ? (
+                                    <FaPause className="w-6 h-6 fill-foreground" />
+                                ) : (
+                                    <FaPlay className="w-6 h-6  fill-foreground" />
+                                )}
+                            </div>
+                            <div className=" h-full flex items-center">
+                                {`${secondToDate(
+                                    currentValue
+                                )} / ${secondToDate(duration)}`}
+                            </div>
+                        </div>
+                        <div className="h-full flex-1" />
+                        <div className="flex justify-center items-end gap-4">
+                            {/* <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} /> */}
+                            <SpeedSlider
+                                speed={playbackRate}
+                                onSpeedChange={setPlaybackRate}
+                            />
+                            <VolumeSlider
+                                muted={muted}
+                                onMutedChange={setMuted}
+                                volume={volume}
+                                onVolumeChange={setVolume}
+                            />
+                        </div>
                     </div>
 
                 </div>

@@ -8,6 +8,7 @@ import {cn, p} from "@/common/utils/Util";
 import hash from "@/common/utils/hash";
 import {FONT_SIZE} from "@/fronted/styles/style";
 import Word from "@/fronted/components/Word";
+import { useShallow } from 'zustand/react/shallow';
 
 interface TranslatableSubtitleLineParam {
     text: string;
@@ -49,7 +50,6 @@ const ViewerTranslableLine = ({
         <div
             className={cn(
                 'flex justify-between items-start w-full',
-                'text-stone-700 dark:text-neutral-100',
                 'shadow-stone-100 dark:shadow-neutral-600',
                 className
             )}
@@ -85,6 +85,7 @@ const ViewerTranslableLine = ({
                                 if (part.isWord) {
                                     return (
                                         <Word
+                                            original={part.implicit}
                                             key={partId}
                                             word={part.content}
                                             pop={popELe === partId}
