@@ -54,6 +54,8 @@ export default function Player({className}:{className?: string}): ReactElement {
 
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
+    const podcastMode = useLayout((s) => s.podcastMode);
+
     if (lastSeekTime.current !== seekTime) {
         lastSeekTime.current = seekTime;
         if (playerRef.current !== null) {
@@ -62,6 +64,9 @@ export default function Player({className}:{className?: string}): ReactElement {
     }
 
     useEffect(() => {
+        if (podcastMode) {
+            return ;
+        }
         let animationFrameId: number | undefined;
         let lastDrawTime = Date.now(); // 用来限制绘制的帧率
         const fps = 25; // 把这个调整成需要的帧率
@@ -135,7 +140,7 @@ export default function Player({className}:{className?: string}): ReactElement {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [videoLoaded, playerRef, playerRefBackground]);
+    }, [videoLoaded, playerRef, playerRefBackground,podcastMode]);
 
     const jumpToHistoryProgress = async (file: FileT) => {
         if (file === lastFile) {

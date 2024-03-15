@@ -27,8 +27,6 @@ const ControlBox = () => {
         null,
         useLayout((s) => s.height)
     );
-    // const fullScreen = useLayout((s) => s.fullScreen);
-    // const changeFullScreen = useLayout((s) => s.changeFullScreen);
     const {
         showEn,
         showCn,
@@ -46,7 +44,6 @@ const ControlBox = () => {
             changeShowWordLevel: s.changeShowWordLevel,
             singleRepeat: s.singleRepeat,
             changeSingleRepeat: s.changeSingleRepeat,
-            changePopType: s.changePopType
         }))
     );
     const setSetting = useSetting((s) => s.setSetting);
@@ -54,12 +51,16 @@ const ControlBox = () => {
 
 
     const [clearAllAdjust, setClearAllAdjust] = useState(false);
-    let {
+    const {
         setWindowState,
         windowState
     } = useSystem(useShallow(s => ({
         setWindowState: s.setWindowState,
         windowState: s.windowState
+    })));
+    const {podcstMode, setPodcastMode} = useLayout(useShallow(s => ({
+        podcstMode: s.podcastMode,
+        setPodcastMode: s.setPodcastMode
     })));
 
 
@@ -152,6 +153,15 @@ const ControlBox = () => {
                     id: 'fullScreen',
                     label: '全屏模式',
                     tooltip: '点击进入/退出全屏'
+                })}
+                {controlItem({
+                    checked: podcstMode,
+                    onCheckedChange: () => {
+                        setPodcastMode(!podcstMode);
+                    },
+                    id: 'podcstMode',
+                    label: '播客模式',
+                    tooltip: '播放音频文件时请启用播客模式'
                 })}
                 <TooltipProvider>
                     <Tooltip>

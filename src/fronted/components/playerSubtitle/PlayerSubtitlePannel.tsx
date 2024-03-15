@@ -8,16 +8,10 @@ import {useShallow} from "zustand/react/shallow";
 const PlayerSubtitlePannel = () => {
     const {
         playing,
-        muted,
-        volume,
         play,
         pause,
-        seekTime,
-        updateExactPlayTime,
-        setDuration,
-        seekTo,
-        changePopType,
-        playbackRate,
+        seekTo
+
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -29,7 +23,6 @@ const PlayerSubtitlePannel = () => {
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
-            changePopType: state.changePopType,
             playbackRate: state.playbackRate,
         }))
     );

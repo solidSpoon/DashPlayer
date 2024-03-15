@@ -15,7 +15,7 @@ import SideBar from '@/fronted/components/SideBar';
 import {darkColor, lightColor} from "@/fronted/styles/style";
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/fronted/components/ui/resizable";
 import {useLocalStorage} from "@uidotdev/usehooks";
-import SubtitleViewer from "@/fronted/components/subtitle-viewer";
+import SubtitleViewer from "@/fronted/components/subtitle-viewer/subtitle-viewer";
 
 const api = window.electron;
 
@@ -68,6 +68,7 @@ const PlayerP = () => {
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
+    const podcastMode = useLayout(s => s.podcastMode);
     useLayoutEffect(() => {
         const updatePos = () => {
             if (posRef.current === null) {
@@ -234,12 +235,12 @@ const PlayerP = () => {
                                         <div
                                             className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
                                             <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}/>
-                                            <SubtitleViewer
-                                                className={cn('row-start-1 row-end-2 col-start-1 col-end-2 bg-yellow-500 z-0')}
-                                            />
+                                            {podcastMode && <SubtitleViewer
+                                                className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
+                                            />}
                                         </div>
                                     </ResizablePanel>
-                                    {!fullScreen && (
+                                    {(!fullScreen && !podcastMode) && (
                                         <>
                                             <ResizableHandle withHandle
                                                              className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')}/>

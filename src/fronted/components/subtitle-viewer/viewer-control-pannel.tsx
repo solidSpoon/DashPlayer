@@ -12,18 +12,11 @@ import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButt
 
 export interface PlayerControlPannelProps {
     className?: string;
-    onPause?: () => void;
-    onPlay?: () => void;
-    playing?: boolean;
-    onTimeChange?: (time: number) => void;
+
 }
 
-const PlayerControlPannel = ({
+const ViewerControlPannel = ({
                                  className,
-                                 onTimeChange,
-                                 onPause,
-                                 onPlay,
-                                 playing
                              }: PlayerControlPannelProps) => {
     const {
         playTime,
@@ -33,7 +26,11 @@ const PlayerControlPannel = ({
         playbackRate,
         setPlaybackRate,
         muted,
-        setMuted
+        setMuted,
+        onPlay,
+        onPause,
+        playing,
+        onTimeChange
     } = usePlayerController(
         useShallow((s) => ({
             playTime: s.playTime,
@@ -43,7 +40,11 @@ const PlayerControlPannel = ({
             playbackRate: s.playbackRate,
             setPlaybackRate: s.setPlaybackRate,
             setMuted: s.setMuted,
-            muted: s.muted
+            muted: s.muted,
+            onPlay: s.play,
+            onPause: s.pause,
+            playing: s.playing,
+            onTimeChange: s.seekTo
         }))
     );
     const [mouseOver, setMouseOver] = useState<boolean>(false);
@@ -63,7 +64,7 @@ const PlayerControlPannel = ({
 
 
     return (
-        <div className=' h-16 flex w-full flex-col justify-end'>
+        <div className={cn(' h-16 flex w-full flex-col justify-end', className)}>
             <Card
                 className={cn('w-full p-2 backdrop-blur bg-background/50 rounded-none border-0 border-t',
                     !mouseOver && 'bg-transparent border-none backdrop-blur-0'
@@ -119,7 +120,9 @@ const PlayerControlPannel = ({
                         }}
                         onValueCommit={(value) => {
                             currentValueUpdateTime.current = Date.now();
-                            onTimeChange?.(value[0]);
+                            onTimeChange?.({
+                                time:value[0]
+                            });
                             setSelecting(false);
                         }}
                     />
@@ -146,7 +149,7 @@ const PlayerControlPannel = ({
 
     );
 };
-PlayerControlPannel.defaultProps = {
+ViewerControlPannel.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
@@ -160,4 +163,4 @@ PlayerControlPannel.defaultProps = {
     playing: false
 };
 
-export default PlayerControlPannel;
+export default ViewerControlPannel;

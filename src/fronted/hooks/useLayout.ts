@@ -10,11 +10,13 @@ export type UseLayoutState = {
     width: ScreenSize;
     height: ScreenSize;
     fullScreen: boolean;
+    podcastMode: boolean;
 };
 
 export type UseLayoutActions = {
     changeSideBar: (show: boolean) => void;
     changeFullScreen: (full: boolean) => void;
+    setPodcastMode: (mode: boolean) => void;
 };
 
 const useLayout = create<UseLayoutState & UseLayoutActions>()(
@@ -29,6 +31,10 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         },
         changeFullScreen: (full: boolean) => {
             set({ fullScreen: full });
+        },
+        podcastMode: false,
+        setPodcastMode: (mode: boolean) => {
+            set({ podcastMode: mode });
         },
     }))
 );
