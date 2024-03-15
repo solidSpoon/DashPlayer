@@ -9,10 +9,11 @@ import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
 import PlayerSubtitlePannel from "@/fronted/components/playerSubtitle/PlayerSubtitlePannel";
 import useLayout from "@/fronted/hooks/useLayout";
 import PlaySpeedToaster from "@/fronted/components/PlaySpeedToaster";
+import {cn} from "@/fronted/lib/utils";
 
 const api = window.electron;
 
-export default function Player(): ReactElement {
+export default function Player({className}:{className?: string}): ReactElement {
     const {
         playing,
         muted,
@@ -23,7 +24,6 @@ export default function Player(): ReactElement {
         updateExactPlayTime,
         setDuration,
         seekTo,
-        changePopType,
         playbackRate,
     } = usePlayerController(
         useShallow((state) => ({
@@ -36,7 +36,6 @@ export default function Player(): ReactElement {
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
-            changePopType: state.changePopType,
             playbackRate: state.playbackRate,
         }))
     );
@@ -161,13 +160,12 @@ export default function Player(): ReactElement {
         }
         return (
             <div
-                className="w-full h-full overflow-hidden"
-                onDoubleClick={() => changePopType('control')}
+                className={cn("w-full h-full overflow-hidden", className)}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
                 <div className="w-full h-full relative overflow-hidden">
                     <canvas
-                        className="absolute top-0 left-0 w-full h-full -z-0"
+                        className="w-full h-full"
                         ref={playerRefBackground}
                         style={{
                             filter: 'blur(100px)',
@@ -179,7 +177,7 @@ export default function Player(): ReactElement {
                     <ReactPlayer
                         playbackRate={playbackRate}
                         muted={muted}
-                        className="w-full h-full absolute top-0 left-0 z-0"
+                        className="w-full h-full absolute top-0 left-0"
                         id="react-player-id"
                         ref={playerRef}
                         url={videoFile.objectUrl ? videoFile.objectUrl : ''}
@@ -241,4 +239,9 @@ export default function Player(): ReactElement {
     };
 
     return render();
+}
+
+
+Player.defaultProps = {
+    className: '',
 }

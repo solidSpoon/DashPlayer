@@ -15,6 +15,7 @@ import SideBar from '@/fronted/components/SideBar';
 import {darkColor, lightColor} from "@/fronted/styles/style";
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/fronted/components/ui/resizable";
 import {useLocalStorage} from "@uidotdev/usehooks";
+import SubtitleViewer from "@/fronted/components/subtitle-viewer";
 
 const api = window.electron;
 
@@ -229,7 +230,15 @@ const PlayerP = () => {
                                             }
                                             setSizeIa(e);
                                         }}
-                                    ><Player/></ResizablePanel>
+                                    >
+                                        <div
+                                            className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
+                                            <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}/>
+                                            <SubtitleViewer
+                                                className={cn('row-start-1 row-end-2 col-start-1 col-end-2 bg-yellow-500 z-0')}
+                                            />
+                                        </div>
+                                    </ResizablePanel>
                                     {!fullScreen && (
                                         <>
                                             <ResizableHandle withHandle
