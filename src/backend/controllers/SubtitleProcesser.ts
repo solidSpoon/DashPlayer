@@ -114,7 +114,7 @@ const processSentence = (sentence: string): SentenceStruct => {
             } else {
                 blockParts.push({
                     content: pw,
-                    implicit: '',
+                    implicit: token.implicit,
                     isWord: false,
                 });
             }
