@@ -1,7 +1,7 @@
 import {app, BrowserWindow, protocol} from 'electron';
 import path from 'path';
-import registerHandler from "@/backend/dispatcher";
-import runMigrate from "@/backend/db/migrate";
+// import registerHandler from "@/backend/dispatcher";
+// import runMigrate from "@/backend/db/migrate";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -36,7 +36,7 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-  await runMigrate();
+  // await runMigrate();
   createWindow();
   protocol.registerFileProtocol('dp', (request, callback) => {
     const url: string = request.url.replace('dp:///', '');
@@ -57,7 +57,7 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-registerHandler(mainWindowRef);
+// registerHandler(mainWindowRef);
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
