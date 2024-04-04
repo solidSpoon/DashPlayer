@@ -18,9 +18,7 @@ export default defineConfig((env) => {
             // https://github.com/electron/forge/issues/3398
             sourcemap: true,
             rollupOptions: {
-                external: [
-                    'better-sqlite3',
-                ]
+                external,
             },
         },
         plugins: [pluginHotRestart('restart')],
