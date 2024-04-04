@@ -208,7 +208,7 @@ export default class WatchProjectService {
             : await selectFiles();
         if (!select || typeof select === 'string') {
             console.log('selectFiles', select);
-            return select as WatchProjectVO;
+            return select as string;
         }
         console.log('selectFiles', select);
         const watchProject = await this.detail(select.project_key ?? '');
