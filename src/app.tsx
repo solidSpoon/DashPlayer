@@ -19,6 +19,7 @@ import { Toaster } from "@/fronted/components/ui/sonner";
 import {Toaster as HotToaster} from "react-hot-toast";
 
 import {syncStatus} from "@/fronted/hooks/useSystem";
+import Transcript from '@/fronted/pages/Transcript';
 
 const App = () => {
 
@@ -44,10 +45,10 @@ const App = () => {
                                     element={<PlayerP />}
                                 />
                                 <Route path='*' element={<Layout />}>
-                                    {/*<Route*/}
-                                    {/*    path='word-management'*/}
-                                    {/*    element={<WordManagement />}*/}
-                                    {/*/>*/}
+                                    <Route
+                                       path='transcript'
+                                       element={<Transcript />}
+                                    />
                                     <Route path='about' element={<About />} />
                                     <Route
                                         path='settings'

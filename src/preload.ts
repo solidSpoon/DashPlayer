@@ -1,20 +1,20 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import {WatchProjectVideo} from "@/backend/db/tables/watchProjectVideos";
+import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 // import {Pagination} from "@/backend/services/WordViewService";
 // import {WordView} from "@/backend/db/tables/wordView";
 // import {WordLevelRes} from "@/common/types/WordLevelRes";
-import {WatchProjectVO} from "@/backend/services/WatchProjectService";
-import {SentenceStruct} from "./common/types/SentenceStruct";
-import {SettingKey} from "./common/types/store_schema";
-import {WindowState} from "./common/types/Types";
-import {YdRes} from "./common/types/YdRes";
-import Release from "@/common/types/release";
+import { WatchProjectVO } from '@/backend/services/WatchProjectService';
+import { SentenceStruct } from './common/types/SentenceStruct';
+import { SettingKey } from './common/types/store_schema';
+import { WindowState } from './common/types/Types';
+import { YdRes } from './common/types/YdRes';
+import Release from '@/common/types/release';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
-} from "@/backend/db/tables/subtitleTimestampAdjustment";
+} from '@/backend/db/tables/subtitleTimestampAdjustment';
 
 export type Channels =
     | 'main-state'
@@ -57,7 +57,8 @@ export type Channels =
     | 'subtitle-timestamp-delete-key'
     | 'subtitle-timestamp-delete-path'
     | 'subtitle-timestamp-get-key'
-    | 'subtitle-timestamp-get-path';
+    | 'subtitle-timestamp-get-path'
+    | 'transcript';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -101,7 +102,7 @@ const electronHandler = {
             subtitlePath
         )) as SubtitleTimestampAdjustment[];
     },
-    storeSet: async (key: SettingKey, value: string|null|undefined) => {
+    storeSet: async (key: SettingKey, value: string | null | undefined) => {
         await invoke('store-set', key, value);
     },
     storeGet: async (key: SettingKey) => {
@@ -233,6 +234,9 @@ const electronHandler = {
             'process-sentences',
             sentences
         )) as SentenceStruct[];
+    },
+    transcript: async (filePaths: string[]) => {
+        await invoke('transcript', filePaths);
     },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');

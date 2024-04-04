@@ -10,6 +10,7 @@ import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
 import useSetting from "@/fronted/hooks/useSetting";
+import Transcript from '@/fronted/pages/Transcript';
 
 export interface SideBarProps {
     compact?: boolean;
@@ -71,12 +72,12 @@ const SideBar = ({ compact }: SideBarProps) => {
                     'player',
                     <HiOutlineVideoCamera />
                 )}
-                {/*{item(*/}
-                {/*    'Word Management',*/}
-                {/*    '/word-management',*/}
-                {/*    'word-management',*/}
-                {/*    <HiOutlineAcademicCap />*/}
-                {/*)}*/}
+                {item(
+                   'Transcript',
+                   '/transcript',
+                   'transcript',
+                   <HiOutlineVideoCamera />
+                )}
                 {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
                 {item('About', '/about', 'about', <HiOutlineUser />)}
             </div>

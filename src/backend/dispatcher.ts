@@ -3,30 +3,31 @@ import log from 'electron-log';
 import axios from 'axios';
 import {
     queryVideoProgress, recentWatch, reloadRecentFromDisk,
-    updateVideoProgress,
+    updateVideoProgress
 } from './controllers/ProgressController';
 import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
 import {
     clearCache,
     openDataDir,
-    queryCacheSize,
+    queryCacheSize
 } from './controllers/StorageController';
 import { appVersion, checkUpdate } from './controllers/CheckUpdate';
 import { WindowState } from '@/common/types/Types';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { SettingKey } from '@/common/types/store_schema';
-import {storeGet, storeSet} from './store';
-import {Channels} from "@/preload";
-import SubtitleTimestampAdjustmentController from "@/backend/controllers/SubtitleTimestampAdjustmentController";
+import { storeGet, storeSet } from './store';
+import { Channels } from '@/preload';
+import SubtitleTimestampAdjustmentController from '@/backend/controllers/SubtitleTimestampAdjustmentController';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
-} from "@/backend/db/tables/subtitleTimestampAdjustment";
-import WatchProjectService from "@/backend/services/WatchProjectService";
-import {readFromClipboard, writeToClipboard} from "@/backend/controllers/ClopboardController";
-import processSentences from "@/backend/controllers/SubtitleProcesser";
-import fs from "fs";
+} from '@/backend/db/tables/subtitleTimestampAdjustment';
+import WatchProjectService from '@/backend/services/WatchProjectService';
+import { readFromClipboard, writeToClipboard } from '@/backend/controllers/ClopboardController';
+import processSentences from '@/backend/controllers/SubtitleProcesser';
+import fs from 'fs';
+import WhisperController from '@/backend/controllers/WhisperController';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
@@ -249,6 +250,11 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
     });
     handle('subtitle-timestamp-get-key', async (key: string) => {
         return SubtitleTimestampAdjustmentController.getByKey(key);
+    });
+    handle('transcript', async (filePaths: string[]) => {
+        console.log('transcript', filePaths);
+        await WhisperController.transcript(filePaths);
+        return;
     });
 
     handle(
