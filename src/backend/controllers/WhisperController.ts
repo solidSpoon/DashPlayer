@@ -1,19 +1,17 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import SubtitleTimestampAdjustmentService from '../services/SubtitleTimestampAdjustmentService';
-import {
-    InsertSubtitleTimestampAdjustment,
-    SubtitleTimestampAdjustment,
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
 import WhisperService from '@/backend/services/WhisperService';
-// import WhisperService from '@/backend/services/WhisperService';
+import DpTaskService from '@/backend/services/DpTaskService';
 
 /**
  * AI 翻译
  * @param str
  */
 export default class WhisperController {
-    public static async transcript(filePaths: string[]) {
-        const string = filePaths[0];
-        return WhisperService.transcript(string);
+    public static async transcript(filePath: string) {
+        const taskId = await DpTaskService.create();
+        console.log('taskId', taskId);
+        WhisperService.transcript(taskId, filePath).then(r => {
+            console.log(r);
+        });
+        return taskId;
     }
 }

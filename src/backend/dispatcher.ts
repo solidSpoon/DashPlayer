@@ -28,6 +28,7 @@ import { readFromClipboard, writeToClipboard } from '@/backend/controllers/Clopb
 import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
 import WhisperController from '@/backend/controllers/WhisperController';
+import DpTaskController from '@/backend/controllers/DpTaskController';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
@@ -107,7 +108,14 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
     //     log.info('mark-word-level');
     //     return markWordLevel(word, familiar);
     // });
-
+    handle('dp-task-detail', async (id: number) => {
+        log.info('dp-task-detail');
+        return DpTaskController.detail(id);
+    });
+    handle('dp-task-cancel', async (id: number) => {
+        log.info('dp-task-cancel');
+        await DpTaskController.cancel(id);
+    });
     handle('you-dao-translate', async (word) => {
         log.info('you-dao-translate');
         return youDaoTrans(word);
@@ -251,10 +259,9 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
     handle('subtitle-timestamp-get-key', async (key: string) => {
         return SubtitleTimestampAdjustmentController.getByKey(key);
     });
-    handle('transcript', async (filePaths: string[]) => {
-        console.log('transcript', filePaths);
-        await WhisperController.transcript(filePaths);
-        return;
+    handle('transcript', async (filePath: string) => {
+        console.log('transcript', filePath);
+        return await WhisperController.transcript(filePath);
     });
 
     handle(

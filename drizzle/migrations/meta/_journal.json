@@ -8,6 +8,13 @@
       "when": 1708658238024,
       "tag": "0000_nostalgic_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1712286295825,
+      "tag": "0001_chubby_wong",
+      "breakpoints": true
     }
   ]
 }

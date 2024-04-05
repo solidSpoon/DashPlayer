@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/common/utils/Util';
+import { cn, sleep } from '@/common/utils/Util';
 import Separator from '@/fronted/components/Separtor';
 import {
     Table,
@@ -13,11 +13,18 @@ import {
 import { Button } from '@/fronted/components/ui/button';
 import FileT, { FileType } from '@/common/types/FileT';
 import { WatchProjectVO } from '@/backend/services/WatchProjectService';
+import TranscriptItem from '@/fronted/components/TranscriptItem';
+import { useLocalStorage } from '@uidotdev/usehooks';
+
+interface TranscriptTask {
+    file: FileT;
+    taskId: number | null;
+}
 
 const api = window.electron;
 const Transcript = () => {
 
-    const [files, setFiles] = React.useState<FileT[]>([]);
+    const [files, setFiles] = useLocalStorage<TranscriptTask[]>('transcriptFiles', []);
     const onSelectedFile = async () => {
         const res = await api.selectFile(false);
         console.log('file', res);
@@ -27,23 +34,42 @@ const Transcript = () => {
         }
         const f = res as WatchProjectVO;
         const videos = f.videos.map((v) => ({
-            fileName: v.video_name,
-            objectUrl: '',
-            fileType: FileType.VIDEO,
-            path: v.video_path
-        } as FileT));
-        const fileTS = [...files, ...videos].filter((f, index, self) => {
-            return index === self.findIndex((t) => (
-                t.path === f.path
-            ));
-        });
-        setFiles(fileTS);
+            file: {
+                fileName: v.video_name,
+                objectUrl: '',
+                fileType: FileType.VIDEO,
+                path: v.video_path
+            },
+            taskId: null
+        } as TranscriptTask));
+        // 按照 path 合并，注意保留 taskId
+        const currentFiles = files.map((f) => f.file.path);
+        const newFiles = videos.filter((v) => !currentFiles.includes(v.file.path));
+        setFiles([...files, ...newFiles]);
     };
 
-    const onTranscript = async () => {
-        const filePaths = files.map((f) => f.path);
-        console.log('filePaths', filePaths);
-        await api.transcript(filePaths);
+    const onTranscript = async (file: TranscriptTask) => {
+        const taskId = await api.transcript(file.file.path);
+        console.log('taskId', taskId);
+        const newFiles = files.map((f) => {
+            if (f.file.path === file.file.path) {
+                return { ...f, taskId };
+            }
+            return f;
+        });
+        setFiles(newFiles);
+    };
+    const onTranscriptAll = async () => {
+        for (const f of files) {
+            if (f.taskId === null) {
+                await onTranscript(f);
+                await sleep(500);
+            }
+        }
+    }
+    const onDelete = async (file: TranscriptTask) => {
+        const newFiles = files.filter((f) => f.file.path !== file.file.path);
+        setFiles(newFiles);
     }
     return (
         <div
@@ -68,20 +94,22 @@ const Transcript = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="">视频</TableHead>
-                                <TableHead className={'w-20 text-center'}>状态</TableHead>
-                                <TableHead className={'w-32 text-center'}>操作</TableHead>
+                                <TableHead className={'w-40'}>状态</TableHead>
+                                <TableHead className={'w-36'}>操作</TableHead>
                                 {/* <TableHead className="text-right">Amount</TableHead> */}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {files.map((f) => (
-                                <TableRow>
-                                    <TableCell className="font-medium">{f.fileName}</TableCell>
-                                    <TableCell className={cn('text-center')}>Paid</TableCell>
-                                    <TableCell className={cn('text-center')}>
-                                        <Button size={'sm'} className={'mx-auto'}>删除</Button>
-                                    </TableCell>
-                                </TableRow>
+                                <TranscriptItem
+                                    file={f.file}
+                                    taskId={f.taskId}
+                                    onStart={() => {
+                                        onTranscript(f);
+                                    }}
+                                    onDelete={() => {
+                                        onDelete(f);
+                                    }} />
                             ))}
 
                             <TableRow>
@@ -99,7 +127,7 @@ const Transcript = () => {
                             onClick={onSelectedFile}
                             variant={'secondary'} className={cn('')}>添加视频</Button>
                         <Button
-                            onClick={onTranscript}
+                            onClick={onTranscriptAll}
                             className={cn('')}>开始转录</Button>
                     </div>
                 </div>

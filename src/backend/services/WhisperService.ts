@@ -13,15 +13,44 @@ import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 import * as os from 'os';
 import hash from '@/common/utils/hash';
+import DpTaskService from '@/backend/services/DpTaskService';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 
 class WhisperService {
 
-    public static async transcript(filePath: string) {
+    public static async transcript(taskId: number, filePath: string) {
         // await this.whisper();
-        await this.convertAndSplit(filePath);
-        const srt = await this.whisper(filePath);
-        const srtName = filePath.replace(path.extname(filePath), '.srt');
-        fs.writeFileSync(srtName, srt);
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: '正在转换音频',
+        })
+        try {
+            const files = await this.convertAndSplit(filePath);
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: '正在转录',
+            });
+            await Promise.all(files.map(async (file) => {
+                const srt = await this.whisper(file);
+                const srtName = filePath.replace(path.extname(file), '.srt');
+                console.log('srtName', srtName);
+                fs.writeFileSync(srtName, srt);
+            }));
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.DONE,
+                progress: '转录完成',
+            });
+        } catch (error) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.FAILED,
+                progress: error.message,
+            });
+        }
+
     }
 
     private static async whisper(filePath: string) {

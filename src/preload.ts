@@ -15,6 +15,7 @@ import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
+import { DpTask } from '@/backend/db/tables/dpTask';
 
 export type Channels =
     | 'main-state'
@@ -58,7 +59,9 @@ export type Channels =
     | 'subtitle-timestamp-delete-path'
     | 'subtitle-timestamp-get-key'
     | 'subtitle-timestamp-get-path'
-    | 'transcript';
+    | 'transcript'
+    | 'dp-task-detail'
+    | 'dp-task-cancel';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -167,6 +170,12 @@ const electronHandler = {
     markWordLevel: async (word: string, familiar: boolean) => {
         return (await invoke('mark-word-level', word, familiar)) as void;
     },
+    dpTaskDetail: async (id: number) => {
+        return (await invoke('dp-task-detail', id)) as DpTask;
+    },
+    dpTaskCancel: async (id: number) => {
+        await invoke('dp-task-cancel', id);
+    },
     // listWordsLevel: async (
     //     whereSql: string,
     //     orderBySql: string,
@@ -235,8 +244,8 @@ const electronHandler = {
             sentences
         )) as SentenceStruct[];
     },
-    transcript: async (filePaths: string[]) => {
-        await invoke('transcript', filePaths);
+    transcript: async (filePath: string) => {
+        return await invoke('transcript', filePath) as number;
     },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');
