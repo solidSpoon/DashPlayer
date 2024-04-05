@@ -4,6 +4,7 @@ import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment,
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
+import WhisperService from '@/backend/services/WhisperService';
 // import WhisperService from '@/backend/services/WhisperService';
 
 /**
@@ -12,7 +13,7 @@ import {
  */
 export default class WhisperController {
     public static async transcript(filePaths: string[]) {
-        // const string = filePaths[0];
-        // return WhisperService.transcript(string);
+        const string = filePaths[0];
+        return WhisperService.transcript(string);
     }
 }
