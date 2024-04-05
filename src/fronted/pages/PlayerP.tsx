@@ -1,8 +1,8 @@
-import {motion} from 'framer-motion';
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {useLocation, useParams, useSearchParams} from 'react-router-dom';
-import useLayout, {cpW} from '@/fronted/hooks/useLayout';
-import {cn} from '@/common/utils/Util';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import useLayout, { cpW } from '@/fronted/hooks/useLayout';
+import { cn } from '@/common/utils/Util';
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
 import MainSubtitle from '@/fronted/components/MainSubtitle';
@@ -12,10 +12,20 @@ import UploadButton from '@/fronted/components/UploadButton';
 import useFile from '@/fronted/hooks/useFile';
 import GlobalShortCut from '@/fronted/components/GlobalShortCut';
 import SideBar from '@/fronted/components/SideBar';
-import {darkColor, lightColor} from "@/fronted/styles/style";
-import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/fronted/components/ui/resizable";
-import {useLocalStorage} from "@uidotdev/usehooks";
-import SubtitleViewer from "@/fronted/components/subtitle-viewer/subtitle-viewer";
+import { darkColor, lightColor } from '@/fronted/styles/style';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
+import { useLocalStorage } from '@uidotdev/usehooks';
+import SubtitleViewer from '@/fronted/components/subtitle-viewer/subtitle-viewer';
+import {
+    Drawer, DrawerClose,
+    DrawerContent,
+    DrawerDescription, DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger
+} from '@/fronted/components/ui/drawer';
+import { Button } from '@/fronted/components/ui/button';
+import Chat from '@/fronted/components/chat/Chat';
 
 const api = window.electron;
 
@@ -33,6 +43,7 @@ const PlayerP = () => {
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
+    const [showDrawer, setShowDrawer] = useState(false);
     const w = cpW.bind(
         null,
         useLayout((s) => s.width)
@@ -42,7 +53,7 @@ const PlayerP = () => {
         useLayout((s) => s.height)
     );
     const fullScreen = useLayout((s) => s.fullScreen);
-    const {videoId} = useParams();
+    const { videoId } = useParams();
     const playFile = useFile((s) => s.playFile);
     const location = useLocation();
     const sideBarAnimation =
@@ -64,10 +75,10 @@ const PlayerP = () => {
         runEffect();
     }, [playFile, videoId]);
     useEffect(() => {
-        setSearchParams({sideBarAnimation: 'true'});
+        setSearchParams({ sideBarAnimation: 'true' });
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
-    const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
+    const [pos, setPos] = useState({ x: 0, y: 0, scale: 1 });
     const podcastMode = useLayout(s => s.podcastMode);
     useLayoutEffect(() => {
         const updatePos = () => {
@@ -81,7 +92,7 @@ const PlayerP = () => {
                     rect.y -
                     titleBarHeight +
                     (window.innerHeight - titleBarHeight) * 0.05,
-                scale: rect.width / window.innerWidth,
+                scale: rect.width / window.innerWidth
             });
         };
         updatePos();
@@ -113,7 +124,7 @@ const PlayerP = () => {
                 className="absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden"
                 style={{
                     gridTemplateColumns: gridTemplate(),
-                    gridTemplateRows: '30% 70%', // 这里定义每行的大小
+                    gridTemplateRows: '30% 70%' // 这里定义每行的大小
                 }}
             >
                 {showSideBar && (
@@ -122,17 +133,17 @@ const PlayerP = () => {
                             className={cn(
                                 'col-start-1 col-end-2 row-start-1 row-end-3'
                             )}
-                            initial={{x: -1000}}
+                            initial={{ x: -1000 }}
                             animate={{
-                                x: 0,
+                                x: 0
                             }}
-                            exit={{x: -1000}}
+                            exit={{ x: -1000 }}
                             transition={{
                                 type: 'tween',
-                                duration: sideBarAnimation ? 0 : 0,
+                                duration: sideBarAnimation ? 0 : 0
                             }}
                         >
-                            <SideBar compact={!w('xl')}/>
+                            <SideBar compact={!w('xl')} />
                         </motion.div>
                         <motion.div
                             className={cn(
@@ -140,17 +151,17 @@ const PlayerP = () => {
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
-                            initial={{x: 1000}}
+                            initial={{ x: 1000 }}
                             animate={{
-                                x: 0,
+                                x: 0
                             }}
-                            exit={{x: 1000}}
+                            exit={{ x: 1000 }}
                             transition={{
                                 type: 'tween',
-                                duration: 0.2,
+                                duration: 0.2
                             }}
                         >
-                            <FileBrowser/>
+                            <FileBrowser />
                         </motion.div>
 
                         <motion.div
@@ -159,28 +170,28 @@ const PlayerP = () => {
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
-                            initial={{y: -1000}}
+                            initial={{ y: -1000 }}
                             animate={{
                                 y: 0,
-                                x: 0,
+                                x: 0
                             }}
-                            exit={{y: -1000}}
+                            exit={{ y: -1000 }}
                             transition={{
                                 type: 'tween',
-                                duration: 0.2,
+                                duration: 0.2
                             }}
                         >
-                            <ControlBox/>
+                            <ControlBox />
                         </motion.div>
                     </>
                 )}
                 <div
                     className="p-4"
                     style={{
-                        gridArea: '2 / 2 / 2 / 3',
+                        gridArea: '2 / 2 / 2 / 3'
                     }}
                 >
-                    <div className="w-full h-full" ref={posRef}/>
+                    <div className="w-full h-full" ref={posRef} />
                 </div>
                 <div
                     className={cn(
@@ -193,7 +204,7 @@ const PlayerP = () => {
                         transform: showSideBar
                             ? `translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`
                             : 'translate(0px, 0px) scale(1)',
-                        transformOrigin: 'top left',
+                        transformOrigin: 'top left'
                     }}
                 >
                     <div
@@ -207,10 +218,10 @@ const PlayerP = () => {
                     >
                         <ResizablePanelGroup
                             className={cn(
-                                lightColor["bg-background"],
-                                `dark:${darkColor["bg-background"]}`
+                                lightColor['bg-background'],
+                                `dark:${darkColor['bg-background']}`
                             )}
-                            direction={"horizontal"}>
+                            direction={'horizontal'}>
                             <ResizablePanel
                                 defaultSize={sizeOa}
                                 onResize={(e) => {
@@ -221,7 +232,7 @@ const PlayerP = () => {
                                     setSizeOa(e);
                                 }}
                             >
-                                <ResizablePanelGroup direction={"vertical"}>
+                                <ResizablePanelGroup direction={'vertical'}>
                                     <ResizablePanel
                                         minSize={10}
                                         defaultSize={sizeIa}
@@ -234,7 +245,7 @@ const PlayerP = () => {
                                     >
                                         <div
                                             className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
-                                            <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}/>
+                                            <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')} />
                                             {podcastMode && <SubtitleViewer
                                                 className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
                                             />}
@@ -243,7 +254,7 @@ const PlayerP = () => {
                                     {(!fullScreen && !podcastMode) && (
                                         <>
                                             <ResizableHandle withHandle
-                                                             className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')}/>
+                                                             className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')} />
                                             <ResizablePanel
                                                 className={cn('ofvisible')}
                                                 defaultSize={sizeIb}
@@ -253,14 +264,14 @@ const PlayerP = () => {
                                                     }
                                                     setSizeIb(e);
                                                 }}
-                                            ><MainSubtitle/></ResizablePanel>
+                                            ><MainSubtitle /></ResizablePanel>
                                         </>
                                     )}
                                 </ResizablePanelGroup>
                             </ResizablePanel>
                             {!fullScreen && (
                                 <>
-                                    <ResizableHandle withHandle className={cn("gutter-style w-2 dark:bg-zinc-700")}/>
+                                    <ResizableHandle withHandle className={cn('gutter-style w-2 dark:bg-zinc-700')} />
                                     <ResizablePanel
                                         defaultSize={sizeOb}
                                         onResize={(e) => {
@@ -271,14 +282,80 @@ const PlayerP = () => {
                                             setSizeOb(e);
                                         }}
                                     >
-                                        <Subtitle/>
+                                        <Subtitle />
                                     </ResizablePanel>
                                 </>)}
                         </ResizablePanelGroup>
                     </div>
                 </div>
-                <UploadButton/>
-                <GlobalShortCut/>
+                <UploadButton />
+                <div
+                    className={cn(
+                        'fixed bottom-12 right-12 z-[999] w-12 h-12 bg-yellow-400'
+                    )}
+                    onClick={() => {
+                        setShowDrawer(!showDrawer);
+                    }}
+                />
+                <GlobalShortCut />
+                {/* <AnimatePresence> */}
+                {/*     {showDrawer && ( */}
+                {/*         <> */}
+                {/*             <motion.div */}
+                {/*                 className={cn( */}
+                {/*                     'bg-black/50 z-50' */}
+                {/*                 )} */}
+                {/*                 style={{ */}
+                {/*                     gridArea: '1 / 1 / -1 / -1' */}
+                {/*                 }} */}
+                {/*                 //从下面弹出 */}
+                {/*                 initial={{ opacity: 0 }} */}
+                {/*                 animate={{ opacity: 1 }} */}
+                {/*                 exit={{ opacity: 0 }} */}
+                {/*                 transition={{ */}
+                {/*                     type: 'tween', */}
+                {/*                     duration: 0.1 */}
+                {/*                 }} */}
+                {/*             ></motion.div> */}
+                {/*             <motion.div */}
+                {/*                 className={cn( */}
+                {/*                     'z-50 pt-10' */}
+                {/*                 )} */}
+                {/*                 style={{ */}
+                {/*                     gridArea: '1 / 1 / -1 / -1' */}
+                {/*                 }} */}
+                {/*                 //从下面弹出 */}
+                {/*                 // initial={{ y: 1000 }} */}
+                {/*                 // animate={{ y: 0 }} */}
+                {/*                 // exit={{ y: 1000 }} */}
+                {/*                 initial={{ opacity: 0 , y:100}} */}
+                {/*                 animate={{ opacity: 1, y:0 }} */}
+                {/*                 exit={{ opacity: 0 , y:100}} */}
+                {/*                 transition={{ */}
+                {/*                     type: 'tween', */}
+                {/*                     duration: 0.1 */}
+                {/*                 }} */}
+                {/*             > */}
+
+                {/*                 <div */}
+                {/*                     className={cn( */}
+                {/*                         'bg-background rounded-xl rounded-b-none w-full h-full' */}
+                {/*                     )} */}
+                {/*                 > */}
+
+                {/*                 </div> */}
+                {/*             </motion.div> */}
+                {/*         </> */}
+                {/*     )} */}
+                {/* </AnimatePresence> */}
+                {/* <div className={cn('bg-black/50 z-50')} */}
+                {/* style={{ */}
+                {/*     gridArea: '1 / 1 / -1 / -1', */}
+                {/*     zIndex: 100 */}
+                {/*     }} */}
+                {/* > */}
+                <Chat  open={showDrawer} onClose={()=>setShowDrawer(false)}/>
+                {/* </div> */}
             </div>
         </div>
     )
