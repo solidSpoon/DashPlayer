@@ -11,7 +11,8 @@ import * as os from 'os';
 import hash from '@/common/utils/hash';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import { p } from '@/common/utils/Util';
+import { p, strBlank } from '@/common/utils/Util';
+import { storeGet } from '@/backend/store';
 
 interface WhisperResponse {
     language: string;
@@ -60,21 +61,29 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
 class WhisperService {
 
     public static async transcript(taskId: number, filePath: string) {
+        if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.FAILED,
+                progress: '未设置 OpenAI 密钥'
+            });
+            return;
+        }
         // await this.whisper();
         await DpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
-            progress: '正在转换音频',
-        })
+            progress: '正在转换音频'
+        });
         try {
             const files = await this.convertAndSplit(filePath);
             await DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.IN_PROGRESS,
-                progress: '正在转录',
+                progress: '正在转录'
             });
             const whisperResponses = await Promise.all(files.map(async (file) => {
-                return  await this.whisper(file);
+                return await this.whisper(file);
             }));
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             console.log('srtName', srtName);
@@ -82,19 +91,23 @@ class WhisperService {
             await DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.DONE,
-                progress: '转录完成',
+                progress: '转录完成'
             });
         } catch (error) {
             await DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
-                progress: error.message,
+                progress: error.message
             });
         }
 
     }
 
-    private static async whisper(chunk: SplitChunk) :Promise<WhisperResponse>{
+    private static joinUrl(base: string, path: string): string {
+        return base.replace(/\/+$/, '') + '/' + path.replace(/^\/+/, '');
+    }
+
+    private static async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
         const data = new FormData();
         data.append('file', fs.createReadStream(chunk.filePath) as any);
         data.append('model', 'whisper-1');
@@ -103,10 +116,10 @@ class WhisperService {
 
         const config = {
             method: 'post',
-            url: 'https://oneapi.gptnb.me/v1/audio/transcriptions',
+            url: this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/transcriptions'),
             headers: {
                 'Accept': 'application/json',
-                'Authorization': 'Bearer sk-oxTSqN28uqFTRfJy515b24Dd06Be45Ca9c3071757862882d',
+                'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
                 'Content-Type': 'multipart/form-data',
                 ...data.getHeaders()
             },
@@ -128,7 +141,7 @@ class WhisperService {
         ffmpeg.setFfmpegPath(ffmpegPath);
     }
 
-    static async convertAndSplit(filePath: string): Promise<SplitChunk[]>{
+    static async convertAndSplit(filePath: string): Promise<SplitChunk[]> {
         const folderName = hash(filePath);
         const tempDir = path.join(os.tmpdir(), 'dp/whisper/', folderName);
         if (!fs.existsSync(tempDir)) {

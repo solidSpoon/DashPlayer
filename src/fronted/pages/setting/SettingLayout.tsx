@@ -2,11 +2,11 @@ import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import React, {cloneElement, ReactElement} from 'react';
 import {
     MdBuild,
-    MdColorLens,
+    MdColorLens, MdCrueltyFree,
     MdKeyboard,
     MdOutlineGTranslate,
     MdStorage,
-    MdTranslate,
+    MdTranslate
 } from 'react-icons/md';
 import {cn} from '@/common/utils/Util';
 import Separator from '@/fronted/components/Separtor';
@@ -15,6 +15,7 @@ import {buttonVariants} from "@/fronted/components/ui/button";
 export type SettingType =
     | 'you-dao'
     | 'tenant'
+    | 'open-ai'
     | 'shortcut'
     | 'storage'
     | 'update'
@@ -69,6 +70,7 @@ const Sidebar = () => {
             {ele('外观', 'appearance', <MdColorLens/>)}
             {ele('字幕翻译', 'tenant', <MdOutlineGTranslate/>)}
             {ele('查单词', 'you-dao', <MdTranslate/>)}
+            {ele('OpenAI', 'open-ai', <MdCrueltyFree />)}
             {ele('存储', 'storage', <MdStorage/>)}
             {ele('版本更新', 'update', <MdBuild/>)}
         </div>

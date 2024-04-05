@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    HiOutlineCog,
+    HiOutlineCog, HiOutlineDocument,
     HiOutlineUser,
-    HiOutlineVideoCamera,
+    HiOutlineVideoCamera
 } from 'react-icons/hi';
 import React, { cloneElement, ReactElement } from 'react';
 import { cn } from '@/common/utils/Util';
@@ -76,7 +76,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                    'Transcript',
                    '/transcript',
                    'transcript',
-                   <HiOutlineVideoCamera />
+                    <HiOutlineDocument />
                 )}
                 {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
                 {item('About', '/about', 'about', <HiOutlineUser />)}

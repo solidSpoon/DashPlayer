@@ -20,6 +20,7 @@ import {Toaster as HotToaster} from "react-hot-toast";
 
 import {syncStatus} from "@/fronted/hooks/useSystem";
 import Transcript from '@/fronted/pages/Transcript';
+import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
 
 const App = () => {
 
@@ -69,6 +70,10 @@ const App = () => {
                                         <Route
                                             path='tenant'
                                             element={<TenantSetting />}
+                                        />
+                                        <Route
+                                            path='open-ai'
+                                            element={<OpenAiSetting />}
                                         />
                                         <Route
                                             path='storage'
