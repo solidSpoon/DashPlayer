@@ -4,12 +4,14 @@ import { useShallow } from 'zustand/react/shallow';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
+import useLayout from '@/fronted/hooks/useLayout';
 
 interface ReactParam {
     // eslint-disable-next-line react/require-default-props
     children?: ReactNode;
 }
 
+let chattingChangeTime = 0;
 export default function GlobalShortCut(this: any, { children }: ReactParam) {
     const {
         space,
@@ -25,6 +27,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         adjustEnd,
         clearAdjust,
         nextRate,
+        pause
     } = usePlayerController(
         useShallow((s) => ({
             space: s.space,
@@ -40,16 +43,22 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
             adjustEnd: s.adjustEnd,
             clearAdjust: s.clearAdjust,
             nextRate: s.nextRate,
+            pause: s.pause
         }))
     );
     const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
         onUserFinishScrolling: s.onUserFinishScrolling,
-        scrollState: s.scrollState,
+        scrollState: s.scrollState
     }));
 
     const setting = useSetting((s) => s.setting);
     const setSetting = useSetting((s) => s.setSetting);
-    const events: { [key: string]: () => void } = {};
+    let events: { [key: string]: () => void } = {};
+    const {chatting, changeChatting} = useLayout(useShallow((s) => ({
+        chatting: s.chatting,
+        changeChatting: s.changeChatting
+    })));
+
     events.onLeft = () => {
         prev();
         if (scrollState === 'USER_BROWSING') {
@@ -70,7 +79,6 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     };
     events.onSpace = space;
     events.onUp = space;
-
     const registerKey = (values: string, action: () => void) => {
         const keyArr = values
             .split(',')
@@ -129,6 +137,19 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         )
     );
     registerKey(setting('shortcut.nextPlaybackRate'), nextRate);
+
+
+    if (chatting) {
+        events = {};
+    }
+    events.onSlash = () => {
+        if (Date.now() - chattingChangeTime < 500) {
+            return;
+        }
+        chattingChangeTime = Date.now();
+        pause();
+        changeChatting(!chatting);
+    };
     return (
         <Keyevent className="TopSide" events={events} needFocusing={false}>
             {children}

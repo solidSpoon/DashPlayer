@@ -11,10 +11,12 @@ export const sleep = (ms: number): Promise<void> => {
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
+
 const isWord = (str: string): boolean => {
     const noWordRegex = /[^A-Za-z0-9-]/;
     return !noWordRegex.test(str);
 };
+
 export function splitToWords(text: string | undefined): string[] {
     if (strBlank(text)) return [];
     const SPLIT_REGEX =
@@ -25,6 +27,7 @@ export function splitToWords(text: string | undefined): string[] {
         .filter((w) => w)
         .filter((w) => isWord(w));
 }
+
 export function p(str: string | undefined | null): string {
     return (str ?? '').toLowerCase().trim();
 }
@@ -44,4 +47,7 @@ export const secondToDate = (seconds = 0) => {
     const s = Math.floor(seconds % 60);
     const ss = s < 10 ? `0${s}` : s;
     return `${hs}:${ms}:${ss}`;
+};
+export const joinUrl = (base: string, path: string): string => {
+    return base.replace(/\/+$/, '') + '/' + path.replace(/^\/+/, '');
 };

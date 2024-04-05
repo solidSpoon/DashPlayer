@@ -16,6 +16,8 @@ import {
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import { DpTask } from '@/backend/db/tables/dpTask';
+import { BaseMessage } from '@langchain/core/messages';
+import { toMsgMiddle } from '@/common/types/ChatMessage';
 
 export type Channels =
     | 'main-state'
@@ -61,7 +63,8 @@ export type Channels =
     | 'subtitle-timestamp-get-path'
     | 'transcript'
     | 'dp-task-detail'
-    | 'dp-task-cancel';
+    | 'dp-task-cancel'
+    | 'chat';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -176,6 +179,10 @@ const electronHandler = {
     dpTaskCancel: async (id: number) => {
         await invoke('dp-task-cancel', id);
     },
+    chat: async (msgs: BaseMessage[]) => {
+        const msgMiddle = msgs.map((msg) => toMsgMiddle(msg));
+        return (await invoke('chat', msgMiddle)) as number;
+    },
     // listWordsLevel: async (
     //     whereSql: string,
     //     orderBySql: string,
@@ -256,7 +263,7 @@ const electronHandler = {
     },
     onSettingState: (func: (state: WindowState) => void) => {
         return on('setting-state', func as never);
-    },
+    }
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;

@@ -29,6 +29,9 @@ import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
 import WhisperController from '@/backend/controllers/WhisperController';
 import DpTaskController from '@/backend/controllers/DpTaskController';
+import { BaseMessage } from '@langchain/core/messages';
+import ChatController from '@/backend/controllers/ChatController';
+import { ChatMessageMiddle, fromMsgMiddle } from '@/common/types/ChatMessage';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
@@ -88,6 +91,12 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         // return wordsTranslate(words);
     });
 
+    handle('chat', async (msgMiddles: ChatMessageMiddle[]) => {
+        //BaseMessage[]
+        console.log('chat', msgMiddles);
+        const msgs = msgMiddles.map((msg) => fromMsgMiddle(msg));
+        return ChatController.chat(msgs);
+    });
     // handle(
     //     'list-words-view',
     //     async (

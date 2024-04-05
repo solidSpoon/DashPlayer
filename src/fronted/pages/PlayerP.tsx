@@ -26,6 +26,8 @@ import {
 } from '@/fronted/components/ui/drawer';
 import { Button } from '@/fronted/components/ui/button';
 import Chat from '@/fronted/components/chat/Chat';
+import { useShallow } from 'zustand/react/shallow';
+import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 const api = window.electron;
 
@@ -43,7 +45,10 @@ const PlayerP = () => {
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
-    const [showDrawer, setShowDrawer] = useState(false);
+    const {chatting, changeChatting} = useLayout(useShallow((s) => ({
+        chatting: s.chatting,
+        changeChatting: s.changeChatting
+    })));
     const w = cpW.bind(
         null,
         useLayout((s) => s.width)
@@ -289,73 +294,9 @@ const PlayerP = () => {
                     </div>
                 </div>
                 <UploadButton />
-                <div
-                    className={cn(
-                        'fixed bottom-12 right-12 z-[999] w-12 h-12 bg-yellow-400'
-                    )}
-                    onClick={() => {
-                        setShowDrawer(!showDrawer);
-                    }}
-                />
                 <GlobalShortCut />
-                {/* <AnimatePresence> */}
-                {/*     {showDrawer && ( */}
-                {/*         <> */}
-                {/*             <motion.div */}
-                {/*                 className={cn( */}
-                {/*                     'bg-black/50 z-50' */}
-                {/*                 )} */}
-                {/*                 style={{ */}
-                {/*                     gridArea: '1 / 1 / -1 / -1' */}
-                {/*                 }} */}
-                {/*                 //从下面弹出 */}
-                {/*                 initial={{ opacity: 0 }} */}
-                {/*                 animate={{ opacity: 1 }} */}
-                {/*                 exit={{ opacity: 0 }} */}
-                {/*                 transition={{ */}
-                {/*                     type: 'tween', */}
-                {/*                     duration: 0.1 */}
-                {/*                 }} */}
-                {/*             ></motion.div> */}
-                {/*             <motion.div */}
-                {/*                 className={cn( */}
-                {/*                     'z-50 pt-10' */}
-                {/*                 )} */}
-                {/*                 style={{ */}
-                {/*                     gridArea: '1 / 1 / -1 / -1' */}
-                {/*                 }} */}
-                {/*                 //从下面弹出 */}
-                {/*                 // initial={{ y: 1000 }} */}
-                {/*                 // animate={{ y: 0 }} */}
-                {/*                 // exit={{ y: 1000 }} */}
-                {/*                 initial={{ opacity: 0 , y:100}} */}
-                {/*                 animate={{ opacity: 1, y:0 }} */}
-                {/*                 exit={{ opacity: 0 , y:100}} */}
-                {/*                 transition={{ */}
-                {/*                     type: 'tween', */}
-                {/*                     duration: 0.1 */}
-                {/*                 }} */}
-                {/*             > */}
 
-                {/*                 <div */}
-                {/*                     className={cn( */}
-                {/*                         'bg-background rounded-xl rounded-b-none w-full h-full' */}
-                {/*                     )} */}
-                {/*                 > */}
-
-                {/*                 </div> */}
-                {/*             </motion.div> */}
-                {/*         </> */}
-                {/*     )} */}
-                {/* </AnimatePresence> */}
-                {/* <div className={cn('bg-black/50 z-50')} */}
-                {/* style={{ */}
-                {/*     gridArea: '1 / 1 / -1 / -1', */}
-                {/*     zIndex: 100 */}
-                {/*     }} */}
-                {/* > */}
-                <Chat  open={showDrawer} onClose={()=>setShowDrawer(false)}/>
-                {/* </div> */}
+                <Chat  open={chatting} onClose={()=>changeChatting(false)} />
             </div>
         </div>
     )

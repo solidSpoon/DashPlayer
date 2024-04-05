@@ -11,17 +11,20 @@ export type UseLayoutState = {
     height: ScreenSize;
     fullScreen: boolean;
     podcastMode: boolean;
+    chatting: boolean;
 };
 
 export type UseLayoutActions = {
     changeSideBar: (show: boolean) => void;
     changeFullScreen: (full: boolean) => void;
     setPodcastMode: (mode: boolean) => void;
+    changeChatting: (chatting: boolean) => void;
 };
 
 const useLayout = create<UseLayoutState & UseLayoutActions>()(
     subscribeWithSelector((set) => ({
         showSideBar: true,
+        chatting: false,
         titleBarHeight: 0,
         width: '2xl',
         height: '2xl',
@@ -36,6 +39,9 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         setPodcastMode: (mode: boolean) => {
             set({ podcastMode: mode });
         },
+        changeChatting: (chatting: boolean) => {
+            set({ chatting });
+        }
     }))
 );
 api.isWindows().then((isWindows) => {
