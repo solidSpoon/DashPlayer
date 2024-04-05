@@ -1,9 +1,5 @@
 import fs from 'fs';
 import axios from 'axios';
-// const openai = new OpenAI({
-//     apiKey: "sk-oxTSqN28uqFTRfJy515b24Dd06Be45Ca9c3071757862882d",
-//     baseURL: "https://oneapi.gptnb.me/v1/",
-// });
 import FormData from 'form-data';
 
 
@@ -15,6 +11,36 @@ import * as os from 'os';
 import hash from '@/common/utils/hash';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
+
+interface WhisperResponse {
+    language: string;
+    duration: number;
+    text: string;
+    offset: number;
+    segments: {
+        seek: number;
+        start: number;
+        end: number;
+        text: string;
+    }[];
+}
+
+interface SplitChunk {
+    offset: number;
+    filePath: string;
+}
+
+function toSrt(whisperResponses: WhisperResponse[]): string {
+    whisperResponses.sort((a, b) => a.offset - b.offset);
+    let srt = '';
+    for (let i = 0; i < whisperResponses.length; i++) {
+        const { offset, duration, text } = whisperResponses[i];
+        const startTime = new Date(offset * 1000).toISOString().substr(11, 12);
+        const endTime = new Date((offset + duration) * 1000).toISOString().substr(11, 12);
+        srt += `${i + 1}\n${startTime} --> ${endTime}\n${text}\n\n`;
+    }
+    return srt;
+}
 
 class WhisperService {
 
@@ -32,12 +58,12 @@ class WhisperService {
                 status: DpTaskState.IN_PROGRESS,
                 progress: '正在转录',
             });
-            await Promise.all(files.map(async (file) => {
-                const srt = await this.whisper(file);
-                const srtName = filePath.replace(path.extname(file), '.srt');
-                console.log('srtName', srtName);
-                fs.writeFileSync(srtName, srt);
+            const whisperResponses = await Promise.all(files.map(async (file) => {
+                return  await this.whisper(file);
             }));
+            const srtName = filePath.replace(path.extname(filePath), '.srt');
+            console.log('srtName', srtName);
+            fs.writeFileSync(srtName, toSrt(whisperResponses));
             await DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.DONE,
@@ -53,12 +79,12 @@ class WhisperService {
 
     }
 
-    private static async whisper(filePath: string) {
+    private static async whisper(chunk: SplitChunk) :Promise<WhisperResponse>{
         const data = new FormData();
-        data.append('file', fs.createReadStream(filePath) as any);
+        data.append('file', fs.createReadStream(chunk.filePath) as any);
         data.append('model', 'whisper-1');
-        // data.append('language', 'en');
-        data.append('response_format', 'srt');
+        data.append('language', 'en');
+        data.append('response_format', 'verbose_json');
 
         const config = {
             method: 'post',
@@ -74,8 +100,10 @@ class WhisperService {
 
         try {
             const response = await axios(config);
-            console.log(JSON.stringify(response.data));
-            return response.data as string;
+            return {
+                ...response.data,
+                offset: chunk.offset
+            } as WhisperResponse;
         } catch (error) {
             console.log(error);
         }
@@ -85,7 +113,7 @@ class WhisperService {
         ffmpeg.setFfmpegPath(ffmpegPath);
     }
 
-    static async convertAndSplit(filePath: string) {
+    static async convertAndSplit(filePath: string): Promise<SplitChunk[]>{
         const folderName = hash(filePath);
         const tempDir = path.join(os.tmpdir(), 'dp/whisper/', folderName);
         if (!fs.existsSync(tempDir)) {
@@ -116,7 +144,7 @@ class WhisperService {
 
         // If file size is larger than 25MB, split it
         if (fileSizeInBytes < maxFileSize) {
-            return [outputPath];
+            return [{ offset: 0, filePath: outputPath }];
         }
         const duration = await new Promise<number>((resolve, reject) => {
             ffmpeg.ffprobe(outputPath, (err, metadata) => {
@@ -128,7 +156,7 @@ class WhisperService {
         const parts = Math.ceil(fileSizeInBytes / maxFileSize);
         const partDuration = duration / parts;
 
-        const outputPartPaths: string[] = [];
+        const outputPartPaths: SplitChunk[] = [];
         for (let i = 0; i < parts; i++) {
             const start = i * partDuration;
             const outputPartPath = path.join(tempDir, `output_part_${i}.mp3`);
@@ -143,7 +171,7 @@ class WhisperService {
                     .run();
             });
             console.log('outputPartPath', outputPartPath);
-            outputPartPaths.push(outputPartPath);
+            outputPartPaths.push({ offset: start, filePath: outputPartPath });
         }
         return outputPartPaths;
     }
