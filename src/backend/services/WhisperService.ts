@@ -11,6 +11,7 @@ import * as os from 'os';
 import hash from '@/common/utils/hash';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { p } from '@/common/utils/Util';
 
 interface WhisperResponse {
     language: string;
@@ -32,14 +33,28 @@ interface SplitChunk {
 
 function toSrt(whisperResponses: WhisperResponse[]): string {
     whisperResponses.sort((a, b) => a.offset - b.offset);
-    let srt = '';
-    for (let i = 0; i < whisperResponses.length; i++) {
-        const { offset, duration, text } = whisperResponses[i];
-        const startTime = new Date(offset * 1000).toISOString().substr(11, 12);
-        const endTime = new Date((offset + duration) * 1000).toISOString().substr(11, 12);
-        srt += `${i + 1}\n${startTime} --> ${endTime}\n${text}\n\n`;
+    const srtLines: string[] = [];
+    let counter = 1;
+
+    function toSrtTimestamp(seconds: number): string {
+        const date = new Date(0);
+        date.setSeconds(seconds);
+        const timeString = date.toISOString().substr(11, 12);
+        return timeString.replace('.', ',');
     }
-    return srt;
+
+    for (const wr of whisperResponses) {
+        for (const segment of wr.segments) {
+            const startTime = toSrtTimestamp(segment.start + wr.offset);
+            const endTime = toSrtTimestamp(segment.end + wr.offset);
+            const text = segment.text;
+            const srtLine = `${counter}\n${startTime} --> ${endTime}\n${p(text)}\n\n`;
+            srtLines.push(srtLine);
+            counter++;
+        }
+    }
+
+    return srtLines.join('');
 }
 
 class WhisperService {
@@ -122,7 +137,7 @@ class WhisperService {
         // 文件名为路径 hash
         console.log('tempDir', tempDir);
         const outputPath = path.join(tempDir, 'output.mp3');
-        const maxFileSize = 25 * 1024 * 1024; // 25MB
+        const maxFileSize = 22 * 1024 * 1024; // <25MB
 
         ffmpeg.setFfmpegPath(ffmpegPath);
 
