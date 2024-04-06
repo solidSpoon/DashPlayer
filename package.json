@@ -49,6 +49,7 @@
     },
     "dependencies": {
         "@electron-forge/publisher-github": "^7.2.0",
+        "@ffmpeg-installer/ffmpeg": "^1.1.0",
         "@floating-ui/react": "^0.26.9",
         "@hookform/resolvers": "^3.3.4",
         "@radix-ui/react-checkbox": "^1.0.4",
@@ -76,6 +77,7 @@
         "electron-squirrel-startup": "^1.0.0",
         "electron-store": "^8.1.0",
         "eslint-config-react-app": "^7.0.1",
+        "ffmpeg-static": "^5.2.0",
         "fluent-ffmpeg": "^2.1.2",
         "framer-motion": "^10.16.16",
         "langchain": "^0.1.31",

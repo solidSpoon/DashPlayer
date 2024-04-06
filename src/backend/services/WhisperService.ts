@@ -123,7 +123,8 @@ class WhisperService {
                 'Content-Type': 'multipart/form-data',
                 ...data.getHeaders()
             },
-            data: data
+            data: data,
+            timeout: 1000 * 60 * 10
         };
 
         try {
@@ -150,7 +151,7 @@ class WhisperService {
         // 文件名为路径 hash
         console.log('tempDir', tempDir);
         const outputPath = path.join(tempDir, 'output.mp3');
-        const maxFileSize = 22 * 1024 * 1024; // <25MB
+        const maxFileSize = 5 * 1024 * 1024; // <25MB
 
         // ffmpeg.setFfmpegPath(ffmpegPath);
 
