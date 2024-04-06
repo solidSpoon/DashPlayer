@@ -3,7 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 
 
-import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
+// import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 
 import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
@@ -138,7 +138,7 @@ class WhisperService {
     }
 
     static async split() {
-        ffmpeg.setFfmpegPath(ffmpegPath);
+        // ffmpeg.setFfmpegPath(ffmpegPath);
     }
 
     static async convertAndSplit(filePath: string): Promise<SplitChunk[]> {
@@ -152,7 +152,7 @@ class WhisperService {
         const outputPath = path.join(tempDir, 'output.mp3');
         const maxFileSize = 22 * 1024 * 1024; // <25MB
 
-        ffmpeg.setFfmpegPath(ffmpegPath);
+        // ffmpeg.setFfmpegPath(ffmpegPath);
 
         // Convert to mp3 with low quality
         await new Promise((resolve, reject) => {
