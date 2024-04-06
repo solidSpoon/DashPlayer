@@ -45,7 +45,7 @@ const PlayerP = () => {
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
-    const {chatting, changeChatting} = useLayout(useShallow((s) => ({
+    const { chatting, changeChatting } = useLayout(useShallow((s) => ({
         chatting: s.chatting,
         changeChatting: s.changeChatting
     })));
@@ -293,10 +293,12 @@ const PlayerP = () => {
                         </ResizablePanelGroup>
                     </div>
                 </div>
-                <UploadButton />
+                {!chatting && (
+                    <UploadButton />
+                )}
                 <GlobalShortCut />
 
-                <Chat  open={chatting} onClose={()=>changeChatting(false)} />
+                <Chat open={chatting} onClose={() => changeChatting(false)} />
             </div>
         </div>
     )

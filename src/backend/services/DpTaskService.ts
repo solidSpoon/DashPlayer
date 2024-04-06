@@ -38,7 +38,10 @@ export default class DpTaskService {
     ) {
         await db
             .update(dpTask)
-            .set(task)
+            .set({
+                ...task,
+                updated_at: new Date().toISOString(),
+            })
             .where(eq(dpTask.id, task.id));
     }
 
@@ -48,6 +51,7 @@ export default class DpTaskService {
             .set({
                 status: DpTaskState.CANCELLED,
                 progress: '任务取消',
+                updated_at: new Date().toISOString(),
             })
             .where(eq(dpTask.id, id));
     }

@@ -11,6 +11,7 @@ import useDpTask from '@/fronted/hooks/useDpTask';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 import { useEffect } from 'react';
 import { BotMessage } from '@/fronted/components/chat/message';
+import { strBlank } from '@/common/utils/Util';
 
 
 function ReplyMsgBox({
@@ -31,9 +32,13 @@ function ReplyMsgBox({
         }
     }, [dpTask?.status]);
 
+    let msg = dpTask?.result;
+    if (strBlank(msg)) {
+        msg = dpTask?.progress;
+    }
     return (
         <BotMessage>
-            {dpTask?.result}
+            {msg}
         </BotMessage>
     );
 }

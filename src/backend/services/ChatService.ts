@@ -28,15 +28,14 @@ export default class ChatService {
                 baseURL: joinUrl(endpoint, '/v1')
             }
         });
-
-        const resStream = await chat.stream(msgs);
-        const chunks = [];
-        let res = '';
         await DpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
-            progress: 'Asking AI for help'
+            progress: 'AI is thinking...'
         });
+        const resStream = await chat.stream(msgs);
+        const chunks = [];
+        let res = '';
         for await (const chunk of resStream) {
             res += chunk.content;
             chunks.push(chunk);

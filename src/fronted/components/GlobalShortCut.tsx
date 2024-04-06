@@ -54,9 +54,10 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     const setting = useSetting((s) => s.setting);
     const setSetting = useSetting((s) => s.setSetting);
     let events: { [key: string]: () => void } = {};
-    const {chatting, changeChatting} = useLayout(useShallow((s) => ({
+    const { chatting, changeChatting, showSideBar } = useLayout(useShallow((s) => ({
         chatting: s.chatting,
-        changeChatting: s.changeChatting
+        changeChatting: s.changeChatting,
+        showSideBar: s.showSideBar
     })));
 
     events.onLeft = () => {
@@ -143,7 +144,7 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         events = {};
     }
     events.onSlash = () => {
-        if (Date.now() - chattingChangeTime < 500) {
+        if (showSideBar || Date.now() - chattingChangeTime < 500) {
             return;
         }
         chattingChangeTime = Date.now();

@@ -4,6 +4,8 @@ import { cn } from '@/common/utils/Util';
 import { Button } from '@/fronted/components/ui/button';
 import React, { useEffect } from 'react';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import useDpTask from '@/fronted/hooks/useDpTask';
+import { m } from 'framer-motion';
 
 export interface TranscriptItemProps {
     file: FileT;
@@ -18,39 +20,38 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
 
 
     console.log('itemTaskId', taskId);
-    const [task, setTask] = React.useState<DpTask>(null);
     const [started, setStarted] = React.useState(false);
-    useEffect(() => {
-        if (!taskId) {
-            return;
-        }
-        if ((task?.status ?? DpTaskState.INIT) === DpTaskState.DONE) {
-            return;
-        }
-        console.log('taskinterval', taskId);
-        const run = async () => {
-            console.log('taskinterval', taskId);
-            const task = await api.dpTaskDetail(taskId);
-            setTask(task);
-        };
-        const interval = setInterval(run, 1000);
-        run().then();
-        return () => {
-            clearInterval(interval);
-        };
-    }, [taskId, task?.status]);
+    const task = useDpTask(taskId, 1000);
 
+    let msg = task?.progress ?? '未开始';
+    if (task?.status === DpTaskState.IN_PROGRESS) {
+        console.log(task.created_at, task.updated_at);
+        // update at - create at as duration, both is iso string, return seconds
+        // const updatedAt = new Date(task.updated_at).getTime();
+        // Convert created_at to ISO 8601 format
+        const createdAt = new Date(task.created_at.replace(' ', 'T') + 'Z').getTime();
+        const now = new Date().getTime();
+        // const duration = (now - createdAt) / 1000;
+        const duration = Math.floor((now - createdAt) / 1000);
+        msg = `进行中 ${duration}s`;
+    }
+    if (task?.status === DpTaskState.DONE) {
+        const updatedAt = new Date(task.updated_at).getTime();
+        const createdAt = new Date(task.created_at.replace(' ', 'T') + 'Z').getTime();
+        const duration = Math.floor((updatedAt - createdAt) / 1000);
+        msg = `${task.progress} ${duration}s`;
+    }
     return (
         <TableRow>
             <TableCell className="font-medium">{file.fileName}</TableCell>
-            <TableCell className={cn('')}>{task?.progress ?? '未开始'}</TableCell>
+            <TableCell className={cn('')}>{msg}</TableCell>
             <TableCell className={cn(' flex')}>
                 <Button
                     onClick={() => {
                         onStart();
                         setStarted(true);
                     }}
-                    disabled={(task?.status??DpTaskState.INIT) !== DpTaskState.INIT || (started && task === null)}
+                    disabled={(task?.status ?? DpTaskState.INIT) !== DpTaskState.INIT || (started && task === null)}
                     size={'sm'} className={'mx-auto'}>转录</Button>
                 <Button
                     onClick={onDelete}
