@@ -2,9 +2,6 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-// import {Pagination} from "@/backend/services/WordViewService";
-// import {WordView} from "@/backend/db/tables/wordView";
-// import {WordLevelRes} from "@/common/types/WordLevelRes";
 import { WatchProjectVO } from '@/backend/services/WatchProjectService';
 import { SentenceStruct } from './common/types/SentenceStruct';
 import { SettingKey } from './common/types/store_schema';
@@ -18,6 +15,7 @@ import {
 import { DpTask } from '@/backend/db/tables/dpTask';
 import { BaseMessage } from '@langchain/core/messages';
 import { toMsgMiddle } from '@/common/types/ChatMessage';
+import { AnalyzeSentenceParams } from '@/common/types/AnalyzeSentenceParams';
 
 export type Channels =
     | 'main-state'
@@ -64,7 +62,8 @@ export type Channels =
     | 'transcript'
     | 'dp-task-detail'
     | 'dp-task-cancel'
-    | 'chat';
+    | 'ai-chat'
+    | 'ai-analyze-current'
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -181,32 +180,11 @@ const electronHandler = {
     },
     chat: async (msgs: BaseMessage[]) => {
         const msgMiddle = msgs.map((msg) => toMsgMiddle(msg));
-        return (await invoke('chat', msgMiddle)) as number;
+        return (await invoke('ai-chat', msgMiddle)) as number;
     },
-    // listWordsLevel: async (
-    //     whereSql: string,
-    //     orderBySql: string,
-    //     perPage: number,
-    //     currentPage: number
-    // ) => {
-    //     return (await invoke(
-    //         'list-words-view',
-    //         whereSql,
-    //         orderBySql,
-    //         perPage,
-    //         currentPage
-    //     )) as Pagination<WordView>;
-    // },
-    // batchUpdateLevelWords: async (words: WordView[]) => {
-    //     console.log('batchUpdateLevelWords', words);
-    //     return (await invoke('batch-update-level-words', words)) as void;
-    // },
-    // wordsTranslate: async (words: string[]) => {
-    //     return (await invoke('words-translate', words)) as Map<
-    //         string,
-    //         WordLevelRes
-    //     >;
-    // },
+    aiAnalyzeCurrent: async (params: AnalyzeSentenceParams) => {
+        return (await invoke('ai-analyze-current', params)) as number;
+    },
     appVersion: async () => {
         return (await invoke('app-version')) as string;
     },

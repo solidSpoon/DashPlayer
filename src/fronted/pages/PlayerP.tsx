@@ -298,7 +298,10 @@ const PlayerP = () => {
                 )}
                 <GlobalShortCut />
 
-                <Chat open={chatting} onClose={() => changeChatting(false)} />
+                <AnimatePresence>
+                    {chatting && <Chat /> }
+                </AnimatePresence>
+
             </div>
         </div>
     )

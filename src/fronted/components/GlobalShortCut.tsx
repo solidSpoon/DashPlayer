@@ -144,10 +144,10 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
         events = {};
     }
     events.onSlash = () => {
-        if (showSideBar || Date.now() - chattingChangeTime < 500) {
-            return;
-        }
-        chattingChangeTime = Date.now();
+        // if (showSideBar || Date.now() - chattingChangeTime < 500) {
+        //     return;
+        // }
+        // chattingChangeTime = Date.now();
         pause();
         changeChatting(!chatting);
     };

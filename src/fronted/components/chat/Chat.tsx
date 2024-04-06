@@ -2,50 +2,86 @@
 
 import * as React from 'react';
 import { cn } from '@/common/utils/Util';
-import {
-    Drawer, DrawerClose,
-    DrawerContent,
-    DrawerDescription, DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger
-} from '@/fronted/components/ui/drawer';
 import { Button } from '@/fronted/components/ui/button';
-import { CodeBlock } from '@/fronted/components/chat/codeblock';
 import { BotMessage, SystemMessageBox, UserMessage } from '@/fronted/components/chat/message';
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import ReplyMsgBox from '@/fronted/components/chat/ReplyMsgBox';
 import Separator from '@/fronted/components/Separtor';
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { useSessionStorage } from '@uidotdev/usehooks';
+import { useEffect, useState } from 'react';
+import SentenceT from '@/common/types/SentenceT';
+import { motion } from 'framer-motion';
+import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 export interface ChatProps {
-    open: boolean;
-    onClose: () => void;
 }
 
 const api = window.electron;
-const Chat = ({ open, onClose }: ChatProps) => {
-    const [messages, setMessages] = React.useState<BaseMessage[]>([
-        new SystemMessage('Hello, how can I help you today?')
-    ]);
-    const [taskId, setTaskId] = React.useState<number>(null);
+const Chat = ({}: ChatProps) => {
+    const sentenceT = usePlayerController(state => state.currentSentence);
+    const [messages, setMessages] = useState<BaseMessage[]>([]);
+    const [chatTaskId, setChatTaskId] = React.useState<number>(null);
+    // const [analyzeTaskId, setAnalyzeTaskId] = React.useState<number>(null);
     const [input, setInput] = React.useState('');
+    useEffect(() => {
+        const runEffect = async () => {
+            const subtitleAround: SentenceT[] = usePlayerController.getState().getSubtitleAround(sentenceT?.index ?? 0);
+            const taskId = await api.aiAnalyzeCurrent({
+                sentence: sentenceT.text,
+                context: subtitleAround.map(s => s.text)
+            });
+            setChatTaskId(taskId);
+        };
+        if (messages.length === 0) {
+            setMessages(state => [...state.filter(e => e.content), new HumanMessage(`请帮我分析这句话：${sentenceT.text}`)]);
+            runEffect();
+        }
+        console.log('msgggggggggg', sentenceT);
+    }, []);
     return (
-        <Drawer
-            open={open}
-            onClose={onClose}
+        <motion.div
+            className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
+            initial={{ opacity: 0 }}
+            animate={{
+                opacity: 1,
+                transition: {
+                    duration: 0.3,
+                    type: 'just'
+                }
+            }}
+            exit={{ opacity: 0 }}
         >
-            {/* <DrawerTrigger>Open</DrawerTrigger> */}
-            <DrawerContent
-                className={cn('focus:outline-none flex flex-col')}
+            <motion.div
+                className={cn(
+                    'focus:outline-none flex flex-col fixed top-[44px] z-[998] right-0 w-full bg-background pb-4',
+                    'border rounded-t-[10px] border-background shadow-lg'
+                )}
                 style={{
                     height: 'calc(100vh - 44px)'
                 }}
+                // 从下往上弹出
+                initial={{ y: '100%' }}
+                animate={{
+                    y: 0,
+                    transition: {
+                        duration: 0.3,
+                        type: 'just'
+                    }
+                }}
+                exit={{
+                    y: '100%',
+                    transition: {
+                        duration: 0.3,
+                        type: 'just'
+                    }
+                }}
             >
-                <DrawerHeader>
-                    <DrawerTitle>Are you absolutely sure?</DrawerTitle>
-                    <DrawerDescription>This action cannot be undone.</DrawerDescription>
-                </DrawerHeader>
+                <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
+                    <div className={cn('text-lg font-semibold leading-none tracking-tight')}>Are you absolutely sure?</div>
+                    <div className={cn('text-sm text-muted-foreground')}>This action cannot be undone.</div>
+                </div>
                 <div
                     className={cn('w-full h-0 flex-1 grid grid-cols-3 overflow-y-auto')}
                     style={{
@@ -59,7 +95,6 @@ const Chat = ({ open, onClose }: ChatProps) => {
                     <div
                         className={cn('w-full grow-0 flex flex-col px-2 overflow-y-auto gap-4')}
                     >
-                        {/* <div className={cn('w-full flex flex-col overflow-y-auto gap-4 h-0 flex-1')}> */}
                         {
                             messages.map((message, index) => {
                                 let res = <></>;
@@ -90,11 +125,11 @@ const Chat = ({ open, onClose }: ChatProps) => {
                                 }
                             })
                         }
-                        {taskId && <>
+                        {chatTaskId && <>
                             <Separator className={cn('pl-12 pr-4')} />
-                            <ReplyMsgBox taskId={taskId} onMsgFinish={(t) => {
-                                setMessages([...messages, new AIMessage(t.result)]);
-                                setTaskId(null);
+                            <ReplyMsgBox taskId={chatTaskId} onMsgFinish={(t) => {
+                                setMessages(state => [...state.filter(e => e.content), new AIMessage(t.result)]);
+                                setChatTaskId(null);
                             }} />
                         </>}
 
@@ -114,27 +149,23 @@ const Chat = ({ open, onClose }: ChatProps) => {
                                 <Button
                                     onClick={async () => {
                                         const message = new HumanMessage(input);
-                                        let newMsgs = [...messages, message];
+                                        const newMsgs = [...messages.filter(s => s.content), message];
                                         setMessages(newMsgs);
-                                        let taskId = await api.chat(newMsgs);
-                                        setTaskId(taskId);
+                                        const taskId = await api.chat(newMsgs);
+                                        setChatTaskId(taskId);
                                         setInput('');
                                     }}
                                 >Send message</Button>
                             </div>
                         </div>
-                        {/* </div> */}
                     </div>
                     <div
                         className={cn('')}
                     />
 
                 </div>
-                <DrawerFooter>
-                </DrawerFooter>
-            </DrawerContent>
-        </Drawer>
-
+            </motion.div>
+        </motion.div>
     );
 };
 
