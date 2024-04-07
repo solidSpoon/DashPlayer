@@ -1,12 +1,6 @@
-import {useEffect, useState} from "react";
-import useDpTask from "@/fronted/hooks/useDpTask";
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
-import {AiAnalyseNewWordsRes} from "@/common/types/AiAnalyseNewWordsRes";
 import {cn} from "@/fronted/lib/utils";
-import {strBlank} from "@/common/utils/Util";
-import ChatLeftPhrases from "@/fronted/components/chat/ChatLeftPhrases";
-import ChatLeftWords from "@/fronted/components/chat/ChatLeftWords";
-import ChatRightSentences from "@/fronted/components/chat/ChatLeftRightSentences";
+import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
+import ChatRightSumary from "@/fronted/components/chat/ChatRightSumary";
 
 const api = window.electron;
 const ChatRight = ({sentence, className, points}: {
@@ -17,8 +11,9 @@ const ChatRight = ({sentence, className, points}: {
     // updatePhrasePoint: (p: string[]) => void;
 }) => {
     return (
-        <div className={cn('w-full flex flex-col gap-4')}>
-            <ChatRightSentences sentence={sentence} points={points} className={className}/>
+        <div className={cn('w-full flex flex-col gap-4 pr-6 px-10 overflow-y-auto')}>
+            <ChatRightSumary sentence={sentence} points={points} className={cn('flex-shrink-0',className)}/>
+            <ChatRightSentences sentence={sentence} points={points} className={cn('flex-shrink-0',className)}/>
         </div>
     )
 }

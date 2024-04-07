@@ -14,6 +14,7 @@ import SentenceT from '@/common/types/SentenceT';
 import {motion} from 'framer-motion';
 import ChatLeft from "@/fronted/components/chat/ChatLeft";
 import ChatRight from "@/fronted/components/chat/ChatRight";
+import Md from "@/fronted/components/chat/markdown";
 
 export interface ChatProps {
 }
@@ -87,13 +88,13 @@ const Chat = ({}: ChatProps) => {
                     <div className={cn('text-sm text-muted-foreground')}>This action cannot be undone.</div>
                 </div>
                 <div
-                    className={cn('w-full h-0 flex-1 grid grid-cols-3 overflow-y-auto')}
+                    className={cn('w-full h-0 flex-1 grid gap-10 grid-cols-3 overflow-y-auto')}
                     style={{
-                        gridTemplateColumns: '1fr 2fr 1fr',
+                        gridTemplateColumns: '1fr 1.75fr 1fr',
                         gridTemplateRows: '100%'
                     }}
                 >
-                    <ChatLeft sentence={sentenceT.text} className={""} updatePhrasePoint={setPhrasePoints}
+                    <ChatLeft sentence={sentenceT.text} className={"overflow-y-auto"} updatePhrasePoint={setPhrasePoints}
                               updateWordPoint={setWordPoints}/>
                     <div
                         className={cn('w-full grow-0 flex flex-col px-2 overflow-y-auto gap-4')}
@@ -163,7 +164,7 @@ const Chat = ({}: ChatProps) => {
                         </div>
                     </div>
                     {wordPoints !== null && phrasePoints !== null &&
-                        <ChatRight sentence={sentenceT.text} className={""} points={[...wordPoints, ...phrasePoints]}/>}
+                        <ChatRight sentence={sentenceT.text} className={"overflow-y-auto"} points={[...wordPoints, ...phrasePoints]}/>}
 
                 </div>
             </motion.div>
