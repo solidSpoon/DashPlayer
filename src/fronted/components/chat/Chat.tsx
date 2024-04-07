@@ -1,19 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '@/common/utils/Util';
-import { Button } from '@/fronted/components/ui/button';
-import { BotMessage, SystemMessageBox, UserMessage } from '@/fronted/components/chat/message';
-import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { Textarea } from '@/fronted/components/ui/textarea';
+import {cn} from '@/common/utils/Util';
+import {Button} from '@/fronted/components/ui/button';
+import {BotMessage, SystemMessageBox, UserMessage} from '@/fronted/components/chat/message';
+import {AIMessage, BaseMessage, HumanMessage, SystemMessage} from '@langchain/core/messages';
+import {Textarea} from '@/fronted/components/ui/textarea';
 import ReplyMsgBox from '@/fronted/components/chat/ReplyMsgBox';
 import Separator from '@/fronted/components/Separtor';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
-import { useSessionStorage } from '@uidotdev/usehooks';
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import SentenceT from '@/common/types/SentenceT';
-import { motion } from 'framer-motion';
-import { c } from 'vite/dist/node/types.d-aGj9QkWt';
+import {motion} from 'framer-motion';
+import ChatLeft from "@/fronted/components/chat/ChatLeft";
+import ChatRight from "@/fronted/components/chat/ChatRight";
 
 export interface ChatProps {
 }
@@ -25,6 +25,8 @@ const Chat = ({}: ChatProps) => {
     const [chatTaskId, setChatTaskId] = React.useState<number>(null);
     // const [analyzeTaskId, setAnalyzeTaskId] = React.useState<number>(null);
     const [input, setInput] = React.useState('');
+    const [wordPoints, setWordPoints] = React.useState<string[]>(null);
+    const [phrasePoints, setPhrasePoints] = React.useState<string[]>(null);
     useEffect(() => {
         const runEffect = async () => {
             const subtitleAround: SentenceT[] = usePlayerController.getState().getSubtitleAround(sentenceT?.index ?? 0);
@@ -32,6 +34,7 @@ const Chat = ({}: ChatProps) => {
                 sentence: sentenceT.text,
                 context: subtitleAround.map(s => s.text)
             });
+            // const taskId = await api.aiAnalyzeNewWords(sentenceT.text);
             setChatTaskId(taskId);
         };
         if (messages.length === 0) {
@@ -43,7 +46,7 @@ const Chat = ({}: ChatProps) => {
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
-            initial={{ opacity: 0 }}
+            initial={{opacity: 0}}
             animate={{
                 opacity: 1,
                 transition: {
@@ -51,7 +54,7 @@ const Chat = ({}: ChatProps) => {
                     type: 'just'
                 }
             }}
-            exit={{ opacity: 0 }}
+            exit={{opacity: 0}}
         >
             <motion.div
                 className={cn(
@@ -62,7 +65,7 @@ const Chat = ({}: ChatProps) => {
                     height: 'calc(100vh - 44px)'
                 }}
                 // 从下往上弹出
-                initial={{ y: '100%' }}
+                initial={{y: '100%'}}
                 animate={{
                     y: 0,
                     transition: {
@@ -79,7 +82,8 @@ const Chat = ({}: ChatProps) => {
                 }}
             >
                 <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
-                    <div className={cn('text-lg font-semibold leading-none tracking-tight')}>Are you absolutely sure?</div>
+                    <div className={cn('text-lg font-semibold leading-none tracking-tight')}>Are you absolutely sure?
+                    </div>
                     <div className={cn('text-sm text-muted-foreground')}>This action cannot be undone.</div>
                 </div>
                 <div
@@ -89,9 +93,8 @@ const Chat = ({}: ChatProps) => {
                         gridTemplateRows: '100%'
                     }}
                 >
-                    <div
-                        className={cn('')}
-                    />
+                    <ChatLeft sentence={sentenceT.text} className={""} updatePhrasePoint={setPhrasePoints}
+                              updateWordPoint={setWordPoints}/>
                     <div
                         className={cn('w-full grow-0 flex flex-col px-2 overflow-y-auto gap-4')}
                     >
@@ -117,7 +120,7 @@ const Chat = ({}: ChatProps) => {
                                 }
                                 if (index > 0) {
                                     return <>
-                                        <Separator className={cn('pl-12 pr-4')} />
+                                        <Separator className={cn('pl-12 pr-4')}/>
                                         {res}
                                     </>;
                                 } else {
@@ -126,11 +129,11 @@ const Chat = ({}: ChatProps) => {
                             })
                         }
                         {chatTaskId && <>
-                            <Separator className={cn('pl-12 pr-4')} />
+                            <Separator className={cn('pl-12 pr-4')}/>
                             <ReplyMsgBox taskId={chatTaskId} onMsgFinish={(t) => {
                                 setMessages(state => [...state.filter(e => e.content), new AIMessage(t.result)]);
                                 setChatTaskId(null);
-                            }} />
+                            }}/>
                         </>}
 
                         <div className="grid w-full mt-auto sticky bottom-0">
@@ -145,7 +148,7 @@ const Chat = ({}: ChatProps) => {
                                     onChange={(e) => {
                                         setInput(e.target.value);
                                     }}
-                                    placeholder="Type your message here." />
+                                    placeholder="Type your message here."/>
                                 <Button
                                     onClick={async () => {
                                         const message = new HumanMessage(input);
@@ -159,9 +162,8 @@ const Chat = ({}: ChatProps) => {
                             </div>
                         </div>
                     </div>
-                    <div
-                        className={cn('')}
-                    />
+                    {wordPoints !== null && phrasePoints !== null &&
+                        <ChatRight sentence={sentenceT.text} className={""} points={[...wordPoints, ...phrasePoints]}/>}
 
                 </div>
             </motion.div>

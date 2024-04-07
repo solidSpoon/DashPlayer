@@ -1,21 +1,21 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-import { WatchProjectVO } from '@/backend/services/WatchProjectService';
-import { SentenceStruct } from './common/types/SentenceStruct';
-import { SettingKey } from './common/types/store_schema';
-import { WindowState } from './common/types/Types';
-import { YdRes } from './common/types/YdRes';
+import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
+import {WatchProjectVO} from '@/backend/services/WatchProjectService';
+import {SentenceStruct} from './common/types/SentenceStruct';
+import {SettingKey} from './common/types/store_schema';
+import {WindowState} from './common/types/Types';
+import {YdRes} from './common/types/YdRes';
 import Release from '@/common/types/release';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import { DpTask } from '@/backend/db/tables/dpTask';
-import { BaseMessage } from '@langchain/core/messages';
-import { toMsgMiddle } from '@/common/types/ChatMessage';
-import { AnalyzeSentenceParams } from '@/common/types/AnalyzeSentenceParams';
+import {DpTask} from '@/backend/db/tables/dpTask';
+import {BaseMessage} from '@langchain/core/messages';
+import {toMsgMiddle} from '@/common/types/ChatMessage';
+import {AnalyzeSentenceParams} from '@/common/types/AnalyzeSentenceParams';
 
 export type Channels =
     | 'main-state'
@@ -64,6 +64,9 @@ export type Channels =
     | 'dp-task-cancel'
     | 'ai-chat'
     | 'ai-analyze-current'
+    | 'ai-analyze-new-words'
+    | 'ai-analyze-new-phrases'
+    | 'ai-make-example-sentences';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -124,7 +127,7 @@ const electronHandler = {
     },
     fetchAudio: async (url: string) => {
         const data = (await invoke('get-audio', url)) as never;
-        const blob = new Blob([data], { type: 'audio/mpeg' });
+        const blob = new Blob([data], {type: 'audio/mpeg'});
         return URL.createObjectURL(blob);
     },
     queryCacheSize: async () => {
@@ -184,6 +187,15 @@ const electronHandler = {
     },
     aiAnalyzeCurrent: async (params: AnalyzeSentenceParams) => {
         return (await invoke('ai-analyze-current', params)) as number;
+    },
+    aiAnalyzeNewWords: async (sentence: string) => {
+        return (await invoke('ai-analyze-new-words', sentence)) as number;
+    },
+    aiAnalyzeNewPhrases: async (sentence: string) => {
+        return (await invoke('ai-analyze-new-phrases', sentence)) as number;
+    },
+    aiMakeExampleSentences: async (sentence: string, points: string[]) => {
+        return (await invoke('ai-make-example-sentences', sentence, points)) as number;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;

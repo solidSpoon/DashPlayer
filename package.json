@@ -66,6 +66,7 @@
         "@types/fluent-ffmpeg": "^2.1.24",
         "@uidotdev/usehooks": "^2.4.1",
         "@vitejs/plugin-react": "^4.2.1",
+        "axios": "^1.6.8",
         "better-sqlite3": "^9.4.0",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.0",
@@ -107,6 +108,7 @@
         "tencentcloud-sdk-nodejs": "^4.0.764",
         "vaul": "^0.9.0",
         "zod": "^3.22.4",
+        "zod-to-json-schema": "^3.22.5",
         "zustand": "^4.4.7"
     }
 }

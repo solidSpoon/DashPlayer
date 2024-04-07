@@ -102,6 +102,18 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('ai-analyze-current');
         return ChatController.analyzeSentence(params);
     });
+    handle('ai-analyze-new-words', async (sentence: string) => {
+        log.info('ai-analyze-new-words');
+        return ChatController.analyzeNewWords(sentence);
+    });
+    handle('ai-analyze-new-phrases', async (sentence: string) => {
+        log.info('ai-analyze-new-phrases');
+        return ChatController.analyzeNewPhrases(sentence);
+    });
+    handle('ai-make-example-sentences', async (sentence: string, point:string[]) => {
+        log.info('ai-make-example-sentences');
+        return ChatController.makeSentences(sentence, point);
+    });
     // handle(
     //     'list-words-view',
     //     async (

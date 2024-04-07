@@ -1,15 +1,22 @@
-import { ChatOpenAI } from '@langchain/openai';
-import { storeGet } from '@/backend/store';
-import { BaseMessage } from '@langchain/core/messages';
-import { joinUrl, strBlank } from '@/common/utils/Util';
+import {ChatOpenAI} from '@langchain/openai';
+import {storeGet} from '@/backend/store';
+import {BaseMessage} from '@langchain/core/messages';
+import {joinUrl, strBlank} from '@/common/utils/Util';
 import DpTaskService from '@/backend/services/DpTaskService';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import {DpTaskState} from '@/backend/db/tables/dpTask';
 import {
     ChatPromptTemplate,
     MessagesPlaceholder
 } from '@langchain/core/prompts';
-import { AnalyzeSentenceParams } from '@/common/types/AnalyzeSentenceParams';
+import {AnalyzeSentenceParams} from '@/common/types/AnalyzeSentenceParams';
 import RateLimiter from '@/backend/services/RateLimiter';
+import {mainPrompt} from "@/backend/services/prompts/prompt";
+import analyzeWordsPrompt from "@/backend/services/prompts/analyze-word";
+import {z} from "zod";
+import {zodToJsonSchema} from "zod-to-json-schema";
+import {JsonOutputFunctionsParser} from "langchain/output_parsers";
+import {RunnableLike} from "@langchain/core/dist/runnables/base";
+import exampleSentences from "@/backend/services/prompts/example-sentence";
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -72,41 +79,11 @@ export default class ChatService {
     }
 
 
-    public static async analyzeSentence(taskId: number, { sentence, context }: AnalyzeSentenceParams) {
+    public static async analyzeSentence(taskId: number, {sentence, context}: AnalyzeSentenceParams) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
         const chat = await this.getOpenAi(taskId);
         if (!chat) return;
-        const prompt = ChatPromptTemplate.fromTemplate(
-            `你现在是一个播放器软件中的，英语学习程序，你的任务是帮助具有中等英文水平且母语是中文的人理解英语字幕，字幕中的生词、涉及到的语法。由于字幕可能在句子中间换行，为了帮助你分析，我会把当前行的上下文也一同发给你，你需要依次做下面几件事情。
-
-- 根据上下文润色当前行
-- 翻译这个句子
-- 标记生词和短语
-- 分析语法
-
-由于你是一个程序，所以当被要求分析句子时，必须严格按照以下md格式返回：
-
-<格式示例>
-## 英文：
-!todo
-## 翻译：
-!todo
-## 生词｜短语：
-!toto in list
-## 语法：
-!todo
-</格式示例>
-
-下面，请分析下面内容
-<请分析>
-<上下文>
-{ctx}
-</上下文>
-<当前行>
-{s}
-</当前行>
-</请分析>`
-        );
+        const prompt = ChatPromptTemplate.fromTemplate(mainPrompt);
         const chain = prompt.pipe(chat);
         console.log(await prompt.format({
             s: sentence,
@@ -139,6 +116,177 @@ export default class ChatService {
             status: DpTaskState.DONE,
             progress: 'AI has responded',
             result: res
+        });
+    }
+
+    public static async analyzeWord(taskId: number, sentence: string) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            hasNewWord: z.boolean().describe("Whether the sentence contains new words for an intermediate English speaker"),
+            words: z.array(
+                z.object({
+                    word: z.string().describe("The word"),
+                    phonetic: z.string().describe("The phonetic of the word"),
+                    meaning: z.string().describe("The meaning of the word in Chinese, Because it is for intermediate English speakers, who may not understand English well, so the meaning is in Chinese"),
+                })
+            ).describe("A list of new words for an intermediate English speaker, if none, it should be an empty list"),
+        });
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(analyzeWordsPrompt);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        console.log(await prompt.format({
+            s: sentence,
+        }));
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await chain.stream({
+            s: sentence,
+        });
+        for await (const chunk of resStream) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: 'AI responseing',
+                result: JSON.stringify(chunk)
+            });
+        }
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.DONE,
+            progress: 'AI has responded',
+        });
+    }
+    public static async analyzePhrase(taskId: number, sentence: string) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            hasNewPhrase: z.boolean().describe("Whether the sentence contains new phrases for an intermediate English speaker"),
+            phrases: z.array(
+                z.object({
+                    phrase: z.string().describe("The phrase"),
+                    meaning: z.string().describe("The meaning of the phrase in Chinese, Because it is for Chinese, who may not understand English well, so the meaning is in Chinese"),
+                })
+            ).describe("A list of new phrases for an intermediate English speaker, if none, it should be an empty list"),
+        });
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(analyzeWordsPrompt);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        console.log(await prompt.format({
+            s: sentence,
+        }));
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await chain.stream({
+            s: sentence,
+        });
+        for await (const chunk of resStream) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: 'AI responseing',
+                result: JSON.stringify(chunk)
+            });
+        }
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.DONE,
+            progress: 'AI has responded',
+        });
+    }
+
+
+    public static async makeSentences(taskId: number, sentence: string,point: string[]) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            sentences: z.array(
+                z.object({
+                    sentence: z.string().describe("The example sentence"),
+                    meaning: z.string().describe("The meaning of the sentence in Chinese, Because it is for Chinese, who may not understand English well, so the meaning is in Chinese"),
+                    points: z.array(z.string().describe("points you use in the sentence")),
+                })
+            ).describe("A list of example sentences for an intermediate English speaker. length should be 5"),
+        });
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(exampleSentences);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        console.log(await prompt.format({
+            s: sentence,
+            p: point.join('\n')
+        }));
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await chain.stream({
+            s: sentence,
+            p: point.join('\n')
+        });
+        for await (const chunk of resStream) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: 'AI responseing',
+                result: JSON.stringify(chunk)
+            });
+        }
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.DONE,
+            progress: 'AI has responded',
         });
     }
 }

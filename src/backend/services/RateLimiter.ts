@@ -4,7 +4,7 @@ import { DpTaskState } from '@/backend/db/tables/dpTask';
 class RateLimiter {
   private lastTimestamp = 0;
   private counter = 0;
-  private limit = 3;
+  private limit = 10;
 
   async limitRate(taskId: number) {
     const currentTimestamp = Math.floor(Date.now() / 1000);

@@ -5,7 +5,7 @@ const api = window.electron;
 const useDpTask = (taskId: number | null | undefined, interval: number) => {
     const [dpTask, setDpTask] = React.useState<DpTask | null>(null);
 
-    let s = dpTask?.status ?? DpTaskState.INIT;
+    const s = dpTask?.status ?? DpTaskState.INIT;
     const inProgress = s === DpTaskState.IN_PROGRESS || s === DpTaskState.INIT;
     useEffect(() => {
         if (!taskId || !inProgress) {
