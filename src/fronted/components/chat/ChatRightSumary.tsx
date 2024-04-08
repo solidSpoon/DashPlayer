@@ -1,11 +1,10 @@
 import {useEffect, useState} from "react";
 import useDpTask from "@/fronted/hooks/useDpTask";
 import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
-import {AiAnalyseNewWordsRes} from "@/common/types/AiAnalyseNewWordsRes";
+
 import {cn} from "@/fronted/lib/utils";
 import {strBlank} from "@/common/utils/Util";
 import {AiMakeExampleSentencesRes} from "@/common/types/AiMakeExampleSentencesRes";
-import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
 
 const api = window.electron;
 const ChatRightSummary = ({sentence, points, className}: {
@@ -21,13 +20,7 @@ const ChatRightSummary = ({sentence, points, className}: {
             setTaskId(taskId);
         }
         runEffect();
-    }, [sentence]);
-    // useEffect(() => {
-    //     if (dpTask?.status === DpTaskState.DONE) {
-    //         const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiMakeExampleSentencesRes;
-    //         updatePoint(res.words.map(w => w.word));
-    //     }
-    // }, [dpTask?.result, dpTask?.status, updatePoint]);
+    }, [points, sentence]);
     const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiMakeExampleSentencesRes;
     console.log('res', res, dpTask?.result);
     return (
