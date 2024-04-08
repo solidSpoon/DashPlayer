@@ -15,35 +15,20 @@ import {motion} from 'framer-motion';
 import ChatLeft from "@/fronted/components/chat/ChatLeft";
 import ChatRight from "@/fronted/components/chat/ChatRight";
 import Md from "@/fronted/components/chat/markdown";
+import ChatCenter from "@/backend/services/ChatCenter";
 
 export interface ChatProps {
 }
 
+
 const api = window.electron;
 const Chat = ({}: ChatProps) => {
     const sentenceT = usePlayerController(state => state.currentSentence);
-    const [messages, setMessages] = useState<BaseMessage[]>([]);
-    const [chatTaskId, setChatTaskId] = React.useState<number>(null);
-    // const [analyzeTaskId, setAnalyzeTaskId] = React.useState<number>(null);
-    const [input, setInput] = React.useState('');
-    const [wordPoints, setWordPoints] = React.useState<string[]>(null);
-    const [phrasePoints, setPhrasePoints] = React.useState<string[]>(null);
-    useEffect(() => {
-        const runEffect = async () => {
-            const subtitleAround: SentenceT[] = usePlayerController.getState().getSubtitleAround(sentenceT?.index ?? 0);
-            const taskId = await api.aiAnalyzeCurrent({
-                sentence: sentenceT.text,
-                context: subtitleAround.map(s => s.text)
-            });
-            // const taskId = await api.aiAnalyzeNewWords(sentenceT.text);
-            setChatTaskId(taskId);
-        };
-        if (messages.length === 0) {
-            setMessages(state => [...state.filter(e => e.content), new HumanMessage(`请帮我分析这句话：${sentenceT.text}`)]);
-            runEffect();
-        }
-        console.log('msgggggggggg', sentenceT);
-    }, [messages.length, sentenceT]);
+    const [wordTask, setWordTask] = useState<number>(null);
+    const [phraseTask, setPhraseTask] = useState<number>(null);
+    const [sentenceTask, setSentenceTask] = useState<number>(null);
+    const [grammarTask, setGrammarTask] = useState<number>(null);
+    const [summaryTask, setSummaryTask] = useState<number>(null);
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
@@ -94,77 +79,19 @@ const Chat = ({}: ChatProps) => {
                         gridTemplateRows: '100%'
                     }}
                 >
-                    <ChatLeft sentence={sentenceT.text} className={"overflow-y-auto"} updatePhrasePoint={setPhrasePoints}
-                              updateWordPoint={setWordPoints}/>
-                    <div
-                        className={cn('w-full grow-0 flex flex-col px-2 overflow-y-auto gap-4')}
-                    >
-                        {
-                            messages.map((message, index) => {
-                                let res = <></>;
-                                if (message instanceof HumanMessage) {
-                                    res = <UserMessage key={index}>
-                                        {message.text}
-                                    </UserMessage>;
-                                } else if (message instanceof BotMessage) {
-                                    res = <BotMessage key={index}>
-                                        {message.text}
-                                    </BotMessage>;
-                                } else if (message instanceof AIMessage) {
-                                    res = <BotMessage key={index}>
-                                        {message.text}
-                                    </BotMessage>;
-                                } else if (message instanceof SystemMessage) {
-                                    res = <SystemMessageBox key={index}>
-                                        {message.text}
-                                    </SystemMessageBox>;
-                                }
-                                if (index > 0) {
-                                    return <>
-                                        <Separator className={cn('pl-12 pr-4')}/>
-                                        {res}
-                                    </>;
-                                } else {
-                                    return res;
-                                }
-                            })
-                        }
-                        {chatTaskId && <>
-                            <Separator className={cn('pl-12 pr-4')}/>
-                            <ReplyMsgBox taskId={chatTaskId} onMsgFinish={(t) => {
-                                setMessages(state => [...state.filter(e => e.content), new AIMessage(t.result)]);
-                                setChatTaskId(null);
-                            }}/>
-                        </>}
-
-                        <div className="grid w-full mt-auto sticky bottom-0">
-                            <div
-                                className={cn('w-full h-12 bg-gradient-to-b from-transparent to-background')}
-                            />
-                            <div className={cn('w-full grid gap-2 bg-background')}>
-
-                                <Textarea
-                                    className={cn('resize-none')}
-                                    value={input}
-                                    onChange={(e) => {
-                                        setInput(e.target.value);
-                                    }}
-                                    placeholder="Type your message here."/>
-                                <Button
-                                    onClick={async () => {
-                                        const message = new HumanMessage(input);
-                                        const newMsgs = [...messages.filter(s => s.content), message];
-                                        setMessages(newMsgs);
-                                        const taskId = await api.chat(newMsgs);
-                                        setChatTaskId(taskId);
-                                        setInput('');
-                                    }}
-                                >Send message</Button>
-                            </div>
-                        </div>
-                    </div>
-                    {wordPoints !== null && phrasePoints !== null &&
-                        <ChatRight sentence={sentenceT} className={"overflow-y-auto"} points={[...wordPoints, ...phrasePoints]}/>}
+                    {/*<ChatLeft sentence={sentenceT.text} className={"overflow-y-auto"}*/}
+                    {/*          updatePhrasePoint={setPhrasePoints}*/}
+                    {/*          updateWordPoint={setWordPoints}/>*/}
+                    <ChatCenter originalSentence={sentenceT} topicSentence={sentenceT.text} tasks={{
+                            wordTask: wordTask,
+                            phraseTask: phraseTask,
+                            sentenceTask: sentenceTask,
+                            grammarTask: grammarTask,
+                            summaryTask: summaryTask
+                        }}/>
+                    {/*{wordPoints !== null && phrasePoints !== null &&*/}
+                    {/*    <ChatRight sentence={sentenceT} className={"overflow-y-auto"}*/}
+                    {/*               points={[...wordPoints, ...phrasePoints]}/>}*/}
 
                 </div>
             </motion.div>
