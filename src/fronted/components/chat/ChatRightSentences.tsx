@@ -38,7 +38,7 @@ const ChatRightSentences = ({sentence, points, className}: {
                      className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">
                     <div className="text-base text-gray-700 text-secondary-foreground">{s?.sentence}</div>
                     <div className=" text-sm text-gray-500">{s?.meaning}</div>
-                    <div className={'flex gap-2 mt-2'}>
+                    <div className={'flex flex-wrap gap-2 mt-2'}>
                         {
                             s?.points?.map((p, j) => (
                                 <div key={j}

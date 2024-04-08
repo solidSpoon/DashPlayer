@@ -66,7 +66,9 @@ export type Channels =
     | 'ai-analyze-current'
     | 'ai-analyze-new-words'
     | 'ai-analyze-new-phrases'
-    | 'ai-make-example-sentences';
+    | 'ai-analyze-grammers'
+    | 'ai-make-example-sentences'
+    | 'ai-summary';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -194,8 +196,14 @@ const electronHandler = {
     aiAnalyzeNewPhrases: async (sentence: string) => {
         return (await invoke('ai-analyze-new-phrases', sentence)) as number;
     },
+    aiAnalyzeGrammers: async (sentence: string) => {
+        return (await invoke('ai-analyze-grammers', sentence)) as number;
+    },
     aiMakeExampleSentences: async (sentence: string, points: string[]) => {
         return (await invoke('ai-make-example-sentences', sentence, points)) as number;
+    },
+    aiSummary: async (sentences: string[]) => {
+        return (await invoke('ai-summary', sentences)) as number;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;

@@ -43,7 +43,7 @@ const Chat = ({}: ChatProps) => {
             runEffect();
         }
         console.log('msgggggggggg', sentenceT);
-    }, []);
+    }, [messages.length, sentenceT]);
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}

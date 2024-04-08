@@ -1,6 +1,7 @@
 import {cn} from "@/fronted/lib/utils";
 import ChatLeftPhrases from "@/fronted/components/chat/ChatLeftPhrases";
 import ChatLeftWords from "@/fronted/components/chat/ChatLeftWords";
+import ChatLeftGrammers from "./ChatLeftGrammers";
 
 const api = window.electron;
 const ChatLeft = ({sentence, className, updateWordPoint, updatePhrasePoint}: {
@@ -16,7 +17,7 @@ const ChatLeft = ({sentence, className, updateWordPoint, updatePhrasePoint}: {
                            className={cn('flex-shrink-0', className)}
                            updatePoint={updateWordPoint}/>
             <ChatLeftPhrases sentence={sentence} className={cn('flex-shrink-0', className)} updatePoint={updatePhrasePoint}/>
-            <ChatLeftPhrases sentence={sentence} className={cn('flex-shrink-0', className)} updatePoint={updatePhrasePoint}/>
+            <ChatLeftGrammers sentence={sentence} className={cn('flex-shrink-0', className)} updateGrammer={()=>{}}/>
         </div>
     )
 }

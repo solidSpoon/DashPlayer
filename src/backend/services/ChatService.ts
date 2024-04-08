@@ -17,6 +17,8 @@ import {zodToJsonSchema} from "zod-to-json-schema";
 import {JsonOutputFunctionsParser} from "langchain/output_parsers";
 import {RunnableLike} from "@langchain/core/dist/runnables/base";
 import exampleSentences from "@/backend/services/prompts/example-sentence";
+import analyzeParasesPrompt from './prompts/analyze-phrases';
+import summaryPrompt from './prompts/summary-prompt';
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -200,7 +202,7 @@ export default class ChatService {
             functions: [extractionFunctionSchema],
             function_call: {name: "extractor"},
         })
-        const prompt = ChatPromptTemplate.fromTemplate(analyzeWordsPrompt);
+        const prompt = ChatPromptTemplate.fromTemplate(analyzeParasesPrompt);
         const chain = prompt
             .pipe(runnable)
             .pipe(parser);
@@ -231,7 +233,60 @@ export default class ChatService {
         });
     }
 
+    public static async analyzeGrammer(taskId: number, sentence: string) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            hasGrammer: z.boolean().describe("Whether the sentence contains grammer for an intermediate English speaker"),
+            grammers: z.array(
+                z.object({
+                    description: z.string().describe("The description of the grammer"),
+                })
+            ).describe("A list of grammer for an intermediate English speaker, if none, it should be an empty list"),
+        });
 
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(analyzeWordsPrompt);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        console.log(await prompt.format({
+            s: sentence,
+        }));
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await chain.stream({
+            s: sentence,
+        });
+        for await (const chunk of resStream) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: 'AI responseing',
+                result: JSON.stringify(chunk)
+            });
+        }
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.DONE,
+            progress: 'AI has responded',
+        });
+    }
     public static async makeSentences(taskId: number, sentence: string,point: string[]) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
         const schema = z.object({
@@ -274,6 +329,56 @@ export default class ChatService {
         const resStream = await chain.stream({
             s: sentence,
             p: point.join('\n')
+        });
+        for await (const chunk of resStream) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: 'AI responseing',
+                result: JSON.stringify(chunk)
+            });
+        }
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.DONE,
+            progress: 'AI has responded',
+        });
+    }
+
+    public static async summary(taskId: number, sentences: string[]) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            summary: z.string().describe("The summary of content, in Chinese, length should be around 100 characters"),
+        });
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(summaryPrompt);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        console.log(await prompt.format({
+            s: sentences.join('\n'),
+        }));
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await chain.stream({
+            s: sentences.join('\n'),
         });
         for await (const chunk of resStream) {
             await DpTaskService.update({

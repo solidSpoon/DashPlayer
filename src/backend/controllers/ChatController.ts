@@ -1,4 +1,4 @@
-import {AIMessage, BaseMessage, HumanMessage, SystemMessage} from '@langchain/core/messages';
+import {BaseMessage} from '@langchain/core/messages';
 import ChatService from '@/backend/services/ChatService';
 import DpTaskService from '@/backend/services/DpTaskService';
 import {AnalyzeSentenceParams} from '@/common/types/AnalyzeSentenceParams';
@@ -27,10 +27,20 @@ export default class ChatController {
         ChatService.analyzePhrase(taskId, sentence).then();
         return taskId;
     }
+    public static async analyzeGrammers(sentence: string) {
+        const taskId = await DpTaskService.create();
+        ChatService.analyzeGrammer(taskId, sentence).then();
+        return taskId;
+    }
 
     public static async makeSentences(sentence: string, point: []) {
         const taskId = await DpTaskService.create();
         ChatService.makeSentences(taskId, sentence, point).then();
+        return taskId;
+    }
+    public static async summary(sentence: string[]) {
+        const taskId = await DpTaskService.create();
+        ChatService.summary(taskId, sentence).then();
         return taskId;
     }
 }
