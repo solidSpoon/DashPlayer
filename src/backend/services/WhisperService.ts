@@ -14,6 +14,8 @@ import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { p, strBlank } from '@/common/utils/Util';
 import { storeGet } from '@/backend/store';
 
+import ffmpeg_static from "ffmpeg-static";
+
 interface WhisperResponse {
     language: string;
     duration: number;
@@ -153,7 +155,7 @@ class WhisperService {
         const outputPath = path.join(tempDir, 'output.mp3');
         const maxFileSize = 5 * 1024 * 1024; // <25MB
 
-        // ffmpeg.setFfmpegPath(ffmpegPath);
+        ffmpeg.setFfmpegPath(ffmpeg_static);
 
         // Convert to mp3 with low quality
         await new Promise((resolve, reject) => {
