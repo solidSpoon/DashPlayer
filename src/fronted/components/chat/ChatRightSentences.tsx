@@ -6,6 +6,7 @@ import {cn} from "@/fronted/lib/utils";
 import {strBlank} from "@/common/utils/Util";
 import {AiMakeExampleSentencesRes} from "@/common/types/AiMakeExampleSentencesRes";
 import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import Playable from "@/fronted/components/chat/Playable";
 
 const api = window.electron;
 const ChatRightSentences = ({sentence, points, className}: {
@@ -36,7 +37,7 @@ const ChatRightSentences = ({sentence, points, className}: {
             {res?.sentences?.map((s, i) => (
                 <div key={i}
                      className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">
-                    <div className="text-base text-gray-700 text-secondary-foreground">{s?.sentence}</div>
+                    <Playable className="text-base text-gray-700 text-secondary-foreground">{s?.sentence}</Playable>
                     <div className=" text-sm text-gray-500">{s?.meaning}</div>
                     <div className={'flex flex-wrap gap-2 mt-2'}>
                         {

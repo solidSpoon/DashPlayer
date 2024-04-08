@@ -5,6 +5,7 @@ import {cn} from "@/fronted/lib/utils";
 import {strBlank} from "@/common/utils/Util";
 import { AiAnalyseNewPhrasesRes } from "@/common/types/AiAnalyseNewPhrasesRes";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import Playable from "@/fronted/components/chat/Playable";
 
 const api = window.electron;
 const ChatLeftPhrases = ({sentence, className, updatePoint}: {
@@ -42,7 +43,7 @@ const ChatLeftPhrases = ({sentence, className, updatePoint}: {
                     {res?.hasNewPhrase && res?.phrases?.map((word, i) => (
                         <div key={i} className="flex flex-col items-start px-4 py-2">
                             <div className="flex flex-col items-start text-md text-gray-700 text-base">
-                                <div className={cn('text-lg font-medium leading-none')}>{word.phrase}</div>
+                                <Playable className={cn('text-lg font-medium leading-none')}>{word.phrase}</Playable>
                                 <div className={cn('text-sm text-muted-foreground')}>{word.meaning}</div>
                             </div>
                         </div>

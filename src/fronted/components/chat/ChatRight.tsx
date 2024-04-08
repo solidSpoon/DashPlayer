@@ -11,7 +11,7 @@ const ChatRight = ({sentence, className, points}: {
 }) => {
     return (
         <div className={cn('w-full flex flex-col gap-4 pr-6 px-10 overflow-y-auto')}>
-            <ChatRightSumary sentence={sentence} points={points} className={cn('flex-shrink-0',className)}/>
+            <ChatRightSumary sentenceT={sentence} points={points} className={cn('flex-shrink-0',className)}/>
             <ChatRightSentences sentence={sentence.text} points={points} className={cn('flex-shrink-0',className)}/>
         </div>
     )

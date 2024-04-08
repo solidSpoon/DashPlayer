@@ -59,7 +59,7 @@ const Chat = ({}: ChatProps) => {
         >
             <motion.div
                 className={cn(
-                    'focus:outline-none flex flex-col fixed top-[44px] z-[998] right-0 w-full bg-background pb-4',
+                    'focus:outline-none flex flex-col fixed top-[44px] z-[998] right-0 w-full bg-background pb-4 select-text',
                     'border rounded-t-[10px] border-background shadow-lg'
                 )}
                 style={{
@@ -164,7 +164,7 @@ const Chat = ({}: ChatProps) => {
                         </div>
                     </div>
                     {wordPoints !== null && phrasePoints !== null &&
-                        <ChatRight sentence={sentenceT.text} className={"overflow-y-auto"} points={[...wordPoints, ...phrasePoints]}/>}
+                        <ChatRight sentence={sentenceT} className={"overflow-y-auto"} points={[...wordPoints, ...phrasePoints]}/>}
 
                 </div>
             </motion.div>

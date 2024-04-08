@@ -236,12 +236,12 @@ export default class ChatService {
     public static async analyzeGrammer(taskId: number, sentence: string) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
         const schema = z.object({
-            hasGrammer: z.boolean().describe("Whether the sentence contains grammer for an intermediate English speaker"),
-            grammers: z.array(
+            hasGrammar: z.boolean().describe("Whether the sentence contains grammar for an intermediate English speaker"),
+            grammars: z.array(
                 z.object({
-                    description: z.string().describe("The description of the grammer"),
+                    description: z.string().describe("The description of the grammar"),
                 })
-            ).describe("A list of grammer for an intermediate English speaker, if none, it should be an empty list"),
+            ).describe("A list of grammar for an intermediate English speaker, if none, it should be an empty list"),
         });
 
         const extractionFunctionSchema = {

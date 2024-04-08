@@ -6,9 +6,9 @@
 //         })
 //     ).describe("A list of grammer for an intermediate English speaker, if none, it should be an empty list"),
 // });
-export interface AiAnalyseGrammersRes {
-    hasGrammer: boolean;
-    grammers: {
+export interface AiAnalyseGrammarsRes {
+    hasGrammar: boolean;
+    grammars: {
         description: string;
     }[];
 }
