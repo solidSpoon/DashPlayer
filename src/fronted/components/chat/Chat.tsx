@@ -2,33 +2,17 @@
 
 import * as React from 'react';
 import {cn} from '@/common/utils/Util';
-import {Button} from '@/fronted/components/ui/button';
-import {BotMessage, SystemMessageBox, UserMessage} from '@/fronted/components/chat/message';
-import {AIMessage, BaseMessage, HumanMessage, SystemMessage} from '@langchain/core/messages';
-import {Textarea} from '@/fronted/components/ui/textarea';
-import ReplyMsgBox from '@/fronted/components/chat/ReplyMsgBox';
-import Separator from '@/fronted/components/Separtor';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
-import {useEffect, useState} from 'react';
-import SentenceT from '@/common/types/SentenceT';
 import {motion} from 'framer-motion';
-import ChatLeft from "@/fronted/components/chat/ChatLeft";
-import ChatRight from "@/fronted/components/chat/ChatRight";
-import Md from "@/fronted/components/chat/markdown";
+import ChatLeftWords from "@/fronted/components/chat/ChatLeftWords";
+import ChatLeftPhrases from "@/fronted/components/chat/ChatLeftPhrases";
+import ChatLeftGrammers from "@/fronted/components/chat/ChatLeftGrammers";
+import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
 import ChatCenter from "@/backend/services/ChatCenter";
 
-export interface ChatProps {
-}
-
-
-const api = window.electron;
-const Chat = ({}: ChatProps) => {
+const Chat = () => {
     const sentenceT = usePlayerController(state => state.currentSentence);
-    const [wordTask, setWordTask] = useState<number>(null);
-    const [phraseTask, setPhraseTask] = useState<number>(null);
-    const [sentenceTask, setSentenceTask] = useState<number>(null);
-    const [grammarTask, setGrammarTask] = useState<number>(null);
-    const [summaryTask, setSummaryTask] = useState<number>(null);
+
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
@@ -79,20 +63,18 @@ const Chat = ({}: ChatProps) => {
                         gridTemplateRows: '100%'
                     }}
                 >
-                    {/*<ChatLeft sentence={sentenceT.text} className={"overflow-y-auto"}*/}
-                    {/*          updatePhrasePoint={setPhrasePoints}*/}
-                    {/*          updateWordPoint={setWordPoints}/>*/}
-                    <ChatCenter originalSentence={sentenceT} topicSentence={sentenceT.text} tasks={{
-                            wordTask: wordTask,
-                            phraseTask: phraseTask,
-                            sentenceTask: sentenceTask,
-                            grammarTask: grammarTask,
-                            summaryTask: summaryTask
-                        }}/>
-                    {/*{wordPoints !== null && phrasePoints !== null &&*/}
-                    {/*    <ChatRight sentence={sentenceT} className={"overflow-y-auto"}*/}
-                    {/*               points={[...wordPoints, ...phrasePoints]}/>}*/}
+                    <div className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10')}>
 
+                        <ChatLeftWords className={cn('flex-shrink-0')}/>
+                        <ChatLeftPhrases className={cn('flex-shrink-0')}/>
+                        <ChatLeftGrammers className={cn('flex-shrink-0')}/>
+                    </div>
+                    <ChatCenter originalSentence={sentenceT} topicSentence={sentenceT?.text} />
+                    <div className={cn('w-full flex flex-col gap-4 pr-6 px-10 overflow-y-auto')}>
+                        {/*<ChatRightSumary sentenceT={sentence} points={points}*/}
+                        {/*                 className={cn('flex-shrink-0', className)}/>*/}
+                        <ChatRightSentences className={cn('flex-shrink-0')}/>
+                    </div>
                 </div>
             </motion.div>
         </motion.div>

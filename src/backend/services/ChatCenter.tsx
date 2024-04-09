@@ -9,21 +9,13 @@ import * as React from "react";
 import {useEffect, useState} from "react";
 import SentenceT from "@/common/types/SentenceT";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
-import sentenceT from "@/common/types/SentenceT";
 
 const api = window.electron;
 export interface ChatCenterProps {
     topicSentence: string;
-    originalSentence: sentenceT;
-    tasks: {
-        wordTask: number | null;
-        phraseTask: number | null;
-        sentenceTask: number | null;
-        grammarTask: number | null;
-        summaryTask: number | null;
-    }
+    originalSentence: SentenceT;
 }
-const ChatCenter = ({topicSentence, originalSentence, tasks}:ChatCenterProps) => {
+const ChatCenter = ({topicSentence, originalSentence }:ChatCenterProps) => {
     const [messages, setMessages] = useState<BaseMessage[]>([]);
     const [taskId, setTaskId] = useState<number>(null);
     const [input, setInput] = useState<string>('');

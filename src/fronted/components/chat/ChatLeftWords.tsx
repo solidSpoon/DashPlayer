@@ -1,37 +1,13 @@
-import React, {useEffect, useState} from "react";
-import useDpTask from "@/fronted/hooks/useDpTask";
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
-import {AiAnalyseNewWordsRes} from "@/common/types/AiAnalyseNewWordsRes";
+import React from "react";
 import {cn} from "@/fronted/lib/utils";
-import {strBlank} from "@/common/utils/Util";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
 import Playable from "@/fronted/components/chat/Playable";
+import useChatPanel from "@/fronted/hooks/useChatPanel";
 
-const api = window.electron;
-const ChatLeftWords = ({sentence, className, updatePoint}: {
-    sentence: string,
+const ChatLeftWords = ({ className}: {
     className: string,
-    updatePoint?: (p: string[]) => void
 }) => {
-    const [taskId, setTaskId] = useState<number>(null);
-    const dpTask: DpTask | null = useDpTask(taskId, 250);
-    useEffect(() => {
-        const runEffect = async () => {
-            const taskId = await api.aiAnalyzeNewWords(sentence);
-            setTaskId(taskId);
-        }
-        runEffect();
-    }, [sentence]);
-    useEffect(() => {
-        if (dpTask?.status === DpTaskState.DONE) {
-            const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiAnalyseNewWordsRes;
-            if (res?.hasNewWord) {
-                updatePoint(res.words.map(w => w.word));
-            }
-        }
-    }, [dpTask?.result, dpTask?.status, updatePoint]);
-    const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiAnalyseNewWordsRes;
-    console.log('res', res, dpTask?.result);
+    const res = useChatPanel(state => state.newVocabulary);
     return (
 
         <div className={cn('flex flex-col', className)}>

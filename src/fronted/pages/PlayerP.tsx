@@ -28,6 +28,7 @@ import { Button } from '@/fronted/components/ui/button';
 import Chat from '@/fronted/components/chat/Chat';
 import { useShallow } from 'zustand/react/shallow';
 import { c } from 'vite/dist/node/types.d-aGj9QkWt';
+import useChatPanel from "@/fronted/hooks/useChatPanel";
 
 const api = window.electron;
 
@@ -45,10 +46,7 @@ const PlayerP = () => {
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
-    const { chatting, changeChatting } = useLayout(useShallow((s) => ({
-        chatting: s.chatting,
-        changeChatting: s.changeChatting
-    })));
+    const chatTopic  = useChatPanel(s => s.topic);
     const w = cpW.bind(
         null,
         useLayout((s) => s.width)
@@ -293,13 +291,13 @@ const PlayerP = () => {
                         </ResizablePanelGroup>
                     </div>
                 </div>
-                {!chatting && (
+                {chatTopic === 'offscreen' && (
                     <UploadButton />
                 )}
                 <GlobalShortCut />
 
                 <AnimatePresence>
-                    {chatting && <Chat /> }
+                    {chatTopic !== 'offscreen' && <Chat /> }
                 </AnimatePresence>
 
             </div>

@@ -8,6 +8,7 @@ import UndoRedo from "@/common/utils/UndoRedo";
 import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
 import {sleep} from "@/common/utils/Util";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
+import {AiAnalyseGrammarsRes} from "@/common/types/AiAnalyseGrammarsRes";
 
 const api = window.electron;
 
@@ -25,6 +26,7 @@ export type Topic = {
 export type Tasks = {
     vocabularyTask: number | 'init' | 'done';
     phraseTask: number | 'init' | 'done';
+    grammarTask: number | 'init' | 'done';
     sentenceTask: number | 'init' | 'done';
     chatTask: number | 'done';
 }
@@ -36,6 +38,7 @@ export type ChatPanelState = {
     topic: Topic
     newVocabulary: AiAnalyseNewWordsRes;
     newPhrase: AiAnalyseNewPhrasesRes;
+    newGrammar: AiAnalyseGrammarsRes;
     newSentence: AiMakeExampleSentencesRes;
     messages: BaseMessage[];
     canUndo: boolean;
@@ -46,6 +49,7 @@ export type ChatPanelActions = {
     backward: () => void;
     forward: () => void;
     createTopic: (topic: Topic) => void;
+    createFromCurrent: () => void;
     clear: () => void;
     setTask: (tasks: Tasks) => void;
 };
@@ -55,12 +59,14 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
             phraseTask: state.tasks.phraseTask,
+            grammarTask: state.tasks.grammarTask,
             sentenceTask: state.tasks.sentenceTask,
             chatTask: state.tasks.chatTask
         },
         topic: state.topic,
         newVocabulary: state.newVocabulary,
         newPhrase: state.newPhrase,
+        newGrammar: state.newGrammar,
         newSentence: state.newSentence,
         messages: state.messages,
         canUndo: state.canUndo,
@@ -73,12 +79,14 @@ const empty = (): ChatPanelState => {
         tasks: {
             vocabularyTask: 'init',
             phraseTask: 'init',
+            grammarTask: 'init',
             sentenceTask: 'init',
             chatTask: 'done'
         },
-        topic: null,
+        topic: 'offscreen',
         newVocabulary: null,
         newPhrase: null,
+        newGrammar: null,
         newSentence: null,
         messages: [],
         canUndo: false,
@@ -110,6 +118,22 @@ const useChatPanel = create(
             undoRedo.add(copy(get()));
             set(empty());
         },
+        createFromCurrent: () => {
+            set(empty());
+            const ct = usePlayerController.getState().currentSentence;
+            set({
+                topic: {
+                    start: {
+                        sIndex: ct.index,
+                        cIndex: 0
+                    },
+                    end: {
+                        sIndex: ct.index,
+                        cIndex: ct.text.length
+                    }
+                }
+            });
+        },
         clear: () => {
             undoRedo.clear();
             set(empty());
@@ -133,11 +157,11 @@ const extractTopic = (t: Topic): string => {
     }
     let st = subtitle[t.start.sIndex].text;
     // from t.start.cIndex to end of st
-    if (t.start.cIndex > 0 && t.start.cIndex < st.length) {
+    if (t.start.cIndex > 0 && t.start.cIndex <= st.length) {
         st = st.slice(t.start.cIndex);
     }
     let et = subtitle[t.end.sIndex].text;
-    if (t.end.cIndex > 0 && t.end.cIndex < et.length) {
+    if (t.end.cIndex > 0 && t.end.cIndex <= et.length) {
         et = et.slice(0, t.end.cIndex);
     }
     return `${st} ${et}`;
@@ -156,6 +180,7 @@ const runVocabulary = async () => {
     }
     const tRes: DpTask = await api.dpTaskDetail(tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
+        if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiAnalyseNewWordsRes;
         useChatPanel.setState({
             newVocabulary: res
@@ -181,6 +206,7 @@ const runPhrase = async () => {
     }
     const tRes: DpTask = await api.dpTaskDetail(tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
+        if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiAnalyseNewPhrasesRes;
         useChatPanel.setState({
             newPhrase: res
@@ -194,11 +220,38 @@ const runPhrase = async () => {
     }
 }
 
+const runGrammar = async () => {
+    let tId = useChatPanel.getState().tasks.grammarTask;
+    if (tId === 'done') return;
+    if (tId === 'init') {
+        tId = await api.aiAnalyzeGrammers(extractTopic(useChatPanel.getState().topic));
+        useChatPanel.getState().setTask({
+            ...useChatPanel.getState().tasks,
+            grammarTask: tId
+        });
+    }
+    const tRes: DpTask = await api.dpTaskDetail(tId);
+    if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
+        if (!tRes.result) return;
+        const res = JSON.parse(tRes.result) as AiAnalyseGrammarsRes;
+        useChatPanel.setState({
+            newGrammar: res
+        });
+    }
+    if (tRes.status === DpTaskState.DONE) {
+        useChatPanel.getState().setTask({
+            ...useChatPanel.getState().tasks,
+            grammarTask: 'done'
+        });
+    }
+}
+
 const runSentence = async () => {
     const state = useChatPanel.getState();
     let tId = state.tasks.sentenceTask;
     if (tId === 'done') return;
-    if (state.tasks.phraseTask !== 'done' || state.tasks.phraseTask !== 'done') {
+    if (state.tasks.phraseTask !== 'done' || state.tasks.vocabularyTask !== 'done') {
+        console.log('phrase or vocabulary not done');
         return;
     }
     const points = [
@@ -214,6 +267,7 @@ const runSentence = async () => {
     }
     const tRes: DpTask = await api.dpTaskDetail(tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
+        if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiMakeExampleSentencesRes;
         useChatPanel.setState({
             newSentence: res
@@ -248,6 +302,7 @@ useChatPanel.subscribe(
         while (useChatPanel.getState().topic !== 'offscreen') {
             await runVocabulary();
             await runPhrase();
+            await runGrammar();
             await runSentence();
             await runChat();
             await sleep(100);

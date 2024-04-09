@@ -1,37 +1,12 @@
-import {useEffect, useState} from "react";
-import useDpTask from "@/fronted/hooks/useDpTask";
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
 import {cn} from "@/fronted/lib/utils";
-import {strBlank} from "@/common/utils/Util";
 import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
-import { AiAnalyseGrammarsRes } from "@/common/types/AiAnalyseGrammarsRes";
+import useChatPanel from "@/fronted/hooks/useChatPanel";
 
 const api = window.electron;
-const ChatLeftGrammers = ({sentence, className, updateGrammer}: {
-    sentence: string,
+const ChatLeftGrammers = ({className}: {
     className: string,
-    updateGrammer: (points: string[]) => void
 }) => {
-    const [taskId, setTaskId] = useState<number>(null);
-    const dpTask: DpTask | null = useDpTask(taskId, 250);
-    useEffect(() => {
-        const runEffect = async () => {
-            const taskId = await api.aiAnalyzeGrammers(sentence);
-            setTaskId(taskId);
-        }
-        runEffect();
-    }, [sentence]);
-    console.log('dpTaskg', dpTask);
-    useEffect(() => {
-        if (dpTask?.status === DpTaskState.DONE) {
-            const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiAnalyseGrammarsRes;
-            if (res?.hasGrammar) {
-                updateGrammer(res.grammars.map(w => w.description));
-            }
-        }
-    }, [dpTask?.result, dpTask?.status, updateGrammer]);
-    const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiAnalyseGrammarsRes;
-    console.log('res', res, dpTask?.result);
+    const res = useChatPanel(state => state.newGrammar);
     return (
         <div className={cn('flex flex-col', className)}>
             <Card className={'shadow-none'}>

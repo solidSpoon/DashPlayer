@@ -5,13 +5,13 @@ import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
 import useLayout from '@/fronted/hooks/useLayout';
+import useChatPanel from "@/fronted/hooks/useChatPanel";
 
 interface ReactParam {
     // eslint-disable-next-line react/require-default-props
     children?: ReactNode;
 }
 
-let chattingChangeTime = 0;
 export default function GlobalShortCut(this: any, { children }: ReactParam) {
     const {
         space,
@@ -54,10 +54,10 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     const setting = useSetting((s) => s.setting);
     const setSetting = useSetting((s) => s.setSetting);
     let events: { [key: string]: () => void } = {};
-    const { chatting, changeChatting, showSideBar } = useLayout(useShallow((s) => ({
-        chatting: s.chatting,
-        changeChatting: s.changeChatting,
-        showSideBar: s.showSideBar
+    const {chatTopic,closeChat, createFromCurrent} = useChatPanel(useShallow((s) => ({
+        chatTopic: s.topic,
+        closeChat: s.clear,
+        createFromCurrent: s.createFromCurrent
     })));
 
     events.onLeft = () => {
@@ -140,16 +140,16 @@ export default function GlobalShortCut(this: any, { children }: ReactParam) {
     registerKey(setting('shortcut.nextPlaybackRate'), nextRate);
 
 
-    if (chatting) {
+    if (chatTopic !== 'offscreen') {
         events = {};
     }
     events.onSlash = () => {
-        // if (showSideBar || Date.now() - chattingChangeTime < 500) {
-        //     return;
-        // }
-        // chattingChangeTime = Date.now();
         pause();
-        changeChatting(!chatting);
+        if (chatTopic === 'offscreen') {
+            createFromCurrent();
+        } else {
+            closeChat();
+        }
     };
     return (
         <Keyevent className="TopSide" events={events} needFocusing={false}>

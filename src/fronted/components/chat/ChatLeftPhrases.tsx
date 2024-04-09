@@ -1,37 +1,13 @@
-import React, {useEffect, useState} from "react";
-import useDpTask from "@/fronted/hooks/useDpTask";
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
+import React from "react";
 import {cn} from "@/fronted/lib/utils";
-import {strBlank} from "@/common/utils/Util";
-import { AiAnalyseNewPhrasesRes } from "@/common/types/AiAnalyseNewPhrasesRes";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
 import Playable from "@/fronted/components/chat/Playable";
+import useChatPanel from "@/fronted/hooks/useChatPanel";
 
-const api = window.electron;
-const ChatLeftPhrases = ({sentence, className, updatePoint}: {
-    sentence: string,
+const ChatLeftPhrases = ({ className}: {
     className: string,
-    updatePoint: (points: string[]) => void
 }) => {
-    const [taskId, setTaskId] = useState<number>(null);
-    const dpTask: DpTask | null = useDpTask(taskId, 250);
-    useEffect(() => {
-        const runEffect = async () => {
-            const taskId = await api.aiAnalyzeNewPhrases(sentence);
-            setTaskId(taskId);
-        }
-        runEffect();
-    }, [sentence]);
-    useEffect(() => {
-        if (dpTask?.status === DpTaskState.DONE) {
-            const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiAnalyseNewPhrasesRes;
-            if (res?.hasNewPhrase) {
-                updatePoint(res.phrases.map(w => w.phrase));
-            }
-        }
-    }, [dpTask?.result, dpTask?.status, updatePoint]);
-    const res = strBlank(dpTask?.result) ? null : JSON.parse(dpTask?.result) as AiAnalyseNewPhrasesRes;
-    console.log('res', res, dpTask?.result);
+    const res = useChatPanel(state => state.newPhrase);
     return (
         <div className={cn('flex flex-col', className)}>
             <Card className={'shadow-none'}>
