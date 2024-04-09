@@ -68,7 +68,7 @@ export type Channels =
     | 'ai-analyze-new-phrases'
     | 'ai-analyze-grammers'
     | 'ai-make-example-sentences'
-    | 'ai-summary';
+    | 'ai-synonymous-sentence';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -202,8 +202,8 @@ const electronHandler = {
     aiMakeExampleSentences: async (sentence: string, points: string[]) => {
         return (await invoke('ai-make-example-sentences', sentence, points)) as number;
     },
-    aiSummary: async (sentences: string[]) => {
-        return (await invoke('ai-summary', sentences)) as number;
+    aiSynonymousSentence: async (sentence: string) => {
+        return (await invoke('ai-synonymous-sentence', sentence)) as number;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;

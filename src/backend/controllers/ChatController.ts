@@ -33,14 +33,14 @@ export default class ChatController {
         return taskId;
     }
 
-    public static async makeSentences(sentence: string, point: []) {
+    public static async makeSentences(sentence: string, point: string[]) {
         const taskId = await DpTaskService.create();
         ChatService.makeSentences(taskId, sentence, point).then();
         return taskId;
     }
-    public static async summary(sentence: string[]) {
+    public static async synonymousSentence(sentence: string) {
         const taskId = await DpTaskService.create();
-        ChatService.summary(taskId, sentence).then();
+        ChatService.synonymousSentence(taskId, sentence).then();
         return taskId;
     }
 }

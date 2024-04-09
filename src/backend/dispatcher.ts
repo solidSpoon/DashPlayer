@@ -118,9 +118,9 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('ai-make-example-sentences');
         return ChatController.makeSentences(sentence, point);
     });
-    handle('ai-summary', async (sentences: string[]) => {
+    handle('ai-synonymous-sentence', async (sentence: string) => {
         log.info('ai-make-example-sentences');
-        return ChatController.summary(sentences);
+        return ChatController.synonymousSentence(sentence);
     });
     // handle(
     //     'list-words-view',

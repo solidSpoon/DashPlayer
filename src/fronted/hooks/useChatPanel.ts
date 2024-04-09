@@ -6,21 +6,27 @@ import {AiMakeExampleSentencesRes} from "@/common/types/AiMakeExampleSentencesRe
 import {BaseMessage} from "@langchain/core/messages";
 import UndoRedo from "@/common/utils/UndoRedo";
 import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
-import {sleep} from "@/common/utils/Util";
+import {sleep, strBlank} from "@/common/utils/Util";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
 import {AiAnalyseGrammarsRes} from "@/common/types/AiAnalyseGrammarsRes";
+import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
+import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
+import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
 
 const api = window.electron;
 
 export type Topic = {
-    start: {
-        sIndex: number;
-        cIndex: number;
-    },
-    end: {
-        sIndex: number;
-        cIndex: number;
+    content: string | {
+        start: {
+            sIndex: number;
+            cIndex: number;
+        },
+        end: {
+            sIndex: number;
+            cIndex: number;
+        }
     }
+
 } | 'offscreen';
 
 export type Tasks = {
@@ -28,7 +34,7 @@ export type Tasks = {
     phraseTask: number | 'init' | 'done';
     grammarTask: number | 'init' | 'done';
     sentenceTask: number | 'init' | 'done';
-    chatTask: number | 'done';
+    chatTask: CustomMessage<any> | 'done';
 }
 
 const undoRedo = new UndoRedo<ChatPanelState>();
@@ -40,7 +46,8 @@ export type ChatPanelState = {
     newPhrase: AiAnalyseNewPhrasesRes;
     newGrammar: AiAnalyseGrammarsRes;
     newSentence: AiMakeExampleSentencesRes;
-    messages: BaseMessage[];
+    messages: CustomMessage<any>[];
+    streamingMessage: CustomMessage<any> | null;
     canUndo: boolean;
     canRedo: boolean;
 };
@@ -52,6 +59,7 @@ export type ChatPanelActions = {
     createFromCurrent: () => void;
     clear: () => void;
     setTask: (tasks: Tasks) => void;
+    sent: (msg: string) => void;
 };
 
 const copy = (state: ChatPanelState): ChatPanelState => {
@@ -69,6 +77,7 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         newGrammar: state.newGrammar,
         newSentence: state.newSentence,
         messages: state.messages,
+        streamingMessage: state.streamingMessage,
         canUndo: state.canUndo,
         canRedo: state.canRedo
     }
@@ -89,6 +98,7 @@ const empty = (): ChatPanelState => {
         newGrammar: null,
         newSentence: null,
         messages: [],
+        streamingMessage: null,
         canUndo: false,
         canRedo: false
     }
@@ -115,22 +125,34 @@ const useChatPanel = create(
 
         },
         createTopic: (topic: Topic) => {
-            undoRedo.add(copy(get()));
-            set(empty());
         },
-        createFromCurrent: () => {
-            set(empty());
+        createFromCurrent: async () => {
             const ct = usePlayerController.getState().currentSentence;
+            const synTask = await api.aiSynonymousSentence(ct.text);
+            const mt = new AiWelcomeMessage({
+                originalTopic: ct.text,
+                synonymousSentenceTask: synTask
+            });
             set({
+                ...empty(),
                 topic: {
-                    start: {
-                        sIndex: ct.index,
-                        cIndex: 0
-                    },
-                    end: {
-                        sIndex: ct.index,
-                        cIndex: ct.text.length
+                    content: {
+                        start: {
+                            sIndex: ct.index,
+                            cIndex: 0
+                        },
+                        end: {
+                            sIndex: ct.index,
+                            cIndex: ct.text.length
+                        }
                     }
+                },
+                messages: [
+                    new HumanTopicMessage(ct.text)
+                ],
+                tasks: {
+                    ...empty().tasks,
+                    chatTask: mt
                 }
             });
         },
@@ -144,25 +166,30 @@ const useChatPanel = create(
                     ...tasks
                 }
             });
+        },
+        sent: (msg: string) => {
+            // todo;
         }
     }))
 );
 
 const extractTopic = (t: Topic): string => {
     if (t === 'offscreen') return 'offscreen';
+    if (typeof t.content === 'string') return t.content;
+    const content = t.content;
     const subtitle = usePlayerController.getState().subtitle;
     const length = subtitle?.length ?? 0;
-    if (length === 0 || t.start.sIndex > length || t.end.sIndex > length) {
+    if (length === 0 || content.start.sIndex > length || content.end.sIndex > length) {
         return 'extractTopic failed';
     }
-    let st = subtitle[t.start.sIndex].text;
+    let st = subtitle[content.start.sIndex].text;
     // from t.start.cIndex to end of st
-    if (t.start.cIndex > 0 && t.start.cIndex <= st.length) {
-        st = st.slice(t.start.cIndex);
+    if (content.start.cIndex > 0 && content.start.cIndex <= st.length) {
+        st = st.slice(content.start.cIndex);
     }
-    let et = subtitle[t.end.sIndex].text;
-    if (t.end.cIndex > 0 && t.end.cIndex <= et.length) {
-        et = et.slice(0, t.end.cIndex);
+    let et = subtitle[content.end.sIndex].text;
+    if (content.end.cIndex > 0 && content.end.cIndex <= et.length) {
+        et = et.slice(0, content.end.cIndex);
     }
     return `${st} ${et}`;
 }
@@ -282,14 +309,25 @@ const runSentence = async () => {
 }
 
 const runChat = async () => {
-    const tId = useChatPanel.getState().tasks.chatTask;
-    if (tId === 'done') return;
-    const tRes: DpTask = await api.dpTaskDetail(tId);
-    if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
-        // const res = JSON.parse(tRes.result) as BaseMessage[];
-        // useChatPanel.setState({
-        //     messages: res
-        // });
+    const tm = useChatPanel.getState().tasks.chatTask;
+    if (tm === 'done') return;
+    if (tm.msgType === 'ai-welcome') {
+        const welcomeMessage = tm as AiWelcomeMessage;
+        const synonymousSentence = await api.dpTaskDetail(welcomeMessage.synonymousSentenceTask);
+        if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
+            if (!strBlank(synonymousSentence.result)) {
+                welcomeMessage.synonymousSentenceTaskResp = JSON.parse(synonymousSentence.result);
+                useChatPanel.setState({
+                    streamingMessage: welcomeMessage.copy()
+                });
+            }
+        }
+        if (synonymousSentence.status === DpTaskState.DONE) {
+            useChatPanel.getState().setTask({
+                ...useChatPanel.getState().tasks,
+                chatTask: 'done'
+            });
+        }
     }
 }
 

@@ -8,10 +8,10 @@ export interface PlayableProps {
 
 const Playable = ({className, children}: PlayableProps) => {
     return (
-        <div className={cn(' cursor-pointer hover:underline', className)}>
+        <span className={cn(' cursor-pointer hover:underline', className)}>
             {children}
             <PiSpeakerSimpleHigh className={'inline-block ml-1'}/>
-        </div>
+        </span>
     )
 }
 

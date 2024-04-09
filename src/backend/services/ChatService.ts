@@ -19,6 +19,7 @@ import {RunnableLike} from "@langchain/core/dist/runnables/base";
 import exampleSentences from "@/backend/services/prompts/example-sentence";
 import analyzeParasesPrompt from './prompts/analyze-phrases';
 import summaryPrompt from './prompts/summary-prompt';
+import synonymousSentence from "@/backend/services/prompts/synonymous-sentence";
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -379,6 +380,55 @@ export default class ChatService {
 
         const resStream = await chain.stream({
             s: sentences.join('\n'),
+        });
+        for await (const chunk of resStream) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.IN_PROGRESS,
+                progress: 'AI responseing',
+                result: JSON.stringify(chunk)
+            });
+        }
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.DONE,
+            progress: 'AI has responded',
+        });
+    }
+
+
+
+    public static async synonymousSentence(taskId: number, sentence: string) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            sentences: z.array(z.string()).describe("A list of synonymous sentences for the input sentence, length should be 3"),
+        });
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(synonymousSentence);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await chain.stream({
+            s: sentence,
         });
         for await (const chunk of resStream) {
             await DpTaskService.update({

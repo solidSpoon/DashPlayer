@@ -8,12 +8,10 @@ import ChatLeftWords from "@/fronted/components/chat/ChatLeftWords";
 import ChatLeftPhrases from "@/fronted/components/chat/ChatLeftPhrases";
 import ChatLeftGrammers from "@/fronted/components/chat/ChatLeftGrammers";
 import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
-import ChatCenter from "@/backend/services/ChatCenter";
+import ChatCenter from "@/fronted/components/chat/ChatCenter";
 import ChatTopicSelecter from "@/fronted/components/chat/ChatRightSumary";
-import ChatRightAlternative from "@/fronted/components/chat/ChatRightAlternative";
 
 const Chat = () => {
-    const sentenceT = usePlayerController(state => state.currentSentence);
 
     return (
         <motion.div
@@ -71,7 +69,7 @@ const Chat = () => {
                         <ChatLeftPhrases className={cn('flex-shrink-0')}/>
                         <ChatLeftGrammers className={cn('flex-shrink-0')}/>
                     </div>
-                    <ChatCenter originalSentence={sentenceT} topicSentence={sentenceT?.text} />
+                    <ChatCenter />
                     <div className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
                         <ChatTopicSelecter className={cn('flex-shrink-0')}/>
                         {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
