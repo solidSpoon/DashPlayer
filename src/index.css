@@ -54,7 +54,7 @@
 
 
 
- 
+
 @layer base {
   * {
     @apply border-border;
@@ -89,4 +89,17 @@
 
 .ofvisible {
   overflow: visible !important;
+}
+
+
+.item-normal::before {
+    content: "•";
+    /*color: hsl(var(--foreground));*/
+    padding-right: 0.5rem;
+}
+
+.item-current::before {
+    content: "»";
+    /*color: hsl(var(--primary));*/
+    padding-right: 0.4rem;
 }

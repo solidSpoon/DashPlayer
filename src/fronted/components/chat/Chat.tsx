@@ -9,6 +9,8 @@ import ChatLeftPhrases from "@/fronted/components/chat/ChatLeftPhrases";
 import ChatLeftGrammers from "@/fronted/components/chat/ChatLeftGrammers";
 import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
 import ChatCenter from "@/backend/services/ChatCenter";
+import ChatTopicSelecter from "@/fronted/components/chat/ChatRightSumary";
+import ChatRightAlternative from "@/fronted/components/chat/ChatRightAlternative";
 
 const Chat = () => {
     const sentenceT = usePlayerController(state => state.currentSentence);
@@ -63,16 +65,16 @@ const Chat = () => {
                         gridTemplateRows: '100%'
                     }}
                 >
-                    <div className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10')}>
+                    <div className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
 
                         <ChatLeftWords className={cn('flex-shrink-0')}/>
                         <ChatLeftPhrases className={cn('flex-shrink-0')}/>
                         <ChatLeftGrammers className={cn('flex-shrink-0')}/>
                     </div>
                     <ChatCenter originalSentence={sentenceT} topicSentence={sentenceT?.text} />
-                    <div className={cn('w-full flex flex-col gap-4 pr-6 px-10 overflow-y-auto')}>
-                        {/*<ChatRightSumary sentenceT={sentence} points={points}*/}
-                        {/*                 className={cn('flex-shrink-0', className)}/>*/}
+                    <div className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
+                        <ChatTopicSelecter className={cn('flex-shrink-0')}/>
+                        {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
                         <ChatRightSentences className={cn('flex-shrink-0')}/>
                     </div>
                 </div>

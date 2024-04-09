@@ -11,6 +11,9 @@ const ChatRightSentences = ({className}: {
     return (
 
         <div className={cn('flex flex-col gap-2', className)}>
+            {/*<h2>*/}
+            {/*    例句:*/}
+            {/*</h2>*/}
             {res?.sentences?.map((s, i) => (
                 <div key={i}
                      className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">

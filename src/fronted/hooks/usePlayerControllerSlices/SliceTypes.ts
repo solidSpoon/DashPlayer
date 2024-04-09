@@ -9,7 +9,7 @@ export interface SubtitleSlice {
     mergeSubtitle: (subtitle: SentenceT[]) => void;
     mergeSubtitleTrans: (holder: TransHolder<string>) => void;
     getSubtitleAt: (time: number) => SentenceT | undefined;
-    getSubtitleAround: (index: number) => SentenceT[];
+    getSubtitleAround: (index: number, num?: number) => SentenceT[];
 }
 
 export interface PlayerControllerInternal {

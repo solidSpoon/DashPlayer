@@ -91,8 +91,7 @@ const createSubtitleSlice: StateCreator<
         }
         return get().subtitle[eleIndex];
     },
-    getSubtitleAround:(index: number) => {
-        const num = 5;
+    getSubtitleAround:(index: number, num = 5) => {
         const min = Math.max(index - num, 0);
         const max = Math.min(index + num, get().subtitle.length - 1);
         const result = [];
