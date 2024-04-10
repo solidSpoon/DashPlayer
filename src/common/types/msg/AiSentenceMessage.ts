@@ -1,5 +1,5 @@
 
-import {AiMakeExampleSentencesRes} from "@/common/types/AiMakeExampleSentencesRes";
+import {AiMakeExampleSentencesRes} from "@/common/types/aiRes/AiMakeExampleSentencesRes";
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
 import MsgT from "@/common/types/msg/interfaces/MsgT";
 

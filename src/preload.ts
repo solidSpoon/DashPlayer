@@ -15,7 +15,7 @@ import {
 import {DpTask} from '@/backend/db/tables/dpTask';
 import {BaseMessage} from '@langchain/core/messages';
 import {toMsgMiddle} from '@/common/types/ChatMessage';
-import {AnalyzeSentenceParams} from '@/common/types/AnalyzeSentenceParams';
+import {AnalyzeSentenceParams} from '@/common/types/aiRes/AnalyzeSentenceParams';
 
 export type Channels =
     | 'main-state'
@@ -68,6 +68,7 @@ export type Channels =
     | 'ai-analyze-new-phrases'
     | 'ai-analyze-grammers'
     | 'ai-make-example-sentences'
+    | 'ai-phrase-group'
     | 'ai-synonymous-sentence';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
@@ -201,6 +202,9 @@ const electronHandler = {
     },
     aiMakeExampleSentences: async (sentence: string, points: string[]) => {
         return (await invoke('ai-make-example-sentences', sentence, points)) as number;
+    },
+    aiPhraseGroup: async (sentence: string,phraseGroup?: string) => {
+        return (await invoke('ai-phrase-group', sentence, phraseGroup)) as number;
     },
     aiSynonymousSentence: async (sentence: string) => {
         return (await invoke('ai-synonymous-sentence', sentence)) as number;

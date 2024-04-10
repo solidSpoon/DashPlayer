@@ -8,7 +8,7 @@ import {
     ChatPromptTemplate,
     MessagesPlaceholder
 } from '@langchain/core/prompts';
-import {AnalyzeSentenceParams} from '@/common/types/AnalyzeSentenceParams';
+import {AnalyzeSentenceParams} from '@/common/types/aiRes/AnalyzeSentenceParams';
 import RateLimiter from '@/backend/services/RateLimiter';
 import {mainPrompt} from "@/backend/services/prompts/prompt";
 import analyzeWordsPrompt from "@/backend/services/prompts/analyze-word";
@@ -20,6 +20,8 @@ import exampleSentences from "@/backend/services/prompts/example-sentence";
 import analyzeParasesPrompt from './prompts/analyze-phrases';
 import summaryPrompt from './prompts/summary-prompt';
 import synonymousSentence from "@/backend/services/prompts/synonymous-sentence";
+import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
+import {IterableReadableStream} from "@langchain/core/dist/utils/stream";
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -164,19 +166,7 @@ export default class ChatService {
         const resStream = await chain.stream({
             s: sentence,
         });
-        for await (const chunk of resStream) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
-        }
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
-        });
+        await ChatService.processJsonResp(taskId, resStream);
     }
     public static async analyzePhrase(taskId: number, sentence: string) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
@@ -219,19 +209,7 @@ export default class ChatService {
         const resStream = await chain.stream({
             s: sentence,
         });
-        for await (const chunk of resStream) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
-        }
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
-        });
+        await ChatService.processJsonResp(taskId, resStream);
     }
 
     public static async analyzeGrammer(taskId: number, sentence: string) {
@@ -274,19 +252,7 @@ export default class ChatService {
         const resStream = await chain.stream({
             s: sentence,
         });
-        for await (const chunk of resStream) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
-        }
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
-        });
+        await ChatService.processJsonResp(taskId, resStream);
     }
     public static async makeSentences(taskId: number, sentence: string,point: string[]) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
@@ -331,19 +297,7 @@ export default class ChatService {
             s: sentence,
             p: point.join('\n')
         });
-        for await (const chunk of resStream) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
-        }
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
-        });
+        await ChatService.processJsonResp(taskId, resStream);
     }
 
     public static async summary(taskId: number, sentences: string[]) {
@@ -381,19 +335,7 @@ export default class ChatService {
         const resStream = await chain.stream({
             s: sentences.join('\n'),
         });
-        for await (const chunk of resStream) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
-        }
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
-        });
+        await ChatService.processJsonResp(taskId, resStream);
     }
 
 
@@ -430,6 +372,60 @@ export default class ChatService {
         const resStream = await chain.stream({
             s: sentence,
         });
+        await ChatService.processJsonResp(taskId, resStream);
+    }
+
+    /**
+     * 意群
+     * @param taskId
+     * @param sentence
+     * @param phraseGroup
+     */
+    public static async phraseGroup(taskId: number, sentence: string, phraseGroup?: string) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+
+        const schema = z.object({
+            sentence: z.string().describe("The complete sentence from which phrase groups are derived."),
+            phraseGroups: z.array(
+                z.object({
+                    original: z.string().describe("The original text of the phrase group."),
+                    translation: z.string().describe("The translation of the original phrase group into another language. in Chinese."),
+                    comment: z.string().describe("The role or function that the phrase group serves within the larger sentence structure. in Chinese."),
+                })
+            ).describe("An array of phrase groups that compose the sentence."),
+        });
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+        const prompt = ChatPromptTemplate.fromTemplate(phraseGroupPrompt);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+
+        console.log('seeeeeeeee', sentence, phraseGroup);
+        const resStream = await chain.stream({
+            s: sentence,
+        });
+        await ChatService.processJsonResp(taskId, resStream);
+    }
+
+    private static async processJsonResp(taskId: number, resStream: IterableReadableStream<any>) {
         for await (const chunk of resStream) {
             await DpTaskService.update({
                 id: taskId,

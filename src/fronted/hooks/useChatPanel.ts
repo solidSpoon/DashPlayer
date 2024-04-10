@@ -1,14 +1,13 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import {AiAnalyseNewWordsRes} from "@/common/types/AiAnalyseNewWordsRes";
-import {AiAnalyseNewPhrasesRes} from "@/common/types/AiAnalyseNewPhrasesRes";
-import {AiMakeExampleSentencesRes} from "@/common/types/AiMakeExampleSentencesRes";
-import {BaseMessage} from "@langchain/core/messages";
+import {AiAnalyseNewWordsRes} from "@/common/types/aiRes/AiAnalyseNewWordsRes";
+import {AiAnalyseNewPhrasesRes} from "@/common/types/aiRes/AiAnalyseNewPhrasesRes";
+import {AiMakeExampleSentencesRes} from "@/common/types/aiRes/AiMakeExampleSentencesRes";
 import UndoRedo from "@/common/utils/UndoRedo";
 import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
 import {sleep, strBlank} from "@/common/utils/Util";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {AiAnalyseGrammarsRes} from "@/common/types/AiAnalyseGrammarsRes";
+import {AiAnalyseGrammarsRes} from "@/common/types/aiRes/AiAnalyseGrammarsRes";
 import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
@@ -129,6 +128,8 @@ const useChatPanel = create(
         createFromCurrent: async () => {
             const ct = usePlayerController.getState().currentSentence;
             const synTask = await api.aiSynonymousSentence(ct.text);
+            const phraseGroupTask = await api.aiPhraseGroup(ct.text);
+            const tt = new HumanTopicMessage(ct.text, phraseGroupTask);
             const mt = new AiWelcomeMessage({
                 originalTopic: ct.text,
                 synonymousSentenceTask: synTask
@@ -148,7 +149,7 @@ const useChatPanel = create(
                     }
                 },
                 messages: [
-                    new HumanTopicMessage(ct.text)
+                    tt
                 ],
                 tasks: {
                     ...empty().tasks,

@@ -4,8 +4,10 @@ import MsgT from "@/common/types/msg/interfaces/MsgT";
 
 class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     public content: string;
-    constructor(text: string) {
+    public phraseGroupTask: number;
+    constructor(text: string, phraseGroupTask: number) {
         this.content = text;
+        this.phraseGroupTask = phraseGroupTask;
     }
 
     public toMsg(): MsgT[] {
@@ -17,7 +19,7 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     msgType: MsgType = "human-topic";
 
     copy(): HumanTopicMessage {
-        return new HumanTopicMessage(this.content);
+        return new HumanTopicMessage(this.content, this.phraseGroupTask);
     }
 }
 

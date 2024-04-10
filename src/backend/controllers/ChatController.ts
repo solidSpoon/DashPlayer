@@ -1,7 +1,7 @@
 import {BaseMessage} from '@langchain/core/messages';
 import ChatService from '@/backend/services/ChatService';
 import DpTaskService from '@/backend/services/DpTaskService';
-import {AnalyzeSentenceParams} from '@/common/types/AnalyzeSentenceParams';
+import {AnalyzeSentenceParams} from '@/common/types/aiRes/AnalyzeSentenceParams';
 
 export default class ChatController {
     public static async chat(msgs: BaseMessage[]): Promise<number> {
@@ -41,6 +41,11 @@ export default class ChatController {
     public static async synonymousSentence(sentence: string) {
         const taskId = await DpTaskService.create();
         ChatService.synonymousSentence(taskId, sentence).then();
+        return taskId;
+    }
+    public static async phraseGroup(sentence: string,phraseGroup?: string) {
+        const taskId = await DpTaskService.create();
+        ChatService.phraseGroup(taskId, sentence, phraseGroup).then();
         return taskId;
     }
 }

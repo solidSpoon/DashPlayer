@@ -29,10 +29,9 @@ import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
 import WhisperController from '@/backend/controllers/WhisperController';
 import DpTaskController from '@/backend/controllers/DpTaskController';
-import { BaseMessage } from '@langchain/core/messages';
 import ChatController from '@/backend/controllers/ChatController';
 import { ChatMessageMiddle, fromMsgMiddle } from '@/common/types/ChatMessage';
-import { AnalyzeSentenceParams } from '@/common/types/AnalyzeSentenceParams';
+import { AnalyzeSentenceParams } from '@/common/types/aiRes/AnalyzeSentenceParams';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
@@ -119,29 +118,13 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         return ChatController.makeSentences(sentence, point);
     });
     handle('ai-synonymous-sentence', async (sentence: string) => {
-        log.info('ai-make-example-sentences');
+        log.info('ai-synonymous-sentence');
         return ChatController.synonymousSentence(sentence);
     });
-    // handle(
-    //     'list-words-view',
-    //     async (
-    //         whereSql: string,
-    //         orderBySql: string,
-    //         perPage: number,
-    //         currentPage: number
-    //     ) => {
-    //         log.info('list-words-level');
-    //         return listWordsView(whereSql, orderBySql, perPage, currentPage);
-    //     }
-    // );
-    // handle('batch-update-level-words', async (words: WordView[]) => {
-    //     log.info('update-words-level', words);
-    //     return updateWordsView(words);
-    // });
-    // handle('mark-word-level', async (word: string, familiar: boolean) => {
-    //     log.info('mark-word-level');
-    //     return markWordLevel(word, familiar);
-    // });
+    handle('ai-phrase-group', async (sentence: string,phraseGroup?: string) => {
+        log.info('ai-phrase-group');
+        return ChatController.phraseGroup(sentence, phraseGroup);
+    });
     handle('dp-task-detail', async (id: number) => {
         log.info('dp-task-detail');
         return DpTaskController.detail(id);

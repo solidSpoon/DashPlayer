@@ -1,19 +1,33 @@
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
-import {IconUser} from "@/fronted/components/chat/icons";
-import Md from "@/fronted/components/chat/markdown";
+import useDpTask from "@/fronted/hooks/useDpTask";
+import {AiPhraseGroupRes} from "@/common/types/aiRes/AiPhraseGroupRes";
+import {cn} from "@/fronted/lib/utils";
 
 const HumanTopicMsg = ({msg}:{msg: HumanTopicMessage}) => {
+
+    const dpTask = useDpTask(msg.phraseGroupTask, 200);
+
+    const res = JSON.parse(dpTask?.result??'{}') as AiPhraseGroupRes;
+    //export interface AiPhraseGroupRes {
+    //     sentence: string;
+    //     phraseGroups: {
+    //         original: string;
+    //         translation: string;
+    //         comment: string;
+    //     }[];
+    // }
+    //Rose100 Sky100 Green100 Orange100
+    const colors = ['bg-rose-100', 'bg-sky-100', 'bg-green-100', 'bg-orange-100'];
+
     return (
-        <div className="group relative flex items-start">
-            <div
-                className="flex size-[25px] shrink-0 select-none items-center justify-center rounded-md border bg-background shadow-sm">
-                <IconUser/>
-            </div>
-            <div className="ml-4 flex-1 space-y-2 overflow-hidden pl-2">
-                <Md>
-                    {msg.content}
-                </Md>
-            </div>
+        <div className={cn('text-lg text-gray-400')}>
+            {res?.phraseGroups?.map((group, i) => {
+                return (
+                    <span key={i} className={cn('p-1', colors[i % colors.length])}>
+                        {group.original}
+                    </span>
+                );
+            })}
         </div>
     );
 }

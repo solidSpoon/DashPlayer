@@ -1,7 +1,7 @@
 import {AIMessage, BaseMessage} from "@langchain/core/messages";
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
 import MsgT from "@/common/types/msg/interfaces/MsgT";
-import AiSynonymousSentenceResp from "@/common/types/AiSynonymousSentenceResp";
+import AiSynonymousSentenceResp from "@/common/types/aiRes/AiSynonymousSentenceResp";
 
 
 export interface WelcomeMessageProps {
