@@ -78,7 +78,7 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         messages: state.messages,
         streamingMessage: state.streamingMessage,
         canUndo: state.canUndo,
-        canRedo: state.canRedo
+        canRedo: state.canRedo,
     }
 }
 
@@ -99,7 +99,7 @@ const empty = (): ChatPanelState => {
         messages: [],
         streamingMessage: null,
         canUndo: false,
-        canRedo: false
+        canRedo: false,
     }
 }
 
@@ -123,7 +123,27 @@ const useChatPanel = create(
             });
 
         },
-        createTopic: (topic: Topic) => {
+        createTopic: async (topic: Topic) => {
+            undoRedo.add(copy(get()));
+            const text = extractTopic(topic);
+            const synTask = await api.aiSynonymousSentence(text);
+            const phraseGroupTask = await api.aiPhraseGroup(text);
+            const tt = new HumanTopicMessage(text, phraseGroupTask);
+            const mt = new AiWelcomeMessage({
+                originalTopic: text,
+                synonymousSentenceTask: synTask
+            });
+            set({
+                ...empty(),
+                topic: topic,
+                messages: [
+                    tt
+                ],
+                tasks: {
+                    ...empty().tasks,
+                    chatTask: mt
+                }
+            });
         },
         createFromCurrent: async () => {
             const ct = usePlayerController.getState().currentSentence;

@@ -8,22 +8,13 @@ const HumanTopicMsg = ({msg}:{msg: HumanTopicMessage}) => {
     const dpTask = useDpTask(msg.phraseGroupTask, 200);
 
     const res = JSON.parse(dpTask?.result??'{}') as AiPhraseGroupRes;
-    //export interface AiPhraseGroupRes {
-    //     sentence: string;
-    //     phraseGroups: {
-    //         original: string;
-    //         translation: string;
-    //         comment: string;
-    //     }[];
-    // }
-    //Rose100 Sky100 Green100 Orange100
-    const colors = ['bg-rose-100', 'bg-sky-100', 'bg-green-100', 'bg-orange-100'];
-
+    const colors = ['bg-rose-100/80', 'bg-sky-100/80', 'bg-green-100/80', 'bg-orange-100/80'];
+    console.log('HumanTopicMsg', msg)
     return (
-        <div className={cn('text-lg text-gray-400')}>
+        <div className={cn('text-lg flex flex-wrap gap-2')}>
             {res?.phraseGroups?.map((group, i) => {
                 return (
-                    <span key={i} className={cn('p-1', colors[i % colors.length])}>
+                    <span key={i} className={cn('px-2 py-1 rounded-xl', 'bg-secondary')}>
                         {group.original}
                     </span>
                 );

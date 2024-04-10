@@ -3,7 +3,6 @@ import Separator from "@/fronted/components/Separtor";
 import {Textarea} from "@/fronted/components/ui/textarea";
 import {Button} from "@/fronted/components/ui/button";
 import * as React from "react";
-import SentenceT from "@/common/types/SentenceT";
 import useChatPanel from "@/fronted/hooks/useChatPanel";
 import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
