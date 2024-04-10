@@ -11,6 +11,10 @@ import {AiAnalyseGrammarsRes} from "@/common/types/aiRes/AiAnalyseGrammarsRes";
 import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
+import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
+import {as} from "tencentcloud-sdk-nodejs";
+import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
+import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 
 const api = window.electron;
 
@@ -194,8 +198,23 @@ const useChatPanel = create(
                 }
             });
         },
-        sent: (msg: string) => {
-            // todo;
+        sent: async (msg: string) => {
+            set({
+                ...get(),
+                messages: [
+                    ...get().messages,
+                    new HumanNormalMessage(msg)
+                ]
+            });
+            const msgs = get().messages
+                .flatMap(e => e.toMsg());
+            const t = await api.chat(msgs);
+            set({
+                tasks: {
+                    ...get().tasks,
+                    chatTask: new AiStreamMessage(t)
+                }
+            });
         }
     }))
 );
@@ -348,6 +367,21 @@ const runChat = async () => {
                     streamingMessage: welcomeMessage.copy()
                 });
             }
+        }
+        if (synonymousSentence.status === DpTaskState.DONE) {
+            useChatPanel.getState().setTask({
+                ...useChatPanel.getState().tasks,
+                chatTask: 'done'
+            });
+        }
+    }
+    if (tm.msgType === 'ai-streaming') {
+        const welcomeMessage = tm as AiStreamMessage;
+        const synonymousSentence = await api.dpTaskDetail(welcomeMessage.taskId);
+        if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
+            useChatPanel.setState({
+                streamingMessage: new AiNormalMessage(synonymousSentence.result)
+            });
         }
         if (synonymousSentence.status === DpTaskState.DONE) {
             useChatPanel.getState().setTask({

@@ -1,6 +1,6 @@
 import {BaseMessage} from "@langchain/core/messages";
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
-import MsgT from "@/common/types/msg/interfaces/MsgT";
+import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 
 class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
     content: string;
@@ -23,3 +23,6 @@ class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
 
     msgType: MsgType = "human-normal";
 }
+
+
+export default HumanNormalMessage;

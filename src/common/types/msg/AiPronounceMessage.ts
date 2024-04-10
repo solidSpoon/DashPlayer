@@ -1,6 +1,6 @@
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
 import {BaseMessage} from "@langchain/core/messages";
-import MsgT from "@/common/types/msg/interfaces/MsgT";
+import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 
 class AiPronounceMessage implements CustomMessage<AiPronounceMessage> {
     constructor() {
@@ -16,5 +16,5 @@ class AiPronounceMessage implements CustomMessage<AiPronounceMessage> {
         return new AiPronounceMessage();
     }
 
-    msgType: MsgType =  "ai-pronounce";
+    msgType: MsgType = "ai-pronounce";
 }

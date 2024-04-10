@@ -1,5 +1,5 @@
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
-import MsgT from "@/common/types/msg/interfaces/MsgT";
+import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 
 
 class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {

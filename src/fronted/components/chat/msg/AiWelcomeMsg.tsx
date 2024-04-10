@@ -6,7 +6,7 @@ import Playable from "@/fronted/components/chat/Playable";
 const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
     const synonymousSentenceResp = msg.synonymousSentenceTaskResp;
 
-    let length = synonymousSentenceResp?.sentences?.length ?? 0;
+    const length = synonymousSentenceResp?.sentences?.length ?? 0;
     return (
         <div className={cn('group relative flex items-start')}>
             <div

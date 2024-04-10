@@ -16,6 +16,7 @@ import {DpTask} from '@/backend/db/tables/dpTask';
 import {BaseMessage} from '@langchain/core/messages';
 import {toMsgMiddle} from '@/common/types/ChatMessage';
 import {AnalyzeSentenceParams} from '@/common/types/aiRes/AnalyzeSentenceParams';
+import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 
 export type Channels =
     | 'main-state'
@@ -184,9 +185,8 @@ const electronHandler = {
     dpTaskCancel: async (id: number) => {
         await invoke('dp-task-cancel', id);
     },
-    chat: async (msgs: BaseMessage[]) => {
-        const msgMiddle = msgs.map((msg) => toMsgMiddle(msg));
-        return (await invoke('ai-chat', msgMiddle)) as number;
+    chat: async (msgs: MsgT[]) => {
+        return (await invoke('ai-chat', msgs)) as number;
     },
     aiAnalyzeCurrent: async (params: AnalyzeSentenceParams) => {
         return (await invoke('ai-analyze-current', params)) as number;

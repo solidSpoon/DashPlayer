@@ -9,6 +9,9 @@ import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import HumanTopicMsg from "@/fronted/components/chat/msg/HumanTopicMsg";
 import AiWelcomeMsg from "@/fronted/components/chat/msg/AiWelcomeMsg";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
+import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
+import {AiNormalMsg} from "@/fronted/components/chat/msg/AiNormalMsg";
+import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 
 const api = window.electron;
 
@@ -25,6 +28,8 @@ const ChatCenter = () => {
                 return <HumanTopicMsg msg={msg as HumanTopicMessage}/>;
             case "ai-welcome":
                 return <AiWelcomeMsg msg={msg as AiWelcomeMessage}/>;
+            case "ai-normal":
+                return <AiNormalMsg msg={msg as AiNormalMessage}/>;
             default:
                 return <></>
         }

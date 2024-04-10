@@ -32,6 +32,7 @@ import DpTaskController from '@/backend/controllers/DpTaskController';
 import ChatController from '@/backend/controllers/ChatController';
 import { ChatMessageMiddle, fromMsgMiddle } from '@/common/types/ChatMessage';
 import { AnalyzeSentenceParams } from '@/common/types/aiRes/AnalyzeSentenceParams';
+import {MsgT, toLangChainMsg} from "@/common/types/msg/interfaces/MsgT";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
@@ -91,10 +92,9 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         // return wordsTranslate(words);
     });
 
-    handle('ai-chat', async (msgMiddles: ChatMessageMiddle[]) => {
-        //BaseMessage[]
+    handle('ai-chat', async (msgMiddles: MsgT[]) => {
         console.log('chat', msgMiddles);
-        const msgs = msgMiddles.map((msg) => fromMsgMiddle(msg));
+        const msgs = msgMiddles.map((msg) => toLangChainMsg(msg));
         return ChatController.chat(msgs);
     });
     handle('ai-analyze-current', async (params: AnalyzeSentenceParams) => {

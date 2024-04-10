@@ -1,5 +1,5 @@
 import {BaseMessage} from "@langchain/core/messages";
-import MsgT from "@/common/types/msg/interfaces/MsgT";
+import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 
 export default interface CustomMessage<T> {
     toMsg(): MsgT[];
@@ -15,5 +15,6 @@ export type MsgType =
     | 'ai-welcome'
     | 'ai-sentence'
     | 'ai-meaning'
+    | 'ai-streaming'
     | 'ai-normal'
     | 'ai-pronounce';
