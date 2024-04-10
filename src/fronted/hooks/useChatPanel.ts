@@ -107,23 +107,26 @@ const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
         ...empty(),
         backward: () => {
+            undoRedo.update(copy(get()));
             if (!undoRedo.canUndo()) return;
             set({
-                ...undoRedo.undo(),
+                ...copy(undoRedo.undo()),
                 canUndo: undoRedo.canUndo(),
                 canRedo: undoRedo.canRedo()
             })
         },
         forward: () => {
+            undoRedo.update(copy(get()));
             if (!undoRedo.canRedo()) return;
             set({
-                ...undoRedo.redo(),
+                ...copy(undoRedo.redo()),
                 canUndo: undoRedo.canUndo(),
                 canRedo: undoRedo.canRedo()
             });
 
         },
         createTopic: async (topic: Topic) => {
+            undoRedo.update(copy(get()));
             undoRedo.add(copy(get()));
             const text = extractTopic(topic);
             const synTask = await api.aiSynonymousSentence(text);
@@ -142,10 +145,13 @@ const useChatPanel = create(
                 tasks: {
                     ...empty().tasks,
                     chatTask: mt
-                }
+                },
+                canRedo: undoRedo.canRedo(),
+                canUndo: undoRedo.canUndo()
             });
         },
         createFromCurrent: async () => {
+            undoRedo.add(copy(get()));
             const ct = usePlayerController.getState().currentSentence;
             const synTask = await api.aiSynonymousSentence(ct.text);
             const phraseGroupTask = await api.aiPhraseGroup(ct.text);

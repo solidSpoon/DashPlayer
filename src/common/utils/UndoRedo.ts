@@ -7,7 +7,7 @@ class UndoRedo<T> {
         if (state) {
             this.redoStack.push(state);
         }
-        return state;
+        return this.undoStack[this.undoStack.length - 1];
     }
 
     public redo() {
@@ -15,11 +15,11 @@ class UndoRedo<T> {
         if (state) {
             this.undoStack.push(state);
         }
-        return state;
+        return this.undoStack[this.undoStack.length - 1];
     }
 
     public canUndo() {
-        return this.undoStack.length > 0;
+        return this.undoStack.length > 1;
     }
 
     public canRedo() {
@@ -29,6 +29,10 @@ class UndoRedo<T> {
     public add(state: T) {
         this.undoStack.push(state);
         this.redoStack = [];
+    }
+
+    public update(state: T) {
+        this.undoStack[this.undoStack.length - 1] = state;
     }
     public clear() {
         this.undoStack = [];

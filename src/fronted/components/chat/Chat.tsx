@@ -18,9 +18,19 @@ import {
 } from "@/fronted/components/ui/context-menu";
 import {useEffect, useRef} from "react";
 import useChatPanel from "@/fronted/hooks/useChatPanel";
+import {Button} from "@/fronted/components/ui/button";
+import {ChevronLeft, ChevronRight, X} from "lucide-react";
+import {useShallow} from "zustand/react/shallow";
 
 const Chat = () => {
-    const createTopic = useChatPanel(s => s.createTopic);
+    const {createTopic, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
+        createTopic: s.createTopic,
+        clear: s.clear,
+        forward: s.forward,
+        backward: s.backward,
+        canRedo: s.canRedo,
+        canUndo: s.canUndo
+    })));
     const ref = useRef<HTMLDivElement>(null);
 
 
@@ -69,11 +79,33 @@ const Chat = () => {
                             }
                         }}
                     >
-                        <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
-                            <div className={cn('text-lg font-semibold leading-none tracking-tight')}>Are you absolutely
-                                sure?
+                        <div className={cn('flex')}>
+                            <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
+                                <div className={cn('text-lg font-semibold leading-none tracking-tight')}>Are you
+                                    absolutely
+                                    sure?
+                                </div>
+                                <div className={cn('text-sm text-muted-foreground')}>This action cannot be undone.</div>
                             </div>
-                            <div className={cn('text-sm text-muted-foreground')}>This action cannot be undone.</div>
+                            <div className={cn('ml-auto pt-4 px-4')}>
+                                <Button
+                                    disabled={!canUndo}
+                                    onClick={backward}
+                                    variant={'ghost'} size={'icon'}>
+                                    <ChevronLeft />
+                                </Button>
+                                <Button
+                                    disabled={!canRedo}
+                                    onClick={forward}
+                                    variant={'ghost'} size={'icon'}>
+                                    <ChevronRight/>
+                                </Button>
+                                <Button
+                                    onClick={clear}
+                                    variant={'ghost'} size={'icon'}>
+                                    <X />
+                                </Button>
+                            </div>
                         </div>
                         <div
                             className={cn('w-full h-0 flex-1 grid gap-10 grid-cols-3 overflow-y-auto')}
