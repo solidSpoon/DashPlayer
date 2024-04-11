@@ -26,6 +26,7 @@ import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
 import {getSubtitleContent, srtSlice} from "@/common/utils/srtSlice";
 import {describe} from "vitest";
 import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
+import analyzeGrammerPrompt from '@/backend/services/prompts/analyze-grammer';
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -241,7 +242,7 @@ export default class ChatService {
             functions: [extractionFunctionSchema],
             function_call: {name: "extractor"},
         })
-        const prompt = ChatPromptTemplate.fromTemplate(analyzeWordsPrompt);
+        const prompt = ChatPromptTemplate.fromTemplate(analyzeGrammerPrompt);
         const chain = prompt
             .pipe(runnable)
             .pipe(parser);
@@ -498,20 +499,20 @@ export default class ChatService {
         // 调用两次
         await Promise.all([
 
-            async () => {
+            (async () => {
                 const r1 = await chain.invoke({
                     srt,
                     sentence
                 });
                 resp.push(r1 as AiPunctuationResp);
-            },
-            async () => {
+            })(),
+            (async () => {
                 const r2 = await chain.invoke({
                     srt,
                     sentence
                 });
                 resp.push(r2 as AiPunctuationResp);
-            }
+            })()
         ]);
         const resp2  = resp.filter(r=>{
            return  (r.isComplete === false && r.completeVersion !== sentence) || r.isComplete === true

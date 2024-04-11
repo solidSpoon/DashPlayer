@@ -1,3 +1,5 @@
+import { strBlank } from '@/common/utils/Util';
+
 const cache = new Map<string, string>();
 const api = window.electron;
 let player: HTMLAudioElement | null = null;
@@ -11,12 +13,12 @@ async function getAudioUrl(outURl: string) {
     return audioUrl;
 }
 
-async function playAudioUrl(audioUrl: string) {
+export const playAudioUrl = async (audioUrl: string) => {
     player?.pause();
     player = new Audio(audioUrl);
     player.volume = 0.5;
     await player.play();
-}
+};
 
 export const playUrl = async (outURl: string) => {
     const audioUrl = await getAudioUrl(outURl);
@@ -40,4 +42,18 @@ export const playWord = async (word: string) => {
     audioUrl = await getAudioUrl(outUrl);
     cache.set(word, audioUrl);
     await playAudioUrl(audioUrl);
+};
+
+export const getTtsUrl = async (str: string) => {
+    str = str.trim();
+    if (strBlank(str)) {
+        return;
+    }
+    let audioUrl = cache.get(str);
+    if (audioUrl) {
+        return audioUrl;
+    }
+    audioUrl = await api.aiTts(str);
+    cache.set(str, audioUrl);
+    return audioUrl;
 };

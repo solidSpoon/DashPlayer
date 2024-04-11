@@ -2,6 +2,7 @@ import {BaseMessage} from '@langchain/core/messages';
 import ChatService from '@/backend/services/ChatService';
 import DpTaskService from '@/backend/services/DpTaskService';
 import {AnalyzeSentenceParams} from '@/common/types/aiRes/AnalyzeSentenceParams';
+import TtsService from '@/backend/controllers/TtsService';
 
 export default class ChatController {
     public static async chat(msgs: BaseMessage[]): Promise<number> {
@@ -53,5 +54,9 @@ export default class ChatController {
         const taskId = await DpTaskService.create();
         ChatService.punctuation(taskId, no, srt).then();
         return taskId;
+    }
+
+    public static async tts(string: string) {
+        return TtsService.tts(string);
     }
 }

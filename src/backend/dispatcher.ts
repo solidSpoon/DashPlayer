@@ -32,7 +32,7 @@ import DpTaskController from '@/backend/controllers/DpTaskController';
 import ChatController from '@/backend/controllers/ChatController';
 import { ChatMessageMiddle, fromMsgMiddle } from '@/common/types/ChatMessage';
 import { AnalyzeSentenceParams } from '@/common/types/aiRes/AnalyzeSentenceParams';
-import {MsgT, toLangChainMsg} from "@/common/types/msg/interfaces/MsgT";
+import { MsgT, toLangChainMsg } from '@/common/types/msg/interfaces/MsgT';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { shell } = require('electron');
@@ -125,7 +125,7 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('ai-synonymous-sentence');
         return ChatController.synonymousSentence(sentence);
     });
-    handle('ai-phrase-group', async (sentence: string,phraseGroup?: string) => {
+    handle('ai-phrase-group', async (sentence: string, phraseGroup?: string) => {
         log.info('ai-phrase-group');
         return ChatController.phraseGroup(sentence, phraseGroup);
     });
@@ -145,6 +145,11 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('get-audio', url);
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         return response.data;
+    });
+    handle('ai-tts', async (str: string ) => {
+        log.info('ai-tts', str);
+        const audioPath = await ChatController.tts(str);
+        return audioPath;
     });
     handle('show-button', async () => {
         log.info('show-button');

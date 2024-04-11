@@ -32,6 +32,7 @@ export type Channels =
     | 'open-menu'
     | 'you-dao-translate'
     | 'get-audio'
+    | 'ai-tts'
     | 'open-data-dir'
     | 'query-cache-size'
     | 'clear-cache'
@@ -134,6 +135,11 @@ const electronHandler = {
         const data = (await invoke('get-audio', url)) as never;
         const blob = new Blob([data], {type: 'audio/mpeg'});
         return URL.createObjectURL(blob);
+    },
+    aiTts: async (str: string) => {
+        const path = (await invoke('ai-tts', str)) as string;
+        console.log('path', path);
+        return 'dp:///'+path;
     },
     queryCacheSize: async () => {
         return (await invoke('query-cache-size')) as string;

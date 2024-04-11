@@ -22,7 +22,7 @@ const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
                 <h2>分析句子</h2>
                 <p>我来帮你分析这个句子</p>
                 <blockquote>
-                    <p>{msg.originalTopic}</p>
+                    <p><Playable>{msg.originalTopic}</Playable></p>
                 </blockquote>
                 <p>已经为您生成了这个句子的知识点, 包括生词, 短语, 语法, 例句等</p>
                 {complete && <>
