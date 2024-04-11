@@ -12,6 +12,8 @@ import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
 import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
 import {AiNormalMsg} from "@/fronted/components/chat/msg/AiNormalMsg";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
+import HumanNormalMsg from "@/fronted/components/chat/msg/HumanNormalMsg";
+import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
 
 const api = window.electron;
 
@@ -20,8 +22,10 @@ const api = window.electron;
 const ChatCenter = () => {
     const messages = useChatPanel(state => state.messages);
     const streamingMessage = useChatPanel(state => state.streamingMessage);
+    const sent = useChatPanel(state => state.sent);
     console.log('msgbox', messages);
-
+    const [input, setInput] = React.useState<string>('');
+    const inputRef = React.useRef<HTMLTextAreaElement>(null);
     const mapping = (msg: CustomMessage<any>) => {
         switch (msg.msgType) {
             case "human-topic":
@@ -30,10 +34,13 @@ const ChatCenter = () => {
                 return <AiWelcomeMsg msg={msg as AiWelcomeMessage}/>;
             case "ai-normal":
                 return <AiNormalMsg msg={msg as AiNormalMessage}/>;
+            case "human-normal":
+                return <HumanNormalMsg msg={msg as HumanNormalMessage}/>;
             default:
                 return <></>
         }
     }
+    console.log('msgbox', messages);
 
 
     return (
@@ -64,20 +71,18 @@ const ChatCenter = () => {
                 <div className={cn('w-full grid gap-2 bg-background')}>
 
                     <Textarea
+                        ref={inputRef}
                         className={cn('resize-none')}
-                        // value={input}
-                        // onChange={(e) => {
-                        //     setInput(e.target.value);
-                        // }}
+                        value={input}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                        }}
                         placeholder="Type your message here."/>
                     <Button
                         onClick={async () => {
-                            // const message = new HumanMessage(input);
-                            // const newMsgs = [...messages.filter(s => s.content), message];
-                            // setMessages(newMsgs);
-                            // const taskId = await api.chat(newMsgs);
-                            // setTaskId(taskId);
-                            // setInput('');
+                            sent(input.trim());
+                            setInput('');
+                            inputRef.current?.focus();
                         }}
                     >Send message</Button>
                 </div>

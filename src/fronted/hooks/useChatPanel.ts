@@ -12,7 +12,6 @@ import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import {as} from "tencentcloud-sdk-nodejs";
 import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 
@@ -131,14 +130,15 @@ const useChatPanel = create(
         },
         createTopic: async (topic: Topic) => {
             undoRedo.update(copy(get()));
-            undoRedo.add(copy(get()));
+            undoRedo.add(empty());
             const text = extractTopic(topic);
             const synTask = await api.aiSynonymousSentence(text);
             const phraseGroupTask = await api.aiPhraseGroup(text);
             const tt = new HumanTopicMessage(text, phraseGroupTask);
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
-                synonymousSentenceTask: synTask
+                synonymousSentenceTask: synTask,
+                topic: topic
             });
             set({
                 ...empty(),
@@ -160,24 +160,26 @@ const useChatPanel = create(
             const synTask = await api.aiSynonymousSentence(ct.text);
             const phraseGroupTask = await api.aiPhraseGroup(ct.text);
             const tt = new HumanTopicMessage(ct.text, phraseGroupTask);
+            const topic = {
+                content: {
+                    start: {
+                        sIndex: ct.index,
+                        cIndex: 0
+                    },
+                    end: {
+                        sIndex: ct.index,
+                        cIndex: ct.text.length
+                    }
+                }
+            };
             const mt = new AiWelcomeMessage({
                 originalTopic: ct.text,
-                synonymousSentenceTask: synTask
+                synonymousSentenceTask: synTask,
+                topic: topic
             });
             set({
                 ...empty(),
-                topic: {
-                    content: {
-                        start: {
-                            sIndex: ct.index,
-                            cIndex: 0
-                        },
-                        end: {
-                            sIndex: ct.index,
-                            cIndex: ct.text.length
-                        }
-                    }
-                },
+                topic,
                 messages: [
                     tt
                 ],
@@ -206,13 +208,14 @@ const useChatPanel = create(
                     new HumanNormalMessage(msg)
                 ]
             });
+            console.log(get().messages);
             const msgs = get().messages
                 .flatMap(e => e.toMsg());
             const t = await api.chat(msgs);
             set({
                 tasks: {
                     ...get().tasks,
-                    chatTask: new AiStreamMessage(t)
+                    chatTask: new AiStreamMessage(get().topic, t)
                 }
             });
         }
@@ -363,16 +366,28 @@ const runChat = async () => {
         if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
             if (!strBlank(synonymousSentence.result)) {
                 welcomeMessage.synonymousSentenceTaskResp = JSON.parse(synonymousSentence.result);
-                useChatPanel.setState({
-                    streamingMessage: welcomeMessage.copy()
-                });
+                if (useChatPanel.getState().topic === welcomeMessage.topic) {
+                    useChatPanel.setState({
+                        streamingMessage: welcomeMessage.copy()
+                    });
+                }
             }
         }
         if (synonymousSentence.status === DpTaskState.DONE) {
-            useChatPanel.getState().setTask({
-                ...useChatPanel.getState().tasks,
-                chatTask: 'done'
-            });
+            const state = useChatPanel.getState();
+            if (state.topic === welcomeMessage.topic) {
+                state.setTask({
+                    ...useChatPanel.getState().tasks,
+                    chatTask: 'done'
+                });
+                useChatPanel.setState({
+                    messages: [
+                        ...state.messages,
+                        state.streamingMessage.copy()
+                    ],
+                    streamingMessage: null
+                });
+            }
         }
     }
     if (tm.msgType === 'ai-streaming') {
@@ -384,20 +399,32 @@ const runChat = async () => {
             });
         }
         if (synonymousSentence.status === DpTaskState.DONE) {
-            useChatPanel.getState().setTask({
+            const state = useChatPanel.getState();
+            state.setTask({
                 ...useChatPanel.getState().tasks,
                 chatTask: 'done'
+            });
+            useChatPanel.setState({
+                messages: [
+                    ...state.messages,
+                    state.streamingMessage.copy()
+                ],
+                streamingMessage: null
             });
         }
     }
 }
 
+
+let running = false;
 useChatPanel.subscribe(
     (s) => s.topic,
     async (topic) => {
         if (topic === 'offscreen') {
             return;
         }
+        if (running) return;
+        running = true;
         while (useChatPanel.getState().topic !== 'offscreen') {
             await runVocabulary();
             await runPhrase();
@@ -406,6 +433,7 @@ useChatPanel.subscribe(
             await runChat();
             await sleep(100);
         }
+        running = false;
     }
 );
 
