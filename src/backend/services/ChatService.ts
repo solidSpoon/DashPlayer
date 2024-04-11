@@ -25,6 +25,7 @@ import {IterableReadableStream} from "@langchain/core/dist/utils/stream";
 import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
 import {getSubtitleContent, srtSlice} from "@/common/utils/srtSlice";
 import {describe} from "vitest";
+import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -457,7 +458,7 @@ export default class ChatService {
         console.log('punctuation', no, fullSrt);
         const sentence = getSubtitleContent(fullSrt, no);
         const srt = srtSlice(fullSrt, no, 5);
-        console.log('ssssss',sentence, srt);
+        console.log('ssssss', sentence, srt);
         if (!await this.rateLimiter.limitRate(taskId)) return;
         const schema = z.object({
             isComplete: z.boolean().describe('是完整的吗'),
@@ -488,10 +489,48 @@ export default class ChatService {
             .pipe(runnable)
             .pipe(parser);
 
-        const resStream = await chain.stream({
-            srt,
-            sentence
+        const resp : AiPunctuationResp[] = [];
+
+        // const resStream = await chain.stream({
+        //     srt,
+        //     sentence
+        // });
+        // 调用两次
+        await Promise.all([
+
+            async () => {
+                const r1 = await chain.invoke({
+                    srt,
+                    sentence
+                });
+                resp.push(r1 as AiPunctuationResp);
+            },
+            async () => {
+                const r2 = await chain.invoke({
+                    srt,
+                    sentence
+                });
+                resp.push(r2 as AiPunctuationResp);
+            }
+        ]);
+        const resp2  = resp.filter(r=>{
+           return  r.isComplete === false && r.completeVersion !== sentence;
         });
-        await ChatService.processJsonResp(taskId, resStream);
+        if (resp2.length>0) {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.DONE,
+                progress: 'AI has responded',
+                result: JSON.stringify(resp2[0])
+            });
+        } else {
+            await DpTaskService.update({
+                id: taskId,
+                status: DpTaskState.DONE,
+                progress: 'AI has responded',
+                result: JSON.stringify(resp[0])
+            });
+        }
     }
 }
+
