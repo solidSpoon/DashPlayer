@@ -2,12 +2,16 @@ import {IconOpenAI, IconUser} from "@/fronted/components/chat/icons";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
 import {cn} from "@/fronted/lib/utils";
 import Playable from "@/fronted/components/chat/Playable";
+import useChatPanel from "@/fronted/hooks/useChatPanel";
 
 const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
     const synonymousSentenceResp = msg.synonymousSentenceTaskResp;
     const punctuationTaskResp = msg.punctuationTaskResp;
     const length = synonymousSentenceResp?.sentences?.length ?? 0;
+    const createTopic = useChatPanel(s=>s.createTopic);
     console.log('punctuationTaskResp', punctuationTaskResp)
+    const complete =
+        !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
     return (
         <div className={cn('group relative flex items-start')}>
             <div
@@ -21,6 +25,16 @@ const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
                     <p>{msg.originalTopic}</p>
                 </blockquote>
                 <p>已经为您生成了这个句子的知识点, 包括生词, 短语, 语法, 例句等</p>
+                {complete && <>
+                    <h3>建议更换会话内容</h3>
+                    <p>这句话可能被换行打断了, 完整形式应该为下面这句, 您可以 <span
+                        className={'underline cursor-pointer'}
+                        onClick={() => createTopic({content: punctuationTaskResp?.completeVersion})}
+                    >点击切换</span></p>
+                    <blockquote>
+                        <p>{punctuationTaskResp?.completeVersion}</p>
+                    </blockquote>
+                </>}
                 {length > 0 && <>
                     <h3>同义句</h3>
                     <p>这个句子还有如下几种表达方式:</p>
@@ -29,19 +43,6 @@ const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
                             <Playable>{s}</Playable>
                         </li>
                     ))}
-                </>}
-                {!msg.punctuationFinish && <>
-                    <h3>分析句子完整性</h3>
-                    <p>
-                        正在分析句子完整性...
-                    </p>
-                </>}
-                {!(punctuationTaskResp?.isComplete ?? true) && <>
-                    <h3>建议更换会话内容</h3>
-                    <p>这句话可能被换行打断了, 完整形式应该为下面这句, 您可以点击切换</p>
-                    <blockquote>
-                        <p>{punctuationTaskResp?.completeVersion}</p>
-                    </blockquote>
                 </>}
             </div>
         </div>

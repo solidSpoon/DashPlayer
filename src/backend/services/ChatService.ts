@@ -472,10 +472,10 @@ export default class ChatService {
         const parser = new JsonOutputFunctionsParser();
         const chat: ChatOpenAI = (await this.getOpenAi(taskId))
         if (!chat) return;
-        // const runnable = chat.bind({
-        //     functions: [extractionFunctionSchema],
-        //     function_call: {name: "extractor"},
-        // })
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
 
         const prompt = ChatPromptTemplate.fromTemplate(promptPunctuation);
         await DpTaskService.update({
@@ -483,39 +483,15 @@ export default class ChatService {
             status: DpTaskState.IN_PROGRESS,
             progress: 'AI is analyzing...'
         });
-        const result1 =(await prompt
-            .pipe(chat)
-            .invoke({
-                srt,
-                sentence
-            })).content;
 
-        console.log('result1', result1);
-
-        const prompt2 = ChatPromptTemplate.fromTemplate('{result1}');
-        const runnable = chat.bind({
-            functions: [extractionFunctionSchema],
-            function_call: {name: "extractor"},
-        })
-        const chain = prompt2
+        const chain = prompt
             .pipe(runnable)
             .pipe(parser);
+
         const resStream = await chain.stream({
-            result1: result1 as string
+            srt,
+            sentence
         });
         await ChatService.processJsonResp(taskId, resStream);
-        //
-        // console.log('pppppp', await prompt.format({
-        //     srt,
-        //     sentence
-        // }));
-        // chat.bind({
-        //
-        // })
-        // const resStream = await chain.stream({
-        //     srt,
-        //     sentence
-        // });
-        // await ChatService.processJsonResp(taskId, resStream);
     }
 }
