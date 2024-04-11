@@ -514,7 +514,7 @@ export default class ChatService {
             }
         ]);
         const resp2  = resp.filter(r=>{
-           return  r.isComplete === false && r.completeVersion !== sentence;
+           return  (r.isComplete === false && r.completeVersion !== sentence) || r.isComplete === true
         });
         if (resp2.length>0) {
             await DpTaskService.update({
