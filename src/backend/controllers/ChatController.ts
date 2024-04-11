@@ -49,9 +49,9 @@ export default class ChatController {
         return taskId;
     }
 
-    public static async punctuation(sentence: string, context: string[]) {
+    public static async punctuation(no: number, srt: string) {
         const taskId = await DpTaskService.create();
-        ChatService.punctuation(taskId, sentence, context).then();
+        ChatService.punctuation(taskId, no, srt).then();
         return taskId;
     }
 }

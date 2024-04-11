@@ -14,6 +14,7 @@ import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
 import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
+import useFile from "@/fronted/hooks/useFile";
 
 const api = window.electron;
 
@@ -161,8 +162,10 @@ const useChatPanel = create(
             const synTask = await api.aiSynonymousSentence(ct.text);
             const phraseGroupTask = await api.aiPhraseGroup(ct.text);
             const tt = new HumanTopicMessage(ct.text, phraseGroupTask);
-            const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const punctuationTask = await api.aiPunctuation(ct.text, subtitleAround)
+            // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
+            const url = useFile.getState().subtitleFile.objectUrl??'';
+            const text = await fetch(url).then((res) => res.text());
+            const punctuationTask = await api.aiPunctuation(ct.indexInFile, text)
             const topic = {
                 content: {
                     start: {
@@ -384,6 +387,7 @@ const runChat = async () => {
             if (punctuation.status === DpTaskState.IN_PROGRESS || punctuation.status === DpTaskState.DONE) {
                 if (!strBlank(punctuation.result)) {
                     welcomeMessage.punctuationTaskResp = JSON.parse(punctuation.result);
+                    welcomeMessage.punctuationFinish = punctuation.status === DpTaskState.DONE;
                     if (useChatPanel.getState().topic === welcomeMessage.topic) {
                         useChatPanel.setState({
                             streamingMessage: welcomeMessage.copy()

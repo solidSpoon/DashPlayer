@@ -117,9 +117,9 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('ai-make-example-sentences');
         return ChatController.makeSentences(sentence, point);
     });
-    handle('ai-punctuation', async (sentence: string, context: string[]) => {
+    handle('ai-punctuation', async (no: number, srt: string) => {
         log.info('ai-punctuation');
-        return ChatController.punctuation(sentence, context);
+        return ChatController.punctuation(no, srt);
     });
     handle('ai-synonymous-sentence', async (sentence: string) => {
         log.info('ai-synonymous-sentence');

@@ -204,8 +204,8 @@ const electronHandler = {
     aiMakeExampleSentences: async (sentence: string, points: string[]) => {
         return (await invoke('ai-make-example-sentences', sentence, points)) as number;
     },
-    aiPunctuation: async (sentence: string, points: string[]) => {
-        return (await invoke('ai-punctuation', sentence, points)) as number;
+    aiPunctuation: async (no: number, srt: string) => {
+        return (await invoke('ai-punctuation', no, srt)) as number;
     },
     aiPhraseGroup: async (sentence: string, phraseGroup?: string) => {
         return (await invoke('ai-phrase-group', sentence, phraseGroup)) as number;

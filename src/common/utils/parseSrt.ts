@@ -61,6 +61,7 @@ export default function parseSrtSubtitles(srt: string): Array<SentenceT> {
 
             // 字幕对象
             const subtitle = new SentenceT(i);
+            subtitle.indexInFile = Number(sn);
             subtitle.currentBegin = startTime;
             subtitle.currentEnd = endTime;
             subtitle.text = contentEn;

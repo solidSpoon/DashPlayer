@@ -5,6 +5,6 @@
 //     }).describe("Analyse whether the sentence is broken into multiple lines and return the complete sentence"),
 // });
 export default interface AiPunctuationResp {
-    change: boolean;
-    sentence: string;
+    isComplete: boolean;
+    completeVersion: string;
 }

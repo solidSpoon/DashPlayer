@@ -3,6 +3,8 @@ import hash from '../utils/hash';
 class SentenceT {
     public index: number;
 
+    public indexInFile: number | undefined;
+
     public currentBegin: number | undefined;
 
     public currentEnd: number | undefined;
@@ -82,6 +84,7 @@ class SentenceT {
 
     public clone(): SentenceT {
         const result = new SentenceT(this.index);
+        result.indexInFile = this.indexInFile;
         result.currentBegin = this.currentBegin;
         result.currentEnd = this.currentEnd;
         result.nextBegin = this.nextBegin;
