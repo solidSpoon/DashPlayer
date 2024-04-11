@@ -22,6 +22,7 @@ import summaryPrompt from './prompts/summary-prompt';
 import synonymousSentence from "@/backend/services/prompts/synonymous-sentence";
 import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
 import {IterableReadableStream} from "@langchain/core/dist/utils/stream";
+import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
 
 export default class ChatService {
     private static rateLimiter = new RateLimiter();
@@ -168,6 +169,7 @@ export default class ChatService {
         });
         await ChatService.processJsonResp(taskId, resStream);
     }
+
     public static async analyzePhrase(taskId: number, sentence: string) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
         const schema = z.object({
@@ -254,7 +256,8 @@ export default class ChatService {
         });
         await ChatService.processJsonResp(taskId, resStream);
     }
-    public static async makeSentences(taskId: number, sentence: string,point: string[]) {
+
+    public static async makeSentences(taskId: number, sentence: string, point: string[]) {
         if (!await this.rateLimiter.limitRate(taskId)) return;
         const schema = z.object({
             sentences: z.array(
@@ -337,7 +340,6 @@ export default class ChatService {
         });
         await ChatService.processJsonResp(taskId, resStream);
     }
-
 
 
     public static async synonymousSentence(taskId: number, sentence: string) {
@@ -439,5 +441,60 @@ export default class ChatService {
             status: DpTaskState.DONE,
             progress: 'AI has responded',
         });
+    }
+
+
+    /**
+     * 断句
+     * 当前字幕行所在的句子可能被换行打断, 尝试找出完整的句子
+     * @param taskId
+     * @param sentence
+     * @param context
+     */
+    public static async punctuation(taskId: number, sentence: string, context: string[]) {
+        if (!await this.rateLimiter.limitRate(taskId)) return;
+        const schema = z.object({
+            change: z.boolean().describe("Indicates whether the sentence will be modified to form a complete sentence. If true, the sentence will be modified. If false, the sentence is already complete."),
+            sentence: z.string().describe("The sentence after processing. If 'changed' is true, this will be the modified version of the input sentence. If 'changed' is false, this will be the same as the input sentence."),
+        }).describe("This structure represents the result of the task of determining whether a given sentence is complete or not, and modifying it to form a complete sentence if necessary. The 'change' field indicates whether the sentence need to be modified, and the 'sentence' field contains the processed sentence.");
+
+        // const schema = z.object({
+        //     sentence: z.string().describe("The processed sentence. It represents the original input sentence if it was already complete, or the modified version of the sentence if it was incomplete and needed to be changed to form a complete sentence."),
+        // }).describe("This structure represents the result of the task of determining whether a given sentence is complete or not, and modifying it to form a complete sentence if necessary. The 'sentence' field contains the processed sentence.");
+
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts fields from the input.",
+            parameters: zodToJsonSchema(schema),
+        };
+        // Instantiate the parser
+        const parser = new JsonOutputFunctionsParser();
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        if (!chat) return;
+        const runnable = chat.bind({
+            functions: [extractionFunctionSchema],
+            function_call: {name: "extractor"},
+        })
+
+        const prompt = ChatPromptTemplate.fromTemplate(promptPunctuation);
+        const chain = prompt
+            .pipe(runnable)
+            .pipe(parser);
+        await DpTaskService.update({
+            id: taskId,
+            status: DpTaskState.IN_PROGRESS,
+            progress: 'AI is analyzing...'
+        });
+        console.log('pppppp',await prompt.format({
+            time: new Date().toLocaleString(),
+            sentence,
+            context: context.join('\n')
+        }));
+        const resStream = await chain.stream({
+            time: new Date().toLocaleString(),
+            sentence,
+            context: context.join('\n')
+        });
+        await ChatService.processJsonResp(taskId, resStream);
     }
 }

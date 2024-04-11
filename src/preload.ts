@@ -69,6 +69,7 @@ export type Channels =
     | 'ai-analyze-new-phrases'
     | 'ai-analyze-grammers'
     | 'ai-make-example-sentences'
+    | 'ai-punctuation'
     | 'ai-phrase-group'
     | 'ai-synonymous-sentence';
 
@@ -203,7 +204,10 @@ const electronHandler = {
     aiMakeExampleSentences: async (sentence: string, points: string[]) => {
         return (await invoke('ai-make-example-sentences', sentence, points)) as number;
     },
-    aiPhraseGroup: async (sentence: string,phraseGroup?: string) => {
+    aiPunctuation: async (sentence: string, points: string[]) => {
+        return (await invoke('ai-punctuation', sentence, points)) as number;
+    },
+    aiPhraseGroup: async (sentence: string, phraseGroup?: string) => {
         return (await invoke('ai-phrase-group', sentence, phraseGroup)) as number;
     },
     aiSynonymousSentence: async (sentence: string) => {

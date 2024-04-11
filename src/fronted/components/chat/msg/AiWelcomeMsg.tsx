@@ -5,8 +5,9 @@ import Playable from "@/fronted/components/chat/Playable";
 
 const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
     const synonymousSentenceResp = msg.synonymousSentenceTaskResp;
-
+    const punctuationTaskResp = msg.punctuationTaskResp;
     const length = synonymousSentenceResp?.sentences?.length ?? 0;
+    console.log('punctuationTaskResp', punctuationTaskResp)
     return (
         <div className={cn('group relative flex items-start')}>
             <div
@@ -19,10 +20,12 @@ const AiWelcomeMsg = ({msg}: { msg: AiWelcomeMessage }) => {
                 <blockquote>
                     <p>{msg.originalTopic}</p>
                 </blockquote>
-                <p>这句话可能被换行打断了, 完整形式应该为下面这句, 您可以点击切换</p>
-                <blockquote>
-                    <p>{msg.originalTopic}</p>
-                </blockquote>
+                {(punctuationTaskResp?.change ?? true) && <>
+                    <p>这句话可能被换行打断了, 完整形式应该为下面这句, 您可以点击切换</p>
+                    <blockquote>
+                        <p>{punctuationTaskResp?.sentence}</p>
+                    </blockquote>
+                </>}
                 <p>已经为您生成了这个句子的知识点, 包括生词, 短语, 语法, 例句等</p>
                 {length > 0 && <>
                     <h3>同义句</h3>

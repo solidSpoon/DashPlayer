@@ -138,6 +138,7 @@ const useChatPanel = create(
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
                 synonymousSentenceTask: synTask,
+                punctuationTask: null,
                 topic: topic
             });
             set({
@@ -160,6 +161,8 @@ const useChatPanel = create(
             const synTask = await api.aiSynonymousSentence(ct.text);
             const phraseGroupTask = await api.aiPhraseGroup(ct.text);
             const tt = new HumanTopicMessage(ct.text, phraseGroupTask);
+            const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
+            const punctuationTask = await api.aiPunctuation(ct.text, subtitleAround)
             const topic = {
                 content: {
                     start: {
@@ -175,6 +178,7 @@ const useChatPanel = create(
             const mt = new AiWelcomeMessage({
                 originalTopic: ct.text,
                 synonymousSentenceTask: synTask,
+                punctuationTask: punctuationTask,
                 topic: topic
             });
             set({
@@ -373,7 +377,22 @@ const runChat = async () => {
                 }
             }
         }
-        if (synonymousSentence.status === DpTaskState.DONE) {
+        let punctuation = null;
+        if (welcomeMessage.punctuationTask) {
+            punctuation = await api.dpTaskDetail(welcomeMessage.punctuationTask);
+            console.log('punctuation',punctuation)
+            if (punctuation.status === DpTaskState.IN_PROGRESS || punctuation.status === DpTaskState.DONE) {
+                if (!strBlank(punctuation.result)) {
+                    welcomeMessage.punctuationTaskResp = JSON.parse(punctuation.result);
+                    if (useChatPanel.getState().topic === welcomeMessage.topic) {
+                        useChatPanel.setState({
+                            streamingMessage: welcomeMessage.copy()
+                        });
+                    }
+                }
+            }
+        }
+        if (synonymousSentence.status === DpTaskState.DONE && (punctuation?.status??DpTaskState.DONE) === DpTaskState.DONE) {
             const state = useChatPanel.getState();
             if (state.topic === welcomeMessage.topic) {
                 state.setTask({
@@ -426,6 +445,7 @@ useChatPanel.subscribe(
         if (running) return;
         running = true;
         while (useChatPanel.getState().topic !== 'offscreen') {
+            console.log('running', useChatPanel.getState().topic);
             await runVocabulary();
             await runPhrase();
             await runGrammar();

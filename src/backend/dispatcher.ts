@@ -117,6 +117,10 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('ai-make-example-sentences');
         return ChatController.makeSentences(sentence, point);
     });
+    handle('ai-punctuation', async (sentence: string, context: string[]) => {
+        log.info('ai-punctuation');
+        return ChatController.punctuation(sentence, context);
+    });
     handle('ai-synonymous-sentence', async (sentence: string) => {
         log.info('ai-synonymous-sentence');
         return ChatController.synonymousSentence(sentence);
