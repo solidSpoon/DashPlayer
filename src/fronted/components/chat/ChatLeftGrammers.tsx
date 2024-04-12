@@ -17,8 +17,8 @@ const ChatLeftGrammers = ({className}: {
                 <CardContent>
                     {res?.hasGrammar && res?.grammars?.map((g, i) => (
                         <div key={i} className="flex flex-col items-start px-4 py-2">
-                            <div className="flex flex-col items-start text-md text-gray-700 text-base">
-                                <div className={cn('text-lg font-medium leading-none')}>{g.description}</div>
+                            <div className="flex flex-col items-start">
+                                <div className={cn(' font-medium leading-none')}>{g.description}</div>
                             </div>
                         </div>
                     ))}

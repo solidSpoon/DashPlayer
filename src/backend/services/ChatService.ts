@@ -500,18 +500,25 @@ export default class ChatService {
         await Promise.all([
 
             (async () => {
-                const r1 = await chain.invoke({
+                const r = await chain.invoke({
                     srt,
                     sentence
                 });
-                resp.push(r1 as AiPunctuationResp);
+                resp.push(r as AiPunctuationResp);
             })(),
             (async () => {
-                const r2 = await chain.invoke({
+                const r = await chain.invoke({
                     srt,
                     sentence
                 });
-                resp.push(r2 as AiPunctuationResp);
+                resp.push(r as AiPunctuationResp);
+            })(),
+            (async () => {
+                const r = await chain.invoke({
+                    srt,
+                    sentence
+                });
+                resp.push(r as AiPunctuationResp);
             })()
         ]);
         const resp2  = resp.filter(r=>{
