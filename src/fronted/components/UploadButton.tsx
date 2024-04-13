@@ -5,6 +5,7 @@ import { FaMaximize } from 'react-icons/fa6';
 import { cn } from '@/common/utils/Util';
 import useLayout from '../hooks/useLayout';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 export default function UploadButton() {
     const changeSideBar = useLayout((s) => s.changeSideBar);
@@ -21,7 +22,8 @@ export default function UploadButton() {
                     'dark:bg-lime-700 dark:hover:bg-lime-800',
                     'transition-colors duration-200'
                 )}
-                onClick={() => {
+                onClick={async () => {
+                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST)
                     pauseMeasurement();
                     changeSideBar(!showSideBar);
                 }}

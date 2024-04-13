@@ -7,6 +7,7 @@ const api = window.electron;
 type UseFileState = {
     videoFile: FileT | undefined;
     videoId: number | null;
+    projectId: number | null;
     subtitleFile: FileT | undefined;
     videoLoaded: boolean;
     openedNum: number;
@@ -24,7 +25,8 @@ const useFile = create(
         subtitleFile: undefined,
         videoLoaded: false,
         openedNum: 0,
-        videoId: undefined,
+        videoId: null,
+        projectId: null,
         updateFile: (file: FileT) => {
             if (FileType.VIDEO === file.fileType) {
                 set((ps) => {

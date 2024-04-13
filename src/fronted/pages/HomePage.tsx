@@ -31,7 +31,6 @@ const HomePage = () => {
         navigate(`/player/${videoId}`);
     }
 
-    const [searchParams, setSearchParams] = useSearchParams();
     const appVersion = useSystem((s) => s.appVersion);
     const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
     const clear = useFile((s) => s.clear);
@@ -92,15 +91,10 @@ const HomePage = () => {
                     <FileSelector className={cn('text-sm')} />
                     <FileSelector className={cn('text-sm')} directory />
                 </div>
-                {searchParams.get('browserProjectId') ? (
-
-                    <div>{searchParams.get('browserProjectId')}</div>
-                ) : (
-                    <ProjectList className={cn('h-0 flex-1 w-full')}
-                                 onSelected={async (projectId) => {
-                                     await handleClickById(projectId);
-                                 }} />
-                )}
+                <ProjectList className={cn('h-0 flex-1 w-full')}
+                             onSelected={async (projectId) => {
+                                 await handleClickById(projectId);
+                             }} />
             </div>
         </div>
     );

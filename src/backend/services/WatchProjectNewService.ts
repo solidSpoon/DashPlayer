@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { InsertWatchProject, WatchProject, watchProjects, WatchProjectType } from '@/backend/db/tables/watchProjects';
 import { InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos } from '@/backend/db/tables/watchProjectVideos';
 import db from '@/backend/db/db';
@@ -187,7 +187,7 @@ export default class WatchProjectNewService {
     }
 
     static async updateProgress(videoId: number, currentTime: number, duration: number) {
-        const [video]: WatchProjectVideo[] =await db.update(watchProjectVideos)
+        const [video]: WatchProjectVideo[] = await db.update(watchProjectVideos)
             .set({
                 current_time: currentTime,
                 duration: duration,
@@ -200,6 +200,7 @@ export default class WatchProjectNewService {
             .set({ updated_at: new Date().toISOString() })
             .where(eq(watchProjects.id, video.project_id));
     }
+
     public static async play(videoId: number): Promise<void> {
         const [video]: WatchProjectVideo[] = await db.select()
             .from(watchProjectVideos)
@@ -212,19 +213,37 @@ export default class WatchProjectNewService {
             .where(eq(watchProjectVideos.id, videoId));
         await db.update(watchProjects)
             .set({
-                current_playing: false,
+                current_playing: false
             });
         await db.update(watchProjects)
             .set({
-                current_playing: true,
+                current_playing: true
             })
             .where(eq(watchProjects.id, video.project_id));
 
     }
 
-    static async videoDetail(videoId: number): Promise<WatchProjectVideo | undefined>{
+    static async videoDetail(videoId: number): Promise<WatchProjectVideo | undefined> {
         return (await db.select()
             .from(watchProjectVideos)
-            .where(eq(watchProjectVideos.id, videoId)))[0]
+            .where(eq(watchProjectVideos.id, videoId)))[0];
+    }
+
+    static async videoDetailByPid(projId: number) {
+        const v = (await db.select()
+            .from(watchProjectVideos)
+            .where(and(eq(watchProjectVideos.project_id, projId), eq(watchProjectVideos.current_playing, true))))[0];
+        if (!v) {
+            return (await db.select()
+                .from(watchProjectVideos)
+                .where(eq(watchProjectVideos.project_id, projId)))[0];
+        }
+    }
+
+    static async detailByVid(vid: number) {
+        const [video]: WatchProjectVideo[] = await db.select()
+            .from(watchProjectVideos)
+            .where(eq(watchProjectVideos.id, vid));
+        return this.detail(video.project_id);
     }
 }

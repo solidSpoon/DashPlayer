@@ -40,11 +40,13 @@ interface AiTransDef {
 interface WatchProjectDef {
     'watch-project/progress/update': { params: {videoId: number, currentTime: number, duration: number}, return: void }
     'watch-project/video/play': { params: number, return: void }
-    'watch-project/video/detail': { params: number, return: WatchProjectVideo | undefined }
+    'watch-project/video/detail': { params: number, return: WatchProjectVideo }
+    'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo }
     'watch-project/create/from-folder': { params: string, return: number }
     'watch-project/create/from-files': { params: string[], return: number }
     'watch-project/delete': { params: number, return: void }
     'watch-project/detail': { params: number, return: WatchProjectVO }
+    'watch-project/detail/by-vid': { params: number, return: WatchProjectVO }
     'watch-project/list': { params: void, return: WatchProject[] }
     'watch-project/attach-srt': { params: { videoPath: string, srtPath: string }, return: void }
 }

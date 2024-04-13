@@ -15,6 +15,7 @@ import useSWR from 'swr';
 import { pathToFile } from '@/common/utils/FileParser';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 
@@ -28,7 +29,7 @@ const fetchVideo = async (videoId: number) => {
 
 const PlayerP = () => {
     const { videoId } = useParams();
-    const { data: video} = useSWR<WatchProjectVideo>(SWR_VIDEO, fetchVideo.bind(null, Number(videoId)));
+    const { data: video} = useSWR<WatchProjectVideo>(`${SWR_VIDEO}:${videoId}`, fetchVideo.bind(null, Number(videoId)));
     console.log('playerp',videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
@@ -53,7 +54,7 @@ const PlayerP = () => {
             if (!video) {
                 return;
             }
-            useFile.setState({ videoId: video.id });
+            useFile.setState({ videoId: video.id, projectId: video.project_id});
             const vf = useFile.getState().videoFile;
             const sf = useFile.getState().subtitleFile;
             if (video.video_path && vf?.path !== video.video_path) {
@@ -64,6 +65,8 @@ const PlayerP = () => {
                 const file = await pathToFile(video.subtitle_path);
                 useFile.getState().updateFile(file);
             }
+            await api.call('watch-project/video/play', video.id);
+            // await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
         };
         runEffect();
     }, [video]);

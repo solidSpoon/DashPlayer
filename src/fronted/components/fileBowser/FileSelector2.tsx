@@ -7,11 +7,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { isMidea, isSrt } from '@/common/utils/MediaTypeUitl';
 import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
 import { mutate } from 'swr';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 export interface OpenFileProps {
     directory?: boolean;
     className?: string;
-    onSelected?: () => void;
 }
 
 const api = window.electron;
@@ -19,7 +19,6 @@ const api = window.electron;
 export default function FileSelector2({
                                           directory,
                                           className,
-                                          onSelected
                                       }: OpenFileProps) {
     const navigate = useNavigate();
     const handleClick = async () => {
@@ -28,26 +27,26 @@ export default function FileSelector2({
             filter: 'none'
         });
         console.log('project', ps);
-        if (ps.length === 1 && !directory && isSrt(ps[0])) {
-            const video = useFile.getState().videoFile;
-            if (video?.path) {
-                await api.call('watch-project/attach-srt', { videoPath: video.path, srtPath: ps[0] });
-            }
-            return;
-        }
+        if (directory) {
+            const pid = await api.call('watch-project/create/from-folder', ps[0]);
+            const v = await api.call('watch-project/video/detail/by-pid', pid);
+            navigate(`/player/${v.id}`);
+        } else {
+            if (ps.length === 1 && isSrt(ps[0])) {
+                const video = useFile.getState().videoFile;
+                if (video?.path) {
+                    await api.call('watch-project/attach-srt', { videoPath: video.path, srtPath: ps[0] });
+                }
+            } else {
+                const pid = await api.call('watch-project/create/from-files', ps);
+                const v = await api.call('watch-project/video/detail/by-pid', pid);
+                navigate(`/player/${v.id}`);
 
-        const [videoFile] = ps.filter((p) => isMidea(p));
-        const [subtitleFile] = ps.filter((p) => isSrt(p));
-        const pid = await api.call('watch-project/create/from-files', [videoFile, subtitleFile]);
-        const watchProject: WatchProjectVO = await api.call('watch-project/detail', pid);
-        let [video] = watchProject.videos.filter(v=>v.current_playing);
-        if (!video) {
-            video = watchProject.videos[0];
+            }
         }
-        await api.playerSize();
-        navigate(`/player/${video.id}`);
-        await mutate('player-p');
-        onSelected?.();
+        await swrMutate(SWR_KEY.PLAYER_P)
+        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+        await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
     };
 
     return (
