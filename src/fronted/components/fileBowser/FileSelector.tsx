@@ -5,6 +5,9 @@ import useFile from '../../hooks/useFile';
 import { cn } from '../../../common/utils/Util';
 import usePlayerController from '../../hooks/usePlayerController';
 import FileItem from './FileItem';
+import { isMidea, isSrt } from '@/common/utils/MediaTypeUitl';
+import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
+import { mutate } from 'swr';
 
 export interface OpenFileProps {
     directory?: boolean;
@@ -15,39 +18,38 @@ export interface OpenFileProps {
 const api = window.electron;
 
 export default function FileSelector({
-    directory,
-    className,
-    onSelected,
-}: OpenFileProps) {
-    const updateFile = useFile((s) => s.updateFile);
-    const changePopType = usePlayerController((s) => s.changePopType);
+                                         directory,
+                                         className,
+                                         onSelected
+                                     }: OpenFileProps) {
     const navigate = useNavigate();
     const handleClick = async () => {
-        const project = await api.selectFile(directory ?? false);
-        console.log('project', project);
-        if (!project) {
-            return;
-        }
-        if (typeof project === 'string') {
-            // 是字幕文件
-            const file = await pathToFile(project);
-            updateFile(file);
-            onSelected?.();
+        const ps = await api.call('system/select-file', {
+            mode: directory ? 'directory' : 'file',
+            filter: 'none'
+        });
+        console.log('project', ps);
+        if (ps.length === 1 && !directory && isSrt(ps[0])) {
+            const video = useFile.getState().videoFile;
+            if (video?.path) {
+                await api.call('watch-project/attach-srt', { videoPath: video.path, srtPath: ps[0] });
+            }
             return;
         }
 
-        console.log('project', project);
-        const video =
-            project.videos.filter((v) => {
-                return v.current_playing === true;
-            })[0] ?? project.videos[0];
+        const [videoFile] = ps.filter((p) => isMidea(p));
+        const [subtitleFile] = ps.filter((p) => isSrt(p));
+        const pid = await api.call('watch-project/create/from-files', [videoFile, subtitleFile]);
+        const watchProject: WatchProjectVO = await api.call('watch-project/detail', pid);
+        let [video] = watchProject.videos.filter(v => v.current_playing);
         if (!video) {
-            return;
+            video = watchProject.videos[0];
         }
-        api.playerSize();
+        await api.playerSize();
+        console.log('jump', `/player/${video.id}`);
         navigate(`/player/${video.id}`);
+        await mutate('player-p');
         onSelected?.();
-        changePopType('none');
     };
 
     return (
@@ -76,5 +78,5 @@ FileSelector.defaultProps = {
     className: '',
     onSelected: () => {
         //
-    },
+    }
 };

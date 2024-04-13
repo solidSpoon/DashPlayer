@@ -15,6 +15,13 @@
       "when": 1712286295825,
       "tag": "0001_chubby_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1713007646532,
+      "tag": "0002_curvy_professor_monster",
+      "breakpoints": true
     }
   ]
 }

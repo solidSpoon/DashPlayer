@@ -6,14 +6,14 @@ import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
 import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
-import PlayerSubtitlePannel from "@/fronted/components/playerSubtitle/PlayerSubtitlePannel";
-import useLayout from "@/fronted/hooks/useLayout";
-import PlaySpeedToaster from "@/fronted/components/PlaySpeedToaster";
-import {cn} from "@/fronted/lib/utils";
+import PlayerSubtitlePannel from '@/fronted/components/playerSubtitle/PlayerSubtitlePannel';
+import useLayout from '@/fronted/hooks/useLayout';
+import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
+import { cn } from '@/fronted/lib/utils';
 
 const api = window.electron;
 
-export default function Player({className}:{className?: string}): ReactElement {
+export default function Player({ className }: { className?: string }): ReactElement {
     const {
         playing,
         muted,
@@ -24,7 +24,7 @@ export default function Player({className}:{className?: string}): ReactElement {
         updateExactPlayTime,
         setDuration,
         seekTo,
-        playbackRate,
+        playbackRate
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -36,11 +36,11 @@ export default function Player({className}:{className?: string}): ReactElement {
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
-            playbackRate: state.playbackRate,
+            playbackRate: state.playbackRate
         }))
     );
     const videoFile = useFile((s) => s.videoFile);
-    const projectVideo = useFile((s) => s.currentVideo);
+    const videoId = useFile((s) => s.videoId);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const playerRef: React.RefObject<ReactPlayer> = useRef<ReactPlayer>(null);
@@ -65,7 +65,7 @@ export default function Player({className}:{className?: string}): ReactElement {
 
     useEffect(() => {
         if (podcastMode) {
-            return ;
+            return;
         }
         let animationFrameId: number | undefined;
         let lastDrawTime = Date.now(); // 用来限制绘制的帧率
@@ -140,19 +140,18 @@ export default function Player({className}:{className?: string}): ReactElement {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [videoLoaded, playerRef, playerRefBackground,podcastMode]);
+    }, [videoLoaded, playerRef, playerRefBackground, podcastMode]);
 
     const jumpToHistoryProgress = async (file: FileT) => {
         if (file === lastFile) {
             return;
         }
 
-        console.log('jumpToHistoryProgress', projectVideo);
 
-        if (projectVideo?.id === undefined) {
+        if (videoId === null) {
             return;
         }
-        const result = await api.queryProgress(projectVideo.id);
+        const result = await api.call('watch-project/video/detail', videoId);
         const progress = result.current_time ?? 0;
         console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });
@@ -165,7 +164,7 @@ export default function Player({className}:{className?: string}): ReactElement {
         }
         return (
             <div
-                className={cn("w-full h-full overflow-hidden", className)}
+                className={cn('w-full h-full overflow-hidden', className)}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
                 <div className="w-full h-full relative overflow-hidden">
@@ -175,7 +174,7 @@ export default function Player({className}:{className?: string}): ReactElement {
                         style={{
                             filter: 'blur(100px)',
                             // transform: 'scale(1.1)',
-                            objectFit: 'cover',
+                            objectFit: 'cover'
                         }}
                     />
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -195,9 +194,9 @@ export default function Player({className}:{className?: string}): ReactElement {
                         config={{
                             file: {
                                 attributes: {
-                                    controlsList: 'nofullscreen',
-                                },
-                            },
+                                    controlsList: 'nofullscreen'
+                                }
+                            }
                         }}
                         onPlay={() => {
                             play();
@@ -236,8 +235,8 @@ export default function Player({className}:{className?: string}): ReactElement {
                             playing={playing}
                         />
                     ))}
-                    {fullScreen && <PlayerSubtitlePannel/>}
-                    <PlaySpeedToaster  speed={playbackRate} className='absolute top-3 left-3'/>
+                    {fullScreen && <PlayerSubtitlePannel />}
+                    <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
                 </div>
             </div>
         );
@@ -248,5 +247,5 @@ export default function Player({className}:{className?: string}): ReactElement {
 
 
 Player.defaultProps = {
-    className: '',
-}
+    className: ''
+};

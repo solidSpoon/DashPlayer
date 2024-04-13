@@ -5,48 +5,34 @@ import useLayout, { cpW } from '@/fronted/hooks/useLayout';
 import { cn } from '@/common/utils/Util';
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
-import MainSubtitle from '@/fronted/components/MainSubtitle';
-import Subtitle from '@/fronted/components/Subtitle';
-import Player from '@/fronted/components/Player';
 import UploadButton from '@/fronted/components/UploadButton';
 import useFile from '@/fronted/hooks/useFile';
 import GlobalShortCut from '@/fronted/components/GlobalShortCut';
 import SideBar from '@/fronted/components/SideBar';
-import { darkColor, lightColor } from '@/fronted/styles/style';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
-import { useLocalStorage } from '@uidotdev/usehooks';
-import SubtitleViewer from '@/fronted/components/subtitle-viewer/subtitle-viewer';
-import {
-    Drawer, DrawerClose,
-    DrawerContent,
-    DrawerDescription, DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger
-} from '@/fronted/components/ui/drawer';
-import { Button } from '@/fronted/components/ui/button';
 import Chat from '@/fronted/components/chat/Chat';
-import { useShallow } from 'zustand/react/shallow';
-import { c } from 'vite/dist/node/types.d-aGj9QkWt';
-import useChatPanel from "@/fronted/hooks/useChatPanel";
+import useChatPanel from '@/fronted/hooks/useChatPanel';
+import useSWR from 'swr';
+import { pathToFile } from '@/common/utils/FileParser';
+import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
 
 const api = window.electron;
 
-interface Size {
-    oa: number;
-    ob: number;
-    ia: number;
-    ib: number;
+
+const SWR_VIDEO = 'player-p';
+const fetchVideo = async (videoId: number) => {
+    const video = await api.call('watch-project/video/detail', Number(videoId));
+    console.log('video', video);
+    return video;
 }
 
 const PlayerP = () => {
+    const { videoId } = useParams();
+    const { data: video} = useSWR<WatchProjectVideo>(SWR_VIDEO, fetchVideo.bind(null, Number(videoId)));
+    console.log('playerp',videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
-    const [sizeOa, setSizeOa] = useLocalStorage<number>('split-size-oa', 75);
-    const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
-    const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
-    const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
-    const chatTopic  = useChatPanel(s => s.topic);
+    const chatTopic = useChatPanel(s => s.topic);
     const w = cpW.bind(
         null,
         useLayout((s) => s.width)
@@ -55,9 +41,6 @@ const PlayerP = () => {
         null,
         useLayout((s) => s.height)
     );
-    const fullScreen = useLayout((s) => s.fullScreen);
-    const { videoId } = useParams();
-    const playFile = useFile((s) => s.playFile);
     const location = useLocation();
     const sideBarAnimation =
         (new URLSearchParams(location.search).get('sideBarAnimation') ??
@@ -65,24 +48,30 @@ const PlayerP = () => {
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     console.log('referrer', referrer);
-    const hasSubTitle = useFile((s) => s.subtitleFile !== undefined);
     useEffect(() => {
         const runEffect = async () => {
-            if (videoId === undefined) return;
-            const video = await api.getVideo(Number(videoId));
-            console.log('video', video);
-            if (video === undefined) return;
-            playFile(video);
+            if (!video) {
+                return;
+            }
+            useFile.setState({ videoId: video.id });
+            const vf = useFile.getState().videoFile;
+            const sf = useFile.getState().subtitleFile;
+            if (video.video_path && vf?.path !== video.video_path) {
+                const file = await pathToFile(video.video_path);
+                useFile.getState().updateFile(file);
+            }
+            if (video.subtitle_path && sf?.path !== video.subtitle_path) {
+                const file = await pathToFile(video.subtitle_path);
+                useFile.getState().updateFile(file);
+            }
         };
-
         runEffect();
-    }, [playFile, videoId]);
+    }, [video]);
     useEffect(() => {
         setSearchParams({ sideBarAnimation: 'true' });
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x: 0, y: 0, scale: 1 });
-    const podcastMode = useLayout(s => s.podcastMode);
     useLayoutEffect(() => {
         const updatePos = () => {
             if (posRef.current === null) {
@@ -210,86 +199,7 @@ const PlayerP = () => {
                         transformOrigin: 'top left'
                     }}
                 >
-                    <div
-                        className={cn(
-                            'w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden',
-                            hasSubTitle && 'border-r-0',
-                            // !isWindows && 'border-0',
-                            showSideBar &&
-                            'overflow-hidden border-[30px] border-background/80 rounded-[45px]'
-                        )}
-                    >
-                        <ResizablePanelGroup
-                            className={cn(
-                                lightColor['bg-background'],
-                                `dark:${darkColor['bg-background']}`
-                            )}
-                            direction={'horizontal'}>
-                            <ResizablePanel
-                                defaultSize={sizeOa}
-                                onResize={(e) => {
-                                    if (fullScreen) {
-                                        return;
-                                    }
-                                    console.log('eeeeeeb', e);
-                                    setSizeOa(e);
-                                }}
-                            >
-                                <ResizablePanelGroup direction={'vertical'}>
-                                    <ResizablePanel
-                                        minSize={10}
-                                        defaultSize={sizeIa}
-                                        onResize={(e) => {
-                                            if (fullScreen) {
-                                                return;
-                                            }
-                                            setSizeIa(e);
-                                        }}
-                                    >
-                                        <div
-                                            className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
-                                            <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')} />
-                                            {podcastMode && <SubtitleViewer
-                                                className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
-                                            />}
-                                        </div>
-                                    </ResizablePanel>
-                                    {(!fullScreen && !podcastMode) && (
-                                        <>
-                                            <ResizableHandle withHandle
-                                                             className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')} />
-                                            <ResizablePanel
-                                                className={cn('ofvisible')}
-                                                defaultSize={sizeIb}
-                                                onResize={(e) => {
-                                                    if (fullScreen) {
-                                                        return;
-                                                    }
-                                                    setSizeIb(e);
-                                                }}
-                                            ><MainSubtitle /></ResizablePanel>
-                                        </>
-                                    )}
-                                </ResizablePanelGroup>
-                            </ResizablePanel>
-                            {!fullScreen && (
-                                <>
-                                    <ResizableHandle withHandle className={cn('gutter-style w-2 dark:bg-zinc-700')} />
-                                    <ResizablePanel
-                                        defaultSize={sizeOb}
-                                        onResize={(e) => {
-                                            if (fullScreen) {
-                                                return;
-                                            }
-                                            console.log('eeeeeea', e);
-                                            setSizeOb(e);
-                                        }}
-                                    >
-                                        <Subtitle />
-                                    </ResizablePanel>
-                                </>)}
-                        </ResizablePanelGroup>
-                    </div>
+                    <PlayerPPlayer />
                 </div>
                 {chatTopic === 'offscreen' && (
                     <UploadButton />
@@ -297,7 +207,7 @@ const PlayerP = () => {
                 <GlobalShortCut />
 
                 <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <Chat /> }
+                    {chatTopic !== 'offscreen' && <Chat />}
                 </AnimatePresence>
 
             </div>

@@ -1,12 +1,8 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
-import {WatchProjectVO} from '@/backend/services/WatchProjectService';
-import {SentenceStruct} from './common/types/SentenceStruct';
 import {SettingKey} from './common/types/store_schema';
 import {WindowState} from './common/types/Types';
-import {YdRes} from './common/types/YdRes';
 import Release from '@/common/types/release';
 import {
     InsertSubtitleTimestampAdjustment,
@@ -18,9 +14,7 @@ export type Channels =
     | 'main-state'
     | 'setting-state'
     | 'ipc-example'
-    | 'update-progress'
     | 'trans-word'
-    | 'query-progress'
     | 'batch-translate'
     | 'show-button'
     | 'hide-button'
@@ -35,14 +29,10 @@ export type Channels =
     | 'app-version'
     | 'player-size'
     | 'home-size'
-    | 'recent-watch'
-    | 'reload-recent-from-disk'
     | 'open-file'
     | 'words-translate'
     | 'list-words-view'
     | 'batch-update-level-words'
-    | 'process-sentences'
-    | 'get-video'
     | 'store-set'
     | 'store-get'
     | 'store-update'
@@ -117,12 +107,6 @@ const electronHandler = {
     homeSize: async () => {
         await invoke('home-size');
     },
-    updateProgress: async (progress: WatchProjectVideo) => {
-        await invoke('update-progress', progress);
-    },
-    queryProgress: async (videoId: number) => {
-        return (await invoke('query-progress', videoId)) as WatchProjectVideo;
-    },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release[];
     },
@@ -138,28 +122,11 @@ const electronHandler = {
         const blob = new Blob([data]);
         return URL.createObjectURL(blob);
     },
-    recentWatch: async () => {
-        return (await invoke('recent-watch')) as WatchProjectVO[];
-    },
-    reloadRecentFromDisk: async () => {
-        return (await invoke('reload-recent-from-disk')) as WatchProjectVO[];
-    },
     selectFile: async (isFolder: boolean) => {
         return (await invoke('select-file', isFolder)) as
             | WatchProjectVO
             | undefined
             | string;
-    },
-    getVideo: async (videoId: number) => {
-        return (await invoke('get-video', videoId)) as
-            | WatchProjectVideo
-            | undefined;
-    },
-    processSentences: async (sentences: string[]) => {
-        return (await invoke(
-            'process-sentences',
-            sentences
-        )) as SentenceStruct[];
     },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');

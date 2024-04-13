@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import FileT, { FileType } from '../../common/types/FileT';
-import { pathToFile } from '@/common/utils/FileParser';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+const api = window.electron;
 
 type UseFileState = {
     videoFile: FileT | undefined;
+    videoId: number | null;
     subtitleFile: FileT | undefined;
-    currentVideo: WatchProjectVideo | undefined;
     videoLoaded: boolean;
     openedNum: number;
 };
@@ -15,7 +15,6 @@ type UseFileState = {
 type UseFileActions = {
     updateFile: (file: FileT) => void;
     loadedVideo: (file: FileT) => void;
-    playFile: (f: WatchProjectVideo) => void;
     clear: () => void;
 };
 
@@ -25,7 +24,7 @@ const useFile = create(
         subtitleFile: undefined,
         videoLoaded: false,
         openedNum: 0,
-        currentVideo: undefined,
+        videoId: undefined,
         updateFile: (file: FileT) => {
             if (FileType.VIDEO === file.fileType) {
                 set((ps) => {
@@ -45,7 +44,6 @@ const useFile = create(
                         subtitleFile: file,
                         openedNum: ps.openedNum + 1,
                         currentVideo: {
-                            ...ps.currentVideo,
                             subtitle_path: file.path,
                         } as WatchProjectVideo,
                     };
@@ -56,17 +54,6 @@ const useFile = create(
             set((s) => {
                 return {
                     videoLoaded: s.videoFile === file,
-                };
-            });
-        },
-        playFile: async (f: WatchProjectVideo) => {
-            const video = await pathToFile(f.video_path ?? '');
-            const subtitle = await pathToFile(f.subtitle_path ?? '');
-            useFile.getState().updateFile(video);
-            useFile.getState().updateFile(subtitle);
-            set((s) => {
-                return {
-                    currentVideo: f,
                 };
             });
         },

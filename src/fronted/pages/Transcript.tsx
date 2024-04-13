@@ -11,13 +11,11 @@ import {
     TableRow
 } from '@/fronted/components/ui/table';
 import {Button} from '@/fronted/components/ui/button';
-import FileT, {FileType} from '@/common/types/FileT';
-import {WatchProjectVO} from '@/backend/services/WatchProjectService';
 import TranscriptItem from '@/fronted/components/TranscriptItem';
 import {useLocalStorage} from '@uidotdev/usehooks';
 
 interface TranscriptTask {
-    file: FileT;
+    file: string;
     taskId: number | null;
 }
 
@@ -26,33 +24,23 @@ const Transcript = () => {
 
     const [files, setFiles] = useLocalStorage<TranscriptTask[]>('transcriptFiles', []);
     const onSelectedFile = async () => {
-        const res = await api.selectFile(false);
-        console.log('file', res);
-        // 判断是否为 string
-        if (typeof res === 'string') {
-            return;
-        }
-        const f = res as WatchProjectVO;
-        const videos = f.videos.map((v) => ({
-            file: {
-                fileName: v.video_name,
-                objectUrl: '',
-                fileType: FileType.VIDEO,
-                path: v.video_path
-            },
+        const ps = await api.call('system/select-file',{mode: 'file', filter: 'video'});
+        console.log('file', ps);
+        const videos = ps.map((p) => ({
+            file: p,
             taskId: null
         } as TranscriptTask));
         // 按照 path 合并，注意保留 taskId
-        const currentFiles = files.map((f) => f.file.path);
-        const newFiles = videos.filter((v) => !currentFiles.includes(v.file.path));
+        const currentFiles = files.map((f) => f.file);
+        const newFiles = videos.filter((v) => !currentFiles.includes(v.file));
         setFiles([...files, ...newFiles]);
     };
 
     const onTranscript = async (file: TranscriptTask) => {
-        const taskId = await api.call('ai-func/transcript', {filePath: file.file.path});
+        const taskId = await api.call('ai-func/transcript', {filePath: file.file});
         console.log('taskId', taskId);
         const newFiles = files.map((f) => {
-            if (f.file.path === file.file.path) {
+            if (f.file === file.file) {
                 return {...f, taskId};
             }
             return f;
@@ -68,7 +56,7 @@ const Transcript = () => {
         }
     }
     const onDelete = async (file: TranscriptTask) => {
-        const newFiles = files.filter((f) => f.file.path !== file.file.path);
+        const newFiles = files.filter((f) => f.file !== file.file);
         setFiles(newFiles);
     }
     return (

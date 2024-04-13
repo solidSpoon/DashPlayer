@@ -8,7 +8,7 @@ import useDpTask from '@/fronted/hooks/useDpTask';
 import { m } from 'framer-motion';
 
 export interface TranscriptItemProps {
-    file: FileT;
+    file: string;
     taskId: number | null;
     onStart: () => void;
     onDelete: () => void;
@@ -43,7 +43,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
     }
     return (
         <TableRow>
-            <TableCell className="font-medium">{file.fileName}</TableCell>
+            <TableCell className="font-medium">{file}</TableCell>
             <TableCell className={cn('')}>{msg}</TableCell>
             <TableCell className={cn(' flex')}>
                 <Button

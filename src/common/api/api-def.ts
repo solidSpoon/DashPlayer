@@ -1,6 +1,10 @@
 import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 import {DpTask} from "@/backend/db/tables/dpTask";
 import {YdRes} from "@/common/types/YdRes";
+import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import { SentenceStruct } from '@/common/types/SentenceStruct';
+import { WatchProject } from '@/backend/db/tables/watchProjects';
+import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -26,17 +30,37 @@ interface DpTaskDef {
 }
 interface SystemDef {
     'system/is-windows': { params: void, return: boolean }
+    'system/select-file': { params: {mode: 'file' | 'directory',filter: 'video'|'srt'|'none'}, return: string[] }
 }
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> }
     'ai-trans/word': { params: string, return: YdRes | null }
 }
+
+interface WatchProjectDef {
+    'watch-project/progress/update': { params: {videoId: number, currentTime: number, duration: number}, return: void }
+    'watch-project/video/play': { params: number, return: void }
+    'watch-project/video/detail': { params: number, return: WatchProjectVideo | undefined }
+    'watch-project/create/from-folder': { params: string, return: number }
+    'watch-project/create/from-files': { params: string[], return: number }
+    'watch-project/delete': { params: number, return: void }
+    'watch-project/detail': { params: number, return: WatchProjectVO }
+    'watch-project/list': { params: void, return: WatchProject[] }
+    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string }, return: void }
+}
+
+interface SubtitleControllerDef {
+    'subtitle/sentences/process': { params: string[], return: SentenceStruct[] }
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
     & DpTaskDef
     & SystemDef
-    & AiTransDef;
+    & AiTransDef
+    & WatchProjectDef
+    & SubtitleControllerDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

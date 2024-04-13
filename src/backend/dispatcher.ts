@@ -2,18 +2,12 @@ import {ipcMain, shell} from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import {
-    queryVideoProgress, recentWatch, reloadRecentFromDisk,
-    updateVideoProgress
-} from './controllers/ProgressController';
-import youDaoTrans from './controllers/YouDaoTrans';
-import {
     clearCache,
     openDataDir,
     queryCacheSize
 } from './controllers/StorageController';
 import {appVersion, checkUpdate} from './controllers/CheckUpdate';
 import {WindowState} from '@/common/types/Types';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import {SettingKey} from '@/common/types/store_schema';
 import {storeGet, storeSet} from './store';
 import {Channels} from '@/preload';
@@ -22,14 +16,14 @@ import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import WatchProjectService from '@/backend/services/WatchProjectService';
-import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
 import Controller from "@/backend/interfaces/controller";
 import AiFuncController from "@/backend/controllers/AiFuncController";
 import SystemController from "@/backend/controllers/SystemController";
 import DpTaskController from "@/backend/controllers/DpTaskController";
 import AiTransController from "@/backend/controllers/AiTransController";
+import WatchProjectController from '@/backend/controllers/WatchProjectController';
+import SubtitleController from '@/backend/controllers/SubtitleProcesser';
 
 
 const handle = (
@@ -46,7 +40,8 @@ const controllers: Controller[] = [
     new SystemController(),
     new DpTaskController(),
     new AiTransController(),
-    new AiTransController(),
+    new WatchProjectController(),
+    new SubtitleController(),
 ]
 
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {
@@ -65,17 +60,6 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
     handle('store-get', async (key: SettingKey) => {
         return storeGet(key);
     });
-    handle('update-progress', async (progress: WatchProjectVideo) => {
-        log.info('update-progress', progress);
-        await updateVideoProgress(progress);
-    });
-    handle('query-progress', async (videoId: number) => {
-        log.info('query-progress', videoId);
-        const progress = await queryVideoProgress(videoId);
-        log.info(`query-progress file: ${videoId}, progress: ${progress}`);
-        return progress;
-    });
-
     handle('words-translate', async (words: string[]) => {
         log.info('words-translate');
     });
@@ -158,14 +142,6 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         mainWindowRef.current?.setResizable(false);
         mainWindowRef.current?.setMaximizable(false);
     });
-    handle('recent-watch', async () => {
-        log.info('recent-watch');
-        return recentWatch();
-    });
-    handle('reload-recent-from-disk', async () => {
-        log.info('reload-recent-from-disk');
-        return reloadRecentFromDisk();
-    });
     handle('open-file', async (path: string) => {
         log.info('open-file', path);
         // 如果文件存在, 则返回文件流, 否则返回null
@@ -184,18 +160,9 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
             });
         });
     });
-    handle('process-sentences', async (sentences: string[]) => {
-        return processSentences(sentences);
-    });
     handle('select-file', async (isFolder: boolean) => {
-        return WatchProjectService.selectFiles(isFolder);
+        // return WatchProjectService.selectFiles(isFolder);
     });
-    handle(
-        'get-video',
-        async (videoId: number): Promise<WatchProjectVideo | undefined> => {
-            return WatchProjectService.getVideo(videoId);
-        }
-    );
     handle(
         'subtitle-timestamp-record',
         async (e: InsertSubtitleTimestampAdjustment) => {

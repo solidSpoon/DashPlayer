@@ -105,6 +105,7 @@
         "remark-gfm": "^4.0.0",
         "remark-math": "^6.0.0",
         "sonner": "^1.4.3",
+        "swr": "^2.2.5",
         "tailwind-merge": "^2.2.1",
         "tailwindcss-animate": "^1.0.7",
         "tencentcloud-sdk-nodejs": "^4.0.764",
