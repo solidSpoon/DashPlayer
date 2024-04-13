@@ -26,9 +26,7 @@ export type Channels =
     | 'hide-button'
     | 'is-windows'
     | 'open-menu'
-    | 'you-dao-translate'
     | 'get-audio'
-    | 'ai-func/tts'
     | 'open-data-dir'
     | 'query-cache-size'
     | 'clear-cache'
@@ -98,9 +96,6 @@ const electronHandler = {
     },
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);
-    },
-    transWord: async (word: string) => {
-        return (await invoke('you-dao-translate', word)) as YdRes;
     },
     fetchAudio: async (url: string) => {
         const data = (await invoke('get-audio', url)) as never;

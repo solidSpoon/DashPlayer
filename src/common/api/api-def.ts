@@ -1,5 +1,6 @@
 import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 import {DpTask} from "@/backend/db/tables/dpTask";
+import {YdRes} from "@/common/types/YdRes";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -28,6 +29,7 @@ interface SystemDef {
 }
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> }
+    'ai-trans/word': { params: string, return: YdRes | null }
 }
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition

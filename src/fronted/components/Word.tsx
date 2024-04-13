@@ -40,7 +40,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => {
+const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) => {
     const [translationText, setTranslationText] = useState<YdRes | undefined>(
         undefined
     );
@@ -96,7 +96,7 @@ const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => 
     useEffect(() => {
         let cancel = false;
         const transFun = async (str: string) => {
-            const r = await api.transWord(str);
+            const r = await api.call('ai-trans/word', str);
             if (r !== null && !cancel) {
                 setTranslationText(r);
             }

@@ -31,7 +31,7 @@ export const playWord = async (word: string) => {
         await playAudioUrl(audioUrl);
         return;
     }
-    const trans = await api.transWord(word);
+    const trans = await api.call('ai-trans/word', word);
     if (!trans?.basic) {
         return;
     }

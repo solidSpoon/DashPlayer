@@ -25,7 +25,6 @@ import {
 import WatchProjectService from '@/backend/services/WatchProjectService';
 import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
-import WhisperController from '@/backend/controllers/WhisperController';
 import Controller from "@/backend/interfaces/controller";
 import AiFuncController from "@/backend/controllers/AiFuncController";
 import SystemController from "@/backend/controllers/SystemController";
@@ -46,7 +45,8 @@ const controllers: Controller[] = [
     new AiFuncController(),
     new SystemController(),
     new DpTaskController(),
-    new AiTransController()
+    new AiTransController(),
+    new AiTransController(),
 ]
 
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {
@@ -78,10 +78,6 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
 
     handle('words-translate', async (words: string[]) => {
         log.info('words-translate');
-    });
-    handle('you-dao-translate', async (word) => {
-        log.info('you-dao-translate');
-        return youDaoTrans(word);
     });
     handle('get-audio', async (url) => {
         log.info('get-audio', url);
