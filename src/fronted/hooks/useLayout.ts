@@ -1,5 +1,5 @@
-import { create, UseBoundStore } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
+import {create, UseBoundStore} from 'zustand';
+import {subscribeWithSelector} from 'zustand/middleware';
 
 const api = window.electron;
 export type ScreenSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -30,25 +30,25 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         height: '2xl',
         fullScreen: false,
         changeSideBar: (show: boolean) => {
-            set({ showSideBar: show });
+            set({showSideBar: show});
         },
         changeFullScreen: (full: boolean) => {
-            set({ fullScreen: full });
+            set({fullScreen: full});
         },
         podcastMode: false,
         setPodcastMode: (mode: boolean) => {
-            set({ podcastMode: mode });
+            set({podcastMode: mode});
         },
         changeChatting: (chatting: boolean) => {
-            set({ chatting });
+            set({chatting});
         }
     }))
 );
-api.isWindows().then((isWindows) => {
+api.call('system/is-windows', null).then((isWindows) => {
     if (isWindows) {
-        useLayout.setState({ titleBarHeight: 28 });
+        useLayout.setState({titleBarHeight: 28});
     } else {
-        useLayout.setState({ titleBarHeight: 0 });
+        useLayout.setState({titleBarHeight: 0});
     }
 });
 
@@ -76,7 +76,7 @@ const updateSize = () => {
         h = 'xl';
     }
 
-    useLayout.setState({ width: w, height: h });
+    useLayout.setState({width: w, height: h});
 };
 
 export const cpW = (screen: ScreenSize, condition: ScreenSize) => {

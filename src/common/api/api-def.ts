@@ -1,8 +1,10 @@
+import {MsgT} from "@/common/types/msg/interfaces/MsgT";
+import {DpTask} from "@/backend/db/tables/dpTask";
+
 interface ApiDefinition {
-    'main-state': { params: string, return: number },
-    'setting-state': { params: number, return: number },
-    // 其他路径...
+    'eg': { params: string, return: number },
 }
+
 // 定义额外的接口
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string }
@@ -13,11 +15,26 @@ interface AiFuncDef {
     'ai-func/analyze-grammars': { params: string, return: number }
     'ai-func/analyze-new-phrases': { params: string, return: number }
     'ai-func/analyze-new-words': { params: string, return: number }
-
+    'ai-func/chat': { params: { msgs: MsgT[] }, return: number }
+    'ai-func/transcript': { params: {filePath: string}, return: number }
 }
 
+interface DpTaskDef {
+    'dp-task/detail': { params: number, return: DpTask | undefined }
+    'dp-task/cancel': { params: number, return: void }
+}
+interface SystemDef {
+    'system/is-windows': { params: void, return: boolean }
+}
+interface AiTransDef {
+    'ai-trans/batch-translate': { params: string[], return: Map<string, string> }
+}
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
-export type ApiDefinitions = ApiDefinition & AiFuncDef;
+export type ApiDefinitions = ApiDefinition
+    & AiFuncDef
+    & DpTaskDef
+    & SystemDef
+    & AiTransDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

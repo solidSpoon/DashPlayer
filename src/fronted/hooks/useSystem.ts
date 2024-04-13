@@ -40,7 +40,7 @@ export const syncStatus = () => {
     });
 
 
-    api.isWindows().then((isWindows) => {
+    api.call('system/is-windows', null).then((isWindows) => {
         useSystem.setState({
             isWindows
         });

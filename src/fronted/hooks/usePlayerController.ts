@@ -273,7 +273,7 @@ useFile.subscribe(
                 // await syncWordsLevel(userCanSee);
                 const transHolder = TransHolder.from(
                     // eslint-disable-next-line no-await-in-loop
-                    await api.batchTranslate(
+                    await api.call('ai-trans/batch-translate',
                         userCanSee.map((s) => s.text ?? '')
                     )
                 );

@@ -1,8 +1,11 @@
 import DpTaskService from '@/backend/services/DpTaskService';
-import TtsService from '@/backend/controllers/TtsService';
+import TtsService from '@/backend/services/TtsService';
 import Controller from "@/backend/interfaces/controller";
 import registerRoute from "@/common/api/register";
 import AiFuncService from "@/backend/services/AiFuncService";
+import ChatService from "@/backend/services/ChatService";
+import {MsgT, toLangChainMsg} from "@/common/types/msg/interfaces/MsgT";
+import WhisperService from "@/backend/services/WhisperService";
 
 export default class AiFuncController implements Controller {
 
@@ -52,6 +55,21 @@ export default class AiFuncController implements Controller {
         return TtsService.tts(string);
     }
 
+    public static async chat({msgs}: { msgs: MsgT[] }): Promise<number> {
+        const taskId = await DpTaskService.create();
+        const ms = msgs.map((msg) => toLangChainMsg(msg));
+        ChatService.chat(taskId, ms).then();
+        return taskId;
+    }
+
+    public static async transcript({filePath}:{filePath: string}) {
+        const taskId = await DpTaskService.create();
+        console.log('taskId', taskId);
+        WhisperService.transcript(taskId, filePath).then(r => {
+            console.log(r);
+        });
+        return taskId;
+    }
     registerRoutes(): void {
         registerRoute('ai-func/analyze-new-words', this.analyzeNewWords);
         registerRoute('ai-func/analyze-new-phrases', this.analyzeNewPhrases);
@@ -61,6 +79,8 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/synonymous-sentence', this.synonymousSentence);
         registerRoute('ai-func/phrase-group', this.phraseGroup);
         registerRoute('ai-func/tts', this.tts);
+        registerRoute('ai-func/chat', AiFuncController.chat);
+        registerRoute('ai-func/transcript', AiFuncController.transcript);
     }
 }
 

@@ -12,8 +12,6 @@ import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import {DpTask} from '@/backend/db/tables/dpTask';
-import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 import {ApiDefinitions, ApiMap} from "@/common/api/api-def";
 
 export type Channels =
@@ -45,9 +43,6 @@ export type Channels =
     | 'words-translate'
     | 'list-words-view'
     | 'batch-update-level-words'
-    | 'mark-word-level'
-    | 'write-to-clipboard'
-    | 'read-from-clipboard'
     | 'process-sentences'
     | 'get-video'
     | 'store-set'
@@ -58,11 +53,7 @@ export type Channels =
     | 'subtitle-timestamp-delete-key'
     | 'subtitle-timestamp-delete-path'
     | 'subtitle-timestamp-get-key'
-    | 'subtitle-timestamp-get-path'
-    | 'transcript'
-    | 'dp-task-detail'
-    | 'dp-task-cancel'
-    | 'ai-chat';
+    | 'subtitle-timestamp-get-path';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -131,15 +122,6 @@ const electronHandler = {
     homeSize: async () => {
         await invoke('home-size');
     },
-    batchTranslate: async (
-        sentences: string[]
-    ): Promise<Map<string, string>> => {
-        const mapping = (await invoke('batch-translate', sentences)) as Map<
-            string,
-            string
-        >;
-        return mapping;
-    },
     updateProgress: async (progress: WatchProjectVideo) => {
         await invoke('update-progress', progress);
     },
@@ -148,12 +130,6 @@ const electronHandler = {
     },
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release[];
-    },
-    dpTaskDetail: async (id: number) => {
-        return (await invoke('dp-task-detail', id)) as DpTask;
-    },
-    chat: async (msgs: MsgT[]) => {
-        return (await invoke('ai-chat', msgs)) as number;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;
@@ -167,20 +143,11 @@ const electronHandler = {
         const blob = new Blob([data]);
         return URL.createObjectURL(blob);
     },
-    writeToClipboard: async (text: string) => {
-        await invoke('write-to-clipboard', text);
-    },
-    readFromClipboard: async () => {
-        return (await invoke('read-from-clipboard')) as string;
-    },
     recentWatch: async () => {
         return (await invoke('recent-watch')) as WatchProjectVO[];
     },
     reloadRecentFromDisk: async () => {
         return (await invoke('reload-recent-from-disk')) as WatchProjectVO[];
-    },
-    isWindows: async () => {
-        return (await invoke('is-windows')) as boolean;
     },
     selectFile: async (isFolder: boolean) => {
         return (await invoke('select-file', isFolder)) as
@@ -198,9 +165,6 @@ const electronHandler = {
             'process-sentences',
             sentences
         )) as SentenceStruct[];
-    },
-    transcript: async (filePath: string) => {
-        return await invoke('transcript', filePath) as number;
     },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');

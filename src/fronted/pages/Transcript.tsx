@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn, sleep } from '@/common/utils/Util';
+import {cn, sleep} from '@/common/utils/Util';
 import Separator from '@/fronted/components/Separtor';
 import {
     Table,
@@ -10,11 +10,11 @@ import {
     TableHeader,
     TableRow
 } from '@/fronted/components/ui/table';
-import { Button } from '@/fronted/components/ui/button';
-import FileT, { FileType } from '@/common/types/FileT';
-import { WatchProjectVO } from '@/backend/services/WatchProjectService';
+import {Button} from '@/fronted/components/ui/button';
+import FileT, {FileType} from '@/common/types/FileT';
+import {WatchProjectVO} from '@/backend/services/WatchProjectService';
 import TranscriptItem from '@/fronted/components/TranscriptItem';
-import { useLocalStorage } from '@uidotdev/usehooks';
+import {useLocalStorage} from '@uidotdev/usehooks';
 
 interface TranscriptTask {
     file: FileT;
@@ -49,11 +49,11 @@ const Transcript = () => {
     };
 
     const onTranscript = async (file: TranscriptTask) => {
-        const taskId = await api.transcript(file.file.path);
+        const taskId = await api.call('ai-func/transcript', {filePath: file.file.path});
         console.log('taskId', taskId);
         const newFiles = files.map((f) => {
             if (f.file.path === file.file.path) {
-                return { ...f, taskId };
+                return {...f, taskId};
             }
             return f;
         });
@@ -84,7 +84,7 @@ const Transcript = () => {
                 <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
                     Dash Player
                 </h2>
-                <Separator orientation="horizontal" className="px-0" />
+                <Separator orientation="horizontal" className="px-0"/>
             </div>
 
             <div className="flex flex-col flex-1 h-0 items-center px-11 pb-6">
@@ -109,7 +109,7 @@ const Transcript = () => {
                                     }}
                                     onDelete={() => {
                                         onDelete(f);
-                                    }} />
+                                    }}/>
                             ))}
 
                             <TableRow>

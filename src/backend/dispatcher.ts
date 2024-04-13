@@ -5,7 +5,6 @@ import {
     queryVideoProgress, recentWatch, reloadRecentFromDisk,
     updateVideoProgress
 } from './controllers/ProgressController';
-import batchTranslate from './controllers/Translate';
 import youDaoTrans from './controllers/YouDaoTrans';
 import {
     clearCache,
@@ -24,15 +23,14 @@ import {
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import WatchProjectService from '@/backend/services/WatchProjectService';
-import {readFromClipboard, writeToClipboard} from '@/backend/controllers/ClopboardController';
 import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
 import WhisperController from '@/backend/controllers/WhisperController';
-import DpTaskController from '@/backend/controllers/DpTaskController';
-import ChatController from '@/backend/controllers/ChatController';
-import {MsgT, toLangChainMsg} from '@/common/types/msg/interfaces/MsgT';
 import Controller from "@/backend/interfaces/controller";
 import AiFuncController from "@/backend/controllers/AiFuncController";
+import SystemController from "@/backend/controllers/SystemController";
+import DpTaskController from "@/backend/controllers/DpTaskController";
+import AiTransController from "@/backend/controllers/AiTransController";
 
 
 const handle = (
@@ -46,6 +44,9 @@ const handle = (
 
 const controllers: Controller[] = [
     new AiFuncController(),
+    new SystemController(),
+    new DpTaskController(),
+    new AiTransController()
 ]
 
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {
@@ -74,34 +75,9 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info(`query-progress file: ${videoId}, progress: ${progress}`);
         return progress;
     });
-    handle(
-        'batch-translate',
-        async (sentences: string[]): Promise<Map<string, string>> => {
-            log.info('batch-translate');
-            return batchTranslate(sentences);
-        }
-    );
-    handle('is-windows', async () => {
-        log.info('is-windows');
-        return process.platform === 'win32';
-    });
 
     handle('words-translate', async (words: string[]) => {
         log.info('words-translate');
-    });
-
-    handle('ai-chat', async (msgMiddles: MsgT[]) => {
-        console.log('chat', msgMiddles);
-        const msgs = msgMiddles.map((msg) => toLangChainMsg(msg));
-        return ChatController.chat(msgs);
-    });
-    handle('dp-task-detail', async (id: number) => {
-        log.info('dp-task-detail');
-        return DpTaskController.detail(id);
-    });
-    handle('dp-task-cancel', async (id: number) => {
-        log.info('dp-task-cancel');
-        await DpTaskController.cancel(id);
     });
     handle('you-dao-translate', async (word) => {
         log.info('you-dao-translate');
@@ -212,13 +188,6 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
             });
         });
     });
-    handle('write-to-clipboard', async (text: string) => {
-        writeToClipboard(text);
-        return true;
-    });
-    handle('read-from-clipboard', async () => {
-        return readFromClipboard();
-    });
     handle('process-sentences', async (sentences: string[]) => {
         return processSentences(sentences);
     });
@@ -245,10 +214,6 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
     });
     handle('subtitle-timestamp-get-key', async (key: string) => {
         return SubtitleTimestampAdjustmentController.getByKey(key);
-    });
-    handle('transcript', async (filePath: string) => {
-        console.log('transcript', filePath);
-        return await WhisperController.transcript(filePath);
     });
 
     handle(

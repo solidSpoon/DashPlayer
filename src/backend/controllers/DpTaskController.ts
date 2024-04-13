@@ -1,16 +1,23 @@
-import WhisperService from '@/backend/services/WhisperService';
 import DpTaskService from '@/backend/services/DpTaskService';
+import Controller from "@/backend/interfaces/controller";
+import registerRoute from "@/common/api/register";
 
 /**
  * AI 翻译
  * @param str
  */
-export default class DpTaskController {
-    public static async detail(id: number) {
+export default class DpTaskController implements Controller {
+    public async detail(id: number) {
         return DpTaskService.detail(id);
     }
 
-    public static async cancel(id: number) {
+    public async cancel(id: number) {
         DpTaskService.cancel(id);
     }
+
+    registerRoutes(): void {
+        registerRoute('dp-task/detail', this.detail);
+        registerRoute('dp-task/cancel', this.cancel);
+    }
+
 }

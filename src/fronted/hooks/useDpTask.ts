@@ -21,7 +21,7 @@ const useDpTask = (taskId: number | null | undefined, interval: number) => {
             return;
         }
         const fetchDpTask = async () => {
-            const task = await api.dpTaskDetail(taskId);
+            const task = await api.call('dp-task/detail', taskId);
             setDpTask(task);
         };
         fetchDpTask();

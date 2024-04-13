@@ -218,7 +218,7 @@ const useChatPanel = create(
             console.log(get().messages);
             const msgs = get().messages
                 .flatMap(e => e.toMsg());
-            const t = await api.chat(msgs);
+            const t = await api.call('ai-func/chat', {msgs});
             set({
                 tasks: {
                     ...get().tasks,
@@ -261,7 +261,7 @@ const runVocabulary = async () => {
             vocabularyTask: tId
         });
     }
-    const tRes: DpTask = await api.dpTaskDetail(tId);
+    const tRes: DpTask = await api.call('dp-task/detail', tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
         if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiAnalyseNewWordsRes;
@@ -287,7 +287,7 @@ const runPhrase = async () => {
             phraseTask: tId
         });
     }
-    const tRes: DpTask = await api.dpTaskDetail(tId);
+    const tRes: DpTask = await api.call('dp-task/detail', tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
         if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiAnalyseNewPhrasesRes;
@@ -313,7 +313,7 @@ const runGrammar = async () => {
             grammarTask: tId
         });
     }
-    const tRes: DpTask = await api.dpTaskDetail(tId);
+    const tRes: DpTask = await api.call('dp-task/detail', tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
         if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiAnalyseGrammarsRes;
@@ -351,7 +351,7 @@ const runSentence = async () => {
             sentenceTask: tId
         });
     }
-    const tRes: DpTask = await api.dpTaskDetail(tId);
+    const tRes: DpTask = await api.call('dp-task/detail', tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
         if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiMakeExampleSentencesRes;
@@ -372,7 +372,7 @@ const runChat = async () => {
     if (tm === 'done') return;
     if (tm.msgType === 'ai-welcome') {
         const welcomeMessage = tm as AiWelcomeMessage;
-        const synonymousSentence = await api.dpTaskDetail(welcomeMessage.synonymousSentenceTask);
+        const synonymousSentence = await api.call('dp-task/detail', welcomeMessage.synonymousSentenceTask);
         if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
             if (!strBlank(synonymousSentence.result)) {
                 welcomeMessage.synonymousSentenceTaskResp = JSON.parse(synonymousSentence.result);
@@ -385,7 +385,7 @@ const runChat = async () => {
         }
         let punctuation = null;
         if (welcomeMessage.punctuationTask) {
-            punctuation = await api.dpTaskDetail(welcomeMessage.punctuationTask);
+            punctuation = await api.call('dp-task/detail', welcomeMessage.punctuationTask);
             console.log('punctuation', punctuation)
             if (punctuation.status === DpTaskState.IN_PROGRESS || punctuation.status === DpTaskState.DONE) {
                 if (!strBlank(punctuation.result)) {
@@ -418,7 +418,7 @@ const runChat = async () => {
     }
     if (tm.msgType === 'ai-streaming') {
         const welcomeMessage = tm as AiStreamMessage;
-        const synonymousSentence = await api.dpTaskDetail(welcomeMessage.taskId);
+        const synonymousSentence = await api.call('dp-task/detail', welcomeMessage.taskId);
         if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
             useChatPanel.setState({
                 streamingMessage: new AiNormalMessage(synonymousSentence.result)
