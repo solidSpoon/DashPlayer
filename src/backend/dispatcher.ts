@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import {ipcMain, shell} from 'electron';
 import log from 'electron-log';
 import axios from 'axios';
 import {
@@ -12,30 +12,28 @@ import {
     openDataDir,
     queryCacheSize
 } from './controllers/StorageController';
-import { appVersion, checkUpdate } from './controllers/CheckUpdate';
-import { WindowState } from '@/common/types/Types';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-import { SettingKey } from '@/common/types/store_schema';
-import { storeGet, storeSet } from './store';
-import { Channels } from '@/preload';
+import {appVersion, checkUpdate} from './controllers/CheckUpdate';
+import {WindowState} from '@/common/types/Types';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
+import {SettingKey} from '@/common/types/store_schema';
+import {storeGet, storeSet} from './store';
+import {Channels} from '@/preload';
 import SubtitleTimestampAdjustmentController from '@/backend/controllers/SubtitleTimestampAdjustmentController';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import WatchProjectService from '@/backend/services/WatchProjectService';
-import { readFromClipboard, writeToClipboard } from '@/backend/controllers/ClopboardController';
+import {readFromClipboard, writeToClipboard} from '@/backend/controllers/ClopboardController';
 import processSentences from '@/backend/controllers/SubtitleProcesser';
 import fs from 'fs';
 import WhisperController from '@/backend/controllers/WhisperController';
 import DpTaskController from '@/backend/controllers/DpTaskController';
 import ChatController from '@/backend/controllers/ChatController';
-import { ChatMessageMiddle, fromMsgMiddle } from '@/common/types/ChatMessage';
-import { AnalyzeSentenceParams } from '@/common/types/aiRes/AnalyzeSentenceParams';
-import { MsgT, toLangChainMsg } from '@/common/types/msg/interfaces/MsgT';
+import {MsgT, toLangChainMsg} from '@/common/types/msg/interfaces/MsgT';
+import Controller from "@/backend/interfaces/controller";
+import AiFuncController from "@/backend/controllers/AiFuncController";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { shell } = require('electron');
 
 const handle = (
     channel: Channels,
@@ -46,9 +44,10 @@ const handle = (
     });
 };
 
-// const sent = (channel: Channels, ...args: any[]) => {
-//     mainWindow?.webContents.send(channel, ...args);
-// };
+const controllers: Controller[] = [
+    new AiFuncController(),
+]
+
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {
     ipcMain.on('update-process', async (event, arg) => {
         log.info('ipcMain update-process', arg);
@@ -89,45 +88,12 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
 
     handle('words-translate', async (words: string[]) => {
         log.info('words-translate');
-        // return wordsTranslate(words);
     });
 
     handle('ai-chat', async (msgMiddles: MsgT[]) => {
         console.log('chat', msgMiddles);
         const msgs = msgMiddles.map((msg) => toLangChainMsg(msg));
         return ChatController.chat(msgs);
-    });
-    handle('ai-analyze-current', async (params: AnalyzeSentenceParams) => {
-        log.info('ai-analyze-current');
-        return ChatController.analyzeSentence(params);
-    });
-    handle('ai-analyze-new-words', async (sentence: string) => {
-        log.info('ai-analyze-new-words');
-        return ChatController.analyzeNewWords(sentence);
-    });
-    handle('ai-analyze-new-phrases', async (sentence: string) => {
-        log.info('ai-analyze-new-phrases');
-        return ChatController.analyzeNewPhrases(sentence);
-    });
-    handle('ai-analyze-grammers', async (sentence: string) => {
-        log.info('ai-analyze-grammers');
-        return ChatController.analyzeGrammers(sentence);
-    });
-    handle('ai-make-example-sentences', async (sentence: string, point: string[]) => {
-        log.info('ai-make-example-sentences');
-        return ChatController.makeSentences(sentence, point);
-    });
-    handle('ai-punctuation', async (no: number, srt: string) => {
-        log.info('ai-punctuation');
-        return ChatController.punctuation(no, srt);
-    });
-    handle('ai-synonymous-sentence', async (sentence: string) => {
-        log.info('ai-synonymous-sentence');
-        return ChatController.synonymousSentence(sentence);
-    });
-    handle('ai-phrase-group', async (sentence: string, phraseGroup?: string) => {
-        log.info('ai-phrase-group');
-        return ChatController.phraseGroup(sentence, phraseGroup);
     });
     handle('dp-task-detail', async (id: number) => {
         log.info('dp-task-detail');
@@ -143,13 +109,8 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
     });
     handle('get-audio', async (url) => {
         log.info('get-audio', url);
-        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const response = await axios.get(url, {responseType: 'arraybuffer'});
         return response.data;
-    });
-    handle('ai-tts', async (str: string ) => {
-        log.info('ai-tts', str);
-        const audioPath = await ChatController.tts(str);
-        return audioPath;
     });
     handle('show-button', async () => {
         log.info('show-button');
@@ -300,4 +261,7 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
             );
         }
     );
+    controllers.forEach((controller) => {
+        controller.registerRoutes();
+    });
 }

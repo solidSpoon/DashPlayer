@@ -133,8 +133,8 @@ const useChatPanel = create(
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
             const text = extractTopic(topic);
-            const synTask = await api.aiSynonymousSentence(text);
-            const phraseGroupTask = await api.aiPhraseGroup(text);
+            const synTask = await api.call('ai-func/synonymous-sentence', text);
+            const phraseGroupTask = await api.call('ai-func/phrase-group', text);
             const tt = new HumanTopicMessage(text, phraseGroupTask);
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
@@ -159,13 +159,13 @@ const useChatPanel = create(
         createFromCurrent: async () => {
             undoRedo.add(copy(get()));
             const ct = usePlayerController.getState().currentSentence;
-            const synTask = await api.aiSynonymousSentence(ct.text);
-            const phraseGroupTask = await api.aiPhraseGroup(ct.text);
+            const synTask = await api.call('ai-func/synonymous-sentence', ct.text);
+            const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text);
             const tt = new HumanTopicMessage(ct.text, phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const url = useFile.getState().subtitleFile.objectUrl??'';
+            const url = useFile.getState().subtitleFile.objectUrl ?? '';
             const text = await fetch(url).then((res) => res.text());
-            const punctuationTask = await api.aiPunctuation(ct.indexInFile, text)
+            const punctuationTask = await api.call('ai-func/punctuation', {no: ct.indexInFile, srt: text})
             const topic = {
                 content: {
                     start: {
@@ -255,7 +255,7 @@ const runVocabulary = async () => {
     let tId = useChatPanel.getState().tasks.vocabularyTask;
     if (tId === 'done') return;
     if (tId === 'init') {
-        tId = await api.aiAnalyzeNewWords(extractTopic(useChatPanel.getState().topic));
+        tId = await api.call('ai-func/analyze-new-words', extractTopic(useChatPanel.getState().topic));
         useChatPanel.getState().setTask({
             ...useChatPanel.getState().tasks,
             vocabularyTask: tId
@@ -281,7 +281,7 @@ const runPhrase = async () => {
     let tId = useChatPanel.getState().tasks.phraseTask;
     if (tId === 'done') return;
     if (tId === 'init') {
-        tId = await api.aiAnalyzeNewPhrases(extractTopic(useChatPanel.getState().topic));
+        tId = await api.call('ai-func/analyze-new-phrases', extractTopic(useChatPanel.getState().topic));
         useChatPanel.getState().setTask({
             ...useChatPanel.getState().tasks,
             phraseTask: tId
@@ -307,7 +307,7 @@ const runGrammar = async () => {
     let tId = useChatPanel.getState().tasks.grammarTask;
     if (tId === 'done') return;
     if (tId === 'init') {
-        tId = await api.aiAnalyzeGrammers(extractTopic(useChatPanel.getState().topic));
+        tId = await api.call('ai-func/analyze-grammars', extractTopic(useChatPanel.getState().topic));
         useChatPanel.getState().setTask({
             ...useChatPanel.getState().tasks,
             grammarTask: tId
@@ -342,7 +342,10 @@ const runSentence = async () => {
         ...state.newPhrase.phrases.map(p => p.phrase)
     ]
     if (tId === 'init') {
-        tId = await api.aiMakeExampleSentences(extractTopic(useChatPanel.getState().topic), points);
+        tId = await api.call('ai-func/make-example-sentences', {
+            sentence: extractTopic(useChatPanel.getState().topic),
+            point: points
+        });
         useChatPanel.getState().setTask({
             ...useChatPanel.getState().tasks,
             sentenceTask: tId
@@ -383,7 +386,7 @@ const runChat = async () => {
         let punctuation = null;
         if (welcomeMessage.punctuationTask) {
             punctuation = await api.dpTaskDetail(welcomeMessage.punctuationTask);
-            console.log('punctuation',punctuation)
+            console.log('punctuation', punctuation)
             if (punctuation.status === DpTaskState.IN_PROGRESS || punctuation.status === DpTaskState.DONE) {
                 if (!strBlank(punctuation.result)) {
                     welcomeMessage.punctuationTaskResp = JSON.parse(punctuation.result);
@@ -396,7 +399,7 @@ const runChat = async () => {
                 }
             }
         }
-        if (synonymousSentence.status === DpTaskState.DONE && (punctuation?.status??DpTaskState.DONE) === DpTaskState.DONE) {
+        if (synonymousSentence.status === DpTaskState.DONE && (punctuation?.status ?? DpTaskState.DONE) === DpTaskState.DONE) {
             const state = useChatPanel.getState();
             if (state.topic === welcomeMessage.topic) {
                 state.setTask({

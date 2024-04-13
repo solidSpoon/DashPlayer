@@ -1,8 +1,8 @@
-const phraseGroupPrompt = `
+const phraseGroupPrompt = (s: string): string => `
 分析下面三个单引号包裹的英文句子的意群
 
 '''
-{s}
+${s}
 '''
 `
 

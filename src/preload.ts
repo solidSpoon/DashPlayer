@@ -13,10 +13,8 @@ import {
     SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import {DpTask} from '@/backend/db/tables/dpTask';
-import {BaseMessage} from '@langchain/core/messages';
-import {toMsgMiddle} from '@/common/types/ChatMessage';
-import {AnalyzeSentenceParams} from '@/common/types/aiRes/AnalyzeSentenceParams';
 import {MsgT} from "@/common/types/msg/interfaces/MsgT";
+import {ApiDefinitions, ApiMap} from "@/common/api/api-def";
 
 export type Channels =
     | 'main-state'
@@ -32,7 +30,7 @@ export type Channels =
     | 'open-menu'
     | 'you-dao-translate'
     | 'get-audio'
-    | 'ai-tts'
+    | 'ai-func/tts'
     | 'open-data-dir'
     | 'query-cache-size'
     | 'clear-cache'
@@ -64,15 +62,7 @@ export type Channels =
     | 'transcript'
     | 'dp-task-detail'
     | 'dp-task-cancel'
-    | 'ai-chat'
-    | 'ai-analyze-current'
-    | 'ai-analyze-new-words'
-    | 'ai-analyze-new-phrases'
-    | 'ai-analyze-grammers'
-    | 'ai-make-example-sentences'
-    | 'ai-punctuation'
-    | 'ai-phrase-group'
-    | 'ai-synonymous-sentence';
+    | 'ai-chat';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -101,13 +91,6 @@ const electronHandler = {
     ): Promise<void> => {
         await invoke('subtitle-timestamp-delete-path', subtitlePath);
     },
-    subtitleTimestampGetByKey: async (
-        key: string
-    ): Promise<SubtitleTimestampAdjustment | undefined> => {
-        return (await invoke('subtitle-timestamp-get-key', key)) as
-            | SubtitleTimestampAdjustment
-            | undefined;
-    },
     subtitleTimestampGetByPath: async (
         subtitlePath: string
     ): Promise<SubtitleTimestampAdjustment[]> => {
@@ -125,9 +108,6 @@ const electronHandler = {
     setMainState: async (state: WindowState) => {
         await invoke('main-state', state);
     },
-    setSettingState: async (state: WindowState) => {
-        await invoke('setting-state', state);
-    },
     transWord: async (word: string) => {
         return (await invoke('you-dao-translate', word)) as YdRes;
     },
@@ -135,11 +115,6 @@ const electronHandler = {
         const data = (await invoke('get-audio', url)) as never;
         const blob = new Blob([data], {type: 'audio/mpeg'});
         return URL.createObjectURL(blob);
-    },
-    aiTts: async (str: string) => {
-        const path = (await invoke('ai-tts', str)) as string;
-        console.log('path', path);
-        return 'dp:///'+path;
     },
     queryCacheSize: async () => {
         return (await invoke('query-cache-size')) as string;
@@ -150,20 +125,11 @@ const electronHandler = {
     clearCache: async () => {
         await invoke('clear-cache');
     },
-    openMenu: async () => {
-        await invoke('open-menu');
-    },
     playerSize: async () => {
         await invoke('player-size');
     },
     homeSize: async () => {
         await invoke('home-size');
-    },
-    showButton: async () => {
-        await invoke('show-button');
-    },
-    hideButton: async () => {
-        await invoke('hide-button');
     },
     batchTranslate: async (
         sentences: string[]
@@ -183,41 +149,11 @@ const electronHandler = {
     checkUpdate: async () => {
         return (await invoke('check-update')) as Release[];
     },
-    markWordLevel: async (word: string, familiar: boolean) => {
-        return (await invoke('mark-word-level', word, familiar)) as void;
-    },
     dpTaskDetail: async (id: number) => {
         return (await invoke('dp-task-detail', id)) as DpTask;
     },
-    dpTaskCancel: async (id: number) => {
-        await invoke('dp-task-cancel', id);
-    },
     chat: async (msgs: MsgT[]) => {
         return (await invoke('ai-chat', msgs)) as number;
-    },
-    aiAnalyzeCurrent: async (params: AnalyzeSentenceParams) => {
-        return (await invoke('ai-analyze-current', params)) as number;
-    },
-    aiAnalyzeNewWords: async (sentence: string) => {
-        return (await invoke('ai-analyze-new-words', sentence)) as number;
-    },
-    aiAnalyzeNewPhrases: async (sentence: string) => {
-        return (await invoke('ai-analyze-new-phrases', sentence)) as number;
-    },
-    aiAnalyzeGrammers: async (sentence: string) => {
-        return (await invoke('ai-analyze-grammers', sentence)) as number;
-    },
-    aiMakeExampleSentences: async (sentence: string, points: string[]) => {
-        return (await invoke('ai-make-example-sentences', sentence, points)) as number;
-    },
-    aiPunctuation: async (no: number, srt: string) => {
-        return (await invoke('ai-punctuation', no, srt)) as number;
-    },
-    aiPhraseGroup: async (sentence: string, phraseGroup?: string) => {
-        return (await invoke('ai-phrase-group', sentence, phraseGroup)) as number;
-    },
-    aiSynonymousSentence: async (sentence: string) => {
-        return (await invoke('ai-synonymous-sentence', sentence)) as number;
     },
     appVersion: async () => {
         return (await invoke('app-version')) as string;
@@ -273,8 +209,9 @@ const electronHandler = {
     onMainState: (func: (state: WindowState) => void) => {
         return on('main-state', func as never);
     },
-    onSettingState: (func: (state: WindowState) => void) => {
-        return on('setting-state', func as never);
+    // 调用函数的方法
+    call: async function invok<K extends keyof ApiMap>(path: K, param: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {
+        return ipcRenderer.invoke(path, param);
     }
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
