@@ -1,81 +1,54 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { pathToFile } from '../../../common/utils/FileParser';
 import useFile from '../../hooks/useFile';
-import { cn } from '../../../common/utils/Util';
-import usePlayerController from '../../hooks/usePlayerController';
-import FileItem from './FileItem';
-import { isMidea, isSrt } from '@/common/utils/MediaTypeUitl';
-import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
-import { mutate } from 'swr';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { isSrt } from '@/common/utils/MediaTypeUitl';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 export interface OpenFileProps {
-    directory?: boolean;
-    className?: string;
-    onSelected?: () => void;
+    child: (handleClick: () => void) => React.ReactNode;
+    onSelected?: (vid: number) => void;
 }
 
 const api = window.electron;
 
 export default function FileSelector({
-                                         directory,
-                                         className,
-                                         onSelected
-                                     }: OpenFileProps) {
-    const navigate = useNavigate();
+                                          child, onSelected
+                                      }: OpenFileProps) {
     const handleClick = async () => {
         const ps = await api.call('system/select-file', {
-            mode: directory ? 'directory' : 'file',
+            mode: 'file',
             filter: 'none'
         });
-        console.log('project', ps);
-        if (ps.length === 1 && !directory && isSrt(ps[0])) {
+        if (ps.length === 1 && isSrt(ps[0])) {
             const video = useFile.getState().videoFile;
             if (video?.path) {
                 await api.call('watch-project/attach-srt', { videoPath: video.path, srtPath: ps[0] });
             }
-            return;
+        } else {
+            const pid = await api.call('watch-project/create/from-files', ps);
+            const v = await api.call('watch-project/video/detail/by-pid', pid);
+            onSelected(v.id);
         }
-
-        const [videoFile] = ps.filter((p) => isMidea(p));
-        const [subtitleFile] = ps.filter((p) => isSrt(p));
-        const pid = await api.call('watch-project/create/from-files', [videoFile, subtitleFile]);
-        const watchProject: WatchProjectVO = await api.call('watch-project/detail', pid);
-        let [video] = watchProject.videos.filter(v => v.current_playing);
-        if (!video) {
-            video = watchProject.videos[0];
-        }
-        await api.playerSize();
-        console.log('jump', `/player/${video.id}`);
-        navigate(`/player/${video.id}`);
-        await mutate('player-p');
-        onSelected?.();
+        await swrMutate(SWR_KEY.PLAYER_P);
+        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+        await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
     };
 
     return (
-        <>
-            {directory && (
-                <FileItem
-                    content="打开文件夹..."
-                    className={cn('w-full', className)}
-                    onClick={() => handleClick()}
-                />
-            )}
-            {!directory && (
-                <FileItem
-                    content="打开文件..."
-                    tip="打开文件，可多选（同时选择视频和对应的字幕）"
-                    className={cn('w-full', className)}
-                    onClick={() => handleClick()}
-                />
-            )}
-        </>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    {child(handleClick)}
+                </TooltipTrigger>
+                <TooltipContent>
+                    可以同时选择一个视频文件及其对应的字幕文件
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
 }
 
 FileSelector.defaultProps = {
-    directory: false,
-    className: '',
     onSelected: () => {
         //
     }

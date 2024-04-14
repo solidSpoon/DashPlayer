@@ -4,6 +4,7 @@ import { GoHistory } from 'react-icons/go';
 import FileItem from '@/fronted/components/fileBowser/FileItem';
 import React from 'react';
 import { WatchProjectType } from '@/backend/db/tables/watchProjects';
+import { SWR_KEY } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 const fetcher = () => api.call('watch-project/list', null);
@@ -14,7 +15,7 @@ export interface ProjectListProps {
 }
 
 const ProjectList = ({ onSelected, className }: ProjectListProps) => {
-    const { data: vps, mutate } = useSWR('project-list', fetcher);
+    const { data: vps, mutate } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, fetcher);
     const lastPlay = vps ? (vps.length > 0 ? vps[0] : null) : null;
     const restPlay = vps ? vps.length > 1 ? vps.slice(1) : [] : [];
     return (

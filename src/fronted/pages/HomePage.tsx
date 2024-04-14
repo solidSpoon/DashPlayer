@@ -1,21 +1,22 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useSystem from '@/fronted/hooks/useSystem';
 import TitleBar from '@/fronted/components/TitleBar/TitleBar';
 import useSetting from '@/fronted/hooks/useSetting';
 import { cn } from '@/common/utils/Util';
-import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
-import ProjectList from '@/fronted/components/fileBrowserNew/project-list';
+import ProjectList from '@/fronted/components/fileBowser/project-list';
+import FileSelector from '@/fronted/components/fileBowser/FileSelector';
+import FileItem from '@/fronted/components/fileBowser/FileItem';
+import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
 
 const api = window.electron;
 const HomePage = () => {
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
-
     async function handleClickById(projectId: number) {
         const project = await api.call('watch-project/detail', projectId);
         let video = project.videos.find((v) => v.current_playing);
@@ -35,7 +36,7 @@ const HomePage = () => {
     const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
     const clear = useFile((s) => s.clear);
     useEffect(() => {
-        api.homeSize();
+        api.homeSize().then();
         clear();
     }, [clear]);
     return (
@@ -88,8 +89,31 @@ const HomePage = () => {
             >
                 <div className="w-full h-10" />
                 <div className={cn('flex w-full flex-col items-start')}>
-                    <FileSelector className={cn('text-sm')} />
-                    <FileSelector className={cn('text-sm')} directory />
+                    <FileSelector
+                        onSelected={(vid) => {
+                            navigate(`/player/${vid}`);
+                        }}
+                        child={(hc) => (
+                            <FileItem
+                                content="打开文件..."
+                                tip="打开文件，可多选（同时选择视频和对应的字幕）"
+                                className={cn('w-full text-sm')}
+                                onClick={() => hc()}
+                            />
+                        )}
+                    />
+                    <FolderSelector
+                        onSelected={(vid) => {
+                            navigate(`/player/${vid}`);
+                        }}
+                        child={(hc) => (
+                            <FileItem
+                                content="打开文件夹..."
+                                className={cn('w-full text-sm')}
+                                onClick={() => hc()}
+                            />
+                        )}
+                    />
                 </div>
                 <ProjectList className={cn('h-0 flex-1 w-full')}
                              onSelected={async (projectId) => {
