@@ -55,7 +55,9 @@ export const getTtsUrl = async (str: string) => {
     }
     // audioUrl = await api.aiTts(str);
     audioUrl = await api.call('ai-func/tts', str);
-    console.log('testcall', audioUrl)
-    cache.set(str, audioUrl);
+    console.log('testcall', audioUrl);
+    if (!strBlank(audioUrl)) {
+        cache.set(str, audioUrl);
+    }
     return audioUrl;
 };

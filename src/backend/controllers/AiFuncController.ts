@@ -52,7 +52,7 @@ export default class AiFuncController implements Controller {
     }
 
     public async tts(string: string) {
-        return TtsService.tts(string);
+        return `dp:///${await TtsService.tts(string)}`;
     }
 
     public static async chat({msgs}: { msgs: MsgT[] }): Promise<number> {
