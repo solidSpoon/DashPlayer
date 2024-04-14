@@ -1,11 +1,11 @@
-import FileT from '@/common/types/FileT';
 import { TableCell, TableRow } from '@/fronted/components/ui/table';
 import { cn } from '@/common/utils/Util';
 import { Button } from '@/fronted/components/ui/button';
 import React, { useEffect } from 'react';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 import useDpTask from '@/fronted/hooks/useDpTask';
-import { m } from 'framer-motion';
+import useSWR from 'swr';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 
 export interface TranscriptItemProps {
     file: string;
@@ -22,7 +22,13 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
     console.log('itemTaskId', taskId);
     const [started, setStarted] = React.useState(false);
     const task = useDpTask(taskId, 1000);
-
+    const { data: fInfo } = useSWR(`system/path-info:${file}`, () => api.call('system/path-info', file), {
+        fallbackData: {
+            baseName: '',
+            dirName: '',
+            extName: ''
+        }
+    });
     let msg = task?.progress ?? '未开始';
     if (task?.status === DpTaskState.IN_PROGRESS) {
         console.log(task.created_at, task.updated_at);
@@ -43,7 +49,18 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
     }
     return (
         <TableRow>
-            <TableCell className="font-medium">{file}</TableCell>
+            <TableCell className="font-medium">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger className={'text-left f'}>
+                            {fInfo.baseName}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            {file}
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </TableCell>
             <TableCell className={cn('')}>{msg}</TableCell>
             <TableCell className={cn(' flex')}>
                 <Button

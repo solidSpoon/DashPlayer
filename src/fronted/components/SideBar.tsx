@@ -1,16 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-    HiOutlineCog, HiOutlineDocument,
-    HiOutlineUser,
-    HiOutlineVideoCamera
-} from 'react-icons/hi';
 import React, { cloneElement, ReactElement } from 'react';
 import { cn } from '@/common/utils/Util';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
 import useSetting from "@/fronted/hooks/useSetting";
-import Transcript from '@/fronted/pages/Transcript';
+import { Captions, Settings, User, Video } from 'lucide-react';
 
 export interface SideBarProps {
     compact?: boolean;
@@ -18,7 +13,7 @@ export interface SideBarProps {
 const SideBar = ({ compact }: SideBarProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const video = useFile((s) => s.currentVideo);
+    const videoId = useFile((s) => s.videoId);
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     const item = (
         text: string,
@@ -68,18 +63,30 @@ const SideBar = ({ compact }: SideBarProps) => {
                 {/* {item('Home', '/home', 'home', <HiOutlineHome />)} */}
                 {item(
                     'Player',
-                    `/player/${video?.id}?sideBarAnimation=false`,
+                    `/player/${videoId}?sideBarAnimation=false`,
                     'player',
-                    <HiOutlineVideoCamera />
+                    <Video />
                 )}
                 {item(
                    'Transcript',
                    '/transcript',
                    'transcript',
-                    <HiOutlineDocument />
+                    <Captions />
                 )}
-                {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
-                {item('About', '/about', 'about', <HiOutlineUser />)}
+                {item(
+                    'Split',
+                    '/split',
+                    'split',
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         className="lucide lucide-square-split-horizontal">
+                        <path d="M8 19H5c-1 0-2-1-2-2V7c0-1 1-2 2-2h3" />
+                        <path d="M16 5h3c1 0 2 1 2 2v10c0 1-1 2-2 2h-3" />
+                        <line x1="12" x2="12" y1="4" y2="20" />
+                    </svg>
+                )}
+                {item('Setting', '/settings', 'settings', <Settings />)}
+                {item('About', '/about', 'about', <User />)}
             </div>
         </div>
     );

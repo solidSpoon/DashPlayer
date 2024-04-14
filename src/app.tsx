@@ -19,8 +19,9 @@ import { Toaster } from "@/fronted/components/ui/sonner";
 import {Toaster as HotToaster} from "react-hot-toast";
 
 import {syncStatus} from "@/fronted/hooks/useSystem";
-import Transcript from '@/fronted/pages/Transcript';
+import Transcript from '@/fronted/pages/transcript/Transcript';
 import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
+import Split from '@/fronted/pages/split/Split';
 
 const App = () => {
 
@@ -49,6 +50,10 @@ const App = () => {
                                     <Route
                                        path='transcript'
                                        element={<Transcript />}
+                                    />
+                                    <Route
+                                        path='split'
+                                        element={<Split />}
                                     />
                                     <Route path='about' element={<About />} />
                                     <Route

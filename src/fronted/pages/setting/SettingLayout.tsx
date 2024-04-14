@@ -11,6 +11,7 @@ import {
 import {cn} from '@/common/utils/Util';
 import Separator from '@/fronted/components/Separtor';
 import {buttonVariants} from "@/fronted/components/ui/button";
+import { Bot, Command, Compass, Database, Languages, Palette, Server, WholeWord } from 'lucide-react';
 
 export type SettingType =
     | 'you-dao'
@@ -66,13 +67,13 @@ const Sidebar = () => {
     };
     return (
         <div className="w-full h-full flex flex-col gap-2">
-            {ele('快捷键', 'shortcut', <MdKeyboard/>)}
-            {ele('外观', 'appearance', <MdColorLens/>)}
-            {ele('字幕翻译', 'tenant', <MdOutlineGTranslate/>)}
-            {ele('查单词', 'you-dao', <MdTranslate/>)}
-            {ele('OpenAI', 'open-ai', <MdCrueltyFree />)}
-            {ele('存储', 'storage', <MdStorage/>)}
-            {ele('版本更新', 'update', <MdBuild/>)}
+            {ele('快捷键', 'shortcut', <Command />)}
+            {ele('外观', 'appearance', <Palette />)}
+            {ele('字幕翻译', 'tenant', <Languages />)}
+            {ele('查单词', 'you-dao', <WholeWord />)}
+            {ele('OpenAI', 'open-ai', <Bot />)}
+            {ele('存储', 'storage', <Database />)}
+            {ele('版本更新', 'update', <Compass />)}
         </div>
     );
 };

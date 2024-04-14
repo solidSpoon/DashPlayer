@@ -18,30 +18,6 @@ const FileItem = ({
                       onClick,
                       className
                   }: FileItemProps) => {
-    const [open, setOpen] = useState(false);
-    const timeout = useRef<NodeJS.Timeout>();
-
-    const handleMouseEnter = () => {
-        if (timeout.current) {
-            clearTimeout(timeout.current);
-        }
-        timeout.current = setTimeout(() => {
-            setOpen(true);
-        }, 500);
-    };
-
-    const handleMouseLeave = () => {
-        if (timeout.current) {
-            clearTimeout(timeout.current);
-        }
-        setOpen(false);
-    };
-    const handleClicked = () => {
-        if (timeout.current) {
-            clearTimeout(timeout.current);
-        }
-        setOpen(false);
-    };
     return (
         <TooltipProvider>
             <Tooltip>
@@ -51,10 +27,7 @@ const FileItem = ({
                         'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2',
                         className
                     )}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
                     onClick={() => {
-                        handleClicked();
                         onClick?.();
                     }}
                 >

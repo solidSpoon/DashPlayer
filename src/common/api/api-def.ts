@@ -1,6 +1,6 @@
-import {MsgT} from "@/common/types/msg/interfaces/MsgT";
-import {DpTask} from "@/backend/db/tables/dpTask";
-import {YdRes} from "@/common/types/YdRes";
+import { MsgT } from '@/common/types/msg/interfaces/MsgT';
+import { DpTask } from '@/backend/db/tables/dpTask';
+import { YdRes } from '@/common/types/YdRes';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { WatchProject } from '@/backend/db/tables/watchProjects';
@@ -12,47 +12,68 @@ interface ApiDefinition {
 
 // 定义额外的接口
 interface AiFuncDef {
-    'ai-func/tts': { params: string, return: string }
-    'ai-func/phrase-group': { params: string, return: number }
-    'ai-func/synonymous-sentence': { params: string, return: number }
-    'ai-func/make-example-sentences': { params: { sentence: string, point: string[] }, return: number }
-    'ai-func/punctuation': { params: { no: number, srt: string }, return: number }
-    'ai-func/analyze-grammars': { params: string, return: number }
-    'ai-func/analyze-new-phrases': { params: string, return: number }
-    'ai-func/analyze-new-words': { params: string, return: number }
-    'ai-func/chat': { params: { msgs: MsgT[] }, return: number }
-    'ai-func/transcript': { params: {filePath: string}, return: number }
+    'ai-func/tts': { params: string, return: string };
+    'ai-func/phrase-group': { params: string, return: number };
+    'ai-func/synonymous-sentence': { params: string, return: number };
+    'ai-func/make-example-sentences': { params: { sentence: string, point: string[] }, return: number };
+    'ai-func/punctuation': { params: { no: number, srt: string }, return: number };
+    'ai-func/analyze-grammars': { params: string, return: number };
+    'ai-func/analyze-new-phrases': { params: string, return: number };
+    'ai-func/analyze-new-words': { params: string, return: number };
+    'ai-func/chat': { params: { msgs: MsgT[] }, return: number };
+    'ai-func/transcript': { params: { filePath: string }, return: number };
 }
 
 interface DpTaskDef {
-    'dp-task/detail': { params: number, return: DpTask | undefined }
-    'dp-task/cancel': { params: number, return: void }
+    'dp-task/detail': { params: number, return: DpTask | undefined };
+    'dp-task/cancel': { params: number, return: void };
 }
+
 interface SystemDef {
-    'system/is-windows': { params: void, return: boolean }
-    'system/select-file': { params: {mode: 'file' | 'directory',filter: 'video'|'srt'|'none'}, return: string[] }
+    'system/is-windows': { params: void, return: boolean };
+    'system/select-file': { params: { mode: 'file' | 'directory', filter: 'video' | 'srt' | 'none' }, return: string[] };
+    'system/path-info': {
+        params: string, return: {
+            /**
+             * e.g. 'index.html'
+             */
+            baseName: string,
+            /**
+             * e.g. '/home/user/dir'
+             */
+            dirName: string,
+            /**
+             * e.g. '.html'
+             */
+            extName: string
+        }
+    };
 }
+
 interface AiTransDef {
-    'ai-trans/batch-translate': { params: string[], return: Map<string, string> }
-    'ai-trans/word': { params: string, return: YdRes | null }
+    'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
+    'ai-trans/word': { params: string, return: YdRes | null };
 }
 
 interface WatchProjectDef {
-    'watch-project/progress/update': { params: {videoId: number, currentTime: number, duration: number}, return: void }
-    'watch-project/video/play': { params: number, return: void }
-    'watch-project/video/detail': { params: number, return: WatchProjectVideo }
-    'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo }
-    'watch-project/create/from-folder': { params: string, return: number }
-    'watch-project/create/from-files': { params: string[], return: number }
-    'watch-project/delete': { params: number, return: void }
-    'watch-project/detail': { params: number, return: WatchProjectVO }
-    'watch-project/detail/by-vid': { params: number, return: WatchProjectVO }
-    'watch-project/list': { params: void, return: WatchProject[] }
-    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string }, return: void }
+    'watch-project/progress/update': {
+        params: { videoId: number, currentTime: number, duration: number },
+        return: void
+    };
+    'watch-project/video/play': { params: number, return: void };
+    'watch-project/video/detail': { params: number, return: WatchProjectVideo };
+    'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo };
+    'watch-project/create/from-folder': { params: string, return: number };
+    'watch-project/create/from-files': { params: string[], return: number };
+    'watch-project/delete': { params: number, return: void };
+    'watch-project/detail': { params: number, return: WatchProjectVO };
+    'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };
+    'watch-project/list': { params: void, return: WatchProject[] };
+    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string }, return: void };
 }
 
 interface SubtitleControllerDef {
-    'subtitle/sentences/process': { params: string[], return: SentenceStruct[] }
+    'subtitle/sentences/process': { params: string[], return: SentenceStruct[] };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
