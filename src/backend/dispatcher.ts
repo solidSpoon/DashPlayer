@@ -24,6 +24,7 @@ import DpTaskController from "@/backend/controllers/DpTaskController";
 import AiTransController from "@/backend/controllers/AiTransController";
 import WatchProjectController from '@/backend/controllers/WatchProjectController';
 import SubtitleController from '@/backend/controllers/SubtitleProcesser';
+import SplitVideoController from "@/backend/controllers/SplitVideoController";
 
 
 const handle = (
@@ -42,6 +43,7 @@ const controllers: Controller[] = [
     new AiTransController(),
     new WatchProjectController(),
     new SubtitleController(),
+    new SplitVideoController(),
 ]
 
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {

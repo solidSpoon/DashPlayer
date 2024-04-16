@@ -4,6 +4,9 @@ import { twMerge } from 'tailwind-merge';
 export const strBlank = (str: string | undefined | null): boolean => {
     return !str || str.trim() === '';
 };
+export const strNotBlank = (str: string | undefined | null): boolean => {
+    return !strBlank(str);
+}
 export const sleep = (ms: number): Promise<void> => {
     return new Promise((resolve) => setTimeout(resolve, ms));
 };

@@ -8,7 +8,6 @@ import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
 import { Button } from '@/fronted/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import FileBrowserIcon from '@/fronted/components/fileBowser/FileBrowserIcon';
-import { ArrowRight } from 'lucide-react';
 
 const SplitFile = ({onAddToQueue, queue}:{
     onAddToQueue:(p:string)=>void,

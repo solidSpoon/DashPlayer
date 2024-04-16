@@ -8,8 +8,11 @@ import { FileQuestion, FileType2, FileVideo2, Stethoscope } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
 import SplitFile from '@/fronted/pages/split/SplitFile';
+import SplitPreview from "@/fronted/pages/split/split-preview";
+import {useLocalStorage} from "@uidotdev/usehooks";
 
 const Split = () => {
+    const [content, setContent] = useLocalStorage('split-video-content', '')
     return (
         <div
             className={cn(
@@ -28,12 +31,14 @@ const Split = () => {
             <div className={cn('grid grid-rows-3 grid-cols-2 gap-2 gap-x-20 w-full h-0 flex-1 px-10 pr-16')}
                  style={{
                      gridTemplateRows: '1fr auto auto',
-                     gridTemplateColumns: '1fr 1fr'
+                     gridTemplateColumns: '1fr 55%'
                  }}
             >
                 <div className={cn('row-start-1 row-end-2 col-start-1 col-end-2 flex flex-col space-y-2 pt-4')}>
                     <Label>Input</Label>
                     <Textarea
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
                         className={cn('flex-1 resize-none')}
                     />
                 </div>
@@ -90,8 +95,9 @@ const Split = () => {
                         <TabsTrigger value="account">预览</TabsTrigger>
                         <TabsTrigger value="password">选择文件</TabsTrigger>
                     </TabsList>
-                    <TabsContent className={''} value="account">Make changes to your account
-                        here.</TabsContent>
+                    <TabsContent className={'w-full h-full overflow-auto scrollbar-thin'} value="account">
+                        <SplitPreview content={content} className={'w-full h-full'}/>
+                    </TabsContent>
                     <TabsContent value="password" className={'w-full h-full'}>
                         <SplitFile queue={[]} onAddToQueue={()=>{}}/>
                     </TabsContent>

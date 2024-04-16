@@ -5,6 +5,7 @@ import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { WatchProject } from '@/backend/db/tables/watchProjects';
 import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
+import {ParseResult} from "@/common/types/chapter-result";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -76,6 +77,10 @@ interface SubtitleControllerDef {
     'subtitle/sentences/process': { params: string[], return: SentenceStruct[] };
 }
 
+interface SplitVideoDef {
+    'split-video/preview': { params: string, return: ParseResult[] };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -83,7 +88,8 @@ export type ApiDefinitions = ApiDefinition
     & SystemDef
     & AiTransDef
     & WatchProjectDef
-    & SubtitleControllerDef;
+    & SubtitleControllerDef
+    & SplitVideoDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {
