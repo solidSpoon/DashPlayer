@@ -23,12 +23,11 @@ class SplitVideoService {
         if (startSecond >= endSecond) {
             return;
         }
-        const folderName = path.basename(filePath, path.extname(filePath));
+        const folderName = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)));
         if (!fs.existsSync(folderName)) {
             fs.mkdirSync(folderName, {recursive: true});
         }
         const fileName = path.join(folderName, `${param.title}.${path.extname(filePath)}`);
-        ffmpeg.setFfmpegPath(ffmpeg_static);
 
         //ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
         await DpTaskService.update({

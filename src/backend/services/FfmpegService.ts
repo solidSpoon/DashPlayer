@@ -35,6 +35,7 @@ export default class FfmpegService {
         endSecond: number,
         outputFile: string
     }) {
+        ffmpeg.setFfmpegPath(ffmpeg_static);
         await Lock.sync('ffmpeg', async () => {
             await new Promise((resolve, reject) => {
                 ffmpeg(inputFile)

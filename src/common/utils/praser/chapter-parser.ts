@@ -71,7 +71,8 @@ function parseLine(line: string): ChapterParseResult {
             value: timestamp
         },
         timestampValid: true,
-        title
+        title,
+        original: line
     }
 }
 

@@ -238,6 +238,7 @@ export default class WatchProjectNewService {
                 .from(watchProjectVideos)
                 .where(eq(watchProjectVideos.project_id, projId)))[0];
         }
+        return v;
     }
 
     static async detailByVid(vid: number) {

@@ -9,4 +9,5 @@ export interface ChapterParseResult {
     },
     timestampValid: boolean,
     title: string
+    original: string
 }

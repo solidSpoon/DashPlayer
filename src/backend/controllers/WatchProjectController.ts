@@ -1,8 +1,8 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import { WatchProject } from '@/backend/db/tables/watchProjects';
-import WatchProjectNewService, { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import {WatchProject} from '@/backend/db/tables/watchProjects';
+import WatchProjectNewService, {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 
 export default class WatchProjectController implements Controller{
 
@@ -17,7 +17,7 @@ export default class WatchProjectController implements Controller{
         return WatchProjectNewService.videoDetail(videoId);
     }
     public async videoDetailByPid(projId: number): Promise<WatchProjectVideo> {
-        return WatchProjectNewService.videoDetailByPid(projId);
+        return await WatchProjectNewService.videoDetailByPid(projId);
     }
     public async createFromFolder(path: string): Promise<number> {
         return WatchProjectNewService.createFromDirectory(path);

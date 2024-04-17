@@ -1,18 +1,25 @@
 import React, {} from 'react';
-import { cn } from '@/common/utils/Util';
+import {cn} from '@/common/utils/Util';
 import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import FileItem from '@/fronted/components/fileBowser/FileItem';
-import { WatchProjectType } from '@/backend/db/tables/watchProjects';
+import {WatchProjectType} from '@/backend/db/tables/watchProjects';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
-import { Button } from '@/fronted/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import {Button} from '@/fronted/components/ui/button';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import FileBrowserIcon from '@/fronted/components/fileBowser/FileBrowserIcon';
+import useSplit from "@/fronted/hooks/useSplit";
+import {useShallow} from "zustand/react/shallow";
 
-const SplitFile = ({onAddToQueue, queue}:{
-    onAddToQueue:(p:string)=>void,
-    queue: string[]
-}) => {
+const api = window.electron;
+
+const SplitFile = () => {
+
+    const {updateFile,videoPath} = useSplit(useShallow(s => ({
+        updateFile: s.updateFile,
+        videoPath: s.videoPath
+    })));
+
     return (
         <div className={cn('w-full h-full flex flex-col rounded p-4')}>
             <div
@@ -56,10 +63,12 @@ const SplitFile = ({onAddToQueue, queue}:{
                                     <TooltipTrigger asChild>
                                         <div
                                             className={cn(
-                                                'w-0 flex-1 flex-shrink-0 flex justify-start items-center  rounded-lg gap-3 px-3 lg:px-6 py-2'
+                                                'w-0 flex-1 flex-shrink-0 flex justify-start items-center  rounded-lg gap-3 px-3 lg:px-6 py-2',
+                                                'hover:bg-secondary',
                                             )}
                                             onClick={() => {
-                                                onAddToQueue(pv.video_path);
+                                                updateFile(pv.video_path);
+                                                updateFile(pv.subtitle_path);
                                             }}
                                         >
                                             <>
@@ -87,12 +96,15 @@ const SplitFile = ({onAddToQueue, queue}:{
                                     <TooltipTrigger asChild>
                                         <div
                                             className={cn(
-                                                'w-0 flex-1 flex-shrink-0 flex justify-start items-center  rounded-lg gap-3 px-3 lg:px-6 py-2'
+                                                'w-0 flex-1 flex-shrink-0 flex justify-start items-center  rounded-lg gap-3 px-3 lg:px-6 py-2',
+                                                'hover:bg-secondary',
                                             )}
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 hc();
                                                 if (p.project_type === WatchProjectType.FILE) {
-                                                    onAddToQueue(p.project_path);
+                                                    const pVideo = await api.call('watch-project/video/detail/by-pid', p.id);
+                                                    updateFile(pVideo.video_path);
+                                                    updateFile(pVideo.subtitle_path);
                                                 }
                                             }}
                                         >

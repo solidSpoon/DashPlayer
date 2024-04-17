@@ -1,16 +1,17 @@
-import { cn } from '@/fronted/lib/utils';
+import {cn} from '@/fronted/lib/utils';
 import Separator from '@/fronted/components/Separtor';
 import React from 'react';
-import { Button } from '@/fronted/components/ui/button';
-import { Textarea } from '@/fronted/components/ui/textarea';
-import { Label } from '@/fronted/components/ui/label';
-import { FileQuestion, FileType2, FileVideo2, Stethoscope } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
+import {Button} from '@/fronted/components/ui/button';
+import {Textarea} from '@/fronted/components/ui/textarea';
+import {Label} from '@/fronted/components/ui/label';
+import {FileQuestion, FileType2, FileVideo2, Stethoscope, X} from 'lucide-react';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/fronted/components/ui/tabs';
 import SplitFile from '@/fronted/pages/split/SplitFile';
 import SplitPreview from "@/fronted/pages/split/split-preview";
 import useSplit from "@/fronted/hooks/useSplit";
 import {useShallow} from "zustand/react/shallow";
+
 const example = `
 00:00:00 Intro
 00:00:10 Part 1
@@ -18,9 +19,12 @@ const example = `
 00:20:00 Part 3
 `
 const Split = () => {
-    const {userInput, setUseInput} = useSplit(useShallow(s=>({
+    const {userInput, setUseInput, videoPath, srtPath,deleteFile} = useSplit(useShallow(s => ({
         userInput: s.userInput,
-        setUseInput: s.setUseInput
+        setUseInput: s.setUseInput,
+        videoPath: s.videoPath,
+        srtPath: s.srtPath,
+        deleteFile: s.deleteFile,
     })));
     return (
         <div
@@ -35,7 +39,7 @@ const Split = () => {
                 <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
                     Split long video & subtitle files into smaller parts
                 </h2>
-                <Separator orientation="horizontal" className="px-0" />
+                <Separator orientation="horizontal" className="px-0"/>
             </div>
             <div className={cn('grid grid-rows-3 grid-cols-2 gap-2 gap-x-20 w-full h-0 flex-1 px-10 pr-16')}
                  style={{
@@ -55,10 +59,28 @@ const Split = () => {
                     <Label>Files</Label>
                     <div className={'p-2 flex flex-col gap-2'}>
                         <div className={'flex gap-4'}>
-                            <FileVideo2 /> 未选择
+                            <FileVideo2/> {videoPath ?
+                            <>
+                                {videoPath}
+                                <Button
+                                    variant={'ghost'}
+                                    size={'icon'}
+                                    className={'w-6 h-6 ml-auto'}
+                                    onClick={()=>deleteFile(videoPath)}
+                                ><X/></Button>
+                            </> : '未选择'}
                         </div>
                         <div className={'flex gap-4'}>
-                            <FileType2 /> 未选择
+                            <FileType2/> {srtPath ?
+                            <>
+                                {srtPath}
+                                <Button
+                                    variant={'ghost'}
+                                    size={'icon'}
+                                    className={'w-6 h-6 ml-auto'}
+                                    onClick={()=>deleteFile(srtPath)}
+                                ><X/></Button>
+                            </> : '未选择'}
                         </div>
 
                     </div>
@@ -71,7 +93,7 @@ const Split = () => {
                                     variant={'outline'}
                                     size={'icon'}
                                     onClick={() => setUseInput(example.trim())}
-                                    className={'ml-auto'}><FileQuestion /></Button>
+                                    className={'ml-auto'}><FileQuestion/></Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 加载示例配置
@@ -84,7 +106,7 @@ const Split = () => {
                                 <Button
                                     variant={'outline'}
                                     size={'icon'}
-                                    className={''}><Stethoscope />
+                                    className={''}><Stethoscope/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -109,7 +131,7 @@ const Split = () => {
                         <SplitPreview className={'w-full h-full'}/>
                     </TabsContent>
                     <TabsContent value="password" className={'w-full h-full'}>
-                        <SplitFile queue={[]} onAddToQueue={()=>{}}/>
+                        <SplitFile/>
                     </TabsContent>
                 </Tabs>
             </div>
