@@ -1,5 +1,4 @@
 import {cn} from "@/fronted/lib/utils";
-import {strNotBlank} from "@/common/utils/Util";
 import {
     Table,
     TableBody,
@@ -10,27 +9,13 @@ import {
     TableRow
 } from "@/fronted/components/ui/table";
 import React from "react";
-import useSWR from "swr";
-import hash from "@/common/utils/hash";
-import {data} from "autoprefixer";
 import {Button} from "@/fronted/components/ui/button";
+import useSplit from "@/fronted/hooks/useSplit";
 
-const api = window.electron;
-
-
-const SplitPreview = ({content, className}: {
+const SplitPreview = ({className}: {
     className?: string;
-    content: string;
 }) => {
-    // const {data: lines} = useSWR('split-view-preview:'+hash(content), () => api.call('split-video/preview', content), {
-    //
-    // });
-    const [lines, setLines] = React.useState([]);
-    React.useEffect(() => {
-        api.call('split-video/preview', content).then((data) => {
-            setLines(data);
-        });
-    }, [content]);
+    const lines = useSplit(s=>s.parseResult);
     return (
         <Table className={cn('w-full', className)}>
             <TableCaption>A list of your recent invoices.</TableCaption>
@@ -61,7 +46,12 @@ const SplitPreview = ({content, className}: {
                                     !line.timestampValid && 'bg-red-100'
                                 )}>{line.timestampEnd.value}</TableCell>
                             <TableCell className={' w-20'}>{line.title}</TableCell>
-                            <TableCell><Button>分割</Button></TableCell>
+                            <TableCell>
+                                <Button
+                                    onClick={async () => {
+                                        // await api.call('split-video/split',{p});
+                                    }}
+                                >分割</Button></TableCell>
                         </TableRow>
                     );
                 })}

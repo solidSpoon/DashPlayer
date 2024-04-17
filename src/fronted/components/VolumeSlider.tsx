@@ -7,6 +7,7 @@ import {Slider} from "@/fronted/components/ui/slider";
 import {Toggle} from "@/fronted/components/ui/toggle";
 import {cn} from "@/fronted/lib/utils";
 import {useLocalStorage} from "@uidotdev/usehooks";
+import {Volume, Volume1, Volume2, VolumeX} from "lucide-react";
 
 export interface VolumeSliderProps {
     volume: number;
@@ -29,11 +30,12 @@ const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSl
                 className="flex items-center justify-center"
             >
                 {/*<IoVolumeOff className="h-6 w-6"/>*/}
-                {localVolume > 0.5 && !muted && <IoVolumeHigh className="h-6 w-6"/>}
+                {localVolume > 0.5 && !muted && <Volume2  className="h-6 w-6"/>}
                 {localVolume <= 0.5&& !muted && localVolume > 0 && (
-                    <IoVolumeLow className="h-6 w-6"/>
+                    <Volume1 className="h-6 w-6"/>
                 )}
-                {(localVolume === 0 || muted) && <IoVolumeMute className="h-6 w-6"/>}
+                {(localVolume === 0 && !muted) && <Volume  className="h-6 w-6"/>}
+                {muted && <VolumeX  className="h-6 w-6"/>}
                 <span className={cn('w-7')}>{Math.floor(localVolume * 100)}</span>
             </Toggle>
             <Slider

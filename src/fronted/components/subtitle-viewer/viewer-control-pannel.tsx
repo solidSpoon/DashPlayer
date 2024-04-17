@@ -9,6 +9,8 @@ import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
+import {Pause, Play} from "lucide-react";
+import {Button} from "@/fronted/components/ui/button";
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -101,7 +103,7 @@ const ViewerControlPannel = ({
                     />
                     <div className="w-full flex justify-between items-center">
                         <div className="flex gap-4">
-                            <div
+                            <Button
                                 onClick={() => {
                                     if (playing) {
                                         onPause?.();
@@ -109,14 +111,16 @@ const ViewerControlPannel = ({
                                         onPlay?.();
                                     }
                                 }}
-                                className="flex justify-center items-center rounded-lg"
+                                size={'icon'}
+                                variant={'ghost'}
+                                // className="flex justify-center items-center rounded-lg"
                             >
                                 {playing ? (
-                                    <FaPause className="w-6 h-6 fill-foreground" />
+                                    <Pause className="" />
                                 ) : (
-                                    <FaPlay className="w-6 h-6  fill-foreground" />
+                                    <Play className="" />
                                 )}
-                            </div>
+                            </Button>
                             <div className=" h-full flex items-center">
                                 {`${secondToDate(
                                     currentValue

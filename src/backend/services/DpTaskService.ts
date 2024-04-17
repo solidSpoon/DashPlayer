@@ -71,6 +71,9 @@ export default class DpTaskService {
     public static async update(
         task: InsertDpTask
     ) {
+        if (task.id === undefined || task.id === null) {
+            return;
+        }
         if (cache.has(task.id)) {
             cache.set(task.id, {
                 ...cache.get(task.id),

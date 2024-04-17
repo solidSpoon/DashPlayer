@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaPause, FaPlay } from 'react-icons/fa';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from '../VolumeSlider';
 import usePlayerController from '../../hooks/usePlayerController';
@@ -9,6 +8,7 @@ import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
+import {Pause, Play} from "lucide-react";
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -95,9 +95,9 @@ const PlayerControlPannel = ({
                             className='flex justify-center items-center rounded-lg'
                         >
                             {playing ? (
-                                <FaPause className='w-6 h-6 fill-foreground' />
+                                <Pause className='w-6 h-6 ' />
                             ) : (
-                                <FaPlay className='w-6 h-6  fill-foreground' />
+                                <Play className='w-6 h-6  ' />
                             )}
                         </div>
                         <div className=' h-full flex items-center w-40'>

@@ -10,6 +10,8 @@ import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
 import { Toggle } from '@/fronted/components/ui/toggle';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
+import {Pause, Play} from "lucide-react";
+import {Button} from "@/fronted/components/ui/button";
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -151,7 +153,7 @@ const PlayerControlPannel = ({
                         />
                         <div className='w-full flex justify-between items-center'>
                             <div className='flex gap-4'>
-                                <div
+                                <Button
                                     onClick={() => {
                                         if (playing) {
                                             onPause?.();
@@ -159,14 +161,16 @@ const PlayerControlPannel = ({
                                             onPlay?.();
                                         }
                                     }}
-                                    className='flex justify-center items-center rounded-lg'
+                                    size='icon'
+                                    variant='ghost'
+                                    // className='flex justify-center items-center rounded-lg'
                                 >
                                     {playing ? (
-                                        <FaPause className='w-6 h-6 fill-foreground' />
+                                        <Pause />
                                     ) : (
-                                        <FaPlay className='w-6 h-6  fill-foreground' />
+                                        <Play />
                                     )}
-                                </div>
+                                </Button>
                                 <div className=' h-full flex items-center'>
                                     {`${secondToDate(
                                         currentValue

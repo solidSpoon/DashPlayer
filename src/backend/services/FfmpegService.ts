@@ -1,5 +1,8 @@
 import ffmpeg from "fluent-ffmpeg";
 import ffmpeg_static from "ffmpeg-static";
+import Lock from "@/common/utils/Lock";
+import DpTaskService from "@/backend/services/DpTaskService";
+import {DpTaskState} from "@/backend/db/tables/dpTask";
 
 export default class FfmpegService {
     static {
@@ -15,32 +18,35 @@ export default class FfmpegService {
      * -i：输入文件路径
      * -codec copy：复制原始编码
      * -avoid_negative_ts 1：避免负时间戳
+     * @param taskId
      * @param inputFile
      * @param startSecond
      * @param endSecond
-     * @param outputFile
+     * @param outputFile 带后缀的文件名, 完整路径
      */
     public static async splitVideo({
-                                        inputFile,
-                                        startSecond,
-                                        endSecond,
-                                        outputFile
-                                    }: {
+                                       inputFile,
+                                       startSecond,
+                                       endSecond,
+                                       outputFile
+                                   }: {
         inputFile: string,
         startSecond: number,
         endSecond: number,
         outputFile: string
     }) {
-        await new Promise((resolve, reject) => {
-            ffmpeg(inputFile)
-                .setStartTime(startSecond)
-                .setDuration(endSecond - startSecond)
-                .outputOptions('-codec copy')
-                .outputOptions('-avoid_negative_ts 1')
-                .output(outputFile)
-                .on('end', resolve)
-                .on('error', reject)
-                .run();
+        await Lock.sync('ffmpeg', async () => {
+            await new Promise((resolve, reject) => {
+                ffmpeg(inputFile)
+                    .setStartTime(startSecond)
+                    .setDuration(endSecond - startSecond)
+                    .outputOptions('-codec copy')
+                    .outputOptions('-avoid_negative_ts 1')
+                    .output(outputFile)
+                    .on('end', resolve)
+                    .on('error', reject)
+                    .run();
+            });
         });
     }
 }

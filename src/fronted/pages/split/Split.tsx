@@ -9,10 +9,19 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
 import SplitFile from '@/fronted/pages/split/SplitFile';
 import SplitPreview from "@/fronted/pages/split/split-preview";
-import {useLocalStorage} from "@uidotdev/usehooks";
-
+import useSplit from "@/fronted/hooks/useSplit";
+import {useShallow} from "zustand/react/shallow";
+const example = `
+00:00:00 Intro
+00:00:10 Part 1
+00:10:00 Part 2
+00:20:00 Part 3
+`
 const Split = () => {
-    const [content, setContent] = useLocalStorage('split-video-content', '')
+    const {userInput, setUseInput} = useSplit(useShallow(s=>({
+        userInput: s.userInput,
+        setUseInput: s.setUseInput
+    })));
     return (
         <div
             className={cn(
@@ -37,8 +46,8 @@ const Split = () => {
                 <div className={cn('row-start-1 row-end-2 col-start-1 col-end-2 flex flex-col space-y-2 pt-4')}>
                     <Label>Input</Label>
                     <Textarea
-                        value={content}
-                        onChange={e => setContent(e.target.value)}
+                        value={userInput}
+                        onChange={e => setUseInput(e.target.value)}
                         className={cn('flex-1 resize-none')}
                     />
                 </div>
@@ -61,6 +70,7 @@ const Split = () => {
                                 <Button
                                     variant={'outline'}
                                     size={'icon'}
+                                    onClick={() => setUseInput(example.trim())}
                                     className={'ml-auto'}><FileQuestion /></Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -96,7 +106,7 @@ const Split = () => {
                         <TabsTrigger value="password">选择文件</TabsTrigger>
                     </TabsList>
                     <TabsContent className={'w-full h-full overflow-auto scrollbar-thin'} value="account">
-                        <SplitPreview content={content} className={'w-full h-full'}/>
+                        <SplitPreview className={'w-full h-full'}/>
                     </TabsContent>
                     <TabsContent value="password" className={'w-full h-full'}>
                         <SplitFile queue={[]} onAddToQueue={()=>{}}/>

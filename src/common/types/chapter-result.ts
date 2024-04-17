@@ -1,4 +1,4 @@
-export interface ParseResult {
+export interface ChapterParseResult {
     timestampStart: {
         valid: boolean;
         value: string

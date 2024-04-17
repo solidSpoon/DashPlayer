@@ -5,7 +5,7 @@ import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { WatchProject } from '@/backend/db/tables/watchProjects';
 import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
-import {ParseResult} from "@/common/types/chapter-result";
+import {ChapterParseResult} from "@/common/types/chapter-result";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -78,7 +78,8 @@ interface SubtitleControllerDef {
 }
 
 interface SplitVideoDef {
-    'split-video/preview': { params: string, return: ParseResult[] };
+    'split-video/preview': { params: string, return: ChapterParseResult[] };
+    'split-video/split-one': { params: { filePath: string, param: ChapterParseResult }, return: number };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition

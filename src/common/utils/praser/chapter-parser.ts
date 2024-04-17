@@ -2,7 +2,7 @@
 // 00:01:55 Chapter 1
 
 import {strBlank, strNotBlank} from "@/common/utils/Util";
-import {ParseResult} from "@/common/types/chapter-result";
+import {ChapterParseResult} from "@/common/types/chapter-result";
 import {number} from "zod";
 
 
@@ -50,7 +50,7 @@ export function timeStrToSecond(time: string) : number{
     return parseInt(timeArray[0]) * 3600 + parseInt(timeArray[1]) * 60 + parseInt(timeArray[2]);
 }
 
-function parseLine(line: string): ParseResult {
+function parseLine(line: string): ChapterParseResult {
     // 按照第一个空格分割
     const firstSpaceIndex = line.indexOf(' ');
     let title = '';
