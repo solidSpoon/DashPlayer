@@ -42,6 +42,7 @@ const useSplit = create(
             if (isSrt(filePath)) {
                 set({srtPath: filePath});
             }
+            set({parseResult: get().parseResult.map(r => ({...r, taskId: null}))});
         },
         setUseInput: (input) => {
             set({userInput: input});
@@ -55,19 +56,19 @@ const useSplit = create(
             }
         },
         runSplitAll: async () => {
-            // if (get().videoPath) {
-            //     api.call('split-video/split-one', {
-            //         filePath: get().videoPath,
-            //         param: get().parseResult[0]
-            //     });
-            // }
+            for (const result of get().parseResult) {
+                await get().runSplitOne(result);
+            }
         },
         runSplitOne: async (result) => {
             if (get().videoPath) {
-                api.call('split-video/split-one', {
+                const taskId = await api.call('split-video/split-one', {
                     filePath: get().videoPath,
                     param: result
                 });
+                const newResult = get().parseResult
+                    .map(r => (r.original === result.original ? {...r, taskId} : r));
+                set({parseResult: newResult});
             }
             if (get().srtPath) {
                 // api.call('split-video/split-srt-one', {

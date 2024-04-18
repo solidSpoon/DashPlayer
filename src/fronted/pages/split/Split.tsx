@@ -4,13 +4,14 @@ import React from 'react';
 import {Button} from '@/fronted/components/ui/button';
 import {Textarea} from '@/fronted/components/ui/textarea';
 import {Label} from '@/fronted/components/ui/label';
-import {FileQuestion, FileType2, FileVideo2, Stethoscope, X} from 'lucide-react';
+import {FileQuestion, FileType2, FileVideo2, Stethoscope, X, File} from 'lucide-react';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/fronted/components/ui/tabs';
 import SplitFile from '@/fronted/pages/split/SplitFile';
 import SplitPreview from "@/fronted/pages/split/split-preview";
 import useSplit from "@/fronted/hooks/useSplit";
 import {useShallow} from "zustand/react/shallow";
+const api = window.electron;
 
 const example = `
 00:00:00 Intro
@@ -18,14 +19,25 @@ const example = `
 00:10:00 Part 2
 00:20:00 Part 3
 `
+
 const Split = () => {
-    const {userInput, setUseInput, videoPath, srtPath,deleteFile} = useSplit(useShallow(s => ({
+    const {userInput, setUseInput, videoPath, srtPath,deleteFile,runSplitAll,updateFile} = useSplit(useShallow(s => ({
         userInput: s.userInput,
         setUseInput: s.setUseInput,
         videoPath: s.videoPath,
         srtPath: s.srtPath,
         deleteFile: s.deleteFile,
+        runSplitAll:s.runSplitAll,
+        updateFile: s.updateFile
     })));
+
+    const onSelect = async () => {
+        const files = await api.call('system/select-file',{
+            filter: 'none',
+            mode: 'file'
+        })
+        files.forEach(updateFile)
+    }
     return (
         <div
             className={cn(
@@ -66,9 +78,11 @@ const Split = () => {
                                     variant={'ghost'}
                                     size={'icon'}
                                     className={'w-6 h-6 ml-auto'}
-                                    onClick={()=>deleteFile(videoPath)}
+                                    onClick={() => deleteFile(videoPath)}
                                 ><X/></Button>
-                            </> : '未选择'}
+                            </> : <span className={'hover:underline'}
+                                        onClick={onSelect}
+                            >点击以选择</span>}
                         </div>
                         <div className={'flex gap-4'}>
                             <FileType2/> {srtPath ?
@@ -80,7 +94,9 @@ const Split = () => {
                                     className={'w-6 h-6 ml-auto'}
                                     onClick={()=>deleteFile(srtPath)}
                                 ><X/></Button>
-                            </> : '未选择'}
+                            </> : <span className={'hover:underline'}
+                                        onClick={onSelect}
+                            >点击以选择</span>}
                         </div>
 
                     </div>
@@ -116,7 +132,13 @@ const Split = () => {
                     </TooltipProvider>
                 </div>
                 <div className={cn('row-start-3 row-end-4 col-start-2 col-end-3 flex')}>
-                    <Button className={'ml-auto'}>Transcript All</Button>
+                    <Button
+                        variant={'secondary'}
+                        onClick={onSelect}
+                        className={'ml-auto mr-2'}>Select File</Button>
+                    <Button
+                        onClick={runSplitAll}
+                        className={''}>Split All</Button>
                 </div>
                 <Tabs defaultValue="account"
                       className={cn(
@@ -125,7 +147,7 @@ const Split = () => {
                       )}>
                     <TabsList className={'grid w-full grid-cols-2'}>
                         <TabsTrigger value="account">预览</TabsTrigger>
-                        <TabsTrigger value="password">选择文件</TabsTrigger>
+                        <TabsTrigger value="password">快捷选择</TabsTrigger>
                     </TabsList>
                     <TabsContent className={'w-full h-full overflow-auto scrollbar-thin'} value="account">
                         <SplitPreview className={'w-full h-full'}/>

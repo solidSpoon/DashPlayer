@@ -11,20 +11,10 @@ import {
 import React from "react";
 import {Button} from "@/fronted/components/ui/button";
 import useSplit, {TaskChapterParseResult} from "@/fronted/hooks/useSplit";
-import useSWR from "swr";
+import useDpTask from "@/fronted/hooks/useDpTask";
 
-const api = window.electron;
-
-const fetcher = (taskId: number | null) => {
-    return async () => {
-        if (taskId === null) {
-            return null;
-        }
-        return await api.call('dp-task/detail', taskId);
-    }
-}
 const SplitRow = ({line}: { line: TaskChapterParseResult }) => {
-    const {data} = useSWR('split-table-item:' + line.taskId, fetcher(line.taskId));
+    const dpTask = useDpTask(line.taskId, 1000);
     const callSplit = useSplit(s => s.runSplitOne.bind(null, line));
     return (
         <TableRow>
@@ -41,11 +31,11 @@ const SplitRow = ({line}: { line: TaskChapterParseResult }) => {
                 )}>{line.timestampEnd.value}</TableCell>
             <TableCell className={' w-20'}>{line.title}</TableCell>
             <TableCell>
-                {data?.progress??'未开始'}
+                {dpTask?.progress??'未开始'}
             </TableCell>
             <TableCell>
                 <Button
-                    disabled={data !== null}
+                    disabled={dpTask !== null}
                     onClick={async () => {
                         await callSplit();
                     }}
