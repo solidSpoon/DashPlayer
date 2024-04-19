@@ -5,13 +5,11 @@ import {ChatOpenAI} from "@langchain/openai";
 import {ChatPromptTemplate} from "@langchain/core/prompts";
 import DpTaskService from "@/backend/services/DpTaskService";
 import {DpTaskState} from "@/backend/db/tables/dpTask";
-import RateLimiter from "@/backend/services/RateLimiter";
 import {joinUrl, strBlank} from "@/common/utils/Util";
 import {storeGet} from "@/backend/store";
+import RateLimiter from "@/common/utils/RateLimiter";
 
 export default class AiFunc {
-    public static rateLimiter = new RateLimiter();
-
     private static async validKey(taskId: number, apiKey: string, endpoint: string) {
         if (strBlank(apiKey) || strBlank(endpoint)) {
             await DpTaskService.update({
@@ -40,7 +38,7 @@ export default class AiFunc {
     }
 
     public static async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
-        if (!await this.rateLimiter.limitRate(taskId)) return;
+        await RateLimiter.wait('gpt');
         const extractionFunctionSchema = {
             name: "extractor",
             description: "Extracts fields from the input.",

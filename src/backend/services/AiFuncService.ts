@@ -17,6 +17,7 @@ import {getSubtitleContent, srtSlice} from "@/common/utils/srtSlice";
 import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
 import analyzeGrammerPrompt from '@/backend/services/prompts/analyze-grammer';
 import AiFunc from "@/backend/services/AiFuncs/ai-func";
+import RateLimiter from "@/common/utils/RateLimiter";
 
 export default class AiFuncService {
     public static async analyzeWord(taskId: number, sentence: string) {
@@ -116,7 +117,7 @@ export default class AiFuncService {
         const sentence = getSubtitleContent(fullSrt, no);
         const srt = srtSlice(fullSrt, no, 5);
         console.log('ssssss', sentence, srt);
-        if (!await AiFunc.rateLimiter.limitRate(taskId)) return;
+        await RateLimiter.wait('gpt');
         const schema = z.object({
             isComplete: z.boolean().describe('是完整的吗'),
             completeVersion: z.string().describe("完整的句子"),

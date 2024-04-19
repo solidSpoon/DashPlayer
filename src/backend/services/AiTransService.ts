@@ -5,7 +5,7 @@ import {storeGet} from "@/backend/store";
 import {p} from "@/common/utils/Util";
 import TransHolder from "@/common/utils/TransHolder";
 import SentenceTranslateService from "@/backend/services/SentenceTranslateService";
-import TransApi from "@/backend/services/TransApi";
+import TencentTransService from "@/backend/services/TencentTransService";
 
 export default class AiTransService{
     public static async youDaoTrans(str: string): Promise<YdRes | null> {
@@ -47,7 +47,7 @@ export default class AiTransService{
             return cache.getMapping();
         }
         try {
-            const transResult: TransHolder<string> = await TransApi.batchTrans2(
+            const transResult: TransHolder<string> = await TencentTransService.batchTrans(
                 retries
             );
             await SentenceTranslateService.recordBatch(transResult);

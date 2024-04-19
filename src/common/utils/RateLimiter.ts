@@ -1,13 +1,20 @@
 export type RATE_LIMIT_KEY =
     | 'whisper'
+    | 'gpt'
+    | 'tencent'
+    | 'tts';
 
 const RateLimitConfig: Record<RATE_LIMIT_KEY, { maxRequests: number; timeWindow: number }> = {
-    whisper: { maxRequests: 10, timeWindow: 1000 },
+    whisper: {maxRequests: 10, timeWindow: 1000},
+    gpt: {maxRequests: 10, timeWindow: 1000},
+    tencent: {maxRequests: 4, timeWindow: 1000},
+    tts: {maxRequests: 10, timeWindow: 1000}
 };
 
 
 export default class RateLimiter {
     private static limits: Map<string, number[]> = new Map();
+
     public static async wait(key: RATE_LIMIT_KEY): Promise<void> {
         if (!this.limits.has(key)) {
             this.limits.set(key, []);

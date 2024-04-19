@@ -4,6 +4,7 @@ import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';
 import fs from 'fs';
+import RateLimiter from "@/common/utils/RateLimiter";
 
 class TtsService {
     static joinUrl = (base: string, path2: string) => {
@@ -15,7 +16,7 @@ class TtsService {
         if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
             return null;
         }
-
+        RateLimiter.wait('tts')
         const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
         const headers = {
             'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,

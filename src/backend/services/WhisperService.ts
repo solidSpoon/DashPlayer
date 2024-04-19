@@ -13,8 +13,8 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { p, strBlank } from '@/common/utils/Util';
 import { storeGet } from '@/backend/store';
-
-import ffmpeg_static from "ffmpeg-static";
+import FfmpegService from "@/backend/services/FfmpegService";
+import RateLimiter from "@/common/utils/RateLimiter";
 
 interface WhisperResponse {
     language: string;
@@ -61,7 +61,6 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
 }
 
 class WhisperService {
-
     public static async transcript(taskId: number, filePath: string) {
         if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
             await DpTaskService.update({
@@ -110,6 +109,7 @@ class WhisperService {
     }
 
     private static async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
+        await RateLimiter.wait('whisper');
         const data = new FormData();
         data.append('file', fs.createReadStream(chunk.filePath) as any);
         data.append('model', 'whisper-1');
@@ -140,10 +140,6 @@ class WhisperService {
         }
     }
 
-    static async split() {
-        // ffmpeg.setFfmpegPath(ffmpegPath);
-    }
-
     static async convertAndSplit(filePath: string): Promise<SplitChunk[]> {
         const folderName = hash(filePath);
         const tempDir = path.join(os.tmpdir(), 'dp/whisper/', folderName);
@@ -151,60 +147,33 @@ class WhisperService {
             fs.mkdirSync(tempDir, { recursive: true });
         }
         // 文件名为路径 hash
-        console.log('tempDir', tempDir);
-        const outputPath = path.join(tempDir, 'output.mp3');
-        const maxFileSize = 5 * 1024 * 1024; // <25MB
-
-        ffmpeg.setFfmpegPath(ffmpeg_static);
-
-        // Convert to mp3 with low quality
-        await new Promise((resolve, reject) => {
-            ffmpeg(filePath)
-                .format('mp3')
-                .audioQuality(128)
-                .output(outputPath)
-                .on('end', resolve)
-                .on('error', reject)
-                .run();
-        });
-        console.log('outputPath', outputPath);
-
-        // Check file size
-        const stats = fs.statSync(outputPath);
-        const fileSizeInBytes = stats.size;
-
-        // If file size is larger than 25MB, split it
-        if (fileSizeInBytes < maxFileSize) {
-            return [{ offset: 0, filePath: outputPath }];
-        }
-        const duration = await new Promise<number>((resolve, reject) => {
-            ffmpeg.ffprobe(outputPath, (err, metadata) => {
-                if (err) reject(err);
-                else resolve(metadata.format.duration);
+        const baseFileName = hash(filePath);
+        const duration = await FfmpegService.duration(filePath);
+        const chunkSize = 60 * 10;
+        const chunks: SplitChunk[] = [];
+        let pos = 0;
+        while (pos < duration) {
+            const start = pos;
+            let end = Math.min(pos + chunkSize, duration);
+            let currentChunkSize = chunkSize;
+            if (end + 60 * 4 > duration) {
+                end = duration;
+                currentChunkSize = end - start;
+            }
+            const chunkFileName = path.join(tempDir, `${baseFileName}-${start}-${end}.mp3`);
+            await FfmpegService.splitVideo({
+                inputFile: filePath,
+                startSecond: start,
+                endSecond: end,
+                outputFile: chunkFileName
             });
-        });
-
-        const parts = Math.ceil(fileSizeInBytes / maxFileSize);
-        const partDuration = duration / parts;
-
-        const outputPartPaths: SplitChunk[] = [];
-        for (let i = 0; i < parts; i++) {
-            const start = i * partDuration;
-            const outputPartPath = path.join(tempDir, `output_part_${i}.mp3`);
-
-            await new Promise((resolve, reject) => {
-                ffmpeg(outputPath)
-                    .setStartTime(start)
-                    .setDuration(partDuration)
-                    .output(outputPartPath)
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .run();
+            chunks.push({
+                offset: start,
+                filePath: chunkFileName
             });
-            console.log('outputPartPath', outputPartPath);
-            outputPartPaths.push({ offset: start, filePath: outputPartPath });
+            pos += currentChunkSize;
         }
-        return outputPartPaths;
+        return chunks;
     }
 }
 

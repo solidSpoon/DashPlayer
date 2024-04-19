@@ -5,19 +5,12 @@ import log from 'electron-log';
 import TransHolder from '../../common/utils/TransHolder';
 import { strBlank } from '@/common/utils/Util';
 import { storeGet } from '../store';
+import RateLimiter from "@/common/utils/RateLimiter";
 
-class TransApi {
+class TencentTransService {
     private static client: Client | null = null;
 
     private static SIZE_LIMIT = 1500;
-
-    private static pass = false;
-
-    static {
-        setInterval(() => {
-            TransApi.pass = true;
-        }, 300);
-    }
 
     private static tryInit(): void {
         const secretId = storeGet('apiKeys.tencent.secretId');
@@ -36,24 +29,8 @@ class TransApi {
         this.client = new TmtClient(clientConfig);
     }
 
-    private static async waitPass(): Promise<void> {
-        let count = 500;
-        await new Promise((resolve) => {
-            const timer = setInterval(() => {
-                if (TransApi.pass) {
-                    clearInterval(timer);
-                    resolve(undefined);
-                }
-                count -= 1;
-                if (count <= 0) {
-                    clearInterval(timer);
-                    resolve(undefined);
-                }
-            }, 100);
-        });
-    }
 
-    public static async batchTrans2(
+    public static async batchTrans(
         source: string[]
     ): Promise<TransHolder<string>> {
         if (!this.client) {
@@ -69,7 +46,7 @@ class TransApi {
             const item = source[i];
             if (tempSize + item.length > this.SIZE_LIMIT) {
                 // eslint-disable-next-line no-await-in-loop
-                const r = await this.trans2(temp);
+                const r = await this.trans(temp);
                 res = res.merge(r);
                 temp = [];
                 tempSize = 0;
@@ -78,17 +55,17 @@ class TransApi {
             tempSize += item.length;
         }
         if (temp.length > 0) {
-            const r = await this.trans2(temp);
+            const r = await this.trans(temp);
             res = res.merge(r);
         }
         return res;
     }
 
-    private static async trans2(source: string[]) {
+    private static async trans(source: string[]) {
         if (!this.client) {
             return new TransHolder<string>();
         }
-        await this.waitPass();
+        await RateLimiter.wait('tencent');
         const param = {
             Source: 'en',
             Target: 'zh',
@@ -107,4 +84,4 @@ class TransApi {
     }
 }
 
-export default TransApi;
+export default TencentTransService;
