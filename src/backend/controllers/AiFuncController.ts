@@ -6,7 +6,7 @@ import AiFuncService from "@/backend/services/AiFuncService";
 import ChatService from "@/backend/services/ChatService";
 import {MsgT, toLangChainMsg} from "@/common/types/msg/interfaces/MsgT";
 import WhisperService from "@/backend/services/WhisperService";
-import AiFuncExplainSelect from '@/backend/services/AiFuncs/AiFuncExplainSelect';
+import AiFuncExplainSelectService from '@/backend/services/AiFuncs/AiFuncExplainSelectService';
 
 export default class AiFuncController implements Controller {
 
@@ -73,7 +73,7 @@ export default class AiFuncController implements Controller {
     }
     public static async explainSelect({sentence, selectedWord}: { sentence: string, selectedWord: string }) {
         const taskId = await DpTaskService.create();
-        AiFuncExplainSelect.run(taskId, sentence, selectedWord).then();
+        AiFuncExplainSelectService.run(taskId, sentence, selectedWord).then();
         return taskId;
     }
     registerRoutes(): void {

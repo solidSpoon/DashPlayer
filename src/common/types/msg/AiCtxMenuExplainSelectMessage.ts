@@ -49,10 +49,8 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
         const aiResp = oneLineTrim`
         好的，我来解释一下这句话中的"${this.selected}"。
 
-        "${this.selected}"的意思是${this.resp?.word.meaning}。
+        "${this.selected}"的意思是${this.resp?.word.meaningZh + this.resp.word.meaningEn}。
         在这句话中，"${this.selected}"的意思是${this.resp?.word.meaningInSentence}。
-
-        ${this.resp.idiom ? `另外，"${this.selected}"也是一个俗语，意思是${this.resp.idiom.meaning}。` : ''}
         `
         return [{
             type:'human',
