@@ -14,6 +14,8 @@ import {AiNormalMsg} from "@/fronted/components/chat/msg/AiNormalMsg";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import HumanNormalMsg from "@/fronted/components/chat/msg/HumanNormalMsg";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
+import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
+import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 
 const api = window.electron;
 
@@ -36,6 +38,9 @@ const ChatCenter = () => {
                 return <AiNormalMsg msg={msg as AiNormalMessage}/>;
             case "human-normal":
                 return <HumanNormalMsg msg={msg as HumanNormalMessage}/>;
+            case 'ai-func-explain-select':
+                console.log('ai-func-explain-select', msg);
+                return <AiCtxMenuExplainSelectMsg msg={msg as AiCtxMenuExplainSelectMessage}/>;
             default:
                 return <></>
         }

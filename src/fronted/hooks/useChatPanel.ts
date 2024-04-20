@@ -1,20 +1,23 @@
-import {create} from 'zustand';
-import {subscribeWithSelector} from 'zustand/middleware';
-import {AiAnalyseNewWordsRes} from "@/common/types/aiRes/AiAnalyseNewWordsRes";
-import {AiAnalyseNewPhrasesRes} from "@/common/types/aiRes/AiAnalyseNewPhrasesRes";
-import {AiMakeExampleSentencesRes} from "@/common/types/aiRes/AiMakeExampleSentencesRes";
-import UndoRedo from "@/common/utils/UndoRedo";
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
-import {sleep, strBlank} from "@/common/utils/Util";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {AiAnalyseGrammarsRes} from "@/common/types/aiRes/AiAnalyseGrammarsRes";
-import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
-import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
-import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
-import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
-import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
-import useFile from "@/fronted/hooks/useFile";
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
+import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
+import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
+import UndoRedo from '@/common/utils/UndoRedo';
+import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import { sleep, strBlank } from '@/common/utils/Util';
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
+import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
+import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
+import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
+import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
+import AiStreamMessage from '@/common/types/msg/AiStreamMessage';
+import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
+import useFile from '@/fronted/hooks/useFile';
+import { as } from 'tencentcloud-sdk-nodejs';
+import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import ChatRunner from '@/fronted/hooks/useChatPannel/runChat';
 
 const api = window.electron;
 
@@ -99,8 +102,8 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         canUndo: state.canUndo,
         canRedo: state.canRedo,
         context: state.context
-    }
-}
+    };
+};
 
 const empty = (): ChatPanelState => {
     return {
@@ -128,8 +131,8 @@ const empty = (): ChatPanelState => {
         canRedo: false,
         context: null
 
-    }
-}
+    };
+};
 
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
@@ -141,7 +144,7 @@ const useChatPanel = create(
                 ...copy(undoRedo.undo()),
                 canUndo: undoRedo.canUndo(),
                 canRedo: undoRedo.canRedo()
-            })
+            });
         },
         forward: () => {
             undoRedo.update(copy(get()));
@@ -189,7 +192,7 @@ const useChatPanel = create(
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitleFile.objectUrl ?? '';
             const text = await fetch(url).then((res) => res.text());
-            const punctuationTask = await api.call('ai-func/punctuation', {no: ct.indexInFile, srt: text})
+            const punctuationTask = await api.call('ai-func/punctuation', { no: ct.indexInFile, srt: text });
             const topic = {
                 content: {
                     start: {
@@ -242,7 +245,7 @@ const useChatPanel = create(
             console.log(get().messages);
             const msgs = get().messages
                 .flatMap(e => e.toMsg());
-            const t = await api.call('ai-func/chat', {msgs});
+            const t = await api.call('ai-func/chat', { msgs });
             set({
                 tasks: {
                     ...get().tasks,
@@ -261,10 +264,25 @@ const useChatPanel = create(
                 context: internalContext
             });
         },
-        ctxMenuExplain: () => {
+        ctxMenuExplain: async () => {
             const userSelect = window.getSelection().toString();
-            const context = get().context;
-            console.log('ctxMenuExplain', userSelect, context);
+            console.log('ctxMenuExplain', userSelect);
+            if (strBlank(userSelect)) return;
+            let context = get().context;
+            console.log('ctxMenuExplain', context);
+            if (strBlank(context)) {
+                context = userSelect;
+            }
+            const taskId = await api.call('ai-func/explain-select', {
+                sentence: context,
+                selectedWord: userSelect
+            });
+            set({
+                tasks: {
+                    ...get().tasks,
+                    chatTask: new AiCtxMenuExplainSelectMessage(taskId,get().topic, context, userSelect)
+                }
+            });
         }
     }))
 );
@@ -299,7 +317,7 @@ const extractTopic = (t: Topic): string => {
         et = et.slice(0, content.end.cIndex);
     }
     return `${st} ${et}`;
-}
+};
 
 
 const runVocabulary = async () => {
@@ -326,7 +344,7 @@ const runVocabulary = async () => {
             vocabularyTask: 'done'
         });
     }
-}
+};
 
 const runPhrase = async () => {
     let tId = useChatPanel.getState().tasks.phraseTask;
@@ -352,7 +370,7 @@ const runPhrase = async () => {
             phraseTask: 'done'
         });
     }
-}
+};
 
 const runGrammar = async () => {
     let tId = useChatPanel.getState().tasks.grammarTask;
@@ -378,7 +396,7 @@ const runGrammar = async () => {
             grammarTask: 'done'
         });
     }
-}
+};
 
 const runSentence = async () => {
     const state = useChatPanel.getState();
@@ -391,7 +409,7 @@ const runSentence = async () => {
     const points = [
         ...state.newVocabulary.words.map(w => w.word),
         ...state.newPhrase.phrases.map(p => p.phrase)
-    ]
+    ];
     if (tId === 'init') {
         tId = await api.call('ai-func/make-example-sentences', {
             sentence: extractTopic(useChatPanel.getState().topic),
@@ -416,7 +434,7 @@ const runSentence = async () => {
             sentenceTask: 'done'
         });
     }
-}
+};
 
 const runChat = async () => {
     const tm = useChatPanel.getState().tasks.chatTask;
@@ -437,7 +455,7 @@ const runChat = async () => {
         let punctuation = null;
         if (welcomeMessage.punctuationTask) {
             punctuation = await api.call('dp-task/detail', welcomeMessage.punctuationTask);
-            console.log('punctuation', punctuation)
+            console.log('punctuation', punctuation);
             if (punctuation.status === DpTaskState.IN_PROGRESS || punctuation.status === DpTaskState.DONE) {
                 if (!strBlank(punctuation.result)) {
                     welcomeMessage.punctuationTaskResp = JSON.parse(punctuation.result);
@@ -490,7 +508,7 @@ const runChat = async () => {
             });
         }
     }
-}
+};
 
 
 let running = false;
@@ -508,7 +526,7 @@ useChatPanel.subscribe(
             await runPhrase();
             await runGrammar();
             await runSentence();
-            await runChat();
+            await ChatRunner.runChat();
             await sleep(100);
         }
         running = false;

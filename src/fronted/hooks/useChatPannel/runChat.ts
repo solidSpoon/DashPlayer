@@ -4,6 +4,7 @@ import {strBlank} from "@/common/utils/Util";
 import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import useChatPanel from "@/fronted/hooks/useChatPanel";
+import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 
 const api = window.electron;
 
@@ -21,7 +22,7 @@ function taskDone(task: DpTask[]) {
         .every(t => t.status === DpTaskState.DONE);
 }
 
-class ChatRunner {
+export default class ChatRunner {
     public static runChat = async () => {
         const tm = useChatPanel.getState().tasks.chatTask;
         if (tm === 'done') return;
@@ -33,16 +34,21 @@ class ChatRunner {
             const welcomeMessage = tm as AiStreamMessage;
             await ChatRunner.aiStreaming(welcomeMessage);
         }
+        if (tm.msgType === 'ai-func-explain-select') {
+            console.log('ctxMenuExplain runChat');
+            const welcomeMessage = tm as AiCtxMenuExplainSelectMessage;
+            await ChatRunner.aiFuncExplainSelect(welcomeMessage);
+        }
     }
 
     private static async aiStreaming(welcomeMessage: AiStreamMessage) {
         const synonymousSentence = await taskDetail(welcomeMessage.taskId);
-        if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
+        if (responded(synonymousSentence)) {
             useChatPanel.setState({
                 streamingMessage: new AiNormalMessage(synonymousSentence.result)
             });
         }
-        if (synonymousSentence.status === DpTaskState.DONE) {
+        if (taskDone([synonymousSentence])) {
             const state = useChatPanel.getState();
             state.setTask({
                 ...useChatPanel.getState().tasks,
@@ -85,6 +91,34 @@ class ChatRunner {
         if (taskDone([synonymousSentence, punctuation])) {
             const state = useChatPanel.getState();
             if (state.topic === welcomeMessage.topic) {
+                state.setTask({
+                    ...useChatPanel.getState().tasks,
+                    chatTask: 'done'
+                });
+                useChatPanel.setState({
+                    messages: [
+                        ...state.messages,
+                        state.streamingMessage.copy()
+                    ],
+                    streamingMessage: null
+                });
+            }
+        }
+    }
+
+    private static async aiFuncExplainSelect(msg: AiCtxMenuExplainSelectMessage) {
+        const synonymousSentence = await taskDetail(msg.taskId);
+        if (responded(synonymousSentence)) {
+            msg.resp = JSON.parse(synonymousSentence.result);
+            if (useChatPanel.getState().topic === msg.topic) {
+                useChatPanel.setState({
+                    streamingMessage: msg.copy()
+                });
+            }
+        }
+        if (taskDone([synonymousSentence])) {
+            const state = useChatPanel.getState();
+            if (state.topic === msg.topic) {
                 state.setTask({
                     ...useChatPanel.getState().tasks,
                     chatTask: 'done'

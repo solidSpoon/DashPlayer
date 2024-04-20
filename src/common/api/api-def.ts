@@ -23,6 +23,7 @@ interface AiFuncDef {
     'ai-func/analyze-new-words': { params: string, return: number };
     'ai-func/chat': { params: { msgs: MsgT[] }, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: number };
+    'ai-func/explain-select': { params: { sentence: string, selectedWord: string }, return: number };
 }
 
 interface DpTaskDef {

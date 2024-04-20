@@ -17,4 +17,5 @@ export type MsgType =
     | 'ai-meaning'
     | 'ai-streaming'
     | 'ai-normal'
-    | 'ai-pronounce';
+    | 'ai-pronounce'
+    | 'ai-func-explain-select'

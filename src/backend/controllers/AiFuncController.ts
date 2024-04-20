@@ -6,6 +6,7 @@ import AiFuncService from "@/backend/services/AiFuncService";
 import ChatService from "@/backend/services/ChatService";
 import {MsgT, toLangChainMsg} from "@/common/types/msg/interfaces/MsgT";
 import WhisperService from "@/backend/services/WhisperService";
+import AiFuncExplainSelect from '@/backend/services/AiFuncs/AiFuncExplainSelect';
 
 export default class AiFuncController implements Controller {
 
@@ -70,6 +71,11 @@ export default class AiFuncController implements Controller {
         });
         return taskId;
     }
+    public static async explainSelect({sentence, selectedWord}: { sentence: string, selectedWord: string }) {
+        const taskId = await DpTaskService.create();
+        AiFuncExplainSelect.run(taskId, sentence, selectedWord).then();
+        return taskId;
+    }
     registerRoutes(): void {
         registerRoute('ai-func/analyze-new-words', this.analyzeNewWords);
         registerRoute('ai-func/analyze-new-phrases', this.analyzeNewPhrases);
@@ -81,6 +87,7 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/tts', this.tts);
         registerRoute('ai-func/chat', AiFuncController.chat);
         registerRoute('ai-func/transcript', AiFuncController.transcript);
+        registerRoute('ai-func/explain-select', AiFuncController.explainSelect);
     }
 }
 

@@ -74,7 +74,7 @@ export default class AiFuncService {
             ).describe("A list of example sentences for an intermediate English speaker. length should be 5"),
         });
 
-        await AiFunc.run(taskId, schema, phraseGroupPrompt(exampleSentences(point)));
+        await AiFunc.run(taskId, schema, exampleSentences(point));
 
     }
 
@@ -82,7 +82,7 @@ export default class AiFuncService {
         const schema = z.object({
             sentences: z.array(z.string()).describe("A list of synonymous sentences for the input sentence, length should be 3"),
         });
-        await AiFunc.run(taskId, schema, phraseGroupPrompt(synonymousSentence(sentence)));
+        await AiFunc.run(taskId, schema, synonymousSentence(sentence));
     }
 
     /**
