@@ -1,13 +1,12 @@
 import parseChapter, {timeStrToSecond, isTimeStrValid} from "@/common/utils/praser/chapter-parser";
 import path from "path";
 import fs from "fs";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpeg_static from "ffmpeg-static";
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import {strBlank} from "@/common/utils/Util";
 import FfmpegService from "@/backend/services/FfmpegService";
 import DpTaskService from "@/backend/services/DpTaskService";
 import {DpTaskState} from "@/backend/db/tables/dpTask";
+import SrtUtil from "@/common/utils/SrtUtil";
 
 class SplitVideoService {
     public static async previewSplit(str: string) {
@@ -46,6 +45,36 @@ class SplitVideoService {
             status: DpTaskState.DONE,
             progress: '分割完成'
         });
+    }
+
+    static async splitSrt(filePath: string, param: ChapterParseResult): Promise<string> {
+        if (!isTimeStrValid(param.timestampStart.value) || !isTimeStrValid(param.timestampEnd.value) || strBlank(param.title)) {
+            return;
+        }
+        const startSecond = timeStrToSecond(param.timestampStart.value);
+        const endSecond = timeStrToSecond(param.timestampEnd.value);
+        if (startSecond >= endSecond) {
+            return;
+        }
+        const folderName = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)));
+        if (!fs.existsSync(folderName)) {
+            fs.mkdirSync(folderName, {recursive: true});
+        }
+        const fileName = path.join(folderName, `${param.title}.srt`);
+        // SrtUtil.parseSrt()
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const srt = SrtUtil.parseSrt(content);
+        const lines = srt.filter(line => line.start >= startSecond && line.end <= endSecond)
+            .map((line, index) => ({
+                index: index + 1,
+                start: line.start - startSecond,
+                end: line.end - startSecond,
+                contentEn: line.contentEn,
+                contentZh: line.contentZh
+            }));
+        const srtContent = SrtUtil.toSrt(lines);
+        fs.writeFileSync(fileName, srtContent);
+        return fileName;
     }
 
 

@@ -1,20 +1,16 @@
 import fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
-
-
-// import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
-
-import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 import * as os from 'os';
 import hash from '@/common/utils/hash';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import { p, strBlank } from '@/common/utils/Util';
+import { strBlank } from '@/common/utils/Util';
 import { storeGet } from '@/backend/store';
 import FfmpegService from "@/backend/services/FfmpegService";
 import RateLimiter from "@/common/utils/RateLimiter";
+import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 
 interface WhisperResponse {
     language: string;
@@ -36,28 +32,21 @@ interface SplitChunk {
 
 function toSrt(whisperResponses: WhisperResponse[]): string {
     whisperResponses.sort((a, b) => a.offset - b.offset);
-    const srtLines: string[] = [];
     let counter = 1;
-
-    function toSrtTimestamp(seconds: number): string {
-        const date = new Date(0);
-        date.setSeconds(seconds);
-        const timeString = date.toISOString().substr(11, 12);
-        return timeString.replace('.', ',');
-    }
-
+    const lines: SrtLine[] = [];
     for (const wr of whisperResponses) {
         for (const segment of wr.segments) {
-            const startTime = toSrtTimestamp(segment.start + wr.offset);
-            const endTime = toSrtTimestamp(segment.end + wr.offset);
-            const text = segment.text;
-            const srtLine = `${counter}\n${startTime} --> ${endTime}\n${p(text)}\n\n`;
-            srtLines.push(srtLine);
+            lines.push({
+                index: counter,
+                start: segment.start + wr.offset,
+                end: segment.end + wr.offset,
+                contentEn: segment.text,
+                contentZh: ''
+            });
             counter++;
         }
     }
-
-    return srtLines.join('');
+    return SrtUtil.toSrt(lines);
 }
 
 class WhisperService {

@@ -16,8 +16,13 @@ export default class SplitVideoController implements Controller {
         return taskId;
     }
 
+    public async splitSrtOne({filePath, param}: { filePath: string, param: ChapterParseResult }): Promise<string> {
+        return SplitVideoService.splitSrt(filePath, param);
+    }
+
     registerRoutes(): void {
         registerRoute('split-video/preview', this.previewSplit);
         registerRoute('split-video/split-one', this.splitOne);
+        registerRoute('split-video/split-srt-one', this.splitSrtOne);
     }
 }

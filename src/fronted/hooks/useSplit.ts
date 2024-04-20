@@ -71,10 +71,11 @@ const useSplit = create(
                 set({parseResult: newResult});
             }
             if (get().srtPath) {
-                // api.call('split-video/split-srt-one', {
-                //     filePath: get().srtPath,
-                //     param: result
-                // });
+                const newSrtPath = await api.call('split-video/split-srt-one', {
+                    filePath: get().srtPath,
+                    param: result
+                });
+                console.log(newSrtPath);
             }
         }
     }))
