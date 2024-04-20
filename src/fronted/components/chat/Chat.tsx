@@ -16,8 +16,8 @@ import {
     ContextMenuItem,
     ContextMenuTrigger
 } from "@/fronted/components/ui/context-menu";
-import {useEffect, useRef} from "react";
-import useChatPanel from "@/fronted/hooks/useChatPanel";
+import {useRef} from "react";
+import useChatPanel, {getInternalContext} from "@/fronted/hooks/useChatPanel";
 import {Button} from "@/fronted/components/ui/button";
 import {ChevronLeft, ChevronRight, X} from "lucide-react";
 import {useShallow} from "zustand/react/shallow";
@@ -33,8 +33,10 @@ const Chat = () => {
     })));
     const ref = useRef<HTMLDivElement>(null);
 
-
-
+    const {ctxMenuExplain,ctxMenuOpened} = useChatPanel(useShallow(s => ({
+        ctxMenuExplain: s.ctxMenuExplain,
+        ctxMenuOpened:s.ctxMenuOpened
+    })));
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
@@ -49,6 +51,11 @@ const Chat = () => {
             exit={{opacity: 0}}
         >
             <ContextMenu
+                onOpenChange={(open) => {
+                    if (open) {
+                        ctxMenuOpened();
+                    }
+                }}
                 modal={true}
             >
                 <ContextMenuTrigger
@@ -92,7 +99,7 @@ const Chat = () => {
                                     disabled={!canUndo}
                                     onClick={backward}
                                     variant={'ghost'} size={'icon'}>
-                                    <ChevronLeft />
+                                    <ChevronLeft/>
                                 </Button>
                                 <Button
                                     disabled={!canRedo}
@@ -103,7 +110,7 @@ const Chat = () => {
                                 <Button
                                     onClick={clear}
                                     variant={'ghost'} size={'icon'}>
-                                    <X />
+                                    <X/>
                                 </Button>
                             </div>
                         </div>
@@ -135,9 +142,14 @@ const Chat = () => {
                     className={cn('z-[9999]')}
                 >
                     <ContextMenuItem
+                    >朗读文本</ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={ctxMenuExplain}
+                    >解释所选内容</ContextMenuItem>
+                    <ContextMenuItem
                         onClick={() => {
                             let select = p(window.getSelection()?.toString());
-                            console.log('sssss', select,window?.getSelection());
+                            console.log('sssss', select, window?.getSelection());
                             // 去除换行符
                             select = select?.replace(/\n/g, '');
                             if (!strBlank(select)) {
@@ -146,11 +158,7 @@ const Chat = () => {
                                 });
                             }
                         }}
-                    >朗读文本</ContextMenuItem>
-                    <ContextMenuItem>用选择内容新建对话</ContextMenuItem>
-                    <ContextMenuItem>用所选单词造句</ContextMenuItem>
-                    <ContextMenuItem>查询所选单词</ContextMenuItem>
-                    <ContextMenuItem>查询所选词组</ContextMenuItem>
+                    >用选择内容新建对话</ContextMenuItem>
                     <ContextMenuItem>同义句</ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>

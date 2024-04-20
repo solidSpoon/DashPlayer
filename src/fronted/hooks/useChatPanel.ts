@@ -43,6 +43,12 @@ export type Tasks = {
 const undoRedo = new UndoRedo<ChatPanelState>();
 
 export type ChatPanelState = {
+    internal: {
+        context: {
+            value: string;
+            time: number;
+        }
+    }
     tasks: Tasks;
     topic: Topic
     newVocabulary: AiAnalyseNewWordsRes;
@@ -53,6 +59,7 @@ export type ChatPanelState = {
     streamingMessage: CustomMessage<any> | null;
     canUndo: boolean;
     canRedo: boolean;
+    context: string | null;
 };
 
 export type ChatPanelActions = {
@@ -63,10 +70,18 @@ export type ChatPanelActions = {
     clear: () => void;
     setTask: (tasks: Tasks) => void;
     sent: (msg: string) => void;
+    updateInternalContext: (value: string) => void;
+    ctxMenuOpened: () => void;
+    ctxMenuExplain: () => void;
 };
 
 const copy = (state: ChatPanelState): ChatPanelState => {
     return {
+        internal: {
+            context: {
+                ...state.internal.context
+            }
+        },
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
             phraseTask: state.tasks.phraseTask,
@@ -83,11 +98,18 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         streamingMessage: state.streamingMessage,
         canUndo: state.canUndo,
         canRedo: state.canRedo,
+        context: state.context
     }
 }
 
 const empty = (): ChatPanelState => {
     return {
+        internal: {
+            context: {
+                value: null,
+                time: 0
+            }
+        },
         tasks: {
             vocabularyTask: 'init',
             phraseTask: 'init',
@@ -104,6 +126,8 @@ const empty = (): ChatPanelState => {
         streamingMessage: null,
         canUndo: false,
         canRedo: false,
+        context: null
+
     }
 }
 
@@ -225,9 +249,36 @@ const useChatPanel = create(
                     chatTask: new AiStreamMessage(get().topic, t)
                 }
             });
+        },
+        updateInternalContext: (value: string) => {
+            get().internal.context.value = value;
+            get().internal.context.time = Date.now();
+        },
+        ctxMenuOpened: () => {
+            const internalContext = getInternalContext();
+            console.log('ctxMenuOpened', internalContext);
+            set({
+                context: internalContext
+            });
+        },
+        ctxMenuExplain: () => {
+            const userSelect = window.getSelection().toString();
+            const context = get().context;
+            console.log('ctxMenuExplain', userSelect, context);
         }
     }))
 );
+
+export function getInternalContext(): string | null {
+    const context = useChatPanel.getState().internal.context;
+    if (!context) return null;
+    // 0.5s
+    if (Math.abs(Date.now() - context.time) > 500) {
+        return null;
+    }
+    return context.value;
+}
+
 
 const extractTopic = (t: Topic): string => {
     if (t === 'offscreen') return 'offscreen';
