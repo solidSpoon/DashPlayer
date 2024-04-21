@@ -1,9 +1,12 @@
-import {cn} from "@/fronted/lib/utils";
-import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
-import useChatPanel from "@/fronted/hooks/useChatPanel";
+import { cn } from '@/fronted/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import useChatPanel from '@/fronted/hooks/useChatPanel';
+import { strBlank } from '@/common/utils/Util';
+import React from 'react';
+import Md from '@/fronted/components/chat/markdown';
 
 const api = window.electron;
-const ChatLeftGrammers = ({className}: {
+const ChatLeftGrammers = ({ className }: {
     className: string,
 }) => {
     const res = useChatPanel(state => state.newGrammar);
@@ -15,19 +18,13 @@ const ChatLeftGrammers = ({className}: {
                     {/*<CardDescription>Manage player settings and behavior</CardDescription>*/}
                 </CardHeader>
                 <CardContent>
-                    {res?.hasGrammar && res?.grammars?.map((g, i) => (
-                        <div key={i} className="flex flex-col items-start px-4 py-2">
-                            <div className="flex flex-col items-start">
-                                <div className={cn(' font-medium leading-none')}>{g.description}</div>
-                            </div>
-                        </div>
-                    ))}
-                    {!res && <div className="text-lg text-gray-700">分析短语中...</div>}
-                    {res && !res.hasGrammar && <div className="text-lg text-gray-700">没有语法</div>}
+                    <Md>
+                        {strBlank(res?.grammarsMd) ? '没有语法' : res.grammarsMd}
+                    </Md>
                 </CardContent>
             </Card>
         </div>
-    )
-}
+    );
+};
 
 export default ChatLeftGrammers;

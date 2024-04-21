@@ -1,6 +1,11 @@
-const analyzeGrammerPrompt = (s:string):string =>
-`你现在是一个英语学习程序，你的任务是帮助具有中等英文水平且母语是中文的人学习英语, 列出下面句子中的语法，并用中文说明
+const analyzeGrammarPrompt = (s:string):string =>
+`You are a professional grammar analyzer, your job is helping Chinese people learn English grammar.
+Please explain the grammar of the following sentence using Chinese
 
+"""
 ${s}
+"""
 `
-export default analyzeGrammerPrompt;
+
+
+export default analyzeGrammarPrompt;

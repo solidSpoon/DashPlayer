@@ -19,4 +19,5 @@ export type MsgType =
     | 'ai-streaming'
     | 'ai-normal'
     | 'ai-func-explain-select'
+    | 'ai-func-explain-select-with-context'
     | 'ai-func-polish'

@@ -13,10 +13,11 @@ import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
 import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import useFile from '@/fronted/hooks/useFile';
-import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
 import ChatRunner from '@/fronted/hooks/useChatPannel/runChat';
 import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
+import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 
 const api = window.electron;
 
@@ -259,18 +260,20 @@ const useChatPanel = create(
         },
         ctxMenuExplain: async () => {
             const userSelect = window.getSelection().toString();
-            console.log('ctxMenuExplain', userSelect);
             if (strBlank(userSelect)) return;
-            let context = get().context;
-            console.log('ctxMenuExplain', context);
+            const context = get().context;
             if (strBlank(context)) {
-                context = userSelect;
+                const taskId = await api.call('ai-func/explain-select', {
+                    word: userSelect
+                });
+                get().addChatTask(new AiCtxMenuExplainSelectMessage(taskId, get().topic, context));
+            } else {
+                const taskId = await api.call('ai-func/explain-select-with-context', {
+                    sentence: context,
+                    selectedWord: userSelect
+                });
+                get().addChatTask(new AiCtxMenuExplainSelectWithContextMessage(taskId, get().topic, context, userSelect));
             }
-            const taskId = await api.call('ai-func/explain-select', {
-                sentence: context,
-                selectedWord: userSelect
-            });
-            get().addChatTask(new AiCtxMenuExplainSelectMessage(taskId, get().topic, context, userSelect));
         },
         ctxMenuPlayAudio: async () => {
             let text = window.getSelection().toString();

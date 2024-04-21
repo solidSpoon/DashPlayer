@@ -15,10 +15,13 @@ import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
 import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
 import {getSubtitleContent, srtSlice} from "@/common/utils/srtSlice";
 import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
-import analyzeGrammerPrompt from '@/backend/services/prompts/analyze-grammer';
+import analyzeGrammarPrompt from '@/backend/services/prompts/analyze-grammer';
 import AiFunc from "@/backend/services/AiFuncs/ai-func";
 import RateLimiter from "@/common/utils/RateLimiter";
 import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
+import { AiAnalyseGrammarsPrompt } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
+import { AiFuncExplainSelectWithContextPrompt } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
+import { AiFuncExplainSelectPrompt } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 
 export default class AiFuncService {
 
@@ -54,19 +57,10 @@ export default class AiFuncService {
         await AiFunc.run(taskId, schema, analyzeParasesPrompt(sentence));
     }
 
-    public static async analyzeGrammer(taskId: number, sentence: string) {
-        const schema = z.object({
-            hasGrammar: z.boolean().describe("Whether the sentence contains grammar for an intermediate English speaker"),
-            grammars: z.array(
-                z.object({
-                    description: z.string().describe("The description of the grammar"),
-                })
-            ).describe("A list of grammar for an intermediate English speaker, if none, it should be an empty list"),
-        });
-
-
-        await AiFunc.run(taskId, schema, analyzeGrammerPrompt(sentence));
-
+    public static async analyzeGrammar(taskId: number, sentence: string) {
+        const promptStr = AiAnalyseGrammarsPrompt.promptFunc(sentence);
+        console.log('promptStr', promptStr);
+        await AiFunc.run(taskId, AiAnalyseGrammarsPrompt.schema, promptStr);
     }
 
     public static async makeSentences(taskId: number, sentence: string, point: string[]) {
@@ -197,6 +191,14 @@ export default class AiFuncService {
                 result: JSON.stringify(resp[0])
             });
         }
+    }
+
+    static async explainSelect(taskId: number, word: string) {
+        await AiFunc.run(taskId, AiFuncExplainSelectPrompt.schema, AiFuncExplainSelectPrompt.promptFunc(word));
+
+    }
+    public static async explainSelectWithContext(taskId: number, sentence: string, selectedWord: string) {
+        await AiFunc.run(taskId, AiFuncExplainSelectWithContextPrompt.schema, AiFuncExplainSelectWithContextPrompt.promptFunc(sentence, selectedWord));
     }
 }
 

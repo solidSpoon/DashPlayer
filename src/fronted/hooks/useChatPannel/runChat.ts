@@ -3,11 +3,12 @@ import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 import { strBlank } from '@/common/utils/Util';
 import AiStreamMessage from '@/common/types/msg/AiStreamMessage';
 import useChatPanel, { Topic } from '@/fronted/hooks/useChatPanel';
-import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
+import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 
 const api = window.electron;
 
@@ -37,9 +38,13 @@ export default class ChatRunner {
             const welcomeMessage = tm as AiStreamMessage;
             await ChatRunner.aiStreaming(welcomeMessage);
         }
+        if (tm.msgType === 'ai-func-explain-select-with-context') {
+            const welcomeMessage = tm as AiCtxMenuExplainSelectWithContextMessage;
+            await ChatRunner.aiFuncExplainSelectWithContext(welcomeMessage);
+        }
         if (tm.msgType === 'ai-func-explain-select') {
-            const welcomeMessage = tm as AiCtxMenuExplainSelectMessage;
-            await ChatRunner.aiFuncExplainSelect(welcomeMessage);
+            const msg = tm as AiCtxMenuExplainSelectMessage;
+            await ChatRunner.aiFuncExplainSelect(msg);
         }
         if (tm.msgType === 'ai-func-polish') {
             const welcomeMessage = tm as AiCtxMenuPolishMessage;
@@ -80,6 +85,14 @@ export default class ChatRunner {
         ChatRunner.commonTaskDone([synonymousSentence, punctuation], msg.getTopic());
     }
 
+    private static async aiFuncExplainSelectWithContext(msg: AiCtxMenuExplainSelectWithContextMessage) {
+        const task = await taskDetail(msg.taskId);
+        if (responded(task)) {
+            msg.resp = JSON.parse(task.result);
+            ChatRunner.updateMsg(msg);
+        }
+        ChatRunner.commonTaskDone([task], msg.getTopic());
+    }
     private static async aiFuncExplainSelect(msg: AiCtxMenuExplainSelectMessage) {
         const task = await taskDetail(msg.taskId);
         if (responded(task)) {
@@ -88,7 +101,6 @@ export default class ChatRunner {
         }
         ChatRunner.commonTaskDone([task], msg.getTopic());
     }
-
     private static async aiFuncPolish(msg: AiCtxMenuPolishMessage) {
         const synonymousSentence = await taskDetail(msg.taskId);
         if (responded(synonymousSentence)) {

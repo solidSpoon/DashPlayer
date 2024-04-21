@@ -13,16 +13,17 @@ import {AiNormalMsg} from "@/fronted/components/chat/msg/AiNormalMsg";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import HumanNormalMsg from "@/fronted/components/chat/msg/HumanNormalMsg";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
-import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import { AiCtxMenuExplainSelectWithContextMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectWithContextMsg';
+import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
 import { AiCtxMenuPolishMsg } from '@/fronted/components/chat/msg/AiCtxMenuPolishMsg';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
+import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
+import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 
 const ChatCenter = () => {
     const messages = useChatPanel(state => state.messages);
     const streamingMessage = useChatPanel(state => state.streamingMessage);
     const sent = useChatPanel(state => state.sent);
-    console.log('msgbox', messages);
     const [input, setInput] = React.useState<string>('');
     const inputRef = React.useRef<HTMLTextAreaElement>(null);
     const mapping = (msg: CustomMessage<any>) => {
@@ -37,6 +38,8 @@ const ChatCenter = () => {
                 return <HumanNormalMsg msg={msg as HumanNormalMessage}/>;
             case 'ai-func-explain-select':
                 return <AiCtxMenuExplainSelectMsg msg={msg as AiCtxMenuExplainSelectMessage}/>;
+            case 'ai-func-explain-select-with-context':
+                return <AiCtxMenuExplainSelectWithContextMsg msg={msg as AiCtxMenuExplainSelectWithContextMessage}/>;
             case 'ai-func-polish':
                 return <AiCtxMenuPolishMsg msg={msg as AiCtxMenuPolishMessage}/>;
             default:

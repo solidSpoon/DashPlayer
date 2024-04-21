@@ -2,24 +2,23 @@ import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMess
 import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { codeBlock } from 'common-tags';
 import { Topic } from '@/fronted/hooks/useChatPanel';
+import { AiFuncExplainSelectWithContextRes } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
 import { AiFuncExplainSelectRes } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 
 export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCtxMenuExplainSelectMessage> {
     public taskId: number;
     public topic: Topic;
-    public context: string;
-    public selected: string;
+    public word: string;
     public resp: AiFuncExplainSelectRes | null = null;
 
-    constructor(taskId: number, topic:Topic, context: string, selected: string) {
+    constructor(taskId: number, topic:Topic, selected: string) {
         this.taskId = taskId;
-        this.context = context;
-        this.selected = selected;
+        this.word = selected;
         this.topic = topic;
     }
 
     copy(): AiCtxMenuExplainSelectMessage {
-        const ctxMenuExplainSelectMessage = new AiCtxMenuExplainSelectMessage(this.taskId,this.topic, this.context, this.selected);
+        const ctxMenuExplainSelectMessage = new AiCtxMenuExplainSelectMessage(this.taskId,this.topic, this.word);
         ctxMenuExplainSelectMessage.resp = this.resp;
         return ctxMenuExplainSelectMessage;
     }
@@ -29,14 +28,19 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
     toMsg(): MsgT[] {
         // 根据以上信息编造一个假的回复
         const aiResp = codeBlock`
-        好的，我来解释一下这句话中的"${this.selected}"。
+        好的，我来解释一下这个单词/短语"${this.word}"。
 
-        "${this.selected}"的意思是${this.resp?.word.meaningZh + this.resp.word.meaningEn}。
-        在这句话中，"${this.selected}"的意思是${this.resp?.word.meaningInSentence}。
+        音标：${this.resp?.word.phonetic}
+        中文释义：${this.resp?.word.meaningZh}
+        英文释义：${this.resp?.word.meaningEn}
+
+        - 例句1：${this.resp?.examplesSentence1}
+        - 例句2：${this.resp?.examplesSentence2}
+        - 例句3：${this.resp?.examplesSentence3}
         `
         return [{
             type:'human',
-            content: `请帮我解释下面这句话中的"${this.selected}"\n"""\n${this.context}\n"""`
+            content: `请帮我理解这个单词/短语 ${this.word}`
         },{
             type:'ai',
             content: aiResp

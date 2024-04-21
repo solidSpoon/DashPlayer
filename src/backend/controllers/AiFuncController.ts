@@ -24,7 +24,7 @@ export default class AiFuncController implements Controller {
 
     public async analyzeGrammars(sentence: string) {
         const taskId = await DpTaskService.create();
-        AiFuncService.analyzeGrammer(taskId, sentence).then();
+        AiFuncService.analyzeGrammar(taskId, sentence).then();
         return taskId;
     }
 
@@ -71,9 +71,14 @@ export default class AiFuncController implements Controller {
         });
         return taskId;
     }
-    public static async explainSelect({sentence, selectedWord}: { sentence: string, selectedWord: string }) {
+    public static async explainSelectWithContext({sentence, selectedWord}: { sentence: string, selectedWord: string }) {
         const taskId = await DpTaskService.create();
         AiFuncExplainSelectService.run(taskId, sentence, selectedWord).then();
+        return taskId;
+    }
+    public static async explainSelect({word}: { word: string }) {
+        const taskId = await DpTaskService.create();
+        AiFuncService.explainSelect(taskId, word).then();
         return taskId;
     }
     registerRoutes(): void {
@@ -87,6 +92,7 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/tts', this.tts);
         registerRoute('ai-func/chat', AiFuncController.chat);
         registerRoute('ai-func/transcript', AiFuncController.transcript);
+        registerRoute('ai-func/explain-select-with-context', AiFuncController.explainSelectWithContext);
         registerRoute('ai-func/explain-select', AiFuncController.explainSelect);
     }
 }
