@@ -9,7 +9,7 @@
 //             ).describe("A list of new words for an intermediate English speaker, if none, it should be an empty list"),
 //         });
 export interface AiAnalyseNewPhrasesRes {
-    hasNewPhrase: boolean;
+    hasPhrase: boolean;
     phrases: {
         phrase: string;
         meaning: string;

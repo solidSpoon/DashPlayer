@@ -24,7 +24,7 @@ const ChatLeftPhrases = ({ className}: {
                     {/*<CardDescription>Manage player settings and behavior</CardDescription>*/}
                 </CardHeader>
                 <CardContent>
-                    {res?.hasNewPhrase && res?.phrases?.map((word, i) => (
+                    {res?.hasPhrase && res?.phrases?.map((word, i) => (
                         <div key={i} className="flex flex-col items-start px-4 py-2">
                             <div className="flex flex-col items-start text-md text-gray-700 text-base">
                                 <Playable className={cn('text-lg font-medium leading-none')}>{word.phrase}</Playable>
@@ -33,7 +33,7 @@ const ChatLeftPhrases = ({ className}: {
                         </div>
                     ))}
                     {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton className={'h-6 mt-2'} /></>}
-                    {res && !res.hasNewPhrase && <div className="text-lg text-gray-700">没有短语</div>}
+                    {res && !res.hasPhrase && <div className="text-lg text-gray-700">没有短语</div>}
                 </CardContent>
             </Card>
         </div>

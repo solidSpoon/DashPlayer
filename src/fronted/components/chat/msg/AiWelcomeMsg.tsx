@@ -21,7 +21,11 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
             <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1 prose">
                 <h2>分析句子</h2>
                 <p>我来帮你分析这个句子</p>
-                <blockquote>
+                <blockquote
+                    onContextMenu={(e) => {
+                        updateInternalContext(msg.originalTopic);
+                    }}
+                >
                     <p><Playable>{msg.originalTopic}</Playable></p>
                 </blockquote>
                 <p>已经为您生成了这个句子的知识点, 包括生词, 短语, 语法, 例句等</p>
@@ -31,7 +35,11 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                         className={'underline cursor-pointer'}
                         onClick={() => createTopic({ content: punctuationTaskResp?.completeVersion })}
                     >点击切换</span></p>
-                    <blockquote>
+                    <blockquote
+                        onContextMenu={(e) => {
+                            updateInternalContext(punctuationTaskResp?.completeVersion);
+                        }}
+                    >
                         <p>{punctuationTaskResp?.completeVersion}</p>
                     </blockquote>
                 </>}

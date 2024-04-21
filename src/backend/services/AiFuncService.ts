@@ -9,7 +9,7 @@ import {z} from "zod";
 import {zodToJsonSchema} from "zod-to-json-schema";
 import {JsonOutputFunctionsParser} from "langchain/output_parsers";
 import exampleSentences from "@/backend/services/prompts/example-sentence";
-import analyzeParasesPrompt from './prompts/analyze-phrases';
+import analyzePhrasesPrompt from './prompts/analyze-phrases';
 import synonymousSentence from "@/backend/services/prompts/synonymous-sentence";
 import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
 import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
@@ -31,12 +31,12 @@ export default class AiFuncService {
 
     public static async analyzeWord(taskId: number, sentence: string) {
         const schema = z.object({
-            hasNewWord: z.boolean().describe("Whether the sentence contains new words for an intermediate English speaker"),
+            hasNewWord: z.boolean().describe("是否包含中等难度及以上的单词"),
             words: z.array(
                 z.object({
                     word: z.string().describe("The word"),
                     phonetic: z.string().describe("The phonetic of the word"),
-                    meaning: z.string().describe("The meaning of the word in Chinese, Because it is for intermediate English speakers, who may not understand English well, so the meaning is in Chinese"),
+                    meaning: z.string().describe("The meaning of the word in Chinese(简体中文)"),
                 })
             ).describe("A list of new words for an intermediate English speaker, if none, it should be an empty list"),
         });
@@ -45,16 +45,16 @@ export default class AiFuncService {
 
     public static async analyzePhrase(taskId: number, sentence: string) {
         const schema = z.object({
-            hasNewPhrase: z.boolean().describe("Whether the sentence contains new phrases for an intermediate English speaker"),
+            hasPhrase: z.boolean().describe("这个句子是否包含 短语/词组/固定搭配"),
             phrases: z.array(
                 z.object({
-                    phrase: z.string().describe("The phrase"),
-                    meaning: z.string().describe("The meaning of the phrase in Chinese, Because it is for Chinese, who may not understand English well, so the meaning is in Chinese"),
+                    phrase: z.string().describe("短语/词组/固定搭配"),
+                    meaning: z.string().describe("The meaning of the phrase in Chinese(简体中文)"),
                 })
-            ).describe("A list of new phrases for an intermediate English speaker, if none, it should be an empty list"),
+            ).describe("A list of phrases for an intermediate English speaker, if none, it should be an empty list"),
         });
 
-        await AiFunc.run(taskId, schema, analyzeParasesPrompt(sentence));
+        await AiFunc.run(taskId, schema, analyzePhrasesPrompt(sentence));
     }
 
     public static async analyzeGrammar(taskId: number, sentence: string) {

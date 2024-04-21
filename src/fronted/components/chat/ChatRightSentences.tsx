@@ -3,6 +3,7 @@ import Playable from "@/fronted/components/chat/Playable";
 import useChatPanel from "@/fronted/hooks/useChatPanel";
 import { Button } from '@/fronted/components/ui/button';
 import { ChevronsDown } from 'lucide-react';
+import { Skeleton } from '@/fronted/components/ui/skeleton';
 
 const ChatRightSentences = ({className}: {
     className: string,
@@ -43,7 +44,7 @@ const ChatRightSentences = ({className}: {
 
                 </div>
             ))}
-            {!res && <div className="text-lg text-gray-700">生成例句中...</div>}
+            {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton className={'h-6 mt-2'} /></>}
             <Button variant={'ghost'} onClick={()=>retry('sentence')}
                     className={' text-gray-400 dark:text-gray-200'}>
                 <ChevronsDown  className={'w-4 h-4'} />

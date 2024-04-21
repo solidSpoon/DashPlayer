@@ -33,11 +33,20 @@ const Chat = () => {
     })));
     const ref = useRef<HTMLDivElement>(null);
 
-    const { ctxMenuExplain, ctxMenuOpened, ctxMenuPlayAudio, ctxMenuPolish } = useChatPanel(useShallow(s => ({
+    const {
+        ctxMenuExplain,
+        ctxMenuOpened,
+        ctxMenuPlayAudio,
+        ctxMenuPolish,
+        ctxMenuQuote,
+        ctxMenuCopy
+    } = useChatPanel(useShallow(s => ({
         ctxMenuExplain: s.ctxMenuExplain,
         ctxMenuOpened: s.ctxMenuOpened,
         ctxMenuPlayAudio: s.ctxMenuPlayAudio,
-        ctxMenuPolish: s.ctxMenuPolish
+        ctxMenuPolish: s.ctxMenuPolish,
+        ctxMenuQuote: s.ctxMenuQuote,
+        ctxMenuCopy: s.ctxMenuCopy
     })));
     return (
         <motion.div
@@ -154,6 +163,12 @@ const Chat = () => {
                     <ContextMenuItem
                         onClick={ctxMenuPolish}
                     >润色句子</ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={ctxMenuQuote}
+                    >引用这段文本</ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={ctxMenuCopy}
+                    >复制</ContextMenuItem>
                     <ContextMenuItem
                         onClick={() => {
                             let select = p(window.getSelection()?.toString());

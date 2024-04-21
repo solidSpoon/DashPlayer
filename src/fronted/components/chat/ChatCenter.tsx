@@ -19,12 +19,17 @@ import { AiCtxMenuPolishMsg } from '@/fronted/components/chat/msg/AiCtxMenuPolis
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import { useShallow } from 'zustand/react/shallow';
 
 const ChatCenter = () => {
-    const messages = useChatPanel(state => state.messages);
-    const streamingMessage = useChatPanel(state => state.streamingMessage);
-    const sent = useChatPanel(state => state.sent);
-    const [input, setInput] = React.useState<string>('');
+    const {messages, streamingMessage, sent, input, setInput} = useChatPanel(useShallow(s=> ({
+        messages: s.messages,
+        streamingMessage: s.streamingMessage,
+        sent: s.sent,
+        input: s.input,
+        setInput: s.setInput,
+    })));
+
     const inputRef = React.useRef<HTMLTextAreaElement>(null);
     const mapping = (msg: CustomMessage<any>) => {
         switch (msg.msgType) {

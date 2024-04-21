@@ -5,7 +5,7 @@ import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrases
 import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
-import { sleep, strBlank } from '@/common/utils/Util';
+import { engEqual, sleep, strBlank, strNotBlank } from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
@@ -64,6 +64,7 @@ export type ChatPanelState = {
     canUndo: boolean;
     canRedo: boolean;
     context: string | null;
+    input: string;
 };
 
 export type ChatPanelActions = {
@@ -80,8 +81,11 @@ export type ChatPanelActions = {
     ctxMenuExplain: () => void;
     ctxMenuPlayAudio: () => void;
     ctxMenuPolish: () => void;
+    ctxMenuQuote: () => void;
+    ctxMenuCopy: () => void;
     deleteMessage: (msg: CustomMessage<any>) => void;
     retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence') => void;
+    setInput: (input: string) => void;
 };
 
 const copy = (state: ChatPanelState): ChatPanelState => {
@@ -111,7 +115,8 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         streamingMessage: state.streamingMessage,
         canUndo: state.canUndo,
         canRedo: state.canRedo,
-        context: state.context
+        context: state.context,
+        input: state.input
     };
 };
 
@@ -141,8 +146,8 @@ const empty = (): ChatPanelState => {
         streamingMessage: null,
         canUndo: false,
         canRedo: false,
-        context: null
-
+        context: null,
+        input: ''
     };
 };
 
@@ -267,7 +272,7 @@ const useChatPanel = create(
             const userSelect = window.getSelection().toString();
             if (strBlank(userSelect)) return;
             const context = get().context;
-            if (strBlank(context)) {
+            if (strBlank(context) || engEqual(context, userSelect)) {
                 const taskId = await api.call('ai-func/explain-select', {
                     word: userSelect
                 });
@@ -329,6 +334,34 @@ const useChatPanel = create(
                     sentenceTask: 'init'
                 });
             }
+        },
+        ctxMenuQuote: () => {
+            let text = window.getSelection().toString();
+            if (strBlank(text)) {
+                text = get().context;
+            }
+            if (strBlank(text)) return;
+            text = '<context>\n' + text.trim() + '\n</context>\n\n';
+            if (strNotBlank(get().input)) {
+                text = get().input + '\n' + text;
+            }
+            set({
+                input: text
+            });
+
+        },
+        ctxMenuCopy:async () => {
+            let text = window.getSelection().toString();
+            if (strBlank(text)) {
+                text = get().context;
+            }
+            if (strBlank(text)) return;
+            await navigator.clipboard.writeText(text);
+        },
+        setInput: (input: string) => {
+            set({
+                input
+            });
         }
     }))
 );
@@ -472,8 +505,8 @@ const runSentence = async () => {
         const res = JSON.parse(tRes.result) as AiMakeExampleSentencesRes;
         useChatPanel.setState({
             newSentence: {
-                ...res,
-            },
+                ...res
+            }
         });
     }
     if (tRes.status === DpTaskState.DONE) {
