@@ -44,7 +44,6 @@ export type Tasks = {
 }
 
 const undoRedo = new UndoRedo<ChatPanelState>();
-
 export type ChatPanelState = {
     internal: {
         context: {
@@ -52,6 +51,7 @@ export type ChatPanelState = {
             time: number;
         }
         chatTaskQueue: CustomMessage<any>[];
+        newSentenceHistory: AiMakeExampleSentencesRes[];
     }
     tasks: Tasks;
     topic: Topic
@@ -81,6 +81,7 @@ export type ChatPanelActions = {
     ctxMenuPlayAudio: () => void;
     ctxMenuPolish: () => void;
     deleteMessage: (msg: CustomMessage<any>) => void;
+    retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence') => void;
 };
 
 const copy = (state: ChatPanelState): ChatPanelState => {
@@ -89,7 +90,10 @@ const copy = (state: ChatPanelState): ChatPanelState => {
             context: {
                 ...state.internal.context
             },
-            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy())
+            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy()),
+            newSentenceHistory: state.internal.newSentenceHistory.map(e => ({
+                ...e
+            }))
         },
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
@@ -118,7 +122,8 @@ const empty = (): ChatPanelState => {
                 value: null,
                 time: 0
             },
-            chatTaskQueue: []
+            chatTaskQueue: [],
+            newSentenceHistory: []
         },
         tasks: {
             vocabularyTask: 'init',
@@ -297,6 +302,33 @@ const useChatPanel = create(
             set({
                 messages: get().messages.filter(e => e !== msg)
             });
+        },
+        retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence') => {
+            if (type === 'vocabulary') {
+                get().setTask({
+                    ...get().tasks,
+                    vocabularyTask: 'init'
+                });
+            }
+            if (type === 'phrase') {
+                get().setTask({
+                    ...get().tasks,
+                    phraseTask: 'init'
+                });
+            }
+            if (type === 'grammar') {
+                get().setTask({
+                    ...get().tasks,
+                    grammarTask: 'init'
+                });
+            }
+            if (type === 'sentence') {
+                get().internal.newSentenceHistory.push(get().newSentence);
+                get().setTask({
+                    ...get().tasks,
+                    sentenceTask: 'init'
+                });
+            }
         }
     }))
 );
@@ -439,7 +471,9 @@ const runSentence = async () => {
         if (!tRes.result) return;
         const res = JSON.parse(tRes.result) as AiMakeExampleSentencesRes;
         useChatPanel.setState({
-            newSentence: res
+            newSentence: {
+                ...res,
+            },
         });
     }
     if (tRes.status === DpTaskState.DONE) {

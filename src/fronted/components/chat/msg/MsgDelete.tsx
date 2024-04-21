@@ -7,9 +7,9 @@ const MsgDelete = ({ msg }: { msg: CustomMessage<any> }) => {
     const deleteMessage = useChatPanel(s => s.deleteMessage).bind(null, msg);
     return (
         <Button variant={'ghost'} size={'icon'} onClick={deleteMessage}
-                className={'absolute top-0 right-4 h-8 w-8 group'}>
+                className={'absolute top-0 right-4 h-8 w-8 group text-gray-500 dark:text-gray-200'}>
             <Trash2
-                className={'h-4 w-4 text-gray-500 dark:text-gray-200'} />
+                className={'h-4 w-4'} />
         </Button>
 
     );

@@ -4,6 +4,7 @@ import { codeBlock } from 'common-tags';
 
 export class AiAnalyseGrammarsPrompt {
     public static schema = z.object({
+        hasGrammar: z.boolean().describe('whether the sentence has grammar'),
         grammarsMd: z.string().describe('explain result, must be in Chinese(简体中文), markdown format'),
     });
 

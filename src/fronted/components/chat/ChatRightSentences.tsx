@@ -1,6 +1,8 @@
 import {cn} from "@/fronted/lib/utils";
 import Playable from "@/fronted/components/chat/Playable";
 import useChatPanel from "@/fronted/hooks/useChatPanel";
+import { Button } from '@/fronted/components/ui/button';
+import { ChevronsDown } from 'lucide-react';
 
 const ChatRightSentences = ({className}: {
     className: string,
@@ -8,15 +10,19 @@ const ChatRightSentences = ({className}: {
 
     const res = useChatPanel(state => state.newSentence);
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
+    const retry = useChatPanel(state => state.retry);
     console.log('res', res)
+    const sentences = useChatPanel.getState().internal.newSentenceHistory.flatMap(s => s.sentences);
+    res?.sentences?.forEach(s => {
+        if (!sentences.find(ss => ss.sentence === s.sentence)) {
+            sentences.push(s);
+        }
+    });
     return (
 
         <div className={cn('flex flex-col gap-2', className)}>
-            {/*<h2>*/}
-            {/*    例句:*/}
-            {/*</h2>*/}
-            {res?.sentences?.map((s, i) => (
-                <div key={i}
+            {sentences?.map((s, i) => (
+                <div key={s.sentence + i}
                      onContextMenu={() => updateInternalContext(s?.sentence)}
                      className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">
                     <Playable
@@ -38,9 +44,10 @@ const ChatRightSentences = ({className}: {
                 </div>
             ))}
             {!res && <div className="text-lg text-gray-700">生成例句中...</div>}
-            {/*    </CardContent>*/}
-            {/*</Card>*/}
-            {/*{(res?.sentences??[]). && <div className="text-lg text-gray-700">没有生词</div>}*/}
+            <Button variant={'ghost'} onClick={()=>retry('sentence')}
+                    className={' text-gray-400 dark:text-gray-200'}>
+                <ChevronsDown  className={'w-4 h-4'} />
+            </Button>
         </div>
 
     )
