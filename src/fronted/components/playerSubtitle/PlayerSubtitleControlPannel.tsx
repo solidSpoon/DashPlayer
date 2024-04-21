@@ -9,6 +9,7 @@ import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
 import {Pause, Play} from "lucide-react";
+import { Button } from '@/fronted/components/ui/button';
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -83,8 +84,8 @@ const PlayerControlPannel = ({
                 >
 
 
-                    <div className='flex gap-4'>
-                        <div
+                    <div className='flex gap-4 items-center'>
+                        <Button
                             onClick={() => {
                                 if (playing) {
                                     onPause?.();
@@ -92,14 +93,16 @@ const PlayerControlPannel = ({
                                     onPlay?.();
                                 }
                             }}
-                            className='flex justify-center items-center rounded-lg'
+                            size='icon'
+                            variant='ghost'
+                            className='w-9 h-9'
                         >
                             {playing ? (
-                                <Pause className='w-6 h-6 ' />
+                                <Pause />
                             ) : (
-                                <Play className='w-6 h-6  ' />
+                                <Play />
                             )}
-                        </div>
+                        </Button>
                         <div className=' h-full flex items-center w-40'>
                             {`${secondToDate(
                                 currentValue
@@ -124,7 +127,6 @@ const PlayerControlPannel = ({
                         }}
                     />
                     <div className='flex justify-center items-end gap-4'>
-                        <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                         <SpeedSlider
                             speed={playbackRate}
                             onSpeedChange={setPlaybackRate}
@@ -138,6 +140,7 @@ const PlayerControlPannel = ({
                             volume={volume}
                             onVolumeChange={setVolume}
                         />
+                        <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                     </div>
 
                 </div>

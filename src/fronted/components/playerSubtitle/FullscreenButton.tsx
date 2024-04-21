@@ -21,7 +21,7 @@ const FullscreenButton = ({fullScreen, changeFullScreen}: {
                         onClick={(v) => {
                             changeFullScreen(!fullScreen);
                         }}
-                        className='flex items-center justify-center'
+                        className='flex items-center justify-center w-9 h-9'
                     >
                         {fullScreen ? <Minimize/> : <Maximize/>}
                     </Button>

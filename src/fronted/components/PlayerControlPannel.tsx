@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaPause, FaPlay } from 'react-icons/fa';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
@@ -152,7 +151,7 @@ const PlayerControlPannel = ({
                             }}
                         />
                         <div className='w-full flex justify-between items-center'>
-                            <div className='flex gap-4'>
+                            <div className='flex gap-4 items-center'>
                                 <Button
                                     onClick={() => {
                                         if (playing) {
@@ -163,7 +162,7 @@ const PlayerControlPannel = ({
                                     }}
                                     size='icon'
                                     variant='ghost'
-                                    // className='flex justify-center items-center rounded-lg'
+                                    className='w-9 h-9'
                                 >
                                     {playing ? (
                                         <Pause />
@@ -179,7 +178,6 @@ const PlayerControlPannel = ({
                             </div>
                             <div className='h-full flex-1' />
                             <div className='flex justify-center items-end gap-4'>
-                                <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                                 <SpeedSlider
                                     speed={playbackRate}
                                     onSpeedChange={setPlaybackRate}
@@ -190,6 +188,7 @@ const PlayerControlPannel = ({
                                     volume={volume}
                                     onVolumeChange={setVolume}
                                 />
+                                <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                             </div>
                         </div>
                     </>)}
