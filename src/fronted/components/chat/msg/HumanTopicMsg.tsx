@@ -7,6 +7,37 @@ import { strBlank } from '@/common/utils/Util';
 import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 
+const process = (original: string, parseRes: AiPhraseGroupRes): (string | {
+    original: string;
+    translation: string;
+    comment: string;
+})[] => {
+    if ((parseRes?.phraseGroups ?? [].length) === 0) return [original];
+    if (strBlank(original)) return [];
+    const res = [];
+    let text = original;
+    for (const group of parseRes.phraseGroups) {
+        if (strBlank(group?.original)) continue;
+        if (strBlank(text)) {
+            // res.push(group);
+            continue;
+        }
+        text = text.trim();
+        const analyse = group.original.trim();
+        const lowerCaseText = text.toLowerCase();
+        const lowerCaseOriginal = analyse.toLowerCase();
+        const index = lowerCaseText.indexOf(lowerCaseOriginal);
+        const before = text.substring(0, index);
+        const after = text.substring(index + group.original.length);
+        console.log('before', before, 'after', after);
+        if (before) res.push(before);
+        res.push(group);
+        text = after;
+    }
+    if (text) res.push(text.trim());
+
+    return res;
+};
 const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     const retry = useChatPanel(state => state.retry);
     const dpTask = useDpTask(msg.phraseGroupTask, 200);
@@ -31,24 +62,38 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
         return 'bg-secondary';
     };
 
+
+    console.log('HumanTopicMsg', res);
+    const content = process(msg.content, res);
     return (
         <div
             onContextMenu={(e) => {
                 updateInternalContext(msg.content);
             }}
-            className={cn('text-lg flex flex-wrap gap-2 mb-4 pl-12 relative')}>
-            <Button variant={'ghost'} size={'icon'} onClick={()=>retry('topic')}
+            className={cn('text-lg flex flex-wrap gap-2 mb-4 pl-12 pr-8 relative')}>
+            <Button variant={'ghost'} size={'icon'} onClick={() => retry('topic')}
                     className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
                 <RefreshCcw className={'w-3 h-3'} />
             </Button>
-            {res?.phraseGroups?.map((group, i) => {
-                return (
-                    <div key={i}>
-                        <div className={cn('text-xs translate-x-2')}>{group?.comment??' '}</div>
-                        <span className={cn('px-2 py-1 rounded', mapColor(group?.comment))}>{group?.original??' '}</span>
-                        <div className={cn('text-sm translate-x-2')}>{group?.translation??' '}</div>
-                    </div>
-                );
+            {content.map((group, i) => {
+                if (typeof group === 'string') {
+                    return (
+                        <div key={i}>
+                            <div className={cn('h-4')} />
+                            <span
+                                className={cn('px-2 py-1 rounded')}>{group}</span>
+                        </div>
+                    );
+                } else {
+                    return (
+                        <div key={i}>
+                            <div className={cn('text-xs translate-x-2 h-4')}>{group?.comment ?? ' '}</div>
+                            <span
+                                className={cn('px-2 py-1 rounded', mapColor(group?.comment))}>{group?.original ?? ' '}</span>
+                            <div className={cn('text-sm translate-x-2')}>{group?.translation ?? ' '}</div>
+                        </div>
+                    );
+                }
             })}
         </div>
     );

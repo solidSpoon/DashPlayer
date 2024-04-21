@@ -17,10 +17,10 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
         !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
     return (
         <div className={cn('group relative flex items-start')}>
-            <Button variant={'ghost'} size={'icon'} onClick={()=>retry('welcome')}
-                    className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
-                <RefreshCcw className={'w-3 h-3'} />
-            </Button>
+            {/* <Button variant={'ghost'} size={'icon'} onClick={()=>retry('welcome')} */}
+            {/*         className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}> */}
+            {/*     <RefreshCcw className={'w-3 h-3'} /> */}
+            {/* </Button> */}
             <div
                 className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
                 <IconOpenAI />

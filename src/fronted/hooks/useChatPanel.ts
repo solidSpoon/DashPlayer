@@ -5,7 +5,7 @@ import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrases
 import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
-import { engEqual, sleep, strBlank, strNotBlank } from '@/common/utils/Util';
+import { engEqual, p, sleep, strBlank, strNotBlank } from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
@@ -71,7 +71,7 @@ export type ChatPanelActions = {
     addChatTask: (task: CustomMessage<any>) => void;
     backward: () => void;
     forward: () => void;
-    createTopic: (topic: Topic) => void;
+    createFromSelect: () => void;
     createFromCurrent: () => void;
     clear: () => void;
     setTask: (tasks: Tasks) => void;
@@ -176,13 +176,22 @@ const useChatPanel = create(
             });
 
         },
-        createTopic: async (topic: Topic) => {
+        createFromSelect: async () => {
+            let text = p(window.getSelection()?.toString());
+            // 去除换行符
+            text = text?.replace(/\n/g, '');
+            if (strBlank(text)) {
+                text = useChatPanel.getState().context;
+            }
+            if (strBlank(text)) {
+                return;
+            }
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
-            const text = extractTopic(topic);
             const synTask = await api.call('ai-func/polish', text);
             const phraseGroupTask = await api.call('ai-func/phrase-group', text);
             const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
+            const topic = {content:text};
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
                 synonymousSentenceTask: synTask,

@@ -16,7 +16,7 @@ export class AiFuncExplainSelectWithContextPrompt {
     public static schema = z.object({
         sentence: z.object({
             sentence: z.string().describe('句子原文'),
-            meaning: z.string().describe('句子的中文意思')
+            meaning: z.string().describe('句子的中文意思(简体中文)')
         }),
         word: z.object({
             word: z.string().describe('单词/短语原文'),

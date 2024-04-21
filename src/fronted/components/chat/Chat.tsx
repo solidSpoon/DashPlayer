@@ -23,8 +23,8 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
 const Chat = () => {
-    const { createTopic, clear, forward, backward, canUndo, canRedo } = useChatPanel(useShallow(s => ({
-        createTopic: s.createTopic,
+    const { createFromSelect, clear, forward, backward, canUndo, canRedo } = useChatPanel(useShallow(s => ({
+        createFromSelect: s.createFromSelect,
         clear: s.clear,
         forward: s.forward,
         backward: s.backward,
@@ -171,17 +171,7 @@ const Chat = () => {
                         onClick={ctxMenuCopy}
                     >复制</ContextMenuItem>
                     <ContextMenuItem
-                        onClick={() => {
-                            let select = p(window.getSelection()?.toString());
-                            console.log('sssss', select, window?.getSelection());
-                            // 去除换行符
-                            select = select?.replace(/\n/g, '');
-                            if (!strBlank(select)) {
-                                createTopic({
-                                    content: select
-                                });
-                            }
-                        }}
+                        onClick={createFromSelect}
                     >用选择内容新建对话</ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
