@@ -1,11 +1,12 @@
-import {BaseMessage} from "@langchain/core/messages";
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
 import {MsgT} from "@/common/types/msg/interfaces/MsgT";
+import { Topic } from '@/fronted/hooks/useChatPanel';
 
 class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
-    content: string;
-
-    constructor(content: string) {
+    public content: string;
+    private readonly topic: Topic ;
+    constructor(topic:Topic, content: string) {
+        this.topic = topic;
         this.content = content;
     }
 
@@ -18,10 +19,14 @@ class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
 
 
     copy(): HumanNormalMessage {
-        return new HumanNormalMessage(this.content);
+        return new HumanNormalMessage(this.topic, this.content);
     }
 
     msgType: MsgType = "human-normal";
+
+    getTopic(): Topic {
+        return this.topic;
+    }
 }
 
 

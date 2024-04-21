@@ -1,6 +1,6 @@
 import {cn} from "@/fronted/lib/utils";
 import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
-import ChatRightSumary from "@/fronted/components/chat/ChatRightSumary";
+import ChatRightSumary from "@/fronted/components/chat/ChatTopicSelector";
 import SentenceT from "@/common/types/SentenceT";
 
 const api = window.electron;

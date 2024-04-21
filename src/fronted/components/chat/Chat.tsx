@@ -1,29 +1,29 @@
 'use client';
 
 import * as React from 'react';
-import {cn, p, strBlank} from '@/common/utils/Util';
-import {motion} from 'framer-motion';
-import ChatLeftWords from "@/fronted/components/chat/ChatLeftWords";
-import ChatLeftPhrases from "@/fronted/components/chat/ChatLeftPhrases";
-import ChatLeftGrammers from "@/fronted/components/chat/ChatLeftGrammers";
-import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
-import ChatCenter from "@/fronted/components/chat/ChatCenter";
-import ChatTopicSelecter from "@/fronted/components/chat/ChatRightSumary";
+import { cn, p, strBlank } from '@/common/utils/Util';
+import { motion } from 'framer-motion';
+import ChatLeftWords from '@/fronted/components/chat/ChatLeftWords';
+import ChatLeftPhrases from '@/fronted/components/chat/ChatLeftPhrases';
+import ChatLeftGrammers from '@/fronted/components/chat/ChatLeftGrammers';
+import ChatRightSentences from '@/fronted/components/chat/ChatRightSentences';
+import ChatCenter from '@/fronted/components/chat/ChatCenter';
+import ChatTopicSelector from '@/fronted/components/chat/ChatTopicSelector';
 
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
-} from "@/fronted/components/ui/context-menu";
-import {useRef} from "react";
-import useChatPanel, {getInternalContext} from "@/fronted/hooks/useChatPanel";
-import {Button} from "@/fronted/components/ui/button";
-import {ChevronLeft, ChevronRight, X} from "lucide-react";
-import {useShallow} from "zustand/react/shallow";
+} from '@/fronted/components/ui/context-menu';
+import { useRef } from 'react';
+import useChatPanel, { getInternalContext } from '@/fronted/hooks/useChatPanel';
+import { Button } from '@/fronted/components/ui/button';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 
 const Chat = () => {
-    const {createTopic, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
+    const { createTopic, clear, forward, backward, canUndo, canRedo } = useChatPanel(useShallow(s => ({
         createTopic: s.createTopic,
         clear: s.clear,
         forward: s.forward,
@@ -33,14 +33,16 @@ const Chat = () => {
     })));
     const ref = useRef<HTMLDivElement>(null);
 
-    const {ctxMenuExplain,ctxMenuOpened} = useChatPanel(useShallow(s => ({
+    const { ctxMenuExplain, ctxMenuOpened, ctxMenuPlayAudio, ctxMenuPolish } = useChatPanel(useShallow(s => ({
         ctxMenuExplain: s.ctxMenuExplain,
-        ctxMenuOpened:s.ctxMenuOpened
+        ctxMenuOpened: s.ctxMenuOpened,
+        ctxMenuPlayAudio: s.ctxMenuPlayAudio,
+        ctxMenuPolish: s.ctxMenuPolish
     })));
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
-            initial={{opacity: 0}}
+            initial={{ opacity: 0 }}
             animate={{
                 opacity: 1,
                 transition: {
@@ -48,7 +50,7 @@ const Chat = () => {
                     type: 'just'
                 }
             }}
-            exit={{opacity: 0}}
+            exit={{ opacity: 0 }}
         >
             <ContextMenu
                 onOpenChange={(open) => {
@@ -70,7 +72,7 @@ const Chat = () => {
                             height: 'calc(100vh - 44px)'
                         }}
                         // 从下往上弹出
-                        initial={{y: '100%'}}
+                        initial={{ y: '100%' }}
                         animate={{
                             y: 0,
                             transition: {
@@ -99,18 +101,18 @@ const Chat = () => {
                                     disabled={!canUndo}
                                     onClick={backward}
                                     variant={'ghost'} size={'icon'}>
-                                    <ChevronLeft/>
+                                    <ChevronLeft />
                                 </Button>
                                 <Button
                                     disabled={!canRedo}
                                     onClick={forward}
                                     variant={'ghost'} size={'icon'}>
-                                    <ChevronRight/>
+                                    <ChevronRight />
                                 </Button>
                                 <Button
                                     onClick={clear}
                                     variant={'ghost'} size={'icon'}>
-                                    <X/>
+                                    <X />
                                 </Button>
                             </div>
                         </div>
@@ -124,16 +126,16 @@ const Chat = () => {
                             <div
                                 className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
 
-                                <ChatLeftWords className={cn('flex-shrink-0')}/>
-                                <ChatLeftPhrases className={cn('flex-shrink-0')}/>
-                                <ChatLeftGrammers className={cn('flex-shrink-0')}/>
+                                <ChatLeftWords className={cn('flex-shrink-0')} />
+                                <ChatLeftPhrases className={cn('flex-shrink-0')} />
+                                <ChatLeftGrammers className={cn('flex-shrink-0')} />
                             </div>
-                            <ChatCenter/>
+                            <ChatCenter />
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <ChatTopicSelecter className={cn('flex-shrink-0')}/>
+                                <ChatTopicSelector className={cn('flex-shrink-0')} />
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
-                                <ChatRightSentences className={cn('flex-shrink-0')}/>
+                                <ChatRightSentences className={cn('flex-shrink-0')} />
                             </div>
                         </div>
                     </motion.div>
@@ -142,10 +144,16 @@ const Chat = () => {
                     className={cn('z-[9999]')}
                 >
                     <ContextMenuItem
+                        onClick={async () => {
+                            ctxMenuPlayAudio();
+                        }}
                     >朗读文本</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuExplain}
-                    >解释所选内容</ContextMenuItem>
+                    >解释所选单词</ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={ctxMenuPolish}
+                    >润色句子</ContextMenuItem>
                     <ContextMenuItem
                         onClick={() => {
                             let select = p(window.getSelection()?.toString());
@@ -159,7 +167,6 @@ const Chat = () => {
                             }
                         }}
                     >用选择内容新建对话</ContextMenuItem>
-                    <ContextMenuItem>同义句</ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
         </motion.div>

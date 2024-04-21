@@ -15,7 +15,7 @@ interface ApiDefinition {
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string };
     'ai-func/phrase-group': { params: string, return: number };
-    'ai-func/synonymous-sentence': { params: string, return: number };
+    'ai-func/polish': { params: string, return: number };
     'ai-func/make-example-sentences': { params: { sentence: string, point: string[] }, return: number };
     'ai-func/punctuation': { params: { no: number, srt: string }, return: number };
     'ai-func/analyze-grammars': { params: string, return: number };

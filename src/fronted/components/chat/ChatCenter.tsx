@@ -9,17 +9,14 @@ import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import HumanTopicMsg from "@/fronted/components/chat/msg/HumanTopicMsg";
 import AiWelcomeMsg from "@/fronted/components/chat/msg/AiWelcomeMsg";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
-import AiStreamMessage from "@/common/types/msg/AiStreamMessage";
 import {AiNormalMsg} from "@/fronted/components/chat/msg/AiNormalMsg";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import HumanNormalMsg from "@/fronted/components/chat/msg/HumanNormalMsg";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
 import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
-
-const api = window.electron;
-
-
+import { AiCtxMenuPolishMsg } from '@/fronted/components/chat/msg/AiCtxMenuPolishMsg';
+import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 
 const ChatCenter = () => {
     const messages = useChatPanel(state => state.messages);
@@ -39,13 +36,13 @@ const ChatCenter = () => {
             case "human-normal":
                 return <HumanNormalMsg msg={msg as HumanNormalMessage}/>;
             case 'ai-func-explain-select':
-                console.log('ai-func-explain-select', msg);
                 return <AiCtxMenuExplainSelectMsg msg={msg as AiCtxMenuExplainSelectMessage}/>;
+            case 'ai-func-polish':
+                return <AiCtxMenuPolishMsg msg={msg as AiCtxMenuPolishMessage}/>;
             default:
                 return <></>
         }
     }
-    console.log('msgbox', messages);
 
 
     return (

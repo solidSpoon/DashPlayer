@@ -22,7 +22,7 @@ export default class AiFuncController implements Controller {
         return taskId;
     }
 
-    public async analyzeGrammers(sentence: string) {
+    public async analyzeGrammars(sentence: string) {
         const taskId = await DpTaskService.create();
         AiFuncService.analyzeGrammer(taskId, sentence).then();
         return taskId;
@@ -34,9 +34,9 @@ export default class AiFuncController implements Controller {
         return taskId;
     }
 
-    public async synonymousSentence(sentence: string) {
+    public async polish(sentence: string) {
         const taskId = await DpTaskService.create();
-        AiFuncService.synonymousSentence(taskId, sentence).then();
+        AiFuncService.polish(taskId, sentence).then();
         return taskId;
     }
 
@@ -79,10 +79,10 @@ export default class AiFuncController implements Controller {
     registerRoutes(): void {
         registerRoute('ai-func/analyze-new-words', this.analyzeNewWords);
         registerRoute('ai-func/analyze-new-phrases', this.analyzeNewPhrases);
-        registerRoute('ai-func/analyze-grammars', this.analyzeGrammers);
+        registerRoute('ai-func/analyze-grammars', this.analyzeGrammars);
         registerRoute('ai-func/make-example-sentences', this.makeSentences);
         registerRoute('ai-func/punctuation', this.punctuation);
-        registerRoute('ai-func/synonymous-sentence', this.synonymousSentence);
+        registerRoute('ai-func/polish', this.polish);
         registerRoute('ai-func/phrase-group', this.phraseGroup);
         registerRoute('ai-func/tts', this.tts);
         registerRoute('ai-func/chat', AiFuncController.chat);

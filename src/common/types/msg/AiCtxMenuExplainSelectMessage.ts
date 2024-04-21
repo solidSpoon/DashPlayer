@@ -1,8 +1,8 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
 import { MsgT } from '@/common/types/msg/interfaces/MsgT';
-import { AiFuncExplainSelectRes } from '@/common/types/aiRes/AiFuncExplainSelectRes';
-import { oneLineTrim } from 'common-tags';
+import { codeBlock } from 'common-tags';
 import { Topic } from '@/fronted/hooks/useChatPanel';
+import { AiFuncExplainSelectRes } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 
 export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCtxMenuExplainSelectMessage> {
     public taskId: number;
@@ -21,32 +21,14 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
     copy(): AiCtxMenuExplainSelectMessage {
         const ctxMenuExplainSelectMessage = new AiCtxMenuExplainSelectMessage(this.taskId,this.topic, this.context, this.selected);
         ctxMenuExplainSelectMessage.resp = this.resp;
-        ctxMenuExplainSelectMessage.topic = this.topic;
         return ctxMenuExplainSelectMessage;
     }
 
     msgType: MsgType = 'ai-func-explain-select';
 
     toMsg(): MsgT[] {
-        //export interface AiFuncExplainSelectRes {
-        //     sentence: {
-        //         sentence: string;
-        //         meaning: string;
-        //     };
-        //     word: {
-        //         word: string;
-        //         phonetic: string;
-        //         meaning: string;
-        //         meaningInSentence: string;
-        //     };
-        //     idiom?: {
-        //         idiom: string;
-        //         meaning: string;
-        //     };
-        // }
-
         // 根据以上信息编造一个假的回复
-        const aiResp = oneLineTrim`
+        const aiResp = codeBlock`
         好的，我来解释一下这句话中的"${this.selected}"。
 
         "${this.selected}"的意思是${this.resp?.word.meaningZh + this.resp.word.meaningEn}。
@@ -59,5 +41,9 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
             type:'ai',
             content: aiResp
         }];
+    }
+
+    getTopic(): Topic {
+        return this.topic;
     }
 }

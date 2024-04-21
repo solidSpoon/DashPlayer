@@ -2,8 +2,9 @@ import usePlayerController from "@/fronted/hooks/usePlayerController";
 import {cn} from "@/fronted/lib/utils";
 import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
 import {useEffect, useRef, useState} from "react";
+import useChatPanel from '@/fronted/hooks/useChatPanel';
 const api = window.electron;
-const ChatTopicSelecter = ({className}: {
+const ChatTopicSelector = ({className}: {
     className: string,
 }) => {
 
@@ -14,6 +15,8 @@ const ChatTopicSelecter = ({className}: {
     const [mouseOver, setMouseOver] = useState(false);
 
     const currentRef = useRef<HTMLSpanElement>(null);
+
+  const updateInternalContext = useChatPanel(s => s.updateInternalContext);
 
     useEffect(() => {
         if (!currentRef.current) {
@@ -36,6 +39,9 @@ const ChatTopicSelecter = ({className}: {
                 {
                     subtitles.map((s, i) => (
                         <div
+                            onContextMenu={(e) => {
+                                updateInternalContext(s.text);
+                            }}
                             // ref={s === currentSentence ? currentRef : null}
                             key={i} className={cn(s === currentSentence ? 'item-current' : 'item-normal')}>
                           {s.text}
@@ -49,4 +55,4 @@ const ChatTopicSelecter = ({className}: {
     )
 }
 
-export default ChatTopicSelecter;
+export default ChatTopicSelector;

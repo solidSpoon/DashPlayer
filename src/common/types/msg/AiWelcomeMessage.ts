@@ -3,6 +3,7 @@ import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 import AiSynonymousSentenceResp from "@/common/types/aiRes/AiSynonymousSentenceResp";
 import {Topic} from "@/fronted/hooks/useChatPanel";
 import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
+import { AiFuncPolishPrompt, AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 
 
 export interface WelcomeMessageProps {
@@ -20,16 +21,16 @@ const MSG = `
 
 class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     public originalTopic: string;
-    public synonymousSentenceTask: number;
+    public polishTask: number;
     public punctuationTask: number | null = null;
     public topic: Topic;
-    public synonymousSentenceTaskResp: AiSynonymousSentenceResp | null = null;
+    public aiFuncPolishTaskRes: AiFuncPolishRes | null = null;
     public punctuationTaskResp: AiPunctuationResp | null = null;
     public punctuationFinish  = false;
 
     constructor(props: WelcomeMessageProps) {
         this.originalTopic = props.originalTopic;
-        this.synonymousSentenceTask = props.synonymousSentenceTask;
+        this.polishTask = props.synonymousSentenceTask;
         this.punctuationTask = props.punctuationTask;
         this.topic = props.topic;
     }
@@ -42,17 +43,21 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     public copy(): AiWelcomeMessage {
         const c = new AiWelcomeMessage({
             originalTopic: this.originalTopic,
-            synonymousSentenceTask: this.synonymousSentenceTask,
+            synonymousSentenceTask: this.polishTask,
             punctuationTask: this.punctuationTask,
             topic: this.topic
         });
-        c.synonymousSentenceTaskResp = this.synonymousSentenceTaskResp;
+        c.aiFuncPolishTaskRes = this.aiFuncPolishTaskRes;
         c.punctuationTaskResp = this.punctuationTaskResp;
         c.punctuationFinish = this.punctuationFinish;
         return c;
     }
 
     msgType: MsgType = "ai-welcome";
+
+    getTopic(): Topic {
+        return this.topic;
+    }
 }
 
 export default AiWelcomeMessage;

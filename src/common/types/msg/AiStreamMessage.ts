@@ -4,10 +4,11 @@ import {Topic} from "@/fronted/hooks/useChatPanel";
 
 class AiStreamMessage implements CustomMessage<AiStreamMessage> {
     public taskId: number;
-    public topic: Topic;
+    private readonly topic: Topic;
 
     constructor(topic: Topic, taskId: number) {
         this.taskId = taskId;
+        this.topic = topic;
     }
 
     toMsg(): MsgT[] {
@@ -18,6 +19,10 @@ class AiStreamMessage implements CustomMessage<AiStreamMessage> {
 
     copy(): AiStreamMessage {
         return new AiStreamMessage(this.topic, this.taskId);
+    }
+
+    getTopic(): Topic {
+        return this.topic;
     }
 }
 

@@ -18,8 +18,14 @@ import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
 import analyzeGrammerPrompt from '@/backend/services/prompts/analyze-grammer';
 import AiFunc from "@/backend/services/AiFuncs/ai-func";
 import RateLimiter from "@/common/utils/RateLimiter";
+import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
 
 export default class AiFuncService {
+
+    public static async polish(taskId: number, sentence: string) {
+        await AiFunc.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
+    }
+
     public static async analyzeWord(taskId: number, sentence: string) {
         const schema = z.object({
             hasNewWord: z.boolean().describe("Whether the sentence contains new words for an intermediate English speaker"),

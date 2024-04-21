@@ -12,12 +12,11 @@ import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
 import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
-import AiStreamMessage from '@/common/types/msg/AiStreamMessage';
-import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import useFile from '@/fronted/hooks/useFile';
-import { as } from 'tencentcloud-sdk-nodejs';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import ChatRunner from '@/fronted/hooks/useChatPannel/runChat';
+import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
+import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 
 const api = window.electron;
 
@@ -51,6 +50,7 @@ export type ChatPanelState = {
             value: string;
             time: number;
         }
+        chatTaskQueue: CustomMessage<any>[];
     }
     tasks: Tasks;
     topic: Topic
@@ -66,6 +66,7 @@ export type ChatPanelState = {
 };
 
 export type ChatPanelActions = {
+    addChatTask: (task: CustomMessage<any>) => void;
     backward: () => void;
     forward: () => void;
     createTopic: (topic: Topic) => void;
@@ -76,6 +77,9 @@ export type ChatPanelActions = {
     updateInternalContext: (value: string) => void;
     ctxMenuOpened: () => void;
     ctxMenuExplain: () => void;
+    ctxMenuPlayAudio: () => void;
+    ctxMenuPolish: () => void;
+    deleteMessage: (msg: CustomMessage<any>) => void;
 };
 
 const copy = (state: ChatPanelState): ChatPanelState => {
@@ -83,7 +87,8 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         internal: {
             context: {
                 ...state.internal.context
-            }
+            },
+            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy())
         },
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
@@ -111,7 +116,8 @@ const empty = (): ChatPanelState => {
             context: {
                 value: null,
                 time: 0
-            }
+            },
+            chatTaskQueue: []
         },
         tasks: {
             vocabularyTask: 'init',
@@ -137,6 +143,9 @@ const empty = (): ChatPanelState => {
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
         ...empty(),
+        addChatTask: (msg) => {
+            get().internal.chatTaskQueue.push(msg);
+        },
         backward: () => {
             undoRedo.update(copy(get()));
             if (!undoRedo.canUndo()) return;
@@ -160,9 +169,9 @@ const useChatPanel = create(
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
             const text = extractTopic(topic);
-            const synTask = await api.call('ai-func/synonymous-sentence', text);
+            const synTask = await api.call('ai-func/polish', text);
             const phraseGroupTask = await api.call('ai-func/phrase-group', text);
-            const tt = new HumanTopicMessage(text, phraseGroupTask);
+            const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
                 synonymousSentenceTask: synTask,
@@ -186,9 +195,9 @@ const useChatPanel = create(
         createFromCurrent: async () => {
             undoRedo.add(copy(get()));
             const ct = usePlayerController.getState().currentSentence;
-            const synTask = await api.call('ai-func/synonymous-sentence', ct.text);
+            const synTask = await api.call('ai-func/polish', ct.text);
             const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text);
-            const tt = new HumanTopicMessage(ct.text, phraseGroupTask);
+            const tt = new HumanTopicMessage(get().topic, ct.text, phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitleFile.objectUrl ?? '';
             const text = await fetch(url).then((res) => res.text());
@@ -235,23 +244,7 @@ const useChatPanel = create(
             });
         },
         sent: async (msg: string) => {
-            set({
-                ...get(),
-                messages: [
-                    ...get().messages,
-                    new HumanNormalMessage(msg)
-                ]
-            });
-            console.log(get().messages);
-            const msgs = get().messages
-                .flatMap(e => e.toMsg());
-            const t = await api.call('ai-func/chat', { msgs });
-            set({
-                tasks: {
-                    ...get().tasks,
-                    chatTask: new AiStreamMessage(get().topic, t)
-                }
-            });
+            get().addChatTask(new HumanNormalMessage(get().topic, msg));
         },
         updateInternalContext: (value: string) => {
             get().internal.context.value = value;
@@ -277,11 +270,29 @@ const useChatPanel = create(
                 sentence: context,
                 selectedWord: userSelect
             });
+            get().addChatTask(new AiCtxMenuExplainSelectMessage(taskId, get().topic, context, userSelect));
+        },
+        ctxMenuPlayAudio: async () => {
+            let text = window.getSelection().toString();
+            if (strBlank(text)) {
+                text = get().context;
+            }
+            if (strBlank(text)) return;
+            const ttsUrl = await getTtsUrl(text);
+            await playAudioUrl(ttsUrl);
+        },
+        ctxMenuPolish: async () => {
+            let text = window.getSelection().toString();
+            if (strBlank(text)) {
+                text = get().context;
+            }
+            if (strBlank(text)) return;
+            const taskId = await api.call('ai-func/polish', text);
+            get().addChatTask(new AiCtxMenuPolishMessage(taskId, get().topic, text));
+        },
+        deleteMessage: (msg: CustomMessage<any>) => {
             set({
-                tasks: {
-                    ...get().tasks,
-                    chatTask: new AiCtxMenuExplainSelectMessage(taskId,get().topic, context, userSelect)
-                }
+                messages: get().messages.filter(e => e !== msg)
             });
         }
     }))
@@ -436,81 +447,6 @@ const runSentence = async () => {
     }
 };
 
-const runChat = async () => {
-    const tm = useChatPanel.getState().tasks.chatTask;
-    if (tm === 'done') return;
-    if (tm.msgType === 'ai-welcome') {
-        const welcomeMessage = tm as AiWelcomeMessage;
-        const synonymousSentence = await api.call('dp-task/detail', welcomeMessage.synonymousSentenceTask);
-        if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
-            if (!strBlank(synonymousSentence.result)) {
-                welcomeMessage.synonymousSentenceTaskResp = JSON.parse(synonymousSentence.result);
-                if (useChatPanel.getState().topic === welcomeMessage.topic) {
-                    useChatPanel.setState({
-                        streamingMessage: welcomeMessage.copy()
-                    });
-                }
-            }
-        }
-        let punctuation = null;
-        if (welcomeMessage.punctuationTask) {
-            punctuation = await api.call('dp-task/detail', welcomeMessage.punctuationTask);
-            console.log('punctuation', punctuation);
-            if (punctuation.status === DpTaskState.IN_PROGRESS || punctuation.status === DpTaskState.DONE) {
-                if (!strBlank(punctuation.result)) {
-                    welcomeMessage.punctuationTaskResp = JSON.parse(punctuation.result);
-                    welcomeMessage.punctuationFinish = punctuation.status === DpTaskState.DONE;
-                    if (useChatPanel.getState().topic === welcomeMessage.topic) {
-                        useChatPanel.setState({
-                            streamingMessage: welcomeMessage.copy()
-                        });
-                    }
-                }
-            }
-        }
-        if (synonymousSentence.status === DpTaskState.DONE && (punctuation?.status ?? DpTaskState.DONE) === DpTaskState.DONE) {
-            const state = useChatPanel.getState();
-            if (state.topic === welcomeMessage.topic) {
-                state.setTask({
-                    ...useChatPanel.getState().tasks,
-                    chatTask: 'done'
-                });
-                useChatPanel.setState({
-                    messages: [
-                        ...state.messages,
-                        state.streamingMessage.copy()
-                    ],
-                    streamingMessage: null
-                });
-            }
-        }
-    }
-    if (tm.msgType === 'ai-streaming') {
-        const welcomeMessage = tm as AiStreamMessage;
-        const synonymousSentence = await api.call('dp-task/detail', welcomeMessage.taskId);
-        if (synonymousSentence.status === DpTaskState.IN_PROGRESS || synonymousSentence.status === DpTaskState.DONE) {
-            useChatPanel.setState({
-                streamingMessage: new AiNormalMessage(synonymousSentence.result)
-            });
-        }
-        if (synonymousSentence.status === DpTaskState.DONE) {
-            const state = useChatPanel.getState();
-            state.setTask({
-                ...useChatPanel.getState().tasks,
-                chatTask: 'done'
-            });
-            useChatPanel.setState({
-                messages: [
-                    ...state.messages,
-                    state.streamingMessage.copy()
-                ],
-                streamingMessage: null
-            });
-        }
-    }
-};
-
-
 let running = false;
 useChatPanel.subscribe(
     (s) => s.topic,
@@ -528,6 +464,15 @@ useChatPanel.subscribe(
             await runSentence();
             await ChatRunner.runChat();
             await sleep(100);
+            if (useChatPanel.getState().tasks.chatTask === 'done') {
+                if (useChatPanel.getState().internal.chatTaskQueue.length > 0) {
+                    const task = useChatPanel.getState().internal.chatTaskQueue.shift();
+                    useChatPanel.getState().setTask({
+                        ...useChatPanel.getState().tasks,
+                        chatTask: task
+                    });
+                }
+            }
         }
         running = false;
     }
