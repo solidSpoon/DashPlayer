@@ -26,8 +26,8 @@ const ChatLeftPhrases = ({ className}: {
                 <CardContent>
                     {res?.hasPhrase && res?.phrases?.map((word, i) => (
                         <div key={i} className="flex flex-col items-start px-4 py-2">
-                            <div className="flex flex-col items-start text-md text-gray-700 text-base">
-                                <Playable className={cn('text-lg font-medium leading-none')}>{word.phrase}</Playable>
+                            <div className="flex flex-col items-start">
+                                <Playable className={cn('text-base font-medium leading-none')}>{word.phrase}</Playable>
                                 <div className={cn('text-sm text-muted-foreground')}>{word.meaning}</div>
                             </div>
                         </div>

@@ -78,7 +78,6 @@ export default class ChatRunner {
             punctuation = await taskDetail(msg.punctuationTask);
             if (responded(punctuation)) {
                 msg.punctuationTaskResp = JSON.parse(punctuation.result);
-                msg.punctuationFinish = punctuation.status === DpTaskState.DONE;
                 ChatRunner.updateMsg(msg);
             }
         }

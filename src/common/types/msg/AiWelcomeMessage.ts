@@ -26,7 +26,6 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     public topic: Topic;
     public aiFuncPolishTaskRes: AiFuncPolishRes | null = null;
     public punctuationTaskResp: AiPunctuationResp | null = null;
-    public punctuationFinish  = false;
 
     constructor(props: WelcomeMessageProps) {
         this.originalTopic = props.originalTopic;
@@ -49,7 +48,6 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
         });
         c.aiFuncPolishTaskRes = this.aiFuncPolishTaskRes;
         c.punctuationTaskResp = this.punctuationTaskResp;
-        c.punctuationFinish = this.punctuationFinish;
         return c;
     }
 

@@ -29,7 +29,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         return turf.polygon([[]]);
     }
     const rect = ele.getBoundingClientRect();
-    let number = 2;
+    const number = 2;
     return turf.polygon([
         [
             [rect.left - number, rect.top - number],
@@ -56,7 +56,6 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
-    const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
         let timeout: NodeJS.Timeout;

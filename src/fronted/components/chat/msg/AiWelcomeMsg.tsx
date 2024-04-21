@@ -4,21 +4,28 @@ import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/chat/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { strNotBlank } from '@/common/utils/Util';
+import { Button } from '@/fronted/components/ui/button';
+import { RefreshCcw } from 'lucide-react';
 
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const polishTaskRes = msg.aiFuncPolishTaskRes;
     const punctuationTaskResp = msg.punctuationTaskResp;
     const createTopic = useChatPanel(s => s.createTopic);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
+    const retry = useChatPanel(s => s.retry);
     const complete =
         !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
     return (
         <div className={cn('group relative flex items-start')}>
+            <Button variant={'ghost'} size={'icon'} onClick={()=>retry('welcome')}
+                    className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
+                <RefreshCcw className={'w-3 h-3'} />
+            </Button>
             <div
                 className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
                 <IconOpenAI />
             </div>
-            <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1 prose">
+            <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1 prose dark:prose-invert">
                 <h2>分析句子</h2>
                 <p>我来帮你分析这个句子</p>
                 <blockquote

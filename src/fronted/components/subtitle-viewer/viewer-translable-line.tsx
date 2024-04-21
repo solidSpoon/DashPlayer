@@ -2,13 +2,10 @@ import React, {ReactElement, useState} from 'react';
 import {AiOutlineFieldTime} from 'react-icons/ai';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import {Button} from '@/fronted/components/ui/button';
-import useSetting from "@/fronted/hooks/useSetting";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
 import {cn, p} from "@/common/utils/Util";
 import hash from "@/common/utils/hash";
-import {FONT_SIZE} from "@/fronted/styles/style";
 import Word from "@/fronted/components/Word";
-import { useShallow } from 'zustand/react/shallow';
 
 interface TranslatableSubtitleLineParam {
     text: string;

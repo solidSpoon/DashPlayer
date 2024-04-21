@@ -1,18 +1,18 @@
-import {cn} from "@/fronted/lib/utils";
-import Playable from "@/fronted/components/chat/Playable";
-import useChatPanel from "@/fronted/hooks/useChatPanel";
+import { cn } from '@/fronted/lib/utils';
+import Playable from '@/fronted/components/chat/Playable';
+import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { Button } from '@/fronted/components/ui/button';
 import { ChevronsDown } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 
-const ChatRightSentences = ({className}: {
+const ChatRightSentences = ({ className }: {
     className: string,
 }) => {
 
     const res = useChatPanel(state => state.newSentence);
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
     const retry = useChatPanel(state => state.retry);
-    console.log('res', res)
+    console.log('res', res);
     const sentences = useChatPanel.getState().internal.newSentenceHistory.flatMap(s => s.sentences);
     res?.sentences?.forEach(s => {
         if (!sentences.find(ss => ss.sentence === s.sentence)) {
@@ -36,7 +36,11 @@ const ChatRightSentences = ({className}: {
                             s?.points?.map((p, j) => (
                                 <div
                                     key={j}
-                                     className="text-xs border p-1 py-0 bg-red-50 border-red-500 text-primary-foreground rounded-full">{p}</div>
+                                    className={
+                                        cn('text-xs border p-1 py-0 bg-red-50 border-red-500 text-primary-foreground rounded-full',
+                                            'dark:bg-red-900 dark:border-red-700 dark:text-red-100 dark:shadow-inner'
+                                        )}
+                                >{p}</div>
                             ))
                         }
                     </div>
@@ -44,14 +48,15 @@ const ChatRightSentences = ({className}: {
 
                 </div>
             ))}
-            {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton className={'h-6 mt-2'} /></>}
-            <Button variant={'ghost'} onClick={()=>retry('sentence')}
+            {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
+                className={'h-6 mt-2'} /></>}
+            <Button variant={'ghost'} onClick={() => retry('sentence')}
                     className={' text-gray-400 dark:text-gray-200'}>
-                <ChevronsDown  className={'w-4 h-4'} />
+                <ChevronsDown className={'w-4 h-4'} />
             </Button>
         </div>
 
-    )
-}
+    );
+};
 
 export default ChatRightSentences;

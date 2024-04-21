@@ -15,7 +15,6 @@ import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
 import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
 import {getSubtitleContent, srtSlice} from "@/common/utils/srtSlice";
 import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
-import analyzeGrammarPrompt from '@/backend/services/prompts/analyze-grammer';
 import AiFunc from "@/backend/services/AiFuncs/ai-func";
 import RateLimiter from "@/common/utils/RateLimiter";
 import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
@@ -68,8 +67,8 @@ export default class AiFuncService {
             sentences: z.array(
                 z.object({
                     sentence: z.string().describe("The example sentence"),
-                    meaning: z.string().describe("The meaning of the sentence in Chinese, Because it is for Chinese, who may not understand English well, so the meaning is in Chinese"),
-                    points: z.array(z.string().describe("points you use in the sentence")),
+                    meaning: z.string().describe("The meaning of the sentence in Chinese(简体中文)"),
+                    points: z.array(z.string().describe("related points in the sentence"))
                 })
             ).describe("A list of example sentences for an intermediate English speaker. length should be 5"),
         });
@@ -96,8 +95,8 @@ export default class AiFuncService {
             phraseGroups: z.array(
                 z.object({
                     original: z.string().describe("The original text of the phrase group."),
-                    translation: z.string().describe("The translation of the original phrase group into another language. in Chinese."),
-                    comment: z.string().describe("The role or function that the phrase group serves within the larger sentence structure. in Chinese."),
+                    translation: z.string().describe("The translation of the phrase group. in Chinese(简体中文）."),
+                    comment: z.string().describe("The role or function that the phrase group serves within the larger sentence structure. in Chinese(简体中文）."),
                 })
             ).describe("An array of phrase groups that compose the sentence."),
         });

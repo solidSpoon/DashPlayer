@@ -11,7 +11,7 @@ export const MemoizedReactMarkdown: FC<Options> = memo(
 )
 const Md: FC<{ children: string }> = ({children}) => {
     return <MemoizedReactMarkdown
-        className="prose"
+        className="prose dark:prose-invert"
         remarkPlugins={[remarkGfm, remarkMath]}
     >
         {children}

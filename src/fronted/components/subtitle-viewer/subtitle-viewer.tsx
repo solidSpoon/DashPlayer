@@ -4,7 +4,6 @@ import SentenceT from "@/common/types/SentenceT";
 import ViewerTranslableLine from "@/fronted/components/subtitle-viewer/viewer-translable-line";
 import {strBlank} from "@/common/utils/Util";
 import ViewerControlPannel from "@/fronted/components/subtitle-viewer/viewer-control-pannel";
-import useLayout from '@/fronted/hooks/useLayout';
 import { useShallow } from 'zustand/react/shallow';
 
 const SubtitleViewer = ({className}: { className?: string }) => {

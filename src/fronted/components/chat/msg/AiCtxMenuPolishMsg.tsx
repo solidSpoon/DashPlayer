@@ -16,7 +16,7 @@ export function AiCtxMenuPolishMsg({ msg }: { msg: AiCtxMenuPolishMessage }) {
                 className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
                 <IconOpenAI />
             </div>
-            <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1 prose">
+            <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1 prose dark:prose-invert">
                 <h2>润色</h2>
                 <blockquote
                     onContextMenu={(e) => {

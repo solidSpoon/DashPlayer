@@ -84,7 +84,7 @@ export type ChatPanelActions = {
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
     deleteMessage: (msg: CustomMessage<any>) => void;
-    retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence') => void;
+    retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' |'welcome') => void;
     setInput: (input: string) => void;
 };
 
@@ -308,7 +308,7 @@ const useChatPanel = create(
                 messages: get().messages.filter(e => e !== msg)
             });
         },
-        retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence') => {
+        retry: async (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' |'welcome') => {
             if (type === 'vocabulary') {
                 get().setTask({
                     ...get().tasks,
@@ -326,6 +326,25 @@ const useChatPanel = create(
                     ...get().tasks,
                     grammarTask: 'init'
                 });
+            }
+            if (type === 'topic') {
+                const msg = get().messages[0].copy() as HumanTopicMessage;
+                msg.phraseGroupTask = await api.call('ai-func/phrase-group', msg.content);
+                // set 0
+                const newMessages = [...get().messages]
+                newMessages[0] = msg;
+                set({
+                    messages: newMessages
+                });
+            }
+            if (type === 'welcome') {
+                const msg = get().messages[1].copy() as AiWelcomeMessage;
+                const ct = usePlayerController.getState().currentSentence;
+                const polishTask = await api.call('ai-func/polish', msg.originalTopic);
+                const punctuationTask = await api.call('ai-func/punctuation', { no: ct.indexInFile, srt: msg.originalTopic });
+                msg.polishTask = polishTask;
+                msg.punctuationTask = punctuationTask;
+
             }
             if (type === 'sentence') {
                 get().internal.newSentenceHistory.push(get().newSentence);
@@ -350,7 +369,7 @@ const useChatPanel = create(
             });
 
         },
-        ctxMenuCopy:async () => {
+        ctxMenuCopy: async () => {
             let text = window.getSelection().toString();
             if (strBlank(text)) {
                 text = get().context;

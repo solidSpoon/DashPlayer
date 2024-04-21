@@ -27,11 +27,13 @@ const ChatLeftWords = ({ className}: {
                 <CardContent>
                     {res?.hasNewWord && res?.words?.map((word, i) => (
                         <div key={i} className="flex flex-col items-start px-4 py-2">
-                            <div className="flex items-center flex-wrap gap-2 text-md text-gray-700 text-lg">
+                            <div className="flex items-center flex-wrap gap-2 text-md text-lg">
                                 <Playable className={cn('')}>{word.word}</Playable>
                                 <div className={cn('text-base')}>{word.meaning}</div>
                                 <div className={cn(
-                                    "p-0.5 text-xs text-red-900 border border-red-500 bg-red-50 rounded-md drop-shadow shadow-inner")}>
+                                    "p-0.5 text-xs text-red-900 border border-red-500 bg-red-50 rounded-md drop-shadow shadow-inner",
+                                    'dark:text-red-100 dark:border-red-700 dark:bg-red-700 dark:shadow-inner'
+                                )}>
                                     {word.phonetic}
                                 </div>
                             </div>

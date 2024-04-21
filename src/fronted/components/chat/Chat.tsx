@@ -99,29 +99,30 @@ const Chat = () => {
                     >
                         <div className={cn('flex')}>
                             <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
-                                <div className={cn('text-lg font-semibold leading-none tracking-tight')}>Are you
-                                    absolutely
-                                    sure?
+                                <div className={cn('text-lg font-semibold leading-none tracking-tight text-foreground')}>
+                                    Ai Chat
                                 </div>
-                                <div className={cn('text-sm text-muted-foreground')}>This action cannot be undone.</div>
+                                <div className={cn('text-sm text-muted-foreground')}>
+                                    Improve your English using state-of-the-art AI.
+                                </div>
                             </div>
                             <div className={cn('ml-auto pt-4 px-4')}>
                                 <Button
                                     disabled={!canUndo}
                                     onClick={backward}
                                     variant={'ghost'} size={'icon'}>
-                                    <ChevronLeft />
+                                    <ChevronLeft className={'text-foreground'}/>
                                 </Button>
                                 <Button
                                     disabled={!canRedo}
                                     onClick={forward}
                                     variant={'ghost'} size={'icon'}>
-                                    <ChevronRight />
+                                    <ChevronRight className={'text-foreground'}/>
                                 </Button>
                                 <Button
                                     onClick={clear}
                                     variant={'ghost'} size={'icon'}>
-                                    <X />
+                                    <X className={'text-foreground'}/>
                                 </Button>
                             </div>
                         </div>
