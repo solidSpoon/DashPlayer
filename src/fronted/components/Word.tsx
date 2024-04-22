@@ -8,6 +8,7 @@ import WordPop from './WordPop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
+import { strNotBlank } from '@/common/utils/Util';
 
 const api = window.electron;
 
@@ -109,12 +110,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     }, [hovered, original]);
 
     const handleWordClick = async () => {
-        let url = '';
-        if (translationText?.basic) {
-            url =
-                translationText.basic['us-speech'] ??
-                translationText.basic['uk-speech'] ??
-                '';
+        const url = translationText?.speakUrl;
+        if (strNotBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);
