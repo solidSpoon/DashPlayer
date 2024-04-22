@@ -2,12 +2,12 @@ import {useEffect, useRef, useState} from 'react';
 import * as turf from '@turf/turf';
 import {Feature, Polygon} from '@turf/turf';
 import {twMerge} from 'tailwind-merge';
-import {useShallow} from 'zustand/react/shallow';
 import {YdRes} from '@/common/types/YdRes';
 import WordPop from './WordPop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
+import { strBlank } from '@/common/utils/Util';
 
 const api = window.electron;
 
@@ -29,7 +29,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         return turf.polygon([[]]);
     }
     const rect = ele.getBoundingClientRect();
-    let number = 2;
+    const number = 2;
     return turf.polygon([
         [
             [rect.left - number, rect.top - number],
@@ -110,12 +110,8 @@ const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => 
     }, [hovered, original]);
 
     const handleWordClick = async () => {
-        let url = '';
-        if (translationText?.basic) {
-            url =
-                translationText.basic['us-speech'] ??
-                translationText.basic['uk-speech'] ??
-                '';
+        const url = translationText?.speakUrl;
+        if (!strBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);

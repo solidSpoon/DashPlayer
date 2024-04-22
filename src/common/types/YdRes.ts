@@ -4,6 +4,9 @@ export interface YdRes {
     isDomainSupport: string;
     translation: string[];
     basic: Basic;
+    webdict: {
+        "url": string;
+    },
     l: string;
     tSpeakUrl: string;
     speakUrl: string;

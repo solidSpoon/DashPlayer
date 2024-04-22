@@ -1,3 +1,5 @@
+import { strBlank } from '@/common/utils/Util';
+
 const cache = new Map<string, string>();
 const api = window.electron;
 let player: HTMLAudioElement | null = null;
@@ -11,12 +13,12 @@ async function getAudioUrl(outURl: string) {
     return audioUrl;
 }
 
-async function playAudioUrl(audioUrl: string) {
+export const playAudioUrl = async (audioUrl: string) => {
     player?.pause();
     player = new Audio(audioUrl);
     player.volume = 0.5;
     await player.play();
-}
+};
 
 export const playUrl = async (outURl: string) => {
     const audioUrl = await getAudioUrl(outURl);
@@ -24,20 +26,17 @@ export const playUrl = async (outURl: string) => {
 };
 
 export const playWord = async (word: string) => {
-    let audioUrl = cache.get(word);
-    if (audioUrl) {
-        await playAudioUrl(audioUrl);
+    console.log('playWord', word);
+    const cacheUrl = cache.get(word);
+    if (cacheUrl) {
+        await playAudioUrl(cacheUrl);
         return;
     }
     const trans = await api.transWord(word);
-    if (!trans?.basic) {
+    const newUrl = trans?.speakUrl;
+    if (strBlank(newUrl)) {
         return;
     }
-    const outUrl = trans.basic['us-speech'] ?? trans.basic['uk-speech'];
-    if (!outUrl) {
-        return;
-    }
-    audioUrl = await getAudioUrl(outUrl);
-    cache.set(word, audioUrl);
-    await playAudioUrl(audioUrl);
+    cache.set(word, newUrl);
+    await playUrl(newUrl);
 };
