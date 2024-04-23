@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
-import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
-import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
-import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
+import {create} from 'zustand';
+import {subscribeWithSelector} from 'zustand/middleware';
+import {AiAnalyseNewWordsRes} from '@/common/types/aiRes/AiAnalyseNewWordsRes';
+import {AiAnalyseNewPhrasesRes} from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
+import {AiMakeExampleSentencesRes} from '@/common/types/aiRes/AiMakeExampleSentencesRes';
 import UndoRedo from '@/common/utils/UndoRedo';
-import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
-import { engEqual, p, sleep, strBlank, strNotBlank } from '@/common/utils/Util';
+import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
+import {engEqual, p, sleep, strBlank, strNotBlank} from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
-import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
+import {AiAnalyseGrammarsRes} from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
@@ -15,7 +15,7 @@ import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import useFile from '@/fronted/hooks/useFile';
 import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
 import ChatRunner from '@/fronted/hooks/useChatPannel/runChat';
-import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
+import {getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 
@@ -71,7 +71,7 @@ export type ChatPanelActions = {
     addChatTask: (task: CustomMessage<any>) => void;
     backward: () => void;
     forward: () => void;
-    createFromSelect: () => void;
+    createFromSelect: (text?: string) => void;
     createFromCurrent: () => void;
     clear: () => void;
     setTask: (tasks: Tasks) => void;
@@ -84,7 +84,7 @@ export type ChatPanelActions = {
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
     deleteMessage: (msg: CustomMessage<any>) => void;
-    retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' |'welcome') => void;
+    retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' | 'welcome') => void;
     setInput: (input: string) => void;
 };
 
@@ -176,22 +176,25 @@ const useChatPanel = create(
             });
 
         },
-        createFromSelect: async () => {
-            let text = p(window.getSelection()?.toString());
-            // 去除换行符
-            text = text?.replace(/\n/g, '');
+        createFromSelect: async (str: string) => {
+            let text = str;
             if (strBlank(text)) {
-                text = useChatPanel.getState().context;
-            }
-            if (strBlank(text)) {
-                return;
+                text = p(window.getSelection()?.toString());
+                // 去除换行符
+                text = text?.replace(/\n/g, '');
+                if (strBlank(text)) {
+                    text = useChatPanel.getState().context;
+                }
+                if (strBlank(text)) {
+                    return;
+                }
             }
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
             const synTask = await api.call('ai-func/polish', text);
             const phraseGroupTask = await api.call('ai-func/phrase-group', text);
             const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
-            const topic = {content:text};
+            const topic = {content: text};
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
                 synonymousSentenceTask: synTask,
@@ -221,7 +224,7 @@ const useChatPanel = create(
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitleFile.objectUrl ?? '';
             const text = await fetch(url).then((res) => res.text());
-            const punctuationTask = await api.call('ai-func/punctuation', { no: ct.indexInFile, srt: text });
+            const punctuationTask = await api.call('ai-func/punctuation', {no: ct.indexInFile, srt: text});
             const topic = {
                 content: {
                     start: {
@@ -317,7 +320,7 @@ const useChatPanel = create(
                 messages: get().messages.filter(e => e !== msg)
             });
         },
-        retry: async (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' |'welcome') => {
+        retry: async (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' | 'welcome') => {
             if (type === 'vocabulary') {
                 get().setTask({
                     ...get().tasks,
@@ -350,7 +353,10 @@ const useChatPanel = create(
                 const msg = get().messages[1].copy() as AiWelcomeMessage;
                 const ct = usePlayerController.getState().currentSentence;
                 const polishTask = await api.call('ai-func/polish', msg.originalTopic);
-                const punctuationTask = await api.call('ai-func/punctuation', { no: ct.indexInFile, srt: msg.originalTopic });
+                const punctuationTask = await api.call('ai-func/punctuation', {
+                    no: ct.indexInFile,
+                    srt: msg.originalTopic
+                });
                 msg.polishTask = polishTask;
                 msg.punctuationTask = punctuationTask;
 

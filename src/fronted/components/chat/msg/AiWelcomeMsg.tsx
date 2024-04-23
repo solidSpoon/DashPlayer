@@ -10,7 +10,7 @@ import { RefreshCcw } from 'lucide-react';
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const polishTaskRes = msg.aiFuncPolishTaskRes;
     const punctuationTaskResp = msg.punctuationTaskResp;
-    const createTopic = useChatPanel(s => s.createTopic);
+    const createTopic = useChatPanel(s => s.createFromSelect);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     const retry = useChatPanel(s => s.retry);
     const complete =
@@ -40,7 +40,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                     <h3>建议更换会话内容</h3>
                     <p>这句话可能被换行打断了, 完整形式应该为下面这句, 您可以 <span
                         className={'underline cursor-pointer'}
-                        onClick={() => createTopic({ content: punctuationTaskResp?.completeVersion })}
+                        onClick={() => createTopic(punctuationTaskResp?.completeVersion)}
                     >点击切换</span></p>
                     <blockquote
                         onContextMenu={(e) => {

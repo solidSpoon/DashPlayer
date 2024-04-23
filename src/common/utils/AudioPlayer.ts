@@ -26,19 +26,19 @@ export const playUrl = async (outURl: string) => {
 };
 
 export const playWord = async (word: string) => {
-    console.log('playWord', word);
-    const cacheUrl = cache.get(word);
-    if (cacheUrl) {
-        await playAudioUrl(cacheUrl);
+    let blobUrl = cache.get(word);
+    if (blobUrl) {
+        await playAudioUrl(blobUrl);
         return;
     }
     const trans = await api.call('ai-trans/word', word);
-    const newUrl = trans?.speakUrl;
-    if (strBlank(newUrl)) {
+    const outUrl = trans?.speakUrl;
+    if (strBlank(outUrl)) {
         return;
     }
-    cache.set(word, newUrl);
-    await playUrl(newUrl);
+    blobUrl = await getAudioUrl(outUrl);
+    cache.set(word, blobUrl);
+    await playAudioUrl(blobUrl);
 };
 
 export const getTtsUrl = async (str: string) => {
