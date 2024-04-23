@@ -116,7 +116,7 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         canUndo: state.canUndo,
         canRedo: state.canRedo,
         context: state.context,
-        input: state.input
+        input: state.input,
     };
 };
 

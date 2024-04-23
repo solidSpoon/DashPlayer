@@ -22,6 +22,7 @@ import {syncStatus} from "@/fronted/hooks/useSystem";
 import Transcript from '@/fronted/pages/transcript/Transcript';
 import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
 import Split from '@/fronted/pages/split/Split';
+import GlobalShortCut from "@/fronted/components/short-cut/GlobalShortCut";
 
 const App = () => {
 
@@ -100,6 +101,7 @@ const App = () => {
                 </div>
                 <Toaster position="bottom-left"/>
                 <HotToaster />
+                <GlobalShortCut/>
             </>
         </FileDrop>
     );

@@ -1,21 +1,21 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router-dom';
-import useLayout, { cpW } from '@/fronted/hooks/useLayout';
-import { cn } from '@/common/utils/Util';
+import {AnimatePresence, motion} from 'framer-motion';
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {useLocation, useParams, useSearchParams} from 'react-router-dom';
+import useLayout, {cpW} from '@/fronted/hooks/useLayout';
+import {cn} from '@/common/utils/Util';
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
 import UploadButton from '@/fronted/components/UploadButton';
 import useFile from '@/fronted/hooks/useFile';
-import GlobalShortCut from '@/fronted/components/GlobalShortCut';
+import PlayerShortCut from '@/fronted/components/short-cut/PlayerShortCut';
 import SideBar from '@/fronted/components/SideBar';
 import Chat from '@/fronted/components/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
-import { pathToFile } from '@/common/utils/FileParser';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import {pathToFile} from '@/common/utils/FileParser';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 
@@ -28,9 +28,9 @@ const fetchVideo = async (videoId: number) => {
 }
 
 const PlayerP = () => {
-    const { videoId } = useParams();
-    const { data: video} = useSWR<WatchProjectVideo>(`${SWR_VIDEO}:${videoId}`, fetchVideo.bind(null, Number(videoId)));
-    console.log('playerp',videoId, video);
+    const {videoId} = useParams();
+    const {data: video} = useSWR<WatchProjectVideo>(`${SWR_VIDEO}:${videoId}`, fetchVideo.bind(null, Number(videoId)));
+    console.log('playerp', videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const chatTopic = useChatPanel(s => s.topic);
@@ -54,7 +54,7 @@ const PlayerP = () => {
             if (!video) {
                 return;
             }
-            useFile.setState({ videoId: video.id, projectId: video.project_id});
+            useFile.setState({videoId: video.id, projectId: video.project_id});
             const vf = useFile.getState().videoFile;
             const sf = useFile.getState().subtitleFile;
             if (video.video_path && vf?.path !== video.video_path) {
@@ -71,10 +71,10 @@ const PlayerP = () => {
         runEffect();
     }, [video]);
     useEffect(() => {
-        setSearchParams({ sideBarAnimation: 'true' });
+        setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
-    const [pos, setPos] = useState({ x: 0, y: 0, scale: 1 });
+    const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
     useLayoutEffect(() => {
         const updatePos = () => {
             if (posRef.current === null) {
@@ -128,17 +128,17 @@ const PlayerP = () => {
                             className={cn(
                                 'col-start-1 col-end-2 row-start-1 row-end-3'
                             )}
-                            initial={{ x: -1000 }}
+                            initial={{x: -1000}}
                             animate={{
                                 x: 0
                             }}
-                            exit={{ x: -1000 }}
+                            exit={{x: -1000}}
                             transition={{
                                 type: 'tween',
                                 duration: sideBarAnimation ? 0 : 0
                             }}
                         >
-                            <SideBar compact={!w('xl')} />
+                            <SideBar compact={!w('xl')}/>
                         </motion.div>
                         <motion.div
                             className={cn(
@@ -146,17 +146,17 @@ const PlayerP = () => {
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
-                            initial={{ x: 1000 }}
+                            initial={{x: 1000}}
                             animate={{
                                 x: 0
                             }}
-                            exit={{ x: 1000 }}
+                            exit={{x: 1000}}
                             transition={{
                                 type: 'tween',
                                 duration: 0.2
                             }}
                         >
-                            <FileBrowser />
+                            <FileBrowser/>
                         </motion.div>
 
                         <motion.div
@@ -165,18 +165,18 @@ const PlayerP = () => {
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
-                            initial={{ y: -1000 }}
+                            initial={{y: -1000}}
                             animate={{
                                 y: 0,
                                 x: 0
                             }}
-                            exit={{ y: -1000 }}
+                            exit={{y: -1000}}
                             transition={{
                                 type: 'tween',
                                 duration: 0.2
                             }}
                         >
-                            <ControlBox />
+                            <ControlBox/>
                         </motion.div>
                     </>
                 )}
@@ -186,7 +186,7 @@ const PlayerP = () => {
                         gridArea: '2 / 2 / 2 / 3'
                     }}
                 >
-                    <div className="w-full h-full" ref={posRef} />
+                    <div className="w-full h-full" ref={posRef}/>
                 </div>
                 <div
                     className={cn(
@@ -202,15 +202,16 @@ const PlayerP = () => {
                         transformOrigin: 'top left'
                     }}
                 >
-                    <PlayerPPlayer />
+                    <PlayerPPlayer/>
                 </div>
                 {chatTopic === 'offscreen' && (
-                    <UploadButton />
+                    <>
+                        <UploadButton/>
+                        <PlayerShortCut/>
+                    </>
                 )}
-                <GlobalShortCut />
-
                 <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <Chat />}
+                    {chatTopic !== 'offscreen' && <Chat/>}
                 </AnimatePresence>
 
             </div>

@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { cn, p, strBlank } from '@/common/utils/Util';
-import { motion } from 'framer-motion';
+import {cn, p, strBlank} from '@/common/utils/Util';
+import {motion} from 'framer-motion';
 import ChatLeftWords from '@/fronted/components/chat/ChatLeftWords';
 import ChatLeftPhrases from '@/fronted/components/chat/ChatLeftPhrases';
 import ChatLeftGrammers from '@/fronted/components/chat/ChatLeftGrammers';
@@ -16,14 +16,14 @@ import {
     ContextMenuItem,
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
-import { useRef } from 'react';
-import useChatPanel, { getInternalContext } from '@/fronted/hooks/useChatPanel';
-import { Button } from '@/fronted/components/ui/button';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
+import useChatPanel from '@/fronted/hooks/useChatPanel';
+import {Button} from '@/fronted/components/ui/button';
+import {ChevronLeft, ChevronRight, X} from 'lucide-react';
+import {useShallow} from 'zustand/react/shallow';
+import {useHotkeys} from "react-hotkeys-hook";
 
 const Chat = () => {
-    const { createFromSelect, clear, forward, backward, canUndo, canRedo } = useChatPanel(useShallow(s => ({
+    const {createFromSelect, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
         createFromSelect: s.createFromSelect,
         clear: s.clear,
         forward: s.forward,
@@ -31,27 +31,35 @@ const Chat = () => {
         canRedo: s.canRedo,
         canUndo: s.canUndo
     })));
-    const ref = useRef<HTMLDivElement>(null);
-
     const {
         ctxMenuExplain,
         ctxMenuOpened,
         ctxMenuPlayAudio,
         ctxMenuPolish,
         ctxMenuQuote,
-        ctxMenuCopy
+        ctxMenuCopy,
+        closeChat,
     } = useChatPanel(useShallow(s => ({
         ctxMenuExplain: s.ctxMenuExplain,
         ctxMenuOpened: s.ctxMenuOpened,
         ctxMenuPlayAudio: s.ctxMenuPlayAudio,
         ctxMenuPolish: s.ctxMenuPolish,
         ctxMenuQuote: s.ctxMenuQuote,
-        ctxMenuCopy: s.ctxMenuCopy
+        ctxMenuCopy: s.ctxMenuCopy,
+        closeChat: s.clear,
     })));
+
+
+    useHotkeys<HTMLParagraphElement>(['slash'], (e) => {
+        closeChat();
+        e.stopPropagation();
+    })
+
+
     return (
         <motion.div
             className={cn('fixed top-0 right-0  w-full h-full z-[999] bg-foreground/90')}
-            initial={{ opacity: 0 }}
+            initial={{opacity: 0}}
             animate={{
                 opacity: 1,
                 transition: {
@@ -59,7 +67,7 @@ const Chat = () => {
                     type: 'just'
                 }
             }}
-            exit={{ opacity: 0 }}
+            exit={{opacity: 0}}
         >
             <ContextMenu
                 onOpenChange={(open) => {
@@ -72,7 +80,6 @@ const Chat = () => {
                 <ContextMenuTrigger
                 >
                     <motion.div
-                        ref={ref}
                         className={cn(
                             'focus:outline-none flex flex-col fixed top-[44px] z-[998] right-0 w-full bg-background pb-4 select-text',
                             'border rounded-t-[10px] border-background shadow-lg'
@@ -81,7 +88,7 @@ const Chat = () => {
                             height: 'calc(100vh - 44px)'
                         }}
                         // 从下往上弹出
-                        initial={{ y: '100%' }}
+                        initial={{y: '100%'}}
                         animate={{
                             y: 0,
                             transition: {
@@ -97,9 +104,12 @@ const Chat = () => {
                             }
                         }}
                     >
-                        <div className={cn('flex')}>
+                        <div
+
+                            className={cn('flex')}>
                             <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
-                                <div className={cn('text-lg font-semibold leading-none tracking-tight text-foreground')}>
+                                <div
+                                    className={cn('text-lg font-semibold leading-none tracking-tight text-foreground')}>
                                     Ai Chat
                                 </div>
                                 <div className={cn('text-sm text-muted-foreground')}>
@@ -136,16 +146,16 @@ const Chat = () => {
                             <div
                                 className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
 
-                                <ChatLeftWords className={cn('flex-shrink-0')} />
-                                <ChatLeftPhrases className={cn('flex-shrink-0')} />
-                                <ChatLeftGrammers className={cn('flex-shrink-0')} />
+                                <ChatLeftWords className={cn('flex-shrink-0')}/>
+                                <ChatLeftPhrases className={cn('flex-shrink-0')}/>
+                                <ChatLeftGrammers className={cn('flex-shrink-0')}/>
                             </div>
-                            <ChatCenter />
+                            <ChatCenter/>
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <ChatTopicSelector className={cn('flex-shrink-0')} />
+                                <ChatTopicSelector className={cn('flex-shrink-0')}/>
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
-                                <ChatRightSentences className={cn('flex-shrink-0')} />
+                                <ChatRightSentences className={cn('flex-shrink-0')}/>
                             </div>
                         </div>
                     </motion.div>
@@ -171,7 +181,7 @@ const Chat = () => {
                         onClick={ctxMenuCopy}
                     >复制</ContextMenuItem>
                     <ContextMenuItem
-                        onClick={createFromSelect}
+                        onClick={() => createFromSelect()}
                     >用选择内容新建对话</ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
