@@ -1,9 +1,9 @@
 import React from 'react';
-import { WatchProject, WatchProjectType } from '@/backend/db/tables/watchProjects';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import useSWR from 'swr';
-import { SWR_KEY } from '@/fronted/lib/swr-util';
-import { cn } from '@/fronted/lib/utils';
+import {SWR_KEY} from '@/fronted/lib/swr-util';
+import {cn} from '@/fronted/lib/utils';
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -21,27 +21,23 @@ export interface ProjectListCompProps {
 
 const api = window.electron;
 const listFetcher = () => api.call('watch-project/list', null);
-const detailFetcher = (id: number) => {
-    return (async () => {
-        const vs = (await api.call('watch-project/detail', id)).videos;
-        console.log('videossssd', vs);
-        return vs;
-    });
+const detailFetcher =async ([_key, projId]: [string, number]) => {
+    return (await api.call('watch-project/detail', projId)).videos;
 };
 
-const ProjectDetailList = ({ videoEle, projId }: {
+const ProjectDetailList = ({videoEle, projId}: {
     videoEle: (p: WatchProjectVideo) => React.JSX.Element;
     projId: number;
 }) => {
     const {
         data
-    } = useSWR(`${SWR_KEY.WATCH_PROJECT_DETAIL}::${projId}`, detailFetcher(projId), { fallbackData: [] });
+    } = useSWR([SWR_KEY.WATCH_PROJECT_DETAIL, projId], detailFetcher, {fallbackData: []});
     return <> {data.map((item) => videoEle(item))}</>;
 };
 
 
-const ProjectListComp = ({ className, videoEle, projEle, backEle }: ProjectListCompProps) => {
-    const { data } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, listFetcher, { fallbackData: [] });
+const ProjectListComp = ({className, videoEle, projEle, backEle}: ProjectListCompProps) => {
+    const {data} = useSWR(SWR_KEY.WATCH_PROJECT_LIST, listFetcher, {fallbackData: []});
     const [projId, setProjId] = React.useState<number | null>(null);
     const [projName, setProjName] = React.useState<string>('');
     return (
@@ -56,7 +52,7 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle }: ProjectListC
                             }}
                         >Recent</BreadcrumbLink>
                         {projName && <>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator/>
                             <BreadcrumbLink>{projName}</BreadcrumbLink>
                         </>}
                     </BreadcrumbItem>
@@ -76,7 +72,7 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle }: ProjectListC
                     };
                     return projEle(item, handleClick);
                 })}
-                {projId !== null && <ProjectDetailList videoEle={videoEle} projId={projId} />}
+                {projId !== null && <ProjectDetailList videoEle={videoEle} projId={projId}/>}
             </div>
         </div>
     );

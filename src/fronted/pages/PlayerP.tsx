@@ -15,21 +15,13 @@ import useSWR from 'swr';
 import {pathToFile} from '@/common/utils/FileParser';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
+import {SWR_KEY} from "@/fronted/lib/swr-util";
 
 const api = window.electron;
 
-
-const SWR_VIDEO = 'player-p';
-const fetchVideo = async (videoId: number) => {
-    const video = await api.call('watch-project/video/detail', Number(videoId));
-    console.log('video', video);
-    return video;
-}
-
 const PlayerP = () => {
     const {videoId} = useParams();
-    const {data: video} = useSWR<WatchProjectVideo>(`${SWR_VIDEO}:${videoId}`, fetchVideo.bind(null, Number(videoId)));
+    const {data: video} = useSWR<WatchProjectVideo>([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-project/video/detail', Number(videoId)));
     console.log('playerp', videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
@@ -66,7 +58,6 @@ const PlayerP = () => {
                 useFile.getState().updateFile(file);
             }
             await api.call('watch-project/video/play', video.id);
-            // await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
         };
         runEffect();
     }, [video]);
@@ -98,9 +89,6 @@ const PlayerP = () => {
     }, [titleBarHeight]);
 
     const showPlayer = w('md') && h('md');
-    // useEffect(() => {
-    //     console.log('eeeeeeesize', size);
-    // }, [size]);
     const gridTemplate = () => {
         if (showPlayer && w('xl')) {
             return '15% 60% 25%';

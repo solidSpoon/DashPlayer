@@ -90,7 +90,9 @@ const HomePage = () => {
                 <div className="w-full h-10" />
                 <div className={cn('flex w-full flex-col items-start')}>
                     <FileSelector
-                        onSelected={(vid) => {
+                        onSelected={async (vid) => {
+                            await api.playerSize();
+                            changeSideBar(false);
                             navigate(`/player/${vid}`);
                         }}
                         child={(hc) => (

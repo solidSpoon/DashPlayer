@@ -110,7 +110,7 @@ const Chat = () => {
                             <div className={cn('grid gap-1.5 p-4 text-center sm:text-left')}>
                                 <div
                                     className={cn('text-lg font-semibold leading-none tracking-tight text-foreground')}>
-                                    Ai Chat
+                                    整句学习
                                 </div>
                                 <div className={cn('text-sm text-muted-foreground')}>
                                     Improve your English using state-of-the-art AI.

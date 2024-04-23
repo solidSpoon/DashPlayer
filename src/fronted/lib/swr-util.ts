@@ -1,4 +1,4 @@
-import { mutate } from 'swr';
+import {mutate} from 'swr';
 
 export const SWR_KEY = {
     PLAYER_P: 'PLAYER_P_SWR',
@@ -8,9 +8,17 @@ export const SWR_KEY = {
 
 export const swrMutate = async (swrKey: string) => {
     // mutate start with key
-   await mutate(
-        key => typeof key === 'string' && key.startsWith(swrKey),
+    await mutate(
+        key => {
+            if (typeof key === 'string') {
+                return key.startsWith(swrKey);
+            }
+            if (Array.isArray(key)) {
+                console.log('swrMutateArr', key);
+                return key.length > 0 && key[0] === swrKey;
+            }
+        },
         undefined,
-        { revalidate: true }
+        {revalidate: true}
     )
 }

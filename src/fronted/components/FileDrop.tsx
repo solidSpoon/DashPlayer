@@ -68,7 +68,7 @@ const FileDrop = ({
         if (!e.dataTransfer?.files || e.dataTransfer.files.length === 0) {
             return;
         }
-        const files = e.dataTransfer.files ?? [];
+        const files: string | any[] | FileList = e.dataTransfer.files ?? [];
         for (let i = 0; i < files.length; i += 1) {
             const file = parseFile(files[i]);
             updateFile(file);
