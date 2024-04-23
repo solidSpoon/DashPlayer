@@ -5,19 +5,15 @@ import FileItem from '@/fronted/components/fileBowser/FileItem';
 import React from 'react';
 import { WatchProject, WatchProjectType } from '@/backend/db/tables/watchProjects';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
-import { Button } from '@/fronted/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import { Button } from '@/fronted/components/ui/button';
 
 const api = window.electron;
 
-export interface ProjectListProps {
-    onSelected: (projectId: number) => void;
-    className?: string;
-}
 
-const ProjectListItem = ({ proj, onSelected }: {
+const ProjectListCard = ({ proj, onSelected }: {
     proj: WatchProject,
-    className?: string,
+    className?: string
     onSelected: () => void;
 }) => {
     const { data: video } = useSWR(['watch-project/video/detail/by-pid', proj.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
@@ -28,44 +24,46 @@ const ProjectListItem = ({ proj, onSelected }: {
             return await api.call('split-video/thumbnail', { filePath: path, time });
         }
     );
-    console.log('url', url);
     const [hover, setHover] = React.useState(false);
     return (
         <div
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
+            className={cn('relative')}
             onClick={onSelected}
-            className={cn('flex gap-6 hover:bg-muted p-4 rounded-xl')}>
+        >
+            {hover && (
+                <Button
+                    className={'absolute top-2 right-2 w-6 h-6 bg-background z-50'}
+                    size={'icon'}
+                    variant={'ghost'}
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        console.log('swrdelete', proj.id);
+                        await api.call('watch-project/delete', proj.id);
+                        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                    }}
+                    >
+                    <Trash2
+                        className={'w-3 h-3'}
+                    />
+                </Button>
+
+            )}
             <img
                 src={url}
                 style={{
                     aspectRatio: '16/9'
                 }}
-                className="w-40 object-cover rounded-lg"
+                className={cn("w-full object-cover rounded-lg", hover && 'filter brightness-75')}
                 alt={proj.project_name}
             />
             <div
-                className={'flex-1 w-0 line-clamp-2 break-words h-fit'}
+                className={cn('w-full line-clamp-2 break-words', hover && 'underline')}
             >{proj.project_name}</div>
-            <Button
-                className={cn('w-6 h-6 bg-background self-center', !hover && 'scale-0')}
-                size={'icon'}
-                variant={'outline'}
-                onClick={async (e) => {
-                    e.stopPropagation();
-                    console.log('swrdelete', proj.id);
-                    await api.call('watch-project/delete', proj.id);
-                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
-                }}
-            >
-                <Trash2
-                    className={'w-3 h-3'}
-                />
-            </Button>
         </div>
+
     );
-
-
 };
 
-export default ProjectListItem;
+export default ProjectListCard;

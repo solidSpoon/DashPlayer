@@ -12,6 +12,7 @@ export const swrMutate = async (swrKey: string) => {
     await mutate(
         key => {
             if (typeof key === 'string') {
+                console.log('swrMutateStr', key);
                 return key.startsWith(swrKey);
             }
             if (Array.isArray(key)) {

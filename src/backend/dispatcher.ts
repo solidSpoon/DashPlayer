@@ -141,7 +141,7 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
         log.info('home-size');
         mainWindowRef.current?.unmaximize();
         mainWindowRef.current?.setSize(1200, 800);
-        mainWindowRef.current?.setResizable(true);
+        mainWindowRef.current?.setResizable(false);
         mainWindowRef.current?.setMaximizable(false);
     });
     handle('open-file', async (path: string) => {
