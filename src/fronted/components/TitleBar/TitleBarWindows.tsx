@@ -61,7 +61,7 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
 
     return (
         <div
-            className={`absolute top-0 z-50 select-none w-full drag h-9 flex justify-end items-center text-titlebarText gap-x-2  ${className}`}
+            className={`absolute top-0 z-50 select-none w-full drag h-9 flex justify-end items-start text-titlebarText gap-x-2  ${className}`}
         >
             <div
                 onMouseEnter={() => setHover(true)}

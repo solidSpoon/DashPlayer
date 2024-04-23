@@ -1,6 +1,7 @@
 import ffmpeg from "fluent-ffmpeg";
 import ffmpeg_static from "ffmpeg-static";
 import Lock from "@/common/utils/Lock";
+import path from "path";
 
 export default class FfmpegService {
     static {
@@ -77,5 +78,43 @@ export default class FfmpegService {
                 });
             });
         });
+    }
+
+    /**
+     * 截取视频的缩略图
+     *
+     * input: eg:视频文件路径 /a/b/c.mp4
+     * output: eg:缩略图文件路径 /a/b/c.jpg
+     */
+    public static async thumbnail({
+                                      inputFile,
+                                      outputFile,
+                                      time
+                                  }: {
+        inputFile: string,
+        outputFile: string,
+        time: number
+    }): Promise<void> {
+        // 秒数转换为时间戳
+        const hh = Math.floor(time / 3600);
+        const mm = Math.floor((time % 3600) / 60);
+        const ss = Math.floor(time % 60);
+        const timeStr = `${hh}:${mm}:${ss}`;
+
+
+        await Lock.sync('ffmpeg', async () => {
+            await new Promise((resolve, reject) => {
+                ffmpeg(inputFile)
+                    .screenshots({
+                        timestamps: [timeStr],
+                        filename: path.basename(outputFile),
+                        folder: path.dirname(outputFile),
+                        size: '320x240'
+                    })
+                    .on('end', resolve)
+                    .on('error', reject);
+            });
+        });
+
     }
 }

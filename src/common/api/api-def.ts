@@ -84,6 +84,7 @@ interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
     'split-video/split-one': { params: { filePath: string, param: ChapterParseResult }, return: number };
     'split-video/split-srt-one': { params: { filePath: string, param: ChapterParseResult }, return: string };
+    'split-video/thumbnail': { params: { filePath: string, time: number }, return: string };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition

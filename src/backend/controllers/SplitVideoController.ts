@@ -3,6 +3,11 @@ import SplitVideoService from "@/backend/services/SplitVideoService";
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import registerRoute from "@/common/api/register";
 import DpTaskService from "@/backend/services/DpTaskService";
+import path from "path";
+import * as os from "node:os";
+import FfmpegService from "@/backend/services/FfmpegService";
+import hash from "@/common/utils/hash";
+import fs from "fs";
 
 export default class SplitVideoController implements Controller {
 
@@ -12,7 +17,7 @@ export default class SplitVideoController implements Controller {
 
     public async splitOne({filePath, param}: { filePath: string, param: ChapterParseResult }): Promise<number> {
         const taskId = await DpTaskService.create();
-        await SplitVideoService.split(taskId,filePath, param);
+        await SplitVideoService.split(taskId, filePath, param);
         return taskId;
     }
 
@@ -20,9 +25,24 @@ export default class SplitVideoController implements Controller {
         return SplitVideoService.splitSrt(filePath, param);
     }
 
+    public async thumbnail({filePath, time}: { filePath: string, time: number }): Promise<string> {
+        const tmpdir = path.join(os.tmpdir(), 'dp/thumbnail');
+        if (!fs.existsSync(tmpdir)) {
+            fs.mkdirSync(tmpdir, {recursive: true});
+        }
+        const fileName = hash(filePath) + '.jpg';
+        await FfmpegService.thumbnail({
+            inputFile: filePath,
+            outputFile: path.join(tmpdir, fileName),
+            time
+        })
+        return 'dp:///' + path.join(tmpdir, fileName);
+    }
+
     registerRoutes(): void {
         registerRoute('split-video/preview', this.previewSplit);
         registerRoute('split-video/split-one', this.splitOne);
         registerRoute('split-video/split-srt-one', this.splitSrtOne);
+        registerRoute('split-video/thumbnail', this.thumbnail);
     }
 }
