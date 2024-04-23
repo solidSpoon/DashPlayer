@@ -51,6 +51,7 @@ interface SystemDef {
             extName: string
         }
     };
+    'system/reset-db': { params: void, return: void };
 }
 
 interface AiTransDef {

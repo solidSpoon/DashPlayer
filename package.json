@@ -31,6 +31,7 @@
         "@electron-forge/plugin-vite": "^7.3.1",
         "@electron/fuses": "^1.7.0",
         "@tailwindcss/typography": "^0.5.12",
+        "@types/better-sqlite3": "^7.6.10",
         "@types/common-tags": "^1.8.4",
         "@types/react-dom": "^18.2.24",
         "@types/react-syntax-highlighter": "^15.5.11",

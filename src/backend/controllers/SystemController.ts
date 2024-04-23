@@ -1,15 +1,16 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import { dialog } from 'electron';
-import { ACCEPTED_FILE_TYPES } from '@/common/utils/MediaTypeUitl';
+import {app, dialog} from 'electron';
+import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaTypeUitl';
 import path from 'path';
+import {clearDB} from "@/backend/db/db";
 
 export default class SystemController implements Controller {
     public async isWindows() {
         return process.platform === 'win32';
     }
 
-    public async selectFile({ mode }: {
+    public async selectFile({mode}: {
         mode: 'file' | 'directory',
         filter: 'video' | 'srt' | 'none'
     }): Promise<string[]> {
@@ -45,9 +46,16 @@ export default class SystemController implements Controller {
         };
     }
 
+    public async resetDb() {
+        await clearDB();
+        app.relaunch();
+        app.quit()
+    }
+
     public registerRoutes(): void {
         registerRoute('system/is-windows', this.isWindows);
         registerRoute('system/select-file', this.selectFile);
         registerRoute('system/path-info', this.pathInfo);
+        registerRoute('system/reset-db', this.resetDb);
     }
 }

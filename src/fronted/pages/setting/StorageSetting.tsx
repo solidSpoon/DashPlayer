@@ -17,9 +17,7 @@ const StorageSetting = () => {
     }, []);
 
     const handleClear = async () => {
-        await api.clearCache();
-        const s = await api.queryCacheSize();
-        setSize(s);
+        await api.call('system/reset-db', null);
     };
 
     const handleOpen = async () => {
@@ -48,9 +46,8 @@ const StorageSetting = () => {
                 <Button
                     onClick={handleClear}
                     variant="secondary"
-                    disabled
                 >
-                    清除一个月前的缓存
+                    重置数据库
                 </Button>
                 <Button
                     onClick={handleOpen}

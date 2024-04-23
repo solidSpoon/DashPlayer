@@ -22,7 +22,7 @@ const PlayerPPlayer = () => {
     return (
         <div
             className={cn(
-                'w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden bg-black',
+                'w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden',
                 hasSubTitle && 'border-r-0',
                 // !isWindows && 'border-0',
                 showSideBar &&

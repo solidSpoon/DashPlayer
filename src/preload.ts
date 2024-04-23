@@ -122,12 +122,6 @@ const electronHandler = {
         const blob = new Blob([data]);
         return URL.createObjectURL(blob);
     },
-    selectFile: async (isFolder: boolean) => {
-        return (await invoke('select-file', isFolder)) as
-            | WatchProjectVO
-            | undefined
-            | string;
-    },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');
         return on('store-update', func as never);
