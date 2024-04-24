@@ -6,6 +6,7 @@ import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 import useDpTask from '@/fronted/hooks/useDpTask';
 import useSWR from 'swr';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import TimeUtil from '@/common/utils/TimeUtil';
 
 export interface TranscriptItemProps {
     file: string;
@@ -22,31 +23,40 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
     console.log('itemTaskId', taskId);
     const [started, setStarted] = React.useState(false);
     const task = useDpTask(taskId, 1000);
-    const { data: fInfo } = useSWR(`system/path-info:${file}`, () => api.call('system/path-info', file), {
+    const { data: fInfo } = useSWR(['system/path-info',file], ([_k, f]) => api.call('system/path-info', f), {
         fallbackData: {
             baseName: '',
             dirName: '',
             extName: ''
         }
     });
+
     let msg = task?.progress ?? '未开始';
     if (task?.status === DpTaskState.IN_PROGRESS) {
         console.log(task.created_at, task.updated_at);
-        // update at - create at as duration, both is iso string, return seconds
-        // const updatedAt = new Date(task.updated_at).getTime();
-        // Convert created_at to ISO 8601 format
-        const createdAt = new Date(task.created_at.replace(' ', 'T') + 'Z').getTime();
+        const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
         const now = new Date().getTime();
-        // const duration = (now - createdAt) / 1000;
         const duration = Math.floor((now - createdAt) / 1000);
-        msg = `进行中 ${duration}s`;
+        msg = `${task.progress} ${duration}s`;
     }
     if (task?.status === DpTaskState.DONE) {
-        const updatedAt = new Date(task.updated_at).getTime();
-        const createdAt = new Date(task.created_at.replace(' ', 'T') + 'Z').getTime();
+        const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
+        const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
         const duration = Math.floor((updatedAt - createdAt) / 1000);
         msg = `${task.progress} ${duration}s`;
     }
+    useEffect(() => {
+        const runEffect = async () => {
+            if (task?.status === DpTaskState.DONE) {
+                console.log('attach srt');
+                await api.call('watch-project/attach-srt', {
+                    videoPath: file,
+                    srtPath: 'same'
+                })
+            }
+        }
+        runEffect().then();
+    }, [file, task?.status]);
     return (
         <TableRow>
             <TableCell className="font-medium">

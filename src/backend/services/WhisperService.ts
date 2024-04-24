@@ -141,6 +141,11 @@ class WhisperService {
         const chunkSize = 60 * 10;
         const chunks: SplitChunk[] = [];
         let pos = 0;
+        const mp3FilePath = path.join(tempDir, `${baseFileName}.mp3`);
+        await FfmpegService.toMp3({
+            inputFile: filePath,
+            outputFile: mp3FilePath
+        });
         while (pos < duration) {
             const start = pos;
             let end = Math.min(pos + chunkSize, duration);
@@ -151,7 +156,7 @@ class WhisperService {
             }
             const chunkFileName = path.join(tempDir, `${baseFileName}-${start}-${end}.mp3`);
             await FfmpegService.splitVideo({
-                inputFile: filePath,
+                inputFile: mp3FilePath,
                 startSecond: start,
                 endSecond: end,
                 outputFile: chunkFileName

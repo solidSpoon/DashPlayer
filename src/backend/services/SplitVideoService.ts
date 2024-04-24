@@ -26,7 +26,7 @@ class SplitVideoService {
         if (!fs.existsSync(folderName)) {
             fs.mkdirSync(folderName, {recursive: true});
         }
-        const fileName = path.join(folderName, `${param.title}.${path.extname(filePath)}`);
+        const fileName = path.join(folderName, `${param.title}${path.extname(filePath)}`);
 
         //ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
         await DpTaskService.update({
@@ -34,6 +34,8 @@ class SplitVideoService {
             status: DpTaskState.IN_PROGRESS,
             progress: '分割中'
         });
+        const numbers = await FfmpegService.keyFrameTimestamps(filePath);
+        console.log('keyFrameTimestamps', numbers);
         await FfmpegService.splitVideo({
             inputFile: filePath,
             startSecond,

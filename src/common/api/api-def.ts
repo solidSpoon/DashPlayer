@@ -74,7 +74,7 @@ interface WatchProjectDef {
     'watch-project/detail': { params: number, return: WatchProjectVO };
     'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };
     'watch-project/list': { params: void, return: WatchProject[] };
-    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string }, return: void };
+    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
 }
 
 interface SubtitleControllerDef {

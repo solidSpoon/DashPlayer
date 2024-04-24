@@ -23,6 +23,7 @@ export default class SplitVideoController implements Controller {
     }
 
     public async splitSrtOne({filePath, param}: { filePath: string, param: ChapterParseResult }): Promise<string> {
+        console.log(filePath, param);
         return SplitVideoService.splitSrt(filePath, param);
     }
 

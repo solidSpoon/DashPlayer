@@ -1,8 +1,9 @@
-import ffmpeg from "fluent-ffmpeg";
-import ffmpeg_static from "ffmpeg-static";
-import ffprobe_static from "ffprobe-static";
-import Lock from "@/common/utils/Lock";
-import TimeUtil from "@/common/utils/TimeUtil";
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpeg_static from 'ffmpeg-static';
+import ffprobe_static from 'ffprobe-static';
+import Lock from '@/common/utils/Lock';
+import TimeUtil from '@/common/utils/TimeUtil';
+import { spawn } from 'child_process';
 
 export default class FfmpegService {
     static {
@@ -11,16 +12,8 @@ export default class FfmpegService {
     }
 
     /**
-     * ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
+     * ffmpeg -ss [start_time] -i input.mp4 -to [duration] -c:v libx264 -c:a aac output.mp4
      *
-     * -y：覆盖输出文件而不进行提示。这是通过.outputOptions('-y')实现的。
-     * -ss：设置开始时间偏移。这是通过.setStartTime(startSecond)实现的。
-     * -t：设置录制时间。这是通过.setDuration(endSecond - startSecond)实现的。
-     * -accurate_seek：精确寻找。这是通过.outputOptions('-accurate_seek')实现的。
-     * -i：输入文件路径。这是通过ffmpeg(inputFile)实现的。
-     * -codec copy：复制原始编码。这是通过.outputOptions('-codec copy')实现的。
-     * -avoid_negative_ts 1：避免负时间戳。这是通过.outputOptions('-avoid_negative_ts 1')实现的。
-     * 输出文件路径。这是通过.output(outputFile)实现的。
      */
     public static async splitVideo({
                                        inputFile,
@@ -34,18 +27,28 @@ export default class FfmpegService {
         outputFile: string
     }) {
         await Lock.sync('ffmpeg', async () => {
-            await new Promise((resolve, reject) => {
-                ffmpeg(inputFile)
-                    .setStartTime(startSecond)
-                    .setDuration(endSecond - startSecond)
-                    .outputOptions('-y') // 覆盖输出文件而不进行提示
-                    .outputOptions('-accurate_seek') // 精确寻找
-                    .outputOptions('-codec copy') // 复制原始编码
-                    .outputOptions('-avoid_negative_ts 1') // 避免负时间戳
-                    .output(outputFile)
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .run();
+            console.log('Splitting video...', startSecond);
+            return new Promise((resolve, reject) => {
+                const ff = spawn(ffmpeg_static, [
+                    '-ss', startSecond.toString(),
+                    '-i', inputFile,
+                    '-to', (endSecond - startSecond).toString(),
+                    '-c:v', 'libx264',
+                    '-c:a', 'aac',
+                    outputFile
+                ]);
+
+
+                ff.on('close', (code) => {
+                    console.log(`ffmpeg process exited with code ${code}`);
+                    resolve(null);
+                });
+
+                ff.on('error', (error) => {
+                    console.log('An error occurred while executing ffmpeg command:', error);
+                    reject(error);
+                });
+
             });
         });
     }
@@ -81,6 +84,27 @@ export default class FfmpegService {
             });
         });
     }
+
+
+    // /**
+    //  * 获取视频关键帧的时间戳
+    //  */
+    // public static async keyFrameTimestamps(filePath: string): Promise<number[]> {
+    //     return new Promise((resolve, reject) => {
+    //         ffmpeg.ffprobe(filePath, (err, metadata) => {
+    //             if (err) {
+    //                 reject(err);
+    //                 return;
+    //             }
+    //             const keyFrames = metadata.streams
+    //                 .filter(stream => stream.codec_type === 'video')
+    //                 .flatMap(stream => stream.key_frame_pts || [])
+    //                 .map(pts => pts / stream.time_base); // Convert PTS to seconds based on the time base
+    //             resolve(keyFrames);
+    //         });
+    //     });
+    // }
+
 
     /**
      * 截取视频的缩略图

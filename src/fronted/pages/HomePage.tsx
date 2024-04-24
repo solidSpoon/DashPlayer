@@ -62,13 +62,13 @@ const HomePage = () => {
                     <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
                     <Link
                         onClick={() => api.playerSize()}
-                        to="/transcript" className="font-semibold text-primary mt-28 text-base ">
+                        to="/home" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
                     <Link onClick={() => api.playerSize()} to="/split" className="font-semibold ">
                         Split Video
                     </Link>
-                    <Link to={"#"} className="font-semibold ">Transcript</Link>
+                    <Link to={"/transcript"} className="font-semibold ">Transcript</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div

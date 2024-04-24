@@ -3,6 +3,7 @@ import registerRoute from '@/common/api/register';
 import {WatchProject} from '@/backend/db/tables/watchProjects';
 import WatchProjectNewService, {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
+import path from 'path';
 
 export default class WatchProjectController implements Controller{
 
@@ -25,7 +26,10 @@ export default class WatchProjectController implements Controller{
     public async createFromFiles(files: string[]): Promise<number> {
         return WatchProjectNewService.createFromFiles(files);
     }
-    public async attachSrt({videoPath, srtPath}:{videoPath: string, srtPath: string}): Promise<void> {
+    public async attachSrt({videoPath, srtPath}:{videoPath: string, srtPath: string|'same'}): Promise<void> {
+        if (srtPath === 'same') {
+            srtPath = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)) + '.srt');
+        }
         await WatchProjectNewService.attachSrt(videoPath, srtPath);
     }
 

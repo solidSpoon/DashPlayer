@@ -57,6 +57,7 @@ const useSplit = create(
         },
         runSplitAll: async () => {
             for (const result of get().parseResult) {
+                console.log(result);
                 await get().runSplitOne(result);
             }
         },

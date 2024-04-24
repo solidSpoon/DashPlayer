@@ -10,6 +10,8 @@ const process = (values: string) => values
     .split(',')
     .map((k) => k.replaceAll(' ', ''))
     .filter((k) => k !== '')
+    // remove left right up down space
+    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down')
 export default function PlayerShortCut() {
     const {
         space,
@@ -50,7 +52,6 @@ export default function PlayerShortCut() {
     }));
 
     const setting = useSetting((s) => s.setting);
-    const events: { [key: string]: () => void } = {};
     const {createFromCurrent} = useChatPanel(useShallow((s) => ({
         createFromCurrent: s.createFromCurrent
     })));
@@ -66,14 +67,21 @@ export default function PlayerShortCut() {
             onUserFinishScrolling();
         }
     });
-    useHotkeys('down', () => {
+    useHotkeys('down', (e) => {
+        e.preventDefault();
         repeat();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
-    useHotkeys('space', space);
-    useHotkeys('up', space);
+    useHotkeys('space', (e)=>{
+        e.preventDefault();
+        space();
+    });
+    useHotkeys('up', (e)=>{
+        e.preventDefault();
+        space();
+    });
     useHotkeys(process(setting('shortcut.previousSentence')), () => {
         prev();
         if (scrollState === 'USER_BROWSING') {

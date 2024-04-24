@@ -32,14 +32,7 @@ const Transcript = () => {
         });
         setFiles(newFiles);
     };
-    const onTranscriptAll = async () => {
-        for (const f of files) {
-            if (f.taskId === null) {
-                await onTranscript(f);
-                await sleep(500);
-            }
-        }
-    };
+
     const onDelete = async (file: TranscriptTask) => {
         const newFiles = files.filter((f) => f.file !== file.file);
         setFiles(newFiles);
