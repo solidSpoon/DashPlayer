@@ -60,10 +60,12 @@ const HomePage = () => {
                     className="flex flex-col gap-4 text-sm text-muted-foreground font-semibold md:p-10 md:pr-0"
                 >
                     <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
-                    <Link to="#" className="font-semibold text-primary mt-28 text-base ">
+                    <Link
+                        onClick={() => api.playerSize()}
+                        to="/transcript" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
-                    <Link to="#" className="font-semibold ">
+                    <Link onClick={() => api.playerSize()} to="/split" className="font-semibold ">
                         Split Video
                     </Link>
                     <Link to={"#"} className="font-semibold ">Transcript</Link>
@@ -129,7 +131,7 @@ const HomePage = () => {
                         onClick={() => setNum(num + 10)}
                         disabled={num + 3 >= (vps?.length ?? 0)}
                         variant={'ghost'}>
-                        <ChevronsDown/>
+                        <ChevronsDown className={'text-muted-foreground'}/>
                     </Button>
                 </div>
             </main>
