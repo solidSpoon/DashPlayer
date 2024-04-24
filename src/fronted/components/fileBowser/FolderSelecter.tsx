@@ -13,7 +13,6 @@ export interface FolderSelecterProps {
 }
 
 const FolderSelecter = ({child, onSelected}:FolderSelecterProps) => {
-    const navigate = useNavigate();
     const handleClick = async () => {
         const ps = await api.call('system/select-file', {
             mode: 'directory',

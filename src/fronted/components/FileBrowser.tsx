@@ -15,6 +15,12 @@ import MediaTypeUtil from "@/common/utils/MediaTypeUtil";
 import useSWR from "swr";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 import {WatchProjectVideo} from "@/backend/db/tables/watchProjectVideos";
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger
+} from "@/fronted/components/ui/context-menu";
 
 const api = window.electron;
 
@@ -25,45 +31,69 @@ const ProjItem = ({hc, p, routerPid}: {
 }) => {
     const navigate = useNavigate();
     const {data: v} = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
+    const [contextMenu, setContextMenu] = React.useState(false);
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div
-                        className={cn(
-                            'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2 group/item',
-                            routerPid === p.id ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''
-                        )}
-                        onClick={async () => {
-                            hc();
-                            if (p.project_type === WatchProjectType.FILE) {
-                                if (v?.id) {
-                                    navigate(`/player/${v.id}`);
-                                }
-                            }
+                    <ContextMenu
+                        onOpenChange={(open) => {
+                            setContextMenu(open);
                         }}
                     >
-                        <>
-                            {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
-                                <Folder className={cn(Style.file_browser_icon)}/>}
-                            {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isAudio(v?.video_path) &&
-                                <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                            {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isVideo(v?.video_path) &&
-                                <FileVideo2 className={cn(Style.file_browser_icon)}/>}
-                            <div className='truncate w-0 flex-1'>{p.project_name}</div>
-                            <Button size={'icon'} variant={'ghost'}
-                                    className={'w-6 h-6'}
-                                    disabled={routerPid === p.id}
-                                    onClick={async (e) => {
-                                        e.stopPropagation();
-                                        await api.call('watch-project/delete', p.id);
-                                        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST)
-                                    }}
+                        <ContextMenuTrigger>
+                            <div
+                                className={cn(
+                                    'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 dark:hover:bg-white/5 rounded-lg gap-3 px-3 lg:px-6 py-2 group/item',
+                                    routerPid === p.id ? 'bg-primary hover:bg-primary/90 dark:hover:bg-primary/90 text-primary-foreground' : '',
+                                    contextMenu && routerPid !== p.id && 'bg-black/5 dark:bg-white/5'
+                                )}
+                                onClick={async () => {
+                                    hc();
+                                    if (p.project_type === WatchProjectType.FILE) {
+                                        if (v?.id) {
+                                            navigate(`/player/${v.id}`);
+                                        }
+                                    }
+                                }}
                             >
-                                <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'}/>
-                            </Button>
-                        </>
-                    </div>
+                                <>
+                                    {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
+                                        <Folder className={cn(Style.file_browser_icon)}/>}
+                                    {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isAudio(v?.video_path) &&
+                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
+                                    {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isVideo(v?.video_path) &&
+                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
+                                    <div className='truncate w-0 flex-1'>{p.project_name}</div>
+                                    <Button size={'icon'} variant={'ghost'}
+                                            className={'w-6 h-6'}
+                                            disabled={routerPid === p.id}
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                await api.call('watch-project/delete', p.id);
+                                                await swrMutate(SWR_KEY.WATCH_PROJECT_LIST)
+                                            }}
+                                    >
+                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'}/>
+                                    </Button>
+                                </>
+                            </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                            <ContextMenuItem
+                                onClick={async () => {
+                                    await api.call('system/open-folder', p.project_path);
+                                }}
+                            >Show In Explorer</ContextMenuItem>
+                            <ContextMenuItem
+                                disabled={routerPid === p.id}
+                                onClick={async () => {
+                                    await api.call('watch-project/delete', p.id);
+                                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                                }}
+                            >Delete</ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
                 </TooltipTrigger>
                 <TooltipContent
                     side={'bottom'}
@@ -82,27 +112,44 @@ const VideoItem = ({pv, routerVid}: {
     routerVid: number
 }) => {
     const navigate = useNavigate();
+    const [contextMenu, setContextMenu] = React.useState(false);
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div
-                        className={cn(
-                            'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2',
-                            routerVid === pv.id ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''
-                        )}
-                        onClick={() => {
-                            navigate(`/player/${pv.id}`);
+                    <ContextMenu
+                        onOpenChange={(open) => {
+                            setContextMenu(open);
                         }}
                     >
-                        <>
-                            {MediaTypeUtil.isAudio(pv.video_path) &&
-                                <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                            {MediaTypeUtil.isVideo(pv.video_path) &&
-                                <FileVideo2 className={cn(Style.file_browser_icon)}/>}
-                            <div className='truncate w-0 flex-1'>{pv.video_name}</div>
-                        </>
-                    </div>
+                        <ContextMenuTrigger>
+                            <div
+                                className={cn(
+                                    'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2',
+                                    routerVid === pv.id ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : '',
+                                    contextMenu && 'bg-black/5 dark:bg-white/5'
+                                )}
+                                onClick={() => {
+                                    navigate(`/player/${pv.id}`);
+                                }}
+                            >
+                                <>
+                                    {MediaTypeUtil.isAudio(pv.video_path) &&
+                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
+                                    {MediaTypeUtil.isVideo(pv.video_path) &&
+                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
+                                    <div className='truncate w-0 flex-1'>{pv.video_name}</div>
+                                </>
+                            </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                            <ContextMenuItem
+                                onClick={async () => {
+                                    await api.call('system/open-folder', pv.video_path);
+                                }}
+                            >Show In Explorer</ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
                 </TooltipTrigger>
                 <TooltipContent
                     side={'bottom'}
@@ -112,7 +159,7 @@ const VideoItem = ({pv, routerVid}: {
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
-    );
+);
 }
 
 const FileBrowser = () => {
@@ -179,7 +226,7 @@ const FileBrowser = () => {
                                         side={'bottom'}
                                         align={'start'}
                                     >
-                                        {root ? '.': '返回上一级'}
+                                        {root ? '.' : '返回上一级'}
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>

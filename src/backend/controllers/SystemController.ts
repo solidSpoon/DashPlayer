@@ -1,6 +1,6 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import {app, dialog} from 'electron';
+import {app, dialog, shell} from 'electron';
 import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaTypeUtil';
 import path from 'path';
 import {clearDB} from "@/backend/db/db";
@@ -52,10 +52,16 @@ export default class SystemController implements Controller {
         app.quit()
     }
 
+    public async openFolder(p: string) {
+        const folder = path.dirname(p);
+        await shell.openPath(folder);
+    }
+
     public registerRoutes(): void {
         registerRoute('system/is-windows', this.isWindows);
         registerRoute('system/select-file', this.selectFile);
         registerRoute('system/path-info', this.pathInfo);
         registerRoute('system/reset-db', this.resetDb);
+        registerRoute('system/open-folder', this.openFolder);
     }
 }

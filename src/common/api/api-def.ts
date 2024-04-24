@@ -52,6 +52,7 @@ interface SystemDef {
         }
     };
     'system/reset-db': { params: void, return: void };
+    'system/open-folder': { params: string, return: void };
 }
 
 interface AiTransDef {

@@ -142,7 +142,7 @@ const Split = () => {
                 </div>
                 <Tabs defaultValue="account"
                       className={cn(
-                          'row-start-1 row-end-3 col-start-2 col-end-3 ',
+                          'row-start-1 row-end-3 col-start-2 col-end-3',
                           'w-full h-full flex flex-col items-center'
                       )}>
                     <TabsList className={'grid w-full grid-cols-2'}>
@@ -152,7 +152,7 @@ const Split = () => {
                     <TabsContent className={'w-full h-full overflow-auto scrollbar-thin'} value="account">
                         <SplitPreview className={'w-full h-full'}/>
                     </TabsContent>
-                    <TabsContent value="password" className={'w-full h-full'}>
+                    <TabsContent value="password" className={'w-full overflow-y-auto'}>
                         <SplitFile/>
                     </TabsContent>
                 </Tabs>

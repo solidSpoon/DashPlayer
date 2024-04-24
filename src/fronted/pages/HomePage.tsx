@@ -1,8 +1,6 @@
 import React, {useEffect} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
-import useSystem from '@/fronted/hooks/useSystem';
 import TitleBar from '@/fronted/components/TitleBar/TitleBar';
-import useSetting from '@/fronted/hooks/useSetting';
 import {cn} from '@/common/utils/Util';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
