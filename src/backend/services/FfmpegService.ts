@@ -1,11 +1,13 @@
 import ffmpeg from "fluent-ffmpeg";
 import ffmpeg_static from "ffmpeg-static";
+import ffprobe_static from "ffprobe-static";
 import Lock from "@/common/utils/Lock";
-import path from "path";
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export default class FfmpegService {
     static {
         ffmpeg.setFfmpegPath(ffmpeg_static);
+        ffmpeg.setFfprobePath(ffprobe_static.path);
     }
 
     /**
@@ -70,7 +72,7 @@ export default class FfmpegService {
 
 
     public static async duration(filePath: string): Promise<number> {
-        return await Lock.sync<number>('ffmpeg', async () => {
+        return await Lock.sync<number>('ffprobe', async () => {
             return new Promise<number>((resolve, reject) => {
                 ffmpeg.ffprobe(filePath, (err, metadata) => {
                     if (err) reject(err);
@@ -88,28 +90,26 @@ export default class FfmpegService {
      */
     public static async thumbnail({
                                       inputFile,
-                                      outputFile,
+                                      outputFileName,
+                                      outputFolder,
                                       time
                                   }: {
         inputFile: string,
-        outputFile: string,
+        outputFileName: string,
+        outputFolder: string,
         time: number
     }): Promise<void> {
-        // 秒数转换为时间戳
-        const hh = Math.floor(time / 3600);
-        const mm = Math.floor((time % 3600) / 60);
-        const ss = Math.floor(time % 60);
-        const timeStr = `${hh}:${mm}:${ss}`;
-
-
+        const totalDuration = await FfmpegService.duration(inputFile);
+        const timeStr = TimeUtil.secondToTimeStr(Math.min(time, totalDuration));
+        console.log('timeStr', timeStr);
         await Lock.sync('ffmpeg', async () => {
             await new Promise((resolve, reject) => {
                 ffmpeg(inputFile)
                     .screenshots({
                         timestamps: [timeStr],
-                        filename: path.basename(outputFile),
-                        folder: path.dirname(outputFile),
-                        size: '320x240'
+                        filename: outputFileName,
+                        folder: outputFolder,
+                        size: '320x?'
                     })
                     .on('end', resolve)
                     .on('error', reject);

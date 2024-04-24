@@ -1,5 +1,5 @@
 import FileT, { FileType } from '../types/FileT';
-import { isSrt, isMidea } from './MediaTypeUitl';
+import { isSrt, isMedia } from './MediaTypeUtil';
 
 const api = window.electron;
 const parseFile = (file: File): FileT => {
@@ -10,7 +10,7 @@ const parseFile = (file: File): FileT => {
     const isaSrt = isSrt(file.name);
     if (isaSrt) {
         fileT.fileType = FileType.SUBTITLE;
-    } else if (isMidea(file.path)) {
+    } else if (isMedia(file.path)) {
         fileT.fileType = FileType.VIDEO;
     } else {
         fileT.fileType = FileType.OTHER;
@@ -26,7 +26,7 @@ const pathToFile = async (path: string): Promise<FileT> => {
     let fileType = FileType.OTHER;
     if (isSrt(path)) {
         fileType = FileType.SUBTITLE;
-    } else if (isMidea(path)) {
+    } else if (isMedia(path)) {
         fileType = FileType.VIDEO;
     }
     fileT.objectUrl =

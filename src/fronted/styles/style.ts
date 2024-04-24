@@ -98,3 +98,7 @@ export const themeProvider = (
         return darkColor[style];
     };
 };
+
+export default class Style {
+    public static file_browser_icon = 'w-4 h-4 text-yellow-700/90 flex-shrink-0';
+}

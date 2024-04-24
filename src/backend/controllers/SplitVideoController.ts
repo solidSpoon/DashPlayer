@@ -8,6 +8,7 @@ import * as os from "node:os";
 import FfmpegService from "@/backend/services/FfmpegService";
 import hash from "@/common/utils/hash";
 import fs from "fs";
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export default class SplitVideoController implements Controller {
 
@@ -26,15 +27,20 @@ export default class SplitVideoController implements Controller {
     }
 
     public async thumbnail({filePath, time}: { filePath: string, time: number }): Promise<string> {
+        const finalTime = TimeUtil.toGroupMiddle(time);
         const tmpdir = path.join(os.tmpdir(), 'dp/thumbnail');
         if (!fs.existsSync(tmpdir)) {
             fs.mkdirSync(tmpdir, {recursive: true});
         }
-        const fileName = hash(filePath) + '.jpg';
+        const fileName = `${hash(filePath)}-${Math.floor(finalTime)}.jpg`;
+        if (fs.existsSync(path.join(tmpdir, fileName))) {
+            return 'dp:///' + path.join(tmpdir, fileName);
+        }
         await FfmpegService.thumbnail({
             inputFile: filePath,
-            outputFile: path.join(tmpdir, fileName),
-            time
+            outputFileName: fileName,
+            outputFolder: tmpdir,
+            time: finalTime
         })
         return 'dp:///' + path.join(tmpdir, fileName);
     }

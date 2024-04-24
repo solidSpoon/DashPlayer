@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import {ChapterParseResult} from "@/common/types/chapter-result";
-import {isMidea, isSrt} from "@/common/utils/MediaTypeUitl";
+import {isMedia, isSrt} from "@/common/utils/MediaTypeUtil";
 import {strBlank} from "@/common/utils/Util";
 
 const api = window.electron;
@@ -36,7 +36,7 @@ const useSplit = create(
             if (strBlank(filePath)) {
                 return;
             }
-            if (isMidea(filePath)) {
+            if (isMedia(filePath)) {
                 set({videoPath: filePath});
             }
             if (isSrt(filePath)) {

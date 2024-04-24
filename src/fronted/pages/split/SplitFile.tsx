@@ -1,7 +1,6 @@
 import React, {} from 'react';
 import {cn} from '@/common/utils/Util';
 import FileSelector from '@/fronted/components/fileBowser/FileSelector';
-import FileItem from '@/fronted/components/fileBowser/FileItem';
 import {WatchProjectType} from '@/backend/db/tables/watchProjects';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
@@ -48,11 +47,26 @@ const SplitFile = () => {
             <ProjectListComp
                 backEle={(root, hc) => {
                     return (
-                        <FileItem
-                            icon={'none'}
-                            onClick={hc}
-                            content={root ? '.' : '..'}
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        onClick={hc}
+                                        className={cn(
+                                            'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2',
+                                        )}
+                                    >
+                                        {root ? '.' : '..'}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    side={'bottom'}
+                                    align={'start'}
+                                >
+                                    {root ? '.': '返回上一级'}
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     );
                 }}
                 videoEle={(pv) => {

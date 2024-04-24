@@ -1,7 +1,7 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
 import {app, dialog} from 'electron';
-import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaTypeUitl';
+import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaTypeUtil';
 import path from 'path';
 import {clearDB} from "@/backend/db/db";
 

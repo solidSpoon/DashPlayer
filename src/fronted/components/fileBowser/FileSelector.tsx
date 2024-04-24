@@ -1,7 +1,7 @@
 import React from 'react';
 import useFile from '../../hooks/useFile';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import { isSrt } from '@/common/utils/MediaTypeUitl';
+import { isSrt } from '@/common/utils/MediaTypeUtil';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 export interface OpenFileProps {
