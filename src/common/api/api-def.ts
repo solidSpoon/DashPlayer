@@ -30,6 +30,7 @@ interface AiFuncDef {
 interface DpTaskDef {
     'dp-task/detail': { params: number, return: DpTask | undefined };
     'dp-task/cancel': { params: number, return: void };
+    'dp-task/details': { params: number[], return: Map<number, DpTask> };
 }
 
 interface SystemDef {
@@ -91,6 +92,7 @@ interface SplitVideoDef {
         return: number
     };
     'split-video/thumbnail': { params: { filePath: string, time: number }, return: string };
+    'split-video/video-length': { params: string , return: number };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition

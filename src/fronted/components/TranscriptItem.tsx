@@ -2,11 +2,11 @@ import { TableCell, TableRow } from '@/fronted/components/ui/table';
 import { cn } from '@/common/utils/Util';
 import { Button } from '@/fronted/components/ui/button';
 import React, { useEffect } from 'react';
-import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
-import useDpTask from '@/fronted/hooks/useDpTask';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 import useSWR from 'swr';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
+import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
 
 export interface TranscriptItemProps {
     file: string;
@@ -22,7 +22,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
 
     console.log('itemTaskId', taskId);
     const [started, setStarted] = React.useState(false);
-    const task = useDpTask(taskId, 1000);
+    const task = useDpTaskViewer(taskId);
     const { data: fInfo } = useSWR(['system/path-info',file], ([_k, f]) => api.call('system/path-info', f), {
         fallbackData: {
             baseName: '',

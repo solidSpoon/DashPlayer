@@ -1,14 +1,18 @@
 import React from 'react';
-import { cn, sleep } from '@/common/utils/Util';
+import {cn, sleep} from '@/common/utils/Util';
 import Separator from '@/fronted/components/Separtor';
-import { useLocalStorage } from '@uidotdev/usehooks';
+import {useLocalStorage} from '@uidotdev/usehooks';
 import TranscriptFile from './TranscriptFile';
-import TranscriptTable, { TranscriptTask } from '@/fronted/pages/transcript/TranscriptTable';
+import TranscriptTable, {TranscriptTask} from '@/fronted/pages/transcript/TranscriptTable';
+import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
+import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 
 const api = window.electron;
 const Transcript = () => {
 
     const [files, setFiles] = useLocalStorage<TranscriptTask[]>('transcriptFiles', []);
+
+    const registerTask = useDpTaskCenter(s => s.register);
     const onAddToQueue = async (p: string) => {
         const video = {
             file: p,
@@ -22,16 +26,24 @@ const Transcript = () => {
     };
 
     const onTranscript = async (file: TranscriptTask) => {
-        const taskId = await api.call('ai-func/transcript', { filePath: file.file });
-        console.log('taskId', taskId);
-        const newFiles = files.map((f) => {
-            if (f.file === file.file) {
-                return { ...f, taskId };
-            }
-            return f;
-        });
-        setFiles(newFiles);
-    };
+            const taskId = await registerTask(() => api.call('ai-func/transcript', {filePath: file.file}), {
+                onFinish: async (task) => {
+                    await api.call('watch-project/attach-srt', {
+                        videoPath: file.file,
+                        srtPath: 'same'
+                    });
+                    await swrMutate(SWR_KEY.PLAYER_P);
+                }
+            });
+            const newFiles = files.map((f) => {
+                if (f.file === file.file) {
+                    return {...f, taskId};
+                }
+                return f;
+            });
+            setFiles(newFiles);
+        }
+    ;
 
     const onDelete = async (file: TranscriptTask) => {
         const newFiles = files.filter((f) => f.file !== file.file);
@@ -50,7 +62,7 @@ const Transcript = () => {
                 <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
                     Add subtitles to your videos using OpenAI's Whisper Large model
                 </h2>
-                <Separator orientation="horizontal" className="px-0" />
+                <Separator orientation="horizontal" className="px-0"/>
             </div>
 
             <div className="grid grid-cols-2 gap-10 flex-1 h-0 pl-10 pb-6 pr-16"
@@ -59,8 +71,8 @@ const Transcript = () => {
                      gridTemplateRows: '100%'
                  }}
             >
-                <TranscriptFile onAddToQueue={onAddToQueue} queue={files.map(f=>f.file)}/>
-                <TranscriptTable onTranscript={onTranscript} files={files} onDelete={onDelete} />
+                <TranscriptFile onAddToQueue={onAddToQueue} queue={files.map(f => f.file)}/>
+                <TranscriptTable onTranscript={onTranscript} files={files} onDelete={onDelete}/>
             </div>
         </div>
     );

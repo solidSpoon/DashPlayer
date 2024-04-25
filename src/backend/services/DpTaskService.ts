@@ -29,11 +29,12 @@ export default class DpTaskService {
             }
         }, 3000);
     }
+
     public static async detail(
         id: number
     ): Promise<DpTask | undefined> {
 
-        if(cache.has(id)) {
+        if (cache.has(id)) {
             console.log('temp task');
             return cache.get(id) as DpTask;
         }
@@ -47,6 +48,18 @@ export default class DpTaskService {
             return undefined;
         }
         return tasks[0];
+    }
+
+    public static async details(ids: number[]): Promise<Map<number, DpTask>> {
+        const map = new Map<number, DpTask>();
+        await Promise.all(ids.map(async id => {
+                const task = await this.detail(id);
+                if (task) {
+                    map.set(id, task);
+                }
+            }
+        ));
+        return map;
     }
 
 

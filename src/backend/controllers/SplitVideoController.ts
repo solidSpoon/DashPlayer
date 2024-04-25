@@ -54,9 +54,14 @@ export default class SplitVideoController implements Controller {
         return 'dp:///' + path.join(tmpdir, fileName);
     }
 
+    public videoLength(filePath: string ): Promise<number> {
+        return FfmpegService.duration(filePath);
+    }
+
     registerRoutes(): void {
         registerRoute('split-video/preview', this.previewSplit);
         registerRoute('split-video/split-one', this.splitOne);
         registerRoute('split-video/thumbnail', this.thumbnail);
+        registerRoute('split-video/video-length', this.videoLength);
     }
 }
