@@ -36,7 +36,9 @@ function isChinese(str: string): boolean {
 export default function parseSrtSubtitles(srt: string): Array<SentenceT> {
     const subtitles: Array<SentenceT> = [];
     let textSubtitles = srt.split(/\r?\n\r?\n/); // 每条字幕的信息，包含了序号，时间，字幕内容
-    textSubtitles = textSubtitles.map((item) => item.replace(/{\w+}/, ''));
+    textSubtitles = textSubtitles
+        .map(t=> t.trim())
+        .map((item) => item.replace(/{\w+}/, ''));
     for (let i = 0; i < textSubtitles.length; i += 1) {
         const textSubtitle = textSubtitles[i].split(/\r?\n/);
 

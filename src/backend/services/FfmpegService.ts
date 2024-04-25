@@ -3,7 +3,8 @@ import ffmpeg_static from 'ffmpeg-static';
 import ffprobe_static from 'ffprobe-static';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import {spawn} from 'child_process';
+import { spawn } from 'child_process';
+import a from '@/common/utils/a';
 
 export default class FfmpegService {
     static {
@@ -55,6 +56,34 @@ export default class FfmpegService {
     }
 
 
+    public static async splitMp3({
+                                     inputFile,
+                                     startSecond,
+                                     endSecond,
+                                     outputFile
+                                 }: {
+        inputFile: string,
+        startSecond: number,
+        endSecond: number,
+        outputFile: string
+    }) {
+
+        console.log('splitMp3', inputFile, startSecond, endSecond, outputFile);
+        await Lock.sync('ffmpeg', async () => {
+                await new Promise((resolve, reject) => {
+                        ffmpeg(inputFile)
+                            .setStartTime(TimeUtil.secondToTimeStr(startSecond))
+                            .setDuration(TimeUtil.secondToTimeStr(endSecond - startSecond))
+                            .output(outputFile)
+                            .on('end', resolve)
+                            .on('error', reject)
+                            .run();
+                    }
+                );
+            }
+        );
+    }
+
     public static async toMp3({
                                   inputFile,
                                   outputFile
@@ -99,7 +128,7 @@ export default class FfmpegService {
         if (time <= 10) return 0;
         const out = await new Promise((resolve, reject) => {
             const ff = spawn(ffprobe_static.path, [
-                '-read_intervals', `${time-100}%${time}`,
+                '-read_intervals', `${time - 100}%${time}`,
                 '-v', 'error',
                 '-skip_frame', 'nokey',
                 '-show_entries', 'frame=pkt_pts_time',
@@ -125,7 +154,7 @@ export default class FfmpegService {
                 reject(error);
             });
         });
-        return Number(out)
+        return Number(out);
     }
 
 

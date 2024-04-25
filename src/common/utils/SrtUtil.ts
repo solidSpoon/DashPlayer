@@ -40,7 +40,9 @@ export default class SrtUtil {
     public static parseSrt(srt: string): SrtLine[] {
         const subtitles: SrtLine[] = [];
         let textSubtitles = srt.split(/\r?\n\r?\n/); // 每条字幕的信息，包含了序号，时间，字幕内容
-        textSubtitles = textSubtitles.map((item) => item.replace(/{\w+}/, ''));
+        textSubtitles = textSubtitles
+            .map(t=> t.trim())
+            .map((item) => item.replace(/{\w+}/, ''));
         for (let i = 0; i < textSubtitles.length; i += 1) {
             const textSubtitle = textSubtitles[i].split(/\r?\n/);
 

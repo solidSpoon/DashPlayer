@@ -138,7 +138,7 @@ class WhisperService {
         // 文件名为路径 hash
         const baseFileName = hash(filePath);
         const duration = await FfmpegService.duration(filePath);
-        const chunkSize = 60 * 10;
+        const chunkSize = 60 * 5;
         const chunks: SplitChunk[] = [];
         let pos = 0;
         const mp3FilePath = path.join(tempDir, `${baseFileName}.mp3`);
@@ -150,12 +150,12 @@ class WhisperService {
             const start = pos;
             let end = Math.min(pos + chunkSize, duration);
             let currentChunkSize = chunkSize;
-            if (end + 60 * 4 > duration) {
+            if (end + 60 * 2 > duration) {
                 end = duration;
                 currentChunkSize = end - start;
             }
             const chunkFileName = path.join(tempDir, `${baseFileName}-${start}-${end}.mp3`);
-            await FfmpegService.splitVideo({
+            await FfmpegService.splitMp3({
                 inputFile: mp3FilePath,
                 startSecond: start,
                 endSecond: end,
