@@ -1,10 +1,7 @@
-import {create} from 'zustand';
-import {subscribeWithSelector} from 'zustand/middleware';
-import FileT, {FileType} from '../../common/types/FileT';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
-import useChatPanel from "@/fronted/hooks/useChatPanel";
-import {sleep} from "@/common/utils/Util";
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import { sleep } from '@/common/utils/Util';
 
 const api = window.electron;
 
@@ -15,13 +12,11 @@ export interface Listener {
     interval: number;
 }
 
-const updateMapping = new Map<number, number>();
-const finished = new Set<number>();
 
 
 type UseDpTaskCenterState = {
     listeners: Listener[];
-    tasks: Map<number, DpTask>;
+    tasks: Map<number, DpTask | 'init'>;
 };
 
 type UseDpTaskCenterStateAction = {
@@ -38,26 +33,26 @@ const useDpTaskCenter = create(
         tasks: new Map(),
         register: async (func, config) => {
             const taskId = await func();
-            const newListeners = [...get().listeners
-                .filter(l => l.taskId !== taskId)
-                .filter(l => !finished.has(l.taskId))
-            ];
+            const tasks = new Map(get().tasks);
+            tasks.set(taskId, 'init');
+            set({ tasks });
+            const newListeners = [...get().listeners];
+
             const time = new Date().getTime();
             newListeners.push({
                 taskId,
                 onFinish: config?.onFinish ?? (() => {
+                    // empty
                 }),
                 interval: config?.interval ?? 1000,
-                createAt: time,
+                createAt: time
             });
-            updateMapping.set(taskId, time);
             console.log('register', taskId, newListeners);
-            set({listeners: newListeners});
+            set({ listeners: newListeners });
             return taskId;
         },
         tryRegister(taskId: number) {
-            const listener = get().listeners.find(l => l.taskId === taskId);
-            if (!listener) {
+            if (!get().tasks.has(taskId)) {
                 get().register(async () => taskId);
             }
         }
@@ -66,60 +61,58 @@ const useDpTaskCenter = create(
 
 export default useDpTaskCenter;
 
-const filterRecent = (listeners: Listener[], filterTime: number) => {
-    // 10 分钟之内的
-    return listeners
-        .filter(l => !finished.has(l.taskId))
-        .filter(l => l.createAt <= filterTime)
-        .filter(l => l.createAt > filterTime - 10 * 60 * 1000);
-}
-
 let running = false;
 useDpTaskCenter.subscribe(
     (s) => s.listeners,
-    async (listeners) => {
+    async () => {
         console.log('try start fetching tasks');
         if (running) return;
         running = true;
         console.log('start fetching tasks');
-        let filterTime = new Date().getTime();
-        let ls = filterRecent(listeners, filterTime);
-        while (ls.length > 0) {
-            console.log('fetching tasks');
-            let currentLs = [...ls];
+
+        const localTasks: Map<number, Listener> = new Map();
+        const updateMapping = new Map<number, number>();
+        const listeners = useDpTaskCenter.getState().listeners;
+        listeners.forEach(l => {
+            localTasks.set(l.taskId, l);
+            updateMapping.set(l.taskId, 0);
+            console.log('add tasks listener', l.taskId);
+        });
+        useDpTaskCenter.getState().listeners.splice(0);
+        while (localTasks.size > 0) {
             let sleepTime = 1000;
-            for (const l of currentLs) {
-                sleepTime = Math.min(sleepTime, l.interval);
-            }
-            const now = new Date().getTime();
-            currentLs = currentLs.filter(l => now - updateMapping.get(l.taskId) >= l.interval);
-            if (currentLs.length === 0) {
-                await sleep(sleepTime);
-                continue;
-            }
-            const taskIds = currentLs.map(l => l.taskId);
+            const time = new Date().getTime();
+            const taskIds = Array.from(localTasks.values())
+                .filter(l => time - updateMapping.get(l.taskId) >= l.interval)
+                .map(l => l.taskId);
+            sleepTime = Math.min(sleepTime, ...Array.from(localTasks.values()).map(l => l.interval));
             const tasksResp = await api.call('dp-task/details', taskIds);
-            const newRes = new Map<number, DpTask>(useDpTaskCenter.getState().tasks);
-            tasksResp.forEach(t => {
-                newRes.set(t.id, t);
-                updateMapping.set(t.id, now);
-            });
-            useDpTaskCenter.setState({tasks: newRes});
-            for (const l of currentLs) {
-                const status = tasksResp.get(l.taskId)?.status;
-                if (status === DpTaskState.DONE) {
-                    l.onFinish?.(tasksResp.get(l.taskId));
-                    finished.add(l.taskId);
-                } else if (status === DpTaskState.INIT || status === DpTaskState.IN_PROGRESS) {
-                    ls.push(l);
+            const newHookTasks = new Map();
+            Array.from(tasksResp.values()).forEach(t => {
+                newHookTasks.set(t.id, t);
+                if (t.status === DpTaskState.DONE) {
+                    localTasks.get(t.id).onFinish(t);
+                    localTasks.delete(t.id);
+                    updateMapping.delete(t.id);
+                } else if (t.status === DpTaskState.INIT || t.status === DpTaskState.IN_PROGRESS) {
+                    updateMapping.set(t.id, time);
+                } else {
+                    localTasks.delete(t.id);
+                    updateMapping.delete(t.id);
                 }
-            }
+            });
+            const temp = new Map(useDpTaskCenter.getState().tasks);
+            newHookTasks.forEach((v, k) => {
+                temp.set(k, v);
+            });
+            useDpTaskCenter.setState({ tasks: temp });
             await sleep(sleepTime);
-            const newLs = filterRecent(useDpTaskCenter.getState().listeners, filterTime)
-                .filter(l => l.createAt > filterTime);
-            ls = ls.filter(l => !currentLs.includes(l));
-            ls = ls.concat(newLs);
-            filterTime = now;
+            useDpTaskCenter.getState().listeners.forEach(l => {
+                localTasks.set(l.taskId, l);
+                updateMapping.set(l.taskId, 0);
+                console.log('add tasks listener', l.taskId);
+            });
+            useDpTaskCenter.getState().listeners.splice(0);
         }
         console.log('end fetching tasks');
         running = false;

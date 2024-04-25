@@ -63,10 +63,11 @@ const useSplit = create(
                     toast('Please select a video file first');
                     return;
                 }
-                for (const result of get().parseResult) {
-                    console.log(result);
-                    await get().runSplitOne(result);
-                }
+                // for (const result of get().parseResult) {
+                //     console.log(result);
+                //     await get().runSplitOne(result);
+                // }
+                await Promise.all(get().parseResult.map(r => get().runSplitOne(r)));
             },
             runSplitOne: async (result) => {
                 if (get().videoPath) {
