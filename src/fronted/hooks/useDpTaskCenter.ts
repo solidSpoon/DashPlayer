@@ -14,8 +14,9 @@ export interface Listener {
     createAt: number;
     interval: number;
 }
-const updateMapping = new Map<number, number>();
 
+const updateMapping = new Map<number, number>();
+const finished = new Set<number>();
 
 
 type UseDpTaskCenterState = {
@@ -24,31 +25,40 @@ type UseDpTaskCenterState = {
 };
 
 type UseDpTaskCenterStateAction = {
-    register(func: () => Promise<number>, config:{
+    register(func: () => Promise<number>, config?: {
         interval?: number;
         onFinish?: (task: DpTask) => void;
     }): Promise<number>;
-
+    tryRegister(taskId: number): void;
 };
 
 const useDpTaskCenter = create(
     subscribeWithSelector<UseDpTaskCenterState & UseDpTaskCenterStateAction>((set, get) => ({
         listeners: [],
         tasks: new Map(),
-        register: async (func, {onFinish, interval}) => {
+        register: async (func, config) => {
             const taskId = await func();
-            const newListeners = [...get().listeners];
+            const newListeners = [...get().listeners
+                .filter(l => l.taskId !== taskId)
+                .filter(l => !finished.has(l.taskId))
+            ];
             const time = new Date().getTime();
             newListeners.push({
                 taskId,
-                onFinish,
-                interval: interval ?? 1000,
+                onFinish: config?.onFinish?? (() => {}),
+                interval: config?.interval ?? 1000,
                 createAt: time,
             });
             updateMapping.set(taskId, time);
             set({listeners: newListeners});
             return taskId;
         },
+        tryRegister(taskId: number) {
+            const listener = get().listeners.find(l => l.taskId === taskId);
+            if (!listener) {
+                get().register(async () => taskId);
+            }
+        }
     }))
 );
 
@@ -57,8 +67,9 @@ export default useDpTaskCenter;
 const filterRecent = (listeners: Listener[], filterTime: number) => {
     // 10 分钟之内的
     return listeners
+        .filter(l => !finished.has(l.taskId))
         .filter(l => l.createAt <= filterTime)
-        .filter(l =>  l.createAt > filterTime - 10 * 60 * 1000);
+        .filter(l => l.createAt > filterTime - 10 * 60 * 1000);
 }
 
 let running = false;
@@ -67,8 +78,9 @@ useDpTaskCenter.subscribe(
     async (listeners) => {
         if (running) return;
         running = true;
+        console.log('start fetching tasks');
         let filterTime = new Date().getTime();
-        let ls = filterRecent(listeners,filterTime);
+        let ls = filterRecent(listeners, filterTime);
         if (ls.length === 0) return;
         while (ls.length > 0) {
             console.log('fetching tasks');
@@ -99,6 +111,7 @@ useDpTaskCenter.subscribe(
                 const status = tasksResp.get(l.taskId)?.status;
                 if (status === DpTaskState.DONE) {
                     l.onFinish?.(tasksResp.get(l.taskId));
+                    finished.add(l.taskId);
                 } else if (status === DpTaskState.INIT || status === DpTaskState.IN_PROGRESS) {
                     ls.push(l);
                 }
@@ -106,6 +119,7 @@ useDpTaskCenter.subscribe(
             filterTime = now;
             await sleep(sleepTime);
         }
+        console.log('end fetching tasks');
         running = false;
     }
 );

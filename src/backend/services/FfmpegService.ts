@@ -12,7 +12,7 @@ export default class FfmpegService {
     }
 
     /**
-     *
+     * ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
      *
      */
     public static async splitVideo({
@@ -26,12 +26,14 @@ export default class FfmpegService {
         endSecond: number,
         outputFile: string
     }) {
+        console.log('splitVideo', inputFile, startSecond, endSecond, outputFile);
         await Lock.sync('ffmpeg', async () => {
-            console.log('Splitting video...', startSecond);
-            return new Promise((resolve, reject) => {
+            await new Promise((resolve, reject) => {
                 ffmpeg(inputFile)
                     .setStartTime(startSecond)
                     .setDuration(endSecond - startSecond)
+                    .outputOptions('-c copy') // codec copy
+                    .outputOptions('-avoid_negative_ts 1')
                     .output(outputFile)
                     .on('end', resolve)
                     .on('error', reject)
@@ -39,6 +41,7 @@ export default class FfmpegService {
             });
         });
     }
+
 
     public static async toMp3({
                                   inputFile,

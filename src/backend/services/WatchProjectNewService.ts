@@ -166,17 +166,19 @@ export default class WatchProjectNewService {
                 duration: 0
             };
         });
-        await db.insert(watchProjectVideos)
-            .values(videoInserts)
-            .onConflictDoUpdate({
-                target: [watchProjectVideos.project_id, watchProjectVideos.video_path],
-                set: {
-                    ...videoInserts[0],
-                    id: null,
-                    project_id: vpr.id,
-                    updated_at: new Date().toISOString()
-                }
-            });
+        await Promise.all(videoInserts.map(async (v) => {
+            await db.insert(watchProjectVideos)
+                .values([v])
+                .onConflictDoUpdate({
+                    target: [watchProjectVideos.project_id, watchProjectVideos.video_path],
+                    set: {
+                        ...v,
+                        id: undefined,
+                        project_id: vpr.id,
+                        updated_at: new Date().toISOString()
+                    }
+                });
+        }));
         return vpr.id;
     }
 

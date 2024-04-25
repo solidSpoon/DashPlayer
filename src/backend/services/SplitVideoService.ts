@@ -39,7 +39,7 @@ class SplitVideoService {
 
         const keyFrameTime = await FfmpegService.keyFrameAt(videoPath, startSecond);
 
-        const videoOutName = path.join(folderName, `${chapter.timestampStart.value}${chapter.title}${path.extname(videoPath)}`);
+        const videoOutName = path.join(folderName, `${chapter.timestampStart.value}-${chapter.title}${path.extname(videoPath)}`.replaceAll(':', '_'));
 
         await DpTaskService.update({
             id: taskId,
@@ -60,13 +60,13 @@ class SplitVideoService {
             progress: '分割完成'
         });
 
-        if (strBlank(srtPath)) {
+        if (strBlank(srtPath) || !fs.existsSync(srtPath)) {
             return;
         }
 
-        const srtOutName = path.join(folderName, `${chapter.timestampStart.value}${chapter.title}.srt`);
+        const srtOutName = path.join(folderName, `${chapter.timestampStart.value}-${chapter.title}.srt`.replaceAll(':', '_'));
         // SrtUtil.parseSrt()
-        const content = fs.readFileSync(srtOutName, 'utf-8');
+        const content = fs.readFileSync(srtPath, 'utf-8');
         const srt = SrtUtil.parseSrt(content);
         const lines = srt.filter(line => line.start >= keyFrameTime && line.end <= endSecond)
             .map((line, index) => ({

@@ -3,6 +3,7 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import {isMedia, isSrt} from "@/common/utils/MediaTypeUtil";
 import {strBlank} from "@/common/utils/Util";
+import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
 
 const api = window.electron;
 
@@ -63,10 +64,15 @@ const useSplit = create(
         },
         runSplitOne: async (result) => {
             if (get().videoPath) {
-                const taskId = await api.call('split-video/split-one', {
+                const fileInfo = await api.call('system/path-info', get().videoPath);
+                const taskId = await useDpTaskCenter.getState().register(()=> api.call('split-video/split-one', {
                     videoPath: get().videoPath,
                     srtPath: get().srtPath,
                     chapter: result
+                }),{
+                    onFinish: async (task) => {
+                        await api.call('watch-project/create/from-folder', get().videoPath.replace(fileInfo.extName, ''));
+                    }
                 });
                 const newResult = get().parseResult
                     .map(r => (r.original === result.original ? {...r, taskId} : r));
