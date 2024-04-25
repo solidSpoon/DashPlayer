@@ -1,12 +1,12 @@
-import parseChapter, {timeStrToSecond, isTimeStrValid} from "@/common/utils/praser/chapter-parser";
-import path from "path";
-import fs from "fs";
-import {ChapterParseResult} from "@/common/types/chapter-result";
-import {strBlank} from "@/common/utils/Util";
-import FfmpegService from "@/backend/services/FfmpegService";
-import DpTaskService from "@/backend/services/DpTaskService";
-import {DpTaskState} from "@/backend/db/tables/dpTask";
-import SrtUtil from "@/common/utils/SrtUtil";
+import parseChapter, { timeStrToSecond, isTimeStrValid } from '@/common/utils/praser/chapter-parser';
+import path from 'path';
+import fs from 'fs';
+import { ChapterParseResult } from '@/common/types/chapter-result';
+import { strBlank } from '@/common/utils/Util';
+import FfmpegService from '@/backend/services/FfmpegService';
+import DpTaskService from '@/backend/services/DpTaskService';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
+import SrtUtil from '@/common/utils/SrtUtil';
 
 class SplitVideoService {
     public static async previewSplit(str: string) {
@@ -33,7 +33,7 @@ class SplitVideoService {
         }
         const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
         if (!fs.existsSync(folderName)) {
-            fs.mkdirSync(folderName, {recursive: true});
+            fs.mkdirSync(folderName, { recursive: true });
         }
 
 
@@ -50,7 +50,7 @@ class SplitVideoService {
         console.log('keyFrameAt', startSecond, ': ', t);
         await FfmpegService.splitVideo({
             inputFile: videoPath,
-            startSecond: keyFrameTime,
+            startSecond: keyFrameTime + 1,
             endSecond,
             outputFile: videoOutName
         });
@@ -71,8 +71,8 @@ class SplitVideoService {
         const lines = srt.filter(line => line.start >= keyFrameTime && line.end <= endSecond)
             .map((line, index) => ({
                 index: index + 1,
-                start: line.start - keyFrameTime,
-                end: line.end - keyFrameTime,
+                start: line.start - keyFrameTime + 0.4,
+                end: line.end - keyFrameTime + 0.4,
                 contentEn: line.contentEn,
                 contentZh: line.contentZh
             }));

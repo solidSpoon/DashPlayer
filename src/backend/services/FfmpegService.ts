@@ -29,15 +29,27 @@ export default class FfmpegService {
         console.log('splitVideo', inputFile, startSecond, endSecond, outputFile);
         await Lock.sync('ffmpeg', async () => {
             await new Promise((resolve, reject) => {
-                ffmpeg(inputFile)
-                    .setStartTime(startSecond)
-                    .setDuration(endSecond - startSecond)
-                    .outputOptions('-c copy') // codec copy
-                    .outputOptions('-avoid_negative_ts 1')
-                    .output(outputFile)
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .run();
+                const ff = spawn(ffmpeg_static, [
+                    '-y',
+                    '-ss', TimeUtil.secondToTimeStrWithMs(startSecond),
+                    '-t', (endSecond - startSecond).toString(),
+                    '-accurate_seek',
+                    '-i', inputFile,
+                    '-codec', 'copy',
+                    '-avoid_negative_ts', '1',
+                    outputFile
+                ]);
+
+
+                ff.on('close', (code) => {
+                    console.log(`child process exited with code ${code}`);
+                    resolve(null);
+                });
+
+                ff.on('error', (error) => {
+                    console.log('An error occurred while executing ffmpeg command:', error);
+                    reject(error);
+                });
             });
         });
     }
@@ -84,10 +96,10 @@ export default class FfmpegService {
      * 506.666667
      */
     public static async keyFrameAt(filePath: string, time: number) {
-        if (time <= 0) return 0;
+        if (time <= 10) return 0;
         const out = await new Promise((resolve, reject) => {
             const ff = spawn(ffprobe_static.path, [
-                '-read_intervals', `${time}%${time}`,
+                '-read_intervals', `${time-100}%${time}`,
                 '-v', 'error',
                 '-skip_frame', 'nokey',
                 '-show_entries', 'frame=pkt_pts_time',
@@ -98,6 +110,8 @@ export default class FfmpegService {
 
             let keyFrameTime: string = null;
             ff.stdout.on('data', (data) => {
+                const str = data.toString();
+                console.log('keyFrameAt', str);
                 keyFrameTime = data.toString();
             });
 

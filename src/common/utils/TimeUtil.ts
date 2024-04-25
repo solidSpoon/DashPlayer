@@ -25,6 +25,21 @@ export default class TimeUtil {
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
+    /**
+     * 00:00:00.000
+     * @param iso
+     */
+    public static secondToTimeStrWithMs(second: number | null | undefined): string {
+        if (second === null || second === undefined) {
+            return '';
+        }
+        const h = Math.floor(second / 3600);
+        const m = Math.floor(second % 3600 / 60);
+        const s = Math.floor(second % 60);
+        const ms = Math.floor((second % 1) * 1000);
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+    }
+
     public static isoToDate(iso: string): Date {
         if (strBlank(iso)) {
             return new Date();
