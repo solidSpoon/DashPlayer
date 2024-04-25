@@ -12,7 +12,7 @@ export default class FfmpegService {
     }
 
     /**
-     * ffmpeg -ss [start_time] -i input.mp4 -to [duration] -c:v libx264 -c:a aac output.mp4
+     *
      *
      */
     public static async splitVideo({
@@ -29,26 +29,13 @@ export default class FfmpegService {
         await Lock.sync('ffmpeg', async () => {
             console.log('Splitting video...', startSecond);
             return new Promise((resolve, reject) => {
-                const ff = spawn(ffmpeg_static, [
-                    '-ss', startSecond.toString(),
-                    '-i', inputFile,
-                    '-to', (endSecond - startSecond).toString(),
-                    '-c:v', 'libx264',
-                    '-c:a', 'aac',
-                    outputFile
-                ]);
-
-
-                ff.on('close', (code) => {
-                    console.log(`ffmpeg process exited with code ${code}`);
-                    resolve(null);
-                });
-
-                ff.on('error', (error) => {
-                    console.log('An error occurred while executing ffmpeg command:', error);
-                    reject(error);
-                });
-
+                ffmpeg(inputFile)
+                    .setStartTime(startSecond)
+                    .setDuration(endSecond - startSecond)
+                    .output(outputFile)
+                    .on('end', resolve)
+                    .on('error', reject)
+                    .run();
             });
         });
     }
@@ -106,7 +93,7 @@ export default class FfmpegService {
                 filePath
             ]);
 
-            let keyFrameTime:string = null;
+            let keyFrameTime: string = null;
             ff.stdout.on('data', (data) => {
                 keyFrameTime = data.toString();
             });

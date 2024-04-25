@@ -1,10 +1,10 @@
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
-import { DpTask } from '@/backend/db/tables/dpTask';
-import { YdRes } from '@/common/types/YdRes';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
-import { WatchProject } from '@/backend/db/tables/watchProjects';
-import { WatchProjectVO } from '@/backend/services/WatchProjectNewService';
+import {MsgT} from '@/common/types/msg/interfaces/MsgT';
+import {DpTask} from '@/backend/db/tables/dpTask';
+import {YdRes} from '@/common/types/YdRes';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
+import {SentenceStruct} from '@/common/types/SentenceStruct';
+import {WatchProject} from '@/backend/db/tables/watchProjects';
+import {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {ChapterParseResult} from "@/common/types/chapter-result";
 
 interface ApiDefinition {
@@ -34,7 +34,10 @@ interface DpTaskDef {
 
 interface SystemDef {
     'system/is-windows': { params: void, return: boolean };
-    'system/select-file': { params: { mode: 'file' | 'directory', filter: 'video' | 'srt' | 'none' }, return: string[] };
+    'system/select-file': {
+        params: { mode: 'file' | 'directory', filter: 'video' | 'srt' | 'none' },
+        return: string[]
+    };
     'system/path-info': {
         params: string, return: {
             /**
@@ -83,8 +86,10 @@ interface SubtitleControllerDef {
 
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
-    'split-video/split-one': { params: { filePath: string, param: ChapterParseResult }, return: number };
-    'split-video/split-srt-one': { params: { filePath: string, param: ChapterParseResult }, return: string };
+    'split-video/split-one': {
+        params: { videoPath: string, srtPath: string | null, chapter: ChapterParseResult },
+        return: number
+    };
     'split-video/thumbnail': { params: { filePath: string, time: number }, return: string };
 }
 

@@ -16,16 +16,24 @@ export default class SplitVideoController implements Controller {
         return SplitVideoService.previewSplit(str);
     }
 
-    public async splitOne({filePath, param}: { filePath: string, param: ChapterParseResult }): Promise<number> {
+    public async splitOne({
+                              videoPath,
+                              srtPath,
+                              chapter
+                          }: {
+        videoPath: string,
+        srtPath: string | null,
+        chapter: ChapterParseResult
+    }): Promise<number> {
         const taskId = await DpTaskService.create();
-        await SplitVideoService.split(taskId, filePath, param);
+        await SplitVideoService.split(taskId, {
+            videoPath,
+            srtPath,
+            chapter
+        });
         return taskId;
     }
 
-    public async splitSrtOne({filePath, param}: { filePath: string, param: ChapterParseResult }): Promise<string> {
-        console.log(filePath, param);
-        return SplitVideoService.splitSrt(filePath, param);
-    }
 
     public async thumbnail({filePath, time}: { filePath: string, time: number }): Promise<string> {
         const finalTime = TimeUtil.toGroupMiddle(time);
@@ -49,7 +57,6 @@ export default class SplitVideoController implements Controller {
     registerRoutes(): void {
         registerRoute('split-video/preview', this.previewSplit);
         registerRoute('split-video/split-one', this.splitOne);
-        registerRoute('split-video/split-srt-one', this.splitSrtOne);
         registerRoute('split-video/thumbnail', this.thumbnail);
     }
 }

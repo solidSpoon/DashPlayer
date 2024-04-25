@@ -64,19 +64,13 @@ const useSplit = create(
         runSplitOne: async (result) => {
             if (get().videoPath) {
                 const taskId = await api.call('split-video/split-one', {
-                    filePath: get().videoPath,
-                    param: result
+                    videoPath: get().videoPath,
+                    srtPath: get().srtPath,
+                    chapter: result
                 });
                 const newResult = get().parseResult
                     .map(r => (r.original === result.original ? {...r, taskId} : r));
                 set({parseResult: newResult});
-            }
-            if (get().srtPath) {
-                const newSrtPath = await api.call('split-video/split-srt-one', {
-                    filePath: get().srtPath,
-                    param: result
-                });
-                console.log(newSrtPath);
             }
         }
     }))

@@ -13,70 +13,73 @@ class SplitVideoService {
         return parseChapter(str);
     }
 
-    static async split(taskId: number, filePath: string, param: ChapterParseResult): Promise<void> {
-        if (!isTimeStrValid(param.timestampStart.value) || !isTimeStrValid(param.timestampEnd.value) || strBlank(param.title)) {
+    static async split(taskId: number, {
+        videoPath,
+        srtPath,
+        chapter
+    }: {
+        videoPath: string,
+        srtPath: string | null,
+        chapter: ChapterParseResult
+    }) {
+        if (strBlank(videoPath)) return;
+        if (!isTimeStrValid(chapter.timestampStart.value) || !isTimeStrValid(chapter.timestampEnd.value) || strBlank(chapter.title)) {
             return;
         }
-        const startSecond = timeStrToSecond(param.timestampStart.value);
-        const endSecond = timeStrToSecond(param.timestampEnd.value);
+        const startSecond = timeStrToSecond(chapter.timestampStart.value);
+        const endSecond = timeStrToSecond(chapter.timestampEnd.value);
         if (startSecond >= endSecond) {
             return;
         }
-        const folderName = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)));
+        const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
         if (!fs.existsSync(folderName)) {
             fs.mkdirSync(folderName, {recursive: true});
         }
-        const fileName = path.join(folderName, `${param.title}${path.extname(filePath)}`);
 
-        //ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
+
+        const keyFrameTime = await FfmpegService.keyFrameAt(videoPath, startSecond);
+
+        const videoOutName = path.join(folderName, `${chapter.timestampStart.value}${chapter.title}${path.extname(videoPath)}`);
+
         await DpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: '分割中'
         });
-        const t = await FfmpegService.keyFrameAt(filePath, startSecond);
-        console.log('keyFrameAt',startSecond,': ', t);
+        const t = await FfmpegService.keyFrameAt(videoPath, startSecond);
+        console.log('keyFrameAt', startSecond, ': ', t);
         await FfmpegService.splitVideo({
-            inputFile: filePath,
-            startSecond,
+            inputFile: videoPath,
+            startSecond: keyFrameTime,
             endSecond,
-            outputFile: fileName
+            outputFile: videoOutName
         });
         await DpTaskService.update({
             id: taskId,
             status: DpTaskState.DONE,
             progress: '分割完成'
         });
-    }
 
-    static async splitSrt(filePath: string, param: ChapterParseResult): Promise<string> {
-        if (!isTimeStrValid(param.timestampStart.value) || !isTimeStrValid(param.timestampEnd.value) || strBlank(param.title)) {
+        if (strBlank(srtPath)) {
             return;
         }
-        const startSecond = timeStrToSecond(param.timestampStart.value);
-        const endSecond = timeStrToSecond(param.timestampEnd.value);
-        if (startSecond >= endSecond) {
-            return;
-        }
-        const folderName = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)));
-        if (!fs.existsSync(folderName)) {
-            fs.mkdirSync(folderName, {recursive: true});
-        }
-        const fileName = path.join(folderName, `${param.title}.srt`);
+
+        const srtOutName = path.join(folderName, `${chapter.timestampStart.value}${chapter.title}.srt`);
         // SrtUtil.parseSrt()
-        const content = fs.readFileSync(filePath, 'utf-8');
+        const content = fs.readFileSync(srtOutName, 'utf-8');
         const srt = SrtUtil.parseSrt(content);
-        const lines = srt.filter(line => line.start >= startSecond && line.end <= endSecond)
+        const lines = srt.filter(line => line.start >= keyFrameTime && line.end <= endSecond)
             .map((line, index) => ({
                 index: index + 1,
-                start: line.start - startSecond,
-                end: line.end - startSecond,
+                start: line.start - keyFrameTime,
+                end: line.end - keyFrameTime,
                 contentEn: line.contentEn,
                 contentZh: line.contentZh
             }));
         const srtContent = SrtUtil.toSrt(lines);
-        fs.writeFileSync(fileName, srtContent);
-        return fileName;
+        fs.writeFileSync(srtOutName, srtContent);
+        return srtOutName;
+
     }
 
 
