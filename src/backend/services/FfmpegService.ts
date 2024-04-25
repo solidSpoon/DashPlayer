@@ -3,7 +3,7 @@ import ffmpeg_static from 'ffmpeg-static';
 import ffprobe_static from 'ffprobe-static';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 
 export default class FfmpegService {
     static {
@@ -86,24 +86,43 @@ export default class FfmpegService {
     }
 
 
-    // /**
-    //  * 获取视频关键帧的时间戳
-    //  */
-    // public static async keyFrameTimestamps(filePath: string): Promise<number[]> {
-    //     return new Promise((resolve, reject) => {
-    //         ffmpeg.ffprobe(filePath, (err, metadata) => {
-    //             if (err) {
-    //                 reject(err);
-    //                 return;
-    //             }
-    //             const keyFrames = metadata.streams
-    //                 .filter(stream => stream.codec_type === 'video')
-    //                 .flatMap(stream => stream.key_frame_pts || [])
-    //                 .map(pts => pts / stream.time_base); // Convert PTS to seconds based on the time base
-    //             resolve(keyFrames);
-    //         });
-    //     });
-    // }
+    /**
+     * 获取视频关键帧的时间戳
+     * F:\DashPlayer\node_modules\ffprobe-static\bin\win32\x64>ffprobe -read_intervals 500%510 -v error -skip_frame nokey -show_entries frame=pkt_pts_time -select_streams v -of csv=p=0 test.mp4
+     * 496.533333
+     * 501.600000
+     * 506.666667
+     */
+    public static async keyFrameAt(filePath: string, time: number) {
+        if (time <= 0) return 0;
+        const out = await new Promise((resolve, reject) => {
+            const ff = spawn(ffprobe_static.path, [
+                '-read_intervals', `${time}%${time}`,
+                '-v', 'error',
+                '-skip_frame', 'nokey',
+                '-show_entries', 'frame=pkt_pts_time',
+                '-select_streams', 'v',
+                '-of', 'csv=p=0',
+                filePath
+            ]);
+
+            let keyFrameTime:string = null;
+            ff.stdout.on('data', (data) => {
+                keyFrameTime = data.toString();
+            });
+
+            ff.on('close', (code) => {
+                console.log(`ffprobe process exited with code ${code}`);
+                resolve(keyFrameTime);
+            });
+
+            ff.on('error', (error) => {
+                console.log('An error occurred while executing ffprobe command:', error);
+                reject(error);
+            });
+        });
+        return Number(out)
+    }
 
 
     /**

@@ -34,8 +34,8 @@ class SplitVideoService {
             status: DpTaskState.IN_PROGRESS,
             progress: '分割中'
         });
-        const numbers = await FfmpegService.keyFrameTimestamps(filePath);
-        console.log('keyFrameTimestamps', numbers);
+        const t = await FfmpegService.keyFrameAt(filePath, startSecond);
+        console.log('keyFrameAt',startSecond,': ', t);
         await FfmpegService.splitVideo({
             inputFile: filePath,
             startSecond,
