@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { AiOutlineFieldTime } from 'react-icons/ai';
 import toast from 'react-hot-toast';
 import { cn } from '@/common/utils/Util';
 import usePlayerController from '../hooks/usePlayerController';
-import useLayout, { cpH, cpW } from '../hooks/useLayout';
+import useLayout from '../hooks/useLayout';
 import { sentenceClearAllAdjust } from '../hooks/usePlayerControllerSlices/createSentenceSlice';
 import { Switch } from '@/fronted/components/ui/switch';
 import { Label } from './ui/label';

@@ -45,11 +45,13 @@ const useDpTaskCenter = create(
             const time = new Date().getTime();
             newListeners.push({
                 taskId,
-                onFinish: config?.onFinish?? (() => {}),
+                onFinish: config?.onFinish ?? (() => {
+                }),
                 interval: config?.interval ?? 1000,
                 createAt: time,
             });
             updateMapping.set(taskId, time);
+            console.log('register', taskId, newListeners);
             set({listeners: newListeners});
             return taskId;
         },
@@ -76,12 +78,12 @@ let running = false;
 useDpTaskCenter.subscribe(
     (s) => s.listeners,
     async (listeners) => {
+        console.log('try start fetching tasks');
         if (running) return;
         running = true;
         console.log('start fetching tasks');
         let filterTime = new Date().getTime();
         let ls = filterRecent(listeners, filterTime);
-        if (ls.length === 0) return;
         while (ls.length > 0) {
             console.log('fetching tasks');
             let currentLs = [...ls];
@@ -103,10 +105,6 @@ useDpTaskCenter.subscribe(
                 updateMapping.set(t.id, now);
             });
             useDpTaskCenter.setState({tasks: newRes});
-            const newLs = filterRecent(useDpTaskCenter.getState().listeners, filterTime)
-                .filter(l => l.createAt > filterTime);
-            ls = ls.filter(l => !currentLs.includes(l));
-            ls = ls.concat(newLs);
             for (const l of currentLs) {
                 const status = tasksResp.get(l.taskId)?.status;
                 if (status === DpTaskState.DONE) {
@@ -116,8 +114,12 @@ useDpTaskCenter.subscribe(
                     ls.push(l);
                 }
             }
-            filterTime = now;
             await sleep(sleepTime);
+            const newLs = filterRecent(useDpTaskCenter.getState().listeners, filterTime)
+                .filter(l => l.createAt > filterTime);
+            ls = ls.filter(l => !currentLs.includes(l));
+            ls = ls.concat(newLs);
+            filterTime = now;
         }
         console.log('end fetching tasks');
         running = false;

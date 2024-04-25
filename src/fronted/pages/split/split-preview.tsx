@@ -11,10 +11,10 @@ import {
 import React from "react";
 import {Button} from "@/fronted/components/ui/button";
 import useSplit, {TaskChapterParseResult} from "@/fronted/hooks/useSplit";
-import useDpTask from "@/fronted/hooks/useDpTask";
+import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
 
 const SplitRow = ({line}: { line: TaskChapterParseResult }) => {
-    const dpTask = useDpTask(line.taskId, 1000);
+    const dpTask = useDpTaskViewer(line.taskId);
     const callSplit = useSplit(s => s.runSplitOne.bind(null, line));
     return (
         <TableRow>
@@ -35,7 +35,7 @@ const SplitRow = ({line}: { line: TaskChapterParseResult }) => {
             </TableCell>
             <TableCell>
                 <Button
-                    disabled={dpTask !== null}
+                    disabled={line.taskId !== null}
                     onClick={async () => {
                         await callSplit();
                     }}

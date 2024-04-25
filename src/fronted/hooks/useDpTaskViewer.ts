@@ -4,6 +4,7 @@ import {useEffect} from "react";
 
 const useDpTaskViewer = (taskId: number) => {
     const task: DpTask | undefined = useDpTaskCenter((s) => s.tasks.get(taskId));
+    console.log('useDpTaskViewer', taskId, task);
     useEffect(() => {
         if (taskId !== null && taskId !== undefined) {
             useDpTaskCenter.getState().tryRegister(taskId);
