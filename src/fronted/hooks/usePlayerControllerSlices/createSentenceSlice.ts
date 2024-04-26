@@ -4,19 +4,20 @@ import {
     InternalSlice,
     PlayerSlice,
     SentenceSlice,
-    SubtitleSlice,
+    SubtitleSlice
 } from './SliceTypes';
 import SentenceC from '../../../common/types/SentenceC';
 import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
+import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 
 const api = window.electron;
 const createSentenceSlice: StateCreator<
     PlayerSlice &
-        SentenceSlice &
-        InternalSlice &
-        SubtitleSlice &
-        ControllerSlice,
+    SentenceSlice &
+    InternalSlice &
+    SubtitleSlice &
+    ControllerSlice,
     [],
     [],
     SentenceSlice
@@ -31,7 +32,7 @@ const createSentenceSlice: StateCreator<
                 newSentence = sentence;
             }
             return {
-                currentSentence: newSentence,
+                currentSentence: newSentence
             };
         });
     },
@@ -55,7 +56,7 @@ const createSentenceSlice: StateCreator<
         if (!clone) {
             return;
         }
-        if (clone.originalBegin === undefined) {
+        if (clone.originalBegin === null) {
             clone.originalBegin = clone.currentBegin;
         }
         clone.currentBegin = (clone.currentBegin ?? 0) + time;
@@ -65,28 +66,32 @@ const createSentenceSlice: StateCreator<
             0.05
         ) {
             clone.currentBegin = clone.originalBegin;
-            clone.originalBegin = undefined;
+            clone.originalBegin = null;
         }
         get().mergeSubtitle([clone]);
         set({
-            currentSentence: clone,
+            currentSentence: clone
         });
         get().repeat();
         const { subtitleFile } = useFile.getState();
         if (!subtitleFile) {
             return;
         }
+        const timeDiff = (clone.originalBegin ? clone.currentBegin - clone.originalBegin : 0);
+        const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
+        usePlayerToaster.getState()
+            .setNotification({ type: 'info', text: `start: ${timeDiffStr} s` });
         api.subtitleTimestampRecord(
             SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
         );
     },
 
-    adjustEnd: (time) => {
+    adjustEnd: async (time) => {
         const clone = get().currentSentence?.clone();
         if (!clone) {
             return;
         }
-        if (clone.originalEnd === undefined) {
+        if (clone.originalEnd === null) {
             clone.originalEnd = clone.currentEnd;
         }
         clone.currentEnd = (clone.currentEnd ?? 0) + time;
@@ -95,18 +100,22 @@ const createSentenceSlice: StateCreator<
             Math.abs((clone.currentEnd ?? 0) - (clone.originalEnd ?? 0)) < 0.05
         ) {
             clone.currentEnd = clone.originalEnd;
-            clone.originalEnd = undefined;
+            clone.originalEnd = null;
         }
         get().mergeSubtitle([clone]);
         set({
-            currentSentence: clone,
+            currentSentence: clone
         });
         get().repeat();
         const { subtitleFile } = useFile.getState();
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampRecord(
+        const timeDiff = (clone.originalEnd ? clone.currentEnd - clone.originalEnd : 0);
+        const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
+        usePlayerToaster.getState()
+            .setNotification({ type: 'info', text: `end: ${timeDiffStr} s` });
+        await api.subtitleTimestampRecord(
             SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
         );
     },
@@ -116,25 +125,25 @@ const createSentenceSlice: StateCreator<
         if (!clone) {
             return;
         }
-        if (clone.originalBegin !== undefined) {
+        if (clone.originalBegin !== null) {
             clone.currentBegin = clone.originalBegin;
-            clone.originalBegin = undefined;
+            clone.originalBegin = null;
         }
-        if (clone.originalEnd !== undefined) {
+        if (clone.originalEnd !== null) {
             clone.currentEnd = clone.originalEnd;
-            clone.originalEnd = undefined;
+            clone.originalEnd = null;
         }
         get().mergeSubtitle([clone]);
         set({
-            currentSentence: clone,
+            currentSentence: clone
         });
         get().repeat();
         const { subtitleFile } = useFile.getState();
         if (!subtitleFile) {
             return;
         }
-        api.call('subtitle-timestamp/delete/by-key',clone.key);
-    },
+        api.call('subtitle-timestamp/delete/by-key', clone.key);
+    }
 });
 
 export const sentenceClearAllAdjust = async () => {
@@ -145,9 +154,9 @@ export const sentenceClearAllAdjust = async () => {
         return {
             subtitleFile: state.subtitleFile
                 ? {
-                    ...state.subtitleFile,
+                    ...state.subtitleFile
                 }
-                : null,
+                : null
         };
     });
 

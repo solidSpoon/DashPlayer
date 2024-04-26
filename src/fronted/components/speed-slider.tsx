@@ -40,14 +40,14 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                         onSelectFinish?.();
                     }}
                     className={cn(
-                        'flex flex-row w-full items-center justify-start px-8 py-1.5 rounded text-sm',
+                        'flex flex-row w-full items-center justify-start px-8 py-1.5 rounded text-sm font-mono',
                         'cursor-pointer',
                         speed === num ? 'bg-primary' : ''
                     )}
                 >
                     {num}
                 </div>
-                <div className={cn('h-full pl-2 border-l border-border')}
+                <div className={cn('h-full pl-2 border-l border-border font-mono')}
                 >
                     <TooltipProvider>
                         <Tooltip>
@@ -88,7 +88,7 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                 <Button
                     role='combobox'
                     aria-expanded={open}
-                    size={'sm'} variant='outline'><span className={cn('w-12')}>{speed.toFixed(2)}x</span></Button>
+                    size={'sm'} variant='outline'><span className={cn('w-12 font-mono')}>{speed.toFixed(2)}x</span></Button>
             </PopoverTrigger>
             <PopoverContent
                 side={'top'} align={'start'}
@@ -118,7 +118,7 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                             min={0.25} // 最小速度
                             max={16} // 最大速度
                             step={0.25} // 步进值
-                            className={cn('bg-secondary')}
+                            className={cn('bg-secondary font-mono')}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     setOpen(false);

@@ -10,6 +10,7 @@ import PlayerSubtitlePannel from '@/fronted/components/playerSubtitle/PlayerSubt
 import useLayout from '@/fronted/hooks/useLayout';
 import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
 import { cn } from '@/fronted/lib/utils';
+import PlayerToaster from '@/fronted/components/PlayerToaster';
 
 const api = window.electron;
 
@@ -237,6 +238,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                     ))}
                     {fullScreen && <PlayerSubtitlePannel />}
                     <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
+                    <PlayerToaster className="absolute top-3 left-3"/>
                 </div>
             </div>
         );

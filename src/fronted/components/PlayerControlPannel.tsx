@@ -170,7 +170,7 @@ const PlayerControlPannel = ({
                                         <Play />
                                     )}
                                 </Button>
-                                <div className=' h-full flex items-center'>
+                                <div className=' h-full flex items-center font-mono'>
                                     {`${TimeUtil.secondToTimeStr(
                                         currentValue
                                     )} / ${TimeUtil.secondToTimeStr(duration)}`}

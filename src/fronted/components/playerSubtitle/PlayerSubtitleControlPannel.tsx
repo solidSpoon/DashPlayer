@@ -104,10 +104,10 @@ const PlayerControlPannel = ({
                                 <Play />
                             )}
                         </Button>
-                        <div className=' h-full flex items-center w-40'>
+                        <div className=' h-full flex items-center w-42 font-mono'>
                             {`${TimeUtil.secondToTimeStr(
                                 currentValue
-                            )} / ${TimeUtil.secondToTimeStr(duration)}`}
+                            )}/${TimeUtil.secondToTimeStr(duration)}`}
                         </div>
                     </div>
                     <Slider

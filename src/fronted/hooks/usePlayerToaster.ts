@@ -8,7 +8,7 @@ type UseNotificationAction = {
     setNotification: (notification: UseNotificationState) => void;
 };
 
-const useNotification = create<UseNotificationState & UseNotificationAction>(
+const usePlayerToaster = create<UseNotificationState & UseNotificationAction>(
     (set) => ({
         type: 'none',
         text: '',
@@ -18,10 +18,10 @@ const useNotification = create<UseNotificationState & UseNotificationAction>(
     })
 );
 
-export default useNotification;
+export default usePlayerToaster;
 
 let timer: NodeJS.Timeout | null = null;
-useNotification.subscribe((notification) => {
+usePlayerToaster.subscribe((notification) => {
     if (notification.type === 'none') {
         return;
     }
@@ -30,6 +30,6 @@ useNotification.subscribe((notification) => {
     }
     // 1000ms 后清空通知
     timer = setTimeout(() => {
-        useNotification.setState({ type: 'none', text: '' });
-    }, 2000);
+        usePlayerToaster.setState({ type: 'none', text: '' });
+    }, 1000);
 });

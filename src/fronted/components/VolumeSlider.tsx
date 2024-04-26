@@ -20,7 +20,7 @@ const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSl
     const [localVolume, setLocalVolume] = useState<number>(volume);
     // const[pressed, setPressed] = useState(false);
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 font-mono">
             <Toggle
                 size={'sm'}
                 pressed={muted}
