@@ -1,15 +1,9 @@
 import React, {forwardRef} from 'react';
-import {
-    AiOutlinePauseCircle,
-    AiOutlinePlayCircle,
-    AiOutlineTrademarkCircle,
-} from 'react-icons/ai';
 import SentenceC from '../../common/types/SentenceC';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import {cn} from "@/fronted/lib/utils";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
-import {CircleDot} from "lucide-react";
 
 interface SideSentenceNewParam {
     sentence: SentenceC;
@@ -116,9 +110,10 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             <div
                 className={cn(
                     'm-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg',
-                    'hover:drop-shadow-lg text-subtitle drop-shadow',
+                    'hover:drop-shadow-lg drop-shadow',
                     `bg-stone-200 dark:bg-neutral-700`,
-                    `hover:bg-stone-100 dark:hover:bg-neutral-600`
+                    `hover:bg-stone-100 dark:hover:bg-neutral-600`,
+                    fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
                 )}
                 onClick={() => {
                     onClick(sentence);
