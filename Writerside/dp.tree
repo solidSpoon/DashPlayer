@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="dp"
+                 name="Dash Player"
+                 start-page="Home.topic">
+
+    <toc-element topic="Home.topic">
+    </toc-element>
+    <toc-element topic="Introduction.md"/>
+    <toc-element topic="Installation.md"/>
+    <toc-element topic="Usage.md"/>
+    <toc-element topic="Config-Translate.md">
+        <toc-element topic="配置腾讯云密钥.md"/>
+        <toc-element topic="配置有道云密钥.md"/>
+        <toc-element topic="配置-OpenAI-密钥.md"/>
+    </toc-element>
+    <toc-element topic="Use-Bluetooth-Game-Controller.md"/>
+    <toc-element topic="AI-Subtitles.md">
+        <toc-element topic="使用内置的转录功能生成字幕.md"/>
+        <toc-element topic="使用-Python-脚本生成字幕.md"/>
+        <toc-element topic="使用第三方工具生成字幕.md"/>
+    </toc-element>
+    <toc-element topic="Download-Video.md"/>
+    <toc-element topic="Theory.md"/>
+    <toc-element topic="Software-Recommendation.md"/>
+</instance-profile>
