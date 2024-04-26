@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 
 export interface SeparatorProps {
     orientation?: 'horizontal' | 'vertical';

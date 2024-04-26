@@ -30,11 +30,11 @@ export default class SubtitleTimestampAdjustmentService {
             .where(eq(subtitleTimestampAdjustments.key, key));
     }
 
-    public static async deleteByPath(subtitlePath: string): Promise<void> {
+    public static async deleteByFile(fileHash: string): Promise<void> {
         await db
             .delete(subtitleTimestampAdjustments)
             .where(
-                eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath)
+                eq(subtitleTimestampAdjustments.subtitle_hash, fileHash)
             );
     }
 
@@ -60,6 +60,16 @@ export default class SubtitleTimestampAdjustmentService {
             .from(subtitleTimestampAdjustments)
             .where(
                 eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath)
+            );
+    }
+    static getByHash(
+        h: string
+    ): Promise<SubtitleTimestampAdjustment[]> {
+        return db
+            .select()
+            .from(subtitleTimestampAdjustments)
+            .where(
+                eq(subtitleTimestampAdjustments.subtitle_hash, h.toString())
             );
     }
 }

@@ -3,7 +3,7 @@ import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import ItemWrapper from '@/fronted/components/setting/ItemWrapper';
 import Header from '@/fronted/components/setting/Header';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
 
 const api = window.electron;

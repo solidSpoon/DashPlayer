@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
 import useBoundary from '../hooks/useBoundary';
 

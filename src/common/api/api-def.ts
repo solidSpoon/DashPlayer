@@ -6,6 +6,7 @@ import {SentenceStruct} from '@/common/types/SentenceStruct';
 import {WatchProject} from '@/backend/db/tables/watchProjects';
 import {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {ChapterParseResult} from "@/common/types/chapter-result";
+import {Sentence, SrtSentence} from "@/common/types/SentenceC";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -83,6 +84,12 @@ interface WatchProjectDef {
 
 interface SubtitleControllerDef {
     'subtitle/sentences/process': { params: string[], return: SentenceStruct[] };
+    'subtitle/srt/parse-to-sentences': { params: string, return: SrtSentence | null };
+}
+
+interface SubtitleTimestampAdjustmentControllerDef {
+    'subtitle-timestamp/delete/by-file-hash': { params: string, return: void };
+    'subtitle-timestamp/delete/by-key': { params: string, return: void };
 }
 
 interface SplitVideoDef {
@@ -103,7 +110,8 @@ export type ApiDefinitions = ApiDefinition
     & AiTransDef
     & WatchProjectDef
     & SubtitleControllerDef
-    & SplitVideoDef;
+    & SplitVideoDef
+    & SubtitleTimestampAdjustmentControllerDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

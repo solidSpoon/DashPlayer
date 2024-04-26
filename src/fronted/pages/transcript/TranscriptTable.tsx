@@ -6,7 +6,7 @@ import {
     TableHeader,
     TableRow
 } from '@/fronted/components/ui/table';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import TranscriptItem from '@/fronted/components/TranscriptItem';
 import React from 'react';
 export interface TranscriptTask {

@@ -1,4 +1,4 @@
-import parseSrtSubtitles from "@/common/utils/parseSrt";
+import SrtUtil from "@/common/utils/SrtUtil";
 
 export const srtSlice = (srt: string, no: number, range: number): string => {
     // Split the SRT file into an array of subtitles
@@ -16,11 +16,11 @@ export const srtSlice = (srt: string, no: number, range: number): string => {
 }
 export const getSubtitleContent = (srt: string, no: number): string | undefined => {
     // Parse the SRT string into an array of subtitle objects
-    const subtitles = parseSrtSubtitles(srt);
+    const subtitles = SrtUtil.parseSrt(srt);
 
     // Find the subtitle object with the given number
-    const subtitle = subtitles.find(subtitle => subtitle.indexInFile === no);
+    const subtitle = subtitles.find(subtitle => subtitle.index === no);
 
     // Return the content of the found subtitle
-    return subtitle ? subtitle.text : undefined;
+    return subtitle ? subtitle.contentEn : undefined;
 }

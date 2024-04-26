@@ -1,7 +1,7 @@
 import React, {useEffect} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import TitleBar from '@/fronted/components/TitleBar/TitleBar';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';

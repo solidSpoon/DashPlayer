@@ -1,5 +1,5 @@
 import React from 'react';
-import {cn, sleep} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import Separator from '@/fronted/components/Separtor';
 import {useLocalStorage} from '@uidotdev/usehooks';
 import TranscriptFile from './TranscriptFile';

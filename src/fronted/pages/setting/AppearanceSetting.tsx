@@ -8,7 +8,7 @@ import {
 import ThemePreview from '@/fronted/components/ThemePreview';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import Separator from '@/fronted/components/Separtor';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
 
 const AppearanceSetting = () => {

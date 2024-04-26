@@ -5,10 +5,10 @@ import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 const api = window.electron;
 
 type UseFileState = {
-    videoFile: FileT | undefined;
+    videoFile: FileT | null;
     videoId: number | null;
     projectId: number | null;
-    subtitleFile: FileT | undefined;
+    subtitleFile: FileT | null;
     videoLoaded: boolean;
     openedNum: number;
 };

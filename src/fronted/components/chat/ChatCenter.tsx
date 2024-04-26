@@ -1,4 +1,4 @@
-import {cn} from "@/common/utils/Util";
+import {cn} from "@/fronted/lib/utils";
 import Separator from "@/fronted/components/Separtor";
 import {Textarea} from "@/fronted/components/ui/textarea";
 import {Button} from "@/fronted/components/ui/button";
@@ -20,7 +20,6 @@ import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import { useShallow } from 'zustand/react/shallow';
-import useSystem from "@/fronted/hooks/useSystem";
 
 const ChatCenter = () => {
     const {messages, streamingMessage, sent, input, setInput} = useChatPanel(useShallow(s=> ({

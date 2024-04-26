@@ -26,7 +26,7 @@ const PlayerSubtitle = () => {
                         adjusted={sentence.originalBegin != undefined || sentence.originalEnd != undefined}
                         clearAdjust={clearAdjust}
                         key={`first-${sentence.getKey()}`}
-                        text={item}
+                        sentence={sentence}
                     />
                 );
             }

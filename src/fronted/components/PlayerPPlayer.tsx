@@ -1,4 +1,4 @@
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
 import { darkColor, lightColor } from '@/fronted/styles/style';
 import Player from '@/fronted/components/Player';

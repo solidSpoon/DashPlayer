@@ -1,5 +1,6 @@
 import React, {} from 'react';
-import {cn, strBlank} from '@/common/utils/Util';
+import { strBlank} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';

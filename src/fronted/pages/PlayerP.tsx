@@ -2,7 +2,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useLocation, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
 import UploadButton from '@/fronted/components/UploadButton';

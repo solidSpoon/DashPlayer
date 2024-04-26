@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import toast from 'react-hot-toast';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
 import { sentenceClearAllAdjust } from '../hooks/usePlayerControllerSlices/createSentenceSlice';

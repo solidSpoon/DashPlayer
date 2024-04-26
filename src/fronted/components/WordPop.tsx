@@ -6,7 +6,7 @@ import {
     useInteractions
 } from '@floating-ui/react';
 import { YdRes } from '@/common/types/YdRes';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 
 export interface WordSubParam {
     word: string;

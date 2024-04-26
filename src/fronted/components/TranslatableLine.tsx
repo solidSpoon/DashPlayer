@@ -1,16 +1,17 @@
 import React, { ReactElement, useState } from 'react';
 import { AiOutlineFieldTime } from 'react-icons/ai';
-import hash from '../../common/utils/hash';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
-import { cn, p } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import { FONT_SIZE } from '../styles/style';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
+import SentenceC from "@/common/types/SentenceC";
+import hash from "object-hash";
 
 interface TranslatableSubtitleLineParam {
-    text: string;
+    sentence: SentenceC;
     adjusted: boolean;
     clearAdjust: () => void;
 }
@@ -26,19 +27,16 @@ const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     );
 };
 const TranslatableLine = ({
-                              text,
+                              sentence,
                               adjusted,
                               clearAdjust
                           }: TranslatableSubtitleLineParam) => {
+    const text = sentence.text;
+    const sentenceStruct = sentence.struct;
     const fontSize = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
     const show = usePlayerController((state) => state.showEn);
-    const sentenceStruct = usePlayerController((state) =>
-        state.subTitlesStructure.get(p(text))
-    );
-    console.log('sentenceStruct', sentenceStruct);
-    console.log('TranslatableLine', text, 'dd');
     const [popELe, setPopEle] = useState<string | null>(null);
     const [hovered, setHovered] = useState(false);
     const textHash = hash(text);

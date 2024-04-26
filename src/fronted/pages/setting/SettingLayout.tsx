@@ -8,7 +8,7 @@ import {
     MdStorage,
     MdTranslate
 } from 'react-icons/md';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import Separator from '@/fronted/components/Separtor';
 import {buttonVariants} from "@/fronted/components/ui/button";
 import { Bot, Command, Compass, Database, Languages, Palette, Server, WholeWord } from 'lucide-react';

@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import React from 'react';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';

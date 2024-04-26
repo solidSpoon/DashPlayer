@@ -12,4 +12,6 @@ export default class FileT {
     fileType: FileType | undefined;
 
     path: string | undefined;
+
+    fileHash: string| null;
 }

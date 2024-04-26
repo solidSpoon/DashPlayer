@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from '../VolumeSlider';
 import usePlayerController from '../../hooks/usePlayerController';
-import { cn, secondToDate } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import SpeedSlider from '../speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
@@ -10,6 +10,7 @@ import useLayout from '@/fronted/hooks/useLayout';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
 import {Pause, Play} from "lucide-react";
 import { Button } from '@/fronted/components/ui/button';
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -104,9 +105,9 @@ const PlayerControlPannel = ({
                             )}
                         </Button>
                         <div className=' h-full flex items-center w-40'>
-                            {`${secondToDate(
+                            {`${TimeUtil.secondToTimeStr(
                                 currentValue
-                            )} / ${secondToDate(duration)}`}
+                            )} / ${TimeUtil.secondToTimeStr(duration)}`}
                         </div>
                     </div>
                     <Slider

@@ -38,10 +38,7 @@ export type Channels =
     | 'store-update'
     | 'select-file'
     | 'subtitle-timestamp-record'
-    | 'subtitle-timestamp-delete-key'
-    | 'subtitle-timestamp-delete-path'
-    | 'subtitle-timestamp-get-key'
-    | 'subtitle-timestamp-get-path';
+    | 'subtitle-timestamp-get-key';
 
 const invoke = (channel: Channels, ...args: unknown[]) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -61,22 +58,6 @@ const electronHandler = {
         e: InsertSubtitleTimestampAdjustment
     ): Promise<void> => {
         await invoke('subtitle-timestamp-record', e);
-    },
-    subtitleTimestampDeleteByKey: async (key: string): Promise<void> => {
-        await invoke('subtitle-timestamp-delete-key', key);
-    },
-    subtitleTimestampDeleteByPath: async (
-        subtitlePath: string
-    ): Promise<void> => {
-        await invoke('subtitle-timestamp-delete-path', subtitlePath);
-    },
-    subtitleTimestampGetByPath: async (
-        subtitlePath: string
-    ): Promise<SubtitleTimestampAdjustment[]> => {
-        return (await invoke(
-            'subtitle-timestamp-get-path',
-            subtitlePath
-        )) as SubtitleTimestampAdjustment[];
     },
     storeSet: async (key: SettingKey, value: string | null | undefined) => {
         await invoke('store-set', key, value);

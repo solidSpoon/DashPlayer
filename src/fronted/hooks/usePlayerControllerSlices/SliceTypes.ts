@@ -1,21 +1,20 @@
-import SentenceT from '../../../common/types/SentenceT';
+import SentenceC from '../../../common/types/SentenceC';
 import TransHolder from '../../../common/utils/TransHolder';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 
 export interface SubtitleSlice {
-    subtitle: SentenceT[];
-    subTitlesStructure: Map<string, SentenceStruct>;
-    setSubtitle: (subtitle: SentenceT[]) => void;
-    mergeSubtitle: (subtitle: SentenceT[]) => void;
+    subtitle: SentenceC[];
+    setSubtitle: (subtitle: SentenceC[]) => void;
+    mergeSubtitle: (subtitle: SentenceC[]) => void;
     mergeSubtitleTrans: (holder: TransHolder<string>) => void;
-    getSubtitleAt: (time: number) => SentenceT | undefined;
-    getSubtitleAround: (index: number, num?: number) => SentenceT[];
+    getSubtitleAt: (time: number) => SentenceC | undefined;
+    getSubtitleAround: (index: number, num?: number) => SentenceC[];
 }
 
 export interface PlayerControllerInternal {
     lastSeekToOn: number;
     exactPlayTime: number;
-    subtitleIndex: Map<number, SentenceT[]>;
+    subtitleIndex: Map<number, SentenceC[]>;
     maxIndex: number;
     // wordLevel: Map<string, WrodLevelRes>;
 }
@@ -52,12 +51,12 @@ export interface PlayerSlice {
 }
 
 export interface SentenceSlice {
-    currentSentence: SentenceT | undefined;
+    currentSentence: SentenceC | undefined;
     setCurrentSentence: (
         sentence:
-            | SentenceT
+            | SentenceC
             | undefined
-            | ((prev: SentenceT | undefined) => SentenceT | undefined)
+            | ((prev: SentenceC | undefined) => SentenceC | undefined)
     ) => void;
     tryUpdateCurrentSentence: () => void;
     adjustStart: (time: number) => void;
@@ -89,5 +88,5 @@ export interface ControllerSlice {
     repeat: () => void;
     next: () => void;
     prev: () => void;
-    jump: (target: SentenceT) => void;
+    jump: (target: SentenceC) => void;
 }

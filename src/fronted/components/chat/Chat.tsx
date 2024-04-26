@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {cn, p, strBlank} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import {motion} from 'framer-motion';
 import ChatLeftWords from '@/fronted/components/chat/ChatLeftWords';
 import ChatLeftPhrases from '@/fronted/components/chat/ChatLeftPhrases';

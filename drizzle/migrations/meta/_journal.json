@@ -22,6 +22,13 @@
       "when": 1713007646532,
       "tag": "0002_curvy_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1714105274431,
+      "tag": "0003_freezing_hiroim",
+      "breakpoints": true
     }
   ]
 }

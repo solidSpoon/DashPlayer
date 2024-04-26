@@ -1,11 +1,11 @@
 import {cn} from "@/fronted/lib/utils";
 import ChatRightSentences from "@/fronted/components/chat/ChatRightSentences";
 import ChatRightSumary from "@/fronted/components/chat/ChatTopicSelector";
-import SentenceT from "@/common/types/SentenceT";
+import SentenceC from "@/common/types/SentenceC";
 
 const api = window.electron;
 const ChatRight = ({sentence, className, points}: {
-    sentence: SentenceT,
+    sentence: SentenceC,
     points: string[],
     className: string,
 }) => {

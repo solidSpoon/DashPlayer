@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import useLayout, { cpW } from '@/fronted/hooks/useLayout';
 import SideBar from '@/fronted/components/SideBar';
 

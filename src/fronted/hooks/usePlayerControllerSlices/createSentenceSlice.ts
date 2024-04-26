@@ -6,10 +6,9 @@ import {
     SentenceSlice,
     SubtitleSlice,
 } from './SliceTypes';
-import SentenceT from '../../../common/types/SentenceT';
+import SentenceC from '../../../common/types/SentenceC';
 import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
-import { sentenceKey } from '../../../common/utils/hash';
 
 const api = window.electron;
 const createSentenceSlice: StateCreator<
@@ -25,7 +24,7 @@ const createSentenceSlice: StateCreator<
     currentSentence: undefined,
     setCurrentSentence: (sentence) => {
         set((state) => {
-            let newSentence: SentenceT | undefined;
+            let newSentence: SentenceC | undefined;
             if (typeof sentence === 'function') {
                 newSentence = sentence(state.currentSentence);
             } else {
@@ -134,25 +133,24 @@ const createSentenceSlice: StateCreator<
         if (!subtitleFile) {
             return;
         }
-        api.subtitleTimestampDeleteByKey(
-            sentenceKey(subtitleFile.path ?? '', clone.index, clone.text ?? '')
-        );
+        api.call('subtitle-timestamp/delete/by-key',clone.key);
     },
 });
 
 export const sentenceClearAllAdjust = async () => {
-    await api.subtitleTimestampDeleteByPath(
-        useFile.getState().subtitleFile?.path ?? ''
+    await api.call('subtitle-timestamp/delete/by-file-hash',
+        useFile.getState().subtitleFile.fileHash
     );
     useFile.setState((state) => {
         return {
             subtitleFile: state.subtitleFile
                 ? {
-                      ...state.subtitleFile,
-                  }
-                : undefined,
+                    ...state.subtitleFile,
+                }
+                : null,
         };
     });
+
 };
 
 export default createSentenceSlice;

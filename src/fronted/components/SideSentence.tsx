@@ -4,14 +4,14 @@ import {
     AiOutlinePlayCircle,
     AiOutlineTrademarkCircle,
 } from 'react-icons/ai';
-import SentenceT from '../../common/types/SentenceT';
+import SentenceC from '../../common/types/SentenceC';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 
 interface SideSentenceNewParam {
-    sentence: SentenceT;
-    onClick: (sentence: SentenceT) => void;
+    sentence: SentenceC;
+    onClick: (sentence: SentenceC) => void;
     isCurrent: boolean;
     isRepeat: boolean;
 }

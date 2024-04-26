@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from '@/fronted/components/ui/popover';
 import { Button } from '@/fronted/components/ui/button';
 import { Label } from '@/fronted/components/ui/label';

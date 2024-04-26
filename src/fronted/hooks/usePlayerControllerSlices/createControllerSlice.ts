@@ -5,9 +5,9 @@ import {
     SentenceSlice,
     SubtitleSlice,
 } from './SliceTypes';
-import SentenceT from '../../../common/types/SentenceT';
+import SentenceC from '../../../common/types/SentenceC';
 
-function getElementAt(index: number, subtitles: SentenceT[]): SentenceT {
+function getElementAt(index: number, subtitles: SentenceC[]): SentenceC {
     let targetIndex = index;
     if (targetIndex < 0) {
         targetIndex = 0;
@@ -49,7 +49,7 @@ const createControllerSlice: StateCreator<
             });
         }
     },
-    jump: (target: SentenceT) => {
+    jump: (target: SentenceC) => {
         setState({ currentSentence: target });
         getState().seekTo({
             time: target.currentBegin ?? 0,

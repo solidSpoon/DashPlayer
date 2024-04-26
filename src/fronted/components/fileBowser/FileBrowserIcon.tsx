@@ -1,7 +1,7 @@
 import { GoFile } from 'react-icons/go';
 import React from 'react';
 import { VscFolder } from 'react-icons/vsc';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import { FileVideo2, Folder } from 'lucide-react';
 
 const baseClass = 'w-4 h-4 text-yellow-700/90 flex-shrink-0';

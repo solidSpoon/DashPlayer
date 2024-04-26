@@ -1,9 +1,9 @@
 import { ReactElement } from 'react';
-import hash from '../../common/utils/hash';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import useSetting from '../hooks/useSetting';
 import { FONT_SIZE } from '../styles/style';
+import hash from "object-hash";
 
 interface NormalLineParam {
     text: string;

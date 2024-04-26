@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useLayout from '../../hooks/useLayout';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import './TitleBarWindows.css'
 
 

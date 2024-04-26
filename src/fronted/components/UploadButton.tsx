@@ -2,7 +2,7 @@ import React from 'react';
 import { IoIosSwitch } from 'react-icons/io';
 import {AnimatePresence, motion} from 'framer-motion';
 import { FaMaximize } from 'react-icons/fa6';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import useLayout from '../hooks/useLayout';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';

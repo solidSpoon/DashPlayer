@@ -3,7 +3,6 @@ import axios from 'axios';
 import FormData from 'form-data';
 import path from 'path';
 import * as os from 'os';
-import hash from '@/common/utils/hash';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { strBlank } from '@/common/utils/Util';
@@ -11,6 +10,7 @@ import { storeGet } from '@/backend/store';
 import FfmpegService from "@/backend/services/FfmpegService";
 import RateLimiter from "@/common/utils/RateLimiter";
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
+import hash from "object-hash";
 
 interface WhisperResponse {
     language: string;
@@ -73,7 +73,7 @@ class WhisperService {
                 progress: '正在转录'
             });
             const whisperResponses = await Promise.all(files.map(async (file) => {
-                return await this.whisper(file);
+                return await this.whisperThreeTimes(file);
             }));
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             console.log('srtName', srtName);
@@ -97,6 +97,17 @@ class WhisperService {
         return base.replace(/\/+$/, '') + '/' + path.replace(/^\/+/, '');
     }
 
+    private static async whisperThreeTimes(chunk: SplitChunk): Promise<WhisperResponse> {
+        let error: any = null;
+        for (let i = 0; i < 3; i++) {
+            try {
+                return await this.whisper(chunk);
+            } catch (e) {
+                error = e;
+            }
+        }
+        throw error;
+    }
     private static async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
         await RateLimiter.wait('whisper');
         const data = new FormData();

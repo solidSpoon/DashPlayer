@@ -1,4 +1,4 @@
-import SentenceT from './SentenceT';
+import SentenceC from './SentenceC';
 
 export interface SentenceApiParam {
     index: number;
@@ -6,7 +6,7 @@ export interface SentenceApiParam {
     translate: string | undefined;
 }
 
-export const toSentenceApiParam = (sentence: SentenceT): SentenceApiParam => {
+export const toSentenceApiParam = (sentence: SentenceC): SentenceApiParam => {
     return {
         index: sentence.index,
         text: sentence.text ?? '',

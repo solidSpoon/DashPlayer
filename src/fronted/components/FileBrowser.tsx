@@ -1,6 +1,7 @@
 import React, {} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {cn, strBlank} from '@/common/utils/Util';
+import {strBlank} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/fronted/components/ui/card';
 import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';

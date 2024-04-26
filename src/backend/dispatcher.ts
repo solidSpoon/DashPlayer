@@ -14,7 +14,6 @@ import {Channels} from '@/preload';
 import SubtitleTimestampAdjustmentController from '@/backend/controllers/SubtitleTimestampAdjustmentController';
 import {
     InsertSubtitleTimestampAdjustment,
-    SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import fs from 'fs';
 import Controller from "@/backend/interfaces/controller";
@@ -23,7 +22,7 @@ import SystemController from "@/backend/controllers/SystemController";
 import DpTaskController from "@/backend/controllers/DpTaskController";
 import AiTransController from "@/backend/controllers/AiTransController";
 import WatchProjectController from '@/backend/controllers/WatchProjectController';
-import SubtitleController from '@/backend/controllers/SubtitleProcesser';
+import SubtitleController from '@/backend/controllers/SubtitleController';
 import SplitVideoController from "@/backend/controllers/SplitVideoController";
 
 
@@ -44,6 +43,7 @@ const controllers: Controller[] = [
     new WatchProjectController(),
     new SubtitleController(),
     new SplitVideoController(),
+    new SubtitleTimestampAdjustmentController()
 ]
 
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {
@@ -171,26 +171,10 @@ export default function registerHandler(mainWindowRef: { current: Electron.Cross
             await SubtitleTimestampAdjustmentController.record(e);
         }
     );
-    handle('subtitle-timestamp-delete-key', async (key: string) => {
-        await SubtitleTimestampAdjustmentController.deleteByKey(key);
-    });
-    handle('subtitle-timestamp-delete-path', async (subtitlePath: string) => {
-        await SubtitleTimestampAdjustmentController.deleteByPath(subtitlePath);
-    });
     handle('subtitle-timestamp-get-key', async (key: string) => {
         return SubtitleTimestampAdjustmentController.getByKey(key);
     });
 
-    handle(
-        'subtitle-timestamp-get-path',
-        async (
-            subtitlePath: string
-        ): Promise<SubtitleTimestampAdjustment[]> => {
-            return SubtitleTimestampAdjustmentController.getByPath(
-                subtitlePath
-            );
-        }
-    );
     controllers.forEach((controller) => {
         controller.registerRoutes();
     });

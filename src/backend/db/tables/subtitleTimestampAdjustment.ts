@@ -8,7 +8,11 @@ export const subtitleTimestampAdjustments = sqliteTable(
             autoIncrement: true,
         }),
         key: text('key').notNull().unique(),
+        /**
+         * @Deprecated
+         */
         subtitle_path: text('subtitle_name'),
+        subtitle_hash: text('subtitle_hash'),
         start_at: integer('start_at'),
         end_at: integer('end_at'),
         created_at: text('created_at')

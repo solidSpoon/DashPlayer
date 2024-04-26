@@ -1,14 +1,14 @@
 import { StateCreator } from 'zustand/esm';
-import SentenceT from '../../../common/types/SentenceT';
+import SentenceC from '../../../common/types/SentenceC';
 import { InternalSlice, SubtitleSlice } from './SliceTypes';
 
 const GROUP_SECONDS = 10;
 
-function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
+function mergeArr(baseArr: SentenceC[], diff: SentenceC[]) {
     if (diff.length === 0) {
         return baseArr;
     }
-    const mapping = new Map<number, SentenceT>();
+    const mapping = new Map<number, SentenceC>();
     diff.forEach((item) => {
         mapping.set(item.index, item);
     });
@@ -17,8 +17,8 @@ function mergeArr(baseArr: SentenceT[], diff: SentenceT[]) {
     });
 }
 
-function indexSubtitle(sentences: SentenceT[]) {
-    const map = new Map<number, SentenceT[]>();
+function indexSubtitle(sentences: SentenceC[]) {
+    const map = new Map<number, SentenceC[]>();
     sentences.forEach((item) => {
         const minIndex = Math.floor(
             Math.min(
@@ -51,14 +51,14 @@ const createSubtitleSlice: StateCreator<
 > = (set, get) => ({
     subtitle: [],
     subTitlesStructure: new Map(),
-    setSubtitle: (subtitle: SentenceT[]) => {
+    setSubtitle: (subtitle: SentenceC[]) => {
         set({ subtitle });
         get().internal.subtitleIndex = indexSubtitle(subtitle);
         get().internal.maxIndex = Math.max(
             ...Array.from(get().internal.subtitleIndex.keys())
         );
     },
-    mergeSubtitle: (diff: SentenceT[]) => {
+    mergeSubtitle: (diff: SentenceC[]) => {
         const newSubtitle = mergeArr(get().subtitle, diff);
         set({ subtitle: newSubtitle });
         get().internal.subtitleIndex = indexSubtitle(newSubtitle);

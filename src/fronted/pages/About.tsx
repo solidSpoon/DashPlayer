@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaGithub } from 'react-icons/fa';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import AboutBg from '@/fronted/components/bg/AboutBg';
 import Separator from '@/fronted/components/Separtor';
 // import logoDark from '../../../../../assets/logo-dark.png';

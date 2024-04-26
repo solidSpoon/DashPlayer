@@ -6,9 +6,9 @@ import DpTaskService from "@/backend/services/DpTaskService";
 import path from "path";
 import * as os from "node:os";
 import FfmpegService from "@/backend/services/FfmpegService";
-import hash from "@/common/utils/hash";
 import fs from "fs";
 import TimeUtil from "@/common/utils/TimeUtil";
+import hash from "object-hash";
 
 export default class SplitVideoController implements Controller {
 

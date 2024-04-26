@@ -2,22 +2,6 @@ import FileT, { FileType } from '../types/FileT';
 import { isSrt, isMedia } from './MediaTypeUtil';
 
 const api = window.electron;
-const parseFile = (file: File): FileT => {
-    const fileT = new FileT();
-    fileT.fileName = file.name;
-    fileT.path = file.path;
-    fileT.objectUrl = URL.createObjectURL(file);
-    const isaSrt = isSrt(file.name);
-    if (isaSrt) {
-        fileT.fileType = FileType.SUBTITLE;
-    } else if (isMedia(file.path)) {
-        fileT.fileType = FileType.VIDEO;
-    } else {
-        fileT.fileType = FileType.OTHER;
-    }
-    return fileT;
-};
-
 const pathToFile = async (path: string): Promise<FileT> => {
     const fileT = new FileT();
     const fileSeparator = path.lastIndexOf('/') > 0 ? '/' : '\\';
@@ -40,5 +24,3 @@ const pathToFile = async (path: string): Promise<FileT> => {
 };
 
 export { pathToFile };
-
-export default parseFile;

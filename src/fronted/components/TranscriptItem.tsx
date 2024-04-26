@@ -1,5 +1,5 @@
 import { TableCell, TableRow } from '@/fronted/components/ui/table';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import { Button } from '@/fronted/components/ui/button';
 import React, { useEffect } from 'react';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
