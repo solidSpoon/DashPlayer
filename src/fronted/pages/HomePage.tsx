@@ -68,7 +68,7 @@ const HomePage = () => {
                     <Link onClick={() => api.playerSize()} to="/split" className="font-semibold ">
                         Split Video
                     </Link>
-                    <Link to={"/transcript"} className="font-semibold ">Transcript</Link>
+                    <Link onClick={() => api.playerSize()} to={"/transcript"} className="font-semibold ">Transcript</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div
@@ -115,6 +115,7 @@ const HomePage = () => {
                             {vps?.slice(0, 3)
                                 .map((v) => (
                                     <ProjectListCard
+                                        key={v.id}
                                         onSelected={() => handleClickById(v.id)}
                                         proj={v}/>
                                 ))}
@@ -123,6 +124,7 @@ const HomePage = () => {
                     <div className={'flex flex-col mt-10'}>
                         {rest?.map((v) => (
                             <ProjectListItem
+                                key={v.id}
                                 onSelected={() => handleClickById(v.id)}
                                 proj={v}/>
                         ))}

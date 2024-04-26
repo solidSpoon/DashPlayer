@@ -7,6 +7,8 @@ import {playUrl, playWord} from '@/common/utils/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
 import {strNotBlank} from '@/common/utils/Util';
 import useSWR from "swr";
+import Style from "@/fronted/styles/style";
+import {cn} from "@/fronted/lib/utils";
 
 const api = window.electron;
 
@@ -116,9 +118,9 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                     />
                 ) : (
                     <div
-                        className={twMerge(
+                        className={cn(
                             ' rounded select-none',
-                            !show && 'text-transparent bg-wordHoverBackground',
+                            !show && ['text-transparent', Style.word_hover_bg],
                             alwaysDark ? 'hover:bg-neutral-600' : 'hover:bg-stone-100 dark:hover:bg-neutral-600'
                         )}
                         onMouseLeave={() => {

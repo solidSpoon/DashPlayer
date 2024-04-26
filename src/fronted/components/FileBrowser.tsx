@@ -7,7 +7,7 @@ import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import FolderSelecter from '@/fronted/components/fileBowser/FolderSelecter';
+import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
 import {Button} from '@/fronted/components/ui/button';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
 import {FileAudio2, FileVideo2, Folder, X} from "lucide-react";
@@ -194,7 +194,7 @@ const FileBrowser = () => {
                             >Open File</Button>
                         )}
                     />
-                    <FolderSelecter
+                    <FolderSelector
                         onSelected={(vid) => {
                             navigate(`/player/${vid}`);
                         }}
@@ -234,10 +234,14 @@ const FileBrowser = () => {
                         );
                     }}
                     videoEle={(pv) =>
-                        <VideoItem pv={pv} routerVid={vId}/>
+                        <VideoItem
+                            key={pv.id}
+                            pv={pv} routerVid={vId}/>
                     }
                     projEle={(p, hc) =>
-                        <ProjItem p={p} hc={hc} routerPid={pId}/>}
+                        <ProjItem
+                            key={p.id}
+                            p={p} hc={hc} routerPid={pId}/>}
                     className={cn('w-full h-0 flex-1 scrollbar-none')}
                 />
             </CardContent>

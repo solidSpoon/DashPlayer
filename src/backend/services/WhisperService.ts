@@ -4,9 +4,9 @@ import FormData from 'form-data';
 import path from 'path';
 import * as os from 'os';
 import DpTaskService from '@/backend/services/DpTaskService';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
-import { strBlank } from '@/common/utils/Util';
-import { storeGet } from '@/backend/store';
+import {DpTaskState} from '@/backend/db/tables/dpTask';
+import {strBlank} from '@/common/utils/Util';
+import {storeGet} from '@/backend/store';
 import FfmpegService from "@/backend/services/FfmpegService";
 import RateLimiter from "@/common/utils/RateLimiter";
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
@@ -108,6 +108,7 @@ class WhisperService {
         }
         throw error;
     }
+
     private static async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
         await RateLimiter.wait('whisper');
         const data = new FormData();
@@ -129,22 +130,18 @@ class WhisperService {
             timeout: 1000 * 60 * 10
         };
 
-        try {
-            const response = await axios(config);
-            return {
-                ...response.data,
-                offset: chunk.offset
-            } as WhisperResponse;
-        } catch (error) {
-            console.log(error);
-        }
+        const response = await axios(config);
+        return {
+            ...response.data,
+            offset: chunk.offset
+        };
     }
 
     static async convertAndSplit(filePath: string): Promise<SplitChunk[]> {
         const folderName = hash(filePath);
         const tempDir = path.join(os.tmpdir(), 'dp/whisper/', folderName);
         if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
+            fs.mkdirSync(tempDir, {recursive: true});
         }
         // 文件名为路径 hash
         const baseFileName = hash(filePath);

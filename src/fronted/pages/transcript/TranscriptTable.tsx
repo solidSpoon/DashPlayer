@@ -32,6 +32,7 @@ const TranscriptTable = ({files, onTranscript, onDelete}:{
             <TableBody>
                 {files.map((f) => (
                     <TranscriptItem
+                        key={f.file}
                         file={f.file}
                         taskId={f.taskId}
                         onStart={() => {

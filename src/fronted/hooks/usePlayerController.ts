@@ -106,6 +106,10 @@ usePlayerController.subscribe(
     }),
     async ({ playing }) => {
         if (!playing) {
+            const state = usePlayerController.getState();
+            if (state.autoPause || state.singleRepeat) {
+                return;
+            }
             updateSentenceInterval = window.setInterval(() => {
                 if (useFile.getState().videoLoaded) {
                     usePlayerController.getState().tryUpdateCurrentSentence();

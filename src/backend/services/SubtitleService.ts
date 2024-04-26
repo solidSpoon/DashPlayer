@@ -61,6 +61,10 @@ export default class SubtitleService {
     public static processSentences(sentences: string[]): SentenceStruct[] {
         return sentences.map(processSentence);
     }
+    private static cache: { fileHash: string, value: SrtSentence } = {
+        fileHash: '',
+        value: null
+    };
 
     static async parseSrt(path: string): Promise<SrtSentence> {
         if (!fs.existsSync(path)) {
@@ -69,6 +73,9 @@ export default class SubtitleService {
         const content = fs.readFileSync(path, 'utf-8');
         console.log(content)
         const h = hash(content);
+        if (this.cache.fileHash === h) {
+            return this.cache.value;
+        }
         const lines: SrtLine[] = SrtUtil.parseSrt(content);
         const subtitles = lines.map<Sentence>((line, index) => ({
             fileHash: h,
@@ -94,11 +101,14 @@ export default class SubtitleService {
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });
-        return {
+        const res = {
             fileHash: h,
             filePath: path,
             sentences: subtitles,
         };
+        this.cache.fileHash = h;
+        this.cache.value = res;
+        return res;
     }
 }
 

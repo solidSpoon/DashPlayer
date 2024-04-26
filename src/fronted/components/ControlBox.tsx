@@ -12,6 +12,7 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { SettingKey } from '@/common/types/store_schema';
 import useSystem from '@/fronted/hooks/useSystem';
+import {html} from "common-tags";
 
 const getShortcut = (key: SettingKey) => {
     return useSetting.getState().setting(key);
@@ -24,7 +25,9 @@ const ControlBox = () => {
         singleRepeat,
         changeShowEn,
         changeShowCn,
-        changeSingleRepeat
+        changeSingleRepeat,
+        autoPause,
+        changeAutoPause
     } = usePlayerController(
         useShallow((s) => ({
             showEn: s.showEn,
@@ -35,6 +38,8 @@ const ControlBox = () => {
             changeShowWordLevel: s.changeShowWordLevel,
             singleRepeat: s.singleRepeat,
             changeSingleRepeat: s.changeSingleRepeat,
+            autoPause: s.autoPause,
+            changeAutoPause: s.changeAutoPause
         }))
     );
     const setSetting = useSetting((s) => s.setSetting);
@@ -123,6 +128,13 @@ const ControlBox = () => {
                     id: 'singleRepeat',
                     label: '单句循环',
                     tooltip: `快捷键为 ${getShortcut('shortcut.repeatSentence')}`
+                })}
+                {controlItem({
+                    checked: autoPause,
+                    onCheckedChange: changeAutoPause,
+                    id: 'autoPause',
+                    label: '自动暂停',
+                    tooltip: `当前句子结束自动暂停`
                 })}
                 {controlItem({
                     checked: setting('appearance.theme') === 'dark',

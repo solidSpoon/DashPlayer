@@ -16,6 +16,7 @@ export interface PlayerControllerInternal {
     exactPlayTime: number;
     subtitleIndex: Map<number, SentenceC[]>;
     maxIndex: number;
+    onPlaySeekTime: number | null;
     // wordLevel: Map<string, WrodLevelRes>;
 }
 
@@ -48,6 +49,7 @@ export interface PlayerSlice {
     getExactPlayTime: () => number;
     setPlaybackRate: (rate: number) => void;
     nextRate: () => void;
+    onPlaySeek: (time: number) => void;
 }
 
 export interface SentenceSlice {
@@ -75,6 +77,7 @@ export interface ModeSlice {
     showEn: boolean;
     showCn: boolean;
     singleRepeat: boolean;
+    autoPause: boolean;
     showWordLevel: boolean;
 
     changeShowEn: () => void;
@@ -82,6 +85,7 @@ export interface ModeSlice {
     changeShowEnCn: () => void;
     changeSingleRepeat: () => void;
     changeShowWordLevel: () => void;
+    changeAutoPause: () => void;
 }
 
 export interface ControllerSlice {

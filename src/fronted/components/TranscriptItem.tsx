@@ -1,7 +1,7 @@
 import { TableCell, TableRow } from '@/fronted/components/ui/table';
 import {cn} from "@/fronted/lib/utils";
 import { Button } from '@/fronted/components/ui/button';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import useSWR from 'swr';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
@@ -45,18 +45,6 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
         const duration = Math.floor((updatedAt - createdAt) / 1000);
         msg = `${task.progress} ${duration}s`;
     }
-    useEffect(() => {
-        const runEffect = async () => {
-            if (task?.status === DpTaskState.DONE) {
-                console.log('attach srt');
-                await api.call('watch-project/attach-srt', {
-                    videoPath: file,
-                    srtPath: 'same'
-                })
-            }
-        }
-        runEffect().then();
-    }, [file, task?.status]);
     return (
         <TableRow>
             <TableCell className="font-medium">

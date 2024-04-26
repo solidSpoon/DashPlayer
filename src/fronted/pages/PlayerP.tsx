@@ -5,7 +5,7 @@ import useLayout, {cpW} from '@/fronted/hooks/useLayout';
 import {cn} from "@/fronted/lib/utils";
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
-import UploadButton from '@/fronted/components/UploadButton';
+import ControlButton from '@/fronted/components/ControlButton';
 import useFile from '@/fronted/hooks/useFile';
 import PlayerShortCut from '@/fronted/components/short-cut/PlayerShortCut';
 import SideBar from '@/fronted/components/SideBar';
@@ -194,7 +194,7 @@ const PlayerP = () => {
                 </div>
                 {chatTopic === 'offscreen' && (
                     <>
-                        <UploadButton/>
+                        <ControlButton/>
                         <PlayerShortCut/>
                     </>
                 )}
