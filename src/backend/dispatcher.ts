@@ -37,11 +37,6 @@ const controllers: Controller[] = [
 ]
 
 export default function registerHandler(mainWindowRef: { current: Electron.CrossProcessExports.BrowserWindow }) {
-    handle('get-audio', async (url) => {
-        log.info('get-audio', url);
-        const response = await axios.get(url, {responseType: 'arraybuffer'});
-        return response.data;
-    });
     handle('open-file', async (path: string) => {
         log.info('open-file', path);
         // 如果文件存在, 则返回文件流, 否则返回null

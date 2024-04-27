@@ -1,4 +1,5 @@
 import { strBlank } from '@/common/utils/Util';
+import UrlUtil from '@/common/utils/UrlUtil';
 
 const cache = new Map<string, string>();
 const api = window.electron;
@@ -7,7 +8,9 @@ let player: HTMLAudioElement | null = null;
 async function getAudioUrl(outURl: string) {
     let audioUrl = cache.get(outURl);
     if (!audioUrl) {
-        audioUrl = await api.fetchAudio(outURl);
+        const data = await fetch(UrlUtil.net(outURl));
+        const blob = new Blob([await data.arrayBuffer()]);
+        audioUrl = URL.createObjectURL(blob);
         cache.set(outURl, audioUrl);
     }
     return audioUrl;
@@ -15,6 +18,7 @@ async function getAudioUrl(outURl: string) {
 
 export const playAudioUrl = async (audioUrl: string) => {
     player?.pause();
+    console.log('playAudioUrl', audioUrl);
     player = new Audio(audioUrl);
     player.volume = 0.5;
     await player.play();
@@ -22,6 +26,7 @@ export const playAudioUrl = async (audioUrl: string) => {
 
 export const playUrl = async (outURl: string) => {
     const audioUrl = await getAudioUrl(outURl);
+    console.log('testcall', outURl);
     await playAudioUrl(audioUrl);
 };
 

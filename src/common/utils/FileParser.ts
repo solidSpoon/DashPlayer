@@ -1,5 +1,6 @@
 import FileT, { FileType } from '../types/FileT';
 import { isSrt, isMedia } from './MediaTypeUtil';
+import UrlUtil from '@/common/utils/UrlUtil';
 
 const api = window.electron;
 const pathToFile = async (path: string): Promise<FileT> => {
@@ -13,10 +14,7 @@ const pathToFile = async (path: string): Promise<FileT> => {
     } else if (isMedia(path)) {
         fileType = FileType.VIDEO;
     }
-    fileT.objectUrl =
-        fileType === FileType.SUBTITLE
-            ? (await api.openFile(path)) ?? ''
-            : `dp-local:///${path}`;
+    fileT.objectUrl = UrlUtil.local(path);
     fileT.fileType = fileType;
 
     console.log('fileT', fileT);

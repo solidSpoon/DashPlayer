@@ -7,7 +7,6 @@ import {ApiDefinitions, ApiMap} from "@/common/api/api-def";
 
 export type Channels =
     | 'main-state'
-    | 'get-audio'
     | 'open-file'
     | 'store-update';
 
@@ -25,11 +24,6 @@ const on = (channel: Channels, func: (...args: unknown[]) => void) => {
     };
 };
 const electronHandler = {
-    fetchAudio: async (url: string) => {
-        const data = (await invoke('get-audio', url)) as never;
-        const blob = new Blob([data], {type: 'audio/mpeg'});
-        return URL.createObjectURL(blob);
-    },
     openFile: async (path: string) => {
         const data = await invoke('open-file', path);
         if (data === null) return null;

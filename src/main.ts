@@ -1,27 +1,28 @@
-import {app, BrowserWindow, protocol, net} from 'electron';
+import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
-import registerHandler from "@/backend/dispatcher";
-import runMigrate from "@/backend/db/migrate";
-import SystemService from "@/backend/services/SystemService";
-import {DP_LOCAL, DP_NET} from "@/common/utils/UrlUtil";
-
+import registerHandler from '@/backend/dispatcher';
+import runMigrate from '@/backend/db/migrate';
+import SystemService from '@/backend/services/SystemService';
+import { DP_LOCAL, DP_NET } from '@/common/utils/UrlUtil';
+import url from 'url';
+import axios from 'axios';
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
 const mainWindowRef = {
-    current: null as BrowserWindow | null,
-}
+    current: null as BrowserWindow | null
+};
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'preload.js')
         },
         frame: false,
-        titleBarStyle: 'customButtonsOnHover',
+        titleBarStyle: 'customButtonsOnHover'
     });
     mainWindowRef.current = mainWindow;
     SystemService.mainWindowRef = mainWindow;
@@ -38,14 +39,59 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+protocol.registerSchemesAsPrivileged([
+    {
+        scheme: DP_LOCAL,
+        privileges: {
+            standard: true,
+            secure: true,
+            bypassCSP: true,
+            allowServiceWorkers: true,
+            supportFetchAPI: true,
+            stream: true,
+            codeCache: true,
+            corsEnabled: true
+        }
+    }
+]);
+protocol.registerSchemesAsPrivileged([
+    {
+        scheme: DP_NET,
+        privileges: {
+            standard: true,
+            secure: true,
+            bypassCSP: true,
+            allowServiceWorkers: true,
+            supportFetchAPI: true,
+            stream: true,
+            codeCache: true,
+            corsEnabled: false
+        }
+    }
+]);
 app.on('ready', async () => {
     await runMigrate();
     createWindow();
-    protocol.handle(DP_LOCAL, (request) =>{
-        console.log('request.url', request.url);
-       return  net.fetch('file://' + request.url.slice(`${DP_LOCAL}://`.length))});
-    protocol.handle(DP_NET, (request) =>
-         net.fetch(request.url.slice(`${DP_NET}://`.length)));
+    protocol.registerFileProtocol(DP_LOCAL, (request, callback) => {
+        const url: string = request.url.replace(`${DP_LOCAL}://`, '');
+        try {
+            return callback(decodeURIComponent(url));
+        } catch (error) {
+            console.error(error);
+            return callback('');
+        }
+    });
+    // protocol.handle(DP_LOCAL, (request) => {
+    //     const path1: string = 'file:///' + request.url.slice(`${DP_LOCAL}://`.length);
+    //     console.log('path1', path1);
+    //     return net.fetch(path1);
+    // });
+    protocol.handle(DP_NET, (request) => {
+        const url = request.url
+            .replace(`${DP_NET}://`, '')
+            .replace('https//', 'https://');
+        return net.fetch(url);
+    });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
