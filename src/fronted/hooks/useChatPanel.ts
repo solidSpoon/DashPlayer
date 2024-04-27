@@ -18,6 +18,7 @@ import ChatRunner from '@/fronted/hooks/useChatPannel/runChat';
 import {getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import UrlUtil from '@/common/utils/UrlUtil';
 
 const api = window.electron;
 
@@ -222,8 +223,9 @@ const useChatPanel = create(
             const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text);
             const tt = new HumanTopicMessage(get().topic, ct.text, phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const url = useFile.getState().subtitleFile.objectUrl ?? '';
-            const text = await fetch(url).then((res) => res.text());
+            const url = useFile.getState().subtitleFile.path ?? '';
+            const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
+            console.log('text', text);
             const punctuationTask = await api.call('ai-func/punctuation', {no: ct.indexInFile, srt: text});
             const topic = {
                 content: {

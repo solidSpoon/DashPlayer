@@ -7,13 +7,7 @@ import {ApiDefinitions, ApiMap} from "@/common/api/api-def";
 
 export type Channels =
     | 'main-state'
-    | 'open-file'
     | 'store-update';
-
-const invoke = (channel: Channels, ...args: unknown[]) => {
-    return ipcRenderer.invoke(channel, ...args);
-};
-
 const on = (channel: Channels, func: (...args: unknown[]) => void) => {
     const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
         func(...args);
@@ -24,12 +18,6 @@ const on = (channel: Channels, func: (...args: unknown[]) => void) => {
     };
 };
 const electronHandler = {
-    openFile: async (path: string) => {
-        const data = await invoke('open-file', path);
-        if (data === null) return null;
-        const blob = new Blob([data]);
-        return URL.createObjectURL(blob);
-    },
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         console.log('onStoreUpdate');
         return on('store-update', func as never);

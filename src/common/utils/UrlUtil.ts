@@ -1,16 +1,13 @@
-export const DP_LOCAL = 'dp-local';
-export const DP_NET = 'dp-net';
-
+export const DP = 'dp';
+export const DP_FILE = 'dp-file';
 
 export default class UrlUtil {
-    public static local(url: string) {
+    public static dp(url: string) {
         // url 编码
-        return `${DP_LOCAL}://${url}`
+        return `${DP}://${url}`
     }
-
-    public static net(url: string) {
+    public static file(url: string) {
         // url 编码
-        url = encodeURI(url);
-        return `${DP_NET}://${url}`
+        return `${DP_FILE}://${url}`
     }
 }

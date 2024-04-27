@@ -44,7 +44,7 @@ export default class MediaController implements Controller {
         }
         const fileName = `${hash(filePath)}-${Math.floor(finalTime)}.jpg`;
         if (fs.existsSync(path.join(tmpdir, fileName))) {
-            return UrlUtil.local(path.join(tmpdir, fileName));
+            return UrlUtil.dp(path.join(tmpdir, fileName));
         }
         await FfmpegService.thumbnail({
             inputFile: filePath,
@@ -52,7 +52,7 @@ export default class MediaController implements Controller {
             outputFolder: tmpdir,
             time: finalTime
         });
-        return UrlUtil.local(path.join(tmpdir, fileName));
+        return UrlUtil.dp(path.join(tmpdir, fileName));
     }
 
     public videoLength(filePath: string): Promise<number> {

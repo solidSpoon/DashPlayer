@@ -6,11 +6,10 @@ import {SentenceStruct} from '@/common/types/SentenceStruct';
 import {WatchProject} from '@/backend/db/tables/watchProjects';
 import {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {ChapterParseResult} from "@/common/types/chapter-result";
-import {Sentence, SrtSentence} from "@/common/types/SentenceC";
+import {SrtSentence} from "@/common/types/SentenceC";
 import {WindowState} from "@/common/types/Types";
 import {
-    InsertSubtitleTimestampAdjustment,
-    SubtitleTimestampAdjustment
+    InsertSubtitleTimestampAdjustment
 } from "@/backend/db/tables/subtitleTimestampAdjustment";
 import {SettingKey} from "@/common/types/store_schema";
 import Release from "@/common/types/release";

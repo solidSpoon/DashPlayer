@@ -3,7 +3,7 @@ import path from 'path';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
 import SystemService from '@/backend/services/SystemService';
-import { DP_LOCAL, DP_NET } from '@/common/utils/UrlUtil';
+import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import url from 'url';
 import axios from 'axios';
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -41,22 +41,7 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 protocol.registerSchemesAsPrivileged([
     {
-        scheme: DP_LOCAL,
-        privileges: {
-            standard: true,
-            secure: true,
-            bypassCSP: true,
-            allowServiceWorkers: true,
-            supportFetchAPI: true,
-            stream: true,
-            codeCache: true,
-            corsEnabled: true
-        }
-    }
-]);
-protocol.registerSchemesAsPrivileged([
-    {
-        scheme: DP_NET,
+        scheme: DP,
         privileges: {
             standard: true,
             secure: true,
@@ -72,8 +57,8 @@ protocol.registerSchemesAsPrivileged([
 app.on('ready', async () => {
     await runMigrate();
     createWindow();
-    protocol.registerFileProtocol(DP_LOCAL, (request, callback) => {
-        const url: string = request.url.replace(`${DP_LOCAL}://`, '');
+    protocol.registerFileProtocol(DP_FILE, (request, callback) => {
+        const url: string = request.url.replace(`${DP_FILE}://`, '');
         try {
             return callback(decodeURIComponent(url));
         } catch (error) {
@@ -81,16 +66,18 @@ app.on('ready', async () => {
             return callback('');
         }
     });
-    // protocol.handle(DP_LOCAL, (request) => {
-    //     const path1: string = 'file:///' + request.url.slice(`${DP_LOCAL}://`.length);
-    //     console.log('path1', path1);
-    //     return net.fetch(path1);
-    // });
-    protocol.handle(DP_NET, (request) => {
-        const url = request.url
-            .replace(`${DP_NET}://`, '')
-            .replace('https//', 'https://');
-        return net.fetch(url);
+    protocol.handle(DP, (request) => {
+        let url = request.url.replace(`${DP}://`, '');
+        if (url.startsWith('http')) {
+             url = url
+                .replace(`${DP}://`, '')
+                .replace('https//', 'https://');
+            return net.fetch(url);
+        } else {
+            const path1: string = 'file:///' + url;
+            console.log('path1', path1);
+            return net.fetch(path1);
+        }
     });
 });
 

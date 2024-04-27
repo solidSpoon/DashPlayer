@@ -7,6 +7,7 @@ import ChatService from "@/backend/services/ChatService";
 import {MsgT, toLangChainMsg} from "@/common/types/msg/interfaces/MsgT";
 import WhisperService from "@/backend/services/WhisperService";
 import AiFuncExplainSelectService from '@/backend/services/AiFuncs/AiFuncExplainSelectService';
+import UrlUtil from '@/common/utils/UrlUtil';
 
 export default class AiFuncController implements Controller {
 
@@ -53,7 +54,7 @@ export default class AiFuncController implements Controller {
     }
 
     public async tts(string: string) {
-        return `dp-local:///${await TtsService.tts(string)}`;
+        return UrlUtil.dp(await TtsService.tts(string));
     }
 
     public static async chat({msgs}: { msgs: MsgT[] }): Promise<number> {

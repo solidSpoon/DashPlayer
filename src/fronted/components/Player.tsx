@@ -186,7 +186,7 @@ console.log('vvvvvvvvvvvvp',videoFile?.path)
                         className="w-full h-full absolute top-0 left-0"
                         id="react-player-id"
                         ref={playerRef}
-                        url={UrlUtil.local(videoFile.path)}
+                        url={UrlUtil.file(videoFile.path)}
                         playing={playing}
                         controls={showControlPanel}
                         width="100%"
