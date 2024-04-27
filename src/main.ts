@@ -1,8 +1,9 @@
-import {app, BrowserWindow, protocol} from 'electron';
+import {app, BrowserWindow, protocol, net} from 'electron';
 import path from 'path';
 import registerHandler from "@/backend/dispatcher";
 import runMigrate from "@/backend/db/migrate";
 import SystemService from "@/backend/services/SystemService";
+import {DP_LOCAL, DP_NET} from "@/common/utils/UrlUtil";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -40,15 +41,11 @@ const createWindow = () => {
 app.on('ready', async () => {
     await runMigrate();
     createWindow();
-    protocol.registerFileProtocol('dp', (request, callback) => {
-        const url: string = request.url.replace('dp:///', '');
-        try {
-            return callback(decodeURIComponent(url));
-        } catch (error) {
-            console.error(error);
-            return callback('');
-        }
-    });
+    protocol.handle(DP_LOCAL, (request) =>{
+        console.log('request.url', request.url);
+       return  net.fetch('file://' + request.url.slice(`${DP_LOCAL}://`.length))});
+    protocol.handle(DP_NET, (request) =>
+         net.fetch(request.url.slice(`${DP_NET}://`.length)));
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

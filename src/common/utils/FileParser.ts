@@ -16,7 +16,7 @@ const pathToFile = async (path: string): Promise<FileT> => {
     fileT.objectUrl =
         fileType === FileType.SUBTITLE
             ? (await api.openFile(path)) ?? ''
-            : `dp:///${path}`;
+            : `dp-local:///${path}`;
     fileT.fileType = fileType;
 
     console.log('fileT', fileT);

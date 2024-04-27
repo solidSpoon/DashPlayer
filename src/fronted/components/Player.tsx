@@ -11,6 +11,7 @@ import useLayout from '@/fronted/hooks/useLayout';
 import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
 import { cn } from '@/fronted/lib/utils';
 import PlayerToaster from '@/fronted/components/PlayerToaster';
+import UrlUtil from "@/common/utils/UrlUtil";
 
 const api = window.electron;
 
@@ -158,7 +159,7 @@ export default function Player({ className }: { className?: string }): ReactElem
         seekTo({ time: progress });
         lastFile = file;
     };
-
+console.log('vvvvvvvvvvvvp',videoFile?.path)
     const render = (): ReactElement => {
         if (videoFile === undefined) {
             return <div />;
@@ -185,7 +186,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                         className="w-full h-full absolute top-0 left-0"
                         id="react-player-id"
                         ref={playerRef}
-                        url={videoFile.objectUrl ? videoFile.objectUrl : ''}
+                        url={UrlUtil.local(videoFile.path)}
                         playing={playing}
                         controls={showControlPanel}
                         width="100%"
