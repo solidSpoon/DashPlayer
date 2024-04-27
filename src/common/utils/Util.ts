@@ -32,3 +32,19 @@ export const arrayChanged = <T>(a: T[], b: T[]): boolean => {
 export const joinUrl = (base: string, path: string): string => {
     return base.replace(/\/+$/, '') + '/' + path.replace(/^\/+/, '');
 };
+
+export default class Util {
+    static strBlank = strBlank;
+    static strNotBlank = strNotBlank;
+    static engEqual = engEqual;
+    static sleep = sleep;
+    static p = p;
+    static arrayChanged = arrayChanged;
+    static joinUrl = joinUrl;
+    public static isNull(obj: any): boolean {
+        return obj === null || obj === undefined;
+    }
+    public static isNotNull(obj: any): boolean {
+        return !this.isNull(obj);
+    }
+}

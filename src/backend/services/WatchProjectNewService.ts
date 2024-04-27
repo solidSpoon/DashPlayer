@@ -3,7 +3,7 @@ import { InsertWatchProject, WatchProject, watchProjects, WatchProjectType } fro
 import { InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos } from '@/backend/db/tables/watchProjectVideos';
 import db from '@/backend/db/db';
 import fs from 'fs';
-import { isSrt, isMedia } from '@/common/utils/MediaTypeUtil';
+import MediaUtil, { isSrt } from '@/common/utils/MediaUtil';
 import path from 'path';
 
 export interface WatchProjectVO extends WatchProject {
@@ -81,7 +81,7 @@ export default class WatchProjectNewService {
     }
 
     public static async createFromFiles(filePath: string[]): Promise<number> {
-        const [videoPath] = filePath.filter((p) => isMedia(p));
+        const [videoPath] = filePath.filter((p) => MediaUtil.isMedia(p));
         if (!videoPath) {
             throw new Error('Invalid file type');
         }
@@ -151,7 +151,7 @@ export default class WatchProjectNewService {
             .returning();
 
         const files = fs.readdirSync(dirPath);
-        const videos = files.filter((f) => isMedia(f));
+        const videos = files.filter((f) => MediaUtil.isMedia(f));
         const srts = files.filter((f) => isSrt(f));
         const videoPaths = videos.map((v) => path.join(dirPath, v));
         const srtPaths = srts.map((s) => path.join(dirPath, s));

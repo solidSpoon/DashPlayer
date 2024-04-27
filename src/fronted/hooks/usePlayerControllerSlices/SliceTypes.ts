@@ -54,12 +54,6 @@ export interface PlayerSlice {
 
 export interface SentenceSlice {
     currentSentence: SentenceC | undefined;
-    setCurrentSentence: (
-        sentence:
-            | SentenceC
-            | undefined
-            | ((prev: SentenceC | undefined) => SentenceC | undefined)
-    ) => void;
     tryUpdateCurrentSentence: () => void;
     adjustStart: (time: number) => void;
     adjustEnd: (time: number) => void;

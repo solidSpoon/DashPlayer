@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import {persist, subscribeWithSelector} from 'zustand/middleware';
 import {ChapterParseResult} from "@/common/types/chapter-result";
-import {isMedia, isSrt} from "@/common/utils/MediaTypeUtil";
+import MediaUtil, {isSrt} from "@/common/utils/MediaUtil";
 import {strBlank} from "@/common/utils/Util";
 import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
 import toast from "react-hot-toast";
@@ -39,7 +39,7 @@ const useSplit = create(
                 if (strBlank(filePath)) {
                     return;
                 }
-                if (isMedia(filePath)) {
+                if (MediaUtil.isMedia(filePath)) {
                     set({videoPath: filePath});
                 }
                 if (isSrt(filePath)) {

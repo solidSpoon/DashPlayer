@@ -5,7 +5,7 @@ import {strBlank} from "@/common/utils/Util";
 export const ACCEPTED_FILE_TYPES = '.mp4,.webm,.wav,.srt,.mp3,.m4a';
 
 
-export default class MediaTypeUtil {
+export default class MediaUtil {
     public static isSrt(path: string): boolean {
         if (strBlank(path)) {
             return false;
@@ -28,16 +28,19 @@ export default class MediaTypeUtil {
         return path.endsWith('.mp3') || path.endsWith('.m4a');
     }
     public static isMedia(path: string): boolean {
-        return MediaTypeUtil.isVideo(path) || MediaTypeUtil.isAudio(path);
+        return MediaUtil.isVideo(path) || MediaUtil.isAudio(path);
+    }
+
+    public static fileName(path: string): string {
+        if (strBlank(path)) {
+            return '';
+        }
+        const fileSeparator = path.lastIndexOf('/') > 0 ? '/' : '\\';
+        return path.substring(path.lastIndexOf(fileSeparator) + 1);
     }
 }
 
-export const isMedia = (path: string): boolean => {
-    return MediaTypeUtil.isMedia(path);
-};
-
-
 
 export const isSrt = (path: string): boolean => {
-    return MediaTypeUtil.isSrt(path);
+    return MediaUtil.isSrt(path);
 };

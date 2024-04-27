@@ -1,4 +1,4 @@
-import {StateCreator} from 'zustand/esm';
+import { StateCreator } from 'zustand/esm';
 import {
     ControllerSlice,
     InternalSlice,
@@ -6,10 +6,11 @@ import {
     SentenceSlice,
     SubtitleSlice
 } from './SliceTypes';
-import SentenceC from '../../../common/types/SentenceC';
 import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
 import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
+import { strBlank } from '@/common/utils/Util';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 const createSentenceSlice: StateCreator<
@@ -23,19 +24,6 @@ const createSentenceSlice: StateCreator<
     SentenceSlice
 > = (set, get) => ({
     currentSentence: undefined,
-    setCurrentSentence: (sentence) => {
-        set((state) => {
-            let newSentence: SentenceC | undefined;
-            if (typeof sentence === 'function') {
-                newSentence = sentence(state.currentSentence);
-            } else {
-                newSentence = sentence;
-            }
-            return {
-                currentSentence: newSentence
-            };
-        });
-    },
     tryUpdateCurrentSentence: () => {
         const currentTime = get().internal.exactPlayTime;
         const cs = get().currentSentence;
@@ -46,9 +34,7 @@ const createSentenceSlice: StateCreator<
             }
         }
         const ns = get().getSubtitleAt(currentTime);
-        if (ns) {
-            set({currentSentence: ns});
-        }
+        set({ currentSentence: ns });
     },
 
     adjustStart: async (time) => {
@@ -73,19 +59,18 @@ const createSentenceSlice: StateCreator<
             currentSentence: clone
         });
         get().repeat();
-        const {subtitleFile} = useFile.getState();
-        if (!subtitleFile) {
+        const { subtitlePath } = useFile.getState();
+        if (strBlank(subtitlePath)) {
             return;
         }
         const timeDiff = (clone.originalBegin ? clone.currentBegin - clone.originalBegin : 0);
         const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
         usePlayerToaster.getState()
-            .setNotification({type: 'info', text: `start: ${timeDiffStr} s`});
+            .setNotification({ type: 'info', text: `start: ${timeDiffStr} s` });
         await api.call('subtitle-timestamp/update',
-            SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
+            SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitlePath)
         );
     },
-
     adjustEnd: async (time) => {
         const clone = get().currentSentence?.clone();
         if (!clone) {
@@ -107,16 +92,16 @@ const createSentenceSlice: StateCreator<
             currentSentence: clone
         });
         get().repeat();
-        const {subtitleFile} = useFile.getState();
-        if (!subtitleFile) {
+        const { subtitlePath } = useFile.getState();
+        if (strBlank(subtitlePath)) {
             return;
         }
         const timeDiff = (clone.originalEnd ? clone.currentEnd - clone.originalEnd : 0);
         const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
         usePlayerToaster.getState()
-            .setNotification({type: 'info', text: `end: ${timeDiffStr} s`});
+            .setNotification({ type: 'info', text: `end: ${timeDiffStr} s` });
         await api.call('subtitle-timestamp/update',
-            SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
+            SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitlePath)
         );
     },
 
@@ -138,8 +123,8 @@ const createSentenceSlice: StateCreator<
             currentSentence: clone
         });
         get().repeat();
-        const {subtitleFile} = useFile.getState();
-        if (!subtitleFile) {
+        const { subtitlePath } = useFile.getState();
+        if (strBlank(subtitlePath)) {
             return;
         }
         api.call('subtitle-timestamp/delete/by-key', clone.key);
@@ -148,18 +133,12 @@ const createSentenceSlice: StateCreator<
 
 export const sentenceClearAllAdjust = async () => {
     await api.call('subtitle-timestamp/delete/by-file-hash',
-        useFile.getState().subtitleFile.fileHash
+        useFile.getState().srtHash
     );
-    useFile.setState((state) => {
-        return {
-            subtitleFile: state.subtitleFile
-                ? {
-                    ...state.subtitleFile
-                }
-                : null
-        };
+    useFile.setState({
+        subtitlePath: null
     });
-
+    swrMutate(SWR_KEY.PLAYER_P).then();
 };
 
 export default createSentenceSlice;

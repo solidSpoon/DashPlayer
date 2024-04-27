@@ -6,6 +6,7 @@ import TranscriptFile from './TranscriptFile';
 import TranscriptTable, {TranscriptTask} from '@/fronted/pages/transcript/TranscriptTable';
 import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
+import toast from 'react-hot-toast';
 
 const api = window.electron;
 const Transcript = () => {
@@ -33,6 +34,9 @@ const Transcript = () => {
                         srtPath: 'same'
                     });
                     await swrMutate(SWR_KEY.PLAYER_P);
+                    toast('Transcript done',{
+                        icon: '🚀'
+                    });
                 }
             });
             const newFiles = files.map((f) => {

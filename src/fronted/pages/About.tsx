@@ -3,7 +3,6 @@ import {FaGithub} from 'react-icons/fa';
 import {cn} from "@/fronted/lib/utils";
 import AboutBg from '@/fronted/components/bg/AboutBg';
 import Separator from '@/fronted/components/Separtor';
-// import logoDark from '../../../../../assets/logo-dark.png';
 import logoLight from '../../../assets/logo-light.png';
 import useSystem from '@/fronted/hooks/useSystem';
 

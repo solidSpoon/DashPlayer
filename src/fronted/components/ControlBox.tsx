@@ -12,7 +12,6 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { SettingKey } from '@/common/types/store_schema';
 import useSystem from '@/fronted/hooks/useSystem';
-import {html} from "common-tags";
 
 const getShortcut = (key: SettingKey) => {
     return useSetting.getState().setting(key);

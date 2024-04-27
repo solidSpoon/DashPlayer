@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { isSrt } from '@/common/utils/MediaTypeUtil';
+import { isSrt } from '@/common/utils/MediaUtil';
 import useFile from '@/fronted/hooks/useFile';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';

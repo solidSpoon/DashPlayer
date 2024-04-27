@@ -4,9 +4,6 @@ import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
 import SystemService from '@/backend/services/SystemService';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
-import url from 'url';
-import axios from 'axios';
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
@@ -89,7 +86,7 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
-registerHandler(mainWindowRef);
+registerHandler();
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.

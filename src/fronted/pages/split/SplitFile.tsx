@@ -16,7 +16,7 @@ import {
     ContextMenuItem,
     ContextMenuTrigger
 } from "@/fronted/components/ui/context-menu";
-import MediaTypeUtil from "@/common/utils/MediaTypeUtil";
+import MediaUtil from "@/common/utils/MediaUtil";
 import {FileAudio2, FileVideo2, Folder, X} from "lucide-react";
 import Style from "@/fronted/styles/style";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
@@ -51,9 +51,9 @@ const VideoEle = ({pv, updateFile}: {
                                 }}
                             >
                                 <>
-                                    {MediaTypeUtil.isAudio(pv.video_path) &&
+                                    {MediaUtil.isAudio(pv.video_path) &&
                                         <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                    {MediaTypeUtil.isVideo(pv.video_path) &&
+                                    {MediaUtil.isVideo(pv.video_path) &&
                                         <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                     <div className='truncate w-0 flex-1'>{pv.video_name}</div>
                                 </>
@@ -110,9 +110,9 @@ const ProjEle = ({p, hc, updateFile}: { p: WatchProject, hc: () => void, updateF
                                 <>
                                     {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
                                         <Folder className={cn(Style.file_browser_icon)}/>}
-                                    {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isAudio(v?.video_path) &&
+                                    {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
                                         <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                    {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isVideo(v?.video_path) &&
+                                    {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
                                         <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                     <div className='truncate w-0 flex-1'>{p.project_name}</div>
                                     <Button size={'icon'} variant={'ghost'}

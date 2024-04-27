@@ -15,11 +15,12 @@ import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice
 import createInternalSlice from './usePlayerControllerSlices/createInternalSlice';
 import createModeSlice from './usePlayerControllerSlices/createModeSlice';
 import createControllerSlice from './usePlayerControllerSlices/createControllerSlice';
-import SentenceC from '../../common/types/SentenceC';
+import SentenceC, { SrtSentence } from '../../common/types/SentenceC';
 import useFile from './useFile';
-import { sleep } from '@/common/utils/Util';
+import Util, { sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
 import TransHolder from '../../common/utils/TransHolder';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -148,21 +149,33 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
  * 加载与翻译
  */
 useFile.subscribe(
-    (s) => s.subtitleFile,
-    async (subtitleFile) => {
-        if (subtitleFile === undefined) {
+    (s) => s.subtitlePath,
+    async (subtitlePath) => {
+        if (Util.isNull(subtitlePath)) {
             return;
         }
-        const CURRENT_FILE = useFile.getState().subtitleFile;
-        const srtSubtitles = await api.call('subtitle/srt/parse-to-sentences', subtitleFile.path);
-        const subtitle = srtSubtitles.sentences.map(s=>SentenceC.from(s));
-        if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+        const CURRENT_FILE = useFile.getState().subtitlePath;
+        const srtSubtitles: SrtSentence | null = await api.call('subtitle/srt/parse-to-sentences', subtitlePath);
+        if (Util.isNull(srtSubtitles)) {
+            if (CURRENT_FILE !== useFile.getState().subtitlePath) {
+                return;
+            }
+            useFile.setState({
+                subtitlePath: null
+            });
+            usePlayerController.getState().setSubtitle([]);
+            return;
+        }
+        const subtitle = srtSubtitles.sentences.map(s => SentenceC.from(s));
+        if (CURRENT_FILE !== useFile.getState().subtitlePath) {
             return;
         }
         usePlayerController.getState().setSubtitle(subtitle);
-        useFile.getState().subtitleFile.fileHash = srtSubtitles.fileHash;
+        useFile.setState({
+            srtHash: srtSubtitles.fileHash
+        });
         const finishedGroup = new Set<number>();
-        while (CURRENT_FILE === useFile.getState().subtitleFile) {
+        while (CURRENT_FILE === useFile.getState().subtitlePath) {
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
             console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
@@ -172,7 +185,7 @@ useFile.subscribe(
                         userCanSee.map((s) => s.text ?? '')
                     )
                 );
-                if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+                if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }
                 console.log('transHolder', transHolder);
@@ -196,14 +209,9 @@ useSetting.subscribe(
             'apiKeys.tencent.secretKey'
         )}`,
     (s, ps) => {
-        useFile.setState((state) => {
-            return {
-                subtitleFile: state.subtitleFile
-                    ? {
-                        ...state.subtitleFile
-                    }
-                    : undefined
-            };
+        useFile.setState({
+            subtitlePath: null
         });
+        swrMutate(SWR_KEY.PLAYER_P).then();
     }
 );

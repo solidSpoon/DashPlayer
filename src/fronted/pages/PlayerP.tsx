@@ -12,7 +12,6 @@ import SideBar from '@/fronted/components/SideBar';
 import Chat from '@/fronted/components/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
-import {pathToFile} from '@/common/utils/FileParser';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
 import {SWR_KEY} from "@/fronted/lib/swr-util";
@@ -47,15 +46,13 @@ const PlayerP = () => {
                 return;
             }
             useFile.setState({videoId: video.id, projectId: video.project_id});
-            const vf = useFile.getState().videoFile;
-            const sf = useFile.getState().subtitleFile;
-            if (video.video_path && vf?.path !== video.video_path) {
-                const file = await pathToFile(video.video_path);
-                useFile.getState().updateFile(file);
+            const vp = useFile.getState().videoPath;
+            const sp = useFile.getState().subtitlePath;
+            if (video.video_path && vp !== video.video_path) {
+                useFile.getState().updateFile(video.video_path);
             }
-            if (video.subtitle_path && sf?.path !== video.subtitle_path) {
-                const file = await pathToFile(video.subtitle_path);
-                useFile.getState().updateFile(file);
+            if (video.subtitle_path && sp !== video.subtitle_path) {
+                useFile.getState().updateFile(video.subtitle_path);
             }
             await api.call('watch-project/video/play', video.id);
         };

@@ -1,7 +1,6 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import { useShallow } from 'zustand/react/shallow';
-import FileT from '../../common/types/FileT';
 import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
@@ -12,6 +11,7 @@ import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
 import { cn } from '@/fronted/lib/utils';
 import PlayerToaster from '@/fronted/components/PlayerToaster';
 import UrlUtil from "@/common/utils/UrlUtil";
+import { strBlank } from '@/common/utils/Util';
 
 const api = window.electron;
 
@@ -41,14 +41,14 @@ export default function Player({ className }: { className?: string }): ReactElem
             playbackRate: state.playbackRate
         }))
     );
-    const videoFile = useFile((s) => s.videoFile);
+    const videoPath = useFile((s) => s.videoPath);
     const videoId = useFile((s) => s.videoId);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const playerRef: React.RefObject<ReactPlayer> = useRef<ReactPlayer>(null);
     const playerRefBackground: React.RefObject<HTMLCanvasElement> =
         useRef<HTMLCanvasElement>(null);
-    let lastFile: FileT | undefined;
+    let lastFile: string | undefined;
 
     const fullScreen = useLayout((s) => s.fullScreen);
 
@@ -144,12 +144,10 @@ export default function Player({ className }: { className?: string }): ReactElem
         };
     }, [videoLoaded, playerRef, playerRefBackground, podcastMode]);
 
-    const jumpToHistoryProgress = async (file: FileT) => {
+    const jumpToHistoryProgress = async (file: string) => {
         if (file === lastFile) {
             return;
         }
-
-
         if (videoId === null) {
             return;
         }
@@ -159,9 +157,10 @@ export default function Player({ className }: { className?: string }): ReactElem
         seekTo({ time: progress });
         lastFile = file;
     };
-console.log('vvvvvvvvvvvvp',videoFile?.path)
+
+    console.log('videoPath', videoPath);
     const render = (): ReactElement => {
-        if (videoFile === undefined) {
+        if (strBlank(videoPath)) {
             return <div />;
         }
         return (
@@ -186,7 +185,7 @@ console.log('vvvvvvvvvvvvp',videoFile?.path)
                         className="w-full h-full absolute top-0 left-0"
                         id="react-player-id"
                         ref={playerRef}
-                        url={UrlUtil.file(videoFile.path)}
+                        url={UrlUtil.file(videoPath)}
                         playing={playing}
                         controls={showControlPanel}
                         width="100%"
@@ -213,8 +212,8 @@ console.log('vvvvvvvvvvvvp',videoFile?.path)
                             setDuration(duration);
                         }}
                         onStart={async () => {
-                            await jumpToHistoryProgress(videoFile);
-                            loadedVideo(videoFile);
+                            await jumpToHistoryProgress(videoPath);
+                            loadedVideo(videoPath);
                         }}
                         onReady={() => {
                             if (!videoLoaded) {

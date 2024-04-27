@@ -18,7 +18,7 @@ import {
 } from "@/fronted/components/ui/context-menu";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 import Style from "@/fronted/styles/style";
-import MediaTypeUtil from "@/common/utils/MediaTypeUtil";
+import MediaUtil from "@/common/utils/MediaUtil";
 import useSWR from "swr";
 
 const api = window.electron;
@@ -59,9 +59,9 @@ const ProjEle = ({p, hc, onAddToQueue, queue}: {
                                     <>
                                         {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
                                             <Folder className={cn(Style.file_browser_icon)}/>}
-                                        {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isAudio(v?.video_path) &&
+                                        {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
                                             <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                        {p.project_type === WatchProjectType.FILE && MediaTypeUtil.isVideo(v?.video_path) &&
+                                        {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
                                             <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                         <div className="truncate text-base">{p.project_name}</div>
                                     </>

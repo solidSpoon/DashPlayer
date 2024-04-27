@@ -1,7 +1,7 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
 import {app, dialog, shell} from 'electron';
-import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaTypeUtil';
+import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaUtil';
 import path from 'path';
 import {clearDB} from "@/backend/db/db";
 import {WindowState} from "@/common/types/Types";
