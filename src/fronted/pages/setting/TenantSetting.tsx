@@ -49,8 +49,8 @@ const TenantSetting = () => {
             </ItemWrapper>
             <FooterWrapper>
                 <Button
-                    onClick={() => {
-                        api.openUrl(
+                    onClick={async () => {
+                        await api.call('system/open-url',
                             'https://solidspoon.xyz/docs/dash-player/intro'
                         );
                     }}

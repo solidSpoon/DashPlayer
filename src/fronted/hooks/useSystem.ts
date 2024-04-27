@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
-import { WindowState } from '@/common/types/Types';
+import {create} from 'zustand';
+import {subscribeWithSelector} from 'zustand/middleware';
+import {WindowState} from '@/common/types/Types';
 
 const api = window.electron;
 type State = {
@@ -23,11 +23,11 @@ const useSystem = create(
         appVersion: '',
         isMain: true,
         windowState: 'normal',
-        setIsWin: (isWin: boolean) => set({ isWindows: isWin }),
-        setAppVersion: (appVersion: string) => set({ appVersion }),
-        setIsMain: (isMain: boolean) => set({ isMain }),
+        setIsWin: (isWin: boolean) => set({isWindows: isWin}),
+        setAppVersion: (appVersion: string) => set({appVersion}),
+        setIsMain: (isMain: boolean) => set({isMain}),
         setWindowState: (windowsState: WindowState) =>
-            set({ windowState: windowsState })
+            set({windowState: windowsState})
     }))
 );
 
@@ -46,7 +46,7 @@ export const syncStatus = () => {
         });
     });
 
-    api.appVersion().then((appVersion) => {
+    api.call('system/app-version', null).then((appVersion) => {
         useSystem.setState({
             appVersion
         });
@@ -55,7 +55,7 @@ export const syncStatus = () => {
     useSystem.subscribe(
         (s) => s.windowState,
         (state) => {
-            api.setMainState(state);
+            api.call('system/window-size/change', state);
         }
     );
     useSystem.subscribe(console.log);

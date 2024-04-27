@@ -24,7 +24,7 @@ export default class SubtitleTimestampAdjustmentController implements Controller
         return SubtitleTimestampAdjustmentService.getByPath(subtitlePath);
     }
 
-    public static async record(
+    public async record(
         e: InsertSubtitleTimestampAdjustment
     ): Promise<void> {
         await SubtitleTimestampAdjustmentService.record(e);
@@ -41,6 +41,7 @@ export default class SubtitleTimestampAdjustmentController implements Controller
     registerRoutes(): void {
         registerRoute('subtitle-timestamp/delete/by-file-hash', this.deleteByFile);
         registerRoute('subtitle-timestamp/delete/by-key', this.deleteByKey);
+        registerRoute('subtitle-timestamp/update', this.record);
     }
 
 }

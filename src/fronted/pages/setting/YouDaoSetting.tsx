@@ -5,16 +5,17 @@ import Header from '@/fronted/components/setting/Header';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
+import {as} from "tencentcloud-sdk-nodejs";
 
 const api = window.electron;
 const YouDaoSetting = () => {
-    const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
+    const {setting, setSettingFunc, submit, eqServer} = useSettingForm([
         'apiKeys.youdao.secretId',
         'apiKeys.youdao.secretKey',
     ]);
     return (
         <form className="w-full h-full flex flex-col gap-4">
-            <Header title="查单词" description="配置有道密钥以启用查词功能" />
+            <Header title="查单词" description="配置有道密钥以启用查词功能"/>
             <ItemWrapper>
                 <SettingInput
                     inputWidth="w-64"
@@ -47,8 +48,8 @@ const YouDaoSetting = () => {
             </ItemWrapper>
             <FooterWrapper>
                 <Button
-                    onClick={() => {
-                        api.openUrl(
+                    onClick={async () => {
+                        await api.call('system/open-url',
                             'https://solidspoon.xyz/docs/dash-player/intro'
                         );
                     }}

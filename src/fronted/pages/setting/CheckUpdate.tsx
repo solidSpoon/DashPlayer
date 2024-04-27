@@ -1,27 +1,18 @@
-import {useEffect, useState} from 'react';
-import Release from '@/common/types/release';
 import Header from '@/fronted/components/setting/Header';
 import ItemWrapper from '@/fronted/components/setting/ItemWrapper';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import {Button} from "@/fronted/components/ui/button";
 import Md from "@/fronted/components/chat/markdown";
 import {codeBlock} from "common-tags";
+import useSWR from "swr";
 
 const api = window.electron;
 
 const CheckUpdate = () => {
-    const [newRelease, setNewRelease] = useState<Release[]>([]);
 
-    const [checking, setChecking] = useState<boolean>(true);
-
-    useEffect(() => {
-        const fun = async () => {
-            const nr = await api.checkUpdate();
-            setNewRelease(nr);
-            setChecking(false);
-        };
-        fun();
-    }, []);
+    const {data: newRelease, isLoading: checking} = useSWR('system/check-update', async () => {
+        return await api.call('system/check-update', null);
+    });
 
     return (
         <div className="w-full h-full flex flex-col gap-4">
@@ -47,8 +38,8 @@ const CheckUpdate = () => {
             </ItemWrapper>
             <FooterWrapper>
                 <Button
-                    onClick={() => {
-                        api.openUrl(
+                    onClick={async () => {
+                        await api.call('system/open-url',
                             'https://github.com/solidSpoon/DashPlayer/releases/latest'
                         );
                     }}

@@ -8,14 +8,14 @@ import {Button} from "@/fronted/components/ui/button";
 
 const api = window.electron;
 const OpenAiSetting = () => {
-    const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
+    const {setting, setSettingFunc, submit, eqServer} = useSettingForm([
         'apiKeys.openAi.key',
         'apiKeys.openAi.endpoint',
     ]);
 
     return (
         <form className="w-full h-full flex flex-col gap-4">
-            <Header title="OpenAI" description="配置 OpenAI 密钥以启用转录、AI 生成等功能" />
+            <Header title="OpenAI" description="配置 OpenAI 密钥以启用转录、AI 生成等功能"/>
             <ItemWrapper>
                 <SettingInput
                     setValue={setSettingFunc('apiKeys.openAi.key')}
@@ -51,8 +51,8 @@ const OpenAiSetting = () => {
             </ItemWrapper>
             <FooterWrapper>
                 <Button
-                    onClick={() => {
-                        api.openUrl(
+                    onClick={async () => {
+                        await api.call('system/open-url',
                             'https://solidspoon.xyz/docs/dash-player/intro'
                         );
                     }}

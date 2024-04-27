@@ -2,7 +2,7 @@ import { SentenceStruct } from '@/common/types/SentenceStruct';
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
 import SubtitleService from '@/backend/services/SubtitleService';
-import {Sentence, SrtSentence} from "@/common/types/SentenceC";
+import {SrtSentence} from "@/common/types/SentenceC";
 
 
 export default class SubtitleController implements Controller {
@@ -20,7 +20,5 @@ export default class SubtitleController implements Controller {
         registerRoute('subtitle/sentences/process', this.processSentences);
         registerRoute('subtitle/srt/parse-to-sentences', this.parseSrt);
     }
-
-
 }
 

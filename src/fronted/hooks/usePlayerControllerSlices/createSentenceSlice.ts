@@ -1,4 +1,4 @@
-import { StateCreator } from 'zustand/esm';
+import {StateCreator} from 'zustand/esm';
 import {
     ControllerSlice,
     InternalSlice,
@@ -47,11 +47,11 @@ const createSentenceSlice: StateCreator<
         }
         const ns = get().getSubtitleAt(currentTime);
         if (ns) {
-            set({ currentSentence: ns });
+            set({currentSentence: ns});
         }
     },
 
-    adjustStart: (time) => {
+    adjustStart: async (time) => {
         const clone = get().currentSentence?.clone();
         if (!clone) {
             return;
@@ -73,15 +73,15 @@ const createSentenceSlice: StateCreator<
             currentSentence: clone
         });
         get().repeat();
-        const { subtitleFile } = useFile.getState();
+        const {subtitleFile} = useFile.getState();
         if (!subtitleFile) {
             return;
         }
         const timeDiff = (clone.originalBegin ? clone.currentBegin - clone.originalBegin : 0);
         const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
         usePlayerToaster.getState()
-            .setNotification({ type: 'info', text: `start: ${timeDiffStr} s` });
-        api.subtitleTimestampRecord(
+            .setNotification({type: 'info', text: `start: ${timeDiffStr} s`});
+        await api.call('subtitle-timestamp/update',
             SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
         );
     },
@@ -107,15 +107,15 @@ const createSentenceSlice: StateCreator<
             currentSentence: clone
         });
         get().repeat();
-        const { subtitleFile } = useFile.getState();
+        const {subtitleFile} = useFile.getState();
         if (!subtitleFile) {
             return;
         }
         const timeDiff = (clone.originalEnd ? clone.currentEnd - clone.originalEnd : 0);
         const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
         usePlayerToaster.getState()
-            .setNotification({ type: 'info', text: `end: ${timeDiffStr} s` });
-        await api.subtitleTimestampRecord(
+            .setNotification({type: 'info', text: `end: ${timeDiffStr} s`});
+        await api.call('subtitle-timestamp/update',
             SubtitleAdjustmentTypeConverter.fromSentence(clone, subtitleFile)
         );
     },
@@ -138,7 +138,7 @@ const createSentenceSlice: StateCreator<
             currentSentence: clone
         });
         get().repeat();
-        const { subtitleFile } = useFile.getState();
+        const {subtitleFile} = useFile.getState();
         if (!subtitleFile) {
             return;
         }

@@ -3,4 +3,6 @@ export type WindowState =
     | 'maximized'
     | 'minimized'
     | 'fullscreen'
-    | 'closed';
+    | 'closed'
+    | 'home'
+    | 'player';

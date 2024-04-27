@@ -10,7 +10,7 @@ const StorageSetting = () => {
 
     useEffect(() => {
         const init = async () => {
-            const s = await api.queryCacheSize();
+            const s = await api.call('storage/cache/size', null);
             setSize(s);
         };
         init();
@@ -21,7 +21,7 @@ const StorageSetting = () => {
     };
 
     const handleOpen = async () => {
-        await api.openDataFolder();
+        await api.call('system/open-folder/cache', null);
     };
 
     return (

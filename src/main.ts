@@ -2,6 +2,7 @@ import {app, BrowserWindow, protocol} from 'electron';
 import path from 'path';
 import registerHandler from "@/backend/dispatcher";
 import runMigrate from "@/backend/db/migrate";
+import SystemService from "@/backend/services/SystemService";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -22,6 +23,7 @@ const createWindow = () => {
         titleBarStyle: 'customButtonsOnHover',
     });
     mainWindowRef.current = mainWindow;
+    SystemService.mainWindowRef = mainWindow;
     // and load the index.html of the app.
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);

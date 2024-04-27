@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaGithub } from 'react-icons/fa';
+import {FaGithub} from 'react-icons/fa';
 import {cn} from "@/fronted/lib/utils";
 import AboutBg from '@/fronted/components/bg/AboutBg';
 import Separator from '@/fronted/components/Separtor';
@@ -19,7 +19,7 @@ const About = () => {
                 </h2>
             </div>
             <div className="w-full h-32 ">
-                <AboutBg />
+                <AboutBg/>
             </div>
             <div className={cn('flex w-full justify-center items-start')}>
                 <div
@@ -50,14 +50,14 @@ const About = () => {
                         'w-full h-24 flex items-center gap-3 text-neutral-500 translate-y-5'
                     )}
                 >
-                    <Separator orientation="horizontal" />
+                    <Separator orientation="horizontal"/>
                     solidSpoon
-                    <Separator orientation="horizontal" />
+                    <Separator orientation="horizontal"/>
                 </div>
                 <div className={cn('flex justify-end p-3')}>
                     <FaGithub
-                        onClick={() => {
-                            api.openUrl(
+                        onClick={async () => {
+                            await api.call('system/open-url',
                                 'https://github.com/solidSpoon/DashPlayer'
                             );
                         }}

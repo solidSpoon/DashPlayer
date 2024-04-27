@@ -29,7 +29,7 @@ const HomePage = () => {
             return;
         }
         const videoId = video.id;
-        await api.playerSize();
+        await api.call('system/window-size/change', 'player');
         changeSideBar(false);
         navigate(`/player/${videoId}`);
     }
@@ -40,7 +40,7 @@ const HomePage = () => {
     // 从第四个开始截取num个
     const rest = vps?.slice(3, num + 3);
     useEffect(() => {
-        api.homeSize().then();
+        api.call('system/window-size/change', 'home').then();
         clear();
     }, [clear]);
     console.log('vpsl', vps?.length, rest?.length, num)
@@ -61,14 +61,15 @@ const HomePage = () => {
                 >
                     <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
                     <Link
-                        onClick={() => api.playerSize()}
+                        onClick={() => api.call('system/window-size/change', 'player')}
                         to="/home" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
-                    <Link onClick={() => api.playerSize()} to="/split" className="font-semibold ">
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split" className="font-semibold ">
                         Split Video
                     </Link>
-                    <Link onClick={() => api.playerSize()} to={"/transcript"} className="font-semibold ">Transcript</Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/transcript"}
+                          className="font-semibold ">Transcript</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div
@@ -76,7 +77,7 @@ const HomePage = () => {
                     >
                         <FileSelector
                             onSelected={async (vid) => {
-                                await api.playerSize();
+                                await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
                             }}
@@ -90,7 +91,7 @@ const HomePage = () => {
                         />
                         <FolderSelecter
                             onSelected={async (vid) => {
-                                await api.playerSize();
+                                await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
                             }}

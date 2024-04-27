@@ -10,7 +10,7 @@ import fs from "fs";
 import TimeUtil from "@/common/utils/TimeUtil";
 import hash from "object-hash";
 
-export default class SplitVideoController implements Controller {
+export default class MediaController implements Controller {
 
     public async previewSplit(str: string): Promise<ChapterParseResult[]> {
         return SplitVideoService.previewSplit(str);
@@ -57,6 +57,8 @@ export default class SplitVideoController implements Controller {
     public videoLength(filePath: string ): Promise<number> {
         return FfmpegService.duration(filePath);
     }
+
+
 
     registerRoutes(): void {
         registerRoute('split-video/preview', this.previewSplit);

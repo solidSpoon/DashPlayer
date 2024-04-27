@@ -1,6 +1,10 @@
-import { app, shell } from 'electron';
+import {app, shell} from 'electron';
 import fs from 'fs';
 import path from 'path';
+import Controller from "@/backend/interfaces/controller";
+import StorageService from "@/backend/services/StorageService";
+import {SettingKey} from "@/common/types/store_schema";
+import registerRoute from "@/common/api/register";
 
 export const BASE_PATH = path.join(app.getPath('userData'), 'useradd');
 /**
@@ -47,3 +51,22 @@ export const queryCacheSize = async () => {
     const size = stats.reduce((acc, stat) => acc + stat.size, 0);
     return formatBytes(size);
 };
+
+export default class StorageController implements Controller {
+    public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
+        await StorageService.storeSet(key, value);
+    }
+
+    public async storeGet(key: SettingKey): Promise<string> {
+        return StorageService.storeGet(key);
+    }
+
+    public async queryCacheSize(): Promise<string> {
+        return queryCacheSize();
+    }
+    registerRoutes(): void {
+        registerRoute('storage/put', this.storeSet);
+        registerRoute('storage/get', this.storeGet);
+        registerRoute('storage/cache/size', this.queryCacheSize);
+    }
+}

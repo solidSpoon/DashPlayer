@@ -7,6 +7,13 @@ import {WatchProject} from '@/backend/db/tables/watchProjects';
 import {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import {Sentence, SrtSentence} from "@/common/types/SentenceC";
+import {WindowState} from "@/common/types/Types";
+import {
+    InsertSubtitleTimestampAdjustment,
+    SubtitleTimestampAdjustment
+} from "@/backend/db/tables/subtitleTimestampAdjustment";
+import {SettingKey} from "@/common/types/store_schema";
+import Release from "@/common/types/release";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -58,6 +65,11 @@ interface SystemDef {
     };
     'system/reset-db': { params: void, return: void };
     'system/open-folder': { params: string, return: void };
+    'system/open-folder/cache': { params: void, return: void };
+    'system/window-size/change': { params: WindowState, return: void };
+    'system/check-update': { params: void, return: Release[] };
+    'system/open-url': { params: string, return: void };
+    'system/app-version': { params: void, return: string };
 }
 
 interface AiTransDef {
@@ -90,6 +102,13 @@ interface SubtitleControllerDef {
 interface SubtitleTimestampAdjustmentControllerDef {
     'subtitle-timestamp/delete/by-file-hash': { params: string, return: void };
     'subtitle-timestamp/delete/by-key': { params: string, return: void };
+    'subtitle-timestamp/update': { params: InsertSubtitleTimestampAdjustment, return: void };
+}
+
+interface StorageDef {
+    'storage/put': { params: { key: SettingKey, value: string }, return: void };
+    'storage/get': { params: SettingKey, return: string };
+    'storage/cache/size': { params: void, return: string };
 }
 
 interface SplitVideoDef {
@@ -111,7 +130,8 @@ export type ApiDefinitions = ApiDefinition
     & WatchProjectDef
     & SubtitleControllerDef
     & SplitVideoDef
-    & SubtitleTimestampAdjustmentControllerDef;
+    & SubtitleTimestampAdjustmentControllerDef
+    & StorageDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {
