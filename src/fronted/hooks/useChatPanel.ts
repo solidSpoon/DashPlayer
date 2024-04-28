@@ -414,6 +414,7 @@ export function getInternalContext(): string | null {
 
 
 const extractTopic = (t: Topic): string => {
+    console.log('extractTopic', t);
     if (t === 'offscreen') return 'offscreen';
     if (typeof t.content === 'string') return t.content;
     const content = t.content;
@@ -423,6 +424,12 @@ const extractTopic = (t: Topic): string => {
         return 'extractTopic failed';
     }
     let st = subtitle[content.start.sIndex].text;
+    if (content.start.sIndex === content.end.sIndex) {
+        if (content.start.cIndex > 0 && content.end.cIndex <= st.length && content.start.cIndex < content.end.cIndex) {
+            st = st.slice(content.start.cIndex, content.end.cIndex);
+        }
+        return st;
+    }
     // from t.start.cIndex to end of st
     if (content.start.cIndex > 0 && content.start.cIndex <= st.length) {
         st = st.slice(content.start.cIndex);
