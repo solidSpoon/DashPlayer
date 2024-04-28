@@ -14,4 +14,12 @@
         <description><![CDATA[Created after removal of "<Software-Recommendation.md>" from Dash Player]]></description>
         <accepts>Software-Recommendation.html</accepts>
     </rule>
+    <rule id="5c1bc4d9">
+        <description>Created after removal of "使用第三方工具生成字幕" from Dash Player</description>
+        <accepts>使用第三方工具生成字幕.html</accepts>
+    </rule>
+    <rule id="2a00fdab">
+        <description>Created after removal of "DashPlayer 简介" from Dash Player</description>
+        <accepts>Introduction.html</accepts>
+    </rule>
 </rules>

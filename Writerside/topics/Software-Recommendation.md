@@ -8,10 +8,6 @@ DashPlayer 目前专注于播放本地视频, 如果你想要在线观看视频,
 
 -   [Language REACTOR](https://www.languagereactor.com/)
 -   [Trancy](https://www.trancy.org/)
--   [Migaku](https://migaku.com/)
--   [Lingopie](https://lingopie.com/)
--   [CaptionPop](https://www.captionpop.com/?nl=en)
--   [LingQ](https://www.lingq.com/)
 
 ## 移动端
 

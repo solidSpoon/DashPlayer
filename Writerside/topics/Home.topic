@@ -23,7 +23,7 @@
         <!--    Add up to 2 topics that you want to promote. Use the "type" attribute to select an icon.    -->
         <spotlight>
             <a href="Theory.md" type="idea"  summary="了解 DashPlayer 背后的学习理论">理论依据</a>
-            <a href="Introduction.md" type="presentation" summary="了解DashPlayer的基本概念和功能">简介</a>
+            <a href="https://dash-player.solidspoon.xyz/" type="presentation" summary="去官网了解基本功能">简介</a>
         </spotlight>
 
         <!--    Add several topics that are most important for this section.    -->
@@ -32,14 +32,15 @@
             <a href="Installation.md" summary="DashPlayer 目前没有进行应用签名, 因此您在安装过程中可能会收到操作系统的警告, 这里是解决办法">安装教程</a>
             <a href="Usage.md" summary='这里是 DashPlayer 的基础使用方法'>使用教程</a>
             <a href="Config-Translate.md" summary='这里是配置字幕翻译和查单词的教程'>配置机器翻译</a>
+            <a href="AI-Subtitles.md">为没有字幕的视频添加字幕</a>
         </primary>
 
         <!--    Add several topics that are less important or are relevant only for advanced/experienced users.    -->
         <secondary>
             <title>进阶主题</title>
             <a href='Use-Bluetooth-Game-Controller.md' summary='观看视频时您可能要频繁使用快捷键, 蓝牙手柄比快捷键更方便'>使用蓝牙手柄控制播放</a>
-            <a href="AI-Subtitles.md">为没有字幕的视频添加字幕</a>
             <a href="Download-Video.md">想播放在线视频怎么办?</a>
+            <a href="分割长视频.md">视频太长看起来太累？</a>
             <a href='Software-Recommendation.md'>有跟 DashPlayer 同类型的软件吗?</a>
         </secondary>
 
