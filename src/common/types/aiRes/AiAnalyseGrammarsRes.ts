@@ -9,7 +9,7 @@ export class AiAnalyseGrammarsPrompt {
     });
 
     public static promptFunc = (s: string) => codeBlock`
-        列出下面句子包含的语法
+        用中文分析下面句子包含的语法
 
         """sentence
         ${s}
