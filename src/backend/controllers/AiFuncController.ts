@@ -40,6 +40,11 @@ export default class AiFuncController implements Controller {
         AiFuncService.polish(taskId, sentence).then();
         return taskId;
     }
+    public async formatSplit(text: string) {
+        const taskId = await DpTaskService.create();
+        AiFuncService.formatSplit(taskId, text).then();
+        return taskId;
+    }
 
     public async phraseGroup(sentence: string) {
         const taskId = await DpTaskService.create();
@@ -89,6 +94,7 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/make-example-sentences', this.makeSentences);
         registerRoute('ai-func/punctuation', this.punctuation);
         registerRoute('ai-func/polish', this.polish);
+        registerRoute('ai-func/format-split', this.formatSplit);
         registerRoute('ai-func/phrase-group', this.phraseGroup);
         registerRoute('ai-func/tts', this.tts);
         registerRoute('ai-func/chat', AiFuncController.chat);

@@ -58,7 +58,7 @@ export type ChatPanelState = {
     topic: Topic
     newVocabulary: AiAnalyseNewWordsRes;
     newPhrase: AiAnalyseNewPhrasesRes;
-    newGrammar: AiAnalyseGrammarsRes;
+    newGrammar: string;
     newSentence: AiMakeExampleSentencesRes;
     messages: CustomMessage<any>[];
     streamingMessage: CustomMessage<any> | null;
@@ -223,7 +223,7 @@ const useChatPanel = create(
             const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text);
             const tt = new HumanTopicMessage(get().topic, ct.text, phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const url = useFile.getState().subtitleFile.path ?? '';
+            const url = useFile.getState().subtitlePath ?? '';
             const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
             console.log('text', text);
             const punctuationTask = await api.call('ai-func/punctuation', {no: ct.indexInFile, srt: text});
@@ -500,9 +500,8 @@ const runGrammar = async () => {
     const tRes: DpTask = await api.call('dp-task/detail', tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
         if (!tRes.result) return;
-        const res = JSON.parse(tRes.result) as AiAnalyseGrammarsRes;
         useChatPanel.setState({
-            newGrammar: res
+            newGrammar: tRes.result
         });
     }
     if (tRes.status === DpTaskState.DONE) {

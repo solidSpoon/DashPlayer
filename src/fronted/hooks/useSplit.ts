@@ -5,6 +5,8 @@ import MediaUtil, {isSrt} from "@/common/utils/MediaUtil";
 import {strBlank} from "@/common/utils/Util";
 import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
 import toast from "react-hot-toast";
+import {as} from "tencentcloud-sdk-nodejs";
+import {AiFuncFormatSplitPrompt, AiFuncFormatSplitRes} from "@/common/types/aiRes/AiFuncFormatSplit";
 
 const api = window.electron;
 
@@ -17,6 +19,7 @@ export type UseSplitState = {
     srtPath: string | null;
     userInput: string;
     parseResult: TaskChapterParseResult[];
+    inputable: boolean;
 };
 
 export type UseSplitAction = {
@@ -25,6 +28,7 @@ export type UseSplitAction = {
     deleteFile(filePath: string): void;
     runSplitAll(): Promise<void>;
     runSplitOne(result: ChapterParseResult): Promise<void>;
+    aiFormat: () => void;
 };
 
 
@@ -35,6 +39,7 @@ const useSplit = create(
             srtPath: null,
             userInput: '',
             parseResult: [],
+            inputable: true,
             updateFile: async (filePath) => {
                 if (strBlank(filePath)) {
                     return;
@@ -87,6 +92,26 @@ const useSplit = create(
                 } else {
                     toast('Please select a video file first');
                 }
+            },
+            aiFormat: async () => {
+                if (strBlank(get().userInput)) {
+                    return;
+                }
+                const userInput = get().userInput;
+                set({inputable: false});
+                await useDpTaskCenter.getState().register(() => api.call('ai-func/format-split', userInput),{
+                    onUpdated: (task) => {
+                        if (strBlank(task?.result)) return;
+                        // const res = JSON.parse(task.result) as AiFuncFormatSplitRes;
+                        useSplit.setState({
+                            userInput: task.result,
+                        });
+                    },
+                    onFinish: () => {
+                        useSplit.setState({inputable: true});
+                    },
+                    interval: 100
+                });
             }
         }))
         , {
@@ -94,6 +119,10 @@ const useSplit = create(
         }
     )
 );
+
+useSplit.setState({
+    inputable: true
+});
 
 useSplit.subscribe(
     (s) => s.userInput,

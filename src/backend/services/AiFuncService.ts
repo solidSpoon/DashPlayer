@@ -21,11 +21,20 @@ import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
 import { AiAnalyseGrammarsPrompt } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import { AiFuncExplainSelectWithContextPrompt } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
 import { AiFuncExplainSelectPrompt } from '@/common/types/aiRes/AiFuncExplainSelectRes';
+import AiFuncController from "@/backend/controllers/AiFuncController";
+import {AiFuncFormatSplitPrompt} from "@/common/types/aiRes/AiFuncFormatSplit";
+import ChatService from "@/backend/services/ChatService";
+import {HumanMessage} from "@langchain/core/messages";
 
 export default class AiFuncService {
 
     public static async polish(taskId: number, sentence: string) {
         await AiFunc.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
+    }
+
+    public static async formatSplit(taskId: number, text: string) {
+        // await AiFunc.run(taskId, null, AiFuncFormatSplitPrompt.promptFunc(text));
+        await ChatService.chat(taskId, [new HumanMessage(AiFuncFormatSplitPrompt.promptFunc(text))])
     }
 
     public static async analyzeWord(taskId: number, sentence: string) {
@@ -57,9 +66,12 @@ export default class AiFuncService {
     }
 
     public static async analyzeGrammar(taskId: number, sentence: string) {
+
+        //去掉换行
+        sentence = sentence.replaceAll(/\n/g, ' ');
         const promptStr = AiAnalyseGrammarsPrompt.promptFunc(sentence);
         console.log('promptStr', promptStr);
-        await AiFunc.run(taskId, AiAnalyseGrammarsPrompt.schema, promptStr);
+        await ChatService.chat(taskId, [new HumanMessage(promptStr)]);
     }
 
     public static async makeSentences(taskId: number, sentence: string, point: string[]) {

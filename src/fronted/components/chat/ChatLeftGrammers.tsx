@@ -8,12 +8,12 @@ import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 
-const api = window.electron;
 const ChatLeftGrammers = ({ className }: {
     className: string,
 }) => {
     const retry = useChatPanel(state => state.retry);
     const res = useChatPanel(state => state.newGrammar);
+    console.log('res', res);
     return (
         <div className={cn('flex flex-col', className)}>
             <Card className={'shadow-none relative'}>
@@ -30,7 +30,7 @@ const ChatLeftGrammers = ({ className }: {
                         className={'h-6 mt-2'} /></>}
                     {res && (
                         <Md>
-                            {res?.hasGrammar ? res.grammarsMd : '没有语法'}
+                            {res}
                         </Md>
                     )}
                 </CardContent>

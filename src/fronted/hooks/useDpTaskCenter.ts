@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
-import { sleep } from '@/common/utils/Util';
+import {emptyFunc, sleep} from '@/common/utils/Util';
 
 const api = window.electron;
 
 export interface Listener {
     taskId: number;
     onFinish: (task: DpTask) => void;
+    onUpdated: (task: DpTask) => void;
     createAt: number;
     interval: number;
 }
@@ -23,6 +24,7 @@ type UseDpTaskCenterStateAction = {
     register(func: () => Promise<number>, config?: {
         interval?: number;
         onFinish?: (task: DpTask) => void;
+        onUpdated?: (task: DpTask) => void;
     }): Promise<number>;
     tryRegister(taskId: number): void;
 };
@@ -41,9 +43,8 @@ const useDpTaskCenter = create(
             const time = new Date().getTime();
             newListeners.push({
                 taskId,
-                onFinish: config?.onFinish ?? (() => {
-                    // empty
-                }),
+                onFinish: config?.onFinish ?? emptyFunc,
+                onUpdated: config?.onUpdated ?? emptyFunc,
                 interval: config?.interval ?? 1000,
                 createAt: time
             });
@@ -91,11 +92,13 @@ useDpTaskCenter.subscribe(
             Array.from(tasksResp.values()).forEach(t => {
                 newHookTasks.set(t.id, t);
                 if (t.status === DpTaskState.DONE) {
+                    localTasks.get(t.id).onUpdated(t);
                     localTasks.get(t.id).onFinish(t);
                     localTasks.delete(t.id);
                     updateMapping.delete(t.id);
                 } else if (t.status === DpTaskState.INIT || t.status === DpTaskState.IN_PROGRESS) {
                     updateMapping.set(t.id, time);
+                    localTasks.get(t.id).onUpdated(t);
                 } else {
                     localTasks.delete(t.id);
                     updateMapping.delete(t.id);

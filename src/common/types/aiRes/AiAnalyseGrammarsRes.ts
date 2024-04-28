@@ -9,13 +9,14 @@ export class AiAnalyseGrammarsPrompt {
     });
 
     public static promptFunc = (s: string) => codeBlock`
-        You are a professional grammar analyzer, your job is helping Chinese people learn English grammar.
+        列出下面句子包含的语法
 
         """sentence
         ${s}
         """
 
-        Please explain the grammar of the above sentence using Chinese(简体中文), use markdown format to give a clear explanation.
+        你的回复只需要包含语法解释，不需要包含其他内容。
+        使用精美的 Markdown 格式书写，以便于用户阅读。
         `;
 }
 

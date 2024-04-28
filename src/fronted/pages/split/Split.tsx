@@ -1,6 +1,6 @@
 import { cn } from '@/fronted/lib/utils';
 import Separator from '@/fronted/components/Separtor';
-import React from 'react';
+import React, {useEffect} from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { Label } from '@/fronted/components/ui/label';
@@ -30,7 +30,9 @@ const Split = () => {
         srtPath,
         deleteFile,
         runSplitAll,
-        updateFile
+        updateFile,
+        inputable,
+        aiFormat
     } = useSplit(useShallow(s => ({
         userInput: s.userInput,
         setUseInput: s.setUseInput,
@@ -38,7 +40,9 @@ const Split = () => {
         srtPath: s.srtPath,
         deleteFile: s.deleteFile,
         runSplitAll: s.runSplitAll,
-        updateFile: s.updateFile
+        updateFile: s.updateFile,
+        aiFormat: s.aiFormat,
+        inputable: s.inputable
     })));
     const { data: video } = useSWR(videoPath ? ['system/select-file', videoPath] : null, ([_key, path]) => api.call('system/path-info', path));
     const { data: srt } = useSWR(srtPath ? ['system/select-file', srtPath] : null, ([_key, path]) => api.call('system/path-info', path));
@@ -51,6 +55,10 @@ const Split = () => {
         });
         files.forEach(updateFile);
     };
+
+    useEffect(() => {
+        useSplit.setState({inputable: true})
+    }, [])
     return (
         <div
             className={cn(
@@ -75,6 +83,7 @@ const Split = () => {
                 <div className={cn('row-start-1 row-end-2 col-start-1 col-end-2 flex flex-col space-y-2 pt-4')}>
                     <Label>Input</Label>
                     <Textarea
+                        disabled={!inputable}
                         value={userInput}
                         onChange={e => setUseInput(e.target.value)}
                         className={cn('flex-1 resize-none')}
@@ -133,6 +142,9 @@ const Split = () => {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
+                                    onClick={() => {
+                                        aiFormat();
+                                    }}
                                     variant={'outline'}
                                     size={'icon'}
                                     className={''}><Stethoscope/>
