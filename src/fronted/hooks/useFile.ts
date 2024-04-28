@@ -16,6 +16,7 @@ type UseFileActions = {
     updateFile: (file: string) => void;
     loadedVideo: (file: string) => void;
     clear: () => void;
+    clearSrt: () => void;
 };
 
 const useFile = create(
@@ -57,6 +58,12 @@ const useFile = create(
                 videoId: null,
                 projectId: null,
                 srtHash: null
+            });
+        },
+        clearSrt: () => {
+            set({
+                subtitlePath: null,
+                srtHash: null,
             });
         }
     }))

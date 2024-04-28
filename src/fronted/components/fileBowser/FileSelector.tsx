@@ -24,6 +24,7 @@ export default function FileSelector({
             const videoPath = useFile.getState().videoPath;
             if (strNotBlank(videoPath)) {
                 await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
+                useFile.getState().clearSrt();
             }
         } else {
             const pid = await api.call('watch-project/create/from-files', ps);

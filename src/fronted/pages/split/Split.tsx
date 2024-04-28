@@ -84,7 +84,7 @@ const Split = () => {
                     <Label>Files</Label>
                     <div className={'p-2 flex flex-col gap-2 w-full'}>
                         <div className={'flex gap-4'}>
-                            <FileVideo2 /> {video?.baseName ?
+                            <FileVideo2/> {video?.baseName ?
                             <>
                                 <div className={'line-clamp-2 break-words w-0 flex-1'}> {video?.baseName}</div>
                                 <Button
@@ -92,13 +92,13 @@ const Split = () => {
                                     size={'icon'}
                                     className={'w-6 h-6 -auto'}
                                     onClick={() => deleteFile(videoPath)}
-                                ><X /></Button>
+                                ><X/></Button>
                             </> : <span className={'hover:underline'}
                                         onClick={onSelect}
                             >点击以选择</span>}
                         </div>
                         <div className={'flex gap-4'}>
-                            <FileType2 /> {srt?.baseName ?
+                            <FileType2/> {srt?.baseName ?
                             <>
                                 <div className={'line-clamp-2 break-words h-fit w-0 flex-1'}>{srt?.baseName}</div>
                                 <Button
@@ -106,7 +106,7 @@ const Split = () => {
                                     size={'icon'}
                                     className={'w-6 h-6 ml-auto'}
                                     onClick={() => deleteFile(srtPath)}
-                                ><X /></Button>
+                                ><X/></Button>
                             </> : <span className={'hover:underline'}
                                         onClick={onSelect}
                             >点击以选择</span>}
@@ -122,7 +122,7 @@ const Split = () => {
                                     variant={'outline'}
                                     size={'icon'}
                                     onClick={() => setUseInput(example.trim())}
-                                    className={'ml-auto'}><FileQuestion /></Button>
+                                    className={'ml-auto'}><FileQuestion/></Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 加载示例配置
@@ -135,7 +135,7 @@ const Split = () => {
                                 <Button
                                     variant={'outline'}
                                     size={'icon'}
-                                    className={''}><Stethoscope />
+                                    className={''}><Stethoscope/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -143,18 +143,6 @@ const Split = () => {
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
-                </div>
-                <div className={cn('row-start-3 row-end-4 col-start-2 col-end-3 flex')}>
-                    <Button
-                        variant={'secondary'}
-                        onClick={onSelect}
-                        className={'ml-auto mr-2'}>Select File</Button>
-                    <Button
-                        onClick={() => {
-                            console.log('run split all');
-                            runSplitAll();
-                        }}
-                        className={''}>Split All</Button>
                 </div>
                 <Tabs defaultValue="account"
                       className={cn(
@@ -166,12 +154,24 @@ const Split = () => {
                         <TabsTrigger value="password">快捷选择</TabsTrigger>
                     </TabsList>
                     <TabsContent className={'w-full h-full overflow-auto scrollbar-thin'} value="account">
-                        <SplitPreview className={'w-full h-full'} />
+                        <SplitPreview className={'w-full h-full'}/>
                     </TabsContent>
                     <TabsContent value="password" className={'w-full overflow-y-auto'}>
-                        <SplitFile />
+                        <SplitFile/>
                     </TabsContent>
                 </Tabs>
+                <div className={cn('row-start-3 row-end-4 col-start-2 col-end-3 flex z-10')}>
+                    <Button
+                        variant={'secondary'}
+                        onClick={onSelect}
+                        className={'ml-auto mr-2'}>Select File</Button>
+                    <Button
+                        onClick={() => {
+                            console.log('run split all');
+                            runSplitAll();
+                        }}
+                        className={''}>Split All</Button>
+                </div>
             </div>
         </div>
     );

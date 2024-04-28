@@ -86,6 +86,7 @@
         "electron-log": "^5.0.1",
         "electron-squirrel-startup": "^1.0.0",
         "electron-store": "^8.1.0",
+        "embla-carousel-react": "^8.0.2",
         "eslint-config-react-app": "^7.0.1",
         "ffmpeg-static": "^5.2.0",
         "ffprobe-static": "^3.1.0",
