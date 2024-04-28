@@ -48,3 +48,7 @@ export default class Util {
         return !this.isNull(obj);
     }
 }
+
+export const emptyFunc = () => {
+    return;
+}

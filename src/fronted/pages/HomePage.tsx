@@ -8,7 +8,7 @@ import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
 import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
 import {Button} from "@/fronted/components/ui/button";
-import FolderSelecter from "@/fronted/components/fileBowser/FolderSelecter";
+import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
 import useSWR from "swr";
 import {SWR_KEY} from "@/fronted/lib/swr-util";
 import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
@@ -89,7 +89,7 @@ const HomePage = () => {
                                 >Open File</Button>
                             )}
                         />
-                        <FolderSelecter
+                        <FolderSelector
                             onSelected={async (vid) => {
                                 await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);

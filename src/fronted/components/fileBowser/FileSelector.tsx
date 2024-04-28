@@ -3,6 +3,7 @@ import useFile from '../../hooks/useFile';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { isSrt } from '@/common/utils/MediaUtil';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import {strNotBlank} from "@/common/utils/Util";
 
 export interface OpenFileProps {
     child: (handleClick: () => void) => React.ReactNode;
@@ -20,9 +21,9 @@ export default function FileSelector({
             filter: 'none'
         });
         if (ps.length === 1 && isSrt(ps[0])) {
-            const video = useFile.getState().videoFile;
-            if (video?.path) {
-                await api.call('watch-project/attach-srt', { videoPath: video.path, srtPath: ps[0] });
+            const videoPath = useFile.getState().videoPath;
+            if (strNotBlank(videoPath)) {
+                await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
             }
         } else {
             const pid = await api.call('watch-project/create/from-files', ps);

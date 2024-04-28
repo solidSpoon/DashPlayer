@@ -91,6 +91,7 @@
         "ffprobe-static": "^3.1.0",
         "fluent-ffmpeg": "^2.1.2",
         "framer-motion": "^10.16.16",
+        "hi-base32": "^0.5.1",
         "langchain": "^0.1.31",
         "lucide-react": "^0.350.0",
         "monaco-editor": "^0.45.0",

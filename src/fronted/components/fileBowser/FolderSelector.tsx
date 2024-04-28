@@ -1,9 +1,7 @@
-import { useNavigate } from 'react-router-dom';
-import { isSrt } from '@/common/utils/MediaUtil';
-import useFile from '@/fronted/hooks/useFile';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import React from 'react';
+import {emptyFunc} from "@/common/utils/Util";
 
 const api = window.electron;
 
@@ -12,7 +10,7 @@ export interface FolderSelecterProps {
     onSelected?: (vid: number) => void;
 }
 
-const FolderSelecter = ({child, onSelected}:FolderSelecterProps) => {
+const FolderSelector = ({child, onSelected}:FolderSelecterProps) => {
     const handleClick = async () => {
         const ps = await api.call('system/select-file', {
             mode: 'directory',
@@ -41,10 +39,8 @@ const FolderSelecter = ({child, onSelected}:FolderSelecterProps) => {
     );
 };
 
-FolderSelecter.defaultProps = {
-    onSelected: () => {
-        //
-    }
+FolderSelector.defaultProps = {
+    onSelected: emptyFunc
 }
 
-export default FolderSelecter;
+export default FolderSelector;

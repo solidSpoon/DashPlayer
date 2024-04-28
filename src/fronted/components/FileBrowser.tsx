@@ -7,7 +7,7 @@ import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
+import FolderSelector from '@/fronted/components/fileBowser/FolderSelector';
 import {Button} from '@/fronted/components/ui/button';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
 import {FileAudio2, FileVideo2, Folder, X} from "lucide-react";

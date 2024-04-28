@@ -4,6 +4,7 @@ import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
 import SystemService from '@/backend/services/SystemService';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
+import * as base32 from 'hi-base32';
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
@@ -64,16 +65,13 @@ app.on('ready', async () => {
         }
     });
     protocol.handle(DP, (request) => {
-        let url = request.url.replace(`${DP}://`, '');
+        let url = request.url.slice(`${DP}://`.length, request.url.length - 1)
+            .toUpperCase();
+        url = base32.decode(url);
         if (url.startsWith('http')) {
-             url = url
-                .replace(`${DP}://`, '')
-                .replace('https//', 'https://');
             return net.fetch(url);
         } else {
-            const path1: string = 'file:///' + url;
-            console.log('path1', path1);
-            return net.fetch(path1);
+            return net.fetch(`file:///${url}`);
         }
     });
 });

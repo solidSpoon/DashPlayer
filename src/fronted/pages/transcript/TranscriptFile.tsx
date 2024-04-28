@@ -4,7 +4,7 @@ import {cn} from "@/fronted/lib/utils";
 import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import FolderSelector from '@/fronted/components/fileBowser/FolderSelecter';
+import FolderSelector from '@/fronted/components/fileBowser/FolderSelector';
 import {Button} from '@/fronted/components/ui/button';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import FileBrowserIcon from '@/fronted/components/fileBowser/FileBrowserIcon';
