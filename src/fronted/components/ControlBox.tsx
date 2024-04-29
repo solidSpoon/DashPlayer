@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fro
 import useSetting from '@/fronted/hooks/useSetting';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { SettingKey } from '@/common/types/store_schema';
-import useSystem from '@/fronted/hooks/useSystem';
+import useSWR from "swr";
+import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
+const api = window.electron;
 
 const getShortcut = (key: SettingKey) => {
     return useSetting.getState().setting(key);
@@ -46,13 +48,8 @@ const ControlBox = () => {
 
 
     const [clearAllAdjust, setClearAllAdjust] = useState(false);
-    const {
-        setWindowState,
-        windowState
-    } = useSystem(useShallow(s => ({
-        setWindowState: s.setWindowState,
-        windowState: s.windowState
-    })));
+
+    const {data:windowState} = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size', null));
     const {podcstMode, setPodcastMode} = useLayout(useShallow(s => ({
         podcstMode: s.podcastMode,
         setPodcastMode: s.setPodcastMode
@@ -146,12 +143,13 @@ const ControlBox = () => {
                 })}
                 {controlItem({
                     checked: windowState === 'fullscreen',
-                    onCheckedChange: () => {
+                    onCheckedChange: async () => {
                         if (windowState === 'fullscreen') {
-                            setWindowState('normal');
+                            await api.call('system/window-size/change', 'normal');
                         } else {
-                            setWindowState('fullscreen');
+                            await api.call('system/window-size/change', 'fullscreen');
                         }
+                        await swrMutate(SWR_KEY.WINDOW_SIZE)
                     },
                     id: 'fullScreen',
                     label: '全屏模式',

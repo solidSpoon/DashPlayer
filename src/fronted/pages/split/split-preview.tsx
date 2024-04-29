@@ -14,32 +14,22 @@ import useSplit, {TaskChapterParseResult} from "@/fronted/hooks/useSplit";
 import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
 
 const SplitRow = ({line}: { line: TaskChapterParseResult }) => {
-    const dpTask = useDpTaskViewer(line.taskId);
-    const callSplit = useSplit(s => s.runSplitOne.bind(null, line));
     return (
         <TableRow>
             <TableCell
                 className={cn(
+                    'font-mono',
                     !line.timestampStart.valid && 'text-red-500',
                     !line.timestampValid && 'bg-red-100'
                 )}
             >{line.timestampStart.value}</TableCell>
             <TableCell
                 className={cn(
+                    'font-mono',
                     !line.timestampStart.valid && 'text-red-500',
                     !line.timestampValid && 'bg-red-100'
                 )}>{line.timestampEnd.value}</TableCell>
-            <TableCell className={' w-20'}>{line.title}</TableCell>
-            <TableCell>
-                {dpTask?.progress??'未开始'}
-            </TableCell>
-            <TableCell>
-                <Button
-                    disabled={line.taskId !== null}
-                    onClick={async () => {
-                        await callSplit();
-                    }}
-                >分割</Button></TableCell>
+            <TableCell>{line.title}</TableCell>
         </TableRow>
     )
 }
@@ -53,12 +43,9 @@ const SplitPreview = ({className}: {
             <TableCaption>A list of your recent invoices.</TableCaption>
             <TableHeader>
                 <TableRow>
-                    <TableHead className="w-20">开始时间</TableHead>
-                    <TableHead className={'w-20'}>结束时间</TableHead>
-                    <TableHead className={'w-60'}>标题</TableHead>
-                    <TableHead className={'w-20'}>状态</TableHead>
-                    <TableHead className={'w-20'}>操作</TableHead>
-                    {/* <TableHead className="text-right">Amount</TableHead> */}
+                    <TableHead className="w-24">开始时间</TableHead>
+                    <TableHead className={'w-24'}>结束时间</TableHead>
+                    <TableHead className={''}>标题</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody

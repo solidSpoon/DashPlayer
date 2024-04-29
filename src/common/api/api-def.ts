@@ -67,6 +67,7 @@ interface SystemDef {
     'system/open-folder': { params: string, return: void };
     'system/open-folder/cache': { params: void, return: void };
     'system/window-size/change': { params: WindowState, return: void };
+    'system/window-size': { params: void, return: WindowState };
     'system/check-update': { params: void, return: Release[] };
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
@@ -113,9 +114,9 @@ interface StorageDef {
 
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
-    'split-video/split-one': {
-        params: { videoPath: string, srtPath: string | null, chapter: ChapterParseResult },
-        return: number
+    'split-video/split': {
+        params: { videoPath: string, srtPath: string | null, chapters: ChapterParseResult[] },
+        return: string
     };
     'split-video/thumbnail': { params: { filePath: string, time: number }, return: string };
     'split-video/video-length': { params: string , return: number };

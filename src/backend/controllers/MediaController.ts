@@ -17,22 +17,20 @@ export default class MediaController implements Controller {
         return SplitVideoService.previewSplit(str);
     }
 
-    public async splitOne({
+    public async split({
                               videoPath,
                               srtPath,
-                              chapter
+                              chapters
                           }: {
         videoPath: string,
         srtPath: string | null,
-        chapter: ChapterParseResult
-    }): Promise<number> {
-        const taskId = await DpTaskService.create();
-        await SplitVideoService.split(taskId, {
+        chapters: ChapterParseResult[]
+    }): Promise<string> {
+        return await SplitVideoService.split2({
             videoPath,
             srtPath,
-            chapter
+            chapters
         });
-        return taskId;
     }
 
 
@@ -62,7 +60,7 @@ export default class MediaController implements Controller {
 
     registerRoutes(): void {
         registerRoute('split-video/preview', this.previewSplit);
-        registerRoute('split-video/split-one', this.splitOne);
+        registerRoute('split-video/split', this.split);
         registerRoute('split-video/thumbnail', this.thumbnail);
         registerRoute('split-video/video-length', this.videoLength);
     }

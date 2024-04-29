@@ -34,7 +34,9 @@ const createSentenceSlice: StateCreator<
             }
         }
         const ns = get().getSubtitleAt(currentTime);
-        set({ currentSentence: ns });
+        if (ns) {
+            set({ currentSentence: ns });
+        }
     },
 
     adjustStart: async (time) => {

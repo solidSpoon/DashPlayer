@@ -66,6 +66,10 @@ export default class SystemController implements Controller {
         SystemService.changeWindowSize(state);
     }
 
+    public async windowState(): Promise<WindowState> {
+        return SystemService.windowState();
+    }
+
     public async checkUpdate(): Promise<Release[]> {
         return checkUpdate();
     }
@@ -89,6 +93,7 @@ export default class SystemController implements Controller {
         registerRoute('system/open-folder', this.openFolder);
         registerRoute('system/open-folder/cache', this.openCacheDir);
         registerRoute('system/window-size/change', this.changeWindowSize);
+        registerRoute('system/window-size', this.windowState);
         registerRoute('system/check-update', this.checkUpdate);
         registerRoute('system/open-url', this.openUrl);
         registerRoute('system/app-version', this.appVersion);

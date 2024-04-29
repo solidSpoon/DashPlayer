@@ -36,4 +36,16 @@ export default class SystemService {
                 break;
         }
     }
+
+    public static windowState(): WindowState {
+        if (SystemService.mainWindowRef.isMaximized()) {
+            return 'maximized';
+        } else if (SystemService.mainWindowRef.isMinimized()) {
+            return 'minimized';
+        } else if (SystemService.mainWindowRef.isFullScreen()) {
+            return 'fullscreen';
+        } else {
+            return 'normal';
+        }
+    }
 }

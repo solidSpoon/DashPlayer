@@ -57,55 +57,49 @@ export default class FfmpegService {
         });
     }
 
-
-    public static async splitMp3({
-                                     inputFile,
-                                     startSecond,
-                                     endSecond,
-                                     outputFile
-                                 }: {
+    /**
+     * ffmpeg.exe -i "In.mp4" -f segment -segment_times 00:00:06.165,00:00:14.293 -c copy -map 0 "Out_%%02d.mp4"
+     */
+    public static async splitVideoByTimes({
+                                              inputFile,
+                                              times,
+                                              outputFolder,
+                                              outputFilePrefix
+                                          }: {
         inputFile: string,
-        startSecond: number,
-        endSecond: number,
-        outputFile: string
-    }) {
-
-        console.log('splitMp3', inputFile, startSecond, endSecond, outputFile);
-        await Lock.sync('ffmpeg', async () => {
-                await new Promise((resolve, reject) => {
-                        ffmpeg(inputFile)
-                            .setStartTime(TimeUtil.secondToTimeStr(startSecond))
-                            .setDuration(TimeUtil.secondToTimeStr(endSecond - startSecond))
-                            .output(outputFile)
-                            .on('end', resolve)
-                            .on('error', reject)
-                            .run();
-                    }
-                );
-            }
-        );
-    }
-
-    public static async toMp3({
-                                  inputFile,
-                                  outputFile
-                              }: {
-        inputFile: string,
-        outputFile: string
-    }) {
-        await Lock.sync('ffmpeg', async () => {
-            await new Promise((resolve, reject) => {
-                ffmpeg(inputFile)
-                    .audioBitrate(128) // Set audio bitrate to low quality
-                    .format('mp3') // Convert to mp3 format
-                    .output(outputFile)
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .run();
-            });
+        times: number[],
+        outputFolder: string,
+        outputFilePrefix: string
+    }): Promise<string[]> {
+        // 设置扩展名和输入相同
+        const outputFormat = path.join(outputFolder, `${outputFilePrefix}_%03d${path.extname(inputFile)}`);
+        return new Promise((resolve, reject) => {
+            ffmpeg(inputFile)
+                .outputOptions([
+                    '-f', 'segment',
+                    '-segment_times', times.map(t => TimeUtil.secondToTimeStr(t)).join(','),
+                    '-c', 'copy',
+                    '-map', '0',
+                    '-reset_timestamps', '1'
+                ])
+                .output(outputFormat)
+                .on('end', () => {
+                    // Get the list of files in the output directory
+                    fs.readdir(outputFolder, (err, files) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            // Filter the files to start with the output file prefix
+                            const outputFiles = files.filter(file => file.startsWith(outputFilePrefix))
+                                .map(file => path.join(outputFolder, file));
+                            resolve(outputFiles);
+                        }
+                    });
+                })
+                .on('error', reject)
+                .run();
         });
     }
-
 
     public static async duration(filePath: string): Promise<number> {
         return await Lock.sync<number>('ffprobe', async () => {

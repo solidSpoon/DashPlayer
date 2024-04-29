@@ -7,6 +7,7 @@ import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
 import toast from "react-hot-toast";
 import {as} from "tencentcloud-sdk-nodejs";
 import {AiFuncFormatSplitPrompt, AiFuncFormatSplitRes} from "@/common/types/aiRes/AiFuncFormatSplit";
+import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 
 const api = window.electron;
 
@@ -27,7 +28,6 @@ export type UseSplitAction = {
     setUseInput(input: string): void;
     deleteFile(filePath: string): void;
     runSplitAll(): Promise<void>;
-    runSplitOne(result: ChapterParseResult): Promise<void>;
     aiFormat: () => void;
 };
 
@@ -64,34 +64,17 @@ const useSplit = create(
                 }
             },
             runSplitAll: async () => {
-                if (!get().videoPath) {
+                if (!useSplit.getState().videoPath) {
                     toast('Please select a video file first');
                     return;
                 }
-                // for (const result of get().parseResult) {
-                //     console.log(result);
-                //     await get().runSplitOne(result);
-                // }
-                await Promise.all(get().parseResult.map(r => get().runSplitOne(r)));
-            },
-            runSplitOne: async (result) => {
-                if (get().videoPath) {
-                    const fileInfo = await api.call('system/path-info', get().videoPath);
-                    const taskId = await useDpTaskCenter.getState().register(() => api.call('split-video/split-one', {
-                        videoPath: get().videoPath,
-                        srtPath: get().srtPath,
-                        chapter: result
-                    }), {
-                        onFinish: async (task) => {
-                            await api.call('watch-project/create/from-folder', get().videoPath.replace(fileInfo.extName, ''));
-                        }
-                    });
-                    const newResult = get().parseResult
-                        .map(r => (r.original === result.original ? {...r, taskId} : r));
-                    set({parseResult: newResult});
-                } else {
-                    toast('Please select a video file first');
-                }
+                const folderName = await api.call('split-video/split', {
+                    videoPath: useSplit.getState().videoPath,
+                    srtPath: useSplit.getState().srtPath,
+                    chapters: useSplit.getState().parseResult
+                });
+                await api.call('watch-project/create/from-folder', folderName);
+                await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
             },
             aiFormat: async () => {
                 if (strBlank(get().userInput)) {
@@ -99,7 +82,7 @@ const useSplit = create(
                 }
                 const userInput = get().userInput;
                 set({inputable: false});
-                await useDpTaskCenter.getState().register(() => api.call('ai-func/format-split', userInput),{
+                await useDpTaskCenter.getState().register(() => api.call('ai-func/format-split', userInput), {
                     onUpdated: (task) => {
                         if (strBlank(task?.result)) return;
                         // const res = JSON.parse(task.result) as AiFuncFormatSplitRes;
@@ -127,6 +110,10 @@ useSplit.setState({
 useSplit.subscribe(
     (s) => s.userInput,
     async (topic) => {
+        if (strBlank(topic)) {
+            useSplit.setState({parseResult: []});
+            return;
+        }
         const result = await api.call('split-video/preview', topic);
         const oldState: Map<string, TaskChapterParseResult> = new Map(useSplit.getState().parseResult.map(r => [r.original, r]));
         useSplit.setState({

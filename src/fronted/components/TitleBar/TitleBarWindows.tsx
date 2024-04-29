@@ -1,18 +1,17 @@
 import React, {useEffect, useState} from 'react';
-import useSystem from '../../hooks/useSystem';
 import {cn} from "@/fronted/lib/utils";
 import './TitleBarWindows.css';
 import useLayout from "@/fronted/hooks/useLayout";
+import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 
 export interface TitleBarWindowsProps {
     maximizable?: boolean;
     className?: string;
 }
 
-const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
+const api = window.electron;
+const TitleBarWindows = ({maximizable, className}: TitleBarWindowsProps) => {
     const showSideBar = useLayout((s) => s.showSideBar);
-    const windowState = useSystem((s) => s.windowState);
-    const setWindowState = useSystem((s) => s.setWindowState);
     const [showTrafficLight, setShowTrafficLight] = useState(false);
     const [hover, setHover] = useState(false);
     useEffect(() => {
@@ -39,25 +38,7 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
             window.removeEventListener('mousemove', handleMouseMove);
         }
     }, [showSideBar]);
-    const maximize = () => {
-        setWindowState('maximized');
-    };
 
-    const unMaximize = () => {
-        setWindowState('normal');
-    };
-
-    const onMinimize = async () => {
-        setWindowState('minimized');
-    };
-
-    const onClose = async () => {
-        setWindowState('closed');
-    };
-
-    const onFullScreen = async () => {
-        setWindowState('fullscreen');
-    }
 
     return (
         <div
@@ -68,35 +49,47 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
                 onMouseLeave={() => setHover(false)}
                 className={cn("no-drag flex justify-center gap-1 items-center py-2 px-2 traffic-lights", !showTrafficLight && !hover && 'opacity-0')}>
                 <button
-                    onClick={onMinimize}
+                    onClick={async () => {
+                        await api.call('system/window-size/change', 'minimized')
+                        await swrMutate(SWR_KEY.WINDOW_SIZE);
+                    }}
                     className="traffic-light traffic-light-minimize"
                     id="minimize"
                 />
                 <button
-                    onClick={() => {
+                    onClick={async () => {
                         if (maximizable ?? true) {
-                            if (windowState === 'maximized') {
-                                unMaximize();
+                            const windowState = await api.call('system/window-size', null);
+                            if (windowState === 'maximized' || windowState === 'fullscreen') {
+                                await api.call('system/window-size/change', 'normal')
                             } else {
-                                maximize();
+                                await api.call('system/window-size/change', 'maximized')
                             }
+                            await swrMutate(SWR_KEY.WINDOW_SIZE);
                         }
                     }}
-                    onContextMenu={(e) => {
+                    onContextMenu={async (e) => {
                         e.preventDefault();
+                        const windowState = await api.call('system/window-size', null);
                         if (windowState === 'fullscreen') {
-                            unMaximize();
+                            // await api.call('')
+                            await api.call('system/window-size/change', 'normal')
                         } else {
-                            onFullScreen();
+                            // onFullScreen();
+                            await api.call('system/window-size/change', 'fullscreen')
                         }
+                        await swrMutate(SWR_KEY.WINDOW_SIZE);
                     }}
                     className="traffic-light traffic-light-maximize"
                     id="maximize"
                 />
                 <button
-                  onClick={onClose}
-                  className="traffic-light traffic-light-close"
-                  id="close"
+                    onClick={async () => {
+                        await api.call('system/window-size/change', 'closed')
+                        await swrMutate(SWR_KEY.WINDOW_SIZE);
+                    }}
+                    className="traffic-light traffic-light-close"
+                    id="close"
                 />
             </div>
         </div>

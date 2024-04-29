@@ -5,6 +5,7 @@ export const SWR_KEY = {
     WATCH_PROJECT_LIST: 'WATCH_PROJECT_LIST_SWR',
     WATCH_PROJECT_DETAIL: 'WATCH_PROJECT_DETAIL_SWR',
     SPLIT_VIDEO_THUMBNAIL: 'SPLIT_VIDEO_THUMBNAIL_SWR',
+    WINDOW_SIZE: 'WINDOW_SIZE_SWR',
 }
 
 export const swrMutate = async (swrKey: string) => {

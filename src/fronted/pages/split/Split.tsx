@@ -1,17 +1,18 @@
-import { cn } from '@/fronted/lib/utils';
+import {cn} from '@/fronted/lib/utils';
 import Separator from '@/fronted/components/Separtor';
 import React, {useEffect} from 'react';
-import { Button } from '@/fronted/components/ui/button';
-import { Textarea } from '@/fronted/components/ui/textarea';
-import { Label } from '@/fronted/components/ui/label';
-import { FileQuestion, FileType2, FileVideo2, Stethoscope, X, File } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
+import {Button} from '@/fronted/components/ui/button';
+import {Textarea} from '@/fronted/components/ui/textarea';
+import {Label} from '@/fronted/components/ui/label';
+import {FileQuestion, FileType2, FileVideo2, Stethoscope, X, File} from 'lucide-react';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/fronted/components/ui/tabs';
 import SplitFile from '@/fronted/pages/split/SplitFile';
 import SplitPreview from '@/fronted/pages/split/split-preview';
 import useSplit from '@/fronted/hooks/useSplit';
-import { useShallow } from 'zustand/react/shallow';
+import {useShallow} from 'zustand/react/shallow';
 import useSWR from 'swr';
+import toast from "react-hot-toast";
 
 const api = window.electron;
 
@@ -29,25 +30,23 @@ const Split = () => {
         videoPath,
         srtPath,
         deleteFile,
-        runSplitAll,
         updateFile,
         inputable,
-        aiFormat
+        aiFormat,
+        runSplitAll
     } = useSplit(useShallow(s => ({
         userInput: s.userInput,
         setUseInput: s.setUseInput,
         videoPath: s.videoPath,
         srtPath: s.srtPath,
         deleteFile: s.deleteFile,
-        runSplitAll: s.runSplitAll,
         updateFile: s.updateFile,
         aiFormat: s.aiFormat,
-        inputable: s.inputable
+        inputable: s.inputable,
+        runSplitAll: s.runSplitAll
     })));
-    const { data: video } = useSWR(videoPath ? ['system/select-file', videoPath] : null, ([_key, path]) => api.call('system/path-info', path));
-    const { data: srt } = useSWR(srtPath ? ['system/select-file', srtPath] : null, ([_key, path]) => api.call('system/path-info', path));
-
-
+    const {data: video} = useSWR(videoPath ? ['system/select-file', videoPath] : null, ([_key, path]) => api.call('system/path-info', path));
+    const {data: srt} = useSWR(srtPath ? ['system/select-file', srtPath] : null, ([_key, path]) => api.call('system/path-info', path));
     const onSelect = async () => {
         const files = await api.call('system/select-file', {
             filter: 'none',
@@ -59,6 +58,7 @@ const Split = () => {
     useEffect(() => {
         useSplit.setState({inputable: true})
     }, [])
+    const [spliting, setSpliting] = React.useState(false);
     return (
         <div
             className={cn(
@@ -72,7 +72,7 @@ const Split = () => {
                 <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
                     Split long video & subtitle files into smaller parts
                 </h2>
-                <Separator orientation="horizontal" className="px-0" />
+                <Separator orientation="horizontal" className="px-0"/>
             </div>
             <div className={cn('grid grid-rows-3 grid-cols-2 gap-2 gap-x-20 w-full h-0 flex-1 px-10 pr-16')}
                  style={{
@@ -178,9 +178,15 @@ const Split = () => {
                         onClick={onSelect}
                         className={'ml-auto mr-2'}>Select File</Button>
                     <Button
-                        onClick={() => {
-                            console.log('run split all');
-                            runSplitAll();
+                        disabled={spliting}
+                        onClick={async () => {
+                            setSpliting(true);
+                            await toast.promise(runSplitAll(), {
+                                loading: 'Splitting...',
+                                success: 'Split Finished',
+                                error: 'Split Failed'
+                            });
+                            setSpliting(false);
                         }}
                         className={''}>Split All</Button>
                 </div>

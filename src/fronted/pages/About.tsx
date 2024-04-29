@@ -4,11 +4,13 @@ import {cn} from "@/fronted/lib/utils";
 import AboutBg from '@/fronted/components/bg/AboutBg';
 import Separator from '@/fronted/components/Separtor';
 import logoLight from '../../../assets/logo-light.png';
-import useSystem from '@/fronted/hooks/useSystem';
+import useSWR from "swr";
 
 const api = window.electron;
 const About = () => {
-    const appVersion = useSystem((s) => s.appVersion);
+    const {data:appVersion} = useSWR('system/app-version', () => api.call('system/app-version', null),{
+        fallbackData: '0.0.0'
+    })
     return (
         <div className={cn('w-full h-full bg-white/80 flex flex-col')}>
             <div className={cn('pl-10 pt-16')}>
