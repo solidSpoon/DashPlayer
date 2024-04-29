@@ -1,12 +1,6 @@
 export interface ChapterParseResult {
-    timestampStart: {
-        valid: boolean;
-        value: string
-    }
-    timestampEnd: {
-        valid: boolean;
-        value: string
-    },
+    timestampStart: string
+    timestampEnd: string
     timestampValid: boolean,
     title: string
     original: string

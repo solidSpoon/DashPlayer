@@ -1,4 +1,4 @@
-import parseChapter, {timeStrToSecond, isTimeStrValid} from '@/common/utils/praser/chapter-parser';
+import parseChapter from '@/common/utils/praser/chapter-parser';
 import path from 'path';
 import fs from 'fs';
 import {ChapterParseResult} from '@/common/types/chapter-result';
@@ -8,6 +8,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import {DpTaskState} from '@/backend/db/tables/dpTask';
 import SrtUtil from '@/common/utils/SrtUtil';
 import hash from "object-hash";
+import TimeUtil from "@/common/utils/TimeUtil";
 
 class SplitVideoService {
     public static async previewSplit(str: string) {
@@ -24,11 +25,12 @@ class SplitVideoService {
         chapter: ChapterParseResult
     }) {
         if (strBlank(videoPath)) return;
-        if (!isTimeStrValid(chapter.timestampStart.value) || !isTimeStrValid(chapter.timestampEnd.value) || strBlank(chapter.title)) {
-            return;
-        }
-        const startSecond = timeStrToSecond(chapter.timestampStart.value);
-        const endSecond = timeStrToSecond(chapter.timestampEnd.value);
+        // todo 验证
+        // if (!TimeUtil.verifyDuration(chapter.timestampStart) || !TimeUtil.verifyDuration(chapter.timestampEnd) || strBlank(chapter.title)) {
+        //     return;
+        // }
+        const startSecond = TimeUtil.parseDuration(chapter.timestampStart);
+        const endSecond = TimeUtil.parseDuration(chapter.timestampEnd);
         if (startSecond >= endSecond) {
             return;
         }
@@ -40,7 +42,7 @@ class SplitVideoService {
 
         const keyFrameTime = await FfmpegService.keyFrameAt(videoPath, startSecond);
 
-        const videoOutName = path.join(folderName, `${chapter.timestampStart.value}-${chapter.title}${path.extname(videoPath)}`.replaceAll(':', '_'));
+        const videoOutName = path.join(folderName, `${chapter.timestampStart}-${chapter.title}${path.extname(videoPath)}`.replaceAll(':', ''));
 
         await DpTaskService.update({
             id: taskId,
@@ -65,7 +67,7 @@ class SplitVideoService {
             return;
         }
 
-        const srtOutName = path.join(folderName, `${chapter.timestampStart.value}-${chapter.title}.srt`.replaceAll(':', '_'));
+        const srtOutName = path.join(folderName, `${chapter.timestampStart}-${chapter.title}.srt`.replaceAll(':', ''));
         // SrtUtil.parseSrt()
         const content = fs.readFileSync(srtPath, 'utf-8');
         const srt = SrtUtil.parseSrt(content);
@@ -143,8 +145,8 @@ class SplitVideoService {
         const cs = chapters.map(chapter => {
             return {
                 name: chapter.title,
-                time: timeStrToSecond(chapter.timestampStart.value),
-                timeStr: chapter.timestampStart.value
+                time: TimeUtil.parseDuration(chapter.timestampStart),
+                timeStr: chapter.timestampStart
             }
         });
         const outputFiles = await FfmpegService.splitVideoByTimes({

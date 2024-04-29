@@ -9,27 +9,29 @@ import {
     TableRow
 } from "@/fronted/components/ui/table";
 import React from "react";
-import {Button} from "@/fronted/components/ui/button";
 import useSplit, {TaskChapterParseResult} from "@/fronted/hooks/useSplit";
-import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
+import {ErrorBoundary} from "react-error-boundary";
+import FallBack from "@/fronted/components/FallBack";
+import {strBlank} from "@/common/utils/Util";
 
 const SplitRow = ({line}: { line: TaskChapterParseResult }) => {
+    console.log('line', line)
     return (
         <TableRow>
             <TableCell
                 className={cn(
                     'font-mono',
-                    !line.timestampStart.valid && 'text-red-500',
                     !line.timestampValid && 'bg-red-100'
                 )}
-            >{line.timestampStart.value}</TableCell>
+            >{line.timestampStart}</TableCell>
             <TableCell
                 className={cn(
                     'font-mono',
-                    !line.timestampStart.valid && 'text-red-500',
                     !line.timestampValid && 'bg-red-100'
-                )}>{line.timestampEnd.value}</TableCell>
-            <TableCell>{line.title}</TableCell>
+                )}>{line.timestampEnd}</TableCell>
+            <TableCell
+                className={cn(strBlank(line.title) && 'bg-red-100')}
+            >{line.title}</TableCell>
         </TableRow>
     )
 }
@@ -48,15 +50,17 @@ const SplitPreview = ({className}: {
                     <TableHead className={''}>标题</TableHead>
                 </TableRow>
             </TableHeader>
-            <TableBody
-                className={'scrollbar-none'}
-            >
-                {lines.map((line, idx) => {
-                    return (
-                        <SplitRow key={idx} line={line}/>
-                    );
-                })}
-            </TableBody>
+            <ErrorBoundary fallback={<FallBack/>}>
+                <TableBody
+                    className={'scrollbar-none'}
+                >
+                    {lines.map((line, idx) => {
+                        return (
+                            <SplitRow key={idx} line={line}/>
+                        );
+                    })}
+                </TableBody>
+            </ErrorBoundary>
         </Table>
     );
 }

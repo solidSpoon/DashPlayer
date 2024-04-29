@@ -2,7 +2,6 @@ import Controller from '@/backend/interfaces/controller';
 import SplitVideoService from '@/backend/services/SplitVideoService';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import registerRoute from '@/common/api/register';
-import DpTaskService from '@/backend/services/DpTaskService';
 import path from 'path';
 import * as os from 'node:os';
 import FfmpegService from '@/backend/services/FfmpegService';

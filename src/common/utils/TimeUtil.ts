@@ -1,4 +1,4 @@
-import {strBlank} from "@/common/utils/Util";
+import Util, {strBlank} from "@/common/utils/Util";
 import moment from "moment";
 
 export default class TimeUtil {
@@ -17,34 +17,24 @@ export default class TimeUtil {
      * @param second
      */
     public static secondToTimeStr(second: number | null | undefined): string {
-        if (second === null || second === undefined) {
+        if (Util.isNull(second)) {
             return '';
         }
-        const h = Math.floor(second / 3600);
-        const m = Math.floor(second % 3600 / 60);
-        const s = Math.floor(second % 60);
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return moment.utc(second * 1000).format('HH:mm:ss');
     }
 
     /**
      * 00:00:00.000
-     * @param iso
+     * @param second
      */
     public static secondToTimeStrWithMs(second: number | null | undefined): string {
-        if (second === null || second === undefined) {
+        if (Util.isNull(second)) {
             return '';
         }
-        const h = Math.floor(second / 3600);
-        const m = Math.floor(second % 3600 / 60);
-        const s = Math.floor(second % 60);
-        const ms = Math.floor((second % 1) * 1000);
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+        return moment.utc(second * 1000).format('HH:mm:ss.SSS');
     }
 
     public static isoToDate(iso: string): Date {
-        if (strBlank(iso)) {
-            return new Date();
-        }
         if (strBlank(iso)) {
             return new Date();
         }
@@ -56,29 +46,7 @@ export default class TimeUtil {
     }
 
     public static dateToRelativeTime(date: Date): string {
-        const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-
-        if (diffInSeconds < 60) {
-            return `${diffInSeconds} seconds ago`;
-        }
-
-        const diffInMinutes = Math.floor(diffInSeconds / 60);
-        if (diffInMinutes < 60) {
-            return `${diffInMinutes} minutes ago`;
-        }
-
-        const diffInHours = Math.floor(diffInMinutes / 60);
-        if (diffInHours < 24) {
-            return `${diffInHours} hours ago`;
-        }
-
-        const diffInDays = Math.floor(diffInHours / 24);
-        if (diffInDays < 3) {
-            return `${diffInDays} days ago`;
-        }
-
-        console.log('date', date);
-        return date.toLocaleDateString();
+        return moment(date).fromNow();
     }
 
     public static toGroupMiddle(seconds: number): number {
@@ -86,8 +54,20 @@ export default class TimeUtil {
         return segment * 15 + 7.5;
     }
 
+    /**
+     * 当前时间的数据库格式
+     */
     public static timeUtc(): string {
         return moment.utc().format('YYYY-MM-DD HH:mm:ss');
+    }
+
+
+    /**
+     * 输入时间字符串，返回秒数
+     * @param duration
+     */
+    public static parseDuration(duration: string): number {
+        return moment.duration(duration).asSeconds();
     }
 
 }

@@ -68,6 +68,11 @@ const useSplit = create(
                     toast('Please select a video file first');
                     return;
                 }
+                for (const chapter of get().parseResult) {
+                    if (!chapter.timestampValid || strBlank(chapter.title)) {
+                        throw new Error('请修正红色部分');
+                    }
+                }
                 const folderName = await api.call('split-video/split', {
                     videoPath: useSplit.getState().videoPath,
                     srtPath: useSplit.getState().srtPath,
