@@ -3,8 +3,10 @@ import ffmpeg_static from 'ffmpeg-static';
 import ffprobe_static from 'ffprobe-static';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 import a from '@/common/utils/a';
+import path from "path";
+import fs from "fs";
 
 export default class FfmpegService {
     static {
@@ -192,5 +194,50 @@ export default class FfmpegService {
             });
         });
 
+    }
+
+
+    /**
+     * ffmpeg -i input.mp4 -vn -f segment -segment_time 600 -acodec libmp3lame -qscale:a 9 output%d.mp3
+     * @param inputFile
+     * @param outputFolder
+     * @param segmentTime
+     */
+    public static async splitToAudio({
+                                         inputFile,
+                                         outputFolder,
+                                         segmentTime,
+                                     }: {
+        inputFile: string,
+        outputFolder: string,
+        segmentTime: number,
+    }): Promise<string[]> {
+        return new Promise((resolve, reject) => {
+            const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
+            ffmpeg(inputFile)
+                .outputOptions([
+                    '-vn',
+                    '-f', 'segment',
+                    '-segment_time', `${segmentTime}`,
+                    '-acodec', 'libmp3lame',
+                    '-qscale:a', '9'
+                ])
+                .output(outputFormat)
+                .on('end', () => {
+                    // Get the list of files in the output directory
+                    fs.readdir(outputFolder, (err, files) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            // Filter the files to only include .mp3 files
+                            const outputFiles = files.filter(file => path.extname(file) === '.mp3')
+                                .map(file => path.join(outputFolder, file));
+                            resolve(outputFiles);
+                        }
+                    });
+                })
+                .on('error', reject)
+                .run();
+        });
     }
 }

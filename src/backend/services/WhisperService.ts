@@ -143,37 +143,25 @@ class WhisperService {
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, {recursive: true});
         }
-        // 文件名为路径 hash
-        const baseFileName = hash(filePath);
-        const duration = await FfmpegService.duration(filePath);
-        const chunkSize = 60 * 5;
-        const chunks: SplitChunk[] = [];
-        let pos = 0;
-        const mp3FilePath = path.join(tempDir, `${baseFileName}.mp3`);
-        await FfmpegService.toMp3({
-            inputFile: filePath,
-            outputFile: mp3FilePath
+        // 删除该目录下的所有文件
+        fs.readdirSync(tempDir).forEach((file) => {
+            fs.unlinkSync(path.join(tempDir, file));
         });
-        while (pos < duration) {
-            const start = pos;
-            let end = Math.min(pos + chunkSize, duration);
-            let currentChunkSize = chunkSize;
-            if (end + 60 * 2 > duration) {
-                end = duration;
-                currentChunkSize = end - start;
-            }
-            const chunkFileName = path.join(tempDir, `${baseFileName}-${start}-${end}.mp3`);
-            await FfmpegService.splitMp3({
-                inputFile: mp3FilePath,
-                startSecond: start,
-                endSecond: end,
-                outputFile: chunkFileName
-            });
+
+        const files = await FfmpegService.splitToAudio({
+            inputFile: filePath,
+            outputFolder: tempDir,
+            segmentTime: 60 * 5
+        });
+        const chunks: SplitChunk[] = [];
+        let offset = 0;
+        for (const file of files) {
+            const duration = await FfmpegService.duration(file);
             chunks.push({
-                offset: start,
-                filePath: chunkFileName
+                offset,
+                filePath: file
             });
-            pos += currentChunkSize;
+            offset += duration;
         }
         return chunks;
     }

@@ -3,7 +3,9 @@
 import {strBlank} from "@/common/utils/Util";
 
 export const ACCEPTED_FILE_TYPES = '.mp4,.webm,.wav,.srt,.mp3,.m4a';
-
+export const AudioFormats = ["mp3", "wav", "ogg", "flac", "m4a", "wma", "aac"];
+export const VideoFormats = ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm"];
+export const SubtitleFormats = ["srt"];
 
 export default class MediaUtil {
     public static isSrt(path: string): boolean {
