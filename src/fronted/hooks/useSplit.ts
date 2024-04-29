@@ -65,8 +65,7 @@ const useSplit = create(
             },
             runSplitAll: async () => {
                 if (!useSplit.getState().videoPath) {
-                    toast('Please select a video file first');
-                    return;
+                    throw new Error('Please select a video file first');
                 }
                 for (const chapter of get().parseResult) {
                     if (!chapter.timestampValid || strBlank(chapter.title)) {

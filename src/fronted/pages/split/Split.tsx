@@ -181,12 +181,17 @@ const Split = () => {
                         disabled={spliting}
                         onClick={async () => {
                             setSpliting(true);
-                            await toast.promise(runSplitAll(), {
-                                loading: 'Splitting...',
-                                success: 'Split Finished',
-                                error: 'Split Failed'
-                            });
-                            setSpliting(false);
+                            try {
+                                await toast.promise(runSplitAll(), {
+                                    loading: 'Splitting...',
+                                    success: 'Split Finished',
+                                    error: (v)=>{
+                                        return v?.message??'Split Failed'
+                                    }
+                                });
+                            } finally {
+                                setSpliting(false);
+                            }
                         }}
                         className={''}>Split All</Button>
                 </div>
