@@ -286,7 +286,7 @@
 //                     project_name: project.project_name,
 //                     type: project.type,
 //                     project_path: project.project_path,
-//                     updated_at: new Date().toISOString(),
+//                     updated_at: TimeUtil.timeUtc(),
 //                 },
 //             })
 //             .returning();
@@ -351,7 +351,7 @@
 //             .update(watchProjectVideos)
 //             .set({
 //                 current_playing: false,
-//                 updated_at: new Date().toISOString(),
+//                 updated_at: TimeUtil.timeUtc(),
 //             })
 //             .where(eq(watchProjectVideos.project_id, video.project_id));
 //         await db
@@ -361,14 +361,14 @@
 //                 duration: video.duration,
 //                 subtitle_path: video.subtitle_path,
 //                 current_playing: true,
-//                 updated_at: new Date().toISOString(),
+//                 updated_at: TimeUtil.timeUtc(),
 //             })
 //             .where(eq(watchProjectVideos.id, video.id));
 //
 //         await db
 //             .update(watchProjects)
 //             .set({
-//                 last_watch_time: new Date().toISOString(),
+//                 last_watch_time: TimeUtil.timeUtc(),
 //             })
 //             .where(eq(watchProjects.id, video.project_id));
 //     };

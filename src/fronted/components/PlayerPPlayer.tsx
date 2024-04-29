@@ -9,9 +9,10 @@ import React from 'react';
 import useFile from '@/fronted/hooks/useFile';
 import useLayout from '@/fronted/hooks/useLayout';
 import { useLocalStorage } from '@uidotdev/usehooks';
+import {strNotBlank} from "@/common/utils/Util";
 
 const PlayerPPlayer = () => {
-    const hasSubTitle = useFile((s) => s.subtitleFile !== undefined);
+    const hasSubTitle = useFile((s) => strNotBlank(s.subtitlePath));
     const showSideBar = useLayout((state) => state.showSideBar);
     const fullScreen = useLayout((s) => s.fullScreen);
     const podcastMode = useLayout(s => s.podcastMode);

@@ -18,9 +18,6 @@ export interface TranscriptItemProps {
 const api = window.electron;
 
 const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps) => {
-
-
-    console.log('itemTaskId', taskId);
     const [started, setStarted] = React.useState(false);
     const task = useDpTaskViewer(taskId);
     const { data: fInfo } = useSWR(['system/path-info',file], ([_k, f]) => api.call('system/path-info', f), {
@@ -30,6 +27,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
             extName: ''
         }
     });
+    console.log('taskk',task)
 
     let msg = task?.progress ?? '未开始';
     if (task?.status === DpTaskState.IN_PROGRESS) {
@@ -43,6 +41,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
         const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
         const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
         const duration = Math.floor((updatedAt - createdAt) / 1000);
+        console.log('duration', duration, TimeUtil.isoToDate(task.updated_at), TimeUtil.isoToDate(task.created_at));
         msg = `${task.progress} ${duration}s`;
     }
     return (

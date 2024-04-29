@@ -7,10 +7,10 @@ export const sentenceTranslates = sqliteTable('dp_sentence_translates', {
     translate: text('translate'),
     created_at: text('created_at')
         .notNull()
-        .default(sql`CURRENT_TIMESTAMP`),
+        .default(sql`datetime('now', 'localtime')`),
     updated_at: text('updated_at')
         .notNull()
-        .default(sql`CURRENT_TIMESTAMP`),
+        .default(sql`datetime('now', 'localtime')`),
 });
 
 export type SentenceTranslate = typeof sentenceTranslates.$inferSelect; // return type when queried

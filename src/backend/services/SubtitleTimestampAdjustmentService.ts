@@ -5,6 +5,7 @@ import {
     SubtitleTimestampAdjustment,
     subtitleTimestampAdjustments,
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export default class SubtitleTimestampAdjustmentService {
     public static async record(
@@ -19,7 +20,7 @@ export default class SubtitleTimestampAdjustmentService {
                     subtitle_path: e.subtitle_path,
                     start_at: e.start_at,
                     end_at: e.end_at,
-                    updated_at: new Date().toISOString(),
+                    updated_at: TimeUtil.timeUtc(),
                 },
             });
     }

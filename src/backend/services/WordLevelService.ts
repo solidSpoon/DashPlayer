@@ -18,7 +18,7 @@
 //                 target: words.word,
 //                 set: {
 //                     translate: wordLevel.translate,
-//                     updated_at: new Date().toISOString(),
+//                     updated_at: TimeUtil.timeUtc(),
 //                 },
 //             });
 //     }

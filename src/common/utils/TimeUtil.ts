@@ -1,4 +1,5 @@
 import {strBlank} from "@/common/utils/Util";
+import moment from "moment";
 
 export default class TimeUtil {
     public static secondToTimeStrCompact(second: number | null | undefined): string {
@@ -44,12 +45,14 @@ export default class TimeUtil {
         if (strBlank(iso)) {
             return new Date();
         }
-        //iso 2024-04-23T08:57:14.267Z
-        console.log('iso', iso);
-        const isValidDate = !isNaN(Date.parse(iso));
-        const res = isValidDate ? new Date(iso) : new Date(iso.replace(' ', 'T') + 'Z');
-        console.log('res', res);
-        return res;
+        if (strBlank(iso)) {
+            return new Date();
+        }
+        const date = moment.utc(iso, ['YYYY-MM-DDTHH:mm:ss.SSSZ', 'YYYY-MM-DD HH:mm:ss']);
+        if (!date.isValid()) {
+            return new Date();
+        }
+        return date.toDate();
     }
 
     public static dateToRelativeTime(date: Date): string {
@@ -81,6 +84,10 @@ export default class TimeUtil {
     public static toGroupMiddle(seconds: number): number {
         const segment = Math.floor(seconds / 15);
         return segment * 15 + 7.5;
+    }
+
+    public static timeUtc(): string {
+        return moment.utc().format('YYYY-MM-DD HH:mm:ss');
     }
 
 }

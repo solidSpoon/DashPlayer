@@ -3,6 +3,7 @@ import db from '@/backend/db/db';
 import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpTask';
 
 import LRUCache from "lru-cache";
+import TimeUtil from "@/common/utils/TimeUtil";
 
 
 const cache: LRUCache<number, InsertDpTask> = new LRUCache({
@@ -21,7 +22,7 @@ export default class DpTaskService {
                         .update(dpTask)
                         .set({
                             ...value,
-                            updated_at: new Date().toISOString(),
+                            updated_at: TimeUtil.timeUtc(),
                         })
                         .where(eq(dpTask.id, key));
                     this.upQueue.delete(key);
@@ -75,8 +76,8 @@ export default class DpTaskService {
             id: taskId,
             status: DpTaskState.INIT,
             progress: '任务创建成功',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            created_at: TimeUtil.timeUtc(),
+            updated_at: TimeUtil.timeUtc(),
         });
         return taskId;
     }
@@ -91,12 +92,12 @@ export default class DpTaskService {
             cache.set(task.id, {
                 ...cache.get(task.id),
                 ...task,
-                updated_at: new Date().toISOString()
+                updated_at: TimeUtil.timeUtc()
             })
         }
         this.upQueue.set(task.id, {
             ...task,
-            updated_at: new Date().toISOString(),
+            updated_at: TimeUtil.timeUtc(),
         });
     }
 
@@ -106,13 +107,13 @@ export default class DpTaskService {
                 ...cache.get(id),
                 status: DpTaskState.CANCELLED,
                 progress: '任务取消',
-                updated_at: new Date().toISOString()
+                updated_at: TimeUtil.timeUtc()
             })
         }
         this.upQueue.set(id, {
             status: DpTaskState.CANCELLED,
             progress: '任务取消',
-            updated_at: new Date().toISOString(),
+            updated_at: TimeUtil.timeUtc(),
         });
     }
 }

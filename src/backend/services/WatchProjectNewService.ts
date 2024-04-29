@@ -5,6 +5,7 @@ import db from '@/backend/db/db';
 import fs from 'fs';
 import MediaUtil, { isSrt } from '@/common/utils/MediaUtil';
 import path from 'path';
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];
@@ -100,7 +101,7 @@ export default class WatchProjectNewService {
                 set: {
                     project_name: vp.project_name,
                     project_type: vp.project_type,
-                    updated_at: new Date().toISOString()
+                    updated_at: TimeUtil.timeUtc()
                 }
             })
             .returning();
@@ -124,7 +125,7 @@ export default class WatchProjectNewService {
                     ...v,
                     id: undefined,
                     project_id: vpr.id,
-                    updated_at: new Date().toISOString()
+                    updated_at: TimeUtil.timeUtc()
                 }
             })
             .returning();
@@ -145,7 +146,7 @@ export default class WatchProjectNewService {
                 set: {
                     project_name: vp.project_name,
                     project_type: vp.project_type,
-                    updated_at: new Date().toISOString()
+                    updated_at: TimeUtil.timeUtc()
                 }
             })
             .returning();
@@ -175,7 +176,7 @@ export default class WatchProjectNewService {
                         ...v,
                         id: undefined,
                         project_id: vpr.id,
-                        updated_at: new Date().toISOString()
+                        updated_at: TimeUtil.timeUtc()
                     }
                 });
         }));
@@ -184,7 +185,7 @@ export default class WatchProjectNewService {
 
     public static async attachSrt(videoPath: string, srtPath: string) {
         await db.update(watchProjectVideos)
-            .set({ subtitle_path: srtPath, updated_at: new Date().toISOString() })
+            .set({ subtitle_path: srtPath, updated_at: TimeUtil.timeUtc() })
             .where(eq(watchProjectVideos.video_path, videoPath));
     }
 
@@ -194,12 +195,12 @@ export default class WatchProjectNewService {
                 current_time: currentTime,
                 duration: duration,
                 current_playing: true,
-                updated_at: new Date().toISOString()
+                updated_at: TimeUtil.timeUtc()
             })
             .where(eq(watchProjectVideos.id, videoId))
             .returning();
         await db.update(watchProjects)
-            .set({ updated_at: new Date().toISOString() })
+            .set({ updated_at: TimeUtil.timeUtc() })
             .where(eq(watchProjects.id, video.project_id));
     }
 
