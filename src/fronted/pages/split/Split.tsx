@@ -18,7 +18,7 @@ const api = window.electron;
 
 const example = `
 00:00:00 Intro
-00:00:10 Part 1
+00:01:10 Part 1
 00:10:00 Part 2
 00:20:00 Part 3
 `;

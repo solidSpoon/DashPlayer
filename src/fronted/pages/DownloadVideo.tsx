@@ -6,6 +6,7 @@ import {Button} from "@/fronted/components/ui/button";
 import {strNotBlank} from "@/common/utils/Util";
 import Md from "@/fronted/components/chat/markdown";
 import {codeBlock} from "common-tags";
+import toast from 'react-hot-toast';
 
 const api = window.electron;
 const DownloadVideo = () => {
@@ -35,6 +36,7 @@ const DownloadVideo = () => {
                         onClick={async () => {
                             if (strNotBlank(url)) {
                                 await api.call('download-video/url', {url})
+                                toast('Check your Terminal')
                             }
                         }}
                         type="submit">Download</Button>

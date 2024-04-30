@@ -9,15 +9,14 @@ import {
 import {cn} from "@/fronted/lib/utils";
 import TranscriptItem from '@/fronted/components/TranscriptItem';
 import React from 'react';
-export interface TranscriptTask {
-    file: string;
-    taskId: number | null;
-}
-const TranscriptTable = ({files, onTranscript, onDelete}:{
-    files:TranscriptTask[],
-    onTranscript:(file:TranscriptTask)=>void,
-    onDelete:(file:TranscriptTask)=>void
-}) => {
+import useTranscript from '@/fronted/hooks/useTranscript';
+import { useShallow } from 'zustand/react/shallow';
+const TranscriptTable = () => {
+    const {files,onDelFromQueue,onTranscript} = useTranscript(useShallow(s => ({
+        files: s.files,
+        onDelFromQueue: s.onDelFromQueue,
+        onTranscript: s.onTranscript
+    })));
     return(
         <Table className={cn('h-0 w-full flex-1')}>
             <TableCaption>A list of your recent invoices.</TableCaption>
@@ -36,10 +35,10 @@ const TranscriptTable = ({files, onTranscript, onDelete}:{
                         file={f.file}
                         taskId={f.taskId}
                         onStart={() => {
-                            onTranscript(f);
+                            onTranscript(f.file);
                         }}
                         onDelete={() => {
-                            onDelete(f);
+                            onDelFromQueue(f.file);
                         }}/>
                 ))}
             </TableBody>

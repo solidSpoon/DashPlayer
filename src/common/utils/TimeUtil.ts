@@ -70,4 +70,12 @@ export default class TimeUtil {
         return moment.duration(duration).asSeconds();
     }
 
+    /**
+     * 00:00:00 转 00时00分00秒
+     */
+    public static timeStrToChinese(timeStr: string): string {
+        const [h, m, s] = timeStr.split(':');
+        return `${h}时${m}分${s}秒`;
+    }
+
 }

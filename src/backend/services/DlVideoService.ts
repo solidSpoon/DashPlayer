@@ -19,7 +19,7 @@ export default class DlVideoService {
 
         } else {
             const shPath = path.join(LocationService.scriptPath(), 'download_video.sh');
-            const shCommand = `open -a Terminal "${shPath}" "${LocationService.libPath()}" "${url}"`;
+            const shCommand = `osascript -e 'tell application "Terminal" to do script "bash ${shPath} ${LocationService.libPath()} ${url}"'`;
             console.log('Running command:', shCommand);
             exec(shCommand, (error, stdout, stderr) => {
                 if (error) {

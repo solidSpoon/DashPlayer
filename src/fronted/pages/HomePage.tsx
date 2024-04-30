@@ -70,6 +70,8 @@ const HomePage = () => {
                     </Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/transcript"}
                           className="font-semibold ">Transcript</Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/download"}
+                          className="font-semibold ">Download</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div
