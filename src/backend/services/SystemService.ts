@@ -48,4 +48,8 @@ export default class SystemService {
             return 'normal';
         }
     }
+
+    public static isWindows() {
+        return process.platform === 'win32';
+    }
 }

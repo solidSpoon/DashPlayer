@@ -122,6 +122,10 @@ interface SplitVideoDef {
     'split-video/video-length': { params: string , return: number };
 }
 
+interface DownloadVideoDef {
+    'download-video/url': { params: { url: string }, return: void };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -132,7 +136,8 @@ export type ApiDefinitions = ApiDefinition
     & SubtitleControllerDef
     & SplitVideoDef
     & SubtitleTimestampAdjustmentControllerDef
-    & StorageDef;
+    & StorageDef
+    & DownloadVideoDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

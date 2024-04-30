@@ -85,6 +85,12 @@ const SideBar = ({ compact }: SideBarProps) => {
                         <line x1="12" x2="12" y1="4" y2="20" />
                     </svg>
                 )}
+                {item(
+                    'Download',
+                    '/download',
+                    'download',
+                    <Captions />
+                )}
                 {item('Setting', '/settings', 'settings', <Settings />)}
                 {item('About', '/about', 'about', <User />)}
             </div>

@@ -8,6 +8,7 @@ import AiTransController from "@/backend/controllers/AiTransController";
 import WatchProjectController from '@/backend/controllers/WatchProjectController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
 import MediaController from "@/backend/controllers/MediaController";
+import DownloadVideoController from "@/backend/controllers/DownloadVideoController";
 
 
 const controllers: Controller[] = [
@@ -20,6 +21,7 @@ const controllers: Controller[] = [
     new MediaController(),
     new SubtitleTimestampAdjustmentController(),
     new StorageController(),
+    new DownloadVideoController(),
 ]
 
 export default function registerHandler() {

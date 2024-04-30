@@ -22,6 +22,7 @@ import Transcript from '@/fronted/pages/transcript/Transcript';
 import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from "@/fronted/components/short-cut/GlobalShortCut";
+import DownloadVideo from "@/fronted/pages/DownloadVideo";
 
 const App = () => {
     const theme = useSetting((s) => s.values.get('appearance.theme'));
@@ -51,6 +52,10 @@ const App = () => {
                                 <Route
                                     path='split'
                                     element={<Split/>}
+                                />
+                                <Route
+                                    path='download'
+                                    element={<DownloadVideo/>}
                                 />
                                 <Route path='about' element={<About/>}/>
                                 <Route
