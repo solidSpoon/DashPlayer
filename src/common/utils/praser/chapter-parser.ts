@@ -36,7 +36,7 @@ function parseChapter(str: string) {
 
         const startSecond = TimeUtil.parseDuration(lines[i].timestampStart);
         const endSecond = TimeUtil.parseDuration(lines[i].timestampEnd)
-        if (startSecond >= endSecond) {
+        if (startSecond > endSecond - 60) {
             lines[i].timestampValid = false;
         }
 
