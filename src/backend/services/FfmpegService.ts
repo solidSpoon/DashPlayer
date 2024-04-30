@@ -122,7 +122,7 @@ export default class FfmpegService {
         if (time <= 10) return 0;
         const out = await new Promise((resolve, reject) => {
             const ff = spawn(LocationService.ffprobePath(), [
-                '-read_intervals', `${time - 100}%${time}`,
+                '-read_intervals', `${time - 10}%${time}`,
                 '-v', 'error',
                 '-skip_frame', 'nokey',
                 '-show_entries', 'frame=pkt_pts_time',

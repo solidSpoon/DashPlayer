@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { InsertWatchProject, WatchProject, watchProjects, WatchProjectType } from '@/backend/db/tables/watchProjects';
 import { InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos } from '@/backend/db/tables/watchProjectVideos';
 import db from '@/backend/db/db';
@@ -60,7 +60,7 @@ export default class WatchProjectNewService {
         let videos: WatchProjectVideo[] = await db.select()
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.project_id, id))
-            .orderBy(desc(watchProjectVideos.updated_at));
+            .orderBy(asc(watchProjectVideos.video_name));
         await Promise.all(videos.map(async (v) => {
             if (!fs.existsSync(v.video_path)) {
                 await db.delete(watchProjectVideos)
@@ -70,7 +70,7 @@ export default class WatchProjectNewService {
         videos = await db.select()
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.project_id, id))
-            .orderBy(desc(watchProjectVideos.updated_at));
+            .orderBy(asc(watchProjectVideos.video_name));
         return { ...project, videos };
     }
 

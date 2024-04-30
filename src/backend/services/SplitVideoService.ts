@@ -73,7 +73,7 @@ class SplitVideoService {
             name: string,
             duration: number
         }[] = [];
-        let offset = 0;
+        let offset = -0.2;
         for (const v of splitedVideos) {
             const duration = await FfmpegService.duration(v);
             // 同名srt
@@ -128,7 +128,7 @@ class SplitVideoService {
         for (let i = 0; i < outputFiles.length; i++) {
             const c = cs[i];
             const file = outputFiles[i];
-            const newName = path.join(folderName, `${c.timeStr}-${c.name}${path.extname(file)}`.replaceAll(':', '_'));
+            const newName = path.join(folderName, `${c.timeStr}-${c.name}${path.extname(file)}`.replaceAll(':', ''));
             fs.renameSync(file, newName);
             splitedVideos.push(newName);
         }
