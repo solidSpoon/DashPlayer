@@ -103,6 +103,7 @@ class SplitVideoService {
             start: number,
             end: number,
             name: string,
+            duration: number
         }[] = [];
         let offset = 0;
         for (const v of splitedVideos) {
@@ -111,7 +112,8 @@ class SplitVideoService {
             srtSplit.push({
                 start: offset,
                 end: offset + duration,
-                name: v.replace(path.extname(v), '.srt')
+                name: v.replace(path.extname(v), '.srt'),
+                duration
             });
             offset += duration;
         }
@@ -120,14 +122,11 @@ class SplitVideoService {
         const srt = SrtUtil.parseSrt(content);
         for (const srtItem of srtSplit) {
             const lines = srt
-                .filter(line =>
-                    (line.start >= srtItem.start && line.end <= srtItem.end)
-                    || (line.start <= srtItem.start && line.end >= srtItem.start)
-                    || (line.start <= srtItem.end && line.end >= srtItem.end))
+                .filter(line => line.end >= srtItem.start && line.start <= srtItem.end)
                 .map((line, index) => ({
                     index: index + 1,
-                    start: line.start - srtItem.start,
-                    end: line.end - srtItem.start,
+                    start: Math.max(line.start - srtItem.start, 0),
+                    end: Math.min(line.end - srtItem.start, srtItem.duration),
                     contentEn: line.contentEn,
                     contentZh: line.contentZh
                 }));

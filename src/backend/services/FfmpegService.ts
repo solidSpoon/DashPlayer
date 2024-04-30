@@ -1,17 +1,15 @@
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpeg_static from 'ffmpeg-static';
-import ffprobe_static from 'ffprobe-static';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
 import {spawn} from 'child_process';
-import a from '@/common/utils/a';
 import path from "path";
 import fs from "fs";
+import LocationService from "@/backend/services/LocationService";
 
 export default class FfmpegService {
     static {
-        ffmpeg.setFfmpegPath(ffmpeg_static);
-        ffmpeg.setFfprobePath(ffprobe_static.path);
+        ffmpeg.setFfmpegPath(LocationService.ffmpegPath());
+        ffmpeg.setFfprobePath(LocationService.ffprobePath());
     }
 
     /**
@@ -32,7 +30,7 @@ export default class FfmpegService {
         console.log('splitVideo', inputFile, startSecond, endSecond, outputFile);
         await Lock.sync('ffmpeg', async () => {
             await new Promise((resolve, reject) => {
-                const ff = spawn(ffmpeg_static, [
+                const ff = spawn(LocationService.ffmpegPath(), [
                     '-y',
                     '-ss', TimeUtil.secondToTimeStrWithMs(startSecond),
                     '-t', (endSecond - startSecond).toString(),
@@ -123,7 +121,7 @@ export default class FfmpegService {
     public static async keyFrameAt(filePath: string, time: number) {
         if (time <= 10) return 0;
         const out = await new Promise((resolve, reject) => {
-            const ff = spawn(ffprobe_static.path, [
+            const ff = spawn(LocationService.ffprobePath(), [
                 '-read_intervals', `${time - 100}%${time}`,
                 '-v', 'error',
                 '-skip_frame', 'nokey',

@@ -1,6 +1,5 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
@@ -12,7 +11,7 @@ const config: ForgeConfig = {
     packagerConfig: {
         asar: false,
         icon: './assets/icons/icon',
-        extraResource: ["./drizzle"],
+        extraResource: ["./drizzle","./lib"],
         executableName: 'dash-player',
         name: 'DashPlayer',
     },
