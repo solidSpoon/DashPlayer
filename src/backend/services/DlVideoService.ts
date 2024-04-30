@@ -6,7 +6,7 @@ import path from "path";
 export default class DlVideoService {
     public static async dlVideo(url: string, savePath: string) {
         if (SystemService.isWindows()) {
-            const batPath = path.join(LocationService.scriptPath(), 'openDownloadTerminal.bat');
+            const batPath = path.join(LocationService.scriptPath(), 'download_video.bat');
             const batString = `start cmd /k ${batPath} ${LocationService.libPath()} "${url}"`;
             console.log('Running command:', batString);
             exec(batString, (error, stdout, stderr) => {
@@ -18,7 +18,7 @@ export default class DlVideoService {
             });
 
         } else {
-            const shPath = path.join(LocationService.scriptPath(), 'downloadVideo.sh');
+            const shPath = path.join(LocationService.scriptPath(), 'download_video.sh');
             const shCommand = `open -a Terminal "${shPath}" "${LocationService.libPath()}" "${url}"`;
             console.log('Running command:', shCommand);
             exec(shCommand, (error, stdout, stderr) => {
