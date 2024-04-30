@@ -5,7 +5,7 @@
     "description": "My Electron application description",
     "main": ".vite/build/main.js",
     "scripts": {
-        "download": "zx ./lib/download.mjs",
+        "download": "zx ./scripts/download.mjs",
         "start": "electron-forge start",
         "package": "electron-forge package",
         "make": "electron-forge make",

@@ -116,7 +116,7 @@ const download = async ({url, dir, file, sha}) => {
                 } else {
                     console.error(
                         chalk.red(
-                            `❌ File ${file} not valid, please try again using command \`yarn workspace enjoy download-whisper-model\``
+                            `❌ File ${file} not valid, please try again using command \`yarn download\``
                         )
                     );
                     reject();
@@ -126,7 +126,7 @@ const download = async ({url, dir, file, sha}) => {
     } catch (err) {
         console.error(
             chalk.red(
-                `❌ Failed to download ${url}: ${err}.\nPlease try again using command \`yarn workspace enjoy download-whisper-model\``
+                `❌ Failed to download ${url}: ${err}.\nPlease try again using command \`yarn download\``
             )
         );
         process.exit(1);
