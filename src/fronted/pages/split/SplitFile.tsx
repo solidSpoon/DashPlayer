@@ -169,6 +169,13 @@ const SplitFile = () => {
                 className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
             >
                 <FileSelector
+                    onSelected={async (vid) => {
+                        const v = await api.call('watch-project/video/detail', vid);
+                        updateFile(v.video_path);
+                        if (v.subtitle_path) {
+                            updateFile(v.subtitle_path);
+                        }
+                    }}
                     child={(hc) => (
                         <Button
                             onClick={() => hc()}

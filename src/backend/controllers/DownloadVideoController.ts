@@ -1,7 +1,7 @@
 import Controller from "@/backend/interfaces/controller";
 import registerRoute from "@/common/api/register";
 import DlVideoService from "@/backend/services/DlVideoService";
-import {app} from "electron";
+import { app } from 'electron';
 import DpTaskService from '@/backend/services/DpTaskService';
 
 export default class DownloadVideoController implements Controller {

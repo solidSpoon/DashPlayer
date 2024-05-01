@@ -1,10 +1,11 @@
 import ffmpeg from 'fluent-ffmpeg';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import {spawn} from 'child_process';
-import path from "path";
-import fs from "fs";
-import LocationService from "@/backend/services/LocationService";
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import LocationService from '@/backend/services/LocationService';
+import SystemService from '@/backend/services/SystemService';
 
 export default class FfmpegService {
     static {
@@ -81,18 +82,16 @@ export default class FfmpegService {
                     '-reset_timestamps', '1'
                 ])
                 .output(outputFormat)
-                .on('end', () => {
-                    // Get the list of files in the output directory
-                    fs.readdir(outputFolder, (err, files) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            // Filter the files to start with the output file prefix
-                            const outputFiles = files.filter(file => file.startsWith(outputFilePrefix))
-                                .map(file => path.join(outputFolder, file));
-                            resolve(outputFiles);
-                        }
-                    });
+                .on('end', async () => {
+                    try {
+                        const files = await SystemService.listFiles(outputFolder);
+                        // Filter the files to start with the output file prefix
+                        const outputFiles = files.filter(file => file.startsWith(outputFilePrefix))
+                            .map(file => path.join(outputFolder, file));
+                        resolve(outputFiles);
+                    } catch (e) {
+                        reject(e);
+                    }
                 })
                 .on('error', reject)
                 .run();
@@ -198,7 +197,7 @@ export default class FfmpegService {
     public static async splitToAudio({
                                          inputFile,
                                          outputFolder,
-                                         segmentTime,
+                                         segmentTime
                                      }: {
         inputFile: string,
         outputFolder: string,

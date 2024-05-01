@@ -1,5 +1,6 @@
 import {WindowState} from "@/common/types/Types";
-
+import fs from "fs";
+import { dialog } from 'electron';
 export default class SystemService {
     public static mainWindowRef: Electron.CrossProcessExports.BrowserWindow;
 
@@ -54,5 +55,53 @@ export default class SystemService {
     }
     public static sendErrorToRenderer(error: Error) {
         SystemService.mainWindowRef?.webContents.send('error-msg', error);
+    }
+    public static async read(path: string) {
+        try {
+            if (!fs.existsSync(path)) {
+                return null;
+            }
+            return fs.readFileSync(path, 'utf-8');
+        } catch (e) {
+            // show open dialog
+            await dialog.showMessageBox({
+                type: 'error',
+                message: `无权限读取文件，请选择文件 ${path} 来授权`,
+            });
+
+            const files = await dialog.showOpenDialog({
+                properties: ['openFile'],
+            });
+            if (files.canceled) {
+                return null;
+            }
+            return fs.readFileSync(path, 'utf-8');
+        }
+    }
+
+    /**
+     * 获取文件夹下的所有文件
+     */
+    public static async listFiles(path: string) {
+        try {
+            if (!fs.existsSync(path)) {
+                return [];
+            }
+            return fs.readdirSync(path);
+        } catch (e) {
+            // show open dialog
+            await dialog.showMessageBox({
+                type: 'error',
+                message: `无权限访问文件夹，请选择文件夹 ${path} 来授权`,
+            });
+
+            const files = await dialog.showOpenDialog({
+                properties: ['openDirectory'],
+            });
+            if (files.canceled) {
+                return [];
+            }
+            return fs.readdirSync(path);
+        }
     }
 }
