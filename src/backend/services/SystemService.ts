@@ -52,4 +52,7 @@ export default class SystemService {
     public static isWindows() {
         return process.platform === 'win32';
     }
+    public static sendErrorToRenderer(error: Error) {
+        SystemService.mainWindowRef?.webContents.send('error-msg', error);
+    }
 }

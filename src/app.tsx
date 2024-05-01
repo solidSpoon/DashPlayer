@@ -15,7 +15,7 @@ import StorageSetting from "@/fronted/pages/setting/StorageSetting";
 import CheckUpdate from "@/fronted/pages/setting/CheckUpdate";
 import AppearanceSetting from "@/fronted/pages/setting/AppearanceSetting";
 import {Toaster} from "@/fronted/components/ui/sonner";
-import {Toaster as HotToaster} from "react-hot-toast";
+import toast, {Toaster as HotToaster} from "react-hot-toast";
 
 import {syncStatus} from "@/fronted/hooks/useSystem";
 import Transcript from '@/fronted/pages/transcript/Transcript';
@@ -23,7 +23,7 @@ import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from "@/fronted/components/short-cut/GlobalShortCut";
 import DownloadVideo from "@/fronted/pages/DownloadVideo";
-
+const api = window.electron;
 const App = () => {
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
@@ -110,3 +110,6 @@ const App = () => {
 const root = createRoot(document.body);
 root.render(<App/>);
 syncStatus();
+api.onErrorMsg((error: Error) => {
+    toast.error(error.message);
+});

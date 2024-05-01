@@ -21,7 +21,7 @@ cd "$HOME/Downloads" || { echo "Failed to change directory to $HOME/Downloads"; 
 export PATH="$LIB_PATH:$PATH"
 
 # Download the video using yt-dlp
-yt-dlp -S "res:1080,ext" "$VIDEO_URL"
+yt-dlp -S "res:1080,ext" "$VIDEO_URL" -P
 
 echo
 echo

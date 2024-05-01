@@ -1,17 +1,31 @@
-import {cn} from "@/fronted/lib/utils";
-import Separator from "@/fronted/components/Separtor";
-import React from "react";
-import {Input} from "@/fronted/components/ui/input";
-import {Button} from "@/fronted/components/ui/button";
-import {strNotBlank} from "@/common/utils/Util";
-import Md from "@/fronted/components/chat/markdown";
-import {codeBlock} from "common-tags";
+import { cn } from '@/fronted/lib/utils';
+import Separator from '@/fronted/components/Separtor';
+import React from 'react';
+import { Input } from '@/fronted/components/ui/input';
+import { Button } from '@/fronted/components/ui/button';
+import { strNotBlank } from '@/common/utils/Util';
+import { useLocalStorage } from '@uidotdev/usehooks';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import toast from 'react-hot-toast';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 
 const api = window.electron;
 const DownloadVideo = () => {
 
-    const [url, setUrl] = React.useState<string>('');
+    const [taskId, setTaskId] = useLocalStorage<number>('download-video-task-id', null);
+    const dpTask = useDpTaskViewer(taskId);
+    console.log('task', dpTask);
+    const [url, setUrl] = useLocalStorage('download-video-url', '');
+    const consoleRef = React.useRef<HTMLPreElement>(null);
+    React.useEffect(() => {
+        if (consoleRef.current) {
+            consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+        }
+    }, [dpTask?.result]);
+    const inProgress = dpTask?.status === DpTaskState.IN_PROGRESS
+        || dpTask?.status === DpTaskState.INIT;
+    const successMsg = `文件保存在下载文件夹`;
     return (
         <div
             className={cn(
@@ -25,37 +39,41 @@ const DownloadVideo = () => {
                 <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
                     Download videos from the internet
                 </h2>
-                <Separator orientation="horizontal" className="px-0"/>
+                <Separator orientation="horizontal" className="px-0" />
             </div>
             <div className={cn('h-0 flex-1 flex flex-col items-center')}>
                 <div className="flex w-full max-w-3xl items-center space-x-2">
                     <Input type="url" placeholder="Paste video URL here"
-                           value={url} onChange={e => setUrl(e.target.value)}
+                           value={url} onChange={e => {
+                               setUrl(e.target.value);
+                               setTaskId(null);
+                           }}
                     />
                     <Button
+                        disabled={inProgress}
                         onClick={async () => {
                             if (strNotBlank(url)) {
-                                await api.call('download-video/url', {url})
-                                toast('Check your Terminal')
+                                const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', { url }), {
+                                    onFinish: (task) => {
+                                        toast('done');
+                                    }
+                                });
+                                setTaskId(taskId);
                             }
                         }}
                         type="submit">Download</Button>
                 </div>
-                <div className={'w-full max-w-3xl mt-10'}>
-                    <Md>
-                        {codeBlock`
-                        ## 使用说明
-
-                        - 在上方输入框中粘贴视频链接，然后点击下载按钮即可下载视频。
-                        - 下载时会弹出命令行窗口，便于您查看进度，下载完成后您可以关闭。
-                        - 这个命令行内预置了 \`ffmpeg\`、\`ffprobe\`、\`yt-dlp\` 等命令，您可以在这个窗口内使用这些命令进一步处理视频。
-                        - 下载的视频会保存在您的下载文件夹中。
-                        `}
-                    </Md>
-                </div>
+                {taskId ? <pre
+                        className={'overflow-auto scrollbar-none w-full mt-10 p-4 bg-secondary-foreground text-background text-sm font-mono'}
+                        ref={consoleRef}
+                    >
+                    {dpTask?.result}
+                        {dpTask?.status === DpTaskState.DONE && `\n\n${successMsg}   `}
+                </pre> :
+                    <div className="mt-10 text-sm text-secondary-foreground">Paste a video URL and click download</div>}
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default DownloadVideo;

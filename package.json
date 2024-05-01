@@ -6,10 +6,10 @@
     "main": ".vite/build/main.js",
     "scripts": {
         "download": "zx ./scripts/download.mjs",
-        "start": "electron-forge start",
-        "package": "electron-forge package",
-        "make": "electron-forge make",
-        "publish": "electron-forge publish",
+        "start": "yarn run download && electron-forge start",
+        "package": "yarn run download && electron-forge package",
+        "make": "yarn run download && electron-forge make",
+        "publish": "yarn run download && electron-forge publish",
         "lint": "eslint --ext .ts,.tsx .",
         "test": "vitest  --config ./vite.main.config.ts"
     },

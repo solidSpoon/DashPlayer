@@ -82,7 +82,7 @@ export default class DpTaskService {
         return taskId;
     }
 
-    public static async update(
+    public static update(
         task: InsertDpTask
     ) {
         if (task.id === undefined || task.id === null) {
