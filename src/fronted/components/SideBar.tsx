@@ -1,23 +1,20 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-    HiOutlineCog,
-    HiOutlineUser,
-    HiOutlineVideoCamera,
-} from 'react-icons/hi';
 import React, { cloneElement, ReactElement } from 'react';
-import { cn } from '@/common/utils/Util';
+import { cn } from '@/fronted/lib/utils';
 import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
-import useSetting from "@/fronted/hooks/useSetting";
+import useSetting from '@/fronted/hooks/useSetting';
+import { Captions, Settings, User, Video } from 'lucide-react';
 
 export interface SideBarProps {
     compact?: boolean;
 }
+
 const SideBar = ({ compact }: SideBarProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const video = useFile((s) => s.currentVideo);
+    const videoId = useFile((s) => s.videoId);
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     const item = (
         text: string,
@@ -37,7 +34,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                 )}
             >
                 {cloneElement(icon, {
-                    className: cn('w-5 h-5 text-yellow-600 text-yellow-500 flex-shrink-0'),
+                    className: cn('w-5 h-5 text-yellow-600 text-yellow-500 flex-shrink-0')
                 })}
                 {!compact && (
                     <div className={cn('text-base text-foreground  truncate w-0 flex-1')}>
@@ -67,25 +64,49 @@ const SideBar = ({ compact }: SideBarProps) => {
                 {/* {item('Home', '/home', 'home', <HiOutlineHome />)} */}
                 {item(
                     'Player',
-                    `/player/${video?.id}?sideBarAnimation=false`,
+                    `/player/${videoId}?sideBarAnimation=false`,
                     'player',
-                    <HiOutlineVideoCamera />
+                    <Video />
                 )}
-                {/*{item(*/}
-                {/*    'Word Management',*/}
-                {/*    '/word-management',*/}
-                {/*    'word-management',*/}
-                {/*    <HiOutlineAcademicCap />*/}
-                {/*)}*/}
-                {item('Setting', '/settings', 'settings', <HiOutlineCog />)}
-                {item('About', '/about', 'about', <HiOutlineUser />)}
+                {item(
+                    'Transcript',
+                    '/transcript',
+                    'transcript',
+                    <Captions />
+                )}
+                {item(
+                    'Split',
+                    '/split',
+                    'split',
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         className="lucide lucide-square-split-horizontal">
+                        <path d="M8 19H5c-1 0-2-1-2-2V7c0-1 1-2 2-2h3" />
+                        <path d="M16 5h3c1 0 2 1 2 2v10c0 1-1 2-2 2h-3" />
+                        <line x1="12" x2="12" y1="4" y2="20" />
+                    </svg>
+                )}
+                {item(
+                    'Download',
+                    '/download',
+                    'download',
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         className="lucide lucide-cloud-download">
+                        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                        <path d="M12 12v9" />
+                        <path d="m8 17 4 4 4-4" />
+                    </svg>
+                )}
+                {item('Setting', '/settings', 'settings', <Settings />)}
+                {item('About', '/about', 'about', <User />)}
             </div>
         </div>
     );
 };
 
 SideBar.defaultProps = {
-    compact: false,
+    compact: false
 };
 
 export default SideBar;

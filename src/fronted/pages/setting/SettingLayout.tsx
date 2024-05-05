@@ -2,19 +2,21 @@ import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import React, {cloneElement, ReactElement} from 'react';
 import {
     MdBuild,
-    MdColorLens,
+    MdColorLens, MdCrueltyFree,
     MdKeyboard,
     MdOutlineGTranslate,
     MdStorage,
-    MdTranslate,
+    MdTranslate
 } from 'react-icons/md';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import Separator from '@/fronted/components/Separtor';
 import {buttonVariants} from "@/fronted/components/ui/button";
+import { Bot, Command, Compass, Database, Languages, Palette, Server, WholeWord } from 'lucide-react';
 
 export type SettingType =
     | 'you-dao'
     | 'tenant'
+    | 'open-ai'
     | 'shortcut'
     | 'storage'
     | 'update'
@@ -65,12 +67,13 @@ const Sidebar = () => {
     };
     return (
         <div className="w-full h-full flex flex-col gap-2">
-            {ele('快捷键', 'shortcut', <MdKeyboard/>)}
-            {ele('外观', 'appearance', <MdColorLens/>)}
-            {ele('字幕翻译', 'tenant', <MdOutlineGTranslate/>)}
-            {ele('查单词', 'you-dao', <MdTranslate/>)}
-            {ele('存储', 'storage', <MdStorage/>)}
-            {ele('版本更新', 'update', <MdBuild/>)}
+            {ele('快捷键', 'shortcut', <Command />)}
+            {ele('外观', 'appearance', <Palette />)}
+            {ele('字幕翻译', 'tenant', <Languages />)}
+            {ele('查单词', 'you-dao', <WholeWord />)}
+            {ele('OpenAI', 'open-ai', <Bot />)}
+            {ele('存储', 'storage', <Database />)}
+            {ele('版本更新', 'update', <Compass />)}
         </div>
     );
 };

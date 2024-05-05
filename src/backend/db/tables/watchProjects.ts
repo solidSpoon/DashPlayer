@@ -4,12 +4,11 @@ import { sql } from 'drizzle-orm';
 export const watchProjects = sqliteTable('dp_watch_projects', {
     id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
     project_name: text('project_name').notNull(),
-    type: integer('type', { mode: 'number' }).notNull().default(0),
-    project_key: text('project_key').notNull().unique(),
-    project_path: text('project_path', { length: 1024 }).notNull(),
-    current_video_id: integer('current_video_id', { mode: 'number' })
+    project_type: integer('type', { mode: 'number' }).notNull().default(0),
+    project_path: text('project_path', { length: 1024 }).notNull().unique(),
+    current_playing: integer('current_playing', { mode: 'boolean' })
         .notNull()
-        .default(0),
+        .default(false),
     last_watch_time: text('last_watch_time')
         .notNull()
         .default(sql`CURRENT_TIMESTAMP`),

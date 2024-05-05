@@ -1,5 +1,4 @@
-import { cn } from '../../../common/utils/Util';
-import Title from './Title';
+import {cn} from "@/fronted/lib/utils";
 import {Input} from "@/fronted/components/ui/input";
 import {Label} from "@/fronted/components/ui/label";
 import * as React from "react";

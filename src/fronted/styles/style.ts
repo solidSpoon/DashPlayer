@@ -98,3 +98,9 @@ export const themeProvider = (
         return darkColor[style];
     };
 };
+
+export default class Style {
+    public static file_browser_icon = 'w-4 h-4 text-yellow-700/90 flex-shrink-0';
+    public static word_hover_bg = 'bg-stone-100 dark:bg-neutral-600';
+    public static word_hover_normal_line_bg = 'bg-stone-100/50 dark:bg-neutral-600/50';
+}

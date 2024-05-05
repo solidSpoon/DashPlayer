@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { AiOutlineFieldTime } from 'react-icons/ai';
 import toast from 'react-hot-toast';
-import { cn } from '@/common/utils/Util';
+import { cn } from '@/fronted/lib/utils';
 import usePlayerController from '../hooks/usePlayerController';
-import useLayout, { cpH, cpW } from '../hooks/useLayout';
+import useLayout from '../hooks/useLayout';
 import { sentenceClearAllAdjust } from '../hooks/usePlayerControllerSlices/createSentenceSlice';
 import { Switch } from '@/fronted/components/ui/switch';
 import { Label } from './ui/label';
@@ -12,10 +11,70 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fro
 import useSetting from '@/fronted/hooks/useSetting';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { SettingKey } from '@/common/types/store_schema';
-import useSystem from '@/fronted/hooks/useSystem';
+import useSWR from 'swr';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { Button } from '@/fronted/components/ui/button';
+import { Captions, Eraser } from 'lucide-react';
+import Md from '@/fronted/components/chat/markdown';
+import { codeBlock } from 'common-tags';
+import useTranscript from '@/fronted/hooks/useTranscript';
+import useFile from '@/fronted/hooks/useFile';
+import { strBlank } from '@/common/utils/Util';
+import { useLocalStorage } from '@uidotdev/usehooks';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import TimeUtil from '@/common/utils/TimeUtil';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
+
+const api = window.electron;
 
 const getShortcut = (key: SettingKey) => {
     return useSetting.getState().setting(key);
+};
+
+const Transcript = () => {
+    const [taskId, setTaskId] = useLocalStorage<null | number>('control-box-transcript-task-id', null);
+    const task = useDpTaskViewer(taskId);
+
+    const duration = new Date().getTime() - TimeUtil.isoToDate(task?.created_at).getTime();
+    const inProgress = (task?.status ?? DpTaskState.DONE) === DpTaskState.IN_PROGRESS;
+    console.log('taskTranscript', task, duration, inProgress);
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        disabled={inProgress}
+                        className={'justify-start'}
+                        onClick={async () => {
+                            const srtPath = useFile.getState().videoPath;
+                            if (strBlank(srtPath)) {
+                                toast.error('请先选择一个视频文件');
+                                return;
+                            }
+                            toast('已添加到转录队列', {
+                                icon: '👏'
+                            });
+                            const taskId = await useTranscript.getState().onTranscript(srtPath);
+                            setTaskId(taskId);
+                        }}
+                        variant={'ghost'}
+                    >
+                        <Captions className="mr-2 h-4 w-4" />生成字幕
+                        {inProgress &&
+                            <span className="ml-1 text-xs text-gray-500"><span className={'font-mono'}>{Math.floor(duration / 1000)}</span> 秒</span>}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
+                    <Md>
+                        {codeBlock`
+                                #### 生成字幕
+                                使用人工智能为当前视频生成字幕，保存在视频文件夹中，完成时自动加载。
+                                `}
+                    </Md>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
 };
 
 const ControlBox = () => {
@@ -25,7 +84,9 @@ const ControlBox = () => {
         singleRepeat,
         changeShowEn,
         changeShowCn,
-        changeSingleRepeat
+        changeSingleRepeat,
+        autoPause,
+        changeAutoPause
     } = usePlayerController(
         useShallow((s) => ({
             showEn: s.showEn,
@@ -36,25 +97,17 @@ const ControlBox = () => {
             changeShowWordLevel: s.changeShowWordLevel,
             singleRepeat: s.singleRepeat,
             changeSingleRepeat: s.changeSingleRepeat,
+            autoPause: s.autoPause,
+            changeAutoPause: s.changeAutoPause
         }))
     );
     const setSetting = useSetting((s) => s.setSetting);
     const setting = useSetting((s) => s.setting);
-
-
-    const [clearAllAdjust, setClearAllAdjust] = useState(false);
-    const {
-        setWindowState,
-        windowState
-    } = useSystem(useShallow(s => ({
-        setWindowState: s.setWindowState,
-        windowState: s.windowState
-    })));
-    const {podcstMode, setPodcastMode} = useLayout(useShallow(s => ({
+    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size', null));
+    const { podcstMode, setPodcastMode } = useLayout(useShallow(s => ({
         podcstMode: s.podcastMode,
         setPodcastMode: s.setPodcastMode
     })));
-    // const fullScreen = useLayout(s => s.fullScreen);
     const changeFullScreen = useLayout(s => s.changeFullScreen);
 
     const controlItem = ({
@@ -70,7 +123,7 @@ const ControlBox = () => {
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <div className='flex items-center space-x-2'>
+                        <div className="flex items-center space-x-2">
                             <Switch
                                 checked={checked}
                                 onCheckedChange={onCheckedChange}
@@ -126,6 +179,13 @@ const ControlBox = () => {
                     tooltip: `快捷键为 ${getShortcut('shortcut.repeatSentence')}`
                 })}
                 {controlItem({
+                    checked: autoPause,
+                    onCheckedChange: changeAutoPause,
+                    id: 'autoPause',
+                    label: '自动暂停',
+                    tooltip: `当前句子结束自动暂停`
+                })}
+                {controlItem({
                     checked: setting('appearance.theme') === 'dark',
                     onCheckedChange: () => {
                         setSetting('appearance.theme', setting('appearance.theme') === 'dark' ? 'light' : 'dark');
@@ -136,12 +196,13 @@ const ControlBox = () => {
                 })}
                 {controlItem({
                     checked: windowState === 'fullscreen',
-                    onCheckedChange: () => {
+                    onCheckedChange: async () => {
                         if (windowState === 'fullscreen') {
-                            setWindowState('normal');
+                            await api.call('system/window-size/change', 'normal');
                         } else {
-                            setWindowState('fullscreen');
+                            await api.call('system/window-size/change', 'fullscreen');
                         }
+                        await swrMutate(SWR_KEY.WINDOW_SIZE);
                     },
                     id: 'fullScreen',
                     label: '全屏模式',
@@ -160,51 +221,37 @@ const ControlBox = () => {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className='flex items-center space-x-2'>
-                                <Switch
-                                    checked={clearAllAdjust}
-                                    onCheckedChange={(c) => {
-                                        if (!c) {
-                                            return;
-                                        }
-                                        setClearAllAdjust(true);
-                                        setTimeout(() => {
-                                            setClearAllAdjust(false);
-                                        }, 1000);
-                                        sentenceClearAllAdjust();
-                                        toast('清除了', {
-                                            icon: '👏'
-                                        });
-                                    }}
-                                    id='clearAllAdjust'
-                                />
-                                <Label htmlFor='clearAllAdjust'>清除时间调整</Label>
-                            </div>
+                            <Button
+                                className={'justify-start'}
+                                onClick={async () => {
+                                    toast('清除了', {
+                                        icon: '👏'
+                                    });
+                                    await sentenceClearAllAdjust();
+                                }}
+                                variant={'ghost'}
+                            >
+                                <Eraser className="mr-2 h-4 w-4" />清除时间调整
+                            </Button>
+
                         </TooltipTrigger>
-                        <TooltipContent className='p-4 rounded-md shadow-lg bg-white text-gray-800'>
-                            <p className='font-semibold'>
+                        <TooltipContent className="p-8 pb-6 rounded-md shadow-lg text-gray-800">
+                            <Md>
+                                {codeBlock`
+                                #### 清除时间调整
+                                _清除当前视频的所有时间调整_
+
                                 当字幕时间戳不准确时, 可以使用如下快捷键调整:
-                            </p>
-                            <p className='mt-2'>
-                                快捷键 <span
-                                className='font-bold'>{getShortcut('shortcut.adjustBeginMinus')}</span> 将当前句子开始时间提前
-                                0.2 秒<br />
-                                快捷键 <span
-                                className='font-bold'>{getShortcut('shortcut.adjustBeginPlus')}</span> 将当前句子开始时间推后
-                                0.2 秒<br />
-                                快捷键 <span
-                                className='font-bold'>{getShortcut('shortcut.adjustEndMinus')}</span> 将当前句子结束时间提前
-                                0.2 秒<br />
-                                快捷键 <span
-                                className='font-bold'>{getShortcut('shortcut.adjustEndPlus')}</span> 将当前句子结束时间推后
-                                0.2 秒<br />
-                            </p>
-                            <p className='mt-2'>
-                                这个按钮用于清除当前视频的所有时间调整
-                            </p>
+                                - 快捷键 ${getShortcut('shortcut.adjustBeginMinus')} 将当前句子开始时间提前 0.2 秒
+                                - 快捷键 ${getShortcut('shortcut.adjustBeginPlus')} 将当前句子开始时间推后 0.2 秒
+                                - 快捷键 ${getShortcut('shortcut.adjustEndMinus')} 将当前句子结束时间提前 0.2 秒
+                                - 快捷键 ${getShortcut('shortcut.adjustEndPlus')} 将当前句子结束时间推后 0.2 秒
+                                `}
+                            </Md>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
+                <Transcript />
             </CardContent>
         </Card>
     );

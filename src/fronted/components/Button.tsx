@@ -1,4 +1,4 @@
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import React, { useEffect } from 'react';
 
 export interface ButtonParam {

@@ -1,19 +1,21 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import { useShallow } from 'zustand/react/shallow';
-import FileT from '../../common/types/FileT';
 import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPannel from './PlayerControlPannel';
 import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
-import PlayerSubtitlePannel from "@/fronted/components/playerSubtitle/PlayerSubtitlePannel";
-import useLayout from "@/fronted/hooks/useLayout";
-import PlaySpeedToaster from "@/fronted/components/PlaySpeedToaster";
-import {cn} from "@/fronted/lib/utils";
+import PlayerSubtitlePannel from '@/fronted/components/playerSubtitle/PlayerSubtitlePannel';
+import useLayout from '@/fronted/hooks/useLayout';
+import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
+import { cn } from '@/fronted/lib/utils';
+import PlayerToaster from '@/fronted/components/PlayerToaster';
+import UrlUtil from "@/common/utils/UrlUtil";
+import { strBlank } from '@/common/utils/Util';
 
 const api = window.electron;
 
-export default function Player({className}:{className?: string}): ReactElement {
+export default function Player({ className }: { className?: string }): ReactElement {
     const {
         playing,
         muted,
@@ -24,7 +26,7 @@ export default function Player({className}:{className?: string}): ReactElement {
         updateExactPlayTime,
         setDuration,
         seekTo,
-        playbackRate,
+        playbackRate
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -36,17 +38,17 @@ export default function Player({className}:{className?: string}): ReactElement {
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
-            playbackRate: state.playbackRate,
+            playbackRate: state.playbackRate
         }))
     );
-    const videoFile = useFile((s) => s.videoFile);
-    const projectVideo = useFile((s) => s.currentVideo);
+    const videoPath = useFile((s) => s.videoPath);
+    const videoId = useFile((s) => s.videoId);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const playerRef: React.RefObject<ReactPlayer> = useRef<ReactPlayer>(null);
     const playerRefBackground: React.RefObject<HTMLCanvasElement> =
         useRef<HTMLCanvasElement>(null);
-    let lastFile: FileT | undefined;
+    let lastFile: string | undefined;
 
     const fullScreen = useLayout((s) => s.fullScreen);
 
@@ -65,7 +67,7 @@ export default function Player({className}:{className?: string}): ReactElement {
 
     useEffect(() => {
         if (podcastMode) {
-            return ;
+            return;
         }
         let animationFrameId: number | undefined;
         let lastDrawTime = Date.now(); // 用来限制绘制的帧率
@@ -140,32 +142,30 @@ export default function Player({className}:{className?: string}): ReactElement {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [videoLoaded, playerRef, playerRefBackground,podcastMode]);
+    }, [videoLoaded, playerRef, playerRefBackground, podcastMode]);
 
-    const jumpToHistoryProgress = async (file: FileT) => {
+    const jumpToHistoryProgress = async (file: string) => {
         if (file === lastFile) {
             return;
         }
-
-        console.log('jumpToHistoryProgress', projectVideo);
-
-        if (projectVideo?.id === undefined) {
+        if (videoId === null) {
             return;
         }
-        const result = await api.queryProgress(projectVideo.id);
+        const result = await api.call('watch-project/video/detail', videoId);
         const progress = result.current_time ?? 0;
         console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });
         lastFile = file;
     };
 
+    console.log('videoPath', videoPath);
     const render = (): ReactElement => {
-        if (videoFile === undefined) {
+        if (strBlank(videoPath)) {
             return <div />;
         }
         return (
             <div
-                className={cn("w-full h-full overflow-hidden", className)}
+                className={cn('w-full h-full overflow-hidden', className)}
                 onMouseLeave={() => setShowControlPanel(false)}
             >
                 <div className="w-full h-full relative overflow-hidden">
@@ -175,7 +175,7 @@ export default function Player({className}:{className?: string}): ReactElement {
                         style={{
                             filter: 'blur(100px)',
                             // transform: 'scale(1.1)',
-                            objectFit: 'cover',
+                            objectFit: 'cover'
                         }}
                     />
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -185,7 +185,7 @@ export default function Player({className}:{className?: string}): ReactElement {
                         className="w-full h-full absolute top-0 left-0"
                         id="react-player-id"
                         ref={playerRef}
-                        url={videoFile.objectUrl ? videoFile.objectUrl : ''}
+                        url={UrlUtil.file(videoPath)}
                         playing={playing}
                         controls={showControlPanel}
                         width="100%"
@@ -195,9 +195,9 @@ export default function Player({className}:{className?: string}): ReactElement {
                         config={{
                             file: {
                                 attributes: {
-                                    controlsList: 'nofullscreen',
-                                },
-                            },
+                                    controlsList: 'nofullscreen'
+                                }
+                            }
                         }}
                         onPlay={() => {
                             play();
@@ -212,8 +212,8 @@ export default function Player({className}:{className?: string}): ReactElement {
                             setDuration(duration);
                         }}
                         onStart={async () => {
-                            await jumpToHistoryProgress(videoFile);
-                            loadedVideo(videoFile);
+                            await jumpToHistoryProgress(videoPath);
+                            loadedVideo(videoPath);
                         }}
                         onReady={() => {
                             if (!videoLoaded) {
@@ -236,8 +236,9 @@ export default function Player({className}:{className?: string}): ReactElement {
                             playing={playing}
                         />
                     ))}
-                    {fullScreen && <PlayerSubtitlePannel/>}
-                    <PlaySpeedToaster  speed={playbackRate} className='absolute top-3 left-3'/>
+                    {fullScreen && <PlayerSubtitlePannel />}
+                    <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
+                    <PlayerToaster className="absolute top-3 left-3"/>
                 </div>
             </div>
         );
@@ -248,5 +249,5 @@ export default function Player({className}:{className?: string}): ReactElement {
 
 
 Player.defaultProps = {
-    className: '',
-}
+    className: ''
+};

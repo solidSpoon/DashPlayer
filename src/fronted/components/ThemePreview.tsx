@@ -1,6 +1,6 @@
 import React from 'react';
 import {twJoin} from 'tailwind-merge';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import {themeProvider} from '../styles/style';
 
 export interface ThemePreviewParam {

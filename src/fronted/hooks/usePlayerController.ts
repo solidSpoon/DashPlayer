@@ -8,33 +8,29 @@ import {
     ModeSlice,
     PlayerSlice,
     SentenceSlice,
-    SubtitleSlice,
+    SubtitleSlice
 } from './usePlayerControllerSlices/SliceTypes';
 import createPlayerSlice from './usePlayerControllerSlices/createPlayerSlice';
 import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice';
 import createInternalSlice from './usePlayerControllerSlices/createInternalSlice';
 import createModeSlice from './usePlayerControllerSlices/createModeSlice';
 import createControllerSlice from './usePlayerControllerSlices/createControllerSlice';
-import FileT from '../../common/types/FileT';
-import parseSrtSubtitles from '../../common/utils/parseSrt';
-import SentenceT from '../../common/types/SentenceT';
+import SentenceC, { SrtSentence } from '../../common/types/SentenceC';
 import useFile from './useFile';
-import { p, sleep } from '@/common/utils/Util';
+import Util, { sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
 import TransHolder from '../../common/utils/TransHolder';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
-import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import { sentenceKey } from '@/common/utils/hash';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 const usePlayerController = create<
     PlayerSlice &
-        SentenceSlice &
-        ModeSlice &
-        InternalSlice &
-        SubtitleSlice &
-        ControllerSlice
-        // WordLevelSlice
+    SentenceSlice &
+    ModeSlice &
+    InternalSlice &
+    SubtitleSlice &
+    ControllerSlice
+    // WordLevelSlice
 >()(
     subscribeWithSelector((...a) => ({
         ...createPlayerSlice(...a),
@@ -42,7 +38,7 @@ const usePlayerController = create<
         ...createModeSlice(...a),
         ...createInternalSlice(...a),
         ...createSubtitleSlice(...a),
-        ...createControllerSlice(...a),
+        ...createControllerSlice(...a)
         // ...createWordLevelSlice(...a),
     }))
 );
@@ -59,7 +55,7 @@ usePlayerController.subscribe(
         if (playing) {
             const sync = () => {
                 usePlayerController.setState((state) => ({
-                    playTime: state.internal.exactPlayTime,
+                    playTime: state.internal.exactPlayTime
                 }));
             };
             sync();
@@ -78,7 +74,7 @@ let count = 0;
 usePlayerController.subscribe(
     (state) => ({
         playTime: state.playTime,
-        duration: state.duration,
+        duration: state.duration
     }),
     async ({ playTime, duration }) => {
         if (useFile.getState().videoLoaded) {
@@ -86,16 +82,15 @@ usePlayerController.subscribe(
             if (count % 5 !== 0) {
                 return;
             }
-            const file = useFile.getState().currentVideo;
+            const file = useFile.getState().videoId;
             if (!file) {
                 return;
             }
 
-            await api.updateProgress({
-                ...file,
-                current_time: playTime,
-                duration,
-                subtitle_path: useFile.getState().subtitleFile?.path ?? null,
+            await api.call('watch-project/progress/update', {
+                videoId: file,
+                currentTime: playTime,
+                duration
             });
         }
     },
@@ -108,10 +103,14 @@ usePlayerController.subscribe(
 let updateSentenceInterval: number | null = null;
 usePlayerController.subscribe(
     (state) => ({
-        playing: state.playing,
+        playing: state.playing
     }),
     async ({ playing }) => {
         if (!playing) {
+            const state = usePlayerController.getState();
+            if (state.autoPause || state.singleRepeat) {
+                return;
+            }
             updateSentenceInterval = window.setInterval(() => {
                 if (useFile.getState().videoLoaded) {
                     usePlayerController.getState().tryUpdateCurrentSentence();
@@ -125,71 +124,7 @@ usePlayerController.subscribe(
     { equalityFn: shallow }
 );
 
-async function loadSubtitle(subtitleFile: FileT) {
-    const url = subtitleFile?.objectUrl ?? '';
-
-    const text = await fetch(url).then((res) => res.text());
-
-    const srtSubtitles = parseSrtSubtitles(text);
-    srtSubtitles.forEach((item) => {
-        item.fileUrl = url;
-        item.setKey();
-    });
-
-    const adjs: SubtitleTimestampAdjustment[] =
-        await api.subtitleTimestampGetByPath(subtitleFile.path ?? '');
-    const mapping: Map<string, SubtitleTimestampAdjustment> = new Map();
-    adjs.forEach((item) => {
-        mapping.set(item.key, item);
-    });
-    srtSubtitles.forEach((item) => {
-        const key = sentenceKey(
-            subtitleFile.path ?? '',
-            item.index,
-            item.text ?? ''
-        );
-        const adj = mapping.get(key);
-        if (adj) {
-            if (
-                Math.abs((adj.start_at ?? 0) - (item.currentBegin ?? 0)) > 0.05
-            ) {
-                item.originalBegin = item.currentBegin;
-                item.currentBegin = adj.start_at ?? undefined;
-            }
-
-            if (Math.abs((adj.end_at ?? 0) - (item.currentEnd ?? 0)) > 0.05) {
-                item.originalEnd = item.currentEnd;
-                item.currentEnd = adj.end_at ?? undefined;
-            }
-        }
-    });
-    return srtSubtitles;
-}
-function groupSentence(
-    subtitle: SentenceT[],
-    batch: number,
-    fieldConsumer: (s: SentenceT, index: number) => void
-) {
-    const groups: SentenceT[][] = [];
-    let group: SentenceT[] = [];
-    subtitle.forEach((item) => {
-        group.push(item);
-        if (group.length >= batch) {
-            groups.push(group);
-            group = [];
-        }
-    });
-    if (group.length > 0) {
-        groups.push(group);
-    }
-    groups.forEach((item, index) => {
-        item.forEach((s) => {
-            fieldConsumer(s, index);
-        });
-    });
-}
-
-function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceT[]) {
+function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
     const currentGroup =
         usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
@@ -210,74 +145,47 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceT[]) {
     return groupSubtitles;
 }
 
-// async function syncWordsLevel(userCanSee: SentenceT[]) {
-//     if (userCanSee.length === 0) {
-//         return;
-//     }
-//     const words = new Set<string>();
-//     userCanSee.forEach((item) => {
-//         splitToWords(item.text).forEach((w) => {
-//             words.add(w);
-//         });
-//     });
-//     await usePlayerController.getState().syncWordsLevel(Array.from(words));
-// }
-
 /**
  * 加载与翻译
  */
 useFile.subscribe(
-    (s) => s.subtitleFile,
-    async (subtitleFile) => {
-        if (subtitleFile === undefined) {
+    (s) => s.subtitlePath,
+    async (subtitlePath) => {
+        if (Util.isNull(subtitlePath)) {
             return;
         }
-        const CURRENT_FILE = useFile.getState().subtitleFile;
-        const subtitle: SentenceT[] = await loadSubtitle(subtitleFile);
-        const structures = await api.processSentences(
-            subtitle.map((s) => s.text ?? '')
-        );
-        const sentencesStructures: Map<string, SentenceStruct> = new Map();
-        structures.forEach((item) => {
-            sentencesStructures.set(p(item.original), item);
-        });
-        if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+        const CURRENT_FILE = useFile.getState().subtitlePath;
+        const srtSubtitles: SrtSentence | null = await api.call('subtitle/srt/parse-to-sentences', subtitlePath);
+        if (Util.isNull(srtSubtitles)) {
+            if (CURRENT_FILE !== useFile.getState().subtitlePath) {
+                return;
+            }
+            useFile.setState({
+                subtitlePath: null
+            });
+            usePlayerController.getState().setSubtitle([]);
             return;
         }
-        usePlayerController.setState((state) => {
-            return {
-                subTitlesStructure: sentencesStructures,
-            };
-        });
-        groupSentence(subtitle, 20, (s, index) => {
-            s.transGroup = index;
-        });
-        if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+        const subtitle = srtSubtitles.sentences.map(s => SentenceC.from(s));
+        if (CURRENT_FILE !== useFile.getState().subtitlePath) {
             return;
         }
         usePlayerController.getState().setSubtitle(subtitle);
-        // usePlayerController.getState().internal.wordLevel = new Map();
+        useFile.setState({
+            srtHash: srtSubtitles.fileHash
+        });
         const finishedGroup = new Set<number>();
-        let inited = false;
-        while (CURRENT_FILE === useFile.getState().subtitleFile) {
-            if (inited) {
-                // eslint-disable-next-line no-await-in-loop
-                await sleep(500);
-            }
-            inited = true;
-            // eslint-disable-next-line no-await-in-loop
+        while (CURRENT_FILE === useFile.getState().subtitlePath) {
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
             console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
-                // eslint-disable-next-line no-await-in-loop
-                // await syncWordsLevel(userCanSee);
                 const transHolder = TransHolder.from(
                     // eslint-disable-next-line no-await-in-loop
-                    await api.batchTranslate(
+                    await api.call('ai-trans/batch-translate',
                         userCanSee.map((s) => s.text ?? '')
                     )
                 );
-                if (CURRENT_FILE !== useFile.getState().subtitleFile) {
+                if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }
                 console.log('transHolder', transHolder);
@@ -287,6 +195,7 @@ useFile.subscribe(
                         .mergeSubtitleTrans(transHolder);
                 }
             }
+            await sleep(500);
         }
     }
 );
@@ -300,14 +209,9 @@ useSetting.subscribe(
             'apiKeys.tencent.secretKey'
         )}`,
     (s, ps) => {
-        useFile.setState((state) => {
-            return {
-                subtitleFile: state.subtitleFile
-                    ? {
-                          ...state.subtitleFile,
-                      }
-                    : undefined,
-            };
+        useFile.setState({
+            subtitlePath: null
         });
+        swrMutate(SWR_KEY.PLAYER_P).then();
     }
 );

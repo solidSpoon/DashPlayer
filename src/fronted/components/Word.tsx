@@ -2,12 +2,13 @@ import {useEffect, useRef, useState} from 'react';
 import * as turf from '@turf/turf';
 import {Feature, Polygon} from '@turf/turf';
 import {twMerge} from 'tailwind-merge';
-import {YdRes} from '@/common/types/YdRes';
 import WordPop from './WordPop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
-import useSetting from '../hooks/useSetting';
-import { strBlank } from '@/common/utils/Util';
+import {strNotBlank} from '@/common/utils/Util';
+import useSWR from "swr";
+import Style from "@/fronted/styles/style";
+import {cn} from "@/fronted/lib/utils";
 
 const api = window.electron;
 
@@ -40,23 +41,13 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => {
-    const [translationText, setTranslationText] = useState<YdRes | undefined>(
-        undefined
-    );
+const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) => {
     const pause = usePlayerController((s) => s.pause);
-    // const {getWordLevel, markWordLevel, showWordLevel} = usePlayerController(
-    //     useShallow((s) => ({
-    //         getWordLevel: s.getWordLevel,
-    //         markWordLevel: s.markWordLevel,
-    //         showWordLevel: s.showWordLevel,
-    //     }))
-    // );
     const [hovered, setHovered] = useState(false);
+    const {data: ydResp} = useSWR(hovered ? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
-    const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
         // 如果鼠标移出了凸多边形，就关闭
         let timeout: NodeJS.Timeout;
@@ -93,32 +84,14 @@ const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => 
         };
     }, [hovered, requestPop]);
 
-    useEffect(() => {
-        let cancel = false;
-        const transFun = async (str: string) => {
-            const r = await api.transWord(str);
-            if (r !== null && !cancel) {
-                setTranslationText(r);
-            }
-        };
-        if (hovered) {
-            transFun(original);
-        }
-        return () => {
-            cancel = true;
-        };
-    }, [hovered, original]);
-
     const handleWordClick = async () => {
-        const url = translationText?.speakUrl;
-        if (!strBlank(url)) {
+        const url = ydResp?.speakUrl;
+        if (strNotBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);
         }
     };
-
-    // const wordLevel = getWordLevel(word);
 
     return (
         <div className={twMerge('flex gap-1')}>
@@ -135,28 +108,19 @@ const Word = ({word,original, pop, requestPop, show, alwaysDark}: WordParam) => 
                         setHovered(true);
                     }
                 }}
-                // onContextMenu={(e) => {
-                //     e.stopPropagation();
-                //     e.preventDefault();
-                //     console.log('onContextMenu');
-                //     if (showWordLevel) {
-                //         console.log('markWordLevel', wordLevel?.familiar);
-                //         markWordLevel(word, !wordLevel?.familiar);
-                //     }
-                // }}
             >
-                {pop && hovered && translationText ? (
+                {pop && hovered && ydResp ? (
                     <WordPop
                         word={word}
-                        translation={translationText}
+                        translation={ydResp}
                         ref={popperRef}
                         hoverColor={alwaysDark ? "bg-neutral-600" : "bg-stone-100 dark:bg-neutral-600"}
                     />
                 ) : (
                     <div
-                        className={twMerge(
+                        className={cn(
                             ' rounded select-none',
-                            !show && 'text-transparent bg-wordHoverBackground',
+                            !show && ['text-transparent', Style.word_hover_bg],
                             alwaysDark ? 'hover:bg-neutral-600' : 'hover:bg-stone-100 dark:hover:bg-neutral-600'
                         )}
                         onMouseLeave={() => {

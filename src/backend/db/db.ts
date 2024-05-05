@@ -30,6 +30,8 @@ export async function clearDB() {
         .where(and(sql`type = 'table'`, sql`name != 'sqlite_sequence'`));
 
     // Drop all tables
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     for (const table of tables.map((e) => e.name)) {
         sqlite.exec(`DROP TABLE ${table}`);
     }
@@ -43,6 +45,8 @@ export async function clearDB() {
         .where(sql`type = 'index'`);
 
     // Drop all indexes
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     for (const index of indexes.map((e) => e.name)) {
         sqlite.exec(`DROP INDEX ${index}`);
     }

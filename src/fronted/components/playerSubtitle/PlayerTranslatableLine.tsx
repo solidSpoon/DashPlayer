@@ -3,15 +3,16 @@ import { AiOutlineFieldTime } from 'react-icons/ai';
 import useSetting from '@/fronted/hooks/useSetting';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { p } from '@/common/utils/Util';
-import hash from '@/common/utils/hash';
 import { FONT_SIZE } from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';
 import Word from '@/fronted/components/Word';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
+import hash from "object-hash";
+import SentenceC from "@/common/types/SentenceC";
 
 interface PlayerTranslatableSubtitleLineParam {
-    text: string;
+    sentence: SentenceC;
     adjusted: boolean;
     clearAdjust: () => void;
 }
@@ -27,7 +28,7 @@ const notWord = (str: string, key: string): ReactElement => {
     );
 };
 const PlayerTranslatableLine = ({
-                                    text,
+                                    sentence,
                                     adjusted,
                                     clearAdjust
                                 }: PlayerTranslatableSubtitleLineParam) => {
@@ -35,9 +36,8 @@ const PlayerTranslatableLine = ({
         state.values.get('appearance.fontSize')
     );
     const show = usePlayerController((state) => state.showEn);
-    const sentenceStruct = usePlayerController((state) =>
-        state.subTitlesStructure.get(p(text))
-    );
+    const sentenceStruct = sentence.struct;
+    const text = sentence.text;
     console.log('sentenceStruct', sentenceStruct);
     console.log('TranslatableLine', text, 'dd');
     const [popELe, setPopEle] = useState<string | null>(null);

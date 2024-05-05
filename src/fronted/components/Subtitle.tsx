@@ -7,9 +7,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import SideSentence from './SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
-import { cn } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
 import useBoundary from '../hooks/useBoundary';
+import {FlipVertical2} from "lucide-react";
+import {Button} from "@/fronted/components/ui/button";
 
 export default function Subtitle() {
     const [mouseOver, setMouseOver] = useState(false);
@@ -79,13 +81,16 @@ export default function Subtitle() {
                                 onUserFinishScrolling();
                             }}
                             className={cn(
-                                'absolute top-12 right-12 rounded-full w-12 h-12 p-3 flex justify-center items-center z-50 drop-shadow-md',
-                                'bg-purple-600 hover:bg-purple-700',
-                                'dark:bg-purple-700 dark:hover:bg-purple-800',
-                                'transition-colors duration-200'
+                                'absolute top-12 right-12  z-50 ',
                             )}
                         >
-                            <MdOutlineVerticalAlignCenter className="w-full h-full fill-purple-50" />
+                            <Button size={'icon'}
+                                    className={cn('bg-purple-600 hover:bg-purple-700',
+                                        'dark:bg-purple-700 dark:hover:bg-purple-800',
+                                        'transition-colors duration-200 rounded-full drop-shadow-md')}
+                            >
+                                <FlipVertical2 className={'text-purple-50'}/>
+                            </Button>
                         </motion.div>
                     )}
                 </AnimatePresence>

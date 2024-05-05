@@ -1,86 +1,71 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import FileT, { FileType } from '../../common/types/FileT';
-import { pathToFile } from '@/common/utils/FileParser';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import MediaUtil from '@/common/utils/MediaUtil';
+import { strBlank } from '@/common/utils/Util';
 
 type UseFileState = {
-    videoFile: FileT | undefined;
-    subtitleFile: FileT | undefined;
-    currentVideo: WatchProjectVideo | undefined;
+    videoPath: string | null;
+    videoId: number | null;
+    projectId: number | null;
+    subtitlePath: string | null;
     videoLoaded: boolean;
-    openedNum: number;
+    srtHash: string | null;
 };
 
 type UseFileActions = {
-    updateFile: (file: FileT) => void;
-    loadedVideo: (file: FileT) => void;
-    playFile: (f: WatchProjectVideo) => void;
+    updateFile: (file: string) => void;
+    loadedVideo: (file: string) => void;
     clear: () => void;
+    clearSrt: () => void;
 };
 
 const useFile = create(
     subscribeWithSelector<UseFileState & UseFileActions>((set) => ({
-        videoFile: undefined,
-        subtitleFile: undefined,
+        videoPath: null,
+        subtitlePath: null,
         videoLoaded: false,
-        openedNum: 0,
-        currentVideo: undefined,
-        updateFile: (file: FileT) => {
-            if (FileType.VIDEO === file.fileType) {
-                set((ps) => {
-                    return {
-                        videoFile: file,
-                        openedNum: ps.openedNum + 1,
-                        videoLoaded: false,
-                    };
+        videoId: null,
+        projectId: null,
+        srtHash: null,
+        updateFile: (ph: string) => {
+            if (MediaUtil.isMedia(ph)) {
+                set({
+                    videoPath: ph,
+                    videoLoaded: false
                 });
-                if (file.fileName !== undefined) {
-                    document.title = file.fileName;
+                if (strBlank(MediaUtil.fileName(ph))) {
+                    document.title = MediaUtil.fileName(ph);
                 }
             }
-            if (FileType.SUBTITLE === file.fileType) {
-                set((ps) => {
-                    return {
-                        subtitleFile: file,
-                        openedNum: ps.openedNum + 1,
-                        currentVideo: {
-                            ...ps.currentVideo,
-                            subtitle_path: file.path,
-                        } as WatchProjectVideo,
-                    };
+            if (MediaUtil.isSrt(ph)) {
+                set({
+                    subtitlePath: ph
                 });
             }
         },
-        loadedVideo: (file: FileT) => {
+        loadedVideo: (ph: string) => {
             set((s) => {
                 return {
-                    videoLoaded: s.videoFile === file,
-                };
-            });
-        },
-        playFile: async (f: WatchProjectVideo) => {
-            const video = await pathToFile(f.video_path ?? '');
-            const subtitle = await pathToFile(f.subtitle_path ?? '');
-            useFile.getState().updateFile(video);
-            useFile.getState().updateFile(subtitle);
-            set((s) => {
-                return {
-                    currentVideo: f,
+                    videoLoaded: s.videoPath === ph
                 };
             });
         },
         clear: () => {
-            set((s) => {
-                return {
-                    videoFile: undefined,
-                    subtitleFile: undefined,
-                    videoLoaded: false,
-                    openedNum: s.openedNum + 1,
-                    currentVideo: undefined,
-                };
+            set({
+                videoPath: null,
+                subtitlePath: null,
+                videoLoaded: false,
+                videoId: null,
+                projectId: null,
+                srtHash: null
             });
         },
+        clearSrt: () => {
+            set({
+                subtitlePath: null,
+                srtHash: null,
+            });
+        }
     }))
 );
 

@@ -1,154 +1,145 @@
-import React, { useEffect } from 'react';
-import { GoHistory } from 'react-icons/go';
-import { IoRefreshCircleOutline } from 'react-icons/io5';
-import { useNavigate } from 'react-router-dom';
-import useSystem from '@/fronted/hooks/useSystem';
+import React, {useEffect} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
 import TitleBar from '@/fronted/components/TitleBar/TitleBar';
-import useSetting from '@/fronted/hooks/useSetting';
-import { cn } from '@/common/utils/Util';
-import FileSelector from '@/fronted/components/fileBowser/FileSelector';
-import useProjectBrowser from '@/fronted/hooks/useProjectBrowser';
-import logoLight from '../../../assets/logo-light.png';
-import logoDark from '../../../assets/logo-dark.png';
+import {cn} from "@/fronted/lib/utils";
 import useLayout from '@/fronted/hooks/useLayout';
-import FileItem from '@/fronted/components/fileBowser/FileItem';
 import useFile from '@/fronted/hooks/useFile';
+import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
+import FileSelector from '@/fronted/components/fileBowser/FileSelector';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import {Button} from "@/fronted/components/ui/button";
+import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
+import useSWR from "swr";
+import {SWR_KEY} from "@/fronted/lib/swr-util";
+import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
+import {ChevronsDown} from "lucide-react";
 
 const api = window.electron;
 const HomePage = () => {
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
-    function handleClickById(videoId: number) {
-        api.playerSize();
+
+    async function handleClickById(projectId: number) {
+        const project = await api.call('watch-project/detail', projectId);
+        let video = project.videos.find((v) => v.current_playing);
+        if (!video && project.videos.length > 0) {
+            video = project.videos[0];
+        }
+        if (!video) {
+            return;
+        }
+        const videoId = video.id;
+        await api.call('system/window-size/change', 'player');
         changeSideBar(false);
-        setTimeout(() => {
-            navigate(`/player/${videoId}`);
-        }, 500);
+        navigate(`/player/${videoId}`);
     }
-    const { list, refresh, loading } = useProjectBrowser(
-        'play',
-        handleClickById
-    );
-    const appVersion = useSystem((s) => s.appVersion);
-    const dark = useSetting((s) => s.values.get('appearance.theme')) === 'dark';
+
+    const {data: vps} = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-project/list', null));
     const clear = useFile((s) => s.clear);
+    const [num, setNum] = React.useState(4);
+    // 从第四个开始截取num个
+    const rest = vps?.slice(3, num + 3);
     useEffect(() => {
-        api.homeSize();
+        api.call('system/window-size/change', 'home').then();
         clear();
     }, [clear]);
-    const lastPlay = list.length > 0 ? list[0] : undefined;
-    const restPlay = list.length > 1 ? list.slice(1) : [];
+    console.log('vpsl', vps?.length, rest?.length, num)
     return (
-        <div
-            className={cn(
-                'w-full h-screen flex-1 flex justify-center items-center select-none overflow-hidden text-black/80',
-                'bg-slate-200',
-                'dark:bg-neutral-800 dark:text-white/80'
-            )}
-        >
-            <TitleBar
-                maximizable={false}
-                className="fixed top-0 left-0 w-full z-50"
-            />
-            <div
-                className={cn(
-                    'w-1/3 h-full backdrop-blur flex flex-col justify-center items-center bg-white/20 gap-14 drop-shadow shadow-white',
-                    'dark:shadow-black'
-                )}
-            >
-                <div className="relative top-0 left-0 w-32 h-32">
-                    <img
-                        src={dark ? logoDark : logoLight}
-                        alt="logo"
-                        className="w-32 h-32 absolute top-0 left-0 user-drag-none"
-                    />
-                </div>
-                <div className="flex flex-col items-center justify-center gap-2">
-                    <h2
-                        className={cn(
-                            'text-lg text-black/80',
-                            dark && 'text-white/80'
-                        )}
-                    >
-                        DashPlayer
-                    </h2>
-                    <text
-                        className={cn('text-black/75', dark && 'text-white/75')}
-                    >
-                        {appVersion}
-                    </text>
-                </div>
-                <div className="w-full h-16" />
-            </div>
-            <div
-                className={cn(
-                    'h-full flex-1 backdrop-blur w-0 flex flex-col justify-center items-center bg-stone-200 border-l border-stone-400 pl-8 pr-10 gap-6',
-                    dark && 'border-neutral-800 bg-white/10'
-                )}
-            >
-                <div className="w-full h-10" />
-                <div className={cn('flex w-full flex-col items-start')}>
-                    <FileSelector className={cn('text-sm')} />
-                    <FileSelector className={cn('text-sm')} directory />
-                </div>
-                {lastPlay && (
+        <div className="flex h-screen w-full flex-col text-foreground bg-muted/40">
+            <header className="top-0 flex h-9 items-center">
+                <TitleBar
+                    maximizable={false}
+                    className="top-0 left-0 w-full h-9 z-50"
+                />
+            </header>
+            <main
+                className="flex h-0 flex-1 gap-4 p-4 md:gap-8">
+
+
+                <nav
+                    className="flex flex-col gap-4 text-sm text-muted-foreground font-semibold md:p-10 md:pr-0"
+                >
+                    <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
+                    <Link
+                        onClick={() => api.call('system/window-size/change', 'player')}
+                        to="/home" className="font-semibold text-primary mt-28 text-base ">
+                        Home Page
+                    </Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split" className="font-semibold ">
+                        Split Video
+                    </Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/transcript"}
+                          className="font-semibold ">Transcript</Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/download"}
+                          className="font-semibold ">Download</Link>
+                </nav>
+                <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div
-                        onClick={lastPlay.callback}
-                        className={cn(
-                            'w-full bg-black/10 hover:bg-black/20 px-4 h-12 rounded-lg flex items-center justify-start gap-2 text-sm',
-                            dark && 'bg-white/10 hover:bg-white/20'
-                        )}
+                        className={cn('justify-self-end flex flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
                     >
-                        <GoHistory
-                            className={cn(
-                                'w-4 h-4 fill-neutral-600',
-                                dark && 'fill-neutral-400'
+                        <FileSelector
+                            onSelected={async (vid) => {
+                                await api.call('system/window-size/change', 'player');
+                                changeSideBar(false);
+                                navigate(`/player/${vid}`);
+                            }}
+                            child={(hc) => (
+                                <Button
+                                    onClick={() => hc()}
+                                    variant={'outline'}
+                                    className={cn('w-28')}
+                                >Open File</Button>
                             )}
                         />
-                        <span>Resume</span>
-                        <span className="flex-1 truncate">
-                            {lastPlay?.name}
-                        </span>
-                        <span
-                            className={cn(
-                                'text-neutral-600',
-                                dark && 'text-neutral-400'
+                        <FolderSelector
+                            onSelected={async (vid) => {
+                                await api.call('system/window-size/change', 'player');
+                                changeSideBar(false);
+                                navigate(`/player/${vid}`);
+                            }}
+                            child={(hc) => (
+                                <Button
+                                    onClick={() => hc()}
+                                    variant={'outline'}
+                                    className={cn('w-28')}
+                                >Open Folder</Button>
                             )}
                         />
                     </div>
-                )}
-                <div className="w-full flex-1 flex flex-col overflow-y-auto scrollbar-none text-sm">
-                    {restPlay.map((item) => {
-                        return (
-                            <FileItem
-                                key={item.key}
-                                icon={item.icon}
-                                onClick={item.callback}
-                                content={item.name}
-                            />
-                        );
-                    })}
-                </div>
-                <div className="w-full h-16">
-                    <div
-                        onClick={() => {
-                            if (!loading) {
-                                refresh();
-                            }
-                        }}
-                        className={cn(
-                            'ml-auto w-8 h-8 rounded hover:bg-stone-300 p-1'
-                        )}
-                    >
-                        <IoRefreshCircleOutline
-                            className={cn(
-                                'w-full h-full',
-                                loading && 'animate-spin'
-                            )}
-                        />
+
+                    <Card x-chunk="dashboard-04-chunk-1" className={'mt-16 '}>
+                        <CardHeader>
+                            <CardTitle>Recent Watch</CardTitle>
+                            <CardDescription>
+                                Pick up where you left off
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className={'grid grid-cols-3 gap-8'}>
+                            {vps?.slice(0, 3)
+                                .map((v) => (
+                                    <ProjectListCard
+                                        key={v.id}
+                                        onSelected={() => handleClickById(v.id)}
+                                        proj={v}/>
+                                ))}
+                        </CardContent>
+                    </Card>
+                    <div className={'flex flex-col mt-10'}>
+                        {rest?.map((v) => (
+                            <ProjectListItem
+                                key={v.id}
+                                onSelected={() => handleClickById(v.id)}
+                                proj={v}/>
+                        ))}
                     </div>
+                    <Button
+                        onClick={() => setNum(num + 10)}
+                        disabled={num + 3 >= (vps?.length ?? 0)}
+                        variant={'ghost'}>
+                        <ChevronsDown className={'text-muted-foreground'}/>
+                    </Button>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };

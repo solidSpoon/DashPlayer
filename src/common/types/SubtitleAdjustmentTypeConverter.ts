@@ -1,18 +1,16 @@
-import SentenceT from './SentenceT';
+import SentenceC from './SentenceC';
 import { InsertSubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import FileT from './FileT';
-import { sentenceKey } from '../utils/hash';
 
 export default class SubtitleAdjustmentTypeConverter {
     public static fromSentence(
-        s: SentenceT,
-        f: FileT
+        s: SentenceC,
+        ph: string
     ): InsertSubtitleTimestampAdjustment {
         return {
-            key: sentenceKey(f.path ?? '', s.index, s.text ?? ''),
-            subtitle_path: f.path,
+            key: s.key,
+            subtitle_path: ph,
             start_at: s.currentBegin,
-            end_at: s.currentEnd,
+            end_at: s.currentEnd
         };
     }
 }

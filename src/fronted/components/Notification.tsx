@@ -1,8 +1,8 @@
-import useNotification from '../hooks/useNotification';
+import usePlayerToaster from '../hooks/usePlayerToaster';
 
 const Notification = () => {
-    const text = useNotification((state) => state.text);
-    const type = useNotification((state) => state.type);
+    const text = usePlayerToaster((state) => state.text);
+    const type = usePlayerToaster((state) => state.type);
 
     return (
         <>

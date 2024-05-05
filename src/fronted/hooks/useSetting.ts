@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
-import { SettingKey, SettingKeyObj } from '@/common/types/store_schema';
+import {create} from 'zustand';
+import {subscribeWithSelector} from 'zustand/middleware';
+import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
 
 const api = window.electron;
 
@@ -18,7 +18,7 @@ const useSetting = create(
     subscribeWithSelector<SettingState & SettingActions>((set, get) => ({
         init: false,
         values: new Map<SettingKey, string>(),
-        setSetting: (key: SettingKey, value: string) => {
+        setSetting: async (key: SettingKey, value: string) => {
             set((state) => {
                 return {
                     ...state,
@@ -28,7 +28,7 @@ const useSetting = create(
                     },
                 };
             });
-            api.storeSet(key, value);
+            await api.call('storage/put', {key, value});
         },
         setting: (key: SettingKey) => {
             return get().values.get(key) ?? '';
@@ -39,7 +39,7 @@ const useSetting = create(
 for (const key in SettingKeyObj) {
     const k = key as SettingKey;
     console.log('setting init', k);
-    api.storeGet(k).then((value: string) => {
+    api.call('storage/get', k).then((value: string) => {
         console.log('setting init', k, value);
         useSetting.getState().setSetting(k, value);
     });

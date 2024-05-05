@@ -7,6 +7,7 @@ import {
     WordTranslate,
     wordTranslates,
 } from '@/backend/db/tables/wordTranslates';
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export default class WordTranslateService {
     public static async fetchWordTranslate(
@@ -42,7 +43,7 @@ export default class WordTranslateService {
                 target: wordTranslates.word,
                 set: {
                     translate: wt.translate,
-                    updated_at: new Date().toISOString(),
+                    updated_at: TimeUtil.timeUtc(),
                 },
             });
     }

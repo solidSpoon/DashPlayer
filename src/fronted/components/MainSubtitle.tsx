@@ -21,10 +21,10 @@ export default function MainSubtitle() {
             if (index === 0) {
                 return (
                     <TranslatableLine
-                        adjusted={sentence.originalBegin != undefined || sentence.originalEnd != undefined}
+                        adjusted={sentence.originalBegin != null || sentence.originalEnd != null}
                         clearAdjust={clearAdjust}
                         key={`first-${sentence.getKey()}`}
-                        text={item}
+                        sentence={sentence}
                     />
                 );
             }

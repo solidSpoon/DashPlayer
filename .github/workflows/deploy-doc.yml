@@ -1,0 +1,135 @@
+name: Build documentation
+
+on:
+    # If specified, the workflow will be triggered automatically once you push to the `main` branch.
+    # Replace `main` with your branch’s name
+#    push:
+#        branches: ['main']
+    # Specify to run a workflow manually from the Actions tab on GitHub
+    workflow_dispatch:
+
+# Gives the workflow permissions to clone the repo and create a page deployment
+permissions:
+    id-token: write
+    pages: write
+
+env:
+    # Name of module and id separated by a slash
+    INSTANCE: Writerside/dp
+    # Replace HI with the ID of the instance in capital letters
+    ARTIFACT: webHelpDP2-all.zip
+    # Writerside docker image version
+    DOCKER_VERSION: 2.1.1479-p3869
+    # Add the variable below to upload Algolia indexes
+    # Replace HI with the ID of the instance in capital letters
+    ALGOLIA_ARTIFACT: algolia-indexes-DP.zip
+    ALGOLIA_APP_NAME: A8V0XP1IG6
+    ALGOLIA_INDEX_NAME: dash_player_docs
+    ALGOLIA_KEY: ${{ secrets.ALGOLIA_KEY }}
+    CONFIG_JSON_PRODUCT: dp
+    CONFIG_JSON_VERSION: 2.0
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            - name: Build Writerside docs using Docker
+              uses: JetBrains/writerside-github-action@v4
+              with:
+                  instance: ${{ env.INSTANCE }}
+                  artifact: ${{ env.ARTIFACT }}
+                  docker-version: ${{ env.DOCKER_VERSION }}
+
+            - name: Upload documentation
+              uses: actions/upload-artifact@v3
+              with:
+                  name: docs
+                  path: |
+                      artifacts/${{ env.ARTIFACT }}
+                      artifacts/report.json
+                  retention-days: 7
+
+            # Add the step below to upload Algolia indexes
+            - name: Upload algolia-indexes
+              uses: actions/upload-artifact@v3
+              with:
+                  name: algolia-indexes
+                  path: artifacts/${{ env.ALGOLIA_ARTIFACT }}
+                  retention-days: 7
+
+    # Add the job below and artifacts/report.json on Upload documentation step above if you want to fail the build when documentation contains errors
+    test:
+        # Requires build job results
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download artifacts
+              uses: actions/download-artifact@v1
+              with:
+                  name: docs
+                  path: artifacts
+
+            - name: Test documentation
+              uses: JetBrains/writerside-checker-action@v1
+              with:
+                  instance: ${{ env.INSTANCE }}
+
+    deploy:
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        # Requires the build job results
+        needs: test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download artifact
+              uses: actions/download-artifact@v3
+              with:
+                  name: docs
+
+            - name: Unzip artifact
+              uses: montudor/action-zip@v1
+              with:
+                  args: unzip -qq ${{ env.ARTIFACT }} -d dir
+
+            - name: Setup Pages
+              uses: actions/configure-pages@v2
+
+            - name: Upload artifact
+              uses: actions/upload-pages-artifact@v1
+              with:
+                  path: dir
+
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v1
+
+    publish-indexes:
+        # Requires the build-job results
+        needs: build
+        runs-on: ubuntu-latest
+        container:
+            image: registry.jetbrains.team/p/writerside/builder/algolia-publisher:2.0.32-2
+
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions/download-artifact@v3
+              with:
+                  name: algolia-indexes
+            - uses: montudor/action-zip@v1
+              with:
+                  args: unzip -qq ${{ env.ALGOLIA_ARTIFACT }} -d algolia-indexes
+            - run: |
+                  env "algolia-key=${{env.ALGOLIA_KEY}}" java -jar /opt/builder/help-publication-agent.jar \
+                  update-index \
+                  --application-name ${{env.ALGOLIA_APP_NAME}} \
+                  --index-name ${{env.ALGOLIA_INDEX_NAME}} \
+                  --product ${{env.CONFIG_JSON_PRODUCT}} \
+                  --version ${{env.CONFIG_JSON_VERSION}} \
+                  --index-directory algolia-indexes/ \
+                  2>&1 | tee algolia-update-index-log.txt

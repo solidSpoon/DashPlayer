@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaPause, FaPlay } from 'react-icons/fa';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
-import { cn, secondToDate } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import SpeedSlider from './speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
-import { Toggle } from '@/fronted/components/ui/toggle';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
+import {Pause, Play} from "lucide-react";
+import {Button} from "@/fronted/components/ui/button";
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -150,8 +151,8 @@ const PlayerControlPannel = ({
                             }}
                         />
                         <div className='w-full flex justify-between items-center'>
-                            <div className='flex gap-4'>
-                                <div
+                            <div className='flex gap-4 items-center'>
+                                <Button
                                     onClick={() => {
                                         if (playing) {
                                             onPause?.();
@@ -159,23 +160,24 @@ const PlayerControlPannel = ({
                                             onPlay?.();
                                         }
                                     }}
-                                    className='flex justify-center items-center rounded-lg'
+                                    size='icon'
+                                    variant='ghost'
+                                    className='w-9 h-9'
                                 >
                                     {playing ? (
-                                        <FaPause className='w-6 h-6 fill-foreground' />
+                                        <Pause />
                                     ) : (
-                                        <FaPlay className='w-6 h-6  fill-foreground' />
+                                        <Play />
                                     )}
-                                </div>
-                                <div className=' h-full flex items-center'>
-                                    {`${secondToDate(
+                                </Button>
+                                <div className=' h-full flex items-center font-mono'>
+                                    {`${TimeUtil.secondToTimeStr(
                                         currentValue
-                                    )} / ${secondToDate(duration)}`}
+                                    )} / ${TimeUtil.secondToTimeStr(duration)}`}
                                 </div>
                             </div>
                             <div className='h-full flex-1' />
                             <div className='flex justify-center items-end gap-4'>
-                                <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                                 <SpeedSlider
                                     speed={playbackRate}
                                     onSpeedChange={setPlaybackRate}
@@ -186,6 +188,7 @@ const PlayerControlPannel = ({
                                     volume={volume}
                                     onVolumeChange={setVolume}
                                 />
+                                <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                             </div>
                         </div>
                     </>)}

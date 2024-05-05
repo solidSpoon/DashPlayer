@@ -1,38 +1,30 @@
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useLocation, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
-import {cn} from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
-import MainSubtitle from '@/fronted/components/MainSubtitle';
-import Subtitle from '@/fronted/components/Subtitle';
-import Player from '@/fronted/components/Player';
-import UploadButton from '@/fronted/components/UploadButton';
+import ControlButton from '@/fronted/components/ControlButton';
 import useFile from '@/fronted/hooks/useFile';
-import GlobalShortCut from '@/fronted/components/GlobalShortCut';
+import PlayerShortCut from '@/fronted/components/short-cut/PlayerShortCut';
 import SideBar from '@/fronted/components/SideBar';
-import {darkColor, lightColor} from "@/fronted/styles/style";
-import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/fronted/components/ui/resizable";
-import {useLocalStorage} from "@uidotdev/usehooks";
-import SubtitleViewer from "@/fronted/components/subtitle-viewer/subtitle-viewer";
+import Chat from '@/fronted/components/chat/Chat';
+import useChatPanel from '@/fronted/hooks/useChatPanel';
+import useSWR from 'swr';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
+import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
+import {SWR_KEY} from "@/fronted/lib/swr-util";
 
 const api = window.electron;
 
-interface Size {
-    oa: number;
-    ob: number;
-    ia: number;
-    ib: number;
-}
-
 const PlayerP = () => {
+    const {videoId} = useParams();
+    const {data: video} = useSWR<WatchProjectVideo>([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-project/video/detail', Number(videoId)));
+    console.log('playerp', videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
-    const [sizeOa, setSizeOa] = useLocalStorage<number>('split-size-oa', 75);
-    const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
-    const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
-    const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
+    const chatTopic = useChatPanel(s => s.topic);
     const w = cpW.bind(
         null,
         useLayout((s) => s.width)
@@ -41,9 +33,6 @@ const PlayerP = () => {
         null,
         useLayout((s) => s.height)
     );
-    const fullScreen = useLayout((s) => s.fullScreen);
-    const {videoId} = useParams();
-    const playFile = useFile((s) => s.playFile);
     const location = useLocation();
     const sideBarAnimation =
         (new URLSearchParams(location.search).get('sideBarAnimation') ??
@@ -51,24 +40,29 @@ const PlayerP = () => {
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     console.log('referrer', referrer);
-    const hasSubTitle = useFile((s) => s.subtitleFile !== undefined);
     useEffect(() => {
         const runEffect = async () => {
-            if (videoId === undefined) return;
-            const video = await api.getVideo(Number(videoId));
-            console.log('video', video);
-            if (video === undefined) return;
-            playFile(video);
+            if (!video) {
+                return;
+            }
+            useFile.setState({videoId: video.id, projectId: video.project_id});
+            const vp = useFile.getState().videoPath;
+            const sp = useFile.getState().subtitlePath;
+            if (video.video_path && vp !== video.video_path) {
+                useFile.getState().updateFile(video.video_path);
+            }
+            if (video.subtitle_path && sp !== video.subtitle_path) {
+                useFile.getState().updateFile(video.subtitle_path);
+            }
+            await api.call('watch-project/video/play', video.id);
         };
-
         runEffect();
-    }, [playFile, videoId]);
+    }, [video]);
     useEffect(() => {
         setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
-    const podcastMode = useLayout(s => s.podcastMode);
     useLayoutEffect(() => {
         const updatePos = () => {
             if (posRef.current === null) {
@@ -81,7 +75,7 @@ const PlayerP = () => {
                     rect.y -
                     titleBarHeight +
                     (window.innerHeight - titleBarHeight) * 0.05,
-                scale: rect.width / window.innerWidth,
+                scale: rect.width / window.innerWidth
             });
         };
         updatePos();
@@ -92,9 +86,6 @@ const PlayerP = () => {
     }, [titleBarHeight]);
 
     const showPlayer = w('md') && h('md');
-    // useEffect(() => {
-    //     console.log('eeeeeeesize', size);
-    // }, [size]);
     const gridTemplate = () => {
         if (showPlayer && w('xl')) {
             return '15% 60% 25%';
@@ -113,7 +104,7 @@ const PlayerP = () => {
                 className="absolute inset-0 grid grid-cols-3 grid-rows-2 overflow-hidden"
                 style={{
                     gridTemplateColumns: gridTemplate(),
-                    gridTemplateRows: '30% 70%', // 这里定义每行的大小
+                    gridTemplateRows: '30% 70%' // 这里定义每行的大小
                 }}
             >
                 {showSideBar && (
@@ -124,12 +115,12 @@ const PlayerP = () => {
                             )}
                             initial={{x: -1000}}
                             animate={{
-                                x: 0,
+                                x: 0
                             }}
                             exit={{x: -1000}}
                             transition={{
                                 type: 'tween',
-                                duration: sideBarAnimation ? 0 : 0,
+                                duration: sideBarAnimation ? 0 : 0
                             }}
                         >
                             <SideBar compact={!w('xl')}/>
@@ -142,12 +133,12 @@ const PlayerP = () => {
                             )}
                             initial={{x: 1000}}
                             animate={{
-                                x: 0,
+                                x: 0
                             }}
                             exit={{x: 1000}}
                             transition={{
                                 type: 'tween',
-                                duration: 0.2,
+                                duration: 0.2
                             }}
                         >
                             <FileBrowser/>
@@ -162,12 +153,12 @@ const PlayerP = () => {
                             initial={{y: -1000}}
                             animate={{
                                 y: 0,
-                                x: 0,
+                                x: 0
                             }}
                             exit={{y: -1000}}
                             transition={{
                                 type: 'tween',
-                                duration: 0.2,
+                                duration: 0.2
                             }}
                         >
                             <ControlBox/>
@@ -177,7 +168,7 @@ const PlayerP = () => {
                 <div
                     className="p-4"
                     style={{
-                        gridArea: '2 / 2 / 2 / 3',
+                        gridArea: '2 / 2 / 2 / 3'
                     }}
                 >
                     <div className="w-full h-full" ref={posRef}/>
@@ -193,92 +184,21 @@ const PlayerP = () => {
                         transform: showSideBar
                             ? `translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`
                             : 'translate(0px, 0px) scale(1)',
-                        transformOrigin: 'top left',
+                        transformOrigin: 'top left'
                     }}
                 >
-                    <div
-                        className={cn(
-                            'w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden',
-                            hasSubTitle && 'border-r-0',
-                            // !isWindows && 'border-0',
-                            showSideBar &&
-                            'overflow-hidden border-[30px] border-background/80 rounded-[45px]'
-                        )}
-                    >
-                        <ResizablePanelGroup
-                            className={cn(
-                                lightColor["bg-background"],
-                                `dark:${darkColor["bg-background"]}`
-                            )}
-                            direction={"horizontal"}>
-                            <ResizablePanel
-                                defaultSize={sizeOa}
-                                onResize={(e) => {
-                                    if (fullScreen) {
-                                        return;
-                                    }
-                                    console.log('eeeeeeb', e);
-                                    setSizeOa(e);
-                                }}
-                            >
-                                <ResizablePanelGroup direction={"vertical"}>
-                                    <ResizablePanel
-                                        minSize={10}
-                                        defaultSize={sizeIa}
-                                        onResize={(e) => {
-                                            if (fullScreen) {
-                                                return;
-                                            }
-                                            setSizeIa(e);
-                                        }}
-                                    >
-                                        <div
-                                            className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
-                                            <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}/>
-                                            {podcastMode && <SubtitleViewer
-                                                className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
-                                            />}
-                                        </div>
-                                    </ResizablePanel>
-                                    {(!fullScreen && !podcastMode) && (
-                                        <>
-                                            <ResizableHandle withHandle
-                                                             className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')}/>
-                                            <ResizablePanel
-                                                className={cn('ofvisible')}
-                                                defaultSize={sizeIb}
-                                                onResize={(e) => {
-                                                    if (fullScreen) {
-                                                        return;
-                                                    }
-                                                    setSizeIb(e);
-                                                }}
-                                            ><MainSubtitle/></ResizablePanel>
-                                        </>
-                                    )}
-                                </ResizablePanelGroup>
-                            </ResizablePanel>
-                            {!fullScreen && (
-                                <>
-                                    <ResizableHandle withHandle className={cn("gutter-style w-2 dark:bg-zinc-700")}/>
-                                    <ResizablePanel
-                                        defaultSize={sizeOb}
-                                        onResize={(e) => {
-                                            if (fullScreen) {
-                                                return;
-                                            }
-                                            console.log('eeeeeea', e);
-                                            setSizeOb(e);
-                                        }}
-                                    >
-                                        <Subtitle/>
-                                    </ResizablePanel>
-                                </>)}
-                        </ResizablePanelGroup>
-                    </div>
+                    <PlayerPPlayer/>
                 </div>
-                <UploadButton/>
-                <GlobalShortCut/>
+                {chatTopic === 'offscreen' && (
+                    <>
+                        <ControlButton/>
+                        <PlayerShortCut/>
+                    </>
+                )}
+                <AnimatePresence>
+                    {chatTopic !== 'offscreen' && <Chat/>}
+                </AnimatePresence>
+
             </div>
         </div>
     )

@@ -1,17 +1,16 @@
 import {cn} from "@/fronted/lib/utils";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
-import SentenceT from "@/common/types/SentenceT";
+import SentenceC from "@/common/types/SentenceC";
 import ViewerTranslableLine from "@/fronted/components/subtitle-viewer/viewer-translable-line";
 import {strBlank} from "@/common/utils/Util";
 import ViewerControlPannel from "@/fronted/components/subtitle-viewer/viewer-control-pannel";
-import useLayout from '@/fronted/hooks/useLayout';
 import { useShallow } from 'zustand/react/shallow';
 
 const SubtitleViewer = ({className}: { className?: string }) => {
-    const current: SentenceT = usePlayerController((s) => s.currentSentence);
-    const subtitleAround: SentenceT[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
-    const subtitleBefore: SentenceT[] = subtitleAround.filter((s) => s.index < current.index).sort((a, b) => b.index - a.index);
-    const subtitleAfter: SentenceT[] = subtitleAround.filter((s) => s.index > current.index).sort((a, b) => a.index - b.index)
+    const current: SentenceC = usePlayerController((s) => s.currentSentence);
+    const subtitleAround: SentenceC[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
+    const subtitleBefore: SentenceC[] = subtitleAround.filter((s) => s.index < current.index).sort((a, b) => b.index - a.index);
+    const subtitleAfter: SentenceC[] = subtitleAround.filter((s) => s.index > current.index).sort((a, b) => a.index - b.index)
 
     const showCn = usePlayerController(s=>s.showCn);
     const { adjusted, clearAdjust } = usePlayerController(useShallow(s=>({
@@ -35,7 +34,7 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                                 adjusted={false} clearAdjust={() => {
                             }}
                                 key={s.key} className={cn('text-3xl')}
-                                text={s.text ?? ''}
+                                sentence={s}
                             />
                         ))
                     }
@@ -52,7 +51,7 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                         <ViewerTranslableLine
                             className={cn('text-4xl')}
                             adjusted={adjusted} clearAdjust={clearAdjust}
-                            text={current?.text ?? ''}
+                            sentence={current}
                         />
                         {!strBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl')}>
                             {current?.msTranslate}
@@ -64,7 +63,7 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                     {
                         subtitleAfter.map((s) => (
                             <ViewerTranslableLine
-                                text={s.text ?? ''}
+                                sentence={s}
                                 adjusted={false} clearAdjust={() => {
                             }}
                                 key={s.key} className={cn('text-3xl text-foreground/75')} />

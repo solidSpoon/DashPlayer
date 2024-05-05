@@ -20,6 +20,8 @@ export const SettingKeyObj = {
     'apiKeys.youdao.secretKey': '',
     'apiKeys.tencent.secretId': '',
     'apiKeys.tencent.secretKey': '',
+    'apiKeys.openAi.key': '',
+    'apiKeys.openAi.endpoint': '',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
 }

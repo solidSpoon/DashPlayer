@@ -5,6 +5,7 @@ import {
     SubtitleTimestampAdjustment,
     subtitleTimestampAdjustments,
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export default class SubtitleTimestampAdjustmentService {
     public static async record(
@@ -19,7 +20,7 @@ export default class SubtitleTimestampAdjustmentService {
                     subtitle_path: e.subtitle_path,
                     start_at: e.start_at,
                     end_at: e.end_at,
-                    updated_at: new Date().toISOString(),
+                    updated_at: TimeUtil.timeUtc(),
                 },
             });
     }
@@ -30,11 +31,11 @@ export default class SubtitleTimestampAdjustmentService {
             .where(eq(subtitleTimestampAdjustments.key, key));
     }
 
-    public static async deleteByPath(subtitlePath: string): Promise<void> {
+    public static async deleteByFile(fileHash: string): Promise<void> {
         await db
             .delete(subtitleTimestampAdjustments)
             .where(
-                eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath)
+                eq(subtitleTimestampAdjustments.subtitle_hash, fileHash)
             );
     }
 
@@ -60,6 +61,16 @@ export default class SubtitleTimestampAdjustmentService {
             .from(subtitleTimestampAdjustments)
             .where(
                 eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath)
+            );
+    }
+    static getByHash(
+        h: string
+    ): Promise<SubtitleTimestampAdjustment[]> {
+        return db
+            .select()
+            .from(subtitleTimestampAdjustments)
+            .where(
+                eq(subtitleTimestampAdjustments.subtitle_hash, h.toString())
             );
     }
 }

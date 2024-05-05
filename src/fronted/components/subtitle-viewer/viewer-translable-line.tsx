@@ -2,16 +2,13 @@ import React, {ReactElement, useState} from 'react';
 import {AiOutlineFieldTime} from 'react-icons/ai';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import {Button} from '@/fronted/components/ui/button';
-import useSetting from "@/fronted/hooks/useSetting";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {cn, p} from "@/common/utils/Util";
-import hash from "@/common/utils/hash";
-import {FONT_SIZE} from "@/fronted/styles/style";
+import {cn} from "@/fronted/lib/utils";
 import Word from "@/fronted/components/Word";
-import { useShallow } from 'zustand/react/shallow';
+import SentenceC from "@/common/types/SentenceC";
+import hash from "object-hash";
 
 interface TranslatableSubtitleLineParam {
-    text: string;
+    sentence: SentenceC;
     adjusted: boolean;
     clearAdjust: () => void;
     className?: string;
@@ -28,15 +25,15 @@ const notWord = (str: string, key: string, showE: boolean): ReactElement => {
     );
 };
 const ViewerTranslableLine = ({
-                                  text,
+                                  sentence,
                                   adjusted,
                                   clearAdjust,
                                   className
                               }: TranslatableSubtitleLineParam) => {
-    const sentenceStruct = usePlayerController((state) =>
-        state.subTitlesStructure.get(p(text))
-    );
     const [popELe, setPopEle] = useState<string | null>(null);
+
+    const text = sentence.text;
+    const sentenceStruct = sentence.struct;
     const textHash = hash(text);
     const handleRequestPop = (k: string) => {
         if (popELe !== k) {

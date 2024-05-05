@@ -1,22 +1,22 @@
-import SentenceT from '../../../common/types/SentenceT';
+import SentenceC from '../../../common/types/SentenceC';
 import TransHolder from '../../../common/utils/TransHolder';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 
 export interface SubtitleSlice {
-    subtitle: SentenceT[];
-    subTitlesStructure: Map<string, SentenceStruct>;
-    setSubtitle: (subtitle: SentenceT[]) => void;
-    mergeSubtitle: (subtitle: SentenceT[]) => void;
+    subtitle: SentenceC[];
+    setSubtitle: (subtitle: SentenceC[]) => void;
+    mergeSubtitle: (subtitle: SentenceC[]) => void;
     mergeSubtitleTrans: (holder: TransHolder<string>) => void;
-    getSubtitleAt: (time: number) => SentenceT | undefined;
-    getSubtitleAround: (index: number) => SentenceT[];
+    getSubtitleAt: (time: number) => SentenceC | undefined;
+    getSubtitleAround: (index: number, num?: number) => SentenceC[];
 }
 
 export interface PlayerControllerInternal {
     lastSeekToOn: number;
     exactPlayTime: number;
-    subtitleIndex: Map<number, SentenceT[]>;
+    subtitleIndex: Map<number, SentenceC[]>;
     maxIndex: number;
+    onPlaySeekTime: number | null;
     // wordLevel: Map<string, WrodLevelRes>;
 }
 
@@ -49,16 +49,11 @@ export interface PlayerSlice {
     getExactPlayTime: () => number;
     setPlaybackRate: (rate: number) => void;
     nextRate: () => void;
+    onPlaySeek: (time: number) => void;
 }
 
 export interface SentenceSlice {
-    currentSentence: SentenceT | undefined;
-    setCurrentSentence: (
-        sentence:
-            | SentenceT
-            | undefined
-            | ((prev: SentenceT | undefined) => SentenceT | undefined)
-    ) => void;
+    currentSentence: SentenceC | undefined;
     tryUpdateCurrentSentence: () => void;
     adjustStart: (time: number) => void;
     adjustEnd: (time: number) => void;
@@ -76,6 +71,7 @@ export interface ModeSlice {
     showEn: boolean;
     showCn: boolean;
     singleRepeat: boolean;
+    autoPause: boolean;
     showWordLevel: boolean;
 
     changeShowEn: () => void;
@@ -83,11 +79,12 @@ export interface ModeSlice {
     changeShowEnCn: () => void;
     changeSingleRepeat: () => void;
     changeShowWordLevel: () => void;
+    changeAutoPause: () => void;
 }
 
 export interface ControllerSlice {
     repeat: () => void;
     next: () => void;
     prev: () => void;
-    jump: (target: SentenceT) => void;
+    jump: (target: SentenceC) => void;
 }

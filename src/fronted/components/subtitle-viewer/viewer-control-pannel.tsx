@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaPause, FaPlay } from 'react-icons/fa';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from '../VolumeSlider';
 import usePlayerController from '../../hooks/usePlayerController';
-import { cn, secondToDate } from '@/common/utils/Util';
+import {cn} from "@/fronted/lib/utils";
 import SpeedSlider from '../speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
-import useLayout from '@/fronted/hooks/useLayout';
-import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
+import {Pause, Play} from "lucide-react";
+import {Button} from "@/fronted/components/ui/button";
+import TimeUtil from "@/common/utils/TimeUtil";
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -65,7 +65,7 @@ const ViewerControlPannel = ({
         <div className={cn(' h-32 flex w-full flex-col justify-end', className)}>
 
             <Card
-                className={cn('w-full p-4 pt-6 backdrop-blur bg-background/50 rounded-none border-0 border-t shadow-2xl',
+                className={cn('w-full p-4 pt-6 backdrop-blur bg-gray-500/20 rounded-none border-0 border-t shadow-2xl',
                     !mouseOver && 'bg-transparent border-none backdrop-blur-0 shadow-none'
                 )}
                 onMouseOver={(e) => {
@@ -100,8 +100,8 @@ const ViewerControlPannel = ({
                         }}
                     />
                     <div className="w-full flex justify-between items-center">
-                        <div className="flex gap-4">
-                            <div
+                        <div className="flex gap-4 items-center">
+                            <Button
                                 onClick={() => {
                                     if (playing) {
                                         onPause?.();
@@ -109,18 +109,20 @@ const ViewerControlPannel = ({
                                         onPlay?.();
                                     }
                                 }}
-                                className="flex justify-center items-center rounded-lg"
+                                size={'icon'}
+                                variant={'ghost'}
+                                className={'w-9 h-9'}
                             >
                                 {playing ? (
-                                    <FaPause className="w-6 h-6 fill-foreground" />
+                                    <Pause className="" />
                                 ) : (
-                                    <FaPlay className="w-6 h-6  fill-foreground" />
+                                    <Play className="" />
                                 )}
-                            </div>
-                            <div className=" h-full flex items-center">
-                                {`${secondToDate(
+                            </Button>
+                            <div className=" h-full flex items-center font-mono">
+                                {`${TimeUtil.secondToTimeStr(
                                     currentValue
-                                )} / ${secondToDate(duration)}`}
+                                )} / ${TimeUtil.secondToTimeStr(duration)}`}
                             </div>
                         </div>
                         <div className="h-full flex-1" />
