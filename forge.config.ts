@@ -9,7 +9,7 @@ import MakerDMG from '@electron-forge/maker-dmg';
 
 const config: ForgeConfig = {
     packagerConfig: {
-        asar: false,
+        asar: true,
         icon: './assets/icons/icon',
         extraResource: ["./drizzle", "./lib", "./scripts"],
         executableName: 'dash-player',
@@ -70,9 +70,9 @@ const config: ForgeConfig = {
             [FuseV1Options.RunAsNode]: false,
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-            [FuseV1Options.EnableNodeCliInspectArguments]: true,
+            [FuseV1Options.EnableNodeCliInspectArguments]: false,
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-            [FuseV1Options.OnlyLoadAppFromAsar]: false,
+            [FuseV1Options.OnlyLoadAppFromAsar]: true,
         }),
     ],
 };

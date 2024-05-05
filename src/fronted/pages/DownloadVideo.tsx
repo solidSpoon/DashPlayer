@@ -64,7 +64,7 @@ const DownloadVideo = () => {
                         type="submit">Download</Button>
                 </div>
                 {taskId ? <pre
-                        className={'overflow-auto scrollbar-none w-full mt-10 p-4 bg-secondary-foreground text-background text-sm font-mono'}
+                        className={'overflow-auto scrollbar-none w-full mt-10 p-4 bg-secondary-foreground text-background text-sm font-mono select-text'}
                         ref={consoleRef}
                     >
                     {dpTask?.result}
