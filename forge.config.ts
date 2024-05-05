@@ -75,6 +75,18 @@ const config: ForgeConfig = {
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
         }),
     ],
+    publishers: [
+        {
+            name: '@electron-forge/publisher-github',
+            config: {
+                repository: {
+                    owner: 'solidSpoon',
+                    name: 'DashPlayer'
+                },
+                prerelease: true
+            }
+        }
+    ]
 };
 
 export default config;
