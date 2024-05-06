@@ -54,40 +54,30 @@
 
 DashPlayer  的目标就是方便你观看英文视频。无论你是想泛听，还是想一句句精听，亦或是想要查询生词，DashPlayer  精心打磨的手感让您始终心情愉悦。
 
-- **高效的界面布局**：DashPlayer 的界面布局旨在最大化视频占用的空间，让你看得清。
-- **按字幕跳转：** 打开对应字幕文件，可以按句子快速跳转视频位置，轻松精听。
-- **支持字幕机器翻译：** 机器翻译相较于人工翻译更忠实于原文。DashPlayer 同时支持展示机器翻译与双语字幕中的翻译，学习更高效。
+- **双语字幕**：支持机器翻译字幕。只展示中文/英文，或者全部隐藏都可以。
+- **按字幕跳转：** 重复当前句，或者跳到上一句，怎么跳都可以。
 - **查词查询**：鼠标悬停生词可快速查询，不打断学习进程。
 - **可调整界面尺寸：** 界面尺寸可调，适应不同屏幕和学习场景。
 - **记录播放位置：** 自动记录上次播放位置，方便下次接着学习。
 - **蓝牙遥控操作：** 支持蓝牙遥控，让你随时调整音量、跳转视频，学习更轻松！
-- **多彩主题**：内置多款不同亮度的主题，完美适应您的学习环境。
+- **夜间模式**：内置暗色/亮色主题，适配您的学习环境。
+- **AI 字幕**：可以使用 AI 为视频生成字幕。
+- **长视频切分**：看一段删一段，没有压力。
+- **视频下载**：粘贴视频链接，下载视频。
 
 ## 屏幕截图
 
-多种亮度不同的主题：
+主页展示播放历史：
 
-<p align="center">
-    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/75f9a9fc-ef1c-4141-80e4-0aa6c38fd70b">
-</p>
+![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/1fccf3be-1384-4d6e-9af5-96f78f5da688)
 
-播放历史记录：
+内置下载视频，切割视频，生成字幕等诸多功能：
 
-<p align="center">
-    <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/aebb2661-0079-4ffb-b07f-0c5f531468ea">
-</p>
+![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/96476645-317e-424b-8952-3eac0b4dd7aa)
 
-字幕翻译和单词翻译：
+AI 整句学习功能：
 
-<p align="center">
-    <img width="755" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/0198d8c6-65f6-487c-ba65-e3b7b6cc1598">
-</p>
-
-可以隐藏字幕：
-
-<p align="center">
-    <img width="753" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/e9e7f41b-946f-426d-bab8-e1264cbac06b">
-</p>
+![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/2597f6a1-2903-4652-9431-8327acdbe9be)
 
 ---
 
