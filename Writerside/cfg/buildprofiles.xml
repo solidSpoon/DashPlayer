@@ -6,6 +6,9 @@
         <header-logo>logo.png</header-logo>
         <color-preset>Vivid</color-preset>
         <primary-color>halloween</primary-color>
+        <download-title>Get DashPlayer</download-title>
+        <download-page>https://github.com/solidSpoon/DashPlayer</download-page>
+        <showDownloadButton>true</showDownloadButton>
     </variables>
 
     <build-profile instance="dp"/>
