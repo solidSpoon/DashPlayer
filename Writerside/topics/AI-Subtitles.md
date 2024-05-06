@@ -4,5 +4,7 @@ DashPlayer 的核心功能要求必须有视频的 `srt` 字幕文件，当您�
 
 DashPlayer 目前支持调用 OpenAI 的 `Whisper` 接口生成字幕，这个模型的准确度很高，价格也比较便宜。
 
-Whisper 字幕的时间戳可能不够准确，如果您比较在意这一点，可以尝试使用 Python 脚本来生成字幕。
+配置好 OpenAI 的密钥后，在 DashPlayer 的转录（Transcript）界面选择一个视频文件，点击 `转录` 按钮，即可生成字幕。
+
+转录时您可以离开这个界面继续观看视频，但请不要关闭 DashPlayer。转录完成后会自动更新相关视频的字幕。
 

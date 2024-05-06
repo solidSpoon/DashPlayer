@@ -22,4 +22,12 @@
         <description>Created after removal of "DashPlayer 简介" from Dash Player</description>
         <accepts>Introduction.html</accepts>
     </rule>
+    <rule id="79894b3c">
+        <description>Created after removal of "使用 Python 脚本生成字幕" from Dash Player</description>
+        <accepts>使用-Python-脚本生成字幕.html</accepts>
+    </rule>
+    <rule id="49090ae8">
+        <description>Created after removal of "使用内置的转录功能生成字幕" from Dash Player</description>
+        <accepts>使用内置的转录功能生成字幕.html</accepts>
+    </rule>
 </rules>

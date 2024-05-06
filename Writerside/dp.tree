@@ -11,17 +11,15 @@
     <toc-element topic="Installation.md"/>
     <toc-element topic="Usage.md"/>
     <toc-element topic="Config-Translate.md">
-        <toc-element topic="配置腾讯云密钥.md"/>
-        <toc-element topic="配置有道云密钥.md"/>
-        <toc-element topic="配置-OpenAI-密钥.md"/>
+        <toc-element topic="Config-YouDao-API.md"/>
+        <toc-element topic="Config-Tencent-API.md"/>
+        <toc-element topic="Config-OpenAI-API.md"/>
     </toc-element>
     <toc-element topic="Use-Bluetooth-Game-Controller.md"/>
     <toc-element topic="AI-Subtitles.md">
-        <toc-element topic="使用内置的转录功能生成字幕.md"/>
-        <toc-element topic="使用-Python-脚本生成字幕.md"/>
     </toc-element>
-    <toc-element topic="分割长视频.md"/>
-    <toc-element topic="AI-整句学习.md"/>
+    <toc-element topic="Split-Long-Video.md"/>
+    <toc-element topic="AI-Chat.md"/>
     <toc-element topic="Download-Video.md"/>
     <toc-element topic="Theory.md"/>
     <toc-element topic="Software-Recommendation.md"/>
