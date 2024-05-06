@@ -35,7 +35,7 @@
 > 一款专为英语学习打造的视频播放器
 
 <p align="center">
-    <img width="70%" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/95bef2b3-b4f2-4a3e-b884-e5987a2ee4d6">
+    <img width="70%" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/80a356ab-a018-4af7-a99a-ce430b5aada7">
 </p>
 
 ## 为什么需要 DashPlayer ？
