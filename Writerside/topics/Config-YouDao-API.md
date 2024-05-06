@@ -6,7 +6,7 @@
 ## 简要说明
 
 1. 官方网站：[有道智云 AI 开放平台](http://ai.youdao.com/)
-2. 官方资费说明：[有道文本翻译服务定价文档](https://ai.youdao.com/DOCSIRMA/html/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E7%BF%BB%E8%AF%91/%E4%BA%A7%E5%93%81%E5%AE%9A%E4%BB%B7/%E6%96%87%E6%9C%AC%E7%BF%BB%E8%AF%91%E6%9C%8D%E5%8A%A1/%E6%96%87%E6%9C%AC%E7%BF%BB%E8%AF%91%E6%9C%8D%E5%8A%A1-%E4%BA%A7%E5%93%81%E5%AE%9A%E4%BB%B7.html)
+2. 官方资费说明：[有道文本翻译服务定价文档](https://ai.youdao.com/DOCSIRMA/html/trans/price/wbfy/index.html)
 3. 有道翻译官方接口会提供 50 元免费体验金，用完之后就要收费了。
 4. DashPlayer 会缓存翻译结果，所以不会每次都调用有道翻译接口。
 

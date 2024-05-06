@@ -109,27 +109,27 @@ jobs:
               id: deployment
               uses: actions/deploy-pages@v1
 
-    publish-indexes:
-        # Requires the build-job results
-        needs: build
-        runs-on: ubuntu-latest
-        container:
-            image: registry.jetbrains.team/p/writerside/builder/algolia-publisher:2.0.32-2
-
-        steps:
-            - uses: actions/checkout@v3
-            - uses: actions/download-artifact@v3
-              with:
-                  name: algolia-indexes
-            - uses: montudor/action-zip@v1
-              with:
-                  args: unzip -qq ${{ env.ALGOLIA_ARTIFACT }} -d algolia-indexes
-            - run: |
-                  env "algolia-key=${{env.ALGOLIA_KEY}}" java -jar /opt/builder/help-publication-agent.jar \
-                  update-index \
-                  --application-name ${{env.ALGOLIA_APP_NAME}} \
-                  --index-name ${{env.ALGOLIA_INDEX_NAME}} \
-                  --product ${{env.CONFIG_JSON_PRODUCT}} \
-                  --version ${{env.CONFIG_JSON_VERSION}} \
-                  --index-directory algolia-indexes/ \
-                  2>&1 | tee algolia-update-index-log.txt
+#    publish-indexes:
+#        # Requires the build-job results
+#        needs: build
+#        runs-on: ubuntu-latest
+#        container:
+#            image: registry.jetbrains.team/p/writerside/builder/algolia-publisher:2.0.32-2
+#
+#        steps:
+#            - uses: actions/checkout@v3
+#            - uses: actions/download-artifact@v3
+#              with:
+#                  name: algolia-indexes
+#            - uses: montudor/action-zip@v1
+#              with:
+#                  args: unzip -qq ${{ env.ALGOLIA_ARTIFACT }} -d algolia-indexes
+#            - run: |
+#                  env "algolia-key=${{env.ALGOLIA_KEY}}" java -jar /opt/builder/help-publication-agent.jar \
+#                  update-index \
+#                  --application-name ${{env.ALGOLIA_APP_NAME}} \
+#                  --index-name ${{env.ALGOLIA_INDEX_NAME}} \
+#                  --product ${{env.CONFIG_JSON_PRODUCT}} \
+#                  --version ${{env.CONFIG_JSON_VERSION}} \
+#                  --index-directory algolia-indexes/ \
+#                  2>&1 | tee algolia-update-index-log.txt
