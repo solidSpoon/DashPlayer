@@ -30,4 +30,8 @@
         <description>Created after removal of "使用内置的转录功能生成字幕" from Dash Player</description>
         <accepts>使用内置的转录功能生成字幕.html</accepts>
     </rule>
+    <rule id="f728e75">
+        <description>Created after removal of "软件推荐" from Dash Player</description>
+        <accepts>Software-Recommendation.html</accepts>
+    </rule>
 </rules>
