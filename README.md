@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE" target="_blank">
-    <img alt="MIT License" src="https://img.shields.io/github/license/solidSpoon/DashPlayer.svg" />
+    <img alt="AGPL-3.0 license" src="https://img.shields.io/github/license/solidSpoon/DashPlayer.svg" />
   </a>
 
   <img alt="React" src="https://img.shields.io/badge/React-rgb(8%2C126%2C164)?logo=react&logoColor=white" />
@@ -134,22 +134,32 @@ xattr -c /Applications/DashPlayer.app
 
 ---
 # 使用指南
+
+> 详细指南请看[Wiki](https://solidspoon.xyz/DashPlayer/home.html)
+
 ## 如何播放视频
 
-DashPlayer 支持常见的视频格式，以及 srt 字幕格式。
+DashPlayer 支持常见的视频格式、音频格式以及 srt 字幕格式。
 
-点击右下角的 “+”，选择一个视频文件以及对应的 srt 字幕文件，即可开始播放。
+- 使用 `Open File` 可选择视频和字幕文件
+- 使用 `Open Folder` 可选择视频所在文件夹
 
 ### 想播放在线视频？
 
-目前 DashPlayer 只支持本地视频文件，但市面上有很多好用的视频下载工具，你可以通过它们将视频下载下来。
+DashPlayer 只支持本地视频文件，您可以用内置的视频下载功能将视频下载到本地。
+
+视频下载目前处于 Beta 版本，如果效果不理想您可以使用视频下载工具：
 
 - Windows 平台：[Internet Download Manager (IDM)](https://www.internetdownloadmanager.com/)
 - macOS 平台：[Downie](https://software.charliemonroe.net/downie/)
 
 ### 没有字幕文件怎么办?
 
-可以使用 AI 生成字幕，OpenAI 家的 [Whisper](https://openai.com/research/whisper) 模型生成字幕的效果很好，有很多软件支持通过这个模型生成字幕。
+可以使用 AI 生成字幕，OpenAI 家的 [Whisper](https://openai.com/research/whisper) 模型生成字幕的效果很好。
+
+按照文档配置好 OpenAI API 后，您可以使用 DashPlayer 内置的生成字幕功能。
+
+下面推荐几个生成字幕的软件，您也可以使用。
 
 - [Memo](https://memo.ac/) Windows/macOS
 - [MacWhisper](https://goodsnooze.gumroad.com/l/macwhisper) macOS
@@ -171,6 +181,7 @@ DashPlayer 默认快捷键如下
 - 切换主题：“t”（theme）
 - 调整当前句开始时间，提前 0.2 秒：“z”
 - 调整当前句开始时间，延后 0.2 秒：“x”
+- 打开整句学习面板：“?”
 
 具体快捷键可在设置界面查看
 
@@ -210,12 +221,7 @@ DashPlayer 目前支持使用：
 
 - 腾讯云翻译字幕
 - 有道云翻译单词（鼠标**放置**在视频下方字幕行的单词上）
-- 点击单词播放发音
+- OpenAI 字幕识别，整句学习。
 
-
-要启用翻译功能，需要申请[腾讯云](https://console.cloud.tencent.com/cam/capi)和[有道云](https://ai.youdao.com/console/#/service-singleton/text-translation)的密钥，并在设置中填入
-
-<img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/fdc4dc49-066b-482b-ac2d-f961e7dcdc77">
-
-腾讯云翻译每月有一定的免费额度，足够个人使用，DashPlayer 会采用缓存和懒加载等技术尽可能节省您的额度。
+实际使用下来价格都比较便宜，具体配置详见文档。
 
