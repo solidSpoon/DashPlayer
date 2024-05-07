@@ -15,6 +15,7 @@ export const SettingKeyObj = {
     'shortcut.adjustEndPlus': 'm',
     'shortcut.clearAdjust': 'v',
     'shortcut.nextPlaybackRate': 'p',
+    'shortcut.aiChat': 'slash',
     'userSelect.playbackRateStack':'',
     'apiKeys.youdao.secretId': '',
     'apiKeys.youdao.secretKey': '',

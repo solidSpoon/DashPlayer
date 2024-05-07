@@ -120,7 +120,7 @@ export default function PlayerShortCut() {
     useHotkeys(process(setting('shortcut.clearAdjust')), clearAdjust);
     useHotkeys(process(setting('shortcut.toggleWordLevelDisplay')), changeShowWordLevel);
     useHotkeys(process(setting('shortcut.nextPlaybackRate')), nextRate);
-    useHotkeys('slash', () => {
+    useHotkeys(process(setting('shortcut.aiChat')), () => {
         pause();
         createFromCurrent();
     });
