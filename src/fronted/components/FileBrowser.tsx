@@ -1,37 +1,37 @@
 import React, {} from 'react';
-import { useNavigate } from 'react-router-dom';
-import { strBlank } from '@/common/utils/Util';
-import { cn } from '@/fronted/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
-import FileSelector from '@/fronted/components/fileBowser/FileSelector';
-import { WatchProject, WatchProjectType } from '@/backend/db/tables/watchProjects';
+import {useNavigate} from 'react-router-dom';
+import {strBlank} from '@/common/utils/Util';
+import {cn} from '@/fronted/lib/utils';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/fronted/components/ui/card';
+import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import FolderSelector from '@/fronted/components/fileBowser/FolderSelector';
-import { Button } from '@/fronted/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import { FileAudio2, FileVideo2, Folder, X } from 'lucide-react';
+import {Button} from '@/fronted/components/ui/button';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
+import {FileAudio2, FileVideo2, Folder, X} from 'lucide-react';
 import Style from '@/fronted/styles/style';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useSWR from 'swr';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
+import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
+import FileSelector, {FileAction} from "@/fronted/components/fileBowser/FileSelector";
 
 const api = window.electron;
 
-const ProjItem = ({ hc, p, routerPid }: {
+const ProjItem = ({hc, p, routerPid}: {
     p: WatchProject;
     hc: () => void;
     routerPid: number;
 }) => {
     const navigate = useNavigate();
-    const { data: v } = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
+    const {data: v} = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
     const [contextMenu, setContextMenu] = React.useState(false);
     return (
         <ContextMenu
@@ -60,11 +60,11 @@ const ProjItem = ({ hc, p, routerPid }: {
                             >
                                 <>
                                     {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
-                                        <Folder className={cn(Style.file_browser_icon)} />}
+                                        <Folder className={cn(Style.file_browser_icon)}/>}
                                     {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
-                                        <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
                                     {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
-                                        <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                     <div className="truncate w-0 flex-1">{p.project_name}</div>
                                     <Button size={'icon'} variant={'ghost'}
                                             className={'w-6 h-6'}
@@ -75,7 +75,7 @@ const ProjItem = ({ hc, p, routerPid }: {
                                                 await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                                             }}
                                     >
-                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'} />
+                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'}/>
                                     </Button>
                                 </>
                             </div>
@@ -109,7 +109,7 @@ const ProjItem = ({ hc, p, routerPid }: {
 
 };
 
-const VideoItem = ({ pv, routerVid }: {
+const VideoItem = ({pv, routerVid}: {
     pv: WatchProjectVideo,
     routerVid: number
 }) => {
@@ -137,9 +137,9 @@ const VideoItem = ({ pv, routerVid }: {
                             >
                                 <>
                                     {MediaUtil.isAudio(pv.video_path) &&
-                                        <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
                                     {MediaUtil.isVideo(pv.video_path) &&
-                                        <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                     <div className="truncate w-0 flex-1">{pv.video_name}</div>
                                 </>
                             </div>
@@ -185,28 +185,14 @@ const FileBrowser = () => {
                     className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
                 >
                     <FileSelector
-                        onSelected={(vid) => {
+                        onSelected={FileAction.playerAction(async (vid) => {
                             navigate(`/player/${vid}`);
-                        }}
-                        child={(hc) => (
-                            <Button
-                                onClick={() => hc()}
-                                variant={'outline'}
-                                className={cn('w-28')}
-                            >Open File</Button>
-                        )}
+                        })}
                     />
                     <FolderSelector
                         onSelected={(vid) => {
                             navigate(`/player/${vid}`);
                         }}
-                        child={(hc) => (
-                            <Button
-                                onClick={() => hc()}
-                                variant={'outline'}
-                                className={cn('w-28')}
-                            >Open Folder</Button>
-                        )}
                     />
                 </div>
 
@@ -238,12 +224,12 @@ const FileBrowser = () => {
                     videoEle={(pv) =>
                         <VideoItem
                             key={pv.id}
-                            pv={pv} routerVid={vId} />
+                            pv={pv} routerVid={vId}/>
                     }
                     projEle={(p, hc) =>
                         <ProjItem
                             key={p.id}
-                            p={p} hc={hc} routerPid={pId} />}
+                            p={p} hc={hc} routerPid={pId}/>}
                     className={cn('w-full h-0 flex-1 scrollbar-none')}
                 />
             </CardContent>

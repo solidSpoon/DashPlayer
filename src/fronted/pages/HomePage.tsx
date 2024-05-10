@@ -5,14 +5,14 @@ import {cn} from "@/fronted/lib/utils";
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
-import FileSelector from '@/fronted/components/fileBowser/FileSelector';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
 import {Button} from "@/fronted/components/ui/button";
-import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
 import useSWR from "swr";
 import {SWR_KEY} from "@/fronted/lib/swr-util";
 import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
 import {ChevronsDown} from "lucide-react";
+import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
+import FileSelector, {FileAction} from "@/fronted/components/fileBowser/FileSelector";
 
 const api = window.electron;
 const HomePage = () => {
@@ -78,18 +78,11 @@ const HomePage = () => {
                         className={cn('justify-self-end flex flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
                     >
                         <FileSelector
-                            onSelected={async (vid) => {
+                            onSelected={FileAction.playerAction(async (vid) => {
                                 await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
-                            }}
-                            child={(hc) => (
-                                <Button
-                                    onClick={() => hc()}
-                                    variant={'outline'}
-                                    className={cn('w-28')}
-                                >Open File</Button>
-                            )}
+                            })}
                         />
                         <FolderSelector
                             onSelected={async (vid) => {
@@ -97,13 +90,6 @@ const HomePage = () => {
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
                             }}
-                            child={(hc) => (
-                                <Button
-                                    onClick={() => hc()}
-                                    variant={'outline'}
-                                    className={cn('w-28')}
-                                >Open Folder</Button>
-                            )}
                         />
                     </div>
 

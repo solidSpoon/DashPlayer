@@ -1,15 +1,13 @@
 import React, {} from 'react';
-import { strBlank } from '@/common/utils/Util';
-import { cn } from '@/fronted/lib/utils';
-import FileSelector from '@/fronted/components/fileBowser/FileSelector';
-import { WatchProject, WatchProjectType } from '@/backend/db/tables/watchProjects';
+import Util from '@/common/utils/Util';
+import {cn} from '@/fronted/lib/utils';
+import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import FolderSelector from '@/fronted/components/fileBowser/FolderSelector';
-import { Button } from '@/fronted/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import {Button} from '@/fronted/components/ui/button';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import useSplit from '@/fronted/hooks/useSplit';
-import { useShallow } from 'zustand/react/shallow';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import {useShallow} from 'zustand/react/shallow';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -17,15 +15,17 @@ import {
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
 import MediaUtil from '@/common/utils/MediaUtil';
-import { FileAudio2, FileVideo2, Folder, X } from 'lucide-react';
+import {FileAudio2, FileVideo2, Folder, X} from 'lucide-react';
 import Style from '@/fronted/styles/style';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import useSWR from 'swr';
+import FileSelector from "@/fronted/components/fileBowser/FileSelector";
+import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
 
 const api = window.electron;
 
 
-const VideoEle = ({ pv, updateFile }: {
+const VideoEle = ({pv, updateFile}: {
     pv: WatchProjectVideo,
     updateFile: (path: string) => void;
 }) => {
@@ -52,9 +52,9 @@ const VideoEle = ({ pv, updateFile }: {
                             >
                                 <>
                                     {MediaUtil.isAudio(pv.video_path) &&
-                                        <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
                                     {MediaUtil.isVideo(pv.video_path) &&
-                                        <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                     <div className="truncate w-0 flex-1">{pv.video_name}</div>
                                 </>
                             </div>
@@ -78,9 +78,9 @@ const VideoEle = ({ pv, updateFile }: {
         </ContextMenu>
     );
 };
-const ProjEle = ({ p, hc, updateFile }: { p: WatchProject, hc: () => void, updateFile: (path: string) => void }) => {
+const ProjEle = ({p, hc, updateFile}: { p: WatchProject, hc: () => void, updateFile: (path: string) => void }) => {
 
-    const { data: v } = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
+    const {data: v} = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
     const [contextMenu, setContextMenu] = React.useState(false);
     return (
         <ContextMenu
@@ -108,12 +108,12 @@ const ProjEle = ({ p, hc, updateFile }: { p: WatchProject, hc: () => void, updat
                                 }}
                             >
                                 <>
-                                    {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
-                                        <Folder className={cn(Style.file_browser_icon)} />}
+                                    {(Util.strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
+                                        <Folder className={cn(Style.file_browser_icon)}/>}
                                     {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
-                                        <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
                                     {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
-                                        <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                     <div className="truncate w-0 flex-1">{p.project_name}</div>
                                     <Button size={'icon'} variant={'ghost'}
                                             className={'w-6 h-6'}
@@ -123,7 +123,7 @@ const ProjEle = ({ p, hc, updateFile }: { p: WatchProject, hc: () => void, updat
                                                 await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                                             }}
                                     >
-                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'} />
+                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'}/>
                                     </Button>
                                 </>
                             </div>
@@ -158,7 +158,7 @@ const ProjEle = ({ p, hc, updateFile }: { p: WatchProject, hc: () => void, updat
 
 const SplitFile = () => {
 
-    const { updateFile, videoPath } = useSplit(useShallow(s => ({
+    const {updateFile, videoPath} = useSplit(useShallow(s => ({
         updateFile: s.updateFile,
         videoPath: s.videoPath
     })));
@@ -168,31 +168,23 @@ const SplitFile = () => {
             <div
                 className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
             >
-                <FileSelector
-                    onSelected={async (vid) => {
-                        const v = await api.call('watch-project/video/detail', vid);
-                        updateFile(v.video_path);
-                        if (v.subtitle_path) {
-                            updateFile(v.subtitle_path);
+                <FileSelector onSelected={async (ps) => {
+                    const vp = ps.find(MediaUtil.isMedia);
+                    const sp = ps.find(MediaUtil.isSrt);
+                    if (vp) {
+                        updateFile(vp);
+                        await api.call('watch-project/create/from-files', ps);
+                    }
+                    if (sp) {
+                        updateFile(sp);
+                        if (Util.strNotBlank(videoPath)) {
+                            await api.call('watch-project/attach-srt', {videoPath, srtPath: sp});
                         }
-                    }}
-                    child={(hc) => (
-                        <Button
-                            onClick={() => hc()}
-                            variant={'outline'}
-                            className={cn('w-28')}
-                        >Open File</Button>
-                    )}
-                />
-                <FolderSelector
-                    child={(hc) => (
-                        <Button
-                            onClick={() => hc()}
-                            variant={'outline'}
-                            className={cn('w-28')}
-                        >Open Folder</Button>
-                    )}
-                />
+                    }
+                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                    await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
+                }}/>
+                <FolderSelector/>
             </div>
 
             <ProjectListComp
@@ -220,8 +212,8 @@ const SplitFile = () => {
                         </TooltipProvider>
                     );
                 }}
-                videoEle={(pv) => <VideoEle pv={pv} updateFile={updateFile} />}
-                projEle={(p, hc) => <ProjEle p={p} hc={hc} updateFile={updateFile} />}
+                videoEle={(pv) => <VideoEle pv={pv} updateFile={updateFile}/>}
+                projEle={(p, hc) => <ProjEle p={p} hc={hc} updateFile={updateFile}/>}
                 className={cn('w-full h-0 flex-1 scrollbar-none')}
             />
         </div>

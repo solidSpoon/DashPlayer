@@ -41,8 +41,3 @@ export default class MediaUtil {
         return path.substring(path.lastIndexOf(fileSeparator) + 1);
     }
 }
-
-
-export const isSrt = (path: string): boolean => {
-    return MediaUtil.isSrt(path);
-};

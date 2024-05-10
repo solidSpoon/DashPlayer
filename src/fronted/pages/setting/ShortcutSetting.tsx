@@ -1,4 +1,3 @@
-import SettingInput from '@/fronted/components/setting/SettingInput';
 import ItemWrapper from '@/fronted/components/setting/ItemWrapper';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import Header from '@/fronted/components/setting/Header';

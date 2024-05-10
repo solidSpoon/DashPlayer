@@ -2,15 +2,17 @@ import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import React from 'react';
 import {emptyFunc} from "@/common/utils/Util";
+import {cn} from "@/fronted/lib/utils";
+import {Button} from "@/fronted/components/ui/button";
 
 const api = window.electron;
 
 export interface FolderSelecterProps {
-    child: (handleClick: () => void) => React.ReactNode;
     onSelected?: (vid: number) => void;
+    className?: string;
 }
 
-const FolderSelector = ({child, onSelected}:FolderSelecterProps) => {
+const FolderSelector = ({onSelected, className}:FolderSelecterProps) => {
     const handleClick = async () => {
         const ps = await api.call('system/select-file', {
             mode: 'directory',
@@ -29,7 +31,11 @@ const FolderSelector = ({child, onSelected}:FolderSelecterProps) => {
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    {child(handleClick)}
+                    <Button
+                        onClick={() => handleClick()}
+                        variant={'outline'}
+                        className={cn('w-28', className)}
+                    >Open Folder</Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     文件夹内的视频和对应的字幕文件名称最好保持一致
@@ -40,7 +46,8 @@ const FolderSelector = ({child, onSelected}:FolderSelecterProps) => {
 };
 
 FolderSelector.defaultProps = {
-    onSelected: emptyFunc
+    onSelected: emptyFunc,
+    className: ''
 }
 
 export default FolderSelector;

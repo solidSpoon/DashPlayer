@@ -1,9 +1,9 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
-import { InsertWatchProject, WatchProject, watchProjects, WatchProjectType } from '@/backend/db/tables/watchProjects';
-import { InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos } from '@/backend/db/tables/watchProjectVideos';
+import {and, asc, desc, eq} from 'drizzle-orm';
+import {InsertWatchProject, WatchProject, watchProjects, WatchProjectType} from '@/backend/db/tables/watchProjects';
+import {InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos} from '@/backend/db/tables/watchProjectVideos';
 import db from '@/backend/db/db';
 import fs from 'fs';
-import MediaUtil, { isSrt } from '@/common/utils/MediaUtil';
+import MediaUtil from '@/common/utils/MediaUtil';
 import path from 'path';
 import TimeUtil from "@/common/utils/TimeUtil";
 
@@ -71,7 +71,7 @@ export default class WatchProjectNewService {
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.project_id, id))
             .orderBy(asc(watchProjectVideos.video_name));
-        return { ...project, videos };
+        return {...project, videos};
     }
 
     public static async delete(id: number): Promise<void> {
@@ -82,6 +82,9 @@ export default class WatchProjectNewService {
     }
 
     public static async createFromFiles(filePath: string[]): Promise<number> {
+        if (filePath.length === 0) {
+            throw new Error('Please select at least one file');
+        }
         const [videoPath] = filePath.filter((p) => MediaUtil.isMedia(p));
         if (!videoPath) {
             throw new Error('Invalid file type');
@@ -106,7 +109,7 @@ export default class WatchProjectNewService {
             })
             .returning();
 
-        const [srt] = filePath.filter((p) => isSrt(p));
+        const [srt] = filePath.filter((p) => MediaUtil.isSrt(p));
 
         const v: InsertWatchProjectVideo = {
             project_id: vpr.id,
@@ -153,7 +156,7 @@ export default class WatchProjectNewService {
 
         const files = fs.readdirSync(dirPath);
         const videos = files.filter((f) => MediaUtil.isMedia(f));
-        const srts = files.filter((f) => isSrt(f));
+        const srts = files.filter((f) => MediaUtil.isSrt(f));
         const videoPaths = videos.map((v) => path.join(dirPath, v));
         const srtPaths = srts.map((s) => path.join(dirPath, s));
         const videoInserts: InsertWatchProjectVideo[] = videoPaths.map((vp, idx) => {
@@ -185,7 +188,7 @@ export default class WatchProjectNewService {
 
     public static async attachSrt(videoPath: string, srtPath: string) {
         await db.update(watchProjectVideos)
-            .set({ subtitle_path: srtPath, updated_at: TimeUtil.timeUtc() })
+            .set({subtitle_path: srtPath, updated_at: TimeUtil.timeUtc()})
             .where(eq(watchProjectVideos.video_path, videoPath));
     }
 
@@ -200,7 +203,7 @@ export default class WatchProjectNewService {
             .where(eq(watchProjectVideos.id, videoId))
             .returning();
         await db.update(watchProjects)
-            .set({ updated_at: TimeUtil.timeUtc() })
+            .set({updated_at: TimeUtil.timeUtc()})
             .where(eq(watchProjects.id, video.project_id));
     }
 
@@ -209,10 +212,10 @@ export default class WatchProjectNewService {
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.id, videoId));
         await db.update(watchProjectVideos)
-            .set({ current_playing: false })
+            .set({current_playing: false})
             .where(eq(watchProjectVideos.current_playing, true));
         await db.update(watchProjectVideos)
-            .set({ current_playing: true })
+            .set({current_playing: true})
             .where(eq(watchProjectVideos.id, videoId));
         await db.update(watchProjects)
             .set({

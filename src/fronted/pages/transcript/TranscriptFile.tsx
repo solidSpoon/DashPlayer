@@ -1,36 +1,36 @@
-import React, {} from 'react';
-import { strBlank } from '@/common/utils/Util';
-import { cn } from '@/fronted/lib/utils';
-import FileSelector from '@/fronted/components/fileBowser/FileSelector';
-import { WatchProject, WatchProjectType } from '@/backend/db/tables/watchProjects';
+import React from 'react';
+import Util from '@/common/utils/Util';
+import {cn} from '@/fronted/lib/utils';
+import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import FolderSelector from '@/fronted/components/fileBowser/FolderSelector';
-import { Button } from '@/fronted/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import {Button} from '@/fronted/components/ui/button';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import FileBrowserIcon from '@/fronted/components/fileBowser/FileBrowserIcon';
-import { ArrowRight, FileAudio2, FileVideo2, Folder } from 'lucide-react';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import {ArrowRight, FileAudio2, FileVideo2, Folder} from 'lucide-react';
+import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import Style from '@/fronted/styles/style';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useSWR from 'swr';
 import useTranscript from '@/fronted/hooks/useTranscript';
-import { useShallow } from 'zustand/react/shallow';
+import {useShallow} from 'zustand/react/shallow';
+import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
+import FileSelector from "@/fronted/components/fileBowser/FileSelector";
 
 const api = window.electron;
-const ProjEle = ({ p, hc, onAddToQueue, queue }: {
+const ProjEle = ({p, hc, onAddToQueue, queue}: {
     p: WatchProject,
     hc: () => void,
     onAddToQueue: (p: string) => void,
     queue: string[]
 }) => {
-    const { data: v } = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
+    const {data: v} = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
     const [contextMenu, setContextMenu] = React.useState(false);
 
     return (
@@ -60,12 +60,12 @@ const ProjEle = ({ p, hc, onAddToQueue, queue }: {
                                     }}
                                 >
                                     <>
-                                        {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
-                                            <Folder className={cn(Style.file_browser_icon)} />}
+                                        {(Util.strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
+                                            <Folder className={cn(Style.file_browser_icon)}/>}
                                         {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
-                                            <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                            <FileAudio2 className={cn(Style.file_browser_icon)}/>}
                                         {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
-                                            <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                            <FileVideo2 className={cn(Style.file_browser_icon)}/>}
                                         <div className="truncate text-base">{p.project_name}</div>
                                     </>
                                 </div>
@@ -111,7 +111,7 @@ const ProjEle = ({ p, hc, onAddToQueue, queue }: {
                                     onAddToQueue(p.project_path);
                                 }}
                                 variant={'ghost'} size={'icon'} className={cn('flex-shrink-0')}>
-                                <ArrowRight className={'w-4 h-4'} />
+                                <ArrowRight className={'w-4 h-4'}/>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -124,7 +124,7 @@ const ProjEle = ({ p, hc, onAddToQueue, queue }: {
     );
 };
 
-const VideoEle = ({ pv, onAddToQueue, queue }: {
+const VideoEle = ({pv, onAddToQueue, queue}: {
     pv: WatchProjectVideo,
     onAddToQueue: (p: string) => void,
     queue: string[]
@@ -193,7 +193,7 @@ const VideoEle = ({ pv, onAddToQueue, queue }: {
                                 onAddToQueue(pv.video_path);
                             }}
                             variant={'ghost'} size={'icon'} className={cn('flex-shrink-0')}>
-                            <ArrowRight className={'w-4 h-4'} />
+                            <ArrowRight className={'w-4 h-4'}/>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -206,7 +206,7 @@ const VideoEle = ({ pv, onAddToQueue, queue }: {
     );
 };
 const TranscriptFile = () => {
-    const { files, onAddToQueue } = useTranscript(useShallow(s => ({
+    const {files, onAddToQueue} = useTranscript(useShallow(s => ({
         files: s.files,
         onAddToQueue: s.onAddToQueue
     })));
@@ -216,24 +216,21 @@ const TranscriptFile = () => {
             <div
                 className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
             >
-                <FileSelector
-                    child={(hc) => (
-                        <Button
-                            onClick={() => hc()}
-                            variant={'outline'}
-                            className={cn('w-28')}
-                        >Open File</Button>
-                    )}
-                />
-                <FolderSelector
-                    child={(hc) => (
-                        <Button
-                            onClick={() => hc()}
-                            variant={'outline'}
-                            className={cn('w-28')}
-                        >Open Folder</Button>
-                    )}
-                />
+                <FileSelector onSelected={async (ps) => {
+                    const vp = ps.find(MediaUtil.isMedia);
+                    const sp = ps.find(MediaUtil.isSrt);
+                    if (vp) {
+                        await api.call('watch-project/create/from-files', ps);
+                    }
+                    if (sp) {
+                        if (Util.strNotBlank(vp)) {
+                            await api.call('watch-project/attach-srt', {videoPath: vp, srtPath: sp});
+                        }
+                    }
+                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                    await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
+                }}/>
+                <FolderSelector/>
             </div>
 
             <ProjectListComp

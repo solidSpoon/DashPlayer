@@ -1,12 +1,9 @@
 import {create} from 'zustand';
 import {persist, subscribeWithSelector} from 'zustand/middleware';
 import {ChapterParseResult} from "@/common/types/chapter-result";
-import MediaUtil, {isSrt} from "@/common/utils/MediaUtil";
+import MediaUtil from "@/common/utils/MediaUtil";
 import {strBlank} from "@/common/utils/Util";
 import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
-import toast from "react-hot-toast";
-import {as} from "tencentcloud-sdk-nodejs";
-import {AiFuncFormatSplitPrompt, AiFuncFormatSplitRes} from "@/common/types/aiRes/AiFuncFormatSplit";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 
 const api = window.electron;
@@ -47,7 +44,7 @@ const useSplit = create(
                 if (MediaUtil.isMedia(filePath)) {
                     set({videoPath: filePath});
                 }
-                if (isSrt(filePath)) {
+                if (MediaUtil.isSrt(filePath)) {
                     set({srtPath: filePath});
                 }
                 set({parseResult: get().parseResult.map(r => ({...r, taskId: null}))});
