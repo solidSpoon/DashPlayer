@@ -4,7 +4,7 @@ import {YdRes} from '@/common/types/YdRes';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import {SentenceStruct} from '@/common/types/SentenceStruct';
 import {WatchProject} from '@/backend/db/tables/watchProjects';
-import {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
+import {WatchProjectListVO, WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import {SrtSentence} from "@/common/types/SentenceC";
 import {WindowState} from "@/common/types/Types";
@@ -91,7 +91,7 @@ interface WatchProjectDef {
     'watch-project/delete': { params: number, return: void };
     'watch-project/detail': { params: number, return: WatchProjectVO };
     'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };
-    'watch-project/list': { params: void, return: WatchProject[] };
+    'watch-project/list': { params: void, return: WatchProjectListVO[] };
     'watch-project/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
 }
 

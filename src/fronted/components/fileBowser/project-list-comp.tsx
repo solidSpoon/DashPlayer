@@ -11,12 +11,14 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from '@/fronted/components/ui/breadcrumb';
+import {WatchProjectListVO} from "@/backend/services/WatchProjectNewService";
 
 export interface ProjectListCompProps {
-    projEle: (p: WatchProject, handleClick: () => void) => React.JSX.Element;
+    projEle: (p: WatchProjectListVO, handleClick: () => void) => React.JSX.Element;
     videoEle: (p: WatchProjectVideo) => React.JSX.Element;
     backEle?: (root: boolean, handleClick: () => void) => React.JSX.Element;
     className?: string;
+    defaultProjId?: number | null;
 }
 
 const api = window.electron;
@@ -36,9 +38,9 @@ const ProjectDetailList = ({videoEle, projId}: {
 };
 
 
-const ProjectListComp = ({className, videoEle, projEle, backEle}: ProjectListCompProps) => {
+const ProjectListComp = ({className, videoEle, projEle, backEle, defaultProjId = null}: ProjectListCompProps) => {
     const {data} = useSWR(SWR_KEY.WATCH_PROJECT_LIST, listFetcher, {fallbackData: []});
-    const [projId, setProjId] = React.useState<number | null>(null);
+    const [projId, setProjId] = React.useState<number | null>(defaultProjId);
     const [projName, setProjName] = React.useState<string>('');
     return (
         <div className={cn('flex flex-col gap-2', className)}>

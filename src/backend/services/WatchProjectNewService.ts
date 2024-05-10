@@ -11,6 +11,10 @@ export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];
 }
 
+export interface WatchProjectListVO extends WatchProject {
+    video: WatchProjectVideo;
+}
+
 export interface InsertWatchProjectVO extends InsertWatchProject {
     videos: InsertWatchProjectVideo[];
 }
@@ -35,7 +39,7 @@ const findSubtitle = (
 };
 
 export default class WatchProjectNewService {
-    public static async list(): Promise<WatchProject[]> {
+    public static async list(): Promise<WatchProjectListVO[]> {
         const res: WatchProject[] = await db.select()
             .from(watchProjects)
             .orderBy(desc(watchProjects.updated_at));
@@ -44,10 +48,13 @@ export default class WatchProjectNewService {
                 this.delete(p.id);
             }
         });
-        return db.select()
+        const vos: WatchProject[] = await db.select()
             .from(watchProjects)
             .orderBy(desc(watchProjects.updated_at));
-
+        return await Promise.all(vos.map(async (p) => {
+            const v = await this.videoDetailByPid(p.id);
+            return {video: v, ...p};
+        }));
     }
 
     public static async detail(id: number): Promise<WatchProjectVO> {

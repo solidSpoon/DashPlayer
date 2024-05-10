@@ -1,7 +1,7 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
 import {WatchProject} from '@/backend/db/tables/watchProjects';
-import WatchProjectNewService, {WatchProjectVO} from '@/backend/services/WatchProjectNewService';
+import WatchProjectNewService, {WatchProjectListVO, WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import path from 'path';
 
@@ -44,7 +44,7 @@ export default class WatchProjectController implements Controller{
         return WatchProjectNewService.detailByVid(vid);
     }
 
-    public async list(): Promise<WatchProject[]> {
+    public async list(): Promise<WatchProjectListVO[]> {
         return WatchProjectNewService.list();
     }
 
