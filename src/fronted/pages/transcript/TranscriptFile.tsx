@@ -17,194 +17,14 @@ import {
 import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import Style from '@/fronted/styles/style';
 import MediaUtil from '@/common/utils/MediaUtil';
-import useSWR from 'swr';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import {useShallow} from 'zustand/react/shallow';
 import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
 import FileSelector from "@/fronted/components/fileBowser/FileSelector";
+import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
+import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
 
 const api = window.electron;
-const ProjEle = ({p, hc, onAddToQueue, queue}: {
-    p: WatchProject,
-    hc: () => void,
-    onAddToQueue: (p: string) => void,
-    queue: string[]
-}) => {
-    const {data: v} = useSWR(['watch-project/video/detail/by-pid', p.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
-    const [contextMenu, setContextMenu] = React.useState(false);
-
-    return (
-        <div className={cn('flex')}>
-
-            <ContextMenu
-                onOpenChange={(open) => {
-                    setContextMenu(open);
-                }}
-            >
-                <ContextMenuTrigger
-                    className={cn('w-0 flex-1 flex-shrink-0')}
-                >
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div
-                                    className={cn(
-                                        'w-full flex justify-start items-center  rounded-lg gap-3 px-3 lg:px-6 py-2',
-                                        contextMenu && 'bg-black/5 dark:bg-white/5'
-                                    )}
-                                    onClick={() => {
-                                        hc();
-                                        if (p.project_type === WatchProjectType.FILE) {
-                                            onAddToQueue(p.project_path);
-                                        }
-                                    }}
-                                >
-                                    <>
-                                        {(Util.strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
-                                            <Folder className={cn(Style.file_browser_icon)}/>}
-                                        {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
-                                            <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                        {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
-                                            <FileVideo2 className={cn(Style.file_browser_icon)}/>}
-                                        <div className="truncate text-base">{p.project_name}</div>
-                                    </>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent
-                                side={'bottom'}
-                                align={'start'}
-                            >
-                                {p.project_path}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                    {p.project_type === WatchProjectType.FILE && (
-                        <ContextMenuItem
-                            disabled={queue.includes(p.project_path)}
-                            onClick={() => {
-                                onAddToQueue(p.project_path);
-                            }}
-                        >Add To Queue</ContextMenuItem>
-                    )}
-                    <ContextMenuItem
-                        onClick={async () => {
-                            await api.call('system/open-folder', p.project_path);
-                        }}
-                    >Show In Explorer</ContextMenuItem>
-                    <ContextMenuItem
-                        onClick={async () => {
-                            await api.call('watch-project/delete', p.id);
-                            await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
-                        }}
-                    >Delete</ContextMenuItem>
-                </ContextMenuContent>
-            </ContextMenu>
-            {p.project_type === WatchProjectType.FILE ? (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <Button
-                                disabled={queue.includes(p.project_path)}
-                                onClick={() => {
-                                    onAddToQueue(p.project_path);
-                                }}
-                                variant={'ghost'} size={'icon'} className={cn('flex-shrink-0')}>
-                                <ArrowRight className={'w-4 h-4'}/>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {queue.includes(p.project_path) ? '已在转录队列中' : '添加到转录队列'}
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            ) : <div className={'w-10 h-10'}></div>}
-        </div>
-    );
-};
-
-const VideoEle = ({pv, onAddToQueue, queue}: {
-    pv: WatchProjectVideo,
-    onAddToQueue: (p: string) => void,
-    queue: string[]
-}) => {
-    const [contextMenu, setContextMenu] = React.useState(false);
-    return (
-        <div className={cn('flex group/item')}>
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <ContextMenu
-                            onOpenChange={(open) => {
-                                setContextMenu(open);
-                            }}
-                        >
-                            <ContextMenuTrigger
-                                className={cn('w-0 flex-1 flex-shrink-0')}
-                            >
-                                <div
-                                    className={cn(
-                                        'w-full flex justify-start items-center  rounded-lg gap-3 px-3 lg:px-6 py-2',
-                                        contextMenu && 'bg-black/5 dark:bg-white/5'
-                                    )}
-                                    onClick={() => {
-                                        onAddToQueue(pv.video_path);
-                                    }}
-                                >
-                                    <>
-                                        {FileBrowserIcon['video'] ?? <></>}
-                                        <div
-                                            className="truncate text-base group-hover/item:underline group-hover/item:underline-offset-2">
-                                            {pv.video_name}
-                                        </div>
-                                    </>
-                                </div>
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                                <ContextMenuItem
-                                    disabled={queue.includes(pv.video_path)}
-                                    onClick={() => {
-                                        onAddToQueue(pv.video_path);
-                                    }}
-                                >Add To Queue</ContextMenuItem>
-                                <ContextMenuItem
-                                    onClick={async () => {
-                                        await api.call('system/open-folder', pv.video_path);
-                                    }}
-                                >Show In Explorer</ContextMenuItem>
-                            </ContextMenuContent>
-                        </ContextMenu>
-                    </TooltipTrigger>
-                    <TooltipContent
-                        side={'bottom'}
-                        align={'start'}
-                    >
-                        {pv.video_path}
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Button
-                            disabled={queue.includes(pv.video_path)}
-                            onClick={() => {
-                                onAddToQueue(pv.video_path);
-                            }}
-                            variant={'ghost'} size={'icon'} className={cn('flex-shrink-0')}>
-                            <ArrowRight className={'w-4 h-4'}/>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        {queue.includes(pv.video_path) ? '已在转录队列中' : '添加到转录队列'}
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-
-        </div>
-    );
-};
 const TranscriptFile = () => {
     const {files, onAddToQueue} = useTranscript(useShallow(s => ({
         files: s.files,
@@ -258,19 +78,45 @@ const TranscriptFile = () => {
                         </TooltipProvider>
                     );
                 }}
-                videoEle={(pv) =>
-                    <VideoEle
-                        pv={pv}
-                        onAddToQueue={onAddToQueue}
-                        queue={queue}
-                    />}
-                projEle={(p, hc) =>
-                    <ProjEle
-                        p={p}
-                        hc={hc}
-                        onAddToQueue={onAddToQueue}
-                        queue={queue}
-                    />}
+                videoEle={(pv) => {
+                    const ctxMenus = [
+                        {
+                            icon: <Folder/>,
+                            text: 'Show In Explorer',
+                            onClick: async () => {
+                                await api.call('system/open-folder', pv.video_path);
+                            }
+                        }
+                    ];
+                    return <VideoItem2 pv={pv}
+                                       ctxMenus={ctxMenus}
+                                       onClick={() => {
+                                           onAddToQueue(pv.video_path);
+                                       }}
+                                       variant={queue.includes(pv.video_path) ? 'lowlight' : 'normal'}/>
+                }}
+                projEle={(p, hc) => {
+                    const ctxMenus = [
+                        {
+                            icon: <Folder/>,
+                            text: 'Show In Explorer',
+                            onClick: async () => {
+                                await api.call('system/open-folder', p.project_path);
+                            }
+                        },
+                    ];
+                    return <ProjItem2 p={p} v={p.video}
+                                      ctxMenus={ctxMenus}
+                                      variant={queue.includes(p.project_path) ? 'lowlight' : 'normal'}
+                                      onClick={() => {
+                                          hc();
+                                          if (p.project_type === WatchProjectType.FILE) {
+                                              const pVideo = p.video;
+                                              onAddToQueue(pVideo.video_path);
+                                          }
+                                      }}/>
+                }}
+
                 className={cn('w-full h-0 flex-1 scrollbar-none')}
             />
         </div>
