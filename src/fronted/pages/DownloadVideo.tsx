@@ -12,7 +12,7 @@ import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
 import {DlProgress} from "@/common/types/dl-progress";
 import {Progress} from "@/fronted/components/ui/progress";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
-import {CloudDownload, EllipsisVertical} from "lucide-react";
+import {CircleX, CloudDownload, EllipsisVertical} from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,6 +20,7 @@ import {
     DropdownMenuTrigger
 } from "@/fronted/components/ui/dropdown-menu";
 import useTranscript from "@/fronted/hooks/useTranscript";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
 
 const api = window.electron;
 
@@ -47,7 +48,7 @@ const DownloadVideo = () => {
         || dpTask?.status === DpTaskState.INIT;
     const {name, progress, stdOut} = extracted(dpTask);
     const successMsg = 'Downloaded successfully, check the download folder\n'
-        +'If there is a transcription task, please check it on the transcript page';
+        + 'If there is a transcription task, please check it on the transcript page';
     return (
         <div
             className={cn(
@@ -113,23 +114,36 @@ const DownloadVideo = () => {
                     </DropdownMenu>
                 </div>
                 {taskId ? <>
-                        <Card className={'w-full max-w-3xl mt-4'}>
-                            <CardHeader>
-                                <CardTitle>
-                                    下载视频
-                                </CardTitle>
-                                <CardDescription>
-                                    文件将保存在下载文件夹
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className={'text-sm'}
-                                >{name}</div>
-                                <Progress className={'h-1 mt-2'} value={progress} max={100}/>
-                            </CardContent>
-
-                        </Card>
-                    </> :
+                    <Card className={'w-full relative max-w-3xl mt-4'}>
+                        <CardHeader>
+                            <CardTitle>
+                                下载视频
+                            </CardTitle>
+                            <CardDescription>
+                                文件将保存在下载文件夹
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={'text-sm'}
+                            >{name}</div>
+                            <Progress className={'h-1 mt-2'} value={progress} max={100}/>
+                        </CardContent>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        disabled={dpTask?.status === DpTaskState.DONE || dpTask?.status === DpTaskState.CANCELLED}
+                                        variant={'ghost'}
+                                        size={'icon'}
+                                        className={cn('absolute top-2 right-2 h-8 w-8')} onClick={() => {
+                                        api.call('dp-task/cancel', taskId);
+                                    }}><CircleX className={'h-4 w-4'}/></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Cancel Task</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </Card>
+                </> :
                     <div className="mt-10 text-sm text-secondary-foreground">Paste a video URL and click download</div>}
 
                 <pre
@@ -138,11 +152,12 @@ const DownloadVideo = () => {
                 >
                     {stdOut}
                     {dpTask?.status === DpTaskState.DONE && `\n\n${successMsg}`}
+                    {dpTask?.status === DpTaskState.CANCELLED && `\n\nDownload cancelled`}
                 </pre>
             </div>
         </div>
-    )
-        ;
+)
+;
 };
 
 export default DownloadVideo;

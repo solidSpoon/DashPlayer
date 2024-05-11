@@ -7,6 +7,7 @@ import iconv from 'iconv-lite';
 import path from "path";
 import fs from 'fs';
 import FfmpegService from "@/backend/services/FfmpegService";
+import ProcessService from "@/backend/services/ProcessService";
 
 export default class DlVideoService {
     public static async dlVideo(taskId: number, url: string, savePath: string) {
@@ -112,6 +113,10 @@ export default class DlVideoService {
                 '-P', savePath,
                 url,
             ]);
+            ProcessService.registerTask({
+                taskId,
+                process: [task]
+            });
             let progress = 0;
             task.stdout.on('data', (data) => {
                 const output = data.toString();
@@ -193,7 +198,10 @@ export default class DlVideoService {
                 '--merge-output-format', 'mp4',
                 url
             ]);
-
+            ProcessService.registerTask({
+                taskId,
+                process: [process]
+            });
             let output = '';
             process.stdout.on('data', (d: Buffer) => {
                 const data = iconv.decode(d, 'cp936');

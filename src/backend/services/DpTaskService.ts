@@ -4,6 +4,7 @@ import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpT
 
 import LRUCache from "lru-cache";
 import TimeUtil from "@/common/utils/TimeUtil";
+import ProcessService from "@/backend/services/ProcessService";
 
 
 const cache: LRUCache<number, InsertDpTask> = new LRUCache({
@@ -102,18 +103,11 @@ export default class DpTaskService {
     }
 
     static cancel(id: number) {
-        if (cache.has(id)) {
-            cache.set(id, {
-                ...cache.get(id),
-                status: DpTaskState.CANCELLED,
-                progress: '任务取消',
-                updated_at: TimeUtil.timeUtc()
-            })
-        }
-        this.upQueue.set(id, {
+        ProcessService.killTask(id);
+        this.update({
+            id,
             status: DpTaskState.CANCELLED,
             progress: '任务取消',
-            updated_at: TimeUtil.timeUtc(),
         });
     }
 }
