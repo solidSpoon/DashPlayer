@@ -3,7 +3,7 @@ import Separator from '@/fronted/components/Separtor';
 import React from 'react';
 import {Input} from '@/fronted/components/ui/input';
 import {Button} from '@/fronted/components/ui/button';
-import Util, {strNotBlank} from '@/common/utils/Util';
+import {strNotBlank} from '@/common/utils/Util';
 import {useLocalStorage} from '@uidotdev/usehooks';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
@@ -12,7 +12,14 @@ import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
 import {DlProgress} from "@/common/types/dl-progress";
 import {Progress} from "@/fronted/components/ui/progress";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
-import {Car} from "lucide-react";
+import {CloudDownload, EllipsisVertical} from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from "@/fronted/components/ui/dropdown-menu";
+import useTranscript from "@/fronted/hooks/useTranscript";
 
 const api = window.electron;
 
@@ -39,6 +46,8 @@ const DownloadVideo = () => {
     const inProgress = dpTask?.status === DpTaskState.IN_PROGRESS
         || dpTask?.status === DpTaskState.INIT;
     const {name, progress, stdOut} = extracted(dpTask);
+    const successMsg = 'Downloaded successfully, check the download folder\n'
+        +'If there is a transcription task, please check it on the transcript page';
     return (
         <div
             className={cn(
@@ -62,6 +71,7 @@ const DownloadVideo = () => {
                         setTaskId(null);
                     }}
                     />
+
                     <Button
                         disabled={inProgress}
                         onClick={async () => {
@@ -69,14 +79,38 @@ const DownloadVideo = () => {
                                 const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
                                     onFinish: async (task) => {
                                         const {name} = extracted(task);
-                                        toast.success(`Downloaded ${name}`);
-                                        await api.call('watch-project/create/from-download', name);
+                                        toast.success(`Downloaded ${name}, Start transcription`);
+                                        const pId = await api.call('watch-project/create/from-download', name);
+                                        const watchProjectVideo = await api.call('watch-project/video/detail/by-pid', pId);
+                                        await useTranscript.getState().onTranscript(watchProjectVideo.video_path);
                                     }
                                 });
                                 setTaskId(taskId);
                             }
                         }}
-                        type="submit">Download</Button>
+                        type="submit">DL & Transcript</Button>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
+                            <Button variant={'outline'} size={'icon'}>
+                                <EllipsisVertical/>
+                            </Button></DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem
+                                onClick={async () => {
+                                    if (strNotBlank(url)) {
+                                        const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
+                                            onFinish: async (task) => {
+                                                const {name} = extracted(task);
+                                                toast.success(`Downloaded ${name}, Check the download folder`);
+                                            }
+                                        });
+                                        setTaskId(taskId);
+                                    }
+                                }}
+                            ><CloudDownload className={'h-4 w-4 mr-2'}/>Download Only</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
                 {taskId ? <>
                         <Card className={'w-full max-w-3xl mt-4'}>
@@ -103,10 +137,12 @@ const DownloadVideo = () => {
                     ref={consoleRef}
                 >
                     {stdOut}
+                    {dpTask?.status === DpTaskState.DONE && `\n\n${successMsg}`}
                 </pre>
             </div>
         </div>
-    );
+    )
+        ;
 };
 
 export default DownloadVideo;
