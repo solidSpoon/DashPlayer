@@ -1,6 +1,5 @@
 import {ChildProcess} from "child_process";
 import DpTaskService from "@/backend/services/DpTaskService";
-import {DP} from "@/common/utils/UrlUtil";
 import {DpTaskState} from "@/backend/db/tables/dpTask";
 
 export default class ProcessService {

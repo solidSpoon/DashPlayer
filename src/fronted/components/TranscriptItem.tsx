@@ -1,12 +1,14 @@
-import { TableCell, TableRow } from '@/fronted/components/ui/table';
+import {TableCell, TableRow} from '@/fronted/components/ui/table';
 import {cn} from "@/fronted/lib/utils";
-import { Button } from '@/fronted/components/ui/button';
+import {Button} from '@/fronted/components/ui/button';
 import React from 'react';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import {DpTaskState} from '@/backend/db/tables/dpTask';
 import useSWR from 'swr';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
 import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
+import Util from "@/common/utils/Util";
+import toast from "react-hot-toast";
 
 export interface TranscriptItemProps {
     file: string;
@@ -17,17 +19,17 @@ export interface TranscriptItemProps {
 
 const api = window.electron;
 
-const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps) => {
+const TranscriptItem = ({file, taskId, onStart, onDelete}: TranscriptItemProps) => {
     const [started, setStarted] = React.useState(false);
     const task = useDpTaskViewer(taskId);
-    const { data: fInfo } = useSWR(['system/path-info',file], ([_k, f]) => api.call('system/path-info', f), {
+    const {data: fInfo} = useSWR(['system/path-info', file], ([_k, f]) => api.call('system/path-info', f), {
         fallbackData: {
             baseName: '',
             dirName: '',
             extName: ''
         }
     });
-    console.log('taskk',task)
+    console.log('taskk', task)
 
     let msg = task?.progress ?? '未开始';
     if (task?.status === DpTaskState.IN_PROGRESS) {
@@ -68,9 +70,20 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                     disabled={(task?.status ?? DpTaskState.INIT) !== DpTaskState.INIT || (started && task === null)}
                     size={'sm'} className={'mx-auto'}>转录</Button>
                 <Button
-                    onClick={onDelete}
+                    onClick={() => {
+                        if (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none'])) {
+                            onDelete();
+                        } else {
+                            toast('发送了取消请求',{
+                                icon: '🚀'
+                            });
+                            api.call('dp-task/cancel', taskId);
+                        }
+                    }}
                     variant={'secondary'}
-                    size={'sm'} className={'mx-auto'}>删除</Button>
+                    size={'sm'} className={'mx-auto'}>
+                    {Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none']) ? '删除' : '取消'}
+                </Button>
             </TableCell>
         </TableRow>
     );

@@ -1,3 +1,5 @@
+import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
+
 export const strBlank = (str: string | undefined | null): boolean => {
     return !str || str.trim() === '';
 };
@@ -49,6 +51,13 @@ export default class Util {
     }
     public static trim(str: string | null | undefined): string {
         return (str ?? '').trim();
+    }
+    public static cmpTaskState(task:DpTask, status:(DpTaskState|'none')[]):boolean {
+        const taskStatus = task?.status;
+        if (taskStatus === undefined || taskStatus === null) {
+            return status.includes('none');
+        }
+        return status.map(s => s.toString()).includes(taskStatus.toString());
     }
 }
 

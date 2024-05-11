@@ -15,6 +15,7 @@ const cache: LRUCache<number, InsertDpTask> = new LRUCache({
 })
 export default class DpTaskService {
     public static upQueue: Map<number, InsertDpTask> = new Map();
+    public static cancelQueue: Set<number> = new Set();
     static {
         setInterval(async () => {
             if (this.upQueue.size > 0) {
@@ -103,11 +104,17 @@ export default class DpTaskService {
     }
 
     static cancel(id: number) {
+        this.cancelQueue.add(id);
         ProcessService.killTask(id);
-        this.update({
-            id,
-            status: DpTaskState.CANCELLED,
-            progress: '任务取消',
-        });
+    }
+    static checkCancel(id: number) {
+        if (this.cancelQueue.has(id)) {
+            this.update({
+                id,
+                status: DpTaskState.CANCELLED,
+                progress: '任务取消',
+            })
+            throw new Error('任务取消');
+        }
     }
 }

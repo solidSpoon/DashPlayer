@@ -52,7 +52,7 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
 class WhisperService {
     public static async transcript(taskId: number, filePath: string) {
         if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
-            await DpTaskService.update({
+            DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
                 progress: '未设置 OpenAI 密钥'
@@ -60,31 +60,33 @@ class WhisperService {
             return;
         }
         // await this.whisper();
-        await DpTaskService.update({
+        DpTaskService.checkCancel(taskId);
+        DpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: '正在转换音频'
         });
         try {
             const files = await this.convertAndSplit(filePath);
-            await DpTaskService.update({
+            DpTaskService.checkCancel(taskId);
+            DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.IN_PROGRESS,
                 progress: '正在转录'
             });
             const whisperResponses = await Promise.all(files.map(async (file) => {
-                return await this.whisperThreeTimes(file);
+                return await this.whisperThreeTimes(taskId, file);
             }));
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             console.log('srtName', srtName);
             fs.writeFileSync(srtName, toSrt(whisperResponses));
-            await DpTaskService.update({
+            DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.DONE,
                 progress: '转录完成'
             });
         } catch (error) {
-            await DpTaskService.update({
+            DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
                 progress: error.message
@@ -97,7 +99,7 @@ class WhisperService {
         return base.replace(/\/+$/, '') + '/' + path.replace(/^\/+/, '');
     }
 
-    private static async whisperThreeTimes(chunk: SplitChunk): Promise<WhisperResponse> {
+    private static async whisperThreeTimes(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
         let error: any = null;
         for (let i = 0; i < 3; i++) {
             try {
@@ -105,6 +107,7 @@ class WhisperService {
             } catch (e) {
                 error = e;
             }
+            DpTaskService.checkCancel(taskId);
         }
         throw error;
     }
@@ -147,7 +150,6 @@ class WhisperService {
         fs.readdirSync(tempDir).forEach((file) => {
             fs.unlinkSync(path.join(tempDir, file));
         });
-
         const files = await FfmpegService.splitToAudio({
             inputFile: filePath,
             outputFolder: tempDir,
