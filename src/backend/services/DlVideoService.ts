@@ -3,7 +3,10 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import {DpTaskState} from '@/backend/db/tables/dpTask';
 import LocationService from '@/backend/services/LocationService';
 import {DlProgress} from "@/common/types/dl-progress";
-
+import iconv from 'iconv-lite';
+import path from "path";
+import fs from 'fs';
+import FfmpegService from "@/backend/services/FfmpegService";
 
 export default class DlVideoService {
     public static async dlVideo(taskId: number, url: string, savePath: string) {
@@ -27,12 +30,49 @@ export default class DlVideoService {
             result: JSON.stringify(result.ref)
         });
         try {
-            await DlVideoService.doDlVideoFileName(taskId, result, url)
+            const vName = await DlVideoService.doDlVideoFileName(taskId, result, url)
                 .then((name) => {
-                    result.ref.name = name;
+                    result.ref.name = path.basename(name, path.extname(name)) + '.mp4';
                     return name;
                 });
             await DlVideoService.doDlVideo(taskId, result, url, savePath);
+            if (!vName.endsWith('.mp4')) {
+                const vPath = path.join(savePath, vName);
+                if (fs.existsSync(vPath)) {
+                    result.so.push('System: converting video to mp4');
+                    result.ref.stdOut = result.so.join('\n');
+                    DpTaskService.update({
+                        id: taskId,
+                        status: DpTaskState.IN_PROGRESS,
+                        progress: '正在转换',
+                        result: JSON.stringify(result.ref)
+                    });
+                    await FfmpegService.toMp4({
+                        inputFile:vPath,
+                        onProgress: (progress) => {
+                            result.ref.progress = progress;
+                            result.so.push(`System: converting video to mp4 ${progress}%`);
+                            result.ref.stdOut = result.so.join('\n');
+                            DpTaskService.update({
+                                id: taskId,
+                                status: DpTaskState.IN_PROGRESS,
+                                progress: `正在转换 ${progress}%`,
+                                result: JSON.stringify(result.ref)
+                            });
+                        }
+                    });
+                    fs.unlinkSync(vPath);
+                    result.so.push('System: video converted to mp4');
+                    result.ref.stdOut = result.so.join('\n');
+                    result.ref.name = path.basename(vPath, path.extname(vPath)) + '.mp4';
+                    DpTaskService.update({
+                        id: taskId,
+                        status: DpTaskState.IN_PROGRESS,
+                        progress: '转换完成',
+                        result: JSON.stringify(result.ref)
+                    });
+                }
+            }
         } catch (e) {
             DpTaskService.update({
                 id: taskId,
@@ -66,8 +106,9 @@ export default class DlVideoService {
             //yt-dlp -f "bestvideo[height<=1080][height>=?720]" --merge-output-format mp4 https://www.youtube.com/watch?v=EVEIl0V-5QE
             const task = spawn(LocationService.ytDlPath(), [
                 '--ffmpeg-location', LocationService.libPath(),
-                '-f', 'bestvideo[height<=1080][height>=?720]',
+                '-f', 'bestvideo[height<=1080][height>=?720]+bestaudio/best',
                 // '--simulate',
+                '--merge-output-format', 'mp4',
                 '-P', savePath,
                 url,
             ]);
@@ -154,10 +195,12 @@ export default class DlVideoService {
             ]);
 
             let output = '';
-            process.stdout.on('data', (data: Buffer) => {
-                output += data.toString();
-                // 如果.mp4结尾，说明是视频文件
-                if (output.trim().endsWith('.mp4')) {
+            process.stdout.on('data', (d: Buffer) => {
+                const data = iconv.decode(d, 'cp936');
+                output += data;
+                // 如果有视频文件扩展名，说明获取到了文件名
+                const videoExtensions = ['.mp4', '.mkv', '.flv', '.avi', '.mov', '.wmv', 'webm'];
+                if (videoExtensions.some(ext => output.trim().endsWith(ext))) {
                     resolve(output.trim());
                 }
                 result.so.push(data.toString().trim());

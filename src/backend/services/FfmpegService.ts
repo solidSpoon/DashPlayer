@@ -1,7 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import LocationService from '@/backend/services/LocationService';
@@ -227,8 +227,44 @@ export default class FfmpegService {
                         }
                     });
                 })
-                .on('error', reject)
+                .on('error', (err) => {
+                    reject(err);
+                })
                 .run();
         });
     }
+
+    /**
+     * 视频转为mp4
+     * ffmpeg -i input.mp4 -c:v libx264 -c:a aac output.mp4
+     */
+    public static async toMp4({
+                                  inputFile,
+                                  onProgress
+                              }: {
+        inputFile: string,
+        onProgress?: (progress: number) => void
+    }): Promise<string> {
+        const output = inputFile.replace(path.extname(inputFile), '.mp4');
+        await Lock.sync('ffmpeg', async () => {
+                await new Promise((resolve, reject) => {
+                    ffmpeg(inputFile)
+                        .output(output)
+                        .on('progress', (progress) => {
+                            if (progress.percent) {
+                                console.log('progress', progress.percent);
+                                if (onProgress) {
+                                    onProgress(progress.percent);
+                                }
+                            }
+                        })
+                        .on('end', resolve)
+                        .on('error', reject)
+                        .run();
+                });
+            }
+        );
+        return output;
+    }
 }
+

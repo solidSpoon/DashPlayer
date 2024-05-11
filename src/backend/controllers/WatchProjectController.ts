@@ -26,6 +26,9 @@ export default class WatchProjectController implements Controller{
     public async createFromFiles(files: string[]): Promise<number> {
         return WatchProjectNewService.createFromFiles(files);
     }
+    public async tryCreateFromDownload(fileName: string): Promise<number> {
+        return WatchProjectNewService.tryCreateFromDownload(fileName);
+    }
     public async attachSrt({videoPath, srtPath}:{videoPath: string, srtPath: string|'same'}): Promise<void> {
         if (srtPath === 'same') {
             srtPath = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)) + '.srt');
@@ -55,6 +58,7 @@ export default class WatchProjectController implements Controller{
         registerRoute('watch-project/video/detail/by-pid', this.videoDetailByPid);
         registerRoute('watch-project/create/from-folder', this.createFromFolder);
         registerRoute('watch-project/create/from-files', this.createFromFiles);
+        registerRoute('watch-project/create/from-download', this.tryCreateFromDownload);
         registerRoute('watch-project/delete', this.delete);
         registerRoute('watch-project/detail', this.detail);
         registerRoute('watch-project/detail/by-vid', this.detailByVid);

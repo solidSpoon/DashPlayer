@@ -93,7 +93,11 @@ useDpTaskCenter.subscribe(
                 newHookTasks.set(t.id, t);
                 if (t.status === DpTaskState.DONE) {
                     localTasks.get(t.id).onUpdated(t);
-                    localTasks.get(t.id).onFinish(t);
+                    try {
+                        localTasks.get(t.id).onFinish(t)
+                    } catch (e) {
+                        console.error(e);
+                    }
                     localTasks.delete(t.id);
                     updateMapping.delete(t.id);
                 } else if (t.status === DpTaskState.INIT || t.status === DpTaskState.IN_PROGRESS) {

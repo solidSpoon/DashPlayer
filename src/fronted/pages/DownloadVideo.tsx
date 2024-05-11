@@ -67,9 +67,10 @@ const DownloadVideo = () => {
                         onClick={async () => {
                             if (strNotBlank(url)) {
                                 const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
-                                    onFinish: (task) => {
-                                        const {name, progress, stdOut} = extracted(task);
+                                    onFinish: async (task) => {
+                                        const {name} = extracted(task);
                                         toast.success(`Downloaded ${name}`);
+                                        await api.call('watch-project/create/from-download', name);
                                     }
                                 });
                                 setTaskId(taskId);
@@ -78,23 +79,24 @@ const DownloadVideo = () => {
                         type="submit">Download</Button>
                 </div>
                 {taskId ? <>
-                    <Card className={'w-full max-w-3xl mt-4'}>
-                        <CardHeader>
-                            <CardTitle>
-                                正在下载视频
-                            </CardTitle>
-                            <CardDescription>
-                                文件将保存在下载文件夹
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className={'text-sm'}
-                            >{name}</div>
-                            <Progress className={'h-1 mt-2'} value={progress} max={100}/>
-                        </CardContent>
+                        <Card className={'w-full max-w-3xl mt-4'}>
+                            <CardHeader>
+                                <CardTitle>
+                                    下载视频
+                                </CardTitle>
+                                <CardDescription>
+                                    文件将保存在下载文件夹
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className={'text-sm'}
+                                >{name}</div>
+                                <Progress className={'h-1 mt-2'} value={progress} max={100}/>
+                            </CardContent>
 
-                    </Card>
-                </> : <div className="mt-10 text-sm text-secondary-foreground">Paste a video URL and click download</div>}
+                        </Card>
+                    </> :
+                    <div className="mt-10 text-sm text-secondary-foreground">Paste a video URL and click download</div>}
 
                 <pre
                     className={cn('rounded overflow-auto scrollbar-none w-full mt-auto h-80 p-4 text-sm font-mono select-text border')}

@@ -88,6 +88,7 @@ interface WatchProjectDef {
     'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo };
     'watch-project/create/from-folder': { params: string, return: number };
     'watch-project/create/from-files': { params: string[], return: number };
+    'watch-project/create/from-download': { params: string, return: number };
     'watch-project/delete': { params: number, return: void };
     'watch-project/detail': { params: number, return: WatchProjectVO };
     'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };

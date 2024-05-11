@@ -6,6 +6,7 @@ import fs from 'fs';
 import MediaUtil from '@/common/utils/MediaUtil';
 import path from 'path';
 import TimeUtil from "@/common/utils/TimeUtil";
+import {app} from "electron";
 
 export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];
@@ -259,5 +260,14 @@ export default class WatchProjectNewService {
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.id, vid));
         return this.detail(video.project_id);
+    }
+
+    static tryCreateFromDownload(fileName: string) {
+        const downloadFolder = app.getPath('downloads')
+        const fPath = path.join(downloadFolder, fileName);
+        if (fs.existsSync(fPath)) {
+            return this.createFromFiles([fPath]);
+        }
+        throw new Error('File not found');
     }
 }
