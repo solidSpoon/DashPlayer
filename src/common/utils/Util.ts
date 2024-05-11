@@ -47,6 +47,9 @@ export default class Util {
     public static isNotNull(obj: any): boolean {
         return !this.isNull(obj);
     }
+    public static trim(str: string | null | undefined): string {
+        return (str ?? '').trim();
+    }
 }
 
 export const emptyFunc = () => {

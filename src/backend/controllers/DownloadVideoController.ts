@@ -14,8 +14,17 @@ export default class DownloadVideoController implements Controller {
         DlVideoService.dlVideo(taskId, url, downloadFolder).then();
         return taskId;
     }
+    async fileName({url}: {
+        url: string
+    }): Promise<number> {
+        // 系统下载文件夹
+        const taskId = await DpTaskService.create();
+        DlVideoService.dlVideoFileName(taskId, url).then();
+        return taskId;
+    }
 
     registerRoutes() {
         registerRoute('download-video/url', this.downloadVideo);
+        registerRoute('download-video/file-name', this.fileName);
     }
 }
