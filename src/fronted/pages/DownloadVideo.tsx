@@ -3,30 +3,31 @@ import Separator from '@/fronted/components/Separtor';
 import React from 'react';
 import {Input} from '@/fronted/components/ui/input';
 import {Button} from '@/fronted/components/ui/button';
-import {strNotBlank} from '@/common/utils/Util';
+import Util, {strNotBlank} from '@/common/utils/Util';
 import {useLocalStorage} from '@uidotdev/usehooks';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import toast from 'react-hot-toast';
 import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
 import {DlProgress} from "@/common/types/dl-progress";
+import {Progress} from "@/fronted/components/ui/progress";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
+import {Car} from "lucide-react";
 
 const api = window.electron;
 
-function extracted(dpTask: DpTask):DlProgress {
+function extracted(dpTask: DpTask): DlProgress {
     try {
-        return dpTask?.result ? JSON.parse(dpTask.result) : {progress: 0, stdOut: ''};
+        return dpTask?.result ? JSON.parse(dpTask.result) : {name: '', progress: 0, stdOut: ''};
     } catch (e) {
-        return {progress: 0, stdOut: ''};
+        return {name: '', progress: 0, stdOut: ''};
     }
 }
 
 const DownloadVideo = () => {
 
     const [taskId, setTaskId] = useLocalStorage<number>('download-video-task-id', null);
-    const [nameTaskId, setNameTaskId] = useLocalStorage<number>('download-video-name-task-id', null);
     const dpTask = useDpTaskViewer(taskId);
-    const dpNameTask = useDpTaskViewer(nameTaskId);
     console.log('task', dpTask);
     const [url, setUrl] = useLocalStorage('download-video-url', '');
     const consoleRef = React.useRef<HTMLPreElement>(null);
@@ -37,8 +38,7 @@ const DownloadVideo = () => {
     }, [dpTask?.result]);
     const inProgress = dpTask?.status === DpTaskState.IN_PROGRESS
         || dpTask?.status === DpTaskState.INIT;
-    const successMsg = `文件保存在下载文件夹`;
-    const {progress, stdOut} = extracted(dpTask);
+    const {name, progress, stdOut} = extracted(dpTask);
     return (
         <div
             className={cn(
@@ -66,11 +66,10 @@ const DownloadVideo = () => {
                         disabled={inProgress}
                         onClick={async () => {
                             if (strNotBlank(url)) {
-                                const nameTaskId = await useDpTaskCenter.getState().register(() => api.call('download-video/file-name', {url}));
-                                setNameTaskId(nameTaskId);
                                 const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
                                     onFinish: (task) => {
-                                        toast('done');
+                                        const {name, progress, stdOut} = extracted(task);
+                                        toast.success(`Downloaded ${name}`);
                                     }
                                 });
                                 setTaskId(taskId);
@@ -78,21 +77,31 @@ const DownloadVideo = () => {
                         }}
                         type="submit">Download</Button>
                 </div>
-                <div className="w-full max-w-3xl mt-4">
-                    <h2 className="text-lg font-bold">Progress {progress}</h2>
-                    {/*<div className="w-full h-2 bg-secondary-foreground rounded mt-2">*/}
-                    {/*    <div className="h-full bg-primary-foreground rounded" style={{width: `${progress}%`}}/>*/}
-                    {/*</div>*/}
-                    <div className="mt-2 text-sm text-secondary-foreground">{dpNameTask?.result}</div>
-                </div>
-                {taskId ? <pre
-                        className={'overflow-auto scrollbar-none w-full mt-10 p-4 bg-secondary-foreground text-background text-sm font-mono select-text'}
-                        ref={consoleRef}
-                    >
+                {taskId ? <>
+                    <Card className={'w-full max-w-3xl mt-4'}>
+                        <CardHeader>
+                            <CardTitle>
+                                正在下载视频
+                            </CardTitle>
+                            <CardDescription>
+                                文件将保存在下载文件夹
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={'text-sm'}
+                            >{name}</div>
+                            <Progress className={'h-1 mt-2'} value={progress} max={100}/>
+                        </CardContent>
+
+                    </Card>
+                </> : <div className="mt-10 text-sm text-secondary-foreground">Paste a video URL and click download</div>}
+
+                <pre
+                    className={cn('rounded overflow-auto scrollbar-none w-full mt-auto h-80 p-4 text-sm font-mono select-text border')}
+                    ref={consoleRef}
+                >
                     {stdOut}
-                        {dpTask?.status === DpTaskState.DONE && `\n\n${successMsg}   `}
-                </pre> :
-                    <div className="mt-10 text-sm text-secondary-foreground">Paste a video URL and click download</div>}
+                </pre>
             </div>
         </div>
     );

@@ -124,7 +124,6 @@ interface SplitVideoDef {
 
 interface DownloadVideoDef {
     'download-video/url': { params: { url: string }, return: number };
-    'download-video/file-name': { params: { url: string }, return: number };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
