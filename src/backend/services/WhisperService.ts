@@ -3,7 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import path from 'path';
 import * as os from 'os';
-import DpTaskService from '@/backend/services/DpTaskService';
+import DpTaskService, {CANCEL_MSG} from '@/backend/services/DpTaskService';
 import {DpTaskState} from '@/backend/db/tables/dpTask';
 import {strBlank} from '@/common/utils/Util';
 import {storeGet} from '@/backend/store';
@@ -67,7 +67,7 @@ class WhisperService {
             progress: '正在转换音频'
         });
         try {
-            const files = await this.convertAndSplit(filePath);
+            const files = await this.convertAndSplit(taskId, filePath);
             DpTaskService.checkCancel(taskId);
             DpTaskService.update({
                 id: taskId,
@@ -86,10 +86,11 @@ class WhisperService {
                 progress: '转录完成'
             });
         } catch (error) {
+            const cancel = error.message === CANCEL_MSG;
             DpTaskService.update({
                 id: taskId,
-                status: DpTaskState.FAILED,
-                progress: error.message
+                status: cancel ? DpTaskState.CANCELLED : DpTaskState.FAILED,
+                progress: cancel ? '任务取消' : error.message
             });
         }
 
@@ -119,7 +120,7 @@ class WhisperService {
         data.append('model', 'whisper-1');
         data.append('language', 'en');
         data.append('response_format', 'verbose_json');
-
+        const cancelTokenSource = axios.CancelToken.source();
         const config = {
             method: 'post',
             url: this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/transcriptions'),
@@ -130,7 +131,8 @@ class WhisperService {
                 ...data.getHeaders()
             },
             data: data,
-            timeout: 1000 * 60 * 10
+            timeout: 1000 * 60 * 10,
+            cancelToken: cancelTokenSource.token
         };
 
         const response = await axios(config);
@@ -140,7 +142,7 @@ class WhisperService {
         };
     }
 
-    static async convertAndSplit(filePath: string): Promise<SplitChunk[]> {
+    static async convertAndSplit(taskId:number, filePath: string): Promise<SplitChunk[]> {
         const folderName = hash(filePath);
         const tempDir = path.join(os.tmpdir(), 'dp/whisper/', folderName);
         if (!fs.existsSync(tempDir)) {
@@ -151,6 +153,7 @@ class WhisperService {
             fs.unlinkSync(path.join(tempDir, file));
         });
         const files = await FfmpegService.splitToAudio({
+            taskId,
             inputFile: filePath,
             outputFolder: tempDir,
             segmentTime: 60 * 5

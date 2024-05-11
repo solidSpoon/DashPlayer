@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import LocationService from '@/backend/services/LocationService';
 import SystemService from '@/backend/services/SystemService';
+import ProcessService from "@/backend/services/ProcessService";
 
 export default class FfmpegService {
     static {
@@ -190,22 +191,25 @@ export default class FfmpegService {
 
     /**
      * ffmpeg -i input.mp4 -vn -f segment -segment_time 600 -acodec libmp3lame -qscale:a 9 output%d.mp3
+     * @param taskId
      * @param inputFile
      * @param outputFolder
      * @param segmentTime
      */
     public static async splitToAudio({
+                                         taskId,
                                          inputFile,
                                          outputFolder,
                                          segmentTime
                                      }: {
+        taskId: number,
         inputFile: string,
         outputFolder: string,
         segmentTime: number,
     }): Promise<string[]> {
         return new Promise((resolve, reject) => {
             const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
-            ffmpeg(inputFile)
+            const command = ffmpeg(inputFile)
                 .outputOptions([
                     '-vn',
                     '-f', 'segment',
@@ -229,8 +233,12 @@ export default class FfmpegService {
                 })
                 .on('error', (err) => {
                     reject(err);
-                })
-                .run();
+                });
+            ProcessService.registerFfmpeg({
+                taskId,
+                process: [command],
+            })
+            command.run();
         });
     }
 

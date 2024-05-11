@@ -13,6 +13,7 @@ const cache: LRUCache<number, InsertDpTask> = new LRUCache({
         return 1
     },
 })
+export const CANCEL_MSG = 'dp-用户取消';
 export default class DpTaskService {
     public static upQueue: Map<number, InsertDpTask> = new Map();
     public static cancelQueue: Set<number> = new Set();
@@ -114,7 +115,7 @@ export default class DpTaskService {
                 status: DpTaskState.CANCELLED,
                 progress: '任务取消',
             })
-            throw new Error('任务取消');
+            throw new Error(CANCEL_MSG);
         }
     }
 }
