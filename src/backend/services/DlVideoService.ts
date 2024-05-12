@@ -1,13 +1,14 @@
-import {spawn} from 'child_process';
+import { spawn } from 'child_process';
 import DpTaskService from '@/backend/services/DpTaskService';
-import {DpTaskState} from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 import LocationService from '@/backend/services/LocationService';
-import {DlProgress} from "@/common/types/dl-progress";
+import { DlProgress } from '@/common/types/dl-progress';
 import iconv from 'iconv-lite';
-import path from "path";
+import path from 'path';
 import fs from 'fs';
-import FfmpegService from "@/backend/services/FfmpegService";
-import ProcessService from "@/backend/services/ProcessService";
+import FfmpegService from '@/backend/services/FfmpegService';
+import ProcessService from '@/backend/services/ProcessService';
+import SystemService from '@/backend/services/SystemService';
 
 export default class DlVideoService {
     public static async dlVideo(taskId: number, url: string, savePath: string) {
@@ -21,7 +22,7 @@ export default class DlVideoService {
                 stdOut: ''
             },
             so: []
-        }
+        };
         result.so.push(`System: downloading video from ${url}`);
         result.ref.stdOut = result.so.join('\n');
         DpTaskService.update({
@@ -49,7 +50,7 @@ export default class DlVideoService {
                         result: JSON.stringify(result.ref)
                     });
                     await FfmpegService.toMp4({
-                        inputFile:vPath,
+                        inputFile: vPath,
                         onProgress: (progress) => {
                             result.ref.progress = progress;
                             result.so.push(`System: converting video to mp4 ${progress}%`);
@@ -111,7 +112,7 @@ export default class DlVideoService {
                 // '--simulate',
                 '--merge-output-format', 'mp4',
                 '-P', savePath,
-                url,
+                url
             ]);
             ProcessService.registerTask({
                 taskId,
@@ -204,7 +205,11 @@ export default class DlVideoService {
             });
             let output = '';
             process.stdout.on('data', (d: Buffer) => {
-                const data = iconv.decode(d, 'cp936');
+                let encoding = 'utf8';
+                if (SystemService.isWindows()) {
+                    encoding = 'cp936';
+                }
+                const data = iconv.decode(d, encoding);
                 output += data;
                 // 如果有视频文件扩展名，说明获取到了文件名
                 const videoExtensions = ['.mp4', '.mkv', '.flv', '.avi', '.mov', '.wmv', 'webm'];
