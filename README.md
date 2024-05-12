@@ -22,10 +22,6 @@
   <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
     <img alt="Windows" src="https://img.shields.io/badge/-Windows-blue?logo=windows&logoColor=white" />
   </a>
-
-  <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
-    <img alt="Linux" src="https://img.shields.io/badge/-Linux-yellow?logo=linux&logoColor=white" />
-  </a>
 </p>
 
 > 安装与使用指南详见 [Wiki](https://solidspoon.xyz/DashPlayer/home.html)，[官网](https://dash-player.solidspoon.xyz)
