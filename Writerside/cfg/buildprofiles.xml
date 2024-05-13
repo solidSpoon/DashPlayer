@@ -4,6 +4,7 @@
 
     <variables>
         <header-logo>logo.png</header-logo>
+        <product-web-url>https://solidspoon.xyz/DashPlayer/home.html</product-web-url>
         <color-preset>Vivid</color-preset>
         <primary-color>halloween</primary-color>
         <download-title>Get DashPlayer</download-title>
