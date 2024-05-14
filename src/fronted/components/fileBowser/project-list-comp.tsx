@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import useSWR from 'swr';
@@ -18,7 +18,7 @@ export interface ProjectListCompProps {
     videoEle: (p: WatchProjectVideo) => React.JSX.Element;
     backEle?: (root: boolean, handleClick: () => void) => React.JSX.Element;
     className?: string;
-    defaultProjId?: number | null;
+    enterProj?: number | null;
 }
 
 const api = window.electron;
@@ -38,10 +38,19 @@ const ProjectDetailList = ({videoEle, projId}: {
 };
 
 
-const ProjectListComp = ({className, videoEle, projEle, backEle, defaultProjId = null}: ProjectListCompProps) => {
+const ProjectListComp = ({className, videoEle, projEle, backEle, enterProj = null}: ProjectListCompProps) => {
     const {data} = useSWR(SWR_KEY.WATCH_PROJECT_LIST, listFetcher, {fallbackData: []});
-    const [projId, setProjId] = React.useState<number | null>(defaultProjId);
+    const [projId, setProjId] = React.useState<number | null>(null);
     const [projName, setProjName] = React.useState<string>('');
+    useEffect(() => {
+        if (enterProj !== null) {
+            const item = data.find((item) => item.id === enterProj);
+            if (item && item.project_type === WatchProjectType.DIRECTORY) {
+                setProjId(item.id);
+                setProjName(item.project_name);
+            }
+        }
+    }, [data, enterProj]);
     return (
         <div className={cn('flex flex-col gap-2', className)}>
             <Breadcrumb className={cn('')}>

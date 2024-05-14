@@ -46,7 +46,7 @@ const FileBrowser = () => {
                 </div>
 
                 <ProjectListComp
-                    defaultProjId={pId}
+                    enterProj={pId}
                     backEle={(root, hc) => {
                         return (
                             <TooltipProvider>
