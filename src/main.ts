@@ -5,6 +5,7 @@ import runMigrate from '@/backend/db/migrate';
 import SystemService from '@/backend/services/SystemService';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
+
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
@@ -71,7 +72,10 @@ app.on('ready', async () => {
         if (url.startsWith('http')) {
             return net.fetch(url);
         } else {
-            return net.fetch(`file:///${url}`);
+            const parts = url.split(path.sep);
+            const encodedParts = parts.map(part => encodeURIComponent(part));
+            const encodedUrl = encodedParts.join(path.sep);
+            return net.fetch(`file:///${encodedUrl}`);
         }
     });
 });
