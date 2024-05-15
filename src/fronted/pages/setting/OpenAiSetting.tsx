@@ -79,7 +79,11 @@ const OpenAiSetting = () => {
                     你需要配置 OpenAI 密钥以启用转录、AI 生成等功能，详见
                     <a
                         className={cn('underline')}
-                        href="https://solidspoon.xyz/docs/dash-player/intro"
+                        onClick={async () => {
+                            await api.call('system/open-url',
+                                'https://solidspoon.xyz/DashPlayer/'
+                            );
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
                     >
@@ -91,7 +95,7 @@ const OpenAiSetting = () => {
                 <Button
                     onClick={async () => {
                         await api.call('system/open-url',
-                            'https://solidspoon.xyz/docs/dash-player/intro'
+                            'https://solidspoon.xyz/DashPlayer/'
                         );
                     }}
                     variant="secondary"

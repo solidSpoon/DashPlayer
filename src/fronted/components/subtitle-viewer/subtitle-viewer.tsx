@@ -14,7 +14,7 @@ const SubtitleViewer = ({className}: { className?: string }) => {
 
     const showCn = usePlayerController(s=>s.showCn);
     const { adjusted, clearAdjust } = usePlayerController(useShallow(s=>({
-        adjusted: s.currentSentence.originalBegin != undefined || s.currentSentence.originalEnd != undefined,
+        adjusted: s.currentSentence.originalBegin != null || s.currentSentence.originalEnd != null,
         clearAdjust: s.clearAdjust
     })));
     return (

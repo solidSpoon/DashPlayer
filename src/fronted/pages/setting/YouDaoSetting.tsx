@@ -38,7 +38,11 @@ const YouDaoSetting = () => {
                     你需要有道智云的密钥才能使用查单词功能，详见
                     <a
                         className={cn('underline')}
-                        href="https://solidspoon.xyz/docs/dash-player/intro"
+                        onClick={async () => {
+                            await api.call('system/open-url',
+                                'https://solidspoon.xyz/DashPlayer/'
+                            );
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
                     >
@@ -50,7 +54,7 @@ const YouDaoSetting = () => {
                 <Button
                     onClick={async () => {
                         await api.call('system/open-url',
-                            'https://solidspoon.xyz/docs/dash-player/intro'
+                            'https://solidspoon.xyz/DashPlayer/'
                         );
                     }}
                     variant="secondary"
