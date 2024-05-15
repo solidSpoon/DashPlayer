@@ -1,9 +1,8 @@
 import usePlayerController from "@/fronted/hooks/usePlayerController";
 import React, {ReactElement} from "react";
-import TranslatableLine from "@/fronted/components/TranslatableLine";
-import NormalLine from "@/fronted/components/NormalLine";
 import PlayerTranslatableLine from "@/fronted/components/playerSubtitle/PlayerTranslatableLine";
 import PlayerNormalLine from "@/fronted/components/playerSubtitle/PlayerNormalLine";
+import Util from "@/common/utils/Util";
 
 const PlayerSubtitle = () => {
     const sentence = usePlayerController((state) => state.currentSentence);
@@ -17,7 +16,7 @@ const PlayerSubtitle = () => {
             sentence.msTranslate,
             sentence.textZH,
         ]
-            .filter((item) => item !== undefined)
+            .filter((item) => Util.strNotBlank(item))
             .map((item) => item ?? '');
         return tempEle.map((item, index) => {
             if (index === 0) {

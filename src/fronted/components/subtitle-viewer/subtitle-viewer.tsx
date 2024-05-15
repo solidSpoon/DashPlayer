@@ -71,10 +71,10 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                         ))
                     }
                 </div>
-                <div className={cn('w-full sbsbsbsbs row-start-1 row-end-2 col-start-1 col-end-2',
+                <div className={cn('w-full row-start-1 row-end-2 col-start-1 col-end-2',
                     'bg-gradient-to-t from-transparent to-stone-100 dark:from-transparent dark:to-neutral-800'
                 )}></div>
-                <div className={cn('w-full sbsbsbsbs row-start-4 row-end-5 col-start-1 col-end-2',
+                <div className={cn('w-full row-start-4 row-end-5 col-start-1 col-end-2',
                     'bg-gradient-to-b from-transparent to-stone-100 dark:from-transparent dark:to-neutral-800'
                 )}></div>
             </div>
