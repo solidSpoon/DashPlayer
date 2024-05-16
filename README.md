@@ -149,6 +149,7 @@ xattr -c /Applications/DashPlayer.app
 ---
 # 使用指南
 
+> 目前初次使用需要您配置几个接口，分别为：有道（查单词），腾讯（字幕翻译），OpenAI（为没字幕的视频生成字幕，整句学习功能），具体方法请看文档。
 > 详细指南请看[Wiki](https://solidspoon.xyz/DashPlayer/home.html)
 
 ## 如何播放视频
