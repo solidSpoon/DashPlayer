@@ -67,6 +67,15 @@ DashPlayer  的目标就是方便你观看英文视频。无论你是想泛听�
 
 ![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/1fccf3be-1384-4d6e-9af5-96f78f5da688)
 
+
+按字幕跳转，重复当前句，还可以倍速播放
+
+https://github.com/solidSpoon/DashPlayer/assets/39454841/d36a0701-3cd1-42df-9012-4f4d81779daf
+
+极速查词，点击还能发音
+
+https://github.com/solidSpoon/DashPlayer/assets/39454841/66f2be0a-7098-4899-a237-f2951094b921
+
 内置下载视频，切割视频，生成字幕等诸多功能：
 
 ![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/96476645-317e-424b-8952-3eac0b4dd7aa)
@@ -74,6 +83,15 @@ DashPlayer  的目标就是方便你观看英文视频。无论你是想泛听�
 AI 整句学习功能：
 
 ![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/2597f6a1-2903-4652-9431-8327acdbe9be)
+
+整句学习功能演示
+
+https://github.com/solidSpoon/DashPlayer/assets/39454841/c243796b-7a4c-400c-99c9-817972238663
+
+
+右键可使用常用功能
+
+https://github.com/solidSpoon/DashPlayer/assets/39454841/55956719-306f-4046-a8b4-243f79029d26
 
 ---
 
