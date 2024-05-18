@@ -32,6 +32,7 @@ export default class ConvertService {
         if (!fs.existsSync(mp4File)) {
             try {
                 await FfmpegService.mkvToMp4({
+                    taskId,
                     inputFile: file,
                     onProgress
                 });

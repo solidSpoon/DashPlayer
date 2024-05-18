@@ -79,6 +79,7 @@ const DownloadVideo = () => {
                             if (strNotBlank(url)) {
                                 const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
                                     onFinish: async (task) => {
+                                        if (task.status !== DpTaskState.DONE) return;
                                         const {name} = extracted(task);
                                         toast.success(`Downloaded ${name}, Start transcription`);
                                         const pId = await api.call('watch-project/create/from-download', name);
@@ -102,6 +103,7 @@ const DownloadVideo = () => {
                                     if (strNotBlank(url)) {
                                         const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
                                             onFinish: async (task) => {
+                                                if (task.status !== DpTaskState.DONE) return;
                                                 const {name} = extracted(task);
                                                 toast.success(`Downloaded ${name}, Check the download folder`);
                                             }

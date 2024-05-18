@@ -91,7 +91,10 @@ useDpTaskCenter.subscribe(
             const newHookTasks = new Map();
             Array.from(tasksResp.values()).forEach(t => {
                 newHookTasks.set(t.id, t);
-                if (t.status === DpTaskState.DONE) {
+                if (t.status === DpTaskState.DONE
+                    || t.status === DpTaskState.FAILED
+                    || t.status === DpTaskState.CANCELLED
+                ) {
                     localTasks.get(t.id).onUpdated(t);
                     try {
                         localTasks.get(t.id).onFinish(t);

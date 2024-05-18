@@ -3,6 +3,7 @@ import { persist, subscribeWithSelector } from 'zustand/middleware';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 
 const api = window.electron;
 
@@ -43,6 +44,7 @@ const useTranscript = create(
             onTranscript: async (file: string) => {
                 const taskId = await useDpTaskCenter.getState().register(() => api.call('ai-func/transcript', { filePath: file }), {
                     onFinish: async (task) => {
+                        if (task.status !== DpTaskState.DONE) return;
                         await api.call('watch-project/attach-srt', {
                             videoPath: file,
                             srtPath: 'same'

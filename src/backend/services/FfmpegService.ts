@@ -280,16 +280,18 @@ export default class FfmpegService {
      * ffmpeg -i "vid.mkv" -map 0 -c copy -c:a aac "MP4/vid.mp4"
      */
     public static async mkvToMp4({
+                                     taskId,
                                      inputFile,
                                      onProgress
                                  }: {
+        taskId: number,
         inputFile: string,
         onProgress?: (progress: number) => void
     }): Promise<string> {
         const output = inputFile.replace(path.extname(inputFile), '.mp4');
         await Lock.sync('ffmpeg', async () => {
                 await new Promise((resolve, reject) => {
-                    ffmpeg(inputFile)
+                    const command = ffmpeg(inputFile)
                         .outputOptions([
                             '-map', '0',
                             '-c', 'copy',
@@ -305,7 +307,12 @@ export default class FfmpegService {
                             }
                         })
                         .on('end', resolve)
-                        .on('error', reject)
+                        .on('error', reject);
+                    ProcessService.registerFfmpeg({
+                        taskId,
+                        process: [command]
+                    });
+                    command
                         .run();
                 });
             }

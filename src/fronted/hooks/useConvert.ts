@@ -32,10 +32,12 @@ const useConvert = create(
             files: [],
             folders: [],
             addFiles: (files) => {
-                set({ files: [...get().files, ...files] });
+                const tf = get().files.filter(f => !files.includes(f));
+                set({ files: [...tf, ...files] });
             },
             addFolders: (folders) => {
-                set({ folders: [...get().folders, ...folders] });
+                const tf = get().folders.filter(f => !folders.map(f => f.folder).includes(f.folder));
+                set({ folders: [...tf, ...folders] });
             },
             deleteFile: (file) => {
                 set({ files: get().files.filter(f => f !== file) });
@@ -65,6 +67,9 @@ const useConvert = create(
                 const taskId = await useDpTaskCenter.getState()
                     .register(()=> api.call('convert/to-mp4', file),{
                         onUpdated: (t) => {
+                            set({ taskStats: new Map([...get().taskStats, [file, t.status as DpTaskState]]) });
+                        },
+                        onFinish: (t) => {
                             set({ taskStats: new Map([...get().taskStats, [file, t.status as DpTaskState]]) });
                         }
                     })
