@@ -224,6 +224,7 @@ const useChatPanel = create(
             const tt = new HumanTopicMessage(get().topic, ct.text, phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitlePath ?? '';
+            console.log(url)
             const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
             console.log('text', text);
             const punctuationTask = await api.call('ai-func/punctuation', {no: ct.indexInFile, srt: text});
