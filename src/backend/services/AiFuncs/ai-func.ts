@@ -5,7 +5,7 @@ import {ChatOpenAI} from "@langchain/openai";
 import {ChatPromptTemplate} from "@langchain/core/prompts";
 import DpTaskService from "@/backend/services/DpTaskService";
 import {DpTaskState} from "@/backend/db/tables/dpTask";
-import {joinUrl, strBlank} from "@/common/utils/Util";
+import Util, {joinUrl, strBlank} from "@/common/utils/Util";
 import {storeGet} from "@/backend/store";
 import RateLimiter from "@/common/utils/RateLimiter";
 import type { BaseMessage } from '@langchain/core/dist/messages';
@@ -27,9 +27,13 @@ export default class AiFunc {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         if (!await this.validKey(taskId, apiKey, endpoint)) return null;
+        let model = storeGet('model.gpt.default');
+        if (Util.strBlank(model)) {
+            model = 'gpt-3.5-turbo';
+        }
         console.log(apiKey, endpoint);
         return new ChatOpenAI({
-            modelName: 'gpt-3.5-turbo',
+            modelName: model,
             temperature: 0.7,
             openAIApiKey: apiKey,
             configuration: {

@@ -11,6 +11,7 @@ export interface SettingInputProps {
     type?: string;
     inputWidth?: string;
     description?: string;
+    className?: string;
 }
 
 const SettingInput = ({
@@ -21,9 +22,10 @@ const SettingInput = ({
     setValue,
     type,
     inputWidth,
+    className,
 }: SettingInputProps) => {
     return (
-        <div className={cn("grid w-full items-center gap-1.5 pl-2")}>
+        <div className={cn("grid w-full items-center gap-1.5 pl-2",className)}>
             <Label>{title}</Label>
             <Input
                 className={inputWidth}
@@ -47,5 +49,6 @@ SettingInput.defaultProps = {
     type: 'text',
     inputWidth: 'w-96',
     description: '',
+    className: '',
 };
 export default SettingInput;

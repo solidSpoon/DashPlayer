@@ -23,6 +23,7 @@ export const SettingKeyObj = {
     'apiKeys.tencent.secretKey': '',
     'apiKeys.openAi.key': '',
     'apiKeys.openAi.endpoint': '',
+    'model.gpt.default': 'gpt-3.5-turbo',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
 }

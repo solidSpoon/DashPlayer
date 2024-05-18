@@ -94,7 +94,7 @@ useDpTaskCenter.subscribe(
                 if (t.status === DpTaskState.DONE) {
                     localTasks.get(t.id).onUpdated(t);
                     try {
-                        localTasks.get(t.id).onFinish()
+                        localTasks.get(t.id).onFinish(t);
                     } catch (e) {
                         console.error(e);
                     }

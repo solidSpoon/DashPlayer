@@ -16,6 +16,7 @@ export class AiAnalyseGrammarsPrompt {
         """
 
         你的回复只需要包含语法解释，不需要包含其他内容。
+        用户的显示窗口比较小，所以请尽量简洁，但是不要遗漏重要的内容。
         使用精美的 Markdown 格式书写，以便于用户阅读。
         `;
 }
