@@ -1,3 +1,4 @@
+import Util from '@/common/utils/Util';
 
 
 export type SrtLine = {
@@ -52,16 +53,16 @@ export default class SrtUtil {
                     textSubtitle[1].split(' --> ')[0].trim()
                 ); // 字幕的开始时间
                 const endTime = toSeconds(textSubtitle[1].split(' --> ')[1].trim()); // 字幕的结束时间
-                let contentZh = ''; // 字幕的内容
-                let contentEn = '';
+                const contentZh:string[] = []; // 字幕的内容
+                const contentEn:string[] = [];
                 // 字幕可能有多行
 
                 for (let j = 2; j < textSubtitle.length; j++) {
                     const line = textSubtitle[j];
                     if (isChinese(line)) {
-                        contentZh += line;
+                        contentZh.push(Util.trim(line));
                     } else {
-                        contentEn += line;
+                        contentEn.push(Util.trim(line));
                     }
                 }
 
@@ -70,8 +71,8 @@ export default class SrtUtil {
                     index: Number(sn).valueOf(),
                     start: startTime,
                     end: endTime,
-                    contentEn: contentEn,
-                    contentZh: contentZh
+                    contentEn: contentEn.join(' '),
+                    contentZh: contentZh.join(' '),
                 };
                 subtitles.push(subtitle);
             }
