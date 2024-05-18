@@ -1,19 +1,19 @@
-import {MsgT} from '@/common/types/msg/interfaces/MsgT';
-import {DpTask} from '@/backend/db/tables/dpTask';
-import {YdRes} from '@/common/types/YdRes';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
-import {SentenceStruct} from '@/common/types/SentenceStruct';
-import {WatchProject} from '@/backend/db/tables/watchProjects';
-import {WatchProjectListVO, WatchProjectVO} from '@/backend/services/WatchProjectNewService';
-import {ChapterParseResult} from "@/common/types/chapter-result";
-import {SrtSentence} from "@/common/types/SentenceC";
-import {WindowState} from "@/common/types/Types";
+import { MsgT } from '@/common/types/msg/interfaces/MsgT';
+import { DpTask } from '@/backend/db/tables/dpTask';
+import { YdRes } from '@/common/types/YdRes';
+import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
+import { SentenceStruct } from '@/common/types/SentenceStruct';
+import { WatchProject } from '@/backend/db/tables/watchProjects';
+import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectNewService';
+import { ChapterParseResult } from '@/common/types/chapter-result';
+import { SrtSentence } from '@/common/types/SentenceC';
+import { WindowState } from '@/common/types/Types';
 import {
     InsertSubtitleTimestampAdjustment
-} from "@/backend/db/tables/subtitleTimestampAdjustment";
-import {SettingKey} from "@/common/types/store_schema";
-import Release from "@/common/types/release";
-import {FolderVideos} from "@/common/types/tonvert-type";
+} from '@/backend/db/tables/subtitleTimestampAdjustment';
+import { SettingKey } from '@/common/types/store_schema';
+import Release from '@/common/types/release';
+import { FolderVideos } from '@/common/types/tonvert-type';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -45,7 +45,7 @@ interface DpTaskDef {
 interface SystemDef {
     'system/is-windows': { params: void, return: boolean };
     'system/select-file': {
-        params: { mode: 'file' | 'directory', filter: 'video' | 'srt' | 'none' },
+        params: { mode: 'file' | 'directory', filter: 'video' | 'srt' | 'none' | 'mkv' },
         return: string[]
     };
     'system/path-info': {
@@ -121,7 +121,7 @@ interface SplitVideoDef {
         return: string
     };
     'split-video/thumbnail': { params: { filePath: string, time: number }, return: string };
-    'split-video/video-length': { params: string , return: number };
+    'split-video/video-length': { params: string, return: number };
 }
 
 interface DownloadVideoDef {

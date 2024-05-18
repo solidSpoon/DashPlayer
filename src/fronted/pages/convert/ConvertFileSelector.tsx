@@ -13,7 +13,7 @@ export default function ConvertFileSelector({
     const handleClick = async () => {
         const ps = await api.call('system/select-file', {
             mode: 'file',
-            filter: 'none'
+            filter: 'mkv'
         });
         if (ps?.length > 0) {
             await onSelected(ps);

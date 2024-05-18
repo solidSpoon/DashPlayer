@@ -1,35 +1,32 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import {app, dialog, shell} from 'electron';
-import {ACCEPTED_FILE_TYPES} from '@/common/utils/MediaUtil';
+import { app, dialog, shell } from 'electron';
+import { ACCEPTED_FILE_TYPES } from '@/common/utils/MediaUtil';
 import path from 'path';
-import {clearDB} from "@/backend/db/db";
-import {WindowState} from "@/common/types/Types";
-import SystemService from "@/backend/services/SystemService";
-import {checkUpdate} from "@/backend/services/CheckUpdate";
-import Release from "@/common/types/release";
-import {BASE_PATH} from "@/backend/controllers/StorageController";
+import { clearDB } from '@/backend/db/db';
+import { WindowState } from '@/common/types/Types';
+import SystemService from '@/backend/services/SystemService';
+import { checkUpdate } from '@/backend/services/CheckUpdate';
+import Release from '@/common/types/release';
+import { BASE_PATH } from '@/backend/controllers/StorageController';
 
 export default class SystemController implements Controller {
     public async isWindows() {
         return process.platform === 'win32';
     }
 
-    public async selectFile({mode}: {
+    public async selectFile({ mode, filter }: {
         mode: 'file' | 'directory',
-        filter: 'video' | 'srt' | 'none'
+        filter: 'video' | 'srt' | 'none' | 'mkv'
     }): Promise<string[]> {
         if (mode === 'file') {
+            const filters = filter === 'mkv'
+                ? [{ name: 'MKV files', extensions: ['mkv'] }]
+                : [{ name: 'Movies', extensions: ACCEPTED_FILE_TYPES.split(',').map((item) => item.substring(1)) }];
+
             const files = await dialog.showOpenDialog({
                 properties: ['openFile', 'multiSelections'],
-                filters: [
-                    {
-                        name: 'Movies',
-                        extensions: ACCEPTED_FILE_TYPES.split(',').map((item) =>
-                            item.substring(1)
-                        )
-                    }
-                ]
+                filters: filters
             });
             return files.filePaths;
         }
@@ -54,7 +51,7 @@ export default class SystemController implements Controller {
     public async resetDb() {
         await clearDB();
         app.relaunch();
-        app.quit()
+        app.quit();
     }
 
     public async openFolder(p: string) {
@@ -85,6 +82,7 @@ export default class SystemController implements Controller {
     public async openCacheDir() {
         await shell.openPath(BASE_PATH);
     }
+
     public registerRoutes(): void {
         registerRoute('system/is-windows', this.isWindows);
         registerRoute('system/select-file', this.selectFile);

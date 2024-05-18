@@ -1,12 +1,12 @@
 import ffmpeg from 'fluent-ffmpeg';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import {spawn} from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import LocationService from '@/backend/services/LocationService';
 import SystemService from '@/backend/services/SystemService';
-import ProcessService from "@/backend/services/ProcessService";
+import ProcessService from '@/backend/services/ProcessService';
 
 export default class FfmpegService {
     static {
@@ -236,8 +236,8 @@ export default class FfmpegService {
                 });
             ProcessService.registerFfmpeg({
                 taskId,
-                process: [command],
-            })
+                process: [command]
+            });
             command.run();
         });
     }
@@ -311,6 +311,30 @@ export default class FfmpegService {
             }
         );
         return output;
+    }
+
+    public static async extractSubtitles({
+                                             inputFile,
+                                             outputFile,
+                                             language = 'eng'
+                                         }: {
+        inputFile: string,
+        outputFile: string,
+        language?: string
+    }): Promise<void> {
+        await Lock.sync('ffmpeg', async () => {
+            await new Promise((resolve, reject) => {
+                ffmpeg(inputFile)
+                    .outputOptions([
+                        '-map', `0:s:m:language:${language}?`,
+                        '-c:s', 'srt'
+                    ])
+                    .output(outputFile)
+                    .on('end', resolve)
+                    .on('error', reject)
+                    .run();
+            });
+        });
     }
 }
 

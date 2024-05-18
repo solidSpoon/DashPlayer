@@ -1,51 +1,65 @@
 import useSWR from 'swr';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import {SWR_KEY} from '@/fronted/lib/swr-util';
-import {Film} from 'lucide-react';
-import TimeUtil from "@/common/utils/TimeUtil";
-import {Progress} from "@/fronted/components/ui/progress";
+import { SWR_KEY } from '@/fronted/lib/swr-util';
+import { Film } from 'lucide-react';
+import TimeUtil from '@/common/utils/TimeUtil';
+import { Progress } from '@/fronted/components/ui/progress';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
-} from "@/fronted/components/ui/context-menu";
-import {Badge} from "@/fronted/components/ui/badge";
-import {Button} from '@/fronted/components/ui/button';
+} from '@/fronted/components/ui/context-menu';
+import { Button } from '@/fronted/components/ui/button';
+import useConvert from '@/fronted/hooks/useConvert';
+import { useShallow } from 'zustand/react/shallow';
+import Util, { emptyFunc } from '@/common/utils/Util';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import { ConvertResult } from '@/common/types/tonvert-type';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { ErrorBoundary } from 'react-error-boundary';
+import FallBack from '@/fronted/components/FallBack';
 
 const api = window.electron;
 
-const ConvertItem = ({file, onSelected, className, buttonVariant}: {
+const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
     file: string,
     className?: string,
     onSelected: () => void;
     buttonVariant?: 'default' | 'small';
+    onDeleted?: () => void;
 }) => {
-    const {data: url} = useSWR(file ?
+    const { data: url } = useSWR(file ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([key, path, time]) => {
-            return await api.call('split-video/thumbnail', {filePath: path, time});
+            return await api.call('split-video/thumbnail', { filePath: path, time });
         }
     );
-    const {data: videoLength} = useSWR(file ? ['duration', file] : null, async ([key, f]) => {
+    const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([key, f]) => {
         return await api.call('convert/video-length', f);
     }, {
         revalidateOnFocus: false,
         fallbackData: 0
     });
-    const [hover, setHover] = React.useState(false);
-    const [contextMenu, setContextMenu] = React.useState(false);
+    const {
+        taskId,
+        convert
+    } = useConvert(useShallow(s => ({
+        taskId: s.tasks.get(file),
+        convert: s.convert
+    })));
+    const dpTask = useDpTaskViewer(taskId);
+    const progress = Util.strNotBlank(dpTask?.result) ? JSON.parse(dpTask.result) : {
+        progress: 0,
+        path: file
+    } as ConvertResult;
+
+
     return (
-        <ContextMenu
-            onOpenChange={(open) => {
-                setContextMenu(open);
-            }}
-        >
+        <ContextMenu>
             <ContextMenuTrigger>
                 <div
-                    onMouseEnter={() => setHover(true)}
-                    onMouseLeave={() => setHover(false)}
                     onClick={onSelected}
                     className={cn('flex gap-6  p-4 relative rounded-xl overflow-hidden', className)}>
                     <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
@@ -61,7 +75,7 @@ const ConvertItem = ({file, onSelected, className, buttonVariant}: {
                                 aspectRatio: '16/9'
                             }}
                             className={'w-full bg-gray-500 flex items-center justify-center'}>
-                            <Film/>
+                            <Film />
                         </div>}
                         <div
                             className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
@@ -74,28 +88,35 @@ const ConvertItem = ({file, onSelected, className, buttonVariant}: {
                             className={' w-full line-clamp-2 break-words h-fit'}
                         >{file}</div>
                         <div className={'w-full mt-auto flex gap-2 justify-end'}>
-                            {buttonVariant === 'default' ? <>
-                                <Button size={'sm'} variant={'secondary'}>
-                                    Delete
-                                </Button>
-                                <Button size={'sm'} variant={'default'}>
-                                    Convert
-                                </Button>
-                            </> : <>
-                                <Badge className={'rounded'} variant={'secondary'}>
-                                    Delete
-                                </Badge>
-                                <Badge className={'rounded'} variant={'default'}>
-                                    Convert
-                                </Badge>
-                            </>}
 
+                            <Button
+                                onClick={async () => {
+                                    if (dpTask?.status === DpTaskState.IN_PROGRESS) {
+                                        await api.call('dp-task/cancel', taskId);
+                                    } else {
+                                        onDeleted();
+                                    }
+                                }}
+                                className={cn(buttonVariant === 'small' && 'px-2.5 py-0.5 text-xs h-6')}
+                                size={'sm'}
+                                variant={'secondary'}>
+                                {dpTask?.status === DpTaskState.IN_PROGRESS ? 'Cancel' : 'Delete'}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    convert(file);
+                                }}
+                                disabled={dpTask?.status === DpTaskState.IN_PROGRESS}
+                                className={cn(buttonVariant === 'small' && 'px-2.5 py-0.5 text-xs h-6')}
+                                size={'sm'} variant={'default'}>
+                                Convert
+                            </Button>
                         </div>
                     </div>
 
                     <Progress
                         className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
-                        value={75}
+                        value={progress.progress}
                     />
                 </div>
             </ContextMenuTrigger>
@@ -113,14 +134,14 @@ const ConvertItem = ({file, onSelected, className, buttonVariant}: {
                 {/*>Delete</ContextMenuItem>*/}
             </ContextMenuContent>
         </ContextMenu>
-
     );
 
 
 };
 ConvertItem.defaultProps = {
     buttonVariant: 'default',
-    className: ''
-}
+    className: '',
+    onDeleted: emptyFunc
+};
 
 export default ConvertItem;

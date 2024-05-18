@@ -5,7 +5,7 @@ import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
-import { Captions, Settings, User, Video } from 'lucide-react';
+import { Captions, CloudDownload, Rotate3D, Settings, SquareSplitHorizontal, User, Video } from 'lucide-react';
 
 export interface SideBarProps {
     compact?: boolean;
@@ -78,37 +78,19 @@ const SideBar = ({ compact }: SideBarProps) => {
                     'Split',
                     '/split',
                     'split',
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         className="lucide lucide-square-split-horizontal">
-                        <path d="M8 19H5c-1 0-2-1-2-2V7c0-1 1-2 2-2h3" />
-                        <path d="M16 5h3c1 0 2 1 2 2v10c0 1-1 2-2 2h-3" />
-                        <line x1="12" x2="12" y1="4" y2="20" />
-                    </svg>
+                    <SquareSplitHorizontal />
                 )}
                 {item(
                     'Download',
                     '/download',
                     'download',
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         className="lucide lucide-cloud-download">
-                        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-                        <path d="M12 12v9" />
-                        <path d="m8 17 4 4 4-4" />
-                    </svg>
+                    <CloudDownload />
                 )}
                 {item(
                     'Convert',
                     '/convert',
                     'convert',
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         className="lucide lucide-cloud-download">
-                        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-                        <path d="M12 12v9" />
-                        <path d="m8 17 4 4 4-4" />
-                    </svg>
+                    <Rotate3D />
                 )}
                 {item('Setting', '/settings', 'settings', <Settings />)}
                 {item('About', '/about', 'about', <User />)}

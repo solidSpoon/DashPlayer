@@ -1,9 +1,5 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import {WatchProject} from '@/backend/db/tables/watchProjects';
-import WatchProjectNewService, {WatchProjectListVO, WatchProjectVO} from '@/backend/services/WatchProjectNewService';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
-import path from 'path';
 import DpTaskService from "@/backend/services/DpTaskService";
 import ConvertService from "@/backend/services/ConvertService";
 import {FolderVideos} from "@/common/types/tonvert-type";
