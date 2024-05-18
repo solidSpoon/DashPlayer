@@ -58,7 +58,8 @@ const useConvert = create(
                 }
             },
             convert: async (file) => {
-                if (get().taskStats.get(file) === DpTaskState.IN_PROGRESS) {
+                console.log('tasks', get().taskStats);
+                if (get().taskStats.get(file) && get().taskStats.get(file) === DpTaskState.IN_PROGRESS) {
                     return;
                 }
                 const taskId = await useDpTaskCenter.getState()
@@ -73,6 +74,7 @@ const useConvert = create(
                 //videos for
                 const videos = get().folders.find(f => f.folder === folder)?.videos ?? [];
                 for (const video of videos) {
+                    console.log('tasks', get().taskStats);
                     if (get().taskStats.get(video) === DpTaskState.IN_PROGRESS) {
                         continue;
                     }
@@ -85,4 +87,10 @@ const useConvert = create(
         }
     )
 );
+
+useConvert.setState({
+    taskStats: new Map(),
+    tasks: new Map()
+});
+
 export default useConvert;
