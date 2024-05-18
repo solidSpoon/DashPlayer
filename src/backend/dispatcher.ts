@@ -9,6 +9,7 @@ import WatchProjectController from '@/backend/controllers/WatchProjectController
 import SubtitleController from '@/backend/controllers/SubtitleController';
 import MediaController from "@/backend/controllers/MediaController";
 import DownloadVideoController from "@/backend/controllers/DownloadVideoController";
+import ConvertController from "@/backend/controllers/ConvertController";
 
 
 const controllers: Controller[] = [
@@ -22,6 +23,7 @@ const controllers: Controller[] = [
     new SubtitleTimestampAdjustmentController(),
     new StorageController(),
     new DownloadVideoController(),
+    new ConvertController(),
 ]
 
 export default function registerHandler() {

@@ -274,5 +274,43 @@ export default class FfmpegService {
         );
         return output;
     }
+
+    /**
+     * mkv转mp4
+     * ffmpeg -i "vid.mkv" -map 0 -c copy -c:a aac "MP4/vid.mp4"
+     */
+    public static async mkvToMp4({
+                                     inputFile,
+                                     onProgress
+                                 }: {
+        inputFile: string,
+        onProgress?: (progress: number) => void
+    }): Promise<string> {
+        const output = inputFile.replace(path.extname(inputFile), '.mp4');
+        await Lock.sync('ffmpeg', async () => {
+                await new Promise((resolve, reject) => {
+                    ffmpeg(inputFile)
+                        .outputOptions([
+                            '-map', '0',
+                            '-c', 'copy',
+                            '-c:a', 'aac'
+                        ])
+                        .output(output)
+                        .on('progress', (progress) => {
+                            if (progress.percent) {
+                                console.log('progress', progress.percent);
+                                if (onProgress) {
+                                    onProgress(progress.percent);
+                                }
+                            }
+                        })
+                        .on('end', resolve)
+                        .on('error', reject)
+                        .run();
+                });
+            }
+        );
+        return output;
+    }
 }
 

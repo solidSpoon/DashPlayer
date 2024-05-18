@@ -13,6 +13,7 @@ import {
 } from "@/backend/db/tables/subtitleTimestampAdjustment";
 import {SettingKey} from "@/common/types/store_schema";
 import Release from "@/common/types/release";
+import {FolderVideos} from "@/common/types/tonvert-type";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -127,6 +128,13 @@ interface DownloadVideoDef {
     'download-video/url': { params: { url: string }, return: number };
 }
 
+interface ConvertDef {
+    'convert/to-mp4': { params: string, return: number };
+    'convert/from-folder': { params: string[], return: FolderVideos[] };
+    'convert/video-length': { params: string, return: number };
+
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -138,7 +146,8 @@ export type ApiDefinitions = ApiDefinition
     & SplitVideoDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
-    & DownloadVideoDef;
+    & DownloadVideoDef
+    & ConvertDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

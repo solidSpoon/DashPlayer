@@ -1,6 +1,6 @@
 import Controller from '@/backend/interfaces/controller';
 import SplitVideoService from '@/backend/services/SplitVideoService';
-import { ChapterParseResult } from '@/common/types/chapter-result';
+import {ChapterParseResult} from '@/common/types/chapter-result';
 import registerRoute from '@/common/api/register';
 import path from 'path';
 import * as os from 'node:os';
@@ -17,10 +17,10 @@ export default class MediaController implements Controller {
     }
 
     public async split({
-                              videoPath,
-                              srtPath,
-                              chapters
-                          }: {
+                           videoPath,
+                           srtPath,
+                           chapters
+                       }: {
         videoPath: string,
         srtPath: string | null,
         chapters: ChapterParseResult[]
@@ -33,11 +33,11 @@ export default class MediaController implements Controller {
     }
 
 
-    public async thumbnail({ filePath, time }: { filePath: string, time: number }): Promise<string> {
+    public async thumbnail({filePath, time}: { filePath: string, time: number }): Promise<string> {
         const finalTime = TimeUtil.toGroupMiddle(time);
         const tmpdir = path.join(os.tmpdir(), 'dp/thumbnail');
         if (!fs.existsSync(tmpdir)) {
-            fs.mkdirSync(tmpdir, { recursive: true });
+            fs.mkdirSync(tmpdir, {recursive: true});
         }
         const fileName = `${hash(filePath)}-${Math.floor(finalTime)}.jpg`;
         if (fs.existsSync(path.join(tmpdir, fileName))) {

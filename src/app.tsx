@@ -23,6 +23,7 @@ import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from "@/fronted/components/short-cut/GlobalShortCut";
 import DownloadVideo from "@/fronted/pages/DownloadVideo";
+import Convert from "@/fronted/pages/convert/Convert";
 const api = window.electron;
 const App = () => {
     const theme = useSetting((s) => s.values.get('appearance.theme'));
@@ -56,6 +57,10 @@ const App = () => {
                                 <Route
                                     path='download'
                                     element={<DownloadVideo/>}
+                                />
+                                <Route
+                                    path='convert'
+                                    element={<Convert />}
                                 />
                                 <Route path='about' element={<About/>}/>
                                 <Route
