@@ -62,7 +62,7 @@ const OpenAiSetting = () => {
                                 onClick={() => {
                                     setSettingFunc('model.gpt.default')('gpt-4o');
                                 }}
-                            >gpt-4o (recommended)</DropdownMenuItem>
+                            >gpt-4o</DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={() => {
                                     setSettingFunc('model.gpt.default')('gpt-3.5-turbo');

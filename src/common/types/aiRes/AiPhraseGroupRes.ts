@@ -4,7 +4,8 @@ import { z } from 'zod';
 export class AiPhraseGroupPrompt {
     public static promptFunc(text: string):string {
         return codeBlock`
-        分析下面三个单引号包裹的英文句子的意群。请在 tags 为该意群打标签，可以包括任何你认为有用的信息。
+        分析下面三个单引号包裹的英文句子的意群。将这个句子按照意群拆分成多个短句，每个短句是一个意群。
+        请在 tags 为该意群打标签，可以包括任何你认为有用的信息。
         '''
         ${text}
         '''
