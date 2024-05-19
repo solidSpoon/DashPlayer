@@ -25,6 +25,8 @@ import AiFuncController from "@/backend/controllers/AiFuncController";
 import {AiFuncFormatSplitPrompt} from "@/common/types/aiRes/AiFuncFormatSplit";
 import ChatService from "@/backend/services/ChatService";
 import {HumanMessage} from "@langchain/core/messages";
+import { AiPhraseGroupPrompt } from '@/common/types/aiRes/AiPhraseGroupRes';
+import { AiFuncTranslateWithContextPrompt } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 
 export default class AiFuncService {
 
@@ -102,17 +104,7 @@ export default class AiFuncService {
      * @param sentence
      */
     public static async phraseGroup(taskId: number, sentence: string) {
-        const schema = z.object({
-            sentence: z.string().describe("The complete sentence from which phrase groups are derived."),
-            phraseGroups: z.array(
-                z.object({
-                    original: z.string().describe("The original text of the phrase group."),
-                    translation: z.string().describe("The translation of the phrase group. in Chinese(简体中文）."),
-                    comment: z.string().describe("The role or function that the phrase group serves within the larger sentence structure. in Chinese(简体中文）."),
-                })
-            ).describe("An array of phrase groups that compose the sentence."),
-        });
-        await AiFunc.run(taskId, schema, phraseGroupPrompt(sentence));
+        await AiFunc.run(taskId, AiPhraseGroupPrompt.schema, AiPhraseGroupPrompt.promptFunc(sentence));
     }
 
 
@@ -210,6 +202,9 @@ export default class AiFuncService {
     }
     public static async explainSelectWithContext(taskId: number, sentence: string, selectedWord: string) {
         await AiFunc.run(taskId, AiFuncExplainSelectWithContextPrompt.schema, AiFuncExplainSelectWithContextPrompt.promptFunc(sentence, selectedWord));
+    }
+    public static async translateWithContext(taskId: number, sentence: string, context: string[]) {
+        await AiFunc.run(taskId, AiFuncTranslateWithContextPrompt.schema, AiFuncTranslateWithContextPrompt.promptFunc(sentence, context));
     }
 }
 

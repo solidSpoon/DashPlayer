@@ -34,6 +34,7 @@ interface AiFuncDef {
     'ai-func/transcript': { params: { filePath: string }, return: number };
     'ai-func/explain-select-with-context': { params: { sentence: string, selectedWord: string }, return: number };
     'ai-func/explain-select': { params: { word: string }, return: number };
+    'ai-func/translate-with-context': { params: { sentence: string, context: string[] }, return: number };
 }
 
 interface DpTaskDef {

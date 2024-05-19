@@ -9,6 +9,7 @@ import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
+import { ms } from 'tencentcloud-sdk-nodejs';
 
 const api = window.electron;
 
@@ -78,6 +79,13 @@ export default class ChatRunner {
             punctuation = await taskDetail(msg.punctuationTask);
             if (responded(punctuation)) {
                 msg.punctuationTaskResp = JSON.parse(punctuation.result);
+                ChatRunner.updateMsg(msg);
+            }
+        }
+        if (msg.translateTask) {
+            const translate = await taskDetail(msg.translateTask);
+            if (responded(translate)) {
+                msg.translateTaskResp = JSON.parse(translate.result);
                 ChatRunner.updateMsg(msg);
             }
         }

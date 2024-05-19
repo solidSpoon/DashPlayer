@@ -196,11 +196,18 @@ const useChatPanel = create(
             const phraseGroupTask = await api.call('ai-func/phrase-group', text);
             const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
             const topic = {content: text};
+            const currentSentence = usePlayerController.getState().currentSentence;
+            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+            const transTask = await api.call('ai-func/translate-with-context', {
+                sentence: text,
+                context: subtitles.map(e => e.text)
+            });
             const mt = new AiWelcomeMessage({
                 originalTopic: text,
                 synonymousSentenceTask: synTask,
                 punctuationTask: null,
-                topic: topic
+                topic: topic,
+                translateTask: transTask
             });
             set({
                 ...empty(),
@@ -240,11 +247,18 @@ const useChatPanel = create(
                     }
                 }
             };
+            const currentSentence = usePlayerController.getState().currentSentence;
+            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+            const transTask = await api.call('ai-func/translate-with-context', {
+                sentence: currentSentence.text,
+                context: subtitles.map(e => e.text)
+            });
             const mt = new AiWelcomeMessage({
                 originalTopic: ct.text,
                 synonymousSentenceTask: synTask,
                 punctuationTask: punctuationTask,
-                topic: topic
+                topic: topic,
+                translateTask: transTask
             });
             set({
                 ...empty(),

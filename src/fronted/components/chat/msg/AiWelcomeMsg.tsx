@@ -10,11 +10,14 @@ import { RefreshCcw } from 'lucide-react';
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const polishTaskRes = msg.aiFuncPolishTaskRes;
     const punctuationTaskResp = msg.punctuationTaskResp;
+    const transTaskResp = msg.translateTaskResp;
     const createTopic = useChatPanel(s => s.createFromSelect);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     const retry = useChatPanel(s => s.retry);
     const complete =
         !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
+
+    console.log('AiWelcomeMsg', transTaskResp);
     return (
         <div className={cn('group relative flex items-start')}>
             {/* <Button variant={'ghost'} size={'icon'} onClick={()=>retry('welcome')} */}
@@ -34,6 +37,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                     }}
                 >
                     <p><Playable>{msg.originalTopic}</Playable></p>
+                    <p>{transTaskResp?.translation}</p>
                 </blockquote>
                 <p>已经为您生成了这个句子的知识点, 包括生词, 短语, 语法, 例句等</p>
                 {complete && <>

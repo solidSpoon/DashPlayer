@@ -57,6 +57,11 @@ export default class AiFuncController implements Controller {
         AiFuncService.punctuation(taskId, no, srt).then();
         return taskId;
     }
+    public async translateWithContext({sentence, context}: { sentence: string, context: string[] }) {
+        const taskId = await DpTaskService.create();
+        AiFuncService.translateWithContext(taskId, sentence, context).then();
+        return taskId;
+    }
 
     public async tts(string: string) {
         return UrlUtil.dp(await TtsService.tts(string));
@@ -101,6 +106,7 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/transcript', AiFuncController.transcript);
         registerRoute('ai-func/explain-select-with-context', AiFuncController.explainSelectWithContext);
         registerRoute('ai-func/explain-select', AiFuncController.explainSelect);
+        registerRoute('ai-func/translate-with-context', this.translateWithContext);
     }
 }
 
