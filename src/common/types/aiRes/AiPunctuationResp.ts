@@ -1,10 +1,20 @@
-// const schema = z.object({
-//     sentences: z.object({
-//         break: z.boolean().describe("Whether the sentence is broken into multiple lines"),
-//         sentence: z.string().describe("The complete sentence"),
-//     }).describe("Analyse whether the sentence is broken into multiple lines and return the complete sentence"),
-// });
-export default interface AiPunctuationResp {
-    isComplete: boolean;
-    completeVersion: string;
+import { codeBlock } from 'common-tags';
+import { z } from 'zod';
+
+export class AiFuncPunctuationPrompt {
+    public static promptFunc(sentence: string, srt: string) {
+        return codeBlock`
+        '''srt
+        ${srt}
+        '''
+        ${sentence}这行是完整的吗? 如果不是, 完整的句子是什么?
+        `;
+    }
+
+    public static schema =  z.object({
+        isComplete: z.boolean().describe('是完整的吗'),
+        completeVersion: z.string().describe("完整的句子"),
+    });
 }
+
+export type AiFuncPunctuationRes = z.infer<typeof AiFuncPunctuationPrompt['schema']>;

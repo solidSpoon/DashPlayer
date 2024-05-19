@@ -13,20 +13,19 @@ import analyzePhrasesPrompt from './prompts/analyze-phrases';
 import synonymousSentence from "@/backend/services/prompts/synonymous-sentence";
 import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
 import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
-import {getSubtitleContent, srtSlice} from "@/common/utils/srtSlice";
-import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
 import AiFunc from "@/backend/services/AiFuncs/ai-func";
 import RateLimiter from "@/common/utils/RateLimiter";
 import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
 import { AiAnalyseGrammarsPrompt } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import { AiFuncExplainSelectWithContextPrompt } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
 import { AiFuncExplainSelectPrompt } from '@/common/types/aiRes/AiFuncExplainSelectRes';
-import AiFuncController from "@/backend/controllers/AiFuncController";
 import {AiFuncFormatSplitPrompt} from "@/common/types/aiRes/AiFuncFormatSplit";
 import ChatService from "@/backend/services/ChatService";
 import {HumanMessage} from "@langchain/core/messages";
 import { AiPhraseGroupPrompt } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { AiFuncTranslateWithContextPrompt } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
+import { AiFuncPunctuationPrompt } from '@/common/types/aiRes/AiPunctuationResp';
+import { getSubtitleContent, srtSlice } from '@/common/utils/srtSlice';
 
 export default class AiFuncService {
 
@@ -116,84 +115,9 @@ export default class AiFuncService {
      * @param fullSrt
      */
     public static async punctuation(taskId: number, no: number, fullSrt: string) {
-        console.log('punctuation', no, fullSrt);
         const sentence = getSubtitleContent(fullSrt, no);
         const srt = srtSlice(fullSrt, no, 5);
-        console.log('ssssss', sentence, srt);
-        await RateLimiter.wait('gpt');
-        const schema = z.object({
-            isComplete: z.boolean().describe('是完整的吗'),
-            completeVersion: z.string().describe("完整的句子"),
-        });
-        const extractionFunctionSchema = {
-            name: "extractor",
-            description: "Extracts fields from the input.",
-            parameters: zodToJsonSchema(schema),
-        };
-        // Instantiate the parser
-        const parser = new JsonOutputFunctionsParser();
-        const chat: ChatOpenAI = (await AiFunc.getOpenAi(taskId))
-        if (!chat) return;
-        const runnable = chat.bind({
-            functions: [extractionFunctionSchema],
-            function_call: {name: "extractor"},
-        })
-
-        const prompt = ChatPromptTemplate.fromTemplate(promptPunctuation);
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.IN_PROGRESS,
-            progress: 'AI is analyzing...'
-        });
-
-        const chain = prompt
-            .pipe(runnable)
-            .pipe(parser);
-
-        const resp: AiPunctuationResp[] = [];
-
-        await Promise.all([
-
-            (async () => {
-                const r = await chain.invoke({
-                    srt,
-                    sentence
-                });
-                resp.push(r as AiPunctuationResp);
-            })(),
-            (async () => {
-                const r = await chain.invoke({
-                    srt,
-                    sentence
-                });
-                resp.push(r as AiPunctuationResp);
-            })(),
-            (async () => {
-                const r = await chain.invoke({
-                    srt,
-                    sentence
-                });
-                resp.push(r as AiPunctuationResp);
-            })()
-        ]);
-        const resp2 = resp.filter(r => {
-            return (r.isComplete === false && r.completeVersion !== sentence) || r.isComplete === true
-        });
-        if (resp2.length > 0) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.DONE,
-                progress: 'AI has responded',
-                result: JSON.stringify(resp2[0])
-            });
-        } else {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.DONE,
-                progress: 'AI has responded',
-                result: JSON.stringify(resp[0])
-            });
-        }
+       await AiFunc.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, srt));
     }
 
     static async explainSelect(taskId: number, word: string) {
