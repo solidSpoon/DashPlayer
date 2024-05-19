@@ -8,13 +8,13 @@ export class AiFuncTranslateWithContextPrompt {
         上下文:
         ${context.join('\n')}
 
-        请根据上下文翻译这句话:
+        请根据上下文把下面的句子翻译成中文。
         ${sentence}
         `
     }
 
     public static schema = z.object({
-        translation: z.string().describe('The translation of the sentence. in Chinese(简体中文)'),
+        translation: z.string().describe('句子的中文翻译'),
     });
 }
 
