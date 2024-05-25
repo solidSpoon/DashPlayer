@@ -80,8 +80,8 @@ const config: ForgeConfig = {
             name: '@electron-forge/publisher-github',
             config: {
                 repository: {
-                    owner: 'solidSpoon',
-                    name: 'DashPlayer'
+                    owner: 'ovo-Tim',
+                    name: 'DashPlayer-Linux'
                 },
                 prerelease: true
             }
