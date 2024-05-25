@@ -54,10 +54,11 @@ export default class ConvertService {
         const srtName = mp4File.replace('.mp4', '.srt');
         if (!fs.existsSync(srtName)) {
             try {
-                // await FfmpegService.extractSubtitles({
-                //     inputFile: file,
-                //     outputFile: srtName,
-                // });
+                await FfmpegService.extractSubtitles({
+                    taskId,
+                    inputFile: file,
+                    onProgress
+                });
             } catch (e) {
                 console.error('提取字幕失败', e);
             }

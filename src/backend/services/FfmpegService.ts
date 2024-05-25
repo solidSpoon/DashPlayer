@@ -275,6 +275,7 @@ export default class FfmpegService {
     /**
      * mkv转mp4
      * ffmpeg -i "vid.mkv" -map 0 -c copy -c:a aac "MP4/vid.mp4"
+     * ffmpeg -i output.mkv -map 0:v -map 0:a -c:v copy -c:a aac -ac 1 output.mp4
      */
     public static async mkvToMp4({
                                      taskId,
@@ -290,9 +291,11 @@ export default class FfmpegService {
                 await new Promise((resolve, reject) => {
                     const command = ffmpeg(inputFile)
                         .outputOptions([
-                            '-map', '0',
-                            '-c', 'copy',
-                            '-c:a', 'aac'
+                            '-map', '0:v',
+                            '-map', '0:a',
+                            '-c:v', 'copy',
+                            '-c:a', 'aac',
+                            '-ac', '1'
                         ])
                         .output(output)
                         .on('progress', (progress) => {
@@ -314,28 +317,46 @@ export default class FfmpegService {
         return output;
     }
 
+    /**
+     * 提取字幕
+     * ffmpeg -i "vid.mkv" -map 0:s:m:language:eng? -map 0:s:m:language:und? -c:s srt "vid.srt"
+     */
     public static async extractSubtitles({
+                                             taskId,
                                              inputFile,
-                                             outputFile,
-                                             language = 'eng'
+                                             onProgress
                                          }: {
+        taskId: number,
         inputFile: string,
-        outputFile: string,
-        language?: string
-    }): Promise<void> {
+        onProgress?: (progress: number) => void
+    }): Promise<string> {
+        const outputSubtitle = inputFile.replace(path.extname(inputFile), '.srt');
         await Lock.sync('ffmpeg', async () => {
-            await new Promise((resolve, reject) => {
-                ffmpeg(inputFile)
-                    .outputOptions([
-                        '-map', `0:s:m:language:${language}?`,
-                        '-c:s', 'srt'
-                    ])
-                    .output(outputFile)
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .run();
-            });
-        });
+                await new Promise((resolve, reject) => {
+                    const command = ffmpeg(inputFile)
+                        .outputOptions([
+                            '-map', '0:s:m:language:eng?', // 优先选择英文字幕
+                            '-map', '0:s:m:language:und?', // 如果没有英文字幕则选择默认字幕
+                            '-c:s', 'srt' // 输出格式为 srt
+                        ])
+                        .output(outputSubtitle)
+                        .on('progress', (progress) => {
+                            if (progress.percent) {
+                                console.log('progress', progress.percent);
+                                if (onProgress) {
+                                    onProgress(progress.percent);
+                                }
+                            }
+                        })
+                        .on('end', resolve)
+                        .on('error', reject);
+                    ProcessService.registerFfmpeg(taskId, [command]);
+                    command
+                        .run();
+                });
+            }
+        );
+        return outputSubtitle;
     }
 }
 
