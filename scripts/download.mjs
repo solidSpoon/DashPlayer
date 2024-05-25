@@ -165,6 +165,9 @@ const urls = {
         win32: {
             x64: `${FFMPEG_BASE_URL}ffmpeg-win32-x64`,
             ia32: `${FFMPEG_BASE_URL}ffmpeg-win32-ia32`,
+        },
+        linux: {
+            x64: `${FFMPEG_BASE_URL}ffmpeg-linux-x64`,
         }
     },
     ffprobe: {
@@ -175,6 +178,9 @@ const urls = {
         win32: {
             x64: `${FFMPEG_BASE_URL}ffprobe-win32-x64`,
             ia32: `${FFMPEG_BASE_URL}ffprobe-win32-ia32`,
+        },
+        linux: {
+            x64: `${FFMPEG_BASE_URL}ffprobe-linux-x64`,
         }
     },
     'yt-dlp': {
@@ -185,6 +191,9 @@ const urls = {
         win32: {
             x64: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
             ia32: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
+        },
+        linux: {
+            x64: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux'
         }
     }
 }
