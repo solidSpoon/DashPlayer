@@ -1,18 +1,23 @@
-import {eq} from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import db from '@/backend/db/db';
-import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpTask';
+import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/dpTask';
 
-import LRUCache from "lru-cache";
-import TimeUtil from "@/common/utils/TimeUtil";
-import ProcessService from "@/backend/services/ProcessService";
+import LRUCache from 'lru-cache';
+import TimeUtil from '@/common/utils/TimeUtil';
+import ProcessService from '@/backend/services/ProcessService';
 
 
 const cache: LRUCache<number, InsertDpTask> = new LRUCache({
     maxSize: 2000,
     sizeCalculation: (value, key) => {
-        return 1
-    },
-})
+        return 1;
+    }
+});
+
+export function isErrorCancel(e: Error) {
+    return e.message === CANCEL_MSG || e.message === 'ffmpeg was killed with signal SIGKILL';
+}
+
 export const CANCEL_MSG = 'dp-用户取消';
 export default class DpTaskService {
     public static upQueue: Map<number, InsertDpTask> = new Map();
@@ -25,7 +30,7 @@ export default class DpTaskService {
                         .update(dpTask)
                         .set({
                             ...value,
-                            updated_at: TimeUtil.timeUtc(),
+                            updated_at: TimeUtil.timeUtc()
                         })
                         .where(eq(dpTask.id, key));
                     this.upQueue.delete(key);
@@ -72,7 +77,7 @@ export default class DpTaskService {
             .insert(dpTask)
             .values({
                 status: DpTaskState.INIT,
-                progress: '任务创建成功',
+                progress: '任务创建成功'
             }).returning();
         const taskId = task[0].id;
         cache.set(taskId, {
@@ -80,7 +85,7 @@ export default class DpTaskService {
             status: DpTaskState.INIT,
             progress: '任务创建成功',
             created_at: TimeUtil.timeUtc(),
-            updated_at: TimeUtil.timeUtc(),
+            updated_at: TimeUtil.timeUtc()
         });
         return taskId;
     }
@@ -96,11 +101,11 @@ export default class DpTaskService {
                 ...cache.get(task.id),
                 ...task,
                 updated_at: TimeUtil.timeUtc()
-            })
+            });
         }
         this.upQueue.set(task.id, {
             ...task,
-            updated_at: TimeUtil.timeUtc(),
+            updated_at: TimeUtil.timeUtc()
         });
     }
 
@@ -108,14 +113,26 @@ export default class DpTaskService {
         this.cancelQueue.add(id);
         ProcessService.killTask(id);
     }
+
     static checkCancel(id: number) {
         if (this.cancelQueue.has(id)) {
             this.update({
                 id,
                 status: DpTaskState.CANCELLED,
-                progress: '任务取消',
-            })
+                progress: '任务取消'
+            });
             throw new Error(CANCEL_MSG);
         }
+    }
+
+    public static async cancelAll() {
+        await db
+            .update(dpTask)
+            .set({
+                status: DpTaskState.CANCELLED,
+                progress: '任务取消',
+                updated_at: TimeUtil.timeUtc()
+            })
+            .where(or(eq(dpTask.status, DpTaskState.INIT), eq(dpTask.status, DpTaskState.IN_PROGRESS)));
     }
 }

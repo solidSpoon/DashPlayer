@@ -1,8 +1,8 @@
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 import DpTaskService from '@/backend/services/DpTaskService';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import {DpTaskState} from '@/backend/db/tables/dpTask';
 import LocationService from '@/backend/services/LocationService';
-import { DlProgress } from '@/common/types/dl-progress';
+import {DlProgress} from '@/common/types/dl-progress';
 import iconv from 'iconv-lite';
 import path from 'path';
 import fs from 'fs';
@@ -114,10 +114,7 @@ export default class DlVideoService {
                 '-P', savePath,
                 url
             ]);
-            ProcessService.registerTask({
-                taskId,
-                process: [task]
-            });
+            ProcessService.registerTask(taskId, [task]);
             let progress = 0;
             task.stdout.on('data', (data) => {
                 const output = data.toString();
@@ -199,10 +196,7 @@ export default class DlVideoService {
                 '--merge-output-format', 'mp4',
                 url
             ]);
-            ProcessService.registerTask({
-                taskId,
-                process: [process]
-            });
+            ProcessService.registerTask(taskId, [process]);
             let output = '';
             process.stdout.on('data', (d: Buffer) => {
                 let encoding = 'utf8';
