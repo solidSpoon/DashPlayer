@@ -3,7 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import path from 'path';
 import * as os from 'os';
-import DpTaskService, {CANCEL_MSG} from '@/backend/services/DpTaskService';
+import DpTaskService, {CANCEL_MSG, isErrorCancel} from '@/backend/services/DpTaskService';
 import {DpTaskState} from '@/backend/db/tables/dpTask';
 import {strBlank} from '@/common/utils/Util';
 import {storeGet} from '@/backend/store';
@@ -11,6 +11,7 @@ import FfmpegService from "@/backend/services/FfmpegService";
 import RateLimiter from "@/common/utils/RateLimiter";
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import hash from "object-hash";
+import ProcessService from "@/backend/services/ProcessService";
 
 interface WhisperResponse {
     language: string;
@@ -86,7 +87,7 @@ class WhisperService {
                 progress: '转录完成'
             });
         } catch (error) {
-            const cancel = error.message === CANCEL_MSG;
+            const cancel = isErrorCancel(error);
             DpTaskService.update({
                 id: taskId,
                 status: cancel ? DpTaskState.CANCELLED : DpTaskState.FAILED,
@@ -104,7 +105,7 @@ class WhisperService {
         let error: any = null;
         for (let i = 0; i < 3; i++) {
             try {
-                return await this.whisper(chunk);
+                return await this.whisper(taskId, chunk);
             } catch (e) {
                 error = e;
             }
@@ -113,14 +114,16 @@ class WhisperService {
         throw error;
     }
 
-    private static async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
+    private static async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
         await RateLimiter.wait('whisper');
         const data = new FormData();
         data.append('file', fs.createReadStream(chunk.filePath) as any);
         data.append('model', 'whisper-1');
         data.append('language', 'en');
         data.append('response_format', 'verbose_json');
-        const cancelTokenSource = axios.CancelToken.source();
+        // 创建一个 CancelToken 的实例
+        const CancelToken = axios.CancelToken;
+        const source = CancelToken.source();
         const config = {
             method: 'post',
             url: this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/transcriptions'),
@@ -132,10 +135,18 @@ class WhisperService {
             },
             data: data,
             timeout: 1000 * 60 * 10,
-            cancelToken: cancelTokenSource.token
+            cancelToken: source.token
         };
 
-        const response = await axios(config);
+        ProcessService.registerCancelTokenSource(taskId,[source]);
+
+        const response = await axios(config)
+            .catch((error) => {
+                if (axios.isCancel(error)) {
+                    throw new Error(CANCEL_MSG);
+                }
+                throw error;
+            });
         return {
             ...response.data,
             offset: chunk.offset

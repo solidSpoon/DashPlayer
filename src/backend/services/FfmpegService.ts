@@ -1,7 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import LocationService from '@/backend/services/LocationService';
@@ -234,10 +234,7 @@ export default class FfmpegService {
                 .on('error', (err) => {
                     reject(err);
                 });
-            ProcessService.registerFfmpeg({
-                taskId,
-                process: [command]
-            });
+            ProcessService.registerFfmpeg(taskId, [command]);
             command.run();
         });
     }
@@ -308,10 +305,7 @@ export default class FfmpegService {
                         })
                         .on('end', resolve)
                         .on('error', reject);
-                    ProcessService.registerFfmpeg({
-                        taskId,
-                        process: [command]
-                    });
+                    ProcessService.registerFfmpeg(taskId, [command]);
                     command
                         .run();
                 });

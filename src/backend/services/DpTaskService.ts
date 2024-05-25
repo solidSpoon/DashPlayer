@@ -13,6 +13,10 @@ const cache: LRUCache<number, InsertDpTask> = new LRUCache({
         return 1
     },
 })
+
+export function isErrorCancel(e: Error) {
+    return e.message === CANCEL_MSG || e.message === 'ffmpeg was killed with signal SIGKILL';
+}
 export const CANCEL_MSG = 'dp-用户取消';
 export default class DpTaskService {
     public static upQueue: Map<number, InsertDpTask> = new Map();
