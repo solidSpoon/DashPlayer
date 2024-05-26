@@ -1,7 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import Lock from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
-import {spawn} from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import LocationService from '@/backend/services/LocationService';
@@ -319,24 +319,26 @@ export default class FfmpegService {
 
     /**
      * 提取字幕
-     * ffmpeg -i "vid.mkv" -map 0:s:m:language:eng? -map 0:s:m:language:und? -c:s srt "vid.srt"
+     * ffmpeg -i "vid.mkv" -map 0:s:m:language:eng? -map 0:s:0? -c:s srt "vid.srt"
      */
     public static async extractSubtitles({
                                              taskId,
                                              inputFile,
-                                             onProgress
+                                             onProgress,
+                                             en
                                          }: {
         taskId: number,
         inputFile: string,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
+        en: boolean
     }): Promise<string> {
         const outputSubtitle = inputFile.replace(path.extname(inputFile), '.srt');
         await Lock.sync('ffmpeg', async () => {
                 await new Promise((resolve, reject) => {
+                    const mapSrt = en ? '0:s:m:language:eng?' : '0:s:0?';
                     const command = ffmpeg(inputFile)
                         .outputOptions([
-                            '-map', '0:s:m:language:eng?', // 优先选择英文字幕
-                            '-map', '0:s:m:language:und?', // 如果没有英文字幕则选择默认字幕
+                            '-map', mapSrt,
                             '-c:s', 'srt' // 输出格式为 srt
                         ])
                         .output(outputSubtitle)

@@ -57,8 +57,18 @@ export default class ConvertService {
                 await FfmpegService.extractSubtitles({
                     taskId,
                     inputFile: file,
-                    onProgress
+                    onProgress,
+                    en:true,
                 });
+                // 如果生成文件大小为 0
+                if (!fs.existsSync(srtName) || fs.statSync(srtName).size === 0) {
+                    await FfmpegService.extractSubtitles({
+                        taskId,
+                        inputFile: file,
+                        onProgress,
+                        en:false,
+                    });
+                }
             } catch (e) {
                 console.error('提取字幕失败', e);
             }
