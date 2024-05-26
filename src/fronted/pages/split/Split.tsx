@@ -13,6 +13,7 @@ import useSplit from '@/fronted/hooks/useSplit';
 import {useShallow} from 'zustand/react/shallow';
 import useSWR from 'swr';
 import toast from "react-hot-toast";
+import { AllFormats } from '@/common/utils/MediaUtil';
 
 const api = window.electron;
 
@@ -48,10 +49,7 @@ const Split = () => {
     const {data: video} = useSWR(videoPath ? ['system/select-file', videoPath] : null, ([_key, path]) => api.call('system/path-info', path));
     const {data: srt} = useSWR(srtPath ? ['system/select-file', srtPath] : null, ([_key, path]) => api.call('system/path-info', path));
     const onSelect = async () => {
-        const files = await api.call('system/select-file', {
-            filter: 'none',
-            mode: 'file'
-        });
+        const files = await api.call('system/select-file', AllFormats);
         files.forEach(updateFile);
     };
 

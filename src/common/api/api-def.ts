@@ -46,7 +46,11 @@ interface DpTaskDef {
 interface SystemDef {
     'system/is-windows': { params: void, return: boolean };
     'system/select-file': {
-        params: { mode: 'file' | 'directory', filter: 'video' | 'srt' | 'none' | 'mkv' },
+        params: string[],
+        return: string[]
+    };
+    'system/select-folder': {
+        params: void,
         return: string[]
     };
     'system/path-info': {
@@ -91,6 +95,7 @@ interface WatchProjectDef {
     'watch-project/create/from-folder': { params: string, return: number };
     'watch-project/create/from-files': { params: string[], return: number };
     'watch-project/create/from-download': { params: string, return: number };
+    'watch-project/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
     'watch-project/delete': { params: number, return: void };
     'watch-project/detail': { params: number, return: WatchProjectVO };
     'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };

@@ -270,4 +270,13 @@ export default class WatchProjectNewService {
         }
         throw new Error('File not found');
     }
+
+    static analyseFolder(path: string):{supported: number, unsupported: number} {
+        const files = fs.readdirSync(path);
+        const videos = files.filter((f) => MediaUtil.isMedia(f));
+        return {
+            supported: videos.filter((v) => MediaUtil.supported(v)).length,
+            unsupported: videos.filter((v) => !MediaUtil.supported(v)).length
+        }
+    }
 }

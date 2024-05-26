@@ -10,7 +10,7 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import {Folder, X} from 'lucide-react';
 import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import FileSelector from "@/fronted/components/fileBowser/FileSelector";
-import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
+import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
 import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
 
@@ -43,7 +43,7 @@ const SplitFile = () => {
                     await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                     await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
                 }}/>
-                <FolderSelector/>
+                <FolderSelector onSelected={FolderSelectAction.defaultAction()}/>
             </div>
 
             <ProjectListComp

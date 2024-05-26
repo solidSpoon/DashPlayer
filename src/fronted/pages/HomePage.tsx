@@ -1,18 +1,20 @@
-import React, {useEffect} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import TitleBar from '@/fronted/components/TitleBar/TitleBar';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/fronted/components/ui/card";
-import {Button} from "@/fronted/components/ui/button";
-import useSWR from "swr";
-import {SWR_KEY} from "@/fronted/lib/swr-util";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { Button } from '@/fronted/components/ui/button';
+import useSWR from 'swr';
+import { SWR_KEY } from '@/fronted/lib/swr-util';
 import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
-import {ChevronsDown} from "lucide-react";
-import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
-import FileSelector, {FileAction} from "@/fronted/components/fileBowser/FileSelector";
+import { ChevronsDown } from 'lucide-react';
+import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
+import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
+import { toast } from 'sonner';
+import useConvert from '@/fronted/hooks/useConvert';
 
 const api = window.electron;
 const HomePage = () => {
@@ -34,7 +36,7 @@ const HomePage = () => {
         navigate(`/player/${videoId}`);
     }
 
-    const {data: vps} = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-project/list', null));
+    const { data: vps } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-project/list', null));
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
     // 从第四个开始截取num个
@@ -43,7 +45,7 @@ const HomePage = () => {
         api.call('system/window-size/change', 'home').then();
         clear();
     }, [clear]);
-    console.log('vpsl', vps?.length, rest?.length, num)
+    console.log('vpsl', vps?.length, rest?.length, num);
     return (
         <div className="flex h-screen w-full flex-col text-foreground bg-muted/40">
             <header className="top-0 flex h-9 items-center">
@@ -65,14 +67,15 @@ const HomePage = () => {
                         to="/home" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split" className="font-semibold ">
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
+                          className="font-semibold ">
                         Split Video
                     </Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/transcript"}
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/transcript'}
                           className="font-semibold ">Transcript</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/download"}
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/download'}
                           className="font-semibold ">Download</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={"/convert"}
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/convert'}
                           className="font-semibold ">Convert</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
@@ -80,18 +83,32 @@ const HomePage = () => {
                         className={cn('justify-self-end flex flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
                     >
                         <FileSelector
-                            onSelected={FileAction.playerAction(async (vid) => {
-                                await api.call('system/window-size/change', 'player');
-                                changeSideBar(false);
-                                navigate(`/player/${vid}`);
-                            })}
+                            onSelected={FileAction.playerAction2(navigate)}
+                            withMkv
                         />
                         <FolderSelector
-                            onSelected={async (vid) => {
+                            onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
                                 await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
-                            }}
+                                const analyse = await api.call('watch-project/analyse-folder', fp);
+                                if (analyse?.unsupported > 0) {
+                                    const folderList = await api.call('convert/from-folder', [fp]);
+                                    setTimeout(() => {
+                                        toast('MKV 格式的的视频可能会遇到问题', {
+                                            description: '如果您遇到问题，请尝试转换视频格式',
+                                            position: 'top-right',
+                                            action: {
+                                                label: 'Convert',
+                                                onClick: () => {
+                                                    useConvert.getState().addFolders(folderList);
+                                                    navigate(`/convert`);
+                                                }
+                                            }
+                                        });
+                                    }, 500);
+                                }
+                            })}
                         />
                     </div>
 
@@ -108,7 +125,7 @@ const HomePage = () => {
                                     <ProjectListCard
                                         key={v.id}
                                         onSelected={() => handleClickById(v.id)}
-                                        proj={v}/>
+                                        proj={v} />
                                 ))}
                         </CardContent>
                     </Card>
@@ -117,14 +134,14 @@ const HomePage = () => {
                             <ProjectListItem
                                 key={v.id}
                                 onSelected={() => handleClickById(v.id)}
-                                proj={v}/>
+                                proj={v} />
                         ))}
                     </div>
                     <Button
                         onClick={() => setNum(num + 10)}
                         disabled={num + 3 >= (vps?.length ?? 0)}
                         variant={'ghost'}>
-                        <ChevronsDown className={'text-muted-foreground'}/>
+                        <ChevronsDown className={'text-muted-foreground'} />
                     </Button>
                 </div>
             </main>

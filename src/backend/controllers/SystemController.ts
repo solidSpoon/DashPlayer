@@ -1,7 +1,6 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
 import { app, dialog, shell } from 'electron';
-import { ACCEPTED_FILE_TYPES } from '@/common/utils/MediaUtil';
 import path from 'path';
 import { clearDB } from '@/backend/db/db';
 import { WindowState } from '@/common/types/Types';
@@ -15,21 +14,18 @@ export default class SystemController implements Controller {
         return process.platform === 'win32';
     }
 
-    public async selectFile({ mode, filter }: {
-        mode: 'file' | 'directory',
-        filter: 'video' | 'srt' | 'none' | 'mkv'
-    }): Promise<string[]> {
-        if (mode === 'file') {
-            const filters = filter === 'mkv'
-                ? [{ name: 'MKV files', extensions: ['mkv'] }]
-                : [{ name: 'Movies', extensions: ACCEPTED_FILE_TYPES.split(',').map((item) => item.substring(1)) }];
+    public async selectFile(filter: string[]): Promise<string[]> {
+        const files = await dialog.showOpenDialog({
+            properties: ['openFile', 'multiSelections'],
+            filters: [{
+                name: 'Files',
+                extensions: filter
+            }]
+        });
+        return files.filePaths;
+    }
 
-            const files = await dialog.showOpenDialog({
-                properties: ['openFile', 'multiSelections'],
-                filters: filters
-            });
-            return files.filePaths;
-        }
+    public async selectFolder(): Promise<string[]> {
         const files = await dialog.showOpenDialog({
             properties: ['openDirectory']
         });
@@ -86,6 +82,7 @@ export default class SystemController implements Controller {
     public registerRoutes(): void {
         registerRoute('system/is-windows', this.isWindows);
         registerRoute('system/select-file', this.selectFile);
+        registerRoute('system/select-folder', this.selectFolder);
         registerRoute('system/path-info', this.pathInfo);
         registerRoute('system/reset-db', this.resetDb);
         registerRoute('system/open-folder', this.openFolder);

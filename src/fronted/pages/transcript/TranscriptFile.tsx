@@ -19,7 +19,7 @@ import Style from '@/fronted/styles/style';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import {useShallow} from 'zustand/react/shallow';
-import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
+import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import FileSelector from "@/fronted/components/fileBowser/FileSelector";
 import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
 import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
@@ -50,7 +50,7 @@ const TranscriptFile = () => {
                     await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                     await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
                 }}/>
-                <FolderSelector/>
+                <FolderSelector onSelected={FolderSelectAction.defaultAction()}/>
             </div>
 
             <ProjectListComp

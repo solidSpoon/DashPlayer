@@ -4,6 +4,7 @@ import {WatchProject} from '@/backend/db/tables/watchProjects';
 import WatchProjectNewService, {WatchProjectListVO, WatchProjectVO} from '@/backend/services/WatchProjectNewService';
 import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import path from 'path';
+import { n } from 'vitest/dist/reporters-P7C2ytIv';
 
 export default class WatchProjectController implements Controller{
 
@@ -25,6 +26,9 @@ export default class WatchProjectController implements Controller{
     }
     public async createFromFiles(files: string[]): Promise<number> {
         return WatchProjectNewService.createFromFiles(files);
+    }
+    public async analyseFolder(path: string): Promise<{ supported: number, unsupported: number }> {
+        return WatchProjectNewService.analyseFolder(path);
     }
     public async tryCreateFromDownload(fileName: string): Promise<number> {
         return WatchProjectNewService.tryCreateFromDownload(fileName);
@@ -58,6 +62,7 @@ export default class WatchProjectController implements Controller{
         registerRoute('watch-project/video/detail/by-pid', this.videoDetailByPid);
         registerRoute('watch-project/create/from-folder', this.createFromFolder);
         registerRoute('watch-project/create/from-files', this.createFromFiles);
+        registerRoute('watch-project/analyse-folder', this.analyseFolder);
         registerRoute('watch-project/create/from-download', this.tryCreateFromDownload);
         registerRoute('watch-project/delete', this.delete);
         registerRoute('watch-project/detail', this.detail);

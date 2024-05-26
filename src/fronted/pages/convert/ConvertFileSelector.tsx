@@ -2,6 +2,7 @@ import React from 'react';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
+import { UnsupportedVideoFormats } from '@/common/utils/MediaUtil';
 
 const api = window.electron;
 
@@ -11,10 +12,7 @@ export default function ConvertFileSelector({
     onSelected: (ps: string[]) => Promise<void>;
 }) {
     const handleClick = async () => {
-        const ps = await api.call('system/select-file', {
-            mode: 'file',
-            filter: 'mkv'
-        });
+        const ps = await api.call('system/select-file', UnsupportedVideoFormats);
         if (ps?.length > 0) {
             await onSelected(ps);
         }

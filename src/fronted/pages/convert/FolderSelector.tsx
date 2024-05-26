@@ -14,10 +14,7 @@ export interface FolderSelectorProps {
 
 const ConvertFolderSelector = ({onSelected, className}:FolderSelectorProps) => {
     const handleClick = async () => {
-        const ps = await api.call('system/select-file', {
-            mode: 'directory',
-            filter: 'none'
-        });
+        const ps = await api.call('system/select-folder', null);
         if (ps?.length > 0) {
             await onSelected(ps);
         }

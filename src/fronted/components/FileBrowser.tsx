@@ -1,17 +1,19 @@
 import React from 'react';
-import {useNavigate} from 'react-router-dom';
-import {cn} from '@/fronted/lib/utils';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/fronted/components/ui/card';
-import {WatchProjectType} from '@/backend/db/tables/watchProjects';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '@/fronted/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { WatchProjectType } from '@/backend/db/tables/watchProjects';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
-import {Folder, X} from 'lucide-react';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
-import FolderSelector from "@/fronted/components/fileBowser/FolderSelector";
-import FileSelector, {FileAction} from "@/fronted/components/fileBowser/FileSelector";
-import VideoItem2, {BrowserItemVariant} from "@/fronted/components/fileBowser/VideoItem2";
-import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { Folder, X } from 'lucide-react';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
+import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
+import VideoItem2, { BrowserItemVariant } from '@/fronted/components/fileBowser/VideoItem2';
+import ProjItem2 from '@/fronted/components/fileBowser/ProjItem2';
+import { toast } from 'sonner';
+import useConvert from '@/fronted/hooks/useConvert';
 
 const api = window.electron;
 const FileBrowser = () => {
@@ -34,14 +36,30 @@ const FileBrowser = () => {
                     className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
                 >
                     <FileSelector
-                        onSelected={FileAction.playerAction(async (vid) => {
-                            navigate(`/player/${vid}`);
-                        })}
+                        withMkv
+                        onSelected={FileAction.playerAction(navigate)}
                     />
                     <FolderSelector
-                        onSelected={(vid) => {
+                        onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
                             navigate(`/player/${vid}`);
-                        }}
+                            const analyse = await api.call('watch-project/analyse-folder', fp);
+                            if (analyse?.unsupported > 0) {
+                                const folderList = await api.call('convert/from-folder', [fp]);
+                                setTimeout(() => {
+                                    toast('MKV 格式的的视频可能会遇到问题', {
+                                        description: '如果您遇到问题，请尝试转换视频格式',
+                                        position: 'top-right',
+                                        action: {
+                                            label: 'Convert',
+                                            onClick: () => {
+                                                useConvert.getState().addFolders(folderList);
+                                                navigate(`/convert`);
+                                            }
+                                        }
+                                    });
+                                }, 500);
+                            }
+                        })}
                     />
                 </div>
 
@@ -84,26 +102,26 @@ const FileBrowser = () => {
                                 pv={pv}
                                 ctxMenus={[
                                     {
-                                        icon: <Folder/>,
+                                        icon: <Folder />,
                                         text: 'Show In Explorer',
                                         onClick: async () => {
                                             await api.call('system/open-folder', pv.video_path);
                                         }
                                     }
-                                ]} variant={variant}/>
+                                ]} variant={variant} />
                         );
                     }}
                     projEle={(p, hc) => {
                         const ctxMenus = [
                             {
-                                icon: <Folder/>,
+                                icon: <Folder />,
                                 text: 'Show In Explorer',
                                 onClick: async () => {
                                     await api.call('system/open-folder', p.project_path);
                                 }
                             },
                             {
-                                icon: <X/>,
+                                icon: <X />,
                                 text: 'Delete',
                                 disabled: pId === p.id,
                                 onClick: async () => {
@@ -131,7 +149,7 @@ const FileBrowser = () => {
                                                }
                                            }
                                        }}
-                                       ctxMenus={ctxMenus}/>
+                                       ctxMenus={ctxMenus} />
                         );
                     }}
                     className={cn('w-full h-0 flex-1 scrollbar-none')}
