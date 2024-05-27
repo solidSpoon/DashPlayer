@@ -129,7 +129,7 @@ export default function PlayerShortCut() {
     });
 
 
-    useHotkeys(process(setting('shortcut.copyMode')), (ke,he) => {
+    useHotkeys(process(setting('shortcut.toggleCopyMode')), (ke,he) => {
         if( ke.type == 'keydown' && !isCopyMode){
             enterCopyMode();
         }else if(ke.type == 'keyup' && isCopyMode){

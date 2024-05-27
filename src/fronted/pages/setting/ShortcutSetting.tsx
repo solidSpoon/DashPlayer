@@ -290,10 +290,10 @@ const ShortcutSetting = () => {
                 />
                 <ShortCutRecorder
                     title="复制模式"
-                    description="打开/关闭复制模式"
-                    defaultValue={SettingKeyObj['shortcut.copyMode']}
-                    value={setting('shortcut.copyMode')}
-                    setValue={setSettingFunc('shortcut.copyMode')}
+                    description="打开/关闭复制模式，长按后点击单词即可复制，点击句子空白处为复制句子"
+                    defaultValue={SettingKeyObj['shortcut.toggleCopyMode']}
+                    value={setting('shortcut.toggleCopyMode')}
+                    setValue={setSettingFunc('shortcut.toggleCopyMode')}
                 />
             </ItemWrapper>
 
