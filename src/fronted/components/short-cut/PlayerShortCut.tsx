@@ -4,7 +4,7 @@ import usePlayerController from '../../hooks/usePlayerController';
 import useSubtitleScroll from '../../hooks/useSubtitleScroll';
 import useChatPanel from "@/fronted/hooks/useChatPanel";
 import {useHotkeys} from "react-hotkeys-hook";
-
+import useCopyModeController from '../../hooks/useCopyModeController';
 
 const process = (values: string) => values
     .split(',')
@@ -55,6 +55,9 @@ export default function PlayerShortCut() {
     const {createFromCurrent} = useChatPanel(useShallow((s) => ({
         createFromCurrent: s.createFromCurrent
     })));
+
+    const {enterCopyMode,exitCopyMode,isCopyMode} = useCopyModeController();
+
     useHotkeys('left', () => {
         prev();
         if (scrollState === 'USER_BROWSING') {
@@ -124,5 +127,14 @@ export default function PlayerShortCut() {
         pause();
         createFromCurrent();
     });
+
+
+    useHotkeys(process(setting('shortcut.copyMode')), (ke,he) => {
+        if( ke.type == 'keydown' && !isCopyMode){
+            enterCopyMode();
+        }else if(ke.type == 'keyup' && isCopyMode){
+            exitCopyMode();
+        }
+    },{keyup:true,keydown:true});
     return <></>;
 }
