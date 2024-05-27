@@ -168,7 +168,7 @@ const ShortcutSetting = () => {
         'shortcut.clearAdjust',
         'shortcut.nextPlaybackRate',
         'shortcut.aiChat',
-        'shortcut.copyMode',
+        'shortcut.toggleCopyMode',
     ]);
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
