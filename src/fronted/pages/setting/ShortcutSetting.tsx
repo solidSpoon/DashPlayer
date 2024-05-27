@@ -168,6 +168,7 @@ const ShortcutSetting = () => {
         'shortcut.clearAdjust',
         'shortcut.nextPlaybackRate',
         'shortcut.aiChat',
+        'shortcut.toggleCopyMode',
     ]);
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
@@ -286,6 +287,13 @@ const ShortcutSetting = () => {
                     defaultValue={SettingKeyObj['shortcut.aiChat']}
                     value={setting('shortcut.aiChat')}
                     setValue={setSettingFunc('shortcut.aiChat')}
+                />
+                <ShortCutRecorder
+                    title="复制模式"
+                    description="打开/关闭复制模式，长按后点击单词即可复制，点击句子空白处为复制句子"
+                    defaultValue={SettingKeyObj['shortcut.toggleCopyMode']}
+                    value={setting('shortcut.toggleCopyMode')}
+                    setValue={setSettingFunc('shortcut.toggleCopyMode')}
                 />
             </ItemWrapper>
 

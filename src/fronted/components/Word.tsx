@@ -9,9 +9,9 @@ import {strNotBlank} from '@/common/utils/Util';
 import useSWR from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
+import useCopyModeController from '../hooks/useCopyModeController';
 
 const api = window.electron;
-
 export interface WordParam {
     word: string;
     original: string;
@@ -42,6 +42,8 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
     ]);
 };
 const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) => {
+    const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
+    const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const pause = usePlayerController((s) => s.pause);
     const [hovered, setHovered] = useState(false);
     const {data: ydResp} = useSWR(hovered ? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
@@ -84,12 +86,16 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
         };
     }, [hovered, requestPop]);
 
-    const handleWordClick = async () => {
+    const handleWordClick = async (e:React.MouseEvent) => {
         const url = ydResp?.speakUrl;
         if (strNotBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);
+        }
+        if(isCopyMode){
+            e.stopPropagation();
+            setCopyContent(word);
         }
     };
 
@@ -103,7 +109,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                     pause();
                 }}
                 onClick={(e) => {
-                    handleWordClick();
+                    handleWordClick(e);
                     if (!hovered) {
                         setHovered(true);
                     }

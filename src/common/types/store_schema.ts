@@ -16,6 +16,7 @@ export const SettingKeyObj = {
     'shortcut.clearAdjust': 'v',
     'shortcut.nextPlaybackRate': 'p',
     'shortcut.aiChat': 'slash',
+    'shortcut.toggleCopyMode': 'shift+y',
     'userSelect.playbackRateStack':'',
     'apiKeys.youdao.secretId': '',
     'apiKeys.youdao.secretKey': '',
