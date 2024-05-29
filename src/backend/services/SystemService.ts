@@ -1,6 +1,9 @@
-import {WindowState} from "@/common/types/Types";
-import fs from "fs";
+import { WindowState } from '@/common/types/Types';
+import fs from 'fs';
 import { dialog } from 'electron';
+import jschardet from 'jschardet';
+import iconv from 'iconv-lite';
+
 export default class SystemService {
     public static mainWindowRef: Electron.CrossProcessExports.BrowserWindow;
 
@@ -28,7 +31,7 @@ export default class SystemService {
                 SystemService.mainWindowRef?.setResizable(false);
                 SystemService.mainWindowRef?.setMaximizable(false);
                 break;
-            case "player":
+            case 'player':
                 SystemService.mainWindowRef?.setResizable(true);
                 SystemService.mainWindowRef?.setMaximizable(true);
                 SystemService.mainWindowRef?.maximize();
@@ -53,29 +56,35 @@ export default class SystemService {
     public static isWindows() {
         return process.platform === 'win32';
     }
+
     public static sendErrorToRenderer(error: Error) {
         SystemService.mainWindowRef?.webContents.send('error-msg', error);
     }
+
     public static async read(path: string) {
         try {
             if (!fs.existsSync(path)) {
                 return null;
             }
-            return fs.readFileSync(path, 'utf-8');
+            const buffer = fs.readFileSync(path);
+            const encoding = jschardet.detect(buffer).encoding;
+            return iconv.decode(buffer, encoding).toString();
         } catch (e) {
             // show open dialog
             await dialog.showMessageBox({
                 type: 'error',
-                message: `无权限读取文件，请选择文件 ${path} 来授权`,
+                message: `无权限读取文件，请选择文件 ${path} 来授权`
             });
 
             const files = await dialog.showOpenDialog({
-                properties: ['openFile'],
+                properties: ['openFile']
             });
-            if (files.canceled) {
+            if (files.canceled || files.filePaths.length === 0) {
                 return null;
             }
-            return fs.readFileSync(path, 'utf-8');
+            const buffer = fs.readFileSync(files.filePaths[0]);
+            const encoding = jschardet.detect(buffer).encoding;
+            return iconv.decode(buffer, encoding).toString();
         }
     }
 
@@ -92,11 +101,11 @@ export default class SystemService {
             // show open dialog
             await dialog.showMessageBox({
                 type: 'error',
-                message: `无权限访问文件夹，请选择文件夹 ${path} 来授权`,
+                message: `无权限访问文件夹，请选择文件夹 ${path} 来授权`
             });
 
             const files = await dialog.showOpenDialog({
-                properties: ['openDirectory'],
+                properties: ['openDirectory']
             });
             if (files.canceled) {
                 return [];

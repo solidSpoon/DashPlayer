@@ -7,6 +7,7 @@ import {Sentence, SrtSentence} from "@/common/types/SentenceC";
 import hash from 'object-hash';
 import {SubtitleTimestampAdjustment} from "@/backend/db/tables/subtitleTimestampAdjustment";
 import SubtitleTimestampAdjustmentService from "@/backend/services/SubtitleTimestampAdjustmentService";
+import SystemService from '@/backend/services/SystemService';
 
 async function adjustTime(subtitles: Sentence[], hashCode: string) {
     const adjs = await SubtitleTimestampAdjustmentService.getByHash(hashCode)
@@ -70,7 +71,7 @@ export default class SubtitleService {
         if (!fs.existsSync(path)) {
             return null;
         }
-        const content = fs.readFileSync(path, 'utf-8');
+        const content = await SystemService.read(path);
         console.log(content)
         const h = hash(content);
         if (this.cache.fileHash === h) {
