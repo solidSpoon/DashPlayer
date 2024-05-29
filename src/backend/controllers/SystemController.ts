@@ -8,18 +8,29 @@ import SystemService from '@/backend/services/SystemService';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { BASE_PATH } from '@/backend/controllers/StorageController';
+import Util from '@/common/utils/Util';
 
+/**
+ * eg: .mkv -> mkv
+ * @param filter
+ */
+function processFilter(filter: string[]) {
+    return filter
+        .filter(f => Util.strNotBlank(f))
+        .map(f => f.replace(/^\./, ''));
+}
 export default class SystemController implements Controller {
     public async isWindows() {
         return process.platform === 'win32';
     }
 
     public async selectFile(filter: string[]): Promise<string[]> {
+        const f = processFilter(filter);
         const files = await dialog.showOpenDialog({
             properties: ['openFile', 'multiSelections'],
             filters: [{
                 name: 'Files',
-                extensions: filter
+                extensions: f
             }]
         });
         return files.filePaths;
