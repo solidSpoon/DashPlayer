@@ -124,6 +124,10 @@ usePlayerController.subscribe(
     { equalityFn: shallow }
 );
 
+/**
+ *
+ */
+
 function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
     const currentGroup =
         usePlayerController.getState().currentSentence?.transGroup ?? 1;
@@ -177,7 +181,7 @@ useFile.subscribe(
         const finishedGroup = new Set<number>();
         while (CURRENT_FILE === useFile.getState().subtitlePath) {
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
-            console.log('userCanSee', userCanSee);
+            // console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
                 const transHolder = TransHolder.from(
                     // eslint-disable-next-line no-await-in-loop

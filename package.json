@@ -1,7 +1,7 @@
 {
     "name": "dash-player",
     "productName": "DashPlayer",
-    "version": "4.2.1",
+    "version": "4.2.3",
     "description": "My Electron application description",
     "main": ".vite/build/main.js",
     "scripts": {
@@ -97,6 +97,7 @@
         "framer-motion": "^10.16.16",
         "hi-base32": "^0.5.1",
         "iconv-lite": "^0.6.3",
+        "jschardet": "^3.1.2",
         "langchain": "^0.1.31",
         "lucide-react": "^0.378.0",
         "moment": "^2.30.1",

@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { Button } from '@/fronted/components/ui/button';
 import SentenceC from "@/common/types/SentenceC";
 import hash from "object-hash";
+import useCopyModeController from '../hooks/useCopyModeController';
 
 interface TranslatableSubtitleLineParam {
     sentence: SentenceC;
@@ -40,12 +41,19 @@ const TranslatableLine = ({
     const [popELe, setPopEle] = useState<string | null>(null);
     const [hovered, setHovered] = useState(false);
     const textHash = hash(text);
+    const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
+    const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const handleRequestPop = (k: string) => {
         if (popELe !== k) {
             setPopEle(k);
         }
     };
-
+    const handleLineClick = async (e:React.MouseEvent) => {
+        if(isCopyMode){
+            // e.stopPropagation();
+            setCopyContent(text);
+        }
+    };
     return text === undefined ? (
         <div />
     ) : (
@@ -90,6 +98,7 @@ const TranslatableLine = ({
                 className={cn(
                     'flex flex-wrap justify-center items-end w-0 flex-1 px-10 pt-2.5 pb-2.5 gap-x-2 gap-y-1'
                 )}
+                onClick={(e)=>handleLineClick(e)}
             >
                 {sentenceStruct?.blocks.map((block, blockIndex) => {
                     return (
