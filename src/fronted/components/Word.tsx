@@ -87,15 +87,16 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     }, [hovered, requestPop]);
 
     const handleWordClick = async (e:React.MouseEvent) => {
+        if(isCopyMode){
+            e.stopPropagation();
+            setCopyContent(word);
+            return;
+        }
         const url = ydResp?.speakUrl;
         if (strNotBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);
-        }
-        if(isCopyMode){
-            e.stopPropagation();
-            setCopyContent(word);
         }
     };
 

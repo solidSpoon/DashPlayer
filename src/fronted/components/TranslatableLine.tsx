@@ -50,7 +50,7 @@ const TranslatableLine = ({
     };
     const handleLineClick = async (e:React.MouseEvent) => {
         if(isCopyMode){
-            // e.stopPropagation();
+            e.stopPropagation();
             setCopyContent(text);
         }
     };
