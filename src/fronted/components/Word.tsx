@@ -46,7 +46,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const pause = usePlayerController((s) => s.pause);
     const [hovered, setHovered] = useState(false);
-    const {data: ydResp} = useSWR(hovered ? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
+    const {data: ydResp} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
@@ -87,15 +87,16 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     }, [hovered, requestPop]);
 
     const handleWordClick = async (e:React.MouseEvent) => {
+        if(isCopyMode){
+            e.stopPropagation();
+            setCopyContent(word);
+            return;
+        }
         const url = ydResp?.speakUrl;
         if (strNotBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);
-        }
-        if(isCopyMode){
-            e.stopPropagation();
-            setCopyContent(word);
         }
     };
 
@@ -115,7 +116,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                     }
                 }}
             >
-                {pop && hovered && ydResp ? (
+                {pop && hovered && ydResp && !isCopyMode? (
                     <WordPop
                         word={word}
                         translation={ydResp}
