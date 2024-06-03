@@ -10,11 +10,12 @@
         <download-title>Get DashPlayer</download-title>
         <download-page>https://github.com/solidSpoon/DashPlayer</download-page>
         <showDownloadButton>true</showDownloadButton>
+        <noindex-content>false</noindex-content>
     </variables>
 
     <build-profile instance="dp"/>
-        <footer>
-            <link href="https://github.com/solidSpoon/DashPlayer">GitHub</link>
-        </footer>
+    <footer>
+        <link href="https://github.com/solidSpoon/DashPlayer">GitHub</link>
+    </footer>
 
 </buildprofiles>
