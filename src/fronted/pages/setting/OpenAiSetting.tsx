@@ -60,6 +60,11 @@ const OpenAiSetting = () => {
                         <DropdownMenuContent>
                             <DropdownMenuItem
                                 onClick={() => {
+                                    setSettingFunc('model.gpt.default')('gpt-4o-mini');
+                                }}
+                            >gpt-4o-mini (Recommend)</DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => {
                                     setSettingFunc('model.gpt.default')('gpt-4o');
                                 }}
                             >gpt-4o</DropdownMenuItem>
