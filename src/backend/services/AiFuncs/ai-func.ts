@@ -57,8 +57,10 @@ export default class AiFunc {
             function_call: {name: "extractor"},
         })
         const prompt: ChatPromptTemplate = ChatPromptTemplate.fromTemplate(promptStr);
+
+        // todo: fix the type
         const chain = prompt
-            .pipe(runnable)
+            .pipe(runnable as any)
             .pipe(parser);
         DpTaskService.update({
             id: taskId,

@@ -140,7 +140,7 @@ export const getDpTask = async (taskId: number | null | undefined): Promise<DpTa
     return task;
 };
 
-export const getDpTaskResult = async <T>(taskId: number | null | undefined): Promise<T | null> => {
+export const getDpTaskResult = async <T>(taskId: number | null | undefined, isString = false): Promise<T | null> => {
     if (taskId === null || taskId === undefined) {
         return null;
     }
@@ -149,6 +149,9 @@ export const getDpTaskResult = async <T>(taskId: number | null | undefined): Pro
         return null;
     }
     try {
+        if (isString) {
+            return task.result as unknown as T;
+        }
         return JSON.parse(task.result);
     } catch (e) {
         console.error(e);

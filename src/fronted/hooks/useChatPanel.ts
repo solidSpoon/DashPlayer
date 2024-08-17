@@ -36,10 +36,10 @@ export type Topic = {
 } | 'offscreen';
 
 export type Tasks = {
-    vocabularyTask: number | 'init' | 'done';
-    phraseTask: number | 'init' | 'done';
-    grammarTask: number | 'init' | 'done';
-    sentenceTask: number | 'init' | 'done';
+    vocabularyTask: number | null;
+    phraseTask: number | null;
+    grammarTask: number | null;
+    sentenceTask: number[];
     chatTask: CustomMessage<any> | 'done';
 }
 
@@ -123,10 +123,10 @@ const empty = (): ChatPanelState => {
             newSentenceHistory: []
         },
         tasks: {
-            vocabularyTask: 'init',
-            phraseTask: 'init',
-            grammarTask: 'init',
-            sentenceTask: 'init',
+            vocabularyTask: null,
+            phraseTask: null,
+            grammarTask: null,
+            sentenceTask: [],
             chatTask: 'done'
         },
         topic: 'offscreen',
@@ -369,29 +369,19 @@ const useChatPanel = create(
         },
         retry: async (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' | 'welcome') => {
             if (type === 'vocabulary') {
-                get().setTask({
-                    ...get().tasks,
-                    vocabularyTask: 'init'
-                });
                 runVocabulary().then();
             }
             if (type === 'phrase') {
-                get().setTask({
-                    ...get().tasks,
-                    phraseTask: 'init'
-                });
                 runPhrase().then();
             }
             if (type === 'grammar') {
-                get().setTask({
-                    ...get().tasks,
-                    grammarTask: 'init'
-                });
                 runGrammar().then();
             }
             if (type === 'topic') {
                 const msg = get().messages[0].copy() as HumanTopicMessage;
-                msg.phraseGroupTask = await api.call('ai-func/phrase-group', msg.content);
+                msg.phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', msg.content), {
+                    interval: 100
+                });
                 // set 0
                 const newMessages = [...get().messages];
                 newMessages[0] = msg;
@@ -402,21 +392,21 @@ const useChatPanel = create(
             if (type === 'welcome') {
                 const msg = get().messages[1].copy() as AiWelcomeMessage;
                 const ct = usePlayerController.getState().currentSentence;
-                const polishTask = await api.call('ai-func/polish', msg.originalTopic);
-                const punctuationTask = await api.call('ai-func/punctuation', {
+                const polishTask = await registerDpTask(() => api.call('ai-func/polish', msg.originalTopic), {
+                    interval: 100
+                });
+                const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
                     no: ct.indexInFile,
                     srt: msg.originalTopic
+                }), {
+                    interval: 100
                 });
                 msg.polishTask = polishTask;
                 msg.punctuationTask = punctuationTask;
-
+                // todo
             }
             if (type === 'sentence') {
-                // get().internal.newSentenceHistory.push(get().newSentence);
-                get().setTask({
-                    ...get().tasks,
-                    sentenceTask: 'init'
-                });
+                runSentence(true).then();
             }
         },
         ctxMenuQuote: () => {
@@ -491,68 +481,62 @@ const extractTopic = (t: Topic): string => {
 
 
 const runVocabulary = async () => {
-    let tId = useChatPanel.getState().tasks.vocabularyTask;
-    if (tId === 'init') {
-        tId = await registerDpTask(() => api.call('ai-func/analyze-new-words', extractTopic(useChatPanel.getState().topic)), {
-            interval: 100,
-            onFinish: (res) => {
-                runSentence().then();
-            }
-        });
-        useChatPanel.getState().setTask({
-            ...useChatPanel.getState().tasks,
-            vocabularyTask: tId
-        });
-    }
+    const tId = await registerDpTask(() => api.call('ai-func/analyze-new-words', extractTopic(useChatPanel.getState().topic)), {
+        interval: 100,
+        onFinish: (res) => {
+            runSentence().then();
+        }
+    });
+    useChatPanel.getState().setTask({
+        ...useChatPanel.getState().tasks,
+        vocabularyTask: tId
+    });
 };
 
 const runPhrase = async () => {
-    let tId = useChatPanel.getState().tasks.phraseTask;
-    if (tId === 'init') {
-        tId = await registerDpTask(() => api.call('ai-func/analyze-new-phrases', extractTopic(useChatPanel.getState().topic)), {
-            interval: 100,
-            onFinish: (res) => {
-                runSentence().then();
-            }
-        });
-        useChatPanel.getState().setTask({
-            ...useChatPanel.getState().tasks,
-            phraseTask: tId
-        });
-    }
+    const tId = await registerDpTask(() => api.call('ai-func/analyze-new-phrases', extractTopic(useChatPanel.getState().topic)), {
+        interval: 100,
+        onFinish: (res) => {
+            runSentence().then();
+        }
+    });
+    useChatPanel.getState().setTask({
+        ...useChatPanel.getState().tasks,
+        phraseTask: tId
+    });
+
 };
 
 const runGrammar = async () => {
-    let tId = useChatPanel.getState().tasks.grammarTask;
-    if (tId === 'init') {
-        tId = await registerDpTask(() => api.call('ai-func/analyze-grammars', extractTopic(useChatPanel.getState().topic)), {
-            interval: 100
-        });
-        useChatPanel.getState().setTask({
-            ...useChatPanel.getState().tasks,
-            grammarTask: tId
-        });
-    }
+    const tId = await registerDpTask(() => api.call('ai-func/analyze-grammars', extractTopic(useChatPanel.getState().topic)), {
+        interval: 100
+    });
+    useChatPanel.getState().setTask({
+        ...useChatPanel.getState().tasks,
+        grammarTask: tId
+    });
+
 };
 
 let runSentenceLock = 0;
 
-const runSentence = async () => {
+const runSentence = async (force = false) => {
     const state = useChatPanel.getState();
-    let tId = state.tasks.sentenceTask;
     const wtId = state.tasks.vocabularyTask;
     const ptId = state.tasks.phraseTask;
     const wr = await getDpTaskResult<AiAnalyseNewWordsRes>(typeof wtId === 'number' ? wtId : null);
     const pr = await getDpTaskResult<AiAnalyseNewPhrasesRes>(typeof ptId === 'number' ? ptId : null);
+    console.log('runSentence', wr, pr);
     if (!wr || !pr) return;
     const points = [
-        ...wr?.words ?? [].map(w => w.word),
-        ...pr?.phrases ?? [].map(p => p.phrase)
+        ...(wr?.words ?? []).map(w => w.word),
+        ...(pr?.phrases ?? []).map(p => p.phrase)
     ];
+    console.log('points', points);
     const newLock = (typeof wtId === 'number' ? wtId : 0) + (typeof ptId === 'number' ? ptId : 0);
-    if (tId === 'init' && runSentenceLock !== newLock) {
+    if (runSentenceLock !== newLock || force) {
         runSentenceLock = newLock;
-        tId = await registerDpTask(() => api.call('ai-func/make-example-sentences', {
+        const tId = await registerDpTask(() => api.call('ai-func/make-example-sentences', {
             sentence: extractTopic(useChatPanel.getState().topic),
             point: points
         }), {
@@ -560,7 +544,7 @@ const runSentence = async () => {
         });
         useChatPanel.getState().setTask({
             ...useChatPanel.getState().tasks,
-            sentenceTask: tId
+            sentenceTask: [...useChatPanel.getState().tasks.sentenceTask, tId]
         });
     }
 };
