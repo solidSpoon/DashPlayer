@@ -15,11 +15,9 @@ import { Button } from '@/fronted/components/ui/button';
 import useConvert from '@/fronted/hooks/useConvert';
 import { useShallow } from 'zustand/react/shallow';
 import Util, { emptyFunc } from '@/common/utils/Util';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { ConvertResult } from '@/common/types/tonvert-type';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import { ErrorBoundary } from 'react-error-boundary';
-import FallBack from '@/fronted/components/FallBack';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 
 const api = window.electron;
 
@@ -49,7 +47,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
         taskId: s.tasks.get(file),
         convert: s.convert
     })));
-    const dpTask = useDpTaskViewer(taskId);
+    const { task: dpTask } = useDpTaskViewer(taskId);
     const progress = Util.strNotBlank(dpTask?.result) ? JSON.parse(dpTask.result) : {
         progress: 0,
         path: file

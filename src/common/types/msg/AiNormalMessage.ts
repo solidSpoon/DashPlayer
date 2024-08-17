@@ -29,6 +29,10 @@ class AiNormalMessage implements CustomMessage<AiNormalMessage> {
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [this.taskId];
+    }
 }
 
 export default AiNormalMessage;

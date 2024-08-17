@@ -6,9 +6,9 @@ import {DpTaskState} from '@/backend/db/tables/dpTask';
 import useSWR from 'swr';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
 import Util from "@/common/utils/Util";
 import toast from "react-hot-toast";
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 
 export interface TranscriptItemProps {
     file: string;
@@ -21,7 +21,7 @@ const api = window.electron;
 
 const TranscriptItem = ({file, taskId, onStart, onDelete}: TranscriptItemProps) => {
     const [started, setStarted] = React.useState(false);
-    const task = useDpTaskViewer(taskId);
+    const { task } = useDpTaskViewer(taskId);
     const {data: fInfo} = useSWR(['system/path-info', file], ([_k, f]) => api.call('system/path-info', f), {
         fallbackData: {
             baseName: '',

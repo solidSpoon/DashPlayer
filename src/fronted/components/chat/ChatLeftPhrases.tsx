@@ -6,14 +6,14 @@ import useChatPanel from "@/fronted/hooks/useChatPanel";
 import { RefreshCcw } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
-import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 
 const ChatLeftPhrases = ({ className}: {
     className: string,
 }) => {
     const tid = useChatPanel(state => state.tasks.phraseTask);
-    const {detail} = useDpTaskViewer2<AiAnalyseNewPhrasesRes>(typeof tid === 'number' ? tid : null);
+    const {detail} = useDpTaskViewer<AiAnalyseNewPhrasesRes>(typeof tid === 'number' ? tid : null);
     const retry = useChatPanel(state => state.retry);
     return (
         <div className={cn('flex flex-col', className)}>

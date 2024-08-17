@@ -21,9 +21,9 @@ import useTranscript from '@/fronted/hooks/useTranscript';
 import useFile from '@/fronted/hooks/useFile';
 import { strBlank } from '@/common/utils/Util';
 import { useLocalStorage } from '@uidotdev/usehooks';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 
 const api = window.electron;
 
@@ -33,7 +33,7 @@ const getShortcut = (key: SettingKey) => {
 
 const Transcript = () => {
     const [taskId, setTaskId] = useLocalStorage<null | number>('control-box-transcript-task-id', null);
-    const task = useDpTaskViewer(taskId);
+    const { task } = useDpTaskViewer(taskId);
 
     const duration = new Date().getTime() - TimeUtil.isoToDate(task?.created_at).getTime();
     const inProgress = (task?.status ?? DpTaskState.DONE) === DpTaskState.IN_PROGRESS;

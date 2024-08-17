@@ -6,7 +6,7 @@ import Md from '@/fronted/components/chat/markdown';
 import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
-import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 
 const ChatLeftGrammers = ({ className }: {
@@ -14,7 +14,7 @@ const ChatLeftGrammers = ({ className }: {
 }) => {
     const retry = useChatPanel(state => state.retry);
     const tid = useChatPanel(state => state.tasks.grammarTask);
-    const {detail} = useDpTaskViewer2<AiAnalyseGrammarsRes>(typeof tid === 'number' ? tid : null);
+    const {detail} = useDpTaskViewer<AiAnalyseGrammarsRes>(typeof tid === 'number' ? tid : null);
     console.log('detail', detail);
     return (
         <div className={cn('flex flex-col', className)}>

@@ -4,11 +4,11 @@ import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { Button } from '@/fronted/components/ui/button';
 import { ChevronsDown } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
-import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
 
 const SentencesPart = ({ tid }: { tid: number }) => {
-    const { detail } = useDpTaskViewer2<AiMakeExampleSentencesRes>(typeof tid === 'number' ? tid : null);
+    const { detail } = useDpTaskViewer<AiMakeExampleSentencesRes>(typeof tid === 'number' ? tid : null);
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
     return <>
         {detail?.sentences?.map((s, i) => (

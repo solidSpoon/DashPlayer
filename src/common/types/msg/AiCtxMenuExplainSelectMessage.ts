@@ -49,4 +49,8 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [this.taskId];
+    }
 }

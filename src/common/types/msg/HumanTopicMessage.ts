@@ -33,6 +33,10 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [this.phraseGroupTask];
+    }
 }
 
 export default HumanTopicMessage;

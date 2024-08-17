@@ -27,6 +27,10 @@ class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [];
+    }
 }
 
 

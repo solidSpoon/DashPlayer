@@ -44,4 +44,8 @@ export default class AiCtxMenuPolishMessage implements CustomMessage<AiCtxMenuPo
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [this.taskId];
+    }
 }

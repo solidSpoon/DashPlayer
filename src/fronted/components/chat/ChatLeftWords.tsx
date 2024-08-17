@@ -7,8 +7,6 @@ import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
-import { number } from 'zod';
-import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
 import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
 
 const ChatLeftWords = ({ className }: {
@@ -16,7 +14,7 @@ const ChatLeftWords = ({ className }: {
 }) => {
     const tid = useChatPanel(state => state.tasks.vocabularyTask);
 
-    const { detail } = useDpTaskViewer2<AiAnalyseNewWordsRes>(typeof tid === 'number' ? tid : null);
+    const { detail } = useDpTaskViewer<AiAnalyseNewWordsRes>(typeof tid === 'number' ? tid : null);
     const retry = useChatPanel(state => state.retry);
     return (
 

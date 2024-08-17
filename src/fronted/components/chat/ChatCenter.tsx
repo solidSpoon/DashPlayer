@@ -20,6 +20,8 @@ import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMenuExplainSelectMsg';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import { useShallow } from 'zustand/react/shallow';
+import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
+import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 
 const ChatCenter = () => {
     const {messages, streamingMessage, sent, input, setInput} = useChatPanel(useShallow(s=> ({
@@ -51,6 +53,14 @@ const ChatCenter = () => {
         }
     }
 
+    const taskIds = messages.flatMap((msg) => msg.getTaskIds());
+    const hasUnFinishedTask: boolean = useDpTaskCenter((s) => {
+        const ts: DpTask[] = taskIds.map(taskId => s.tasks.get(taskId))
+            .filter((task): task is DpTask => task && task !== 'init');
+        return ts.filter(task => (task?.status??DpTaskState.DONE)  !== DpTaskState.DONE)
+            .length > 0;
+    });
+    console.log('hasUnFinishedTask', hasUnFinishedTask);
 
     return (
         <div
@@ -88,6 +98,7 @@ const ChatCenter = () => {
                         }}
                         placeholder="Type your message here."/>
                     <Button
+                        disabled={hasUnFinishedTask}
                         onClick={async () => {
                             sent(input.trim());
                             setInput('');

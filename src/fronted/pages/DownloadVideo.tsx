@@ -5,7 +5,6 @@ import {Input} from '@/fronted/components/ui/input';
 import {Button} from '@/fronted/components/ui/button';
 import {strNotBlank} from '@/common/utils/Util';
 import {useLocalStorage} from '@uidotdev/usehooks';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import toast from 'react-hot-toast';
 import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
@@ -21,6 +20,7 @@ import {
 } from "@/fronted/components/ui/dropdown-menu";
 import useTranscript from "@/fronted/hooks/useTranscript";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
+import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 
 const api = window.electron;
 
@@ -35,7 +35,7 @@ function extracted(dpTask: DpTask): DlProgress {
 const DownloadVideo = () => {
 
     const [taskId, setTaskId] = useLocalStorage<number>('download-video-task-id', null);
-    const dpTask = useDpTaskViewer(taskId);
+    const { task: dpTask } = useDpTaskViewer(taskId);
     console.log('task', dpTask);
     const [url, setUrl] = useLocalStorage('download-video-url', '');
     const consoleRef = React.useRef<HTMLPreElement>(null);

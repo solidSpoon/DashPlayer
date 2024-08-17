@@ -40,7 +40,6 @@ export type Tasks = {
     phraseTask: number | null;
     grammarTask: number | null;
     sentenceTask: number[];
-    chatTask: CustomMessage<any> | 'done';
 }
 
 const undoRedo = new UndoRedo<ChatPanelState>();
@@ -51,7 +50,6 @@ export type ChatPanelState = {
             time: number;
         }
         chatTaskQueue: CustomMessage<any>[];
-        newSentenceHistory: AiMakeExampleSentencesRes[];
     }
     tasks: Tasks;
     topic: Topic
@@ -91,16 +89,12 @@ const copy = (state: ChatPanelState): ChatPanelState => {
                 ...state.internal.context
             },
             chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy()),
-            newSentenceHistory: state.internal.newSentenceHistory.map(e => ({
-                ...e
-            }))
         },
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
             phraseTask: state.tasks.phraseTask,
             grammarTask: state.tasks.grammarTask,
             sentenceTask: state.tasks.sentenceTask,
-            chatTask: state.tasks.chatTask
         },
         topic: state.topic,
         messages: state.messages,
@@ -120,14 +114,12 @@ const empty = (): ChatPanelState => {
                 time: 0
             },
             chatTaskQueue: [],
-            newSentenceHistory: []
         },
         tasks: {
             vocabularyTask: null,
             phraseTask: null,
             grammarTask: null,
             sentenceTask: [],
-            chatTask: 'done'
         },
         topic: 'offscreen',
         messages: [],

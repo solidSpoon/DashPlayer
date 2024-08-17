@@ -45,4 +45,8 @@ export default class AiCtxMenuExplainSelectWithContextMessage implements CustomM
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [this.taskId];
+    }
 }

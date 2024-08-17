@@ -9,6 +9,8 @@ export default interface CustomMessage<T> {
     copy(): T;
 
     getTopic(): Topic;
+
+    getTaskIds(): number[];
 }
 
 export type MsgType =

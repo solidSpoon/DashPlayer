@@ -99,6 +99,10 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     getTopic(): Topic {
         return this.topic;
     }
+
+    getTaskIds(): number[] {
+        return [this.polishTask, this.translateTask, this.punctuationTask].filter(t => t !== null);
+    }
 }
 
 export default AiWelcomeMessage;
