@@ -72,7 +72,7 @@ export default class AiFuncService {
         sentence = sentence.replaceAll(/\n/g, ' ');
         const promptStr = AiAnalyseGrammarsPrompt.promptFunc(sentence);
         console.log('promptStr', promptStr);
-        await ChatService.chat(taskId, [new HumanMessage(promptStr)]);
+        await AiFunc.run(taskId, AiAnalyseGrammarsPrompt.schema, promptStr);
     }
 
     public static async makeSentences(taskId: number, sentence: string, point: string[]) {

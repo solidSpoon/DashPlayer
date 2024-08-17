@@ -1,19 +1,18 @@
-import {z, ZodObject} from "zod";
-import {zodToJsonSchema} from "zod-to-json-schema";
-import {JsonOutputFunctionsParser} from "langchain/output_parsers";
-import {ChatOpenAI} from "@langchain/openai";
-import {ChatPromptTemplate} from "@langchain/core/prompts";
-import DpTaskService from "@/backend/services/DpTaskService";
-import {DpTaskState} from "@/backend/db/tables/dpTask";
-import Util, {joinUrl, strBlank} from "@/common/utils/Util";
-import {storeGet} from "@/backend/store";
-import RateLimiter from "@/common/utils/RateLimiter";
-import type { BaseMessage } from '@langchain/core/dist/messages';
+import { ZodObject } from 'zod';
+import { ChatOpenAI } from '@langchain/openai';
+import DpTaskService from '@/backend/services/DpTaskService';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
+import Util, { joinUrl, strBlank } from '@/common/utils/Util';
+import { storeGet } from '@/backend/store';
+import RateLimiter from '@/common/utils/RateLimiter';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { JsonOutputFunctionsParser } from 'langchain/output_parsers';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export default class AiFunc {
     private static async validKey(taskId: number, apiKey: string, endpoint: string) {
         if (strBlank(apiKey) || strBlank(endpoint)) {
-            await DpTaskService.update({
+            DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
                 progress: 'OpenAI api key or endpoint is empty'
@@ -29,7 +28,7 @@ export default class AiFunc {
         if (!await this.validKey(taskId, apiKey, endpoint)) return null;
         let model = storeGet('model.gpt.default');
         if (Util.strBlank(model)) {
-            model = 'gpt-3.5-turbo';
+            model = 'gpt-4o-mini';
         }
         console.log(apiKey, endpoint);
         return new ChatOpenAI({
@@ -61,7 +60,7 @@ export default class AiFunc {
         const chain = prompt
             .pipe(runnable)
             .pipe(parser);
-        await DpTaskService.update({
+        DpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: 'AI is analyzing...'
@@ -69,55 +68,14 @@ export default class AiFunc {
 
         const resStream = await chain.stream({});
         for await (const chunk of resStream) {
-            await DpTaskService.update({
+            DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.IN_PROGRESS,
                 progress: 'AI responseing',
                 result: JSON.stringify(chunk)
             });
         }
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
-        });
-    }
-
-    public static async run2(taskId: number, resultSchema: ZodObject<any>, promptStr: BaseMessage[]) {
-        await RateLimiter.wait('gpt');
-        const extractionFunctionSchema = {
-            name: "extractor",
-            description: "Extracts fields from the input.",
-            parameters: zodToJsonSchema(resultSchema),
-        };
-        // Instantiate the parser
-        const parser = new JsonOutputFunctionsParser();
-        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
-        if (!chat) return;
-        const runnable = chat.bind({
-            functions: [extractionFunctionSchema],
-            function_call: {name: "extractor"},
-        })
-        const prompt: ChatPromptTemplate = ChatPromptTemplate.fromMessages(promptStr);
-        const chain = prompt
-            .pipe(runnable)
-            .pipe(parser);
-        await DpTaskService.update({
-            id: taskId,
-            status: DpTaskState.IN_PROGRESS,
-            progress: 'AI is analyzing...'
-        });
-
-        const resStream = await chain.stream({});
-        for await (const chunk of resStream) {
-            await DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
-        }
-        await DpTaskService.update({
+        DpTaskService.update({
             id: taskId,
             status: DpTaskState.DONE,
             progress: 'AI has responded',

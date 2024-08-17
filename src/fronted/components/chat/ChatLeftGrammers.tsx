@@ -28,9 +28,10 @@ const ChatLeftGrammers = ({ className }: {
                 <CardContent>
                     {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
                         className={'h-6 mt-2'} /></>}
-                    {res && (
+                    {res?.hasGrammar}
+                    {res?.hasGrammar && (
                         <Md>
-                            {res}
+                            {res?.grammarsMd}
                         </Md>
                     )}
                 </CardContent>

@@ -7,7 +7,6 @@ import UndoRedo from '@/common/utils/UndoRedo';
 import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
 import {engEqual, p, sleep, strBlank, strNotBlank} from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
-import {AiAnalyseGrammarsRes} from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
@@ -19,6 +18,7 @@ import {getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import UrlUtil from '@/common/utils/UrlUtil';
+import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 
 const api = window.electron;
 
@@ -58,7 +58,7 @@ export type ChatPanelState = {
     topic: Topic
     newVocabulary: AiAnalyseNewWordsRes;
     newPhrase: AiAnalyseNewPhrasesRes;
-    newGrammar: string;
+    newGrammar: AiAnalyseGrammarsRes;
     newSentence: AiMakeExampleSentencesRes;
     messages: CustomMessage<any>[];
     streamingMessage: CustomMessage<any> | null;
@@ -522,8 +522,9 @@ const runGrammar = async () => {
     const tRes: DpTask = await api.call('dp-task/detail', tId);
     if (tRes.status === DpTaskState.IN_PROGRESS || tRes.status === DpTaskState.DONE) {
         if (!tRes.result) return;
+        const res = JSON.parse(tRes.result) as AiAnalyseGrammarsRes;
         useChatPanel.setState({
-            newGrammar: tRes.result
+            newGrammar: res
         });
     }
     if (tRes.status === DpTaskState.DONE) {
