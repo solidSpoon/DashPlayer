@@ -3,8 +3,12 @@ import {IconOpenAI} from "@/fronted/components/chat/icons";
 import Md from '@/fronted/components/chat/markdown';
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import MsgDelete from '@/fronted/components/chat/msg/MsgDelete';
+import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
 
 export function AiNormalMsg({msg}: { msg: AiNormalMessage }) {
+
+  const {detail: content}= useDpTaskViewer2<string>(msg.taskId, true);
+
     return (
         <div className={cn('group relative flex items-start')}>
             <MsgDelete msg={msg}/>
@@ -14,7 +18,7 @@ export function AiNormalMsg({msg}: { msg: AiNormalMessage }) {
             </div>
             <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
                 <Md>
-                    {msg.content}
+                    {content}
                 </Md>
             </div>
         </div>

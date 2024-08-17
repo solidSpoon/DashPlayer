@@ -6,11 +6,14 @@ import useChatPanel from "@/fronted/hooks/useChatPanel";
 import { RefreshCcw } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
+import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
+import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 
 const ChatLeftPhrases = ({ className}: {
     className: string,
 }) => {
-    const res = useChatPanel(state => state.newPhrase);
+    const tid = useChatPanel(state => state.tasks.phraseTask);
+    const {detail} = useDpTaskViewer2<AiAnalyseNewPhrasesRes>(typeof tid === 'number' ? tid : null);
     const retry = useChatPanel(state => state.retry);
     return (
         <div className={cn('flex flex-col', className)}>
@@ -24,7 +27,7 @@ const ChatLeftPhrases = ({ className}: {
                     {/*<CardDescription>Manage player settings and behavior</CardDescription>*/}
                 </CardHeader>
                 <CardContent>
-                    {res?.hasPhrase && res?.phrases?.map((word, i) => (
+                    {detail?.hasPhrase && detail?.phrases?.map((word, i) => (
                         <div key={i} className="flex flex-col items-start px-4 py-2">
                             <div className="flex flex-col items-start">
                                 <Playable className={cn('text-base font-medium leading-none')}>{word.phrase}</Playable>
@@ -32,8 +35,8 @@ const ChatLeftPhrases = ({ className}: {
                             </div>
                         </div>
                     ))}
-                    {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton className={'h-6 mt-2'} /></>}
-                    {res && !res.hasPhrase && <div className="text-lg text-gray-700">没有短语</div>}
+                    {!detail && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton className={'h-6 mt-2'} /></>}
+                    {detail && !detail.hasPhrase && <div className="text-lg text-gray-700">没有短语</div>}
                 </CardContent>
             </Card>
         </div>

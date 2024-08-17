@@ -13,7 +13,7 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
         this.phraseGroupTask = phraseGroupTask;
     }
 
-    public toMsg(): MsgT[] {
+    async toMsg(): Promise<MsgT[]> {
         return [{
             type: "human",
             content: `请帮我分析 "${this.content}"`,

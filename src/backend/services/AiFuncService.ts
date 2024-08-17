@@ -1,20 +1,9 @@
-import {ChatOpenAI} from '@langchain/openai';
-import DpTaskService from '@/backend/services/DpTaskService';
-import {DpTaskState} from '@/backend/db/tables/dpTask';
-import {
-    ChatPromptTemplate,
-} from '@langchain/core/prompts';
 import analyzeWordsPrompt from "@/backend/services/prompts/analyze-word";
 import {z} from "zod";
-import {zodToJsonSchema} from "zod-to-json-schema";
-import {JsonOutputFunctionsParser} from "langchain/output_parsers";
 import exampleSentences from "@/backend/services/prompts/example-sentence";
 import analyzePhrasesPrompt from './prompts/analyze-phrases';
 import synonymousSentence from "@/backend/services/prompts/synonymous-sentence";
-import phraseGroupPrompt from "@/backend/services/prompts/phraseGroupPropmt";
-import promptPunctuation from "@/backend/services/prompts/prompt-punctuation";
 import AiFunc from "@/backend/services/AiFuncs/ai-func";
-import RateLimiter from "@/common/utils/RateLimiter";
 import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
 import { AiAnalyseGrammarsPrompt } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import { AiFuncExplainSelectWithContextPrompt } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';

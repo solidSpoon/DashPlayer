@@ -5,9 +5,11 @@ import Playable from '@/fronted/components/chat/Playable';
 import { strNotBlank } from '@/common/utils/Util';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import MsgDelete from '@/fronted/components/chat/msg/MsgDelete';
+import { AiFuncExplainSelectWithContextRes } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
+import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
 
 export function AiCtxMenuExplainSelectWithContextMsg({ msg }: { msg: AiCtxMenuExplainSelectWithContextMessage }) {
-    const resp = msg.resp;
+    const { detail: resp } = useDpTaskViewer2<AiFuncExplainSelectWithContextRes>(msg.taskId);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     return (
         <div className={cn('group relative flex items-start')}>

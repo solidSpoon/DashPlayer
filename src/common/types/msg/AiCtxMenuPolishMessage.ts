@@ -24,7 +24,7 @@ export default class AiCtxMenuPolishMessage implements CustomMessage<AiCtxMenuPo
 
     msgType: MsgType = 'ai-func-polish';
 
-    toMsg(): MsgT[] {
+    async toMsg(): Promise<MsgT[]> {
         // 根据以上信息编造一个假的回复
         const aiResp = codeBlock`
         好的，这句话可以这样润色：

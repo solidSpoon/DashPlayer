@@ -1,19 +1,21 @@
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import { strBlank } from '@/common/utils/Util';
 import React from 'react';
 import Md from '@/fronted/components/chat/markdown';
 import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
+import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
+import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 
 const ChatLeftGrammers = ({ className }: {
     className: string,
 }) => {
     const retry = useChatPanel(state => state.retry);
-    const res = useChatPanel(state => state.newGrammar);
-    console.log('res', res);
+    const tid = useChatPanel(state => state.tasks.grammarTask);
+    const {detail} = useDpTaskViewer2<AiAnalyseGrammarsRes>(typeof tid === 'number' ? tid : null);
+    console.log('detail', detail);
     return (
         <div className={cn('flex flex-col', className)}>
             <Card className={'shadow-none relative'}>
@@ -26,12 +28,12 @@ const ChatLeftGrammers = ({ className }: {
                     {/*<CardDescription>Manage player settings and behavior</CardDescription>*/}
                 </CardHeader>
                 <CardContent>
-                    {!res && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
+                    {!detail && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
                         className={'h-6 mt-2'} /></>}
-                    {res?.hasGrammar}
-                    {res?.hasGrammar && (
+                    {detail?.hasGrammar}
+                    {detail?.hasGrammar && (
                         <Md>
-                            {res?.grammarsMd}
+                            {detail?.grammarsMd}
                         </Md>
                     )}
                 </CardContent>

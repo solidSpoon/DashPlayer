@@ -11,7 +11,7 @@ class AiStreamMessage implements CustomMessage<AiStreamMessage> {
         this.topic = topic;
     }
 
-    toMsg(): MsgT[] {
+    async toMsg(): Promise<MsgT[]> {
         return [];
     }
 

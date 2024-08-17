@@ -26,7 +26,7 @@ export default class AiCtxMenuExplainSelectWithContextMessage implements CustomM
 
     msgType: MsgType = 'ai-func-explain-select-with-context';
 
-    toMsg(): MsgT[] {
+    async toMsg(): Promise<MsgT[]> {
         // 根据以上信息编造一个假的回复
         const aiResp = codeBlock`
         好的，我来解释一下这句话中的"${this.selected}"。

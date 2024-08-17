@@ -1,13 +1,6 @@
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
 import {MsgT} from "@/common/types/msg/interfaces/MsgT";
-import AiSynonymousSentenceResp from "@/common/types/aiRes/AiSynonymousSentenceResp";
 import {Topic} from "@/fronted/hooks/useChatPanel";
-import AiPunctuationResp from "@/common/types/aiRes/AiPunctuationResp";
-import { AiFuncPolishPrompt, AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
-import {
-    AiFuncTranslateWithContextPrompt,
-    AiFuncTranslateWithContextRes
-} from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 
 
 export interface WelcomeMessageProps {
@@ -30,9 +23,6 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     public punctuationTask: number | null = null;
     public translateTask: number;
     public topic: Topic;
-    public aiFuncPolishTaskRes: AiFuncPolishRes | null = null;
-    public punctuationTaskResp: AiPunctuationResp | null = null;
-    public translateTaskResp: AiFuncTranslateWithContextRes | null = null;
 
     constructor(props: WelcomeMessageProps) {
         this.originalTopic = props.originalTopic;
@@ -42,7 +32,7 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
         this.topic = props.topic;
     }
 
-    public toMsg(): MsgT[] {
+    async toMsg(): Promise<MsgT[]> {
         return [];
     }
 
@@ -55,9 +45,6 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
             topic: this.topic,
             translateTask: this.translateTask,
         });
-        c.aiFuncPolishTaskRes = this.aiFuncPolishTaskRes;
-        c.punctuationTaskResp = this.punctuationTaskResp;
-        c.translateTaskResp = this.translateTaskResp;
         return c;
     }
 

@@ -25,7 +25,7 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
 
     msgType: MsgType = 'ai-func-explain-select';
 
-    toMsg(): MsgT[] {
+    async toMsg(): Promise<MsgT[]> {
         // 根据以上信息编造一个假的回复
         const aiResp = codeBlock`
         好的，我来解释一下这个单词/短语"${this.word}"。

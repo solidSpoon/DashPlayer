@@ -4,13 +4,15 @@ import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/chat/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { strNotBlank } from '@/common/utils/Util';
-import { Button } from '@/fronted/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import useDpTaskViewer2 from '@/fronted/hooks/useDpTaskViewer2';
+import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
+import { AiFuncPunctuationRes } from '@/common/types/aiRes/AiPunctuationResp';
+import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
-    const polishTaskRes = msg.aiFuncPolishTaskRes;
-    const punctuationTaskResp = msg.punctuationTaskResp;
-    const transTaskResp = msg.translateTaskResp;
+    const {detail: polishTaskRes} = useDpTaskViewer2<AiFuncPolishRes>(msg.polishTask);
+    const {detail: punctuationTaskResp} = useDpTaskViewer2<AiFuncPunctuationRes>(msg.punctuationTask);
+    const {detail: transTaskResp} = useDpTaskViewer2<AiFuncTranslateWithContextRes>(msg.translateTask);
     const createTopic = useChatPanel(s => s.createFromSelect);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     const retry = useChatPanel(s => s.retry);
