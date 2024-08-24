@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { engEqual, p, strBlank, strNotBlank } from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
@@ -549,11 +548,17 @@ useChatPanel.subscribe(
             return;
         }
         if (running) return;
-        running = true;
-        await runVocabulary();
-        await runPhrase();
-        await runGrammar();
-        await runSentence();
+        running = true
+        const tasks = useChatPanel.getState().tasks;
+        if (!tasks.vocabularyTask) {
+            await runVocabulary();
+        }
+        if (!tasks.phraseTask) {
+            await runPhrase();
+        }
+        if (!tasks.grammarTask) {
+            await runGrammar();
+        }
         running = false;
     }
 );
