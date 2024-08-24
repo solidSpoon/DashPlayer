@@ -81,9 +81,11 @@ const ControlBox = () => {
     const {
         showEn,
         showCn,
+        syncSide,
         singleRepeat,
         changeShowEn,
         changeShowCn,
+        changeSyncSide,
         changeSingleRepeat,
         autoPause,
         changeAutoPause
@@ -91,9 +93,11 @@ const ControlBox = () => {
         useShallow((s) => ({
             showEn: s.showEn,
             showCn: s.showCn,
+            syncSide: s.syncSide,
             showWordLevel: s.showWordLevel,
             changeShowEn: s.changeShowEn,
             changeShowCn: s.changeShowCn,
+            changeSyncSide: s.changeSyncSide,
             changeShowWordLevel: s.changeShowWordLevel,
             singleRepeat: s.singleRepeat,
             changeSingleRepeat: s.changeSingleRepeat,
@@ -170,6 +174,13 @@ const ControlBox = () => {
                     id: 'showCn',
                     label: '展示中文字幕',
                     tooltip: `快捷键为 ${getShortcut('shortcut.toggleChineseDisplay')}`
+                })}
+                {controlItem({
+                    checked: syncSide,
+                    onCheckedChange: changeSyncSide,
+                    id: 'syncSide',
+                    label: '同步侧边字幕',
+                    tooltip: '隐藏英文字幕时也隐藏侧边字幕，鼠标移动到侧边时显示'
                 })}
                 {controlItem({
                     checked: singleRepeat,

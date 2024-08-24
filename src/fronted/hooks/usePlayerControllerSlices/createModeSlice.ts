@@ -9,10 +9,10 @@ const createModeSlice: StateCreator<
 > = (set, get) => ({
     showEn: true,
     showCn: true,
+    syncSide: false,
     singleRepeat: false,
     autoPause: false,
     showWordLevel: false,
-    popType: 'none',
     changeShowEn: () => set((state) => ({ showEn: !state.showEn })),
     changeShowCn: () => set((state) => ({ showCn: !state.showCn })),
     changeShowEnCn: () =>
@@ -20,6 +20,7 @@ const createModeSlice: StateCreator<
             showEn: !state.showEn,
             showCn: !state.showEn,
         })),
+    changeSyncSide: () => set((state) => ({ syncSide: !state.syncSide })),
     changeSingleRepeat: () =>
         set((state) => ({ singleRepeat: !state.singleRepeat })),
     changeShowWordLevel: () =>

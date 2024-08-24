@@ -36,7 +36,6 @@ export interface PlayerSlice {
     duration: number;
     seekTime: SeekAction;
     playbackRate: number;
-    // rateStack: number[];
 
     setMuted: (muted: boolean) => void;
     setVolume: (volume: number) => void;
@@ -70,6 +69,7 @@ export interface WordLevelSlice {
 export interface ModeSlice {
     showEn: boolean;
     showCn: boolean;
+    syncSide: boolean;
     singleRepeat: boolean;
     autoPause: boolean;
     showWordLevel: boolean;
@@ -77,6 +77,7 @@ export interface ModeSlice {
     changeShowEn: () => void;
     changeShowCn: () => void;
     changeShowEnCn: () => void;
+    changeSyncSide: () => void;
     changeSingleRepeat: () => void;
     changeShowWordLevel: () => void;
     changeAutoPause: () => void;
