@@ -1,10 +1,11 @@
-import LocalOssService, { MetaData } from '@/backend/services/LocalOssService';
+import LocalOssService from '@/backend/services/LocalOssService';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import Util from '@/common/utils/Util';
 import hash from 'object-hash';
 import { app } from 'electron';
 import FfmpegService from '@/backend/services/FfmpegService';
 import path from 'path';
+import { MetaData } from '@/common/types/OssObject';
 
 export default class FavoriteClipsService {
 

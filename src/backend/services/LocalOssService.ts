@@ -1,28 +1,9 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 import { app } from 'electron';
-
-export type MetaData = {
-    "key": string;
-    /**
-     * 视频名
-     */
-    "video_name": string;
-    /**
-     * 创建时间
-     */
-    "created_at": number;
-    "start_time": number,
-    "end_time": number,
-    /**
-     * 对应字幕文件的片段
-     */
-    "srt_clip": string;
-    /**
-     * 字幕文件中台词部分（不包括时间）
-     */
-    "srt_str": string;
-}
+import { MetaData, OssObject } from '@/common/types/OssObject';
+import Util from '@/common/utils/Util';
+import FfmpegService from '@/backend/services/FfmpegService';
 
 class LocalOssService {
 
@@ -30,15 +11,27 @@ class LocalOssService {
         return path.join(app.getPath('downloads'), 'favorite_clips');
     }
 
-
-    public static async put(key: string, clipPath: string, metadata: MetaData) {
+    public static async put(key: string, sourcePath: string, metadata: MetaData) {
         const clipDir = path.join(this.getBasePath(), key);
 
         try {
             fs.mkdirSync(clipDir, { recursive: true });
-            fs.copyFileSync(clipPath, path.join(clipDir, 'clip.mp4'));
+            const clipPath = path.join(clipDir, 'clip.mp4');
+            fs.copyFileSync(sourcePath, clipPath);
+            // 生成缩略图
+            const thumbnailPath = path.join(clipDir, 'thumbnail.jpg');
+            await FfmpegService.thumbnail({
+                inputFile: sourcePath,
+                outputFileName: 'thumbnail.jpg',
+                outputFolder: clipDir,
+                time: 10 // 可以设置为视频中的特定时间点
+            });
             const metadataPath = path.join(clipDir, 'metadata.json');
-            fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+            fs.writeFileSync(metadataPath, JSON.stringify({
+                ...metadata,
+                thumbnailPath,
+                clipPath
+            }, null, 2));
         } catch (error) {
             console.error("Error adding video clip:", error);
             throw error;
@@ -55,32 +48,30 @@ class LocalOssService {
         }
     }
 
-    public static async get(key: string) {
+    public static async get(key: string): Promise<OssObject> {
         const clipDir = path.join(this.getBasePath(), key);
         try {
             const metadataPath = path.join(clipDir, 'metadata.json');
             const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             const clipPath = path.join(clipDir, 'clip.mp4');
-            return { metadata, clipPath };
+            return {key, ...metadata, clipPath, thumbnailPath: ''};
         } catch (error) {
             console.error("Error retrieving video clip:", error);
             throw error;
         }
     }
 
-    public static async search(searchStr: string) {
+    public static async search(searchStr: string) : Promise<OssObject[]> {
         const results = [];
-        const keys = fs.readdirSync(this.getBasePath());
-
+        const keys = fs.readdirSync(this.getBasePath()).filter(key => !key.startsWith('.'));
         for (const key of keys) {
             const metadataPath = path.join(this.getBasePath(), key, 'metadata.json');
             const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-            if (metadata.video_name.includes(searchStr) || metadata.srt_str.includes(searchStr)) {
+            if (Util.strBlank(searchStr) || metadata.video_name.includes(searchStr) || metadata.srt_str.includes(searchStr)) {
                 const clipPath = path.join(this.getBasePath(), key, 'clip.mp4');
-                results.push({ key, metadata, clipPath });
+                results.push({ key, ...metadata, clipPath , thumbnailPath: ''});
             }
         }
-
         return results;
     }
 }

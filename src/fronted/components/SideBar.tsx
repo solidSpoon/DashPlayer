@@ -5,7 +5,7 @@ import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
-import { Captions, CloudDownload, Rotate3D, Settings, SquareSplitHorizontal, User, Video } from 'lucide-react';
+import { Captions, CloudDownload, Rotate3D, Settings, SquareSplitHorizontal, Star, User, Video } from 'lucide-react';
 
 export interface SideBarProps {
     compact?: boolean;
@@ -67,6 +67,12 @@ const SideBar = ({ compact }: SideBarProps) => {
                     `/player/${videoId}?sideBarAnimation=false`,
                     'player',
                     <Video />
+                )}
+                {item(
+                    'Favorite',
+                    '/favorite',
+                    'favorite',
+                    <Star />
                 )}
                 {item(
                     'Transcript',

@@ -16,6 +16,8 @@ import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
 import { SrtLine } from '@/common/utils/SrtUtil';
 
+import { MetaData, OssObject } from '@/common/types/OssObject';
+
 interface ApiDefinition {
     'eg': { params: string, return: number },
 }
@@ -144,6 +146,7 @@ interface ConvertDef {
 
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine[] }, return: void };
+    'favorite-clips/search': { params: string, return: OssObject[] };
     // 'favorite-clips/delete': { params: string, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }
