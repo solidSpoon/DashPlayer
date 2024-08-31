@@ -10,6 +10,7 @@ import SubtitleController from '@/backend/controllers/SubtitleController';
 import MediaController from "@/backend/controllers/MediaController";
 import DownloadVideoController from "@/backend/controllers/DownloadVideoController";
 import ConvertController from "@/backend/controllers/ConvertController";
+import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 
 
 const controllers: Controller[] = [
@@ -24,6 +25,7 @@ const controllers: Controller[] = [
     new StorageController(),
     new DownloadVideoController(),
     new ConvertController(),
+    new FavoriteClipsController(),
 ]
 
 export default function registerHandler() {

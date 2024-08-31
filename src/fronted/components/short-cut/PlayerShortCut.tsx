@@ -1,17 +1,20 @@
-import {useShallow} from 'zustand/react/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import useSetting from '../../hooks/useSetting';
 import usePlayerController from '../../hooks/usePlayerController';
 import useSubtitleScroll from '../../hooks/useSubtitleScroll';
-import useChatPanel from "@/fronted/hooks/useChatPanel";
-import {useHotkeys} from "react-hotkeys-hook";
+import useChatPanel from '@/fronted/hooks/useChatPanel';
+import { useHotkeys } from 'react-hotkeys-hook';
 import useCopyModeController from '../../hooks/useCopyModeController';
+import useFile from '@/fronted/hooks/useFile';
+import SrtUtil from '@/common/utils/SrtUtil';
 
+const api = window.electron;
 const process = (values: string) => values
     .split(',')
     .map((k) => k.replaceAll(' ', ''))
     .filter((k) => k !== '')
     // remove left right up down space
-    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down')
+    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down');
 export default function PlayerShortCut() {
     const {
         space,
@@ -46,17 +49,17 @@ export default function PlayerShortCut() {
             pause: s.pause
         }))
     );
-    const {onUserFinishScrolling, scrollState} = useSubtitleScroll((s) => ({
+    const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
         onUserFinishScrolling: s.onUserFinishScrolling,
         scrollState: s.scrollState
     }));
 
     const setting = useSetting((s) => s.setting);
-    const {createFromCurrent} = useChatPanel(useShallow((s) => ({
+    const { createFromCurrent } = useChatPanel(useShallow((s) => ({
         createFromCurrent: s.createFromCurrent
     })));
 
-    const {enterCopyMode,exitCopyMode,isCopyMode} = useCopyModeController();
+    const { enterCopyMode, exitCopyMode, isCopyMode } = useCopyModeController();
 
     useHotkeys('left', () => {
         prev();
@@ -77,11 +80,11 @@ export default function PlayerShortCut() {
             onUserFinishScrolling();
         }
     });
-    useHotkeys('space', (e)=>{
+    useHotkeys('space', (e) => {
         e.preventDefault();
         space();
     });
-    useHotkeys('up', (e)=>{
+    useHotkeys('up', (e) => {
         e.preventDefault();
         space();
     });
@@ -129,12 +132,18 @@ export default function PlayerShortCut() {
     });
 
 
-    useHotkeys(process(setting('shortcut.toggleCopyMode')), (ke,he) => {
-        if( ke.type == 'keydown' && !isCopyMode){
+    useHotkeys(process(setting('shortcut.toggleCopyMode')), (ke, he) => {
+        if (ke.type == 'keydown' && !isCopyMode) {
             enterCopyMode();
-        }else if(ke.type == 'keyup' && isCopyMode){
+        } else if (ke.type == 'keyup' && isCopyMode) {
             exitCopyMode();
         }
-    },{keyup:true,keydown:true});
+    }, { keyup: true, keydown: true });
+    useHotkeys('l', async () => {
+        const videoPath = useFile.getState().videoPath;
+        const currentSentence = usePlayerController.getState().currentSentence;
+        const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+        await api.call('favorite-clips/add', { videoPath: videoPath, srtClip: subtitles.map(s => SrtUtil.toSrtLine(s)) });
+    });
     return <></>;
 }

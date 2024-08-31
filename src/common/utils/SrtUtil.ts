@@ -1,4 +1,5 @@
 import Util from '@/common/utils/Util';
+import { Sentence } from '@/common/types/SentenceC';
 
 
 export type SrtLine = {
@@ -96,5 +97,15 @@ export default class SrtUtil {
         }
 
         return srtLines.join('');
+    }
+
+    public static toSrtLine(sentence: Sentence): SrtLine {
+        return {
+            index: sentence.index,
+            start: sentence.originalBegin??sentence.currentBegin,
+            end: sentence.originalEnd??sentence.currentEnd,
+            contentEn: sentence.text,
+            contentZh: sentence.textZH
+        }
     }
 }

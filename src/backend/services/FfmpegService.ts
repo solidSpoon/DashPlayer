@@ -360,5 +360,28 @@ export default class FfmpegService {
         );
         return outputSubtitle;
     }
+
+    /**
+     * 截取视频的一部分并保存到指定路径。
+     * @param {string} inputPath - 原视频文件的路径。
+     * @param {number} startTime - 截取开始时间（秒）。
+     * @param {number} endTime - 截取结束时间（秒）。
+     * @param {string} outputPath - 输出视频文件的路径。
+     */
+    public static async trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string) {
+        const duration = endTime - startTime;
+        await Lock.sync('ffmpeg', async () => {
+            await new Promise((resolve, reject) => {
+                ffmpeg(inputPath)
+                    .setStartTime(startTime)
+                    .setDuration(duration)
+                    .output(outputPath)
+                    .on('end', resolve)
+                    .on('error', reject)
+                    .run();
+            });
+        });
+    }
+
 }
 

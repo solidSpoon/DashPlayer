@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { app } from 'electron';
 
 export type MetaData = {
+    "key": string;
     /**
      * 视频名
      */
@@ -22,44 +24,42 @@ export type MetaData = {
     "srt_str": string;
 }
 
-class FileService {
+class LocalOssService {
 
-    private basePath: string;
-
-    constructor(basePath: string) {
-        this.basePath = basePath;
+    private static getBasePath() {
+        return path.join(app.getPath('downloads'), 'favorite_clips');
     }
 
 
-    async put(key: string, clipPath: string, metadata: MetaData) {
-        const clipDir = path.join(this.basePath, key);
+    public static async put(key: string, clipPath: string, metadata: MetaData) {
+        const clipDir = path.join(this.getBasePath(), key);
 
         try {
-            await fs.mkdir(clipDir, { recursive: true });
-            await fs.copyFile(clipPath, path.join(clipDir, 'clip.mp4'));
+            fs.mkdirSync(clipDir, { recursive: true });
+            fs.copyFileSync(clipPath, path.join(clipDir, 'clip.mp4'));
             const metadataPath = path.join(clipDir, 'metadata.json');
-            await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+            fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
         } catch (error) {
             console.error("Error adding video clip:", error);
             throw error;
         }
     }
 
-    async delete(key: string) {
-        const clipDir = path.join(this.basePath, key);
+    public static async delete(key: string) {
+        const clipDir = path.join(this.getBasePath(), key);
         try {
-            await fs.rm(clipDir, { recursive: true, force: true });
+            fs.rmSync(clipDir, { recursive: true, force: true });
         } catch (error) {
             console.error("Error deleting video clip:", error);
             throw error;
         }
     }
 
-    async get(key: string) {
-        const clipDir = path.join(this.basePath, key);
+    public static async get(key: string) {
+        const clipDir = path.join(this.getBasePath(), key);
         try {
             const metadataPath = path.join(clipDir, 'metadata.json');
-            const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf8'));
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             const clipPath = path.join(clipDir, 'clip.mp4');
             return { metadata, clipPath };
         } catch (error) {
@@ -68,15 +68,15 @@ class FileService {
         }
     }
 
-    async search(searchStr: string) {
+    public static async search(searchStr: string) {
         const results = [];
-        const keys = await fs.readdir(this.basePath);
+        const keys = fs.readdirSync(this.getBasePath());
 
         for (const key of keys) {
-            const metadataPath = path.join(this.basePath, key, 'metadata.json');
-            const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf8'));
+            const metadataPath = path.join(this.getBasePath(), key, 'metadata.json');
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             if (metadata.video_name.includes(searchStr) || metadata.srt_str.includes(searchStr)) {
-                const clipPath = path.join(this.basePath, key, 'clip.mp4');
+                const clipPath = path.join(this.getBasePath(), key, 'clip.mp4');
                 results.push({ key, metadata, clipPath });
             }
         }
@@ -84,3 +84,5 @@ class FileService {
         return results;
     }
 }
+
+export default LocalOssService;

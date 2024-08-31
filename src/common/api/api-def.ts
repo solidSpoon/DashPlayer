@@ -14,6 +14,7 @@ import {
 import { SettingKey } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
+import { SrtLine } from '@/common/utils/SrtUtil';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -141,6 +142,12 @@ interface ConvertDef {
 
 }
 
+interface FavoriteClipsDef {
+    'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine[] }, return: void };
+    // 'favorite-clips/delete': { params: string, return: void };
+    // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -153,7 +160,8 @@ export type ApiDefinitions = ApiDefinition
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & DownloadVideoDef
-    & ConvertDef;
+    & ConvertDef
+    & FavoriteClipsDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {
