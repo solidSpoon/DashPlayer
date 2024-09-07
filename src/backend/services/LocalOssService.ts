@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import { MetaData, OssObject } from '@/common/types/OssObject';
-import Util from '@/common/utils/Util';
 import FfmpegService from '@/backend/services/FfmpegService';
 
 class LocalOssService {
@@ -54,25 +53,12 @@ class LocalOssService {
             const metadataPath = path.join(clipDir, 'metadata.json');
             const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             const clipPath = path.join(clipDir, 'clip.mp4');
-            return {key, ...metadata, clipPath, thumbnailPath: ''};
+            const thumbnailPath = path.join(clipDir, 'thumbnail.jpg');
+            return {key, ...metadata, clipPath, thumbnailPath: thumbnailPath};
         } catch (error) {
             console.error("Error retrieving video clip:", error);
             throw error;
         }
-    }
-
-    public static async search(searchStr: string) : Promise<OssObject[]> {
-        const results = [];
-        const keys = fs.readdirSync(this.getBasePath()).filter(key => !key.startsWith('.'));
-        for (const key of keys) {
-            const metadataPath = path.join(this.getBasePath(), key, 'metadata.json');
-            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-            if (Util.strBlank(searchStr) || metadata.video_name.includes(searchStr) || metadata.srt_str.includes(searchStr)) {
-                const clipPath = path.join(this.getBasePath(), key, 'clip.mp4');
-                results.push({ key, ...metadata, clipPath , thumbnailPath: ''});
-            }
-        }
-        return results;
     }
 }
 

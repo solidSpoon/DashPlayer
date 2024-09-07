@@ -5,7 +5,11 @@ import hash from 'object-hash';
 import { app } from 'electron';
 import FfmpegService from '@/backend/services/FfmpegService';
 import path from 'path';
-import { MetaData } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/OssObject';
+import db from '@/backend/db';
+import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
+import TimeUtil from '@/common/utils/TimeUtil';
+import { eq, like, or } from 'drizzle-orm';
 
 export default class FavoriteClipsService {
 
@@ -16,9 +20,42 @@ export default class FavoriteClipsService {
         const tempName = path.join(folder, key + '.mp4');
         await FfmpegService.trimVideo(videoPath, metaData.start_time, metaData.end_time, tempName);
         await LocalOssService.put(key, tempName, metaData);
+        await this.addToDb(metaData);
     }
 
-    private static extractMetaData(videoName:string, srtClip: SrtLine[]): MetaData {
+    public static async deleteFavoriteClip(key: string): Promise<void> {
+        await db.delete(videoClip).where(eq(videoClip.key, key));
+        await LocalOssService.delete(key);
+    }
+    public static async search(keyword: string): Promise<OssObject[]> {
+         const lines: VideoClip[] = await db
+            .select()
+            .from(videoClip)
+            .where(or(
+                like(videoClip.video_name, `%${keyword}%`),
+                like(videoClip.srt_str, `%${keyword}%`)
+            ));
+        return Promise.all(lines.map((line) => LocalOssService.get(line.key)));
+    }
+
+    private static async addToDb(metaData: MetaData) {
+        await db.insert(videoClip).values({
+            key: metaData.key,
+            video_name: metaData.video_name,
+            srt_str: metaData.srt_str,
+            created_at: TimeUtil.timeUtc(),
+            updated_at: TimeUtil.timeUtc()
+        }).onConflictDoUpdate({
+            target: [videoClip.key],
+            set: {
+                video_name: metaData.video_name,
+                srt_str: metaData.srt_str,
+                updated_at: TimeUtil.timeUtc()
+            }
+        })
+    }
+
+    private static extractMetaData(videoName: string, srtClip: SrtLine[]): MetaData {
 
         const srtStr = SrtUtil.toSrt(srtClip);
         const strClip = srtClip.map((item) =>

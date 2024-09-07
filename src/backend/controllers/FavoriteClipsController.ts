@@ -12,7 +12,7 @@ export default class FavoriteClipsController implements Controller {
     }
 
     public async search(keyword: string):Promise<OssObject[]> {
-        return LocalOssService.search(keyword);
+        return FavoriteClipsService.search(keyword);
     }
 
 
