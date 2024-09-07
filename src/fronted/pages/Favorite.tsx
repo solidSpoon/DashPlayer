@@ -7,8 +7,10 @@ import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import ReactPlayer from 'react-player';
 import { OssObject } from '@/common/types/OssObject';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
-import { Search } from 'lucide-react';
+import { LoaderPinwheel, Search } from 'lucide-react';
 import { Input } from '@/fronted/components/ui/input';
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/fronted/components/ui/hover-card';
 
 const api = window.electron;
 
@@ -20,6 +22,25 @@ interface PlayInfo {
     time: number;
     timeUpdated: number;
 }
+
+const Loader = () => {
+    const unfinishedTasks = useFavouriteClip(state => state.unfinishedTasks);
+    const has = unfinishedTasks.length > 0;
+    return (
+        <HoverCard>
+            <HoverCardTrigger asChild>
+                <LoaderPinwheel
+                    className={cn('mb-1.5 rounded-full p-1 bg-primary',
+                        has ? 'animate-spin text-primary-foreground' : 'hidden'
+                    )}
+                />
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80">
+                {`${unfinishedTasks.length} tasks in progress`}
+            </HoverCardContent>
+        </HoverCard>
+    );
+};
 
 const Favorite = () => {
     const [searchQuery, setSearchQuery] = useState(''); // 新增状态来管理搜索输入
@@ -68,9 +89,13 @@ const Favorite = () => {
                 <h1 className={cn('text-4xl font-bold font-serif')}>
                     Favorite
                 </h1>
-                <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                    Add subtitles to your videos using OpenAI's Whisper Large model
-                </h2>
+                <div className="flex items-center gap-4">
+                    <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
+                        Add subtitles to your videos using OpenAI's Whisper Large model
+                    </h2>
+                    <Loader />
+                </div>
+
                 <Separator orientation="horizontal" className="px-0" />
             </div>
 

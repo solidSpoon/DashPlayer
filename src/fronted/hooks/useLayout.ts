@@ -44,8 +44,8 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         }
     }))
 );
-api.call('system/is-windows', null).then((isWindows) => {
-    if (isWindows) {
+api.call('system/info', null).then((sysInfo) => {
+    if (sysInfo.isWindows) {
         useLayout.setState({titleBarHeight: 28});
     } else {
         useLayout.setState({titleBarHeight: 0});

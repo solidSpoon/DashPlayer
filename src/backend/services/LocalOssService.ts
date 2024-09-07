@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
 import { MetaData, OssObject } from '@/common/types/OssObject';
 import FfmpegService from '@/backend/services/FfmpegService';
+import LocationService, { LocationType } from '@/backend/services/LocationService';
 
 class LocalOssService {
 
     private static getBasePath() {
-        return path.join(app.getPath('downloads'), 'favorite_clips');
+        return LocationService.getStoragePath(LocationType.FAVORITE_CLIPS);
     }
 
     public static async put(key: string, sourcePath: string, metadata: MetaData) {

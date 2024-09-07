@@ -72,7 +72,7 @@ export default class DpTaskService {
     }
 
 
-    public static async create() {
+    public static async create() : Promise<number>{
         const task: DpTask[] = await db
             .insert(dpTask)
             .values({

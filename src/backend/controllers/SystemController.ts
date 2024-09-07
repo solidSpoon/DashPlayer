@@ -19,9 +19,13 @@ function processFilter(filter: string[]) {
         .filter(f => Util.strNotBlank(f))
         .map(f => f.replace(/^\./, ''));
 }
+
 export default class SystemController implements Controller {
-    public async isWindows() {
-        return process.platform === 'win32';
+    public async info() {
+        return {
+            isWindows: process.platform === 'win32',
+            pathSeparator: path.sep
+        };
     }
 
     public async selectFile(filter: string[]): Promise<string[]> {
@@ -90,8 +94,9 @@ export default class SystemController implements Controller {
         await shell.openPath(BASE_PATH);
     }
 
+
     public registerRoutes(): void {
-        registerRoute('system/is-windows', this.isWindows);
+        registerRoute('system/info', this.info);
         registerRoute('system/select-file', this.selectFile);
         registerRoute('system/select-folder', this.selectFolder);
         registerRoute('system/path-info', this.pathInfo);

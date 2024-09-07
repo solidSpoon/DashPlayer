@@ -7,6 +7,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import useCopyModeController from '../../hooks/useCopyModeController';
 import useFile from '@/fronted/hooks/useFile';
 import SrtUtil from '@/common/utils/SrtUtil';
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 
 const api = window.electron;
 const process = (values: string) => values
@@ -143,7 +144,7 @@ export default function PlayerShortCut() {
         const videoPath = useFile.getState().videoPath;
         const currentSentence = usePlayerController.getState().currentSentence;
         const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
-        await api.call('favorite-clips/add', { videoPath: videoPath, srtClip: subtitles.map(s => SrtUtil.toSrtLine(s)) });
+        useFavouriteClip.getState().addClip(videoPath, subtitles.map(s => SrtUtil.toSrtLine(s)));
     });
     return <></>;
 }

@@ -27,5 +27,6 @@ export const SettingKeyObj = {
     'model.gpt.default': 'gpt-4o-mini',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
+    'storage.path': '',
 }
 export type SettingKey = keyof typeof SettingKeyObj;
