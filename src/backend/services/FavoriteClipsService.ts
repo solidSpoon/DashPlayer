@@ -9,7 +9,7 @@ import { MetaData, OssObject } from '@/common/types/OssObject';
 import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { eq, like, or } from 'drizzle-orm';
+import { desc, eq, like, or } from 'drizzle-orm';
 
 export default class FavoriteClipsService {
 
@@ -18,6 +18,9 @@ export default class FavoriteClipsService {
         const key = metaData.key;
         const folder = app.getPath('downloads');
         const tempName = path.join(folder, key + '.mp4');
+        if (await this.isFavoriteClipExist(key)) {
+            return;
+        }
         await FfmpegService.trimVideo(videoPath, metaData.start_time, metaData.end_time, tempName);
         await LocalOssService.put(key, tempName, metaData);
         await this.addToDb(metaData);
@@ -34,7 +37,8 @@ export default class FavoriteClipsService {
             .where(or(
                 like(videoClip.video_name, `%${keyword}%`),
                 like(videoClip.srt_str, `%${keyword}%`)
-            ));
+            ))
+            .orderBy(desc(videoClip.updated_at))
         return Promise.all(lines.map((line) => LocalOssService.get(line.key)));
     }
 
@@ -74,4 +78,8 @@ export default class FavoriteClipsService {
         };
     }
 
+    private static async isFavoriteClipExist(key: string) {
+        return (await db.select().from(videoClip).where(eq(videoClip.key, key)))
+            .length > 0;
+    }
 }

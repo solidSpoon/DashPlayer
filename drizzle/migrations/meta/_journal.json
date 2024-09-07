@@ -29,6 +29,13 @@
       "when": 1714105274431,
       "tag": "0003_freezing_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1725707824953,
+      "tag": "0004_lonely_sugar_man",
+      "breakpoints": true
     }
   ]
 }

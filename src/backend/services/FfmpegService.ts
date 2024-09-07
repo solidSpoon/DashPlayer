@@ -375,9 +375,20 @@ export default class FfmpegService {
                 ffmpeg(inputPath)
                     .setStartTime(startTime)
                     .setDuration(duration)
+                    .audioChannels(1)
+                    .videoCodec('libx265')
+                    .audioCodec('aac')
+                    .audioBitrate('64k')
+                    .outputOptions(['-crf 28','-vf scale=640:-1'])
                     .output(outputPath)
+                    .on('start', function(commandLine) {
+                        console.log('Spawned Ffmpeg with command: ' + commandLine);
+                    })
                     .on('end', resolve)
-                    .on('error', reject)
+                    .on('error', (err) => {
+                        console.error('An error occurred while trimming video:', err);
+                        reject(err);
+                    })
                     .run();
             });
         });
