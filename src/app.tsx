@@ -27,7 +27,7 @@ import Convert from '@/fronted/pages/convert/Convert';
 import { ErrorBoundary } from 'react-error-boundary';
 import FallBack from '@/fronted/components/FallBack';
 import Eb from '@/fronted/components/Eb';
-import Favorite from '@/fronted/pages/Favorite';
+import Favorite from '@/fronted/pages/favourite/Favorite';
 
 const api = window.electron;
 const App = () => {

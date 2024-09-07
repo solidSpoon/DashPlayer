@@ -113,7 +113,7 @@ export default class FavoriteClipsService {
             .from(videoClip)
             .where(or(
                 like(videoClip.video_name, `%${keyword}%`),
-                like(videoClip.srt_context, `%${keyword}%`)
+                like(videoClip.srt_clip, `%${keyword}%`)
             ))
             .orderBy(desc(videoClip.updated_at));
         return Promise.all(lines.map((line) => LocalOssService.get(line.key)));
