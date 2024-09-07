@@ -49,7 +49,7 @@ class SplitVideoService {
                     contentEn: line.contentEn,
                     contentZh: line.contentZh
                 }));
-            const srtContent = SrtUtil.toSrt(lines);
+            const srtContent = SrtUtil.toNewSrt(lines);
             const fileName = srtItem.title.replace(path.extname(videoPath), '.srt');
             fs.writeFileSync(fileName, srtContent);
         }
@@ -105,7 +105,7 @@ class SplitVideoService {
                     contentEn: line.contentEn,
                     contentZh: line.contentZh
                 }));
-            const srtContent = SrtUtil.toSrt(lines);
+            const srtContent = SrtUtil.toNewSrt(lines);
             fs.writeFileSync(srtItem.name, srtContent);
         }
         return folderName;

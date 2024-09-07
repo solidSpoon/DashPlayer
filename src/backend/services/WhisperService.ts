@@ -47,7 +47,7 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
             counter++;
         }
     }
-    return SrtUtil.toSrt(lines);
+    return SrtUtil.toNewSrt(lines);
 }
 
 class WhisperService {

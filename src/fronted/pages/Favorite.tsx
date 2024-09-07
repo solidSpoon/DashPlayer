@@ -131,24 +131,29 @@ const Favorite = () => {
                             <div className="w-0 flex-1 flex flex-col gap h-full overflow-hidden select-text">
                                 <div className={cn('text-base cursor-pointer')}>
                                     {SrtUtil.parseSrt(item.srt_context_with_time)
-                                        .map((line: SrtLine) => {
-                                            const isCurrent = isCurrentVideo(item) && isCurrentLine(line);
+                                        .map((contextLine: SrtLine) => {
+                                            const isCurrent = isCurrentVideo(item) && isCurrentLine(contextLine);
                                             if (isCurrent) {
-                                                lastCurrentLine.current = line;
+                                                lastCurrentLine.current = contextLine;
                                             }
-                                            return (<span key={line.index}
+                                            const [clipLine] = SrtUtil.parseSrt(item.srt_clip_with_time);
+                                            const clipIndex = clipLine?.index ?? -1;
+                                            console.log('clipIndex', clipIndex);
+                                            return (<span key={contextLine.index}
                                                           onClick={() => {
                                                               setPlayInfo({
                                                                   video: item,
-                                                                  time: line.start - item.start_time,
+                                                                  time: contextLine.start - item.start_time,
                                                                   timeUpdated: Date.now()
                                                               });
                                                               setPlay(true);
-                                                              console.log('setPlayInfo', line.start, item.start_time);
+                                                              console.log('setPlayInfo', contextLine.start, item.start_time);
                                                           }}
                                                           className={cn('hover:underline',
-                                                              isCurrent && 'text-primary')}>
-                                                {line.contentEn}
+                                                              isCurrent && 'text-primary',
+                                                              clipIndex === contextLine.index && 'font-bold'
+                                                          )}>
+                                                {contextLine.contentEn}
                                             </span>
                                             );
                                         })}

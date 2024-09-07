@@ -81,7 +81,11 @@ export default class SrtUtil {
         return subtitles;
     }
 
-    public static toSrt(lines: SrtLine[]): string {
+    /**
+     * index 从1开始
+     * @param lines
+     */
+    public static toNewSrt(lines: SrtLine[]): string {
         lines.sort((a, b) => a.start - b.start);
         const srtLines: string[] = [];
         let counter = 1;
@@ -99,9 +103,26 @@ export default class SrtUtil {
         return srtLines.join('');
     }
 
+    /**
+     * index 按照原始的index
+     * @param lines
+     */
+    public static toSrt(lines: SrtLine[]): string {
+        lines.sort((a, b) => a.start - b.start);
+        const srtLines: string[] = []
+        for (const wr of lines) {
+            const startTime = toSrtTimestamp(wr.start);
+            const endTime = toSrtTimestamp(wr.end);
+            const text = wr.contentEn;
+            const srtLine = `${wr.index}\n${startTime} --> ${endTime}\n${text}\n\n`;
+            srtLines.push(srtLine);
+        }
+        return srtLines.join('');
+    }
+
     public static toSrtLine(sentence: Sentence): SrtLine {
         return {
-            index: sentence.index,
+            index: sentence.indexInFile,
             start: sentence.originalBegin??sentence.currentBegin,
             end: sentence.originalEnd??sentence.currentEnd,
             contentEn: sentence.text,

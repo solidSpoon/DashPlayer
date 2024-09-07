@@ -19,11 +19,12 @@ class LocalOssService {
             fs.copyFileSync(sourcePath, clipPath);
             // 生成缩略图
             const thumbnailPath = path.join(clipDir, 'thumbnail.jpg');
+            const length = await FfmpegService.duration(sourcePath);
             await FfmpegService.thumbnail({
                 inputFile: sourcePath,
                 outputFileName: 'thumbnail.jpg',
                 outputFolder: clipDir,
-                time: 10 // 可以设置为视频中的特定时间点
+                time: length / 2
             });
             const metadataPath = path.join(clipDir, 'metadata.json');
             fs.writeFileSync(metadataPath, JSON.stringify({
