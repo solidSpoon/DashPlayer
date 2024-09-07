@@ -150,7 +150,7 @@ interface ConvertDef {
 }
 
 interface FavoriteClipsDef {
-    'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine[] }, return: number };
+    'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine, srtContext: SrtLine[] }, return: number };
     'favorite-clips/search': { params: string, return: OssObject[] };
     // 'favorite-clips/delete': { params: string, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };

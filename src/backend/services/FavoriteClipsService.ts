@@ -19,13 +19,14 @@ export default class FavoriteClipsService {
     private static queue: {
         videoPath: string,
         key: string,
-        srtClip: SrtLine[],
+        srtClip: SrtLine,
+        srtContext: SrtLine[],
         taskId: number | null,
         state: DpTaskState
     }[] = [];
 
-    public static async addFavoriteClipAsync(videoPath: string, srtClip: SrtLine[]): Promise<number> {
-        const key = hash(SrtUtil.toSrt(srtClip));
+    public static async addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number> {
+        const key = hash(SrtUtil.toSrt(srtContext));
         let exist = await this.isFavoriteClipExist(key);
         if (exist) {
             throw new Error(ErrorConstants.CLIP_EXISTS);
@@ -39,6 +40,7 @@ export default class FavoriteClipsService {
             videoPath,
             key: key,
             srtClip,
+            srtContext,
             taskId,
             state: DpTaskState.INIT
         });
@@ -61,7 +63,7 @@ export default class FavoriteClipsService {
                 status: item.state
             });
             try {
-                await this.addFavoriteClip(item.videoPath, item.srtClip);
+                await this.addFavoriteClip(item.videoPath, item.srtClip, item.srtContext);
                 item.state = DpTaskState.DONE;
             } catch (error) {
                 item.state = DpTaskState.FAILED;
@@ -76,15 +78,15 @@ export default class FavoriteClipsService {
     }
 
     static {
-        const func =async () => {
+        const func = async () => {
             await this.checkQueue();
             setTimeout(func, 3000);
-        }
+        };
         func().then();
     }
 
-    private static async addFavoriteClip(videoPath: string, srtClip: SrtLine[]): Promise<void> {
-        const metaData: MetaData = this.extractMetaData(videoPath, srtClip);
+    private static async addFavoriteClip(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<void> {
+        const metaData: MetaData = this.extractMetaData(videoPath, srtClip, srtContext);
         const key = metaData.key;
         const folder = LocationService.getStoragePath(LocationType.TEMP);
         if (!fs.existsSync(folder)) {
@@ -111,7 +113,7 @@ export default class FavoriteClipsService {
             .from(videoClip)
             .where(or(
                 like(videoClip.video_name, `%${keyword}%`),
-                like(videoClip.srt_str, `%${keyword}%`)
+                like(videoClip.srt_context, `%${keyword}%`)
             ))
             .orderBy(desc(videoClip.updated_at));
         return Promise.all(lines.map((line) => LocalOssService.get(line.key)));
@@ -121,35 +123,42 @@ export default class FavoriteClipsService {
         await db.insert(videoClip).values({
             key: metaData.key,
             video_name: metaData.video_name,
-            srt_str: metaData.srt_str,
+            srt_clip: metaData.srt_clip,
+            srt_context: metaData.srt_context,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
         }).onConflictDoUpdate({
             target: [videoClip.key],
             set: {
                 video_name: metaData.video_name,
-                srt_str: metaData.srt_str,
+                srt_clip: metaData.srt_clip,
+                srt_context: metaData.srt_context,
                 updated_at: TimeUtil.timeUtc()
             }
         });
     }
 
-    private static extractMetaData(videoName: string, srtClip: SrtLine[]): MetaData {
+    private static extractMetaData(videoName: string,
+                                   srtClip: SrtLine,
+                                   srtContext: SrtLine[]
+    ): MetaData {
 
-        const srtStr = SrtUtil.toSrt(srtClip);
-        const strClip = srtClip.map((item) =>
-            [item.contentZh, item.contentEn]
-                .filter((item) => Util.strNotBlank(item)).join('\n')
-        ).join('\n');
+        const srtStr = SrtUtil.toSrt(srtContext);
+        const strContextStr = srtContext.map((item) =>
+            item.contentEn
+        ).filter((item) => Util.strNotBlank(item)).join('\n');
+        const srtClipStr = srtClip.contentEn;
 
         return {
             key: hash(srtStr),
             video_name: videoName,
             created_at: Date.now(),
-            start_time: srtClip[0].start ?? 0,
-            end_time: srtClip[srtClip.length - 1].end ?? 0,
-            srt_clip: strClip,
-            srt_str: srtStr
+            start_time: srtContext[0].start ?? 0,
+            end_time: srtContext[srtContext.length - 1].end ?? 0,
+            srt_clip: srtClipStr,
+            srt_clip_with_time: SrtUtil.toSrt([srtClip]),
+            srt_context: strContextStr,
+            srt_context_with_time: srtStr
         };
     }
 

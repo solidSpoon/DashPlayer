@@ -6,9 +6,13 @@ export const videoClip = sqliteTable('dp_video_clip', {
     key: text('key').notNull().unique(),
     video_name: text('video_name'),
     /**
-     * 字幕片段，不包括时间
+     * 收藏的行
      */
-    srt_str: text('srt_str'),
+    srt_clip: text('srt_clip'),
+    /**
+     * 周围的字幕
+     */
+    srt_context: text('srt_context'),
     created_at: text('created_at')
         .notNull()
         .default(sql`CURRENT_TIMESTAMP`),

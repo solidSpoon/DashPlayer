@@ -11,13 +11,15 @@ export interface MetaData {
     'start_time': number,
     'end_time': number,
     /**
-     * 对应字幕文件的片段
+     * 收藏的行
      */
     'srt_clip': string;
+    'srt_clip_with_time': string;
     /**
-     * 字幕文件中台词部分（不包括时间）
+     * 周围的字幕
      */
-    'srt_str': string;
+    'srt_context': string;
+    'srt_context_with_time': string;
 }
 export interface OssObject extends MetaData {
     clipPath: string;

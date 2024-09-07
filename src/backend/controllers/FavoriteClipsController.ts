@@ -6,11 +6,15 @@ import { OssObject } from '@/common/types/OssObject';
 
 export default class FavoriteClipsController implements Controller {
 
-    public async addFavoriteClip({videoPath, srtClip}:{ videoPath: string, srtClip: SrtLine[] }) {
-        return FavoriteClipsService.addFavoriteClipAsync(videoPath, srtClip);
+    public async addFavoriteClip({ videoPath, srtClip, srtContext }: {
+        videoPath: string,
+        srtClip: SrtLine,
+        srtContext: SrtLine[]
+    }) {
+        return FavoriteClipsService.addFavoriteClipAsync(videoPath, srtClip, srtContext);
     }
 
-    public async search(keyword: string):Promise<OssObject[]> {
+    public async search(keyword: string): Promise<OssObject[]> {
         return FavoriteClipsService.search(keyword);
     }
 

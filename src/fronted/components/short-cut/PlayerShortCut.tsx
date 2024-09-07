@@ -144,7 +144,9 @@ export default function PlayerShortCut() {
         const videoPath = useFile.getState().videoPath;
         const currentSentence = usePlayerController.getState().currentSentence;
         const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
-        useFavouriteClip.getState().addClip(videoPath, subtitles.map(s => SrtUtil.toSrtLine(s)));
+        const srtContext = subtitles.map(s => SrtUtil.toSrtLine(s));
+        const srtClip = SrtUtil.toSrtLine(currentSentence);
+        useFavouriteClip.getState().addClip(videoPath, srtClip, srtContext);
     });
     return <></>;
 }

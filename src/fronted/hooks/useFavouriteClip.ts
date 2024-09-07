@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { SrtLine } from '@/common/utils/SrtUtil';
 import { registerDpTask } from '@/fronted/hooks/useDpTaskCenter';
+
 const api = window.electron;
 type UseFavouriteClipState = {
     unfinishedTasks: {
@@ -11,15 +12,19 @@ type UseFavouriteClipState = {
 };
 
 type UseFavouriteClipActions = {
-    addClip: (videoPath: string, srtClip: SrtLine[]) => void;
+    addClip: (videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]) => void;
     finishTask: (taskId: number) => void;
 };
 
 const useFavouriteClip = create(
     subscribeWithSelector<UseFavouriteClipState & UseFavouriteClipActions>((set) => ({
         unfinishedTasks: [],
-        addClip: async (videoPath: string, srtClip: SrtLine[]) => {
-            const tid = await registerDpTask(async () => await api.call('favorite-clips/add', { videoPath, srtClip }),{
+        addClip: async (videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]) => {
+            const tid = await registerDpTask(async () => await api.call('favorite-clips/add', {
+                videoPath,
+                srtClip,
+                srtContext
+            }), {
                 onFinish: (task) => {
                     useFavouriteClip.getState().finishTask(task.id);
                 }

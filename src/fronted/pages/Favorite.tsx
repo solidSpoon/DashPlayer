@@ -75,10 +75,6 @@ const Favorite = () => {
         return playInfo?.video.key === video.key;
     };
 
-    data?.map((item) => {
-        console.log(SrtUtil.parseSrt(item.srt_str));
-    });
-
     return (
         <div
             className={cn(
@@ -134,7 +130,7 @@ const Favorite = () => {
                             </div>
                             <div className="w-0 flex-1 flex flex-col gap h-full overflow-hidden select-text">
                                 <div className={cn('text-base cursor-pointer')}>
-                                    {SrtUtil.parseSrt(item.srt_str)
+                                    {SrtUtil.parseSrt(item.srt_context_with_time)
                                         .map((line: SrtLine) => {
                                             const isCurrent = isCurrentVideo(item) && isCurrentLine(line);
                                             if (isCurrent) {
