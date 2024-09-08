@@ -1,7 +1,7 @@
 import FfmpegService from "@/backend/services/FfmpegService";
 import DpTaskService from "@/backend/services/DpTaskService";
 import {DpTaskState} from "@/backend/db/tables/dpTask";
-import { ConvertResult, FolderVideos } from '@/common/types/tonvert-type';
+import { FolderVideos } from '@/common/types/tonvert-type';
 import fs from 'fs';
 import path from 'path';
 export default class ConvertService {

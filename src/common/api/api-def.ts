@@ -4,7 +4,7 @@ import { YdRes } from '@/common/types/YdRes';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { WatchProject } from '@/backend/db/tables/watchProjects';
-import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectNewService';
+import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectServiceImpl';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { WindowState } from '@/common/types/Types';

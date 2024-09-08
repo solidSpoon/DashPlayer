@@ -5,6 +5,8 @@ import { app } from 'electron';
 export enum LocationType {
     FAVORITE_CLIPS = 'favorite_clips',
     TEMP = 'temp',
+    LOGS = 'logs',
+    VIDEOS = 'videos',
 }
 export default class LocationService {
     private static readonly isDev = process.env.NODE_ENV === 'development';

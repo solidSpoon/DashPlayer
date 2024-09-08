@@ -1,16 +1,17 @@
 import StorageController from './controllers/StorageController';
 import SubtitleTimestampAdjustmentController from '@/backend/controllers/SubtitleTimestampAdjustmentController';
-import Controller from "@/backend/interfaces/controller";
+import ControllerT from "@/backend/interfaces/controllerT";
 import AiFuncController from "@/backend/controllers/AiFuncController";
 import SystemController from "@/backend/controllers/SystemController";
 import DpTaskController from "@/backend/controllers/DpTaskController";
 import AiTransController from "@/backend/controllers/AiTransController";
-import WatchProjectController from '@/backend/controllers/WatchProjectController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
 import MediaController from "@/backend/controllers/MediaController";
-import DownloadVideoController from "@/backend/controllers/DownloadVideoController";
 import ConvertController from "@/backend/controllers/ConvertController";
-import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
+import container from '@/backend/ioc/inversify.config';
+import TYPES from '@/backend/ioc/types';
+import Controller from '@/backend/interfaces/controller';
+import { ScheduleService } from '@/backend/services/ScheduleServiceImpl';
 
 
 const controllers: Controller[] = [
@@ -18,18 +19,21 @@ const controllers: Controller[] = [
     new SystemController(),
     new DpTaskController(),
     new AiTransController(),
-    new WatchProjectController(),
     new SubtitleController(),
     new MediaController(),
     new SubtitleTimestampAdjustmentController(),
     new StorageController(),
-    new DownloadVideoController(),
     new ConvertController(),
-    new FavoriteClipsController(),
 ]
 
 export default function registerHandler() {
+    const controllerBeans = container.getAll<ControllerT>(TYPES.Controller);
+    controllerBeans.forEach((bean) => {
+        bean.registerRoutes();
+    })
     controllers.forEach((controller) => {
         controller.registerRoutes();
     });
+    const schedule = container.get<ScheduleService>(TYPES.ScheduleService);
+    schedule.init();
 }

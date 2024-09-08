@@ -14,9 +14,20 @@ import fs from 'fs';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import DpTaskService from '@/backend/services/DpTaskService';
 import ErrorConstants from '@/common/constants/error-constants';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
+export interface FavouriteClipsService {
+    addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number>;
+    deleteFavoriteClip(key: string): Promise<void>;
+    search(keyword: string): Promise<OssObject[]>;
+    checkQueue(): Promise<void>;
+}
 
-export default class FavoriteClipsService {
-    private static queue: {
+@injectable()
+export default class FavouriteClipsServiceImpl  implements FavouriteClipsService {
+    @inject(TYPES.LocalOss) private ossService: LocalOssService;
+
+    private queue: {
         videoPath: string,
         key: string,
         srtClip: SrtLine,
@@ -25,7 +36,7 @@ export default class FavoriteClipsService {
         state: DpTaskState
     }[] = [];
 
-    public static async addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number> {
+    public async addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number> {
         const key = hash(SrtUtil.toSrt(srtContext));
         let exist = await this.isFavoriteClipExist(key);
         if (exist) {
@@ -50,7 +61,7 @@ export default class FavoriteClipsService {
     /**
      * 定时任务
      */
-    public static async checkQueue() {
+    public async checkQueue() {
         if (this.queue.length === 0) {
             return;
         }
@@ -77,16 +88,9 @@ export default class FavoriteClipsService {
         this.queue.shift();
     }
 
-    static {
-        const func = async () => {
-            await this.checkQueue();
-            setTimeout(func, 3000);
-        };
-        func().then();
-    }
 
-    private static async addFavoriteClip(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<void> {
-        const metaData: MetaData = this.extractMetaData(videoPath, srtClip, srtContext);
+    private  async addFavoriteClip(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<void> {
+        const metaData: MetaData = FavouriteClipsServiceImpl.extractMetaData(videoPath, srtClip, srtContext);
         const key = metaData.key;
         const folder = LocationService.getStoragePath(LocationType.TEMP);
         if (!fs.existsSync(folder)) {
@@ -97,17 +101,17 @@ export default class FavoriteClipsService {
             return;
         }
         await FfmpegService.trimVideo(videoPath, metaData.start_time, metaData.end_time, tempName);
-        await LocalOssService.put(key, tempName, metaData);
+        await this.ossService.put(key, tempName, metaData);
         await this.addToDb(metaData);
         fs.rmSync(tempName);
     }
 
-    public static async deleteFavoriteClip(key: string): Promise<void> {
+    public async deleteFavoriteClip(key: string): Promise<void> {
         await db.delete(videoClip).where(eq(videoClip.key, key));
-        await LocalOssService.delete(key);
+        await this.ossService.delete(key);
     }
 
-    public static async search(keyword: string): Promise<OssObject[]> {
+    public async search(keyword: string): Promise<OssObject[]> {
         const lines: VideoClip[] = await db
             .select()
             .from(videoClip)
@@ -116,10 +120,10 @@ export default class FavoriteClipsService {
                 like(videoClip.srt_clip, `%${keyword}%`)
             ))
             .orderBy(desc(videoClip.updated_at));
-        return Promise.all(lines.map((line) => LocalOssService.get(line.key)));
+        return Promise.all(lines.map((line) => this.ossService.get(line.key)));
     }
 
-    private static async addToDb(metaData: MetaData) {
+    private async addToDb(metaData: MetaData) {
         await db.insert(videoClip).values({
             key: metaData.key,
             video_name: metaData.video_name,
@@ -139,8 +143,8 @@ export default class FavoriteClipsService {
     }
 
     private static extractMetaData(videoName: string,
-                                   srtClip: SrtLine,
-                                   srtContext: SrtLine[]
+                            srtClip: SrtLine,
+                            srtContext: SrtLine[]
     ): MetaData {
 
         const srtStr = SrtUtil.toSrt(srtContext);
@@ -162,7 +166,7 @@ export default class FavoriteClipsService {
         };
     }
 
-    private static async isFavoriteClipExist(key: string) {
+    private async isFavoriteClipExist(key: string) {
         return (await db.select().from(videoClip).where(eq(videoClip.key, key)))
             .length > 0;
     }

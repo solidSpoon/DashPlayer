@@ -6,10 +6,7 @@ import SystemService from '@/backend/services/SystemService';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
 import DpTaskService from '@/backend/services/DpTaskService';
-
-if (require('electron-squirrel-startup')) {
-    app.quit();
-}
+import 'reflect-metadata';
 const mainWindowRef = {
     current: null as BrowserWindow | null
 };
@@ -90,7 +87,6 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
-registerHandler();
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -101,3 +97,4 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+registerHandler();

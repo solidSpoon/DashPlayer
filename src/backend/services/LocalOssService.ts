@@ -3,14 +3,23 @@ import path from 'path';
 import { MetaData, OssObject } from '@/common/types/OssObject';
 import FfmpegService from '@/backend/services/FfmpegService';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
+import { injectable } from 'inversify';
 
-class LocalOssService {
+export interface OssService<T, R> {
+    put(key: string, sourcePath: string, metadata: T): Promise<void>;
 
-    private static getBasePath() {
+    delete(key: string): Promise<void>;
+
+    get(key: string): Promise<R>;
+}
+@injectable()
+class LocalOssService implements OssService<MetaData, OssObject> {
+
+    private getBasePath() {
         return LocationService.getStoragePath(LocationType.FAVORITE_CLIPS);
     }
 
-    public static async put(key: string, sourcePath: string, metadata: MetaData) {
+    public async put(key: string, sourcePath: string, metadata: MetaData) {
         const clipDir = path.join(this.getBasePath(), key);
 
         try {
@@ -33,31 +42,31 @@ class LocalOssService {
                 clipPath
             }, null, 2));
         } catch (error) {
-            console.error("Error adding video clip:", error);
+            console.error('Error adding video clip:', error);
             throw error;
         }
     }
 
-    public static async delete(key: string) {
+    public async delete(key: string) {
         const clipDir = path.join(this.getBasePath(), key);
         try {
             fs.rmSync(clipDir, { recursive: true, force: true });
         } catch (error) {
-            console.error("Error deleting video clip:", error);
+            console.error('Error deleting video clip:', error);
             throw error;
         }
     }
 
-    public static async get(key: string): Promise<OssObject> {
+    public async get(key: string): Promise<OssObject> {
         const clipDir = path.join(this.getBasePath(), key);
         try {
             const metadataPath = path.join(clipDir, 'metadata.json');
             const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             const clipPath = path.join(clipDir, 'clip.mp4');
             const thumbnailPath = path.join(clipDir, 'thumbnail.jpg');
-            return {key, ...metadata, clipPath, thumbnailPath: thumbnailPath};
+            return { key, ...metadata, clipPath, thumbnailPath: thumbnailPath };
         } catch (error) {
-            console.error("Error retrieving video clip:", error);
+            console.error('Error retrieving video clip:', error);
             throw error;
         }
     }

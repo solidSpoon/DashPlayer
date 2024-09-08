@@ -1,12 +1,13 @@
-import {and, asc, desc, eq} from 'drizzle-orm';
-import {InsertWatchProject, WatchProject, watchProjects, WatchProjectType} from '@/backend/db/tables/watchProjects';
-import {InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos} from '@/backend/db/tables/watchProjectVideos';
+import { and, asc, desc, eq } from 'drizzle-orm';
+import { InsertWatchProject, WatchProject, watchProjects, WatchProjectType } from '@/backend/db/tables/watchProjects';
+import { InsertWatchProjectVideo, WatchProjectVideo, watchProjectVideos } from '@/backend/db/tables/watchProjectVideos';
 import db from '@/backend/db/db';
 import fs from 'fs';
 import MediaUtil from '@/common/utils/MediaUtil';
 import path from 'path';
-import TimeUtil from "@/common/utils/TimeUtil";
-import {app} from "electron";
+import TimeUtil from '@/common/utils/TimeUtil';
+import { app } from 'electron';
+import { injectable } from 'inversify';
 
 export interface WatchProjectVO extends WatchProject {
     videos: WatchProjectVideo[];
@@ -14,10 +15,6 @@ export interface WatchProjectVO extends WatchProject {
 
 export interface WatchProjectListVO extends WatchProject {
     video: WatchProjectVideo;
-}
-
-export interface InsertWatchProjectVO extends InsertWatchProject {
-    videos: InsertWatchProjectVideo[];
 }
 
 const findSubtitle = (
@@ -39,8 +36,37 @@ const findSubtitle = (
     );
 };
 
-export default class WatchProjectNewService {
-    public static async list(): Promise<WatchProjectListVO[]> {
+export interface WatchProjectService {
+    list(): Promise<WatchProjectListVO[]>;
+
+    detail(id: number): Promise<WatchProjectVO>;
+
+    delete(id: number): Promise<void>;
+
+    createFromFiles(filePath: string[]): Promise<number>;
+
+    createFromDirectory(dirPath: string): Promise<number>;
+
+    attachSrt(videoPath: string, srtPath: string): Promise<void>;
+
+    updateProgress(videoId: number, currentTime: number, duration: number): Promise<void>;
+
+    play(videoId: number): Promise<void>;
+
+    videoDetail(videoId: number): Promise<WatchProjectVideo | undefined>;
+
+    videoDetailByPid(projId: number): Promise<WatchProjectVideo>;
+
+    detailByVid(vid: number): Promise<WatchProjectVO>;
+
+    tryCreateFromDownload(fileName: string): Promise<number>;
+
+    analyseFolder(path: string): { supported: number, unsupported: number };
+}
+
+@injectable()
+export default class WatchProjectServiceImpl implements WatchProjectService {
+    public async list(): Promise<WatchProjectListVO[]> {
         const res: WatchProject[] = await db.select()
             .from(watchProjects)
             .orderBy(desc(watchProjects.updated_at));
@@ -54,11 +80,11 @@ export default class WatchProjectNewService {
             .orderBy(desc(watchProjects.updated_at));
         return await Promise.all(vos.map(async (p) => {
             const v = await this.videoDetailByPid(p.id);
-            return {video: v, ...p};
+            return { video: v, ...p };
         }));
     }
 
-    public static async detail(id: number): Promise<WatchProjectVO> {
+    public async detail(id: number): Promise<WatchProjectVO> {
         const [project]: WatchProject[] = await db.select()
             .from(watchProjects)
             .where(eq(watchProjects.id, id));
@@ -79,17 +105,17 @@ export default class WatchProjectNewService {
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.project_id, id))
             .orderBy(asc(watchProjectVideos.video_name));
-        return {...project, videos};
+        return { ...project, videos };
     }
 
-    public static async delete(id: number): Promise<void> {
+    public async delete(id: number): Promise<void> {
         await db.delete(watchProjects)
             .where(eq(watchProjects.id, id));
         await db.delete(watchProjectVideos)
             .where(eq(watchProjectVideos.project_id, id));
     }
 
-    public static async createFromFiles(filePath: string[]): Promise<number> {
+    public async createFromFiles(filePath: string[]): Promise<number> {
         if (filePath.length === 0) {
             throw new Error('Please select at least one file');
         }
@@ -144,7 +170,7 @@ export default class WatchProjectNewService {
         return vpr.id;
     }
 
-    public static async createFromDirectory(dirPath: string): Promise<number> {
+    public async createFromDirectory(dirPath: string): Promise<number> {
         const vp: InsertWatchProject = {
             project_name: path.basename(dirPath),
             project_type: WatchProjectType.DIRECTORY,
@@ -194,13 +220,13 @@ export default class WatchProjectNewService {
         return vpr.id;
     }
 
-    public static async attachSrt(videoPath: string, srtPath: string) {
+    public async attachSrt(videoPath: string, srtPath: string) {
         await db.update(watchProjectVideos)
-            .set({subtitle_path: srtPath, updated_at: TimeUtil.timeUtc()})
+            .set({ subtitle_path: srtPath, updated_at: TimeUtil.timeUtc() })
             .where(eq(watchProjectVideos.video_path, videoPath));
     }
 
-    static async updateProgress(videoId: number, currentTime: number, duration: number) {
+    async updateProgress(videoId: number, currentTime: number, duration: number) {
         const [video]: WatchProjectVideo[] = await db.update(watchProjectVideos)
             .set({
                 current_time: currentTime,
@@ -211,19 +237,19 @@ export default class WatchProjectNewService {
             .where(eq(watchProjectVideos.id, videoId))
             .returning();
         await db.update(watchProjects)
-            .set({updated_at: TimeUtil.timeUtc()})
+            .set({ updated_at: TimeUtil.timeUtc() })
             .where(eq(watchProjects.id, video.project_id));
     }
 
-    public static async play(videoId: number): Promise<void> {
+    public async play(videoId: number): Promise<void> {
         const [video]: WatchProjectVideo[] = await db.select()
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.id, videoId));
         await db.update(watchProjectVideos)
-            .set({current_playing: false})
+            .set({ current_playing: false })
             .where(eq(watchProjectVideos.current_playing, true));
         await db.update(watchProjectVideos)
-            .set({current_playing: true})
+            .set({ current_playing: true })
             .where(eq(watchProjectVideos.id, videoId));
         await db.update(watchProjects)
             .set({
@@ -237,13 +263,13 @@ export default class WatchProjectNewService {
 
     }
 
-    static async videoDetail(videoId: number): Promise<WatchProjectVideo | undefined> {
+    async videoDetail(videoId: number): Promise<WatchProjectVideo | undefined> {
         return (await db.select()
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.id, videoId)))[0];
     }
 
-    static async videoDetailByPid(projId: number) {
+    async videoDetailByPid(projId: number) {
         const v = (await db.select()
             .from(watchProjectVideos)
             .where(and(eq(watchProjectVideos.project_id, projId), eq(watchProjectVideos.current_playing, true))))[0];
@@ -255,15 +281,15 @@ export default class WatchProjectNewService {
         return v;
     }
 
-    static async detailByVid(vid: number) {
+    async detailByVid(vid: number) {
         const [video]: WatchProjectVideo[] = await db.select()
             .from(watchProjectVideos)
             .where(eq(watchProjectVideos.id, vid));
         return this.detail(video.project_id);
     }
 
-    static tryCreateFromDownload(fileName: string) {
-        const downloadFolder = app.getPath('downloads')
+    tryCreateFromDownload(fileName: string) {
+        const downloadFolder = app.getPath('downloads');
         const fPath = path.join(downloadFolder, fileName);
         if (fs.existsSync(fPath)) {
             return this.createFromFiles([fPath]);
@@ -271,12 +297,12 @@ export default class WatchProjectNewService {
         throw new Error('File not found');
     }
 
-    static analyseFolder(path: string):{supported: number, unsupported: number} {
+    analyseFolder(path: string): { supported: number, unsupported: number } {
         const files = fs.readdirSync(path);
         const videos = files.filter((f) => MediaUtil.isMedia(f));
         return {
             supported: videos.filter((v) => MediaUtil.supported(v)).length,
             unsupported: videos.filter((v) => !MediaUtil.supported(v)).length
-        }
+        };
     }
 }

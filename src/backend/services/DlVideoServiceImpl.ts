@@ -1,17 +1,24 @@
-import {spawn} from 'child_process';
+import { spawn } from 'child_process';
 import DpTaskService from '@/backend/services/DpTaskService';
-import {DpTaskState} from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 import LocationService from '@/backend/services/LocationService';
-import {DlProgress} from '@/common/types/dl-progress';
+import { DlProgress } from '@/common/types/dl-progress';
 import iconv from 'iconv-lite';
 import path from 'path';
 import fs from 'fs';
 import FfmpegService from '@/backend/services/FfmpegService';
 import ProcessService from '@/backend/services/ProcessService';
 import SystemService from '@/backend/services/SystemService';
+import { injectable } from 'inversify';
 
-export default class DlVideoService {
-    public static async dlVideo(taskId: number, url: string, savePath: string) {
+export interface DlVideoService {
+    dlVideo(taskId: number, url: string, savePath: string): Promise<void>;
+}
+
+
+@injectable()
+export default class DlVideoServiceImpl implements DlVideoService {
+    public async dlVideo(taskId: number, url: string, savePath: string) {
         const result: {
             ref: DlProgress
             so: string[]
@@ -32,12 +39,12 @@ export default class DlVideoService {
             result: JSON.stringify(result.ref)
         });
         try {
-            const vName = await DlVideoService.doDlVideoFileName(taskId, result, url)
+            const vName = await DlVideoServiceImpl.doDlVideoFileName(taskId, result, url)
                 .then((name) => {
                     result.ref.name = path.basename(name, path.extname(name)) + '.mp4';
                     return name;
                 });
-            await DlVideoService.doDlVideo(taskId, result, url, savePath);
+            await DlVideoServiceImpl.doDlVideo(taskId, result, url, savePath);
             if (!vName.endsWith('.mp4')) {
                 const vPath = path.join(savePath, vName);
                 if (fs.existsSync(vPath)) {

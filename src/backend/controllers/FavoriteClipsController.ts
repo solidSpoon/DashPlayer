@@ -1,27 +1,31 @@
-import Controller from '@/backend/interfaces/controller';
+import ControllerT from '@/backend/interfaces/controllerT';
 import { SrtLine } from '@/common/utils/SrtUtil';
-import FavoriteClipsService from '@/backend/services/FavoriteClipsService';
+import { FavouriteClipsService } from '@/backend/services/FavouriteClipsServiceImpl';
 import registerRoute from '@/common/api/register';
 import { OssObject } from '@/common/types/OssObject';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
 
-export default class FavoriteClipsController implements Controller {
+@injectable()
+export default class FavoriteClipsController implements ControllerT {
+    @inject(TYPES.FavouriteClips) private favouriteClipsService: FavouriteClipsService;
 
     public async addFavoriteClip({ videoPath, srtClip, srtContext }: {
         videoPath: string,
         srtClip: SrtLine,
         srtContext: SrtLine[]
     }) {
-        return FavoriteClipsService.addFavoriteClipAsync(videoPath, srtClip, srtContext);
+        return this.favouriteClipsService.addFavoriteClipAsync(videoPath, srtClip, srtContext);
     }
 
     public async search(keyword: string): Promise<OssObject[]> {
-        return FavoriteClipsService.search(keyword);
+        return this.favouriteClipsService.search(keyword);
     }
 
 
     registerRoutes(): void {
-        registerRoute('favorite-clips/add', this.addFavoriteClip);
-        registerRoute('favorite-clips/search', this.search);
+        registerRoute('favorite-clips/add', this.addFavoriteClip.bind(this));
+        registerRoute('favorite-clips/search', this.search.bind(this));
     }
 
 }

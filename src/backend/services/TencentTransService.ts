@@ -1,11 +1,11 @@
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
-import log from 'electron-log';
 import TransHolder from '../../common/utils/TransHolder';
 import { strBlank } from '@/common/utils/Util';
 import { storeGet } from '../store';
 import RateLimiter from "@/common/utils/RateLimiter";
+import dpLog from '@/backend/ioc/logger';
 
 class TencentTransService {
     private static client: Client | null = null;
@@ -72,7 +72,7 @@ class TencentTransService {
             ProjectId: 0,
             SourceTextList: source,
         };
-        log.info('do-trans:', source);
+        dpLog.info('do-trans:', source);
         const transResult: string[] = await this.client
             .TextTranslateBatch(param)
             .then((resp: TextTranslateBatchResponse) => resp.TargetTextList);
