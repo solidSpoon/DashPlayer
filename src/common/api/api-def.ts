@@ -17,6 +17,7 @@ import { FolderVideos } from '@/common/types/tonvert-type';
 import { SrtLine } from '@/common/utils/SrtUtil';
 
 import { MetaData, OssObject } from '@/common/types/OssObject';
+import { Tag } from '@/backend/db/tables/tag';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -156,6 +157,13 @@ interface FavoriteClipsDef {
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }
 
+interface TagDef {
+    'tag/add': { params: string, return: number };
+    'tag/delete': { params: number, return: void };
+    'tag/update': { params: { id: number, name: string }, return: void };
+    'tag/search': { params: string, return: Tag[] };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -169,7 +177,8 @@ export type ApiDefinitions = ApiDefinition
     & StorageDef
     & DownloadVideoDef
     & ConvertDef
-    & FavoriteClipsDef;
+    & FavoriteClipsDef
+    & TagDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

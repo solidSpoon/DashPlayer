@@ -7,6 +7,7 @@ const TYPES = {
     Controller: Symbol('Controller'),
     WatchProject: Symbol('WatchProject'),
     DlVideo: Symbol('DlVideo'),
+    TagService: Symbol('TagService'),
 };
 
 export default TYPES;

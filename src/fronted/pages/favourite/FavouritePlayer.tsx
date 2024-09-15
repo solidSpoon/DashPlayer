@@ -3,6 +3,7 @@ import ReactPlayer from 'react-player';
 import UrlUtil from '@/common/utils/UrlUtil';
 import React, { useEffect, useState } from 'react';
 import useFavouriteClip, { PlayInfo } from '@/fronted/hooks/useFavouriteClip';
+import TagSelector from '@/fronted/components/TagSelector';
 
 const FavouritePlayer = () => {
     // const [play, setPlay] = useState(true);
@@ -47,6 +48,7 @@ const FavouritePlayer = () => {
                     />
                 </div>
             </AspectRatio>
+            <TagSelector/>
         </div>
     );
 }
