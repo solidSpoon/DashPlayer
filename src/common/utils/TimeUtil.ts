@@ -61,6 +61,9 @@ export default class TimeUtil {
         return moment.utc().format('YYYY-MM-DD HH:mm:ss');
     }
 
+    public static dateToUtc(date: Date): string {
+        return moment.utc(date).format('YYYY-MM-DD HH:mm:ss');
+    }
 
     /**
      * 输入时间字符串，返回秒数

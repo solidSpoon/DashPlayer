@@ -8,7 +8,7 @@ import { MetaData, OssObject } from '@/common/types/OssObject';
 import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { and, count, desc, eq, ExtractTablesWithRelations, like, or } from 'drizzle-orm';
+import { and, count, desc, eq, ExtractTablesWithRelations, gte, inArray, like, or } from 'drizzle-orm';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import fs from 'fs';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
@@ -19,8 +19,7 @@ import TYPES from '@/backend/ioc/types';
 import { tag, Tag } from '@/backend/db/tables/tag';
 import { clipTagRelation } from '@/backend/db/tables/clipTagRelation';
 import { TagService } from '@/backend/services/TagService';
-import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
-import Database from 'better-sqlite3';
+import { ClipQuery } from '@/common/api/dto';
 
 export interface FavouriteClipsService {
     addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number>;
@@ -33,7 +32,7 @@ export interface FavouriteClipsService {
 
     deleteClipTag(key: string, tagId: number): Promise<void>;
 
-    search(keyword: string): Promise<OssObject[]>;
+    search(query: ClipQuery): Promise<OssObject[]>;
 
     checkQueue(): Promise<void>;
 }
@@ -127,15 +126,34 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         await this.ossService.delete(key);
     }
 
-    public async search(keyword: string): Promise<OssObject[]> {
+    public async search({ keyword, tags, date }: ClipQuery): Promise<OssObject[]> {
+        let where1 = or(
+            like(videoClip.video_name, `%${keyword}%`),
+            like(videoClip.srt_clip, `%${keyword}%`));
+        if (date?.from) {
+            where1 = and(where1, gte(videoClip.created_at, TimeUtil.dateToUtc(date.from)));
+        }
+        if (date?.to) {
+            where1 = and(where1, gte(videoClip.created_at, TimeUtil.dateToUtc(date.to)));
+        }
+        if (tags?.length) {
+            where1 = and(where1, inArray(clipTagRelation.tag_id, tags));
+        }
         const lines: VideoClip[] = await db
-            .select()
-            .from(videoClip)
-            .where(or(
-                like(videoClip.video_name, `%${keyword}%`),
-                like(videoClip.srt_clip, `%${keyword}%`)
-            ))
-            .orderBy(desc(videoClip.updated_at));
+            .select({
+                key: videoClip.key,
+                video_name: videoClip.video_name,
+                srt_clip: videoClip.srt_clip,
+                srt_context: videoClip.srt_context,
+                created_at: videoClip.created_at,
+                updated_at: videoClip.updated_at
+            }).from(videoClip)
+            .leftJoin(clipTagRelation, eq(clipTagRelation.clip_key, videoClip.key))
+            .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
+            .where(where1)
+            .groupBy(videoClip.key)
+            .orderBy(desc(videoClip.created_at))
+            .limit(1000);
         return Promise.all(lines.map((line) => this.ossService.get(line.key)));
     }
 

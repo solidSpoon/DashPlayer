@@ -6,6 +6,8 @@ import { OssObject } from '@/common/types/OssObject';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { Tag } from '@/backend/db/tables/tag';
+import { DateRange } from 'react-day-picker';
+import { ClipQuery } from '@/common/api/dto';
 
 @injectable()
 export default class FavoriteClipsController implements ControllerT {
@@ -19,8 +21,8 @@ export default class FavoriteClipsController implements ControllerT {
         return this.favouriteClipsService.addFavoriteClipAsync(videoPath, srtClip, srtContext);
     }
 
-    public async search(keyword: string): Promise<OssObject[]> {
-        return this.favouriteClipsService.search(keyword);
+    public async search(query:ClipQuery): Promise<OssObject[]> {
+        return this.favouriteClipsService.search(query);
     }
 
     public queryClipTags(key: string): Promise<Tag[]> {

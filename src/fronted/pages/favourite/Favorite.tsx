@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Separator from '@/fronted/components/Separtor';
 import useSWR from 'swr';
-import { LoaderPinwheel, Search } from 'lucide-react';
-import { Input } from '@/fronted/components/ui/input';
+import { LoaderPinwheel } from 'lucide-react';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/fronted/components/ui/hover-card';
 import FavouritePlayer from '@/fronted/pages/favourite/FavouritePlayer';
 import FavouriteItem from '@/fronted/pages/favourite/FavouriteItem';
+import DatePickerWithRange from '@/fronted/components/query/DatePickerWithRange';
+import StringQuery from '@/fronted/components/query/StringQuery';
+import TagQuery from '@/fronted/components/query/TagQuery';
+import { DateRange } from 'react-day-picker';
+import { Tag } from '@/backend/db/tables/tag';
 
 const api = window.electron;
 
@@ -33,10 +37,16 @@ const Loader = () => {
 
 
 const Favorite = () => {
-    const [searchQuery, setSearchQuery] = useState(''); // 新增状态来管理搜索输入
-    const { data } = useSWR(['favorite', searchQuery], () => {
+    const [keyword, setKeyword] = useState('');
+    const [tags, setTags] = useState<Tag[]>([]);
+    const [date, setDate] = useState<DateRange>({ from: null, to: null });
+    const { data } = useSWR(['favorite', keyword, tags, date], (apiPath) => {
         // 将 searchQuery 传递给接口
-        return api.call('favorite-clips/search', searchQuery);
+        return api.call('favorite-clips/search', {
+            keyword,
+            tags: tags.map((tag) => tag.id),
+            date
+        });
     });
 
 
@@ -59,7 +69,14 @@ const Favorite = () => {
 
                 <Separator orientation="horizontal" className="px-0" />
             </div>
-
+            <div className="w-full p-2 flex gap-2">
+                <StringQuery
+                    query={keyword}
+                    setQuery={setKeyword}
+                />
+                <TagQuery onUpdate={setTags}/>
+                <DatePickerWithRange onDateRangeChange={setDate} />
+            </div>
             <div className="flex-1 h-0 pl-10 pb-6 pr-16 grid gap-8"
                  style={{
                      gridTemplateColumns: '55% 45%',
@@ -67,18 +84,6 @@ const Favorite = () => {
                  }}
             >
                 <div className={'max-w-3xl flex flex-col gap-8 overflow-y-scroll scrollbar-none'}>
-                    <div className="sticky top-0 w-full p-2 bg-background">
-                        <div className=" ml-auto relative md:grow-0 ">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder="Search..."
-                                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                    </div>
 
                     {data?.map((item) => (
                         <FavouriteItem item={item} />

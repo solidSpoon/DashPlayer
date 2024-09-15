@@ -18,6 +18,8 @@ import { SrtLine } from '@/common/utils/SrtUtil';
 
 import { MetaData, OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
+import { DateRange } from 'react-day-picker';
+import { ClipQuery } from '@/common/api/dto';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -152,7 +154,7 @@ interface ConvertDef {
 
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine, srtContext: SrtLine[] }, return: number };
-    'favorite-clips/search': { params: string, return: OssObject[] };
+    'favorite-clips/search': { params: ClipQuery, return: OssObject[] };
     'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
     'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
     'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };
