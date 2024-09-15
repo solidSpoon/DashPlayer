@@ -22,16 +22,16 @@ import { cn } from '@/fronted/lib/utils';
 import { Dialog, DialogContent } from '@/fronted/components/ui/dialog';
 import { Badge } from '@/fronted/components/ui/badge';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 
 // 模拟API调用
 const api = window.electron;
-const TAGS_KEY = 'api/tags';
 export default function TagSelector() {
     const playInfo = useFavouriteClip(state => state.playInfo);
     const {
         data: clipTags,
         mutate: clipTagMutate
-    } = useSWR(playInfo ? [`clip-tags`, playInfo.video.key] : null, ([_, key]) => api.call('favorite-clips/query-clip-tags', key), {
+    } = useSWR(playInfo ? [apiPath('favorite-clips/query-clip-tags'), playInfo.video.key] : null, ([_, key]) => api.call('favorite-clips/query-clip-tags', key), {
         fallbackData: []
     });
 
@@ -44,7 +44,8 @@ export default function TagSelector() {
             key: playInfo.video.key,
             tagId: tag.id
         });
-        await clipTagMutate();
+        await swrApiMutate('favorite-clips/query-clip-tags');
+        await swrApiMutate('favorite-clips/search');
 
         setPopoverOpen(false);
     };
@@ -55,14 +56,14 @@ export default function TagSelector() {
             key: playInfo.video.key,
             tagId: newTag.id
         });
-        await mutate(TAGS_KEY); // 重新获取标签数据
-        await clipTagMutate();
+        await swrApiMutate('favorite-clips/query-clip-tags'); // 重新获取标签数据
+        await swrApiMutate('favorite-clips/search');
         setPopoverOpen(false);
     };
 
     const handleRenameTag = async (id: number, newName: string) => {
         await api.call('tag/update', { id, name: newName });
-        await mutate(TAGS_KEY); // 重新获取标签数据
+        await swrApiMutate('favorite-clips/query-clip-tags'); // 重新获取标签数据
         await clipTagMutate();
         setRenameDialogOpen(false);
     };
@@ -90,7 +91,8 @@ export default function TagSelector() {
                                     tagId: tag.id
                                 });
                                 await clipTagMutate();
-                                await mutate(TAGS_KEY);
+                                await swrApiMutate('favorite-clips/query-clip-tags');
+                                await swrApiMutate('favorite-clips/search');
                             }}
                     >
                         <X />

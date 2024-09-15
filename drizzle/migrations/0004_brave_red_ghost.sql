@@ -1,14 +1,23 @@
 CREATE TABLE `dp_clip_tag_relation` (
-	`clip_id` integer NOT NULL,
-	`tag_id` integer NOT NULL,
+	`clip_key` text NOT NULL,
+	`tag_id` integer,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`clip_id`, `tag_id`)
+	PRIMARY KEY(`clip_key`, `tag_id`)
 );
 --> statement-breakpoint
 CREATE TABLE `dp_tag` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
+	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `dp_video_clip` (
+	`key` text PRIMARY KEY NOT NULL,
+	`video_name` text,
+	`srt_clip` text,
+	`srt_context` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

@@ -3,7 +3,6 @@ import { DpTask } from '@/backend/db/tables/dpTask';
 import { YdRes } from '@/common/types/YdRes';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { SentenceStruct } from '@/common/types/SentenceStruct';
-import { WatchProject } from '@/backend/db/tables/watchProjects';
 import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectServiceImpl';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
@@ -16,9 +15,8 @@ import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
 import { SrtLine } from '@/common/utils/SrtUtil';
 
-import { MetaData, OssObject } from '@/common/types/OssObject';
+import { OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
-import { DateRange } from 'react-day-picker';
 import { ClipQuery } from '@/common/api/dto';
 
 interface ApiDefinition {
