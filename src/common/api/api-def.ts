@@ -158,7 +158,7 @@ interface FavoriteClipsDef {
 }
 
 interface TagDef {
-    'tag/add': { params: string, return: number };
+    'tag/add': { params: string, return: Tag };
     'tag/delete': { params: number, return: void };
     'tag/update': { params: { id: number, name: string }, return: void };
     'tag/search': { params: string, return: Tag[] };

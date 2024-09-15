@@ -4,7 +4,7 @@ import db from '@/backend/db';
 import { eq, like } from 'drizzle-orm';
 
 export interface TagService {
-    addTag(name: string): Promise<number>;
+    addTag(name: string): Promise<Tag>;
 
     deleteTag(id: number): Promise<void>;
 
@@ -15,9 +15,9 @@ export interface TagService {
 
 @injectable()
 export default class TagServiceImpl implements TagService {
-    public async addTag(name: string): Promise<number> {
+    public async addTag(name: string): Promise<Tag> {
         const e: Tag[] = await db.insert(tag).values({ name }).returning();
-        return e[0].id;
+        return e[0];
     }
 
     public async deleteTag(id: number): Promise<void> {

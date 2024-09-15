@@ -8,11 +8,12 @@ import { Tag } from '@/backend/db/tables/tag';
 @injectable()
 export default class TagController implements ControllerT {
     @inject(TYPES.TagService) private tagService: TagService;
-    public async addTag({ name }: { name: string }) {
+
+    public async addTag(name: string): Promise<Tag> {
         return this.tagService.addTag(name);
     }
 
-    public async deleteTag({ id }: { id: number }) {
+    public async deleteTag(id: number): Promise<void> {
         return this.tagService.deleteTag(id);
     }
 
@@ -20,15 +21,15 @@ export default class TagController implements ControllerT {
         return this.tagService.updateTag(id, name);
     }
 
-    public async search({ keyword }: { keyword: string }): Promise<Tag[]> {
+    public async search(keyword: string): Promise<Tag[]> {
         return this.tagService.search(keyword);
     }
 
     registerRoutes(): void {
-        registerRoute('tag/add', this.addTag.bind(this));
-        registerRoute('tag/delete', this.deleteTag.bind(this));
-        registerRoute('tag/update', this.updateTag.bind(this));
-        registerRoute('tag/search', this.search.bind(this));
+        registerRoute('tag/add', (p) => this.addTag(p));
+        registerRoute('tag/delete', (p) => this.deleteTag(p));
+        registerRoute('tag/update', (p) => this.updateTag(p));
+        registerRoute('tag/search', (p) => this.search(p));
     }
 
 }

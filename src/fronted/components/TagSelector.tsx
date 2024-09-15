@@ -1,149 +1,219 @@
-// TagSelector.tsx
-import React, { useState, useEffect } from 'react';
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/fronted/components/ui/command';
-import { Popover, PopoverTrigger, PopoverContent } from '@/fronted/components/ui/popover';
+'use client';
+
+import * as React from 'react';
+import { v4 as uuidv4 } from 'uuid'; // 用于生成唯一ID
 import { Button } from '@/fronted/components/ui/button';
-import { PlusIcon, PencilIcon } from 'lucide-react';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList
+} from '@/fronted/components/ui/command';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger
+} from '@/fronted/components/ui/popover';
+import useSWR, { mutate } from 'swr';
+import { Tag } from '@/backend/db/tables/tag';
+import { Plus, Edit, X } from 'lucide-react';
+import { cn } from '@/fronted/lib/utils';
+import { Dialog, DialogContent, DialogTrigger } from '@/fronted/components/ui/dialog';
+import { Badge } from '@/fronted/components/ui/badge';
 
-interface Tag {
-    id: string;
-    name: string;
-}
+// 模拟API调用
+const api = window.electron;
 
-const TagSelector: React.FC = () => {
-    const [tags, setTags] = useState<Tag[]>([]);
-    const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-    const [isRenaming, setIsRenaming] = useState<null | Tag>(null);
-    const [renameValue, setRenameValue] = useState('');
+export default function TagSelector() {
+    const [popoverOpen, setPopoverOpen] = React.useState(false);
+    const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
+    const [tagToRename, setTagToRename] = React.useState<Tag | null>(null);
+    const [selectedTags, setSelectedTags] = React.useState<Tag[]>([]);
+    const { data: tags, error } = useSWR('api/tags', () => api.call('tag/search', ''), {
+        fallbackData: []
+    });
 
-    // 模拟获取标签数据
-    useEffect(() => {
-        // 假设这是从接口获取的标签
-        fetch('/api/tags') // 这里使用假的地址
-            .then(response => response.json())
-            .then(data => setTags(data))
-            .catch(() => setTags([]));
-    }, []);
-
-    // 搜索标签
-    const handleSearch = (query: string) => {
-        // 实现搜索逻辑，可以根据需要调整
-        return tags.filter(tag => tag.name.toLowerCase().includes(query.toLowerCase()));
-    };
-
-    // 添加标签
     const handleSelectTag = (tag: Tag) => {
         if (!selectedTags.find(t => t.id === tag.id)) {
             setSelectedTags([...selectedTags, tag]);
         }
-        setIsPopoverOpen(false);
+        setPopoverOpen(false);
     };
 
-    // 创建新标签
-    const handleCreateTag = (name: string) => {
-        const newTag: Tag = { id: Date.now().toString(), name };
-        // 这里可以调用接口创建标签，暂时直接添加
-        setTags([...tags, newTag]);
+    const handleCreateTag = async (name: string) => {
+        const newTag = await api.call('tag/add', name);
+        await mutate('api/tags'); // 重新获取标签数据
         setSelectedTags([...selectedTags, newTag]);
-        setIsPopoverOpen(false);
+        setPopoverOpen(false);
     };
 
-    // 重命名标签
-    const handleRenameTag = () => {
-        if (isRenaming) {
-            setTags(tags.map(tag => tag.id === isRenaming.id ? { ...tag, name: renameValue } : tag));
-            setSelectedTags(selectedTags.map(tag => tag.id === isRenaming.id ? { ...tag, name: renameValue } : tag));
-            setIsRenaming(null);
-            setRenameValue('');
+    const handleRenameTag = async (id: number, newName: string) => {
+        const updatedTag = await api.call('tag/update', { id, name: newName });
+        await mutate('api/tags'); // 重新获取标签数据
+        setRenameDialogOpen(false);
+    };
+
+    return (
+        <div className={cn('w-full border rounded-lg flex flex-wrap gap-2 p-2')}>
+            {selectedTags.map((tag) => (
+                <Badge
+                    key={tag.id}
+                    variant="outline"
+                    className={cn(
+                        'relative flex gap-1 p-1 pl-2 rounded-lg',
+                    )}
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        setTagToRename(tag);
+                        setRenameDialogOpen(true);
+                    }}
+                >
+                    {tag.name}
+                    <Button variant='ghost' size='icon' className="m-0.5 h-5 w-5">
+                        <X />
+                    </Button>
+                </Badge>
+            ))}
+
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline"
+                            size={'sm'}
+                            className="w-fit">
+                        <Plus />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[250px] p-0" align="start">
+                    <StatusList
+                        onSelect={handleSelectTag}
+                        onCreate={handleCreateTag}
+                    />
+                </PopoverContent>
+            </Popover>
+
+            {/* 重命名标签对话框 */}
+            <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+                <DialogContent>
+                    <RenameTagForm
+                        tag={tagToRename}
+                        onRename={handleRenameTag}
+                        onClose={() => setRenameDialogOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
+function StatusList({
+                        onSelect,
+                        onCreate
+                    }: {
+    onSelect: (tag: Tag) => void;
+    onCreate: (name: string) => void;
+}) {
+    const [query, setQuery] = React.useState('');
+    const { data: tags, error } = useSWR(['api/tags', query], () => api.call('tag/search', query), {
+        fallbackData: []
+    });
+    const [inputValue, setInputValue] = React.useState('');
+
+    const handleCreate = () => {
+        if (inputValue.trim()) {
+            onCreate(inputValue.trim());
         }
     };
 
-    // 右键菜单事件
-    const handleContextMenu = (e: React.MouseEvent, tag: Tag) => {
-        e.preventDefault();
-        const newName = prompt('重命名标签', tag.name);
-        if (newName && newName.trim() !== '') {
-            setTags(tags.map(t => t.id === tag.id ? { ...t, name: newName } : t));
-            setSelectedTags(selectedTags.map(t => t.id === tag.id ? { ...t, name: newName } : t));
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && tags.length === 0 && inputValue.trim()) {
+            e.preventDefault(); // 防止默认的表单提交行为
+            handleCreate();
         }
     };
 
     return (
-        <div className="flex flex-wrap gap-2">
-            {selectedTags.map(tag => (
-                <div
-                    key={tag.id}
-                    className="flex items-center px-2 py-1 bg-gray-200 rounded-full cursor-pointer"
-                    onContextMenu={(e) => handleContextMenu(e, tag)}
-                >
-                    {tag.name}
-                    <PencilIcon
-                        className="ml-1 h-4 w-4"
-                        onClick={() => {
-                            setIsRenaming(tag);
-                            setRenameValue(tag.name);
-                        }}
-                    />
-                </div>
-            ))}
-
-            {/* 添加标签按钮 */}
-            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon">
-                        <PlusIcon className="h-4 w-4" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                    <Command>
-                        <CommandInput placeholder="搜索标签..." />
-                        <CommandList>
-                            <CommandEmpty>
-                                <div className="p-4">未找到标签，可以创建一个新的标签。</div>
-                            </CommandEmpty>
-                            <CommandGroup heading="标签">
-                                {handleSearch('').map(tag => (
-                                    <CommandItem key={tag.id} onSelect={() => handleSelectTag(tag)}>
-                                        {tag.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                            <CommandGroup heading="创建标签">
-                                <CommandItem onSelect={() => {
-                                    const newTagName = prompt('输入新标签名称');
-                                    if (newTagName && newTagName.trim() !== '') {
-                                        handleCreateTag(newTagName);
-                                    }
-                                }}>
-                                    创建新标签
-                                </CommandItem>
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-
-            {/* 重命名弹窗 */}
-            {isRenaming && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-4 rounded shadow">
-                        <h3 className="text-lg mb-2">重命名标签</h3>
-                        <input
-                            type="text"
-                            value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
-                            className="border p-2 rounded w-full"
-                        />
-                        <div className="flex justify-end mt-4">
-                            <Button onClick={() => setIsRenaming(null)} variant="ghost">取消</Button>
-                            <Button onClick={handleRenameTag} className="ml-2">确认</Button>
-                        </div>
+        <Command>
+            <CommandInput
+                placeholder="搜索标签..."
+                value={inputValue}
+                onValueChange={(value) => {
+                    setInputValue(value);
+                    setQuery(value);
+                }}
+                onKeyDown={handleKeyDown} // 添加键盘事件处理
+            />
+            <CommandList>
+                <CommandEmpty>
+                    <div className="flex flex-col items-center justify-center p-4">
+                        <span>没有找到相关标签</span>
+                        <Button
+                            variant="link"
+                            onClick={handleCreate}
+                            className="mt-2 text-blue-600"
+                        >
+                            创建标签 &quot;{inputValue}&quot;
+                        </Button>
                     </div>
-                </div>
-            )}
-        </div>
+                </CommandEmpty>
+                {tags.length > 0 && (
+                    <CommandGroup>
+                        {tags.map((tag) => (
+                            <CommandItem
+                                key={tag.id}
+                                value={tag.name}
+                                onSelect={() => onSelect(tag)}
+                            >
+                                {tag.name}
+                            </CommandItem>
+                        ))}
+                    </CommandGroup>
+                )}
+            </CommandList>
+        </Command>
     );
-};
+}
 
-export default TagSelector;
+function RenameTagForm({
+                           tag,
+                           onRename,
+                           onClose
+                       }: {
+    tag: Tag | null;
+    onRename: (id: number, newName: string) => void;
+    onClose: () => void;
+}) {
+    const [newName, setNewName] = React.useState(tag?.name || '');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (tag && newName.trim()) {
+            onRename(tag.id, newName.trim());
+        }
+    };
+
+    if (!tag) return null;
+
+    return (
+        <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
+            <h3 className="text-lg font-semibold">重命名标签</h3>
+            <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="border p-2 rounded"
+                placeholder="新的标签名称"
+                required
+            />
+            <div className="flex justify-end space-x-2">
+                <Button type="button" variant="secondary" onClick={onClose}>
+                    取消
+                </Button>
+                <Button type="submit">
+                    确认
+                </Button>
+            </div>
+        </form>
+    );
+}
