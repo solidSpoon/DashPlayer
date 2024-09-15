@@ -1,7 +1,11 @@
 import { tag, Tag } from '@/backend/db/tables/tag';
 import { injectable } from 'inversify';
 import db from '@/backend/db';
-import { eq, like } from 'drizzle-orm';
+import { eq, ExtractTablesWithRelations, like } from 'drizzle-orm';
+import { SQLiteTransaction } from 'drizzle-orm/sqlite-core/index';
+import Database from 'better-sqlite3';
+import { Transaction } from '@/backend/db/db';
+import Util from '@/common/utils/Util';
 
 export interface TagService {
     addTag(name: string): Promise<Tag>;
@@ -16,6 +20,9 @@ export interface TagService {
 @injectable()
 export default class TagServiceImpl implements TagService {
     public async addTag(name: string): Promise<Tag> {
+        if (Util.strBlank(name)) {
+            throw new Error('name is blank');
+        }
         const e: Tag[] = await db.insert(tag).values({ name }).returning();
         return e[0];
     }
@@ -30,6 +37,6 @@ export default class TagServiceImpl implements TagService {
 
     public async search(keyword: string): Promise<Tag[]> {
         return db.select().from(tag)
-            .where(like(tag.name, `${keyword}%`))
+            .where(like(tag.name, `${keyword}%`));
     }
 }

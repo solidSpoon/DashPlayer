@@ -2,8 +2,9 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
-import { and, sql } from 'drizzle-orm';
+import { and, ExtractTablesWithRelations, sql } from 'drizzle-orm';
 import fs from 'fs';
+import { SQLiteTransaction } from 'drizzle-orm/sqlite-core/index';
 
 const file = path.join(
     app?.getPath?.('userData') ?? __dirname,
@@ -56,3 +57,5 @@ export async function clearDB() {
 }
 
 export default db;
+
+export type Transaction = SQLiteTransaction<'sync', Database.RunResult, Record<string, never>, ExtractTablesWithRelations<Record<string, never>>>;

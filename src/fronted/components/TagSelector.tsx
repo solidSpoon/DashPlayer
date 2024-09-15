@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { v4 as uuidv4 } from 'uuid'; // 用于生成唯一ID
 import { Button } from '@/fronted/components/ui/button';
 import {
     Command,
@@ -18,51 +17,64 @@ import {
 } from '@/fronted/components/ui/popover';
 import useSWR, { mutate } from 'swr';
 import { Tag } from '@/backend/db/tables/tag';
-import { Plus, Edit, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
-import { Dialog, DialogContent, DialogTrigger } from '@/fronted/components/ui/dialog';
+import { Dialog, DialogContent } from '@/fronted/components/ui/dialog';
 import { Badge } from '@/fronted/components/ui/badge';
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 
 // 模拟API调用
 const api = window.electron;
-
+const TAGS_KEY = 'api/tags';
 export default function TagSelector() {
-    const [popoverOpen, setPopoverOpen] = React.useState(false);
-    const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
-    const [tagToRename, setTagToRename] = React.useState<Tag | null>(null);
-    const [selectedTags, setSelectedTags] = React.useState<Tag[]>([]);
-    const { data: tags, error } = useSWR('api/tags', () => api.call('tag/search', ''), {
+    const playInfo = useFavouriteClip(state => state.playInfo);
+    const {
+        data: clipTags,
+        mutate: clipTagMutate
+    } = useSWR(playInfo ? [`clip-tags`, playInfo.video.key] : null, ([_, key]) => api.call('favorite-clips/query-clip-tags', key), {
         fallbackData: []
     });
 
-    const handleSelectTag = (tag: Tag) => {
-        if (!selectedTags.find(t => t.id === tag.id)) {
-            setSelectedTags([...selectedTags, tag]);
-        }
+    const [popoverOpen, setPopoverOpen] = React.useState(false);
+    const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
+    const [tagToRename, setTagToRename] = React.useState<Tag | null>(null);
+
+    const handleSelectTag = async (tag: Tag) => {
+        await api.call('favorite-clips/add-clip-tag', {
+            key: playInfo.video.key,
+            tagId: tag.id
+        });
+        await clipTagMutate();
+
         setPopoverOpen(false);
     };
 
     const handleCreateTag = async (name: string) => {
         const newTag = await api.call('tag/add', name);
-        await mutate('api/tags'); // 重新获取标签数据
-        setSelectedTags([...selectedTags, newTag]);
+        await api.call('favorite-clips/add-clip-tag', {
+            key: playInfo.video.key,
+            tagId: newTag.id
+        });
+        await mutate(TAGS_KEY); // 重新获取标签数据
+        await clipTagMutate();
         setPopoverOpen(false);
     };
 
     const handleRenameTag = async (id: number, newName: string) => {
-        const updatedTag = await api.call('tag/update', { id, name: newName });
-        await mutate('api/tags'); // 重新获取标签数据
+        await api.call('tag/update', { id, name: newName });
+        await mutate(TAGS_KEY); // 重新获取标签数据
+        await clipTagMutate();
         setRenameDialogOpen(false);
     };
 
     return (
         <div className={cn('w-full border rounded-lg flex flex-wrap gap-2 p-2')}>
-            {selectedTags.map((tag) => (
+            {clipTags.map((tag) => (
                 <Badge
                     key={tag.id}
                     variant="outline"
                     className={cn(
-                        'relative flex gap-1 p-1 pl-2 rounded-lg',
+                        'relative flex gap-1 p-1 pl-2 rounded-lg'
                     )}
                     onContextMenu={(e) => {
                         e.preventDefault();
@@ -71,7 +83,16 @@ export default function TagSelector() {
                     }}
                 >
                     {tag.name}
-                    <Button variant='ghost' size='icon' className="m-0.5 h-5 w-5">
+                    <Button variant="ghost" size="icon" className="m-0.5 h-5 w-5"
+                            onClick={async () => {
+                                await api.call('favorite-clips/delete-clip-tag', {
+                                    key: playInfo.video.key,
+                                    tagId: tag.id
+                                });
+                                await clipTagMutate();
+                                await mutate(TAGS_KEY);
+                            }}
+                    >
                         <X />
                     </Button>
                 </Badge>
@@ -89,6 +110,7 @@ export default function TagSelector() {
                     <StatusList
                         onSelect={handleSelectTag}
                         onCreate={handleCreateTag}
+                        clipTags={clipTags}
                     />
                 </PopoverContent>
             </Popover>
@@ -109,15 +131,18 @@ export default function TagSelector() {
 
 function StatusList({
                         onSelect,
-                        onCreate
+                        onCreate,
+                        clipTags
                     }: {
     onSelect: (tag: Tag) => void;
     onCreate: (name: string) => void;
+    clipTags: Tag[];
 }) {
     const [query, setQuery] = React.useState('');
     const { data: tags, error } = useSWR(['api/tags', query], () => api.call('tag/search', query), {
         fallbackData: []
     });
+    const filteredTags = tags.filter((tag) => !clipTags.find((t) => t.id === tag.id));
     const [inputValue, setInputValue] = React.useState('');
 
     const handleCreate = () => {
@@ -132,6 +157,7 @@ function StatusList({
             handleCreate();
         }
     };
+
 
     return (
         <Command>
@@ -157,13 +183,27 @@ function StatusList({
                         </Button>
                     </div>
                 </CommandEmpty>
-                {tags.length > 0 && (
+                {filteredTags.length > 0 && (
+                    <CommandGroup>
+                        {filteredTags.map((tag) => (
+                            <CommandItem
+                                key={tag.id}
+                                value={tag.name}
+                                onSelect={() => onSelect(tag)}
+                            >
+                                {tag.name}
+                            </CommandItem>
+                        ))}
+                    </CommandGroup>
+                )}
+                {filteredTags.length === 0 && tags.length > 0 && (
                     <CommandGroup>
                         {tags.map((tag) => (
                             <CommandItem
                                 key={tag.id}
                                 value={tag.name}
-                                onSelect={() => onSelect(tag)}
+                                disabled
+                                // onSelect={() => onSelect(tag)}
                             >
                                 {tag.name}
                             </CommandItem>

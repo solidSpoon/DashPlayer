@@ -153,6 +153,9 @@ interface ConvertDef {
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine, srtContext: SrtLine[] }, return: number };
     'favorite-clips/search': { params: string, return: OssObject[] };
+    'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
+    'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
+    'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };
     // 'favorite-clips/delete': { params: string, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }

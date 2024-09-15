@@ -2,7 +2,7 @@ import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm';
 
 export const clipTagRelation = sqliteTable('dp_clip_tag_relation', {
-    clip_id: integer('clip_id', { mode: 'number' }).notNull(),
+    clip_key: text('clip_id').notNull(),
     tag_id: integer('tag_id', { mode: 'number' }).notNull(),
     created_at: text('created_at')
         .notNull()
@@ -12,7 +12,7 @@ export const clipTagRelation = sqliteTable('dp_clip_tag_relation', {
         .default(sql`CURRENT_TIMESTAMP`)
 }, (table) => {
     return {
-        pk: primaryKey({ columns: [table.clip_id, table.tag_id] })
+        pk: primaryKey({ columns: [table.clip_key, table.tag_id] })
     };
 });
 

@@ -8,7 +8,7 @@ import { MetaData, OssObject } from '@/common/types/OssObject';
 import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { desc, eq, like, or } from 'drizzle-orm';
+import { and, count, desc, eq, ExtractTablesWithRelations, like, or } from 'drizzle-orm';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import fs from 'fs';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
@@ -16,16 +16,32 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import ErrorConstants from '@/common/constants/error-constants';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
+import { tag, Tag } from '@/backend/db/tables/tag';
+import { clipTagRelation } from '@/backend/db/tables/clipTagRelation';
+import { TagService } from '@/backend/services/TagService';
+import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
+import Database from 'better-sqlite3';
+
 export interface FavouriteClipsService {
     addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number>;
+
     deleteFavoriteClip(key: string): Promise<void>;
+
+    queryClipTags(key: string): Promise<Tag[]>;
+
+    addClipTag(key: string, tagId: number): Promise<void>;
+
+    deleteClipTag(key: string, tagId: number): Promise<void>;
+
     search(keyword: string): Promise<OssObject[]>;
+
     checkQueue(): Promise<void>;
 }
 
 @injectable()
-export default class FavouriteClipsServiceImpl  implements FavouriteClipsService {
+export default class FavouriteClipsServiceImpl implements FavouriteClipsService {
     @inject(TYPES.LocalOss) private ossService: LocalOssService;
+    @inject(TYPES.TagService) private tagService: TagService;
 
     private queue: {
         videoPath: string,
@@ -89,7 +105,7 @@ export default class FavouriteClipsServiceImpl  implements FavouriteClipsService
     }
 
 
-    private  async addFavoriteClip(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<void> {
+    private async addFavoriteClip(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<void> {
         const metaData: MetaData = FavouriteClipsServiceImpl.extractMetaData(videoPath, srtClip, srtContext);
         const key = metaData.key;
         const folder = LocationService.getStoragePath(LocationType.TEMP);
@@ -143,8 +159,8 @@ export default class FavouriteClipsServiceImpl  implements FavouriteClipsService
     }
 
     private static extractMetaData(videoName: string,
-                            srtClip: SrtLine,
-                            srtContext: SrtLine[]
+                                   srtClip: SrtLine,
+                                   srtContext: SrtLine[]
     ): MetaData {
 
         const srtStr = SrtUtil.toSrt(srtContext);
@@ -169,5 +185,40 @@ export default class FavouriteClipsServiceImpl  implements FavouriteClipsService
     private async isFavoriteClipExist(key: string) {
         return (await db.select().from(videoClip).where(eq(videoClip.key, key)))
             .length > 0;
+    }
+
+    async queryClipTags(key: string): Promise<Tag[]> {
+        const joinRes = await db.select().from(clipTagRelation)
+            .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
+            .where(eq(clipTagRelation.clip_key, key));
+        return joinRes.map((item) => item.dp_tag);
+    }
+
+    async addClipTag(key: string, tagId: number): Promise<void> {
+        await db.insert(clipTagRelation).values({
+            clip_key: key,
+            tag_id: tagId,
+            created_at: TimeUtil.timeUtc(),
+            updated_at: TimeUtil.timeUtc()
+        }).onConflictDoNothing();
+    }
+
+    async deleteClipTag(key: string, tagId: number): Promise<void> {
+        await db.transaction(async (tx) => {
+            await tx.delete(clipTagRelation).where(
+                and(
+                    eq(clipTagRelation.clip_key, key),
+                    eq(clipTagRelation.tag_id, tagId)
+                )
+            );
+            const r = await tx.select({ count: count() })
+                .from(clipTagRelation)
+                .where(eq(clipTagRelation.tag_id, tagId));
+            if (r[0].count === 0) {
+                await tx.delete(tag).where(eq(tag.id, tagId));
+            }
+        });
+
+
     }
 }

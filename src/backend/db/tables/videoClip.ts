@@ -1,9 +1,8 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const videoClip = sqliteTable('dp_video_clip', {
-    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-    key: text('key').notNull().unique(),
+    key: text('key').primaryKey(),
     video_name: text('video_name'),
     /**
      * 收藏的行
