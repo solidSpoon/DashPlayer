@@ -3,14 +3,15 @@ import db from '@/backend/db/db';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment,
-    subtitleTimestampAdjustments,
+    subtitleTimestampAdjustments
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import TimeUtil from "@/common/utils/TimeUtil";
+import TimeUtil from '@/common/utils/TimeUtil';
+import { injectable } from 'inversify';
+import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 
-export default class SubtitleTimestampAdjustmentService {
-    public static async record(
-        e: InsertSubtitleTimestampAdjustment
-    ): Promise<void> {
+@injectable()
+export default class SrtTimeAdjustServiceImpl implements SrtTimeAdjustService {
+    public async record(e: InsertSubtitleTimestampAdjustment): Promise<void> {
         await db
             .insert(subtitleTimestampAdjustments)
             .values(e)
@@ -20,18 +21,18 @@ export default class SubtitleTimestampAdjustmentService {
                     subtitle_path: e.subtitle_path,
                     start_at: e.start_at,
                     end_at: e.end_at,
-                    updated_at: TimeUtil.timeUtc(),
-                },
+                    updated_at: TimeUtil.timeUtc()
+                }
             });
     }
 
-    public static async deleteByKey(key: string): Promise<void> {
+    public async deleteByKey(key: string): Promise<void> {
         await db
             .delete(subtitleTimestampAdjustments)
             .where(eq(subtitleTimestampAdjustments.key, key));
     }
 
-    public static async deleteByFile(fileHash: string): Promise<void> {
+    public async deleteByFile(fileHash: string): Promise<void> {
         await db
             .delete(subtitleTimestampAdjustments)
             .where(
@@ -39,9 +40,7 @@ export default class SubtitleTimestampAdjustmentService {
             );
     }
 
-    public static async getByKey(
-        key: string
-    ): Promise<SubtitleTimestampAdjustment | undefined> {
+    public async getByKey(key: string): Promise<SubtitleTimestampAdjustment | undefined> {
         const values: SubtitleTimestampAdjustment[] = await db
             .select()
             .from(subtitleTimestampAdjustments)
@@ -53,9 +52,7 @@ export default class SubtitleTimestampAdjustmentService {
         return values[0];
     }
 
-    static getByPath(
-        subtitlePath: string
-    ): Promise<SubtitleTimestampAdjustment[]> {
+    public getByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]> {
         return db
             .select()
             .from(subtitleTimestampAdjustments)
@@ -63,9 +60,8 @@ export default class SubtitleTimestampAdjustmentService {
                 eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath)
             );
     }
-    static getByHash(
-        h: string
-    ): Promise<SubtitleTimestampAdjustment[]> {
+
+    public getByHash(h: string): Promise<SubtitleTimestampAdjustment[]> {
         return db
             .select()
             .from(subtitleTimestampAdjustments)

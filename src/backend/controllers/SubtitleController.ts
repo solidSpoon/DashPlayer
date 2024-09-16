@@ -1,24 +1,24 @@
 import { SentenceStruct } from '@/common/types/SentenceStruct';
-import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
+import { SrtSentence } from '@/common/types/SentenceC';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
+import Controller from '@/backend/interfaces/controller';
 import SubtitleService from '@/backend/services/SubtitleService';
-import {SrtSentence} from "@/common/types/SentenceC";
 
 
+@injectable()
 export default class SubtitleController implements Controller {
 
+    @inject(TYPES.SubtitleService)
+    private subtitleService: SubtitleService;
 
-    public async processSentences(sentences: string[]): Promise<SentenceStruct[]> {
-        return SubtitleService.processSentences(sentences);
-    }
-
-    public async parseSrt(path: string): Promise<SrtSentence|null> {
-        return SubtitleService.parseSrt(path);
+    public async parseSrt(path: string): Promise<SrtSentence | null> {
+        return this.subtitleService.parseSrt(path);
     }
 
     registerRoutes(): void {
-        registerRoute('subtitle/sentences/process', this.processSentences);
-        registerRoute('subtitle/srt/parse-to-sentences', this.parseSrt);
+        registerRoute('subtitle/srt/parse-to-sentences', (p) => this.parseSrt(p));
     }
 }
 

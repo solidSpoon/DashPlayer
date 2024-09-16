@@ -8,10 +8,10 @@ import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import path from 'path';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import ControllerT from '@/backend/interfaces/controllerT';
+import Controller from '@/backend/interfaces/controller';
 
 @injectable()
-export default class WatchProjectController implements ControllerT {
+export default class WatchProjectController implements Controller {
     @inject(TYPES.WatchProject) private watchProjectService: WatchProjectService;
 
     public async updateProgress({ videoId, currentTime, duration }: {

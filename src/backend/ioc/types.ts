@@ -8,6 +8,8 @@ const TYPES = {
     WatchProject: Symbol('WatchProject'),
     DlVideo: Symbol('DlVideo'),
     TagService: Symbol('TagService'),
+    SubtitleService: Symbol('SubtitleService'),
+    SrtTimeAdjustService: Symbol('SubtitleTimestampAdjustmentService'),
 };
 
 export default TYPES;

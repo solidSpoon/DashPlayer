@@ -113,7 +113,6 @@ interface WatchProjectDef {
 }
 
 interface SubtitleControllerDef {
-    'subtitle/sentences/process': { params: string[], return: SentenceStruct[] };
     'subtitle/srt/parse-to-sentences': { params: string, return: SrtSentence | null };
 }
 

@@ -17,7 +17,6 @@ export interface PlayerControllerInternal {
     subtitleIndex: Map<number, SentenceC[]>;
     maxIndex: number;
     onPlaySeekTime: number | null;
-    // wordLevel: Map<string, WrodLevelRes>;
 }
 
 export interface InternalSlice {

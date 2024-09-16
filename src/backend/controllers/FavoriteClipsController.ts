@@ -1,4 +1,4 @@
-import ControllerT from '@/backend/interfaces/controllerT';
+import Controller from '@/backend/interfaces/controller';
 import { SrtLine } from '@/common/utils/SrtUtil';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsServiceImpl';
 import registerRoute from '@/common/api/register';
@@ -10,7 +10,7 @@ import { DateRange } from 'react-day-picker';
 import { ClipQuery } from '@/common/api/dto';
 
 @injectable()
-export default class FavoriteClipsController implements ControllerT {
+export default class FavoriteClipsController implements Controller {
     @inject(TYPES.FavouriteClips) private favouriteClipsService: FavouriteClipsService;
 
     public async addFavoriteClip({ videoPath, srtClip, srtContext }: {

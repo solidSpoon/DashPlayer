@@ -1,4 +1,4 @@
-import ControllerT from '@/backend/interfaces/controllerT';
+import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { TagService } from '@/backend/services/TagService';
@@ -6,7 +6,7 @@ import registerRoute from '@/common/api/register';
 import { Tag } from '@/backend/db/tables/tag';
 
 @injectable()
-export default class TagController implements ControllerT {
+export default class TagController implements Controller {
     @inject(TYPES.TagService) private tagService: TagService;
 
     public async addTag(name: string): Promise<Tag> {

@@ -1,4 +1,3 @@
-import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
 import { app, dialog, shell } from 'electron';
 import path from 'path';
@@ -9,6 +8,8 @@ import { checkUpdate } from '@/backend/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { BASE_PATH } from '@/backend/controllers/StorageController';
 import Util from '@/common/utils/Util';
+import { injectable } from 'inversify';
+import Controller from '@/backend/interfaces/controller';
 
 /**
  * eg: .mkv -> mkv
@@ -20,6 +21,7 @@ function processFilter(filter: string[]) {
         .map(f => f.replace(/^\./, ''));
 }
 
+@injectable()
 export default class SystemController implements Controller {
     public async info() {
         return {
@@ -96,17 +98,17 @@ export default class SystemController implements Controller {
 
 
     public registerRoutes(): void {
-        registerRoute('system/info', this.info);
-        registerRoute('system/select-file', this.selectFile);
-        registerRoute('system/select-folder', this.selectFolder);
-        registerRoute('system/path-info', this.pathInfo);
-        registerRoute('system/reset-db', this.resetDb);
-        registerRoute('system/open-folder', this.openFolder);
-        registerRoute('system/open-folder/cache', this.openCacheDir);
-        registerRoute('system/window-size/change', this.changeWindowSize);
-        registerRoute('system/window-size', this.windowState);
-        registerRoute('system/check-update', this.checkUpdate);
-        registerRoute('system/open-url', this.openUrl);
-        registerRoute('system/app-version', this.appVersion);
+        registerRoute('system/info', (_)=>this.info());
+        registerRoute('system/select-file', (p)=>this.selectFile(p));
+        registerRoute('system/select-folder', (p)=>this.selectFolder());
+        registerRoute('system/path-info', (p)=>this.pathInfo(p));
+        registerRoute('system/reset-db', (_)=>this.resetDb());
+        registerRoute('system/open-folder', (p)=>this.openFolder(p));
+        registerRoute('system/open-folder/cache', (p)=>this.openCacheDir());
+        registerRoute('system/window-size/change', (p)=>this.changeWindowSize(p));
+        registerRoute('system/window-size', (p)=>this.windowState());
+        registerRoute('system/check-update', (p)=>this.checkUpdate());
+        registerRoute('system/open-url', (p)=>this.openUrl(p));
+        registerRoute('system/app-version', (p)=>this.appVersion());
     }
 }

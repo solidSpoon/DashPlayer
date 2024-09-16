@@ -1,4 +1,3 @@
-import Controller from '@/backend/interfaces/controller';
 import SplitVideoService from '@/backend/services/SplitVideoService';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import registerRoute from '@/common/api/register';
@@ -9,7 +8,10 @@ import fs from 'fs';
 import TimeUtil from '@/common/utils/TimeUtil';
 import hash from 'object-hash';
 import UrlUtil from '@/common/utils/UrlUtil';
+import { injectable } from 'inversify';
+import Controller from '@/backend/interfaces/controller';
 
+@injectable()
 export default class MediaController implements Controller {
 
     public async previewSplit(str: string): Promise<ChapterParseResult[]> {
@@ -58,9 +60,9 @@ export default class MediaController implements Controller {
 
 
     registerRoutes(): void {
-        registerRoute('split-video/preview', this.previewSplit);
-        registerRoute('split-video/split', this.split);
-        registerRoute('split-video/thumbnail', this.thumbnail);
-        registerRoute('split-video/video-length', this.videoLength);
+        registerRoute('split-video/preview', (p)=>this.previewSplit(p));
+        registerRoute('split-video/split', (p)=>this.split(p));
+        registerRoute('split-video/thumbnail', (p)=>this.thumbnail(p));
+        registerRoute('split-video/video-length', (p)=>this.videoLength(p));
     }
 }

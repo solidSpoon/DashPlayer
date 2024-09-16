@@ -1,27 +1,13 @@
-import {app, shell} from 'electron';
+import {app} from 'electron';
 import fs from 'fs';
 import path from 'path';
-import Controller from "@/backend/interfaces/controller";
 import StorageService from "@/backend/services/StorageService";
 import {SettingKey} from "@/common/types/store_schema";
 import registerRoute from "@/common/api/register";
+import Controller from '@/backend/interfaces/controller';
+import { injectable } from 'inversify';
 
 export const BASE_PATH = path.join(app.getPath('userData'), 'useradd');
-/**
- * 打开数据目录
- */
-export const openDataDir = async () => {
-    await shell.openPath(BASE_PATH);
-};
-
-/**
- * 清理一个月前的缓存
- */
-export const clearCache = async () => {
-    // await ProgressCache.clearCache();
-    // await TranslateCache.clearCache();
-    // await WordTransCache.clearCache();
-};
 const formatBytes = (bytes: number): string => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']; // 文件大小单位
     let size = bytes;
@@ -52,6 +38,7 @@ export const queryCacheSize = async () => {
     return formatBytes(size);
 };
 
+@injectable()
 export default class StorageController implements Controller {
     public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
         await StorageService.storeSet(key, value);
@@ -65,8 +52,8 @@ export default class StorageController implements Controller {
         return queryCacheSize();
     }
     registerRoutes(): void {
-        registerRoute('storage/put', this.storeSet);
-        registerRoute('storage/get', this.storeGet);
-        registerRoute('storage/cache/size', this.queryCacheSize);
+        registerRoute('storage/put', (p)=>this.storeSet(p));
+        registerRoute('storage/get',(p)=> this.storeGet(p));
+        registerRoute('storage/cache/size', (p)=>this.queryCacheSize());
     }
 }
