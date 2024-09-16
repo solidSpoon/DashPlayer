@@ -2,7 +2,6 @@ import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { DpTask } from '@/backend/db/tables/dpTask';
 import { YdRes } from '@/common/types/YdRes';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectServiceImpl';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
@@ -150,11 +149,14 @@ interface ConvertDef {
 }
 
 interface FavoriteClipsDef {
-    'favorite-clips/add': { params: { videoPath: string, srtClip: SrtLine, srtContext: SrtLine[] }, return: number };
+    'favorite-clips/add': { params: { videoPath: string, srtKey: string, indexInSrt: number }, return: void };
     'favorite-clips/search': { params: ClipQuery, return: OssObject[] };
     'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
     'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
     'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };
+    'favorite-clips/cancel-add': { params: { srtKey: string, indexInSrt: number }, return: void };
+    'favorite-clips/exists': { params: { srtKey: string, linesInSrt: number[] }, return: Map<number, boolean> };
+    'favorite-clips/task-info': { params: void, return: number };
     // 'favorite-clips/delete': { params: string, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }

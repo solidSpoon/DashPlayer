@@ -1,11 +1,12 @@
-import {app} from 'electron';
+import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import StorageService from "@/backend/services/StorageService";
-import {SettingKey} from "@/common/types/store_schema";
-import registerRoute from "@/common/api/register";
+import { SettingKey } from '@/common/types/store_schema';
+import registerRoute from '@/common/api/register';
 import Controller from '@/backend/interfaces/controller';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
+import SettingService from '@/backend/services/SettingService';
 
 export const BASE_PATH = path.join(app.getPath('userData'), 'useradd');
 const formatBytes = (bytes: number): string => {
@@ -40,20 +41,23 @@ export const queryCacheSize = async () => {
 
 @injectable()
 export default class StorageController implements Controller {
-    public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
-        await StorageService.storeSet(key, value);
+    @inject(TYPES.SettingService) private settingService: SettingService;
+
+    public async storeSet({ key, value }: { key: SettingKey, value: string }): Promise<void> {
+        await this.settingService.set(key, value);
     }
 
     public async storeGet(key: SettingKey): Promise<string> {
-        return StorageService.storeGet(key);
+        return this.settingService.get(key);
     }
 
     public async queryCacheSize(): Promise<string> {
         return queryCacheSize();
     }
+
     registerRoutes(): void {
-        registerRoute('storage/put', (p)=>this.storeSet(p));
-        registerRoute('storage/get',(p)=> this.storeGet(p));
-        registerRoute('storage/cache/size', (p)=>this.queryCacheSize());
+        registerRoute('storage/put', (p) => this.storeSet(p));
+        registerRoute('storage/get', (p) => this.storeGet(p));
+        registerRoute('storage/cache/size', (p) => this.queryCacheSize());
     }
 }

@@ -1,24 +1,11 @@
-import { inject, injectable } from 'inversify';
-import TYPES from '@/backend/ioc/types';
-import { FavouriteClipsService } from '@/backend/services/FavouriteClipsServiceImpl';
+import { injectable, postConstruct } from 'inversify';
+import dpLog from '@/backend/ioc/logger';
 
-export interface ScheduleService {
-    init(): void;
-}
 
 @injectable()
-export class ScheduleServiceImpl implements ScheduleService {
-    @inject(TYPES.FavouriteClips) private favouriteClipsService: FavouriteClipsService;
-
-    private FavouriteTask() {
-        const func = async () => {
-            await this.favouriteClipsService.checkQueue();
-            setTimeout(func, 3000);
-        };
-        func().then();
-    }
-
+export class ScheduleServiceImpl {
+    @postConstruct()
     init() {
-        this.FavouriteTask();
+        dpLog.info('ScheduleServiceImpl init');
     }
 }

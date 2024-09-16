@@ -6,8 +6,8 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import SrtUtil from '@/common/utils/SrtUtil';
 import hash from "object-hash";
 import TimeUtil from "@/common/utils/TimeUtil";
-import SystemService from '@/backend/services/SystemService';
 import StrUtil from '@/common/utils/str-util';
+import FileUtil from '@/backend/utils/FileUtil';
 
 interface VideoSplitResult {
     title: string,
@@ -34,7 +34,7 @@ class SplitVideoService {
         if (StrUtil.isBlank(srtPath) || !fs.existsSync(srtPath)) {
             return;
         }
-        const content = await SystemService.read(srtPath);
+        const content = await FileUtil.read(srtPath);
         if (content === null) {
             return;
         }
@@ -90,7 +90,7 @@ class SplitVideoService {
             offset += duration;
         }
 
-        const content = await SystemService.read(srtPath);
+        const content = await FileUtil.read(srtPath);
         if (content === null) {
             return;
         }

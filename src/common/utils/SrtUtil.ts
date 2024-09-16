@@ -129,4 +129,15 @@ export default class SrtUtil {
             contentZh: sentence.textZH
         }
     }
+
+    public static srtAround(lines: SrtLine[], indexInSrt: number, range: number): SrtLine[] {
+        const srtMin = lines.map(l => l.index).reduce((a, b) => Math.min(a, b));
+        const srtMax = lines.map(l => l.index).reduce((a, b) => Math.max(a, b));
+        const start = Math.max(srtMin, indexInSrt - range);
+        const end = Math.min(srtMax, indexInSrt + range);
+        return lines.filter(l => l.index >= start && l.index <= end);
+    }
+    public static srtAt(lines: SrtLine[], indexInSrt: number): SrtLine | undefined {
+        return lines.find(l => l.index === indexInSrt);
+    }
 }

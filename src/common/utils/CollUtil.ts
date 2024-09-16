@@ -1,5 +1,5 @@
 
-export default class CollUtils {
+export default class CollUtil {
     public static isEmpty<T>(coll: T[] | null | undefined): boolean {
         return !coll || coll.length === 0;
     }

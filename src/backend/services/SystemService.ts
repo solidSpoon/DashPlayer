@@ -1,116 +1,20 @@
 import { WindowState } from '@/common/types/Types';
-import fs from 'fs';
-import { dialog } from 'electron';
-import jschardet from 'jschardet';
-import iconv from 'iconv-lite';
+import { BrowserWindow } from 'electron';
 
-export default class SystemService {
-    public static mainWindowRef: Electron.CrossProcessExports.BrowserWindow;
+/**
+ * SystemService
+ */
+export default interface SystemService {
 
-    public static changeWindowSize(state: WindowState) {
-        switch (state) {
-            case 'normal':
-                SystemService.mainWindowRef?.unmaximize();
-                SystemService.mainWindowRef?.setFullScreen(false);
-                break;
-            case 'maximized':
-                SystemService.mainWindowRef?.maximize();
-                break;
-            case 'minimized':
-                SystemService.mainWindowRef?.minimize();
-                break;
-            case 'fullscreen':
-                SystemService.mainWindowRef?.setFullScreen(true);
-                break;
-            case 'closed':
-                SystemService.mainWindowRef?.close();
-                break;
-            case 'home':
-                SystemService.mainWindowRef?.unmaximize();
-                SystemService.mainWindowRef?.setSize(1200, 800);
-                SystemService.mainWindowRef?.setResizable(false);
-                SystemService.mainWindowRef?.setMaximizable(false);
-                break;
-            case 'player':
-                SystemService.mainWindowRef?.setResizable(true);
-                SystemService.mainWindowRef?.setMaximizable(true);
-                SystemService.mainWindowRef?.maximize();
-                break;
-            default:
-                break;
-        }
-    }
+    changeWindowSize(state: WindowState): void;
 
-    public static windowState(): WindowState {
-        if (SystemService.mainWindowRef.isMaximized()) {
-            return 'maximized';
-        } else if (SystemService.mainWindowRef.isMinimized()) {
-            return 'minimized';
-        } else if (SystemService.mainWindowRef.isFullScreen()) {
-            return 'fullscreen';
-        } else {
-            return 'normal';
-        }
-    }
+    windowState(): WindowState;
 
-    public static isWindows() {
-        return process.platform === 'win32';
-    }
+    isWindows(): boolean;
 
-    public static sendErrorToRenderer(error: Error) {
-        SystemService.mainWindowRef?.webContents.send('error-msg', error);
-    }
+    sendErrorToRenderer(error: Error): void;
 
-    public static async read(path: string) {
-        try {
-            if (!fs.existsSync(path)) {
-                return null;
-            }
-            const buffer = fs.readFileSync(path);
-            const encoding = jschardet.detect(buffer).encoding;
-            return iconv.decode(buffer, encoding).toString();
-        } catch (e) {
-            // show open dialog
-            await dialog.showMessageBox({
-                type: 'error',
-                message: `无权限读取文件，请选择文件 ${path} 来授权`
-            });
+    mainWindow(): Electron.BrowserWindow;
 
-            const files = await dialog.showOpenDialog({
-                properties: ['openFile']
-            });
-            if (files.canceled || files.filePaths.length === 0) {
-                return null;
-            }
-            const buffer = fs.readFileSync(files.filePaths[0]);
-            const encoding = jschardet.detect(buffer).encoding;
-            return iconv.decode(buffer, encoding).toString();
-        }
-    }
-
-    /**
-     * 获取文件夹下的所有文件
-     */
-    public static async listFiles(path: string) {
-        try {
-            if (!fs.existsSync(path)) {
-                return [];
-            }
-            return fs.readdirSync(path);
-        } catch (e) {
-            // show open dialog
-            await dialog.showMessageBox({
-                type: 'error',
-                message: `无权限访问文件夹，请选择文件夹 ${path} 来授权`
-            });
-
-            const files = await dialog.showOpenDialog({
-                properties: ['openDirectory']
-            });
-            if (files.canceled) {
-                return [];
-            }
-            return fs.readdirSync(path);
-        }
-    }
+    setMainWindow(mainWindowRef: { current: BrowserWindow | null }): void;
 }

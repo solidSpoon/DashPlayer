@@ -3,7 +3,6 @@ import Separator from '@/fronted/components/Separtor';
 import React from 'react';
 import {Input} from '@/fronted/components/ui/input';
 import {Button} from '@/fronted/components/ui/button';
-import {strNotBlank} from '@/common/utils/Util';
 import {useLocalStorage} from '@uidotdev/usehooks';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import toast from 'react-hot-toast';
@@ -21,6 +20,7 @@ import {
 import useTranscript from "@/fronted/hooks/useTranscript";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 
@@ -76,7 +76,7 @@ const DownloadVideo = () => {
                     <Button
                         disabled={inProgress}
                         onClick={async () => {
-                            if (strNotBlank(url)) {
+                            if (StrUtil.isNotBlank(url)) {
                                 const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
                                     onFinish: async (task) => {
                                         if (task.status !== DpTaskState.DONE) return;
@@ -100,7 +100,7 @@ const DownloadVideo = () => {
                         <DropdownMenuContent>
                             <DropdownMenuItem
                                 onClick={async () => {
-                                    if (strNotBlank(url)) {
+                                    if (StrUtil.isNotBlank(url)) {
                                         const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {url}), {
                                             onFinish: async (task) => {
                                                 if (task.status !== DpTaskState.DONE) return;

@@ -3,11 +3,11 @@ import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/chat/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import { strNotBlank } from '@/common/utils/Util';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import { AiFuncPunctuationRes } from '@/common/types/aiRes/AiPunctuationResp';
 import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
+import StrUtil from '@/common/utils/str-util';
 
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const {detail: polishTaskRes} = useDpTaskViewer<AiFuncPolishRes>(msg.polishTask);
@@ -56,7 +56,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                         <p>{punctuationTaskResp?.completeVersion}</p>
                     </blockquote>
                 </>}
-                {(strNotBlank(polishTaskRes?.edit1) || strNotBlank(polishTaskRes?.edit2) || strNotBlank(polishTaskRes?.edit3)) && (<>
+                {StrUtil.hasNonBlank(polishTaskRes?.edit1, polishTaskRes?.edit2, polishTaskRes?.edit3) && (<>
                     <h3>同义句</h3>
                     <p>这个句子还有如下几种表达方式:</p>
                     <li

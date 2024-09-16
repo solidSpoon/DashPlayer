@@ -1,15 +1,15 @@
-import DlVideoServiceImpl from '@/backend/services/DlVideoServiceImpl';
-
 const TYPES = {
     LocalOss: Symbol('LocalOss'),
     FavouriteClips: Symbol('FavouriteClips'),
-    ScheduleService: Symbol('ScheduleService'),
     Controller: Symbol('Controller'),
     WatchProject: Symbol('WatchProject'),
     DlVideo: Symbol('DlVideo'),
     TagService: Symbol('TagService'),
     SubtitleService: Symbol('SubtitleService'),
     SrtTimeAdjustService: Symbol('SubtitleTimestampAdjustmentService'),
+    SystemService: Symbol('SystemService'),
+    CacheService: Symbol('CacheService'),
+    SettingService: Symbol('SettingService'),
 };
 
 export default TYPES;

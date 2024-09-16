@@ -2,7 +2,6 @@ import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
-import SystemService from '@/backend/services/SystemService';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
 import DpTaskService from '@/backend/services/DpTaskService';
@@ -22,7 +21,6 @@ const createWindow = () => {
         titleBarStyle: 'customButtonsOnHover'
     });
     mainWindowRef.current = mainWindow;
-    SystemService.mainWindowRef = mainWindow;
     // and load the index.html of the app.
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -97,4 +95,4 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-registerHandler();
+registerHandler(mainWindowRef);

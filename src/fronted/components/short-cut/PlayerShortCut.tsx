@@ -134,19 +134,21 @@ export default function PlayerShortCut() {
 
 
     useHotkeys(process(setting('shortcut.toggleCopyMode')), (ke, he) => {
-        if (ke.type == 'keydown' && !isCopyMode) {
+        if (ke.type === 'keydown' && !isCopyMode) {
             enterCopyMode();
-        } else if (ke.type == 'keyup' && isCopyMode) {
+        } else if (ke.type === 'keyup' && isCopyMode) {
             exitCopyMode();
         }
     }, { keyup: true, keydown: true });
     useHotkeys('l', async () => {
         const videoPath = useFile.getState().videoPath;
+        const srtHash = useFile.getState().srtHash;
         const currentSentence = usePlayerController.getState().currentSentence;
-        const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
-        const srtContext = subtitles.map(s => SrtUtil.toSrtLine(s));
-        const srtClip = SrtUtil.toSrtLine(currentSentence);
-        useFavouriteClip.getState().addClip(videoPath, srtClip, srtContext);
+        await api.call('favorite-clips/add', {
+            videoPath,
+            srtKey: srtHash,
+            indexInSrt: currentSentence.indexInFile
+        });
     });
     return <></>;
 }

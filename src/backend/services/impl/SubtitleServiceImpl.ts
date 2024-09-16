@@ -6,11 +6,12 @@ import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import hash from 'object-hash';
 import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import SystemService from '@/backend/services/SystemService';
 import { inject, injectable } from 'inversify';
 import SubtitleService from '@/backend/services/SubtitleService';
 import TYPES from '@/backend/ioc/types';
 import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
+import FileUtil from '@/backend/utils/FileUtil';
+import CacheService from '@/backend/services/CacheService';
 
 
 function groupSentence(
@@ -36,33 +37,24 @@ function groupSentence(
         });
     });
 }
-
-
-type Cache = { fileHash: string, value: SrtSentence };
-
 @injectable()
 export class SubtitleServiceImpl implements SubtitleService {
 
     @inject(TYPES.SrtTimeAdjustService)
     private srtTimeAdjustService: SrtTimeAdjustService;
+    @inject(TYPES.CacheService)
+    private cacheService: CacheService;
 
-    private cache: Cache;
-
-    constructor() {
-        this.cache = {
-            fileHash: '',
-            value: null
-        };
-    }
     public async parseSrt(path: string): Promise<SrtSentence> {
         if (!fs.existsSync(path)) {
             return null;
         }
-        const content = await SystemService.read(path);
+        const content = await FileUtil.read(path);
         console.log(content);
         const h = hash(content);
-        if (this.cache.fileHash === h) {
-            return this.cache.value;
+        const cache = this.cacheService.get<SrtSentence>(h);
+        if (cache) {
+            return cache;
         }
         const lines: SrtLine[] = SrtUtil.parseSrt(content);
         const subtitles = lines.map<Sentence>((line, index) => ({
@@ -94,8 +86,7 @@ export class SubtitleServiceImpl implements SubtitleService {
             filePath: path,
             sentences: subtitles
         };
-        this.cache.fileHash = h;
-        this.cache.value = res;
+        this.cacheService.set<SrtSentence>(h, res);
         return res;
     }
 

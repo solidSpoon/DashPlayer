@@ -7,6 +7,7 @@ import fs from 'fs';
 import LocationService from '@/backend/services/LocationService';
 import SystemService from '@/backend/services/SystemService';
 import ProcessService from '@/backend/services/ProcessService';
+import FileUtil from '@/backend/utils/FileUtil';
 
 export default class FfmpegService {
     static {
@@ -85,7 +86,7 @@ export default class FfmpegService {
                 .output(outputFormat)
                 .on('end', async () => {
                     try {
-                        const files = await SystemService.listFiles(outputFolder);
+                        const files = await FileUtil.listFiles(outputFolder);
                         // Filter the files to start with the output file prefix
                         const outputFiles = files.filter(file => file.startsWith(outputFilePrefix))
                             .map(file => path.join(outputFolder, file));

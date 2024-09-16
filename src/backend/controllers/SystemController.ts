@@ -7,9 +7,10 @@ import SystemService from '@/backend/services/SystemService';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { BASE_PATH } from '@/backend/controllers/StorageController';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import StrUtil from '@/common/utils/str-util';
+import TYPES from '@/backend/ioc/types';
 
 /**
  * eg: .mkv -> mkv
@@ -23,6 +24,9 @@ function processFilter(filter: string[]) {
 
 @injectable()
 export default class SystemController implements Controller {
+    @inject(TYPES.SystemService)
+    private systemService: SystemService;
+
     public async info() {
         return {
             isWindows: process.platform === 'win32',
@@ -73,11 +77,11 @@ export default class SystemController implements Controller {
     }
 
     public async changeWindowSize(state: WindowState) {
-        SystemService.changeWindowSize(state);
+        this.systemService.changeWindowSize(state);
     }
 
     public async windowState(): Promise<WindowState> {
-        return SystemService.windowState();
+        return this.systemService.windowState();
     }
 
     public async checkUpdate(): Promise<Release[]> {
@@ -98,17 +102,17 @@ export default class SystemController implements Controller {
 
 
     public registerRoutes(): void {
-        registerRoute('system/info', (_)=>this.info());
-        registerRoute('system/select-file', (p)=>this.selectFile(p));
-        registerRoute('system/select-folder', (p)=>this.selectFolder());
-        registerRoute('system/path-info', (p)=>this.pathInfo(p));
-        registerRoute('system/reset-db', (_)=>this.resetDb());
-        registerRoute('system/open-folder', (p)=>this.openFolder(p));
-        registerRoute('system/open-folder/cache', (p)=>this.openCacheDir());
-        registerRoute('system/window-size/change', (p)=>this.changeWindowSize(p));
-        registerRoute('system/window-size', (p)=>this.windowState());
-        registerRoute('system/check-update', (p)=>this.checkUpdate());
-        registerRoute('system/open-url', (p)=>this.openUrl(p));
-        registerRoute('system/app-version', (p)=>this.appVersion());
+        registerRoute('system/info', (_) => this.info());
+        registerRoute('system/select-file', (p) => this.selectFile(p));
+        registerRoute('system/select-folder', (p) => this.selectFolder());
+        registerRoute('system/path-info', (p) => this.pathInfo(p));
+        registerRoute('system/reset-db', (_) => this.resetDb());
+        registerRoute('system/open-folder', (p) => this.openFolder(p));
+        registerRoute('system/open-folder/cache', (p) => this.openCacheDir());
+        registerRoute('system/window-size/change', (p) => this.changeWindowSize(p));
+        registerRoute('system/window-size', (p) => this.windowState());
+        registerRoute('system/check-update', (p) => this.checkUpdate());
+        registerRoute('system/open-url', (p) => this.openUrl(p));
+        registerRoute('system/app-version', (p) => this.appVersion());
     }
 }

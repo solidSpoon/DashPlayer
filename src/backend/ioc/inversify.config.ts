@@ -2,8 +2,6 @@ import { Container } from 'inversify';
 import TYPES from './types';
 import LocalOssService, { OssService } from '@/backend/services/LocalOssService';
 import { MetaData, OssObject } from '@/common/types/OssObject';
-import { ScheduleService, ScheduleServiceImpl } from '@/backend/services/ScheduleServiceImpl';
-import FavouriteClipsServiceImpl, { FavouriteClipsService } from '@/backend/services/FavouriteClipsServiceImpl';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/interfaces/controller';
 import WatchProjectController from '@/backend/controllers/WatchProjectController';
@@ -25,6 +23,15 @@ import MediaController from '@/backend/controllers/MediaController';
 import StorageController from '@/backend/controllers/StorageController';
 import SystemController from '@/backend/controllers/SystemController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
+import SystemServiceImpl from '@/backend/services/impl/SystemServiceImpl';
+import SystemService from '@/backend/services/SystemService';
+import CacheService from '@/backend/services/CacheService';
+import { CacheServiceImpl } from '@/backend/services/impl/CacheService';
+import SettingService from '@/backend/services/SettingService';
+import SettingServiceImpl from '@/backend/services/SettingServiceImpl';
+import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import FavouriteClipsServiceImpl from '@/backend/services/impl/FavouriteClipsServiceImpl';
+
 
 const container = new Container();
 
@@ -44,12 +51,13 @@ container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonSco
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 // Services
 container.bind<OssService<MetaData, OssObject>>(TYPES.LocalOss).to(LocalOssService).inSingletonScope();
-container.bind<ScheduleService>(TYPES.ScheduleService).to(ScheduleServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
 container.bind<WatchProjectService>(TYPES.WatchProject).to(WatchProjectServiceImpl).inSingletonScope();
 container.bind<DlVideoService>(TYPES.DlVideo).to(DlVideoServiceImpl).inSingletonScope();
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
 container.bind<SubtitleService>(TYPES.SubtitleService).to(SubtitleServiceImpl).inSingletonScope();
-
+container.bind<SystemService>(TYPES.SystemService).to(SystemServiceImpl).inSingletonScope();
+container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
+container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
 export default container;

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Separator from '@/fronted/components/Separtor';
 import useSWR from 'swr';
 import { LoaderPinwheel } from 'lucide-react';
-import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/fronted/components/ui/hover-card';
 import FavouritePlayer from '@/fronted/pages/favourite/FavouritePlayer';
 import FavouriteItem from '@/fronted/pages/favourite/FavouriteItem';
@@ -12,14 +11,22 @@ import StringQuery from '@/fronted/components/query/StringQuery';
 import TagQuery from '@/fronted/components/query/TagQuery';
 import { DateRange } from 'react-day-picker';
 import { Tag } from '@/backend/db/tables/tag';
-import { apiPath } from '@/fronted/lib/swr-util';
+import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
 
-
 const Loader = () => {
-    const unfinishedTasks = useFavouriteClip(state => state.unfinishedTasks);
-    const has = unfinishedTasks.length > 0;
+    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info',  null));
+    const has = unfinishedLength > 0;
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            swrApiMutate(apiPath('favorite-clips/task-info')).then();
+        }, 1000);
+        return () => {
+            clearInterval(timer);
+        };
+    });
     return (
         <HoverCard>
             <HoverCardTrigger asChild>
@@ -30,7 +37,7 @@ const Loader = () => {
                 />
             </HoverCardTrigger>
             <HoverCardContent className="w-80">
-                {`${unfinishedTasks.length} tasks in progress`}
+                {`${unfinishedLength} tasks in progress`}
             </HoverCardContent>
         </HoverCard>
     );

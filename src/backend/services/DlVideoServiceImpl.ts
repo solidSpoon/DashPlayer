@@ -9,7 +9,8 @@ import fs from 'fs';
 import FfmpegService from '@/backend/services/FfmpegService';
 import ProcessService from '@/backend/services/ProcessService';
 import SystemService from '@/backend/services/SystemService';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
 
 export interface DlVideoService {
     dlVideo(taskId: number, url: string, savePath: string): Promise<void>;
@@ -18,6 +19,9 @@ export interface DlVideoService {
 
 @injectable()
 export default class DlVideoServiceImpl implements DlVideoService {
+    @inject(TYPES.SystemService)
+    private systemService: SystemService;
+
     public async dlVideo(taskId: number, url: string, savePath: string) {
         const result: {
             ref: DlProgress
@@ -39,7 +43,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
             result: JSON.stringify(result.ref)
         });
         try {
-            const vName = await DlVideoServiceImpl.doDlVideoFileName(taskId, result, url)
+            const vName = await this.doDlVideoFileName(taskId, result, url)
                 .then((name) => {
                     result.ref.name = path.basename(name, path.extname(name)) + '.mp4';
                     return name;
@@ -179,7 +183,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
      * @param result
      * @param url
      */
-    public static async doDlVideoFileName(taskId: number, result: {
+    public async doDlVideoFileName(taskId: number, result: {
         ref: DlProgress,
         so: string[]
     }, url: string): Promise<string> {
@@ -207,7 +211,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
             let output = '';
             process.stdout.on('data', (d: Buffer) => {
                 let encoding = 'utf8';
-                if (SystemService.isWindows()) {
+                if (this.systemService.isWindows()) {
                     encoding = 'cp936';
                 }
                 const data = iconv.decode(d, encoding);

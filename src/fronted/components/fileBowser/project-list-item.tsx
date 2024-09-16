@@ -5,7 +5,7 @@ import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects'
 import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import {Button} from '@/fronted/components/ui/button';
 import {Film, ListVideo, Trash2} from 'lucide-react';
-import CollUtils from "@/common/utils/CollUtils";
+import CollUtil from "@/common/utils/CollUtil";
 import TimeUtil from "@/common/utils/TimeUtil";
 import {Progress} from "@/fronted/components/ui/progress";
 import {ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger} from "@/fronted/components/ui/context-menu";
@@ -18,7 +18,7 @@ const ProjectListItem = ({proj, onSelected}: {
     onSelected: () => void;
 }) => {
     const {data: projDetail} = useSWR(['watch-project/detail', proj.id], ([key, projId]) => api.call('watch-project/detail', projId));
-    const video = projDetail?.videos?.find((v) => v.current_playing) || CollUtils.safeGet(projDetail?.videos, 0);
+    const video = projDetail?.videos?.find((v) => v.current_playing) || CollUtil.safeGet(projDetail?.videos, 0);
 
     const {data: url} = useSWR(video?.video_path ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.video_path, video.current_time] : null,
