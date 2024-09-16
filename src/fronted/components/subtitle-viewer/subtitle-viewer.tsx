@@ -1,10 +1,11 @@
 import {cn} from "@/fronted/lib/utils";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
 import SentenceC from "@/common/types/SentenceC";
-import ViewerTranslableLine from "@/fronted/components/subtitle-viewer/viewer-translable-line";
-import {strBlank} from "@/common/utils/Util";
-import ViewerControlPannel from "@/fronted/components/subtitle-viewer/viewer-control-pannel";
+import ViewerTranslatableLine from "@/fronted/components/subtitle-viewer/viewer-translable-line";
+import ViewerControlPanel from "@/fronted/components/subtitle-viewer/viewer-control-pannel";
 import { useShallow } from 'zustand/react/shallow';
+import StrUtil from '@/common/utils/str-util';
+import FuncUtil from '@/common/utils/func-util';
 
 const SubtitleViewer = ({className}: { className?: string }) => {
     const current: SentenceC = usePlayerController((s) => s.currentSentence);
@@ -30,9 +31,8 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                     className={cn('row-start-1 row-end-3 col-start-1 col-end-2 flex flex-col-reverse items-center justify-start gap-10 text-foreground/50 overflow-hidden pb-8')}>
                     {
                         subtitleBefore.map((s) => (
-                            <ViewerTranslableLine
-                                adjusted={false} clearAdjust={() => {
-                            }}
+                            <ViewerTranslatableLine
+                                adjusted={false} clearAdjust={FuncUtil.blank}
                                 key={s.key} className={cn('text-3xl')}
                                 sentence={s}
                             />
@@ -48,24 +48,23 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                             'bg-stone-50 dark:bg-neutral-700 text-foreground/80 border-8 rounded-2xl border-stone-100 dark:border-neutral-800'
                         )}
                     >
-                        <ViewerTranslableLine
+                        <ViewerTranslatableLine
                             className={cn('text-4xl')}
                             adjusted={adjusted} clearAdjust={clearAdjust}
                             sentence={current}
                         />
-                        {!strBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl')}>
+                        {!StrUtil.isBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl')}>
                             {current?.msTranslate}
                         </div>}
-                        {!strBlank(current?.textZH) && showCn && <div className={cn('text-2xl')}>
+                        {!StrUtil.isBlank(current?.textZH) && showCn && <div className={cn('text-2xl')}>
                             {current?.textZH}
                         </div>}
                     </div>
                     {
                         subtitleAfter.map((s) => (
-                            <ViewerTranslableLine
+                            <ViewerTranslatableLine
                                 sentence={s}
-                                adjusted={false} clearAdjust={() => {
-                            }}
+                                adjusted={false} clearAdjust={FuncUtil.blank}
                                 key={s.key} className={cn('text-3xl text-foreground/75')} />
 
                         ))
@@ -78,7 +77,7 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                     'bg-gradient-to-b from-transparent to-stone-100 dark:from-transparent dark:to-neutral-800'
                 )}></div>
             </div>
-            <ViewerControlPannel
+            <ViewerControlPanel
 
                 className={'absolute left-0 bottom-0'} />
             {/* </CardContent> */}

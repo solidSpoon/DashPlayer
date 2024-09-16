@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import MediaUtil from '@/common/utils/MediaUtil';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 
 type UseFileState = {
     videoPath: string | null;
@@ -33,7 +33,7 @@ const useFile = create(
                     videoPath: ph,
                     videoLoaded: false
                 });
-                if (strBlank(MediaUtil.fileName(ph))) {
+                if (StrUtil.isBlank(MediaUtil.fileName(ph))) {
                     document.title = MediaUtil.fileName(ph);
                 }
             }

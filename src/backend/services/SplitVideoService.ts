@@ -2,12 +2,12 @@ import parseChapter from '@/common/utils/praser/chapter-parser';
 import path from 'path';
 import fs from 'fs';
 import {ChapterParseResult} from '@/common/types/chapter-result';
-import {strBlank} from '@/common/utils/Util';
 import FfmpegService from '@/backend/services/FfmpegService';
 import SrtUtil from '@/common/utils/SrtUtil';
 import hash from "object-hash";
 import TimeUtil from "@/common/utils/TimeUtil";
 import SystemService from '@/backend/services/SystemService';
+import StrUtil from '@/common/utils/str-util';
 
 interface VideoSplitResult {
     title: string,
@@ -31,7 +31,7 @@ class SplitVideoService {
     }) {
         const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
         const splitedVideos: VideoSplitResult[] = await SplitVideoService.splitVideoPart2(videoPath, chapters, folderName);
-        if (strBlank(srtPath) || !fs.existsSync(srtPath)) {
+        if (StrUtil.isBlank(srtPath) || !fs.existsSync(srtPath)) {
             return;
         }
         const content = await SystemService.read(srtPath);
@@ -68,7 +68,7 @@ class SplitVideoService {
     }) {
         const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
         const splitedVideos = await SplitVideoService.splitVideoPart(videoPath, chapters, folderName);
-        if (strBlank(srtPath) || !fs.existsSync(srtPath)) {
+        if (StrUtil.isBlank(srtPath) || !fs.existsSync(srtPath)) {
             return;
         }
         const srtSplit: {

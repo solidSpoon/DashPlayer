@@ -13,6 +13,7 @@ import FileSelector from "@/fronted/components/fileBowser/FileSelector";
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
 import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 const SplitFile = () => {
@@ -36,7 +37,7 @@ const SplitFile = () => {
                     }
                     if (sp) {
                         updateFile(sp);
-                        if (Util.strNotBlank(videoPath)) {
+                        if (StrUtil.isNotBlank(videoPath)) {
                             await api.call('watch-project/attach-srt', {videoPath, srtPath: sp});
                         }
                     }

@@ -1,6 +1,5 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import {WindowState} from '@/common/types/Types';
 
 const api = window.electron;
 type State = {

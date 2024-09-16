@@ -33,6 +33,7 @@ import { tag, Tag } from '@/backend/db/tables/tag';
 import { clipTagRelation } from '@/backend/db/tables/clipTagRelation';
 import { TagService } from '@/backend/services/TagService';
 import { ClipQuery } from '@/common/api/dto';
+import StrUtil from '@/common/utils/str-util';
 
 export interface FavouriteClipsService {
   addFavoriteClipAsync(videoPath: string, srtClip: SrtLine, srtContext: SrtLine[]): Promise<number>;
@@ -142,7 +143,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
   public async search({ keyword, keywordRange, tags, tagsRelation, date, includeNoTag }: ClipQuery): Promise<OssObject[]> {
     let where1 = and(sql`1=1`);
     let having1 = and(sql`1=1`);
-    if (Util.strNotBlank(keyword)) {
+    if (StrUtil.isNotBlank(keyword)) {
       if (keywordRange === 'context') {
         where1 = and(like(videoClip.srt_context, `%${keyword}%`));
       } else {
@@ -215,7 +216,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     const srtStr = SrtUtil.toSrt(srtContext);
     const strContextStr = srtContext.map((item) =>
       item.contentEn
-    ).filter((item) => Util.strNotBlank(item)).join('\n');
+    ).filter((item) => StrUtil.isNotBlank(item)).join('\n');
     const srtClipStr = srtClip.contentEn;
 
     return {

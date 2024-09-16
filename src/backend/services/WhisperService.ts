@@ -5,13 +5,13 @@ import path from 'path';
 import * as os from 'os';
 import DpTaskService, {CANCEL_MSG, isErrorCancel} from '@/backend/services/DpTaskService';
 import {DpTaskState} from '@/backend/db/tables/dpTask';
-import {strBlank} from '@/common/utils/Util';
 import {storeGet} from '@/backend/store';
 import FfmpegService from "@/backend/services/FfmpegService";
 import RateLimiter from "@/common/utils/RateLimiter";
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import hash from "object-hash";
 import ProcessService from "@/backend/services/ProcessService";
+import StrUtil from '@/common/utils/str-util';
 
 interface WhisperResponse {
     language: string;
@@ -52,7 +52,7 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
 
 class WhisperService {
     public static async transcript(taskId: number, filePath: string) {
-        if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
+        if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
             DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,

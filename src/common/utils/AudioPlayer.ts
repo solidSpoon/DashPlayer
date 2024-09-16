@@ -1,5 +1,5 @@
-import { strBlank } from '@/common/utils/Util';
 import UrlUtil from '@/common/utils/UrlUtil';
+import StrUtil from '@/common/utils/str-util';
 
 const cache = new Map<string, string>();
 const api = window.electron;
@@ -38,7 +38,7 @@ export const playWord = async (word: string) => {
     }
     const trans = await api.call('ai-trans/word', word);
     const outUrl = trans?.speakUrl;
-    if (strBlank(outUrl)) {
+    if (StrUtil.isBlank(outUrl)) {
         return;
     }
     blobUrl = await getAudioUrl(outUrl);
@@ -48,7 +48,7 @@ export const playWord = async (word: string) => {
 
 export const getTtsUrl = async (str: string) => {
     str = str.trim();
-    if (strBlank(str)) {
+    if (StrUtil.isBlank(str)) {
         return;
     }
     let audioUrl = cache.get(str);
@@ -58,7 +58,7 @@ export const getTtsUrl = async (str: string) => {
     // audioUrl = await api.aiTts(str);
     audioUrl = await api.call('ai-func/tts', str);
     console.log('testcall', audioUrl);
-    if (!strBlank(audioUrl)) {
+    if (!StrUtil.isBlank(audioUrl)) {
         cache.set(str, audioUrl);
     }
     return audioUrl;

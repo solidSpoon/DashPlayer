@@ -12,7 +12,7 @@ import React from 'react';
 import useSplit, { TaskChapterParseResult } from '@/fronted/hooks/useSplit';
 import { ErrorBoundary } from 'react-error-boundary';
 import FallBack from '@/fronted/components/FallBack';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
 
@@ -52,7 +52,7 @@ const SplitRow = ({ line }: { line: TaskChapterParseResult }) => {
                 </Tooltip>
             </TooltipProvider></TableCell>
             <TableCell
-                className={cn(strBlank(line.title) && 'bg-red-100')}
+                className={cn(StrUtil.isBlank(line.title) && 'bg-red-100')}
             >{line.title}</TableCell>
         </TableRow>
     );

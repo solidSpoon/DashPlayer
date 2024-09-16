@@ -1,6 +1,6 @@
 import nlp from 'compromise';
 import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import fs from 'fs';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Sentence, SrtSentence } from '@/common/types/SentenceC';
@@ -226,7 +226,7 @@ const processSentence = (sentence: string): SentenceStruct => {
         console.log(token.pos);
         const pw = holder.subTo(token.pos.start);
         if (pw.length > 0) {
-            if (strBlank(pw)) {
+            if (StrUtil.isBlank(pw)) {
                 if (blockParts.length > 0) {
                     blocks.push({ blockParts });
                     blockParts = [];
@@ -241,7 +241,7 @@ const processSentence = (sentence: string): SentenceStruct => {
         }
 
         const w = holder.sub(token.pos.start, token.pos.length);
-        if (!strBlank(w)) {
+        if (!StrUtil.isBlank(w)) {
             blockParts.push({
                 content: w,
                 implicit: token.implicit,

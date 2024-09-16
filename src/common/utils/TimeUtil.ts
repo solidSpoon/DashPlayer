@@ -1,5 +1,6 @@
-import Util, {strBlank} from "@/common/utils/Util";
+import Util from "@/common/utils/Util";
 import moment from "moment";
+import StrUtil from '@/common/utils/str-util';
 
 export default class TimeUtil {
     public static secondToTimeStrCompact(second: number | null | undefined): string {
@@ -35,7 +36,7 @@ export default class TimeUtil {
     }
 
     public static isoToDate(iso: string): Date {
-        if (strBlank(iso)) {
+        if (StrUtil.isBlank(iso)) {
             return new Date();
         }
         const date = moment.utc(iso, ['YYYY-MM-DDTHH:mm:ss.SSSZ', 'YYYY-MM-DD HH:mm:ss']);

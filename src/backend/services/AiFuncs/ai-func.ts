@@ -2,16 +2,17 @@ import { ZodObject } from 'zod';
 import { ChatOpenAI } from '@langchain/openai';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import Util, { joinUrl, strBlank } from '@/common/utils/Util';
+import { joinUrl } from '@/common/utils/Util';
 import { storeGet } from '@/backend/store';
 import RateLimiter from '@/common/utils/RateLimiter';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputFunctionsParser } from 'langchain/output_parsers';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import StrUtil from '@/common/utils/str-util';
 
 export default class AiFunc {
     private static async validKey(taskId: number, apiKey: string, endpoint: string) {
-        if (strBlank(apiKey) || strBlank(endpoint)) {
+        if (StrUtil.isBlank(apiKey) || StrUtil.isBlank(endpoint)) {
             DpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
@@ -27,7 +28,7 @@ export default class AiFunc {
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         if (!await this.validKey(taskId, apiKey, endpoint)) return null;
         let model = storeGet('model.gpt.default');
-        if (Util.strBlank(model)) {
+        if (StrUtil.isBlank(model)) {
             model = 'gpt-4o-mini';
         }
         console.log(apiKey, endpoint);

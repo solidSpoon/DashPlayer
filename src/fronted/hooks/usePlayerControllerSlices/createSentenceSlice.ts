@@ -9,7 +9,7 @@ import {
 import SubtitleAdjustmentTypeConverter from '../../../common/types/SubtitleAdjustmentTypeConverter';
 import useFile from '../useFile';
 import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 
 const api = window.electron;
@@ -62,7 +62,7 @@ const createSentenceSlice: StateCreator<
         });
         get().repeat();
         const { subtitlePath } = useFile.getState();
-        if (strBlank(subtitlePath)) {
+        if (StrUtil.isBlank(subtitlePath)) {
             return;
         }
         const timeDiff = (clone.originalBegin ? clone.currentBegin - clone.originalBegin : 0);
@@ -95,7 +95,7 @@ const createSentenceSlice: StateCreator<
         });
         get().repeat();
         const { subtitlePath } = useFile.getState();
-        if (strBlank(subtitlePath)) {
+        if (StrUtil.isBlank(subtitlePath)) {
             return;
         }
         const timeDiff = (clone.originalEnd ? clone.currentEnd - clone.originalEnd : 0);
@@ -126,7 +126,7 @@ const createSentenceSlice: StateCreator<
         });
         get().repeat();
         const { subtitlePath } = useFile.getState();
-        if (strBlank(subtitlePath)) {
+        if (StrUtil.isBlank(subtitlePath)) {
             return;
         }
         api.call('subtitle-timestamp/delete/by-key', clone.key);

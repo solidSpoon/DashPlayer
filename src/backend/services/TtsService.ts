@@ -1,4 +1,4 @@
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { storeGet } from '@/backend/store';
 import axios from 'axios';
 import path from 'path';
@@ -13,7 +13,7 @@ class TtsService {
 
     // ...
     public static async tts(str: string) {
-        if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
+        if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
             return null;
         }
         RateLimiter.wait('tts')

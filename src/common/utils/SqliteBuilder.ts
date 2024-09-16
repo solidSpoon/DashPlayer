@@ -1,5 +1,6 @@
 import { Parser } from 'node-sql-parser';
-import { p, strBlank } from './Util';
+import { p } from './Util';
+import StrUtil from '@/common/utils/str-util';
 
 // const parser = new Parser();
 // const ast = parser.astify('SELECT * FROM t'); // mysql sql grammer parsed by default
@@ -29,7 +30,7 @@ function proceedColumns(ast: any) {
 }
 
 const processWhere = (sql: string): string => {
-    if (strBlank(sql)) return '';
+    if (StrUtil.isBlank(sql)) return '';
     const baseSql = 'SELECT * FROM `t` WHERE ';
     const parser = new Parser();
     const ast = parser.astify(baseSql + sql);
@@ -39,7 +40,7 @@ const processWhere = (sql: string): string => {
 };
 
 const processOrderBy = (sql: string): string => {
-    if (strBlank(sql)) return '';
+    if (StrUtil.isBlank(sql)) return '';
     const baseSql = 'SELECT * FROM `t` ORDER BY ';
     const parser = new Parser();
     const ast = parser.astify(baseSql + sql);

@@ -8,11 +8,11 @@ import MediaUtil, {
     UnsupportedVideoFormats
 } from '@/common/utils/MediaUtil';
 import useFile from '@/fronted/hooks/useFile';
-import { strNotBlank } from '@/common/utils/Util';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import useLayout from '@/fronted/hooks/useLayout';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast } from 'sonner';
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 
@@ -22,7 +22,7 @@ export class FileAction {
         return async (ps: string[]) => {
             if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
-                if (strNotBlank(videoPath)) {
+                if (StrUtil.isNotBlank(videoPath)) {
                     await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
                     useFile.getState().clearSrt();
                 }
@@ -60,7 +60,7 @@ export class FileAction {
         return async (ps: string[]) => {
             if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
-                if (strNotBlank(videoPath)) {
+                if (StrUtil.isNotBlank(videoPath)) {
                     await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
                     useFile.getState().clearSrt();
                 }

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import UndoRedo from '@/common/utils/UndoRedo';
-import { engEqual, p, strBlank, strNotBlank } from '@/common/utils/Util';
+import { engEqual, p}from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
@@ -17,6 +17,7 @@ import { getDpTaskResult, registerDpTask } from '@/fronted/hooks/useDpTaskCenter
 import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 
@@ -162,14 +163,14 @@ const useChatPanel = create(
         },
         createFromSelect: async (str: string) => {
             let text = str;
-            if (strBlank(text)) {
+            if (StrUtil.isBlank(text)) {
                 text = p(window.getSelection()?.toString());
                 // 去除换行符
                 text = text?.replace(/\n/g, '');
-                if (strBlank(text)) {
+                if (StrUtil.isBlank(text)) {
                     text = useChatPanel.getState().context;
                 }
-                if (strBlank(text)) {
+                if (StrUtil.isBlank(text)) {
                     return;
                 }
             }
@@ -284,7 +285,7 @@ const useChatPanel = create(
             });
         },
         sent: async (msg: string) => {
-            if (strBlank(msg)) return;
+            if (StrUtil.isBlank(msg)) return;
             const requestMsg = new HumanNormalMessage(get().topic, msg);
             const history = await Promise.all(
                 get().messages.concat(requestMsg).map(e => e.toMsg())
@@ -314,9 +315,9 @@ const useChatPanel = create(
         },
         ctxMenuExplain: async () => {
             const userSelect = window.getSelection().toString();
-            if (strBlank(userSelect)) return;
+            if (StrUtil.isBlank(userSelect)) return;
             const context = get().context;
-            if (strBlank(context) || engEqual(context, userSelect)) {
+            if (StrUtil.isBlank(context) || engEqual(context, userSelect)) {
                 const taskId = await registerDpTask(() => api.call('ai-func/explain-select', {
                     word: userSelect
                 }), {
@@ -335,19 +336,19 @@ const useChatPanel = create(
         },
         ctxMenuPlayAudio: async () => {
             let text = window.getSelection().toString();
-            if (strBlank(text)) {
+            if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
-            if (strBlank(text)) return;
+            if (StrUtil.isBlank(text)) return;
             const ttsUrl = await getTtsUrl(text);
             await playAudioUrl(ttsUrl);
         },
         ctxMenuPolish: async () => {
             let text = window.getSelection().toString();
-            if (strBlank(text)) {
+            if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
-            if (strBlank(text)) return;
+            if (StrUtil.isBlank(text)) return;
             const taskId = await registerDpTask(() => api.call('ai-func/polish', text), {
                 interval: 100
             });
@@ -402,12 +403,12 @@ const useChatPanel = create(
         },
         ctxMenuQuote: () => {
             let text = window.getSelection().toString();
-            if (strBlank(text)) {
+            if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
-            if (strBlank(text)) return;
+            if (StrUtil.isBlank(text)) return;
             text = '<context>\n' + text.trim() + '\n</context>\n\n';
-            if (strNotBlank(get().input)) {
+            if (StrUtil.isNotBlank(get().input)) {
                 text = get().input + '\n' + text;
             }
             set({
@@ -417,10 +418,10 @@ const useChatPanel = create(
         },
         ctxMenuCopy: async () => {
             let text = window.getSelection().toString();
-            if (strBlank(text)) {
+            if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
-            if (strBlank(text)) return;
+            if (StrUtil.isBlank(text)) return;
             await navigator.clipboard.writeText(text);
         },
         setInput: (input: string) => {

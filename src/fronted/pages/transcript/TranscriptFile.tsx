@@ -23,6 +23,7 @@ import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBow
 import FileSelector from "@/fronted/components/fileBowser/FileSelector";
 import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
 import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 const TranscriptFile = () => {
@@ -43,7 +44,7 @@ const TranscriptFile = () => {
                         await api.call('watch-project/create/from-files', ps);
                     }
                     if (sp) {
-                        if (Util.strNotBlank(vp)) {
+                        if (StrUtil.isNotBlank(vp)) {
                             await api.call('watch-project/attach-srt', {videoPath: vp, srtPath: sp});
                         }
                     }

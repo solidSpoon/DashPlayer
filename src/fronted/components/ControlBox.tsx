@@ -19,7 +19,7 @@ import Md from '@/fronted/components/chat/markdown';
 import { codeBlock } from 'common-tags';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import useFile from '@/fronted/hooks/useFile';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
@@ -47,7 +47,7 @@ const Transcript = () => {
                         className={'justify-start'}
                         onClick={async () => {
                             const srtPath = useFile.getState().videoPath;
-                            if (strBlank(srtPath)) {
+                            if (StrUtil.isBlank(srtPath)) {
                                 toast.error('请先选择一个视频文件');
                                 return;
                             }

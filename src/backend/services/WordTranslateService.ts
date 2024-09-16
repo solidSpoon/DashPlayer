@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { YdRes } from '@/common/types/YdRes';
-import { p, strBlank } from '@/common/utils/Util';
+import { p } from '@/common/utils/Util';
 import db from '@/backend/db/db';
 import {
     InsertWordTranslate,
@@ -8,6 +8,7 @@ import {
     wordTranslates,
 } from '@/backend/db/tables/wordTranslates';
 import TimeUtil from "@/common/utils/TimeUtil";
+import StrUtil from '@/common/utils/str-util';
 
 export default class WordTranslateService {
     public static async fetchWordTranslate(
@@ -24,7 +25,7 @@ export default class WordTranslateService {
         }
 
         const trans = value[0].translate;
-        if (strBlank(trans)) {
+        if (StrUtil.isBlank(trans)) {
             return undefined;
         }
         return JSON.parse(trans ?? '') as YdRes;

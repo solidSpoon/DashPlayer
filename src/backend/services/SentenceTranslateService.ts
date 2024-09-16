@@ -5,7 +5,8 @@ import {
     SentenceTranslate,
     sentenceTranslates,
 } from '@/backend/db/tables/sentenceTranslates';
-import { p, strBlank } from '@/common/utils/Util';
+import { p } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 
 export default class SentenceTranslateService {
     public static async fetchTranslates(
@@ -23,7 +24,7 @@ export default class SentenceTranslateService {
                 ), isNotNull(sentenceTranslates.translate))
             );
         values
-            .filter((e) => !strBlank(e.translate))
+            .filter((e) => !StrUtil.isBlank(e.translate))
             .forEach((e) => {
             result.add(e.sentence ?? '', e.translate ?? '');
         });

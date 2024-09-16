@@ -1,6 +1,5 @@
 import {WatchProject, WatchProjectType} from "@/backend/db/tables/watchProjects";
 import {BrowserItemVariant, CtxMenu} from "@/fronted/components/fileBowser/VideoItem2";
-import useSWR from "swr";
 import React from "react";
 import {
     ContextMenu,
@@ -10,13 +9,13 @@ import {
 } from "@/fronted/components/ui/context-menu";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
 import {cn} from "@/fronted/lib/utils";
-import {strBlank} from "@/common/utils/Util";
 import {FileAudio2, FileVideo2, Folder, X} from "lucide-react";
 import Style from "@/fronted/styles/style";
 import MediaUtil from "@/common/utils/MediaUtil";
 import {Button} from "@/fronted/components/ui/button";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
 import {WatchProjectVideo} from "@/backend/db/tables/watchProjectVideos";
+import StrUtil from '@/common/utils/str-util';
 const api = window.electron;
 const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
     p: WatchProject;
@@ -48,7 +47,7 @@ const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
                                 }}
                             >
                                 <>
-                                    {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
+                                    {(StrUtil.isBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
                                         <Folder className={cn(Style.file_browser_icon)}/>}
                                     {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
                                         <FileAudio2 className={cn(Style.file_browser_icon)}/>}

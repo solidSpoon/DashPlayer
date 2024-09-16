@@ -11,7 +11,7 @@ import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
 import { cn } from '@/fronted/lib/utils';
 import PlayerToaster from '@/fronted/components/PlayerToaster';
 import UrlUtil from "@/common/utils/UrlUtil";
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 
@@ -160,7 +160,7 @@ export default function Player({ className }: { className?: string }): ReactElem
 
     console.log('videoPath', videoPath);
     const render = (): ReactElement => {
-        if (strBlank(videoPath)) {
+        if (StrUtil.isBlank(videoPath)) {
             return <div />;
         }
         return (

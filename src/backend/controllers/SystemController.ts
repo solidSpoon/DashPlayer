@@ -7,9 +7,9 @@ import SystemService from '@/backend/services/SystemService';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { BASE_PATH } from '@/backend/controllers/StorageController';
-import Util from '@/common/utils/Util';
 import { injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
+import StrUtil from '@/common/utils/str-util';
 
 /**
  * eg: .mkv -> mkv
@@ -17,7 +17,7 @@ import Controller from '@/backend/interfaces/controller';
  */
 function processFilter(filter: string[]) {
     return filter
-        .filter(f => Util.strNotBlank(f))
+        .filter(f => StrUtil.isNotBlank(f))
         .map(f => f.replace(/^\./, ''));
 }
 

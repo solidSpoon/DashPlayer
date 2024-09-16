@@ -2,7 +2,7 @@ import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import TransHolder from '../../common/utils/TransHolder';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { storeGet } from '../store';
 import RateLimiter from "@/common/utils/RateLimiter";
 import dpLog from '@/backend/ioc/logger';
@@ -15,7 +15,7 @@ class TencentTransService {
     private static tryInit(): void {
         const secretId = storeGet('apiKeys.tencent.secretId');
         const secretKey = storeGet('apiKeys.tencent.secretKey');
-        if (strBlank(secretId) || strBlank(secretKey)) {
+        if (StrUtil.isBlank(secretId) || StrUtil.isBlank(secretKey)) {
             return;
         }
         const TmtClient = tencentcloud.tmt.v20180321.Client;

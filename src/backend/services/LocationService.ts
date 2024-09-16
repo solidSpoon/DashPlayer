@@ -1,7 +1,7 @@
 import path from 'path';
 import { storeGet, storeSet } from '@/backend/store';
-import Util from '@/common/utils/Util';
 import { app } from 'electron';
+import StrUtil from '@/common/utils/str-util';
 export enum LocationType {
     FAVORITE_CLIPS = 'favorite_clips',
     TEMP = 'temp',
@@ -38,7 +38,7 @@ export default class LocationService {
 
     private static getStorageBathPath() {
         const p = storeGet('storage.path');
-        if (Util.strBlank(p)) {
+        if (StrUtil.isBlank(p)) {
             const documentsPath = app.getPath('documents');
             const storagePath = path.join(documentsPath, 'DashPlayer');
             storeSet('storage.path', storagePath);

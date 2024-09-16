@@ -78,23 +78,4 @@ const useTranscript = create(
 );
 
 
-// useSplit.subscribe(
-//     (s) => s.userInput,
-//     async (topic) => {
-//         if (strBlank(topic)) {
-//             useSplit.setState({parseResult: []});
-//             return;
-//         }
-//         const result = await api.call('split-video/preview', topic);
-//         const oldState: Map<string, TaskChapterParseResult> = new Map(useSplit.getState().parseResult.map(r => [r.original, r]));
-//         useSplit.setState({
-//             parseResult: result.map(r => ({
-//                 ...r,
-//                 taskId: oldState.get(r.original)?.taskId ?? null
-//             }))
-//         });
-//     }
-// );
-
-
 export default useTranscript;
