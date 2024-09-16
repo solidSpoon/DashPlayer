@@ -21,6 +21,7 @@ import Util, { sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
 import TransHolder from '../../common/utils/TransHolder';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -198,6 +199,8 @@ useFile.subscribe(
                         .getState()
                         .mergeSubtitleTrans(transHolder);
                 }
+                // 加载收藏
+                // useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.indexInFile));
             }
             await sleep(500);
         }

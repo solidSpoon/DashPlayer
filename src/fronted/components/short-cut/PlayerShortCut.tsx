@@ -5,11 +5,8 @@ import useSubtitleScroll from '../../hooks/useSubtitleScroll';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { useHotkeys } from 'react-hotkeys-hook';
 import useCopyModeController from '../../hooks/useCopyModeController';
-import useFile from '@/fronted/hooks/useFile';
-import SrtUtil from '@/common/utils/SrtUtil';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 
-const api = window.electron;
 const process = (values: string) => values
     .split(',')
     .map((k) => k.replaceAll(' ', ''))
@@ -141,14 +138,7 @@ export default function PlayerShortCut() {
         }
     }, { keyup: true, keydown: true });
     useHotkeys('l', async () => {
-        const videoPath = useFile.getState().videoPath;
-        const srtHash = useFile.getState().srtHash;
-        const currentSentence = usePlayerController.getState().currentSentence;
-        await api.call('favorite-clips/add', {
-            videoPath,
-            srtKey: srtHash,
-            indexInSrt: currentSentence.indexInFile
-        });
+        useFavouriteClip.getState().changeCurrentLineClip();
     });
     return <></>;
 }

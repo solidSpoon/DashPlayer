@@ -1,6 +1,5 @@
 import SentenceC from '../../../common/types/SentenceC';
 import TransHolder from '../../../common/utils/TransHolder';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
 
 export interface SubtitleSlice {
     subtitle: SentenceC[];

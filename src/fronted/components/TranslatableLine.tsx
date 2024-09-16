@@ -3,13 +3,16 @@ import { AiOutlineFieldTime } from 'react-icons/ai';
 import Word from './Word';
 import usePlayerController from '../hooks/usePlayerController';
 import useSetting from '../hooks/useSetting';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import { FONT_SIZE } from '../styles/style';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
-import SentenceC from "@/common/types/SentenceC";
-import hash from "object-hash";
+import SentenceC from '@/common/types/SentenceC';
+import hash from 'object-hash';
 import useCopyModeController from '../hooks/useCopyModeController';
+import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
+import useFile from '@/fronted/hooks/useFile';
+import { Star } from 'lucide-react';
 
 interface TranslatableSubtitleLineParam {
     sentence: SentenceC;
@@ -41,15 +44,16 @@ const TranslatableLine = ({
     const [popELe, setPopEle] = useState<string | null>(null);
     const [hovered, setHovered] = useState(false);
     const textHash = hash(text);
-    const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
-    const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
+    const setCopyContent = useCopyModeController((s) => s.setCopyContent);
+    const isCopyMode = useCopyModeController((s) => s.isCopyMode);
+    const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
     const handleRequestPop = (k: string) => {
         if (popELe !== k) {
             setPopEle(k);
         }
     };
-    const handleLineClick = async (e:React.MouseEvent) => {
-        if(isCopyMode){
+    const handleLineClick = async (e: React.MouseEvent) => {
+        if (isCopyMode) {
             e.stopPropagation();
             setCopyContent(text);
         }
@@ -98,7 +102,7 @@ const TranslatableLine = ({
                 className={cn(
                     'flex flex-wrap justify-center items-end w-0 flex-1 px-10 pt-2.5 pb-2.5 gap-x-2 gap-y-1'
                 )}
-                onClick={(e)=>handleLineClick(e)}
+                onClick={(e) => handleLineClick(e)}
             >
                 {sentenceStruct?.blocks.map((block, blockIndex) => {
                     return (
@@ -129,7 +133,11 @@ const TranslatableLine = ({
                     );
                 }) || []}
             </div>
-            <div className={cn('w-10 h-full')} />
+            <div className={cn('w-10 h-full')}>
+                {isFavourite && (
+                    <Star />
+                )}
+            </div>
         </div>
     );
 };

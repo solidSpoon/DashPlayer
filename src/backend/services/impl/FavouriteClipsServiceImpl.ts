@@ -19,14 +19,15 @@ import { ClipQuery } from '@/common/api/dto';
 import StrUtil from '@/common/utils/str-util';
 import CacheService from '@/backend/services/CacheService';
 import { SrtSentence } from '@/common/types/SentenceC';
-import { SerialTaskQueue, TaskQueue } from '@/common/objs/TaskQueue';
-import dpLog from '@/backend/ioc/logger';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import dpLog from '@/backend/ioc/logger';
 
 type ClipTask = {
     videoPath: string,
     srtKey: string,
     indexInSrt: number,
+    clipKey: string,
+    operation: 'add' | 'cancel'
 };
 @injectable()
 export default class FavouriteClipsServiceImpl implements FavouriteClipsService {
@@ -36,44 +37,79 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     @inject(TYPES.CacheService)
     private cacheService: CacheService;
 
-    private taskQueue: TaskQueue<ClipTask> = new SerialTaskQueue();
+    /**
+     * key: hash(srtContext)
+     * @private
+     */
+    private taskQueue: Map<string, ClipTask> = new Map();
 
-    public static mapKey(srtKey: string, indexInSrt: number): string {
-        return srtKey + '::=::' + indexInSrt;
-    }
 
     public async addClip(videoPath: string, srtKey: string, indexInSrt: number): Promise<void> {
-        const key = FavouriteClipsServiceImpl.mapKey(srtKey, indexInSrt);
-        if (this.taskQueue.info(key)) {
-            throw new Error(ErrorConstants.CLIP_EXISTS);
-        }
-        if (await this.clipInDb(key)) {
-            throw new Error(ErrorConstants.CLIP_EXISTS);
-        }
-
-        this.taskQueue.enqueueAdd(key, {
+        const clipKey = this.mapToClipKey(srtKey, indexInSrt);
+        this.taskQueue.set(clipKey, {
             videoPath,
             srtKey,
-            indexInSrt
+            indexInSrt,
+            clipKey,
+            operation: 'add'
         });
+    }
+
+    public async cancelAddClip(srtKey: string, indexInSrt: number): Promise<void> {
+        const clipKey = this.mapToClipKey(srtKey, indexInSrt);
+        this.taskQueue.set(clipKey, {
+            videoPath: '',
+            srtKey,
+            indexInSrt,
+            clipKey,
+            operation: 'cancel'
+        });
+    }
+
+    private mapToClipKey(srtKey: string, indexInSrt: number): string {
+        const srt = this.cacheService.get<SrtSentence>(srtKey);
+        if (!srt) {
+            throw new Error(ErrorConstants.CACHE_NOT_FOUND);
+        }
+        const srtLines: SrtLine[] = srt.sentences
+            .map((sentence) => SrtUtil.toSrtLine(sentence));
+        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
+        const contentSrtStr = SrtUtil.toSrt(clipContext);
+        return hash(contentSrtStr);
     }
 
     /**
      * 定时任务
      */
     async checkQueue() {
-        dpLog.info('FavouriteClipsServiceImpl checkQueue');
-        for await (const { operation, task } of this.taskQueue.consume()) {
-            if (operation === 'add') {
-                dpLog.info('FavouriteClipsServiceImpl addOperation', task);
+        if (this.taskQueue.size === 0) {
+            return;
+        }
+        const tempMapping = new Map(this.taskQueue);
+        const newKeys = Array.from(tempMapping.keys());
+
+        const exists = await db.select().from(videoClip).where(inArray(videoClip.key, newKeys));
+        const existsKeys = exists.map((item) => item.key);
+        const notExistKeys = newKeys.filter((key) => !existsKeys.includes(key));
+
+        for (const k of notExistKeys) {
+            const task = tempMapping.get(k);
+            if (task.operation === 'add') {
                 await this.taskAddOperation(task);
             }
-            if (operation === 'cancel') {
-                dpLog.info('FavouriteClipsServiceImpl cancelOperation', task);
-                await this.taskCancelOperation(task);
+            if (this.taskQueue.get(k) === task) {
+                this.taskQueue.delete(k);
             }
         }
-        dpLog.info('FavouriteClipsServiceImpl checkQueue end');
+        for (const k of existsKeys) {
+            const task = tempMapping.get(k);
+            if (task.operation === 'cancel') {
+                await this.taskCancelOperation(task);
+            }
+            if (this.taskQueue.get(k) === task) {
+                this.taskQueue.delete(k);
+            }
+        }
     }
 
     private async taskAddOperation(task: ClipTask): Promise<void> {
@@ -136,30 +172,20 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         await this.ossService.delete(key);
     }
 
-    public async cancelAddClip(srtKey: string, indexInSrt: number): Promise<void> {
-        const key = FavouriteClipsServiceImpl.mapKey(srtKey, indexInSrt);
-        this.taskQueue.enqueueCancel(key);
-    }
-    async exist(srtKey: string, lineInSrt: number): Promise<boolean> {
-        return (await this.exists(srtKey, [lineInSrt])).get(lineInSrt) ?? false;
-    }
     async exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>> {
         const srtSentence = this.cacheService.get<SrtSentence>(srtKey);
         if (!srtSentence) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
-        const srtLines: SrtLine[] = srtSentence.sentences
-            .map((sentence) => SrtUtil.toSrtLine(sentence));
         const result = new Map<number, boolean>();
         for (const lineIndex of linesInSrt) {
-            const info = this.taskQueue.info(FavouriteClipsServiceImpl.mapKey(srtKey, lineIndex));
+            const clipKey = this.mapToClipKey(srtKey, lineIndex);
+            const info = this.taskQueue.get(clipKey);
             if (info) {
                 result.set(lineIndex, info.operation === 'add');
                 continue;
             }
-            const context = SrtUtil.srtAround(srtLines, lineIndex, 5);
-            const key = hash(SrtUtil.toSrt(context));
-            const value = await this.clipInDb(key);
+            const value = await this.clipInDb(clipKey);
             result.set(lineIndex, value);
         }
         return result;
@@ -279,11 +305,18 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     taskInfo(): number {
-        return this.taskQueue.unfinishedLength();
+        return this.taskQueue.size;
     }
 
     @postConstruct()
     public postConstruct() {
-        this.checkQueue().then();
+        const func = async () => {
+            dpLog.info('FavouriteClipsServiceImpl task start');
+            await this.checkQueue();
+            setTimeout(func, 1000);
+        }
+        func().catch((e) => {
+            dpLog.error(e);
+        });
     }
 }
