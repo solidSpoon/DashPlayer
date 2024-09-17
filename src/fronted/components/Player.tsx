@@ -1,16 +1,16 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
-import ReactPlayer from 'react-player';
+import ReactPlayer from 'react-player/file';
 import { useShallow } from 'zustand/react/shallow';
 import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
-import PlayerControlPannel from './PlayerControlPannel';
+import PlayerControlPanel from './PlayerControlPanel';
 import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
 import PlayerSubtitlePannel from '@/fronted/components/playerSubtitle/PlayerSubtitlePannel';
 import useLayout from '@/fronted/hooks/useLayout';
 import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
 import { cn } from '@/fronted/lib/utils';
 import PlayerToaster from '@/fronted/components/PlayerToaster';
-import UrlUtil from "@/common/utils/UrlUtil";
+import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
@@ -53,17 +53,53 @@ export default function Player({ className }: { className?: string }): ReactElem
     const fullScreen = useLayout((s) => s.fullScreen);
 
     const lastSeekTime = useRef<SeekAction>({ time: 0 });
+    const lastSeekTimestamp = useRef<number>(0);
 
     const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
 
     const podcastMode = useLayout((s) => s.podcastMode);
 
-    if (lastSeekTime.current !== seekTime) {
-        lastSeekTime.current = seekTime;
+    const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const performSeek = (time: number) => {
         if (playerRef.current !== null) {
-            playerRef.current.seekTo(seekTime.time, 'seconds');
+            playerRef.current.seekTo(time, 'seconds');
         }
-    }
+    };
+
+    useEffect(() => {
+        if (lastSeekTime.current !== seekTime) {
+            const now = Date.now();
+            const timeSinceLastSeek = now - lastSeekTimestamp.current;
+
+            if (timeSinceLastSeek >= 300) {
+                // 如果距离上次 seek 已经超过 300ms，立即执行
+                performSeek(seekTime.time);
+                lastSeekTime.current = seekTime;
+                lastSeekTimestamp.current = now;
+            } else {
+                // 如果距离上次 seek 小于 300ms，设置延时
+                if (seekTimeoutRef.current) {
+                    clearTimeout(seekTimeoutRef.current);
+                }
+
+                seekTimeoutRef.current = setTimeout(() => {
+                    performSeek(seekTime.time);
+                    lastSeekTime.current = seekTime;
+                    lastSeekTimestamp.current = Date.now();
+                    seekTimeoutRef.current = null;
+                }, 300 - timeSinceLastSeek);
+            }
+        }
+
+        return () => {
+            if (seekTimeoutRef.current) {
+                clearTimeout(seekTimeoutRef.current);
+            }
+        };
+    }, [seekTime]);
+
+
 
     useEffect(() => {
         if (podcastMode) {
@@ -193,10 +229,8 @@ export default function Player({ className }: { className?: string }): ReactElem
                         progressInterval={50}
                         volume={volume}
                         config={{
-                            file: {
-                                attributes: {
-                                    controlsList: 'nofullscreen'
-                                }
+                            attributes: {
+                                controlsList: 'nofullscreen'
                             }
                         }}
                         onPlay={() => {
@@ -222,7 +256,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                         }}
                     />
                     {!fullScreen && (!showControlPanel && (
-                        <PlayerControlPannel
+                        <PlayerControlPanel
                             onTimeChange={(time) => {
                                 seekTo({ time });
                             }}
@@ -238,7 +272,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                     ))}
                     {fullScreen && <PlayerSubtitlePannel />}
                     <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
-                    <PlayerToaster className="absolute top-3 left-3"/>
+                    <PlayerToaster className="absolute top-3 left-3" />
                 </div>
             </div>
         );

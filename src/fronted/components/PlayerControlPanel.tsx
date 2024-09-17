@@ -12,7 +12,7 @@ import {Pause, Play} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
 import TimeUtil from "@/common/utils/TimeUtil";
 
-export interface PlayerControlPannelProps {
+export interface PlayerControlPanelProps {
     className?: string;
     onPause?: () => void;
     onPlay?: () => void;
@@ -20,13 +20,13 @@ export interface PlayerControlPannelProps {
     onTimeChange?: (time: number) => void;
 }
 
-const PlayerControlPannel = ({
+const PlayerControlPanel = ({
                                  className,
                                  onTimeChange,
                                  onPause,
                                  onPlay,
                                  playing
-                             }: PlayerControlPannelProps) => {
+                             }: PlayerControlPanelProps) => {
     const {
         playTime,
         duration,
@@ -142,7 +142,8 @@ const PlayerControlPannel = ({
                                 console.log('onValueChange', value);
                                 setCurrentValue(value[0]);
                                 setSelecting(true);
-                                onPause?.();
+                                onTimeChange?.(value[0]);
+                                // onPause?.();
                             }}
                             onValueCommit={(value) => {
                                 currentValueUpdateTime.current = Date.now();
@@ -197,7 +198,7 @@ const PlayerControlPannel = ({
         </div>
     );
 };
-PlayerControlPannel.defaultProps = {
+PlayerControlPanel.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
@@ -211,4 +212,4 @@ PlayerControlPannel.defaultProps = {
     playing: false
 };
 
-export default PlayerControlPannel;
+export default PlayerControlPanel;
