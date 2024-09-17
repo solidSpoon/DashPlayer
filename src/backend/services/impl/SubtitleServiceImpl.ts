@@ -37,6 +37,7 @@ function groupSentence(
         });
     });
 }
+
 @injectable()
 export class SubtitleServiceImpl implements SubtitleService {
 
@@ -52,7 +53,7 @@ export class SubtitleServiceImpl implements SubtitleService {
         const content = await FileUtil.read(path);
         console.log(content);
         const h = hash(content);
-        const cache = this.cacheService.get<SrtSentence>(h);
+        const cache = this.cacheService.get('cache:srt', h);
         if (cache) {
             return cache;
         }
@@ -86,12 +87,12 @@ export class SubtitleServiceImpl implements SubtitleService {
             filePath: path,
             sentences: subtitles
         };
-        this.cacheService.set<SrtSentence>(h, res);
+        this.cacheService.set('cache:srt', h, res);
         return res;
     }
 
 
-   private async adjustTime(subtitles: Sentence[], hashCode: string) {
+    private async adjustTime(subtitles: Sentence[], hashCode: string) {
         const adjs = await this.srtTimeAdjustService.getByHash(hashCode);
         const mapping: Map<string, SubtitleTimestampAdjustment> = new Map();
         adjs.forEach((item) => {

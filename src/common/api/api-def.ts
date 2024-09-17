@@ -12,7 +12,6 @@ import {
 import { SettingKey } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
-import { SrtLine } from '@/common/utils/SrtUtil';
 
 import { OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';

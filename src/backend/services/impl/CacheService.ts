@@ -1,30 +1,37 @@
 import { injectable } from 'inversify';
-import CacheService from '@/backend/services/CacheService';
+import CacheService, { CacheType } from '@/backend/services/CacheService';
+
 
 @injectable()
 export class CacheServiceImpl implements CacheService {
     private cache: Map<string, string> = new Map();
 
-    get<T>(key: string): T | undefined {
-        const value = this.cache.get(key);
-        if (value === undefined) {
-            return undefined;
+    get<T extends keyof CacheType>(type: T, key: string): CacheType[T] | null {
+        const value = this.cache.get(this.mapKey(type, key));
+        if (value === undefined || value === null) {
+            return null;
         }
-        return JSON.parse(value) as T;
+        return JSON.parse(value) as CacheType[T];
     }
 
-    set<T>(key: string, value: T): void {
-        if (value === undefined || value === null) {
+    set<T extends keyof CacheType>(type: T, key: string, value: CacheType[T]): void {
+        if (value === null) {
             return;
         }
-        this.cache.set(key, JSON.stringify(value));
+        const value1: string = JSON.stringify(value);
+        this.cache.set(this.mapKey(type, key), value1);
     }
 
-    delete(key: string): void {
-        this.cache.delete(key);
+
+    delete<T extends keyof CacheType>(type: T, key: string): void {
+        this.cache.delete(this.mapKey(type, key));
     }
 
     clear(): void {
         this.cache.clear();
+    }
+
+    private mapKey(type: string, key: string) {
+        return type + '::=::' + key;
     }
 }

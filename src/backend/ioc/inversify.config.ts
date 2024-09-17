@@ -25,12 +25,12 @@ import SystemController from '@/backend/controllers/SystemController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
 import SystemServiceImpl from '@/backend/services/impl/SystemServiceImpl';
 import SystemService from '@/backend/services/SystemService';
-import CacheService from '@/backend/services/CacheService';
 import { CacheServiceImpl } from '@/backend/services/impl/CacheService';
 import SettingService from '@/backend/services/SettingService';
 import SettingServiceImpl from '@/backend/services/SettingServiceImpl';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
 import FavouriteClipsServiceImpl from '@/backend/services/impl/FavouriteClipsServiceImpl';
+import CacheService from '@/backend/services/CacheService';
 
 
 const container = new Container();

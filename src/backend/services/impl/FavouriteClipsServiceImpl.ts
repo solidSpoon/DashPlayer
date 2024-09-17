@@ -17,10 +17,11 @@ import { tag, Tag } from '@/backend/db/tables/tag';
 import { clipTagRelation } from '@/backend/db/tables/clipTagRelation';
 import { ClipQuery } from '@/common/api/dto';
 import StrUtil from '@/common/utils/str-util';
-import CacheService from '@/backend/services/CacheService';
+
 import { SrtSentence } from '@/common/types/SentenceC';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
 import dpLog from '@/backend/ioc/logger';
+import CacheService from '@/backend/services/CacheService';
 
 type ClipTask = {
     videoPath: string,
@@ -67,7 +68,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     private mapToClipKey(srtKey: string, indexInSrt: number): string {
-        const srt = this.cacheService.get<SrtSentence>(srtKey);
+        const srt = this.cacheService.get('cache:srt', srtKey);
         if (!srt) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
@@ -113,7 +114,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     private async taskAddOperation(task: ClipTask): Promise<void> {
-        const srt = this.cacheService.get<SrtSentence>(task.srtKey);
+        const srt = this.cacheService.get('cache:srt', task.srtKey);
         if (!srt) {
             return;
         }
@@ -134,7 +135,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     public async taskCancelOperation(task: ClipTask): Promise<void> {
-        const srt = this.cacheService.get<SrtSentence>(task.srtKey);
+        const srt = this.cacheService.get('cache:srt', task.srtKey);
         if (!srt) {
             return;
         }
@@ -173,7 +174,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     async exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>> {
-        const srtSentence = this.cacheService.get<SrtSentence>(srtKey);
+        const srtSentence = this.cacheService.get('cache:srt', srtKey);
         if (!srtSentence) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
@@ -314,7 +315,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             dpLog.info('FavouriteClipsServiceImpl task start');
             await this.checkQueue();
             setTimeout(func, 1000);
-        }
+        };
         func().catch((e) => {
             dpLog.error(e);
         });
