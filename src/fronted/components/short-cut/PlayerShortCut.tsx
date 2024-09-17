@@ -12,7 +12,7 @@ const process = (values: string) => values
     .map((k) => k.replaceAll(' ', ''))
     .filter((k) => k !== '')
     // remove left right up down space
-    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down');
+    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down' && k !== 'space')
 export default function PlayerShortCut() {
     const {
         space,
