@@ -1,17 +1,13 @@
 import { ZodObject } from 'zod';
-import { ChatOpenAI } from '@langchain/openai';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
-import { joinUrl } from '@/common/utils/Util';
-import { storeGet } from '@/backend/store';
 import RateLimiter from '@/common/utils/RateLimiter';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputFunctionsParser } from 'langchain/output_parsers';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import StrUtil from '@/common/utils/str-util';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import AiFuncService from '@/backend/services/AiFuncService';
+import AiProviderService from '@/backend/services/AiProviderService';
 
 
 @injectable()
@@ -19,34 +15,8 @@ export default class AiFuncServiceImpl implements AiFuncService {
     @inject(TYPES.DpTaskService)
     private dpTaskService: DpTaskService;
 
-    private async validKey(taskId: number, apiKey: string, endpoint: string) {
-        if (StrUtil.isBlank(apiKey) || StrUtil.isBlank(endpoint)) {
-            this.dpTaskService.fail(taskId, {
-                progress: 'OpenAI api key or endpoint is empty'
-            });
-            return false;
-        }
-        return true;
-    }
-
-    public async getOpenAi(taskId: number): Promise<ChatOpenAI | null> {
-        const apiKey = storeGet('apiKeys.openAi.key');
-        const endpoint = storeGet('apiKeys.openAi.endpoint');
-        if (!await this.validKey(taskId, apiKey, endpoint)) return null;
-        let model = storeGet('model.gpt.default');
-        if (StrUtil.isBlank(model)) {
-            model = 'gpt-4o-mini';
-        }
-        console.log(apiKey, endpoint);
-        return new ChatOpenAI({
-            modelName: model,
-            temperature: 0.7,
-            openAIApiKey: apiKey,
-            configuration: {
-                baseURL: joinUrl(endpoint, '/v1')
-            }
-        });
-    }
+    @inject(TYPES.AiProviderService)
+    private aiProviderService: AiProviderService;
 
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
@@ -57,8 +27,12 @@ export default class AiFuncServiceImpl implements AiFuncService {
         };
         // Instantiate the parser
         const parser = new JsonOutputFunctionsParser();
-        const chat: ChatOpenAI = (await this.getOpenAi(taskId));
-        if (!chat) return;
+        const chat = this.aiProviderService.getOpenAi();
+        if (!chat) {
+            this.dpTaskService.fail(taskId, {
+                progress: 'OpenAI api key or endpoint is empty'
+            });
+        }
         const runnable = chat.bind({
             functions: [extractionFunctionSchema],
             function_call: { name: 'extractor' }

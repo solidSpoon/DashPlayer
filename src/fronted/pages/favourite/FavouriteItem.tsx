@@ -4,11 +4,15 @@ import React from 'react';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
+import { Button } from '@/fronted/components/ui/button';
+import { Trash2 } from 'lucide-react';
+
 
 const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
     const playInfo = useFavouriteClip(state => state.playInfo);
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const currentTime = useFavouriteClip(state => state.currentTime);
+    const deleteClip = useFavouriteClip(state => state.deleteClip);
     const lastCurrentLine = React.useRef<SrtLine>();
     const isCurrentVideo = (video: OssObject & MetaData) => {
         return playInfo?.video.key === video.key;
@@ -63,8 +67,16 @@ const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
                             );
                         })}
                 </div>
-                <div
-                    className={cn('text-sm text-muted-foreground')}>{new Date(item.created_at).toLocaleString() + '     ' + item.video_name}</div>
+                <div className="flex gap-2 items-start">
+                    <div
+                        className={cn('text-sm text-muted-foreground flex-1 w-0')}>{new Date(item.created_at).toLocaleString() + '     ' + item.video_name}</div>
+                    <Button variant={'outline'} size={'icon'} className={'w-5 h-5 hover:bg-red-100'}
+                            onClick={async () => {
+                                deleteClip(item.key);
+                            }}>
+                        <Trash2 className={'w-3 h-3'} />
+                    </Button>
+                </div>
             </div>
         </div>
     );

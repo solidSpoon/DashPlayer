@@ -8,7 +8,7 @@ import { injectable } from 'inversify';
 
 @injectable()
 export default class AiProviderServiceImpl implements AiProviderService {
-    public async getOpenAi(): Promise<ChatOpenAI | null> {
+    public getOpenAi(): ChatOpenAI {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         if (StrUtil.allBlank(apiKey, endpoint)) return null;

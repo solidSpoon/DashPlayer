@@ -20,7 +20,7 @@ export default class ChatServiceImpl implements ChatService {
 
     public async chat(taskId: number, msgs: BaseMessage[]) {
         await RateLimiter.wait('gpt');
-        const chat = await this.aiProviderService.getOpenAi();
+        const chat = this.aiProviderService.getOpenAi();
         if (chat) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'

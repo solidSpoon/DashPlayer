@@ -185,6 +185,13 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     public async deleteFavoriteClip(key: string): Promise<void> {
         await db.delete(videoClip).where(eq(videoClip.key, key));
         await this.clipOssService.delete(key);
+        const tagIds = await db.select({ tag_id: clipTagRelation.tag_id })
+            .from(clipTagRelation)
+            .leftJoin(videoClip, eq(clipTagRelation.clip_key, videoClip.key))
+            .where(isNull(videoClip.key));
+        for (const tagId of tagIds) {
+            await db.delete(tag).where(eq(tag.id, tagId.tag_id));
+        }
     }
 
     async exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>> {

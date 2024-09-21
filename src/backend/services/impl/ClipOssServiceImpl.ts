@@ -13,6 +13,9 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<MetaData>
     @inject(TYPES.LocationService)
     private locationService: LocationService;
 
+    @inject(TYPES.FfmpegService)
+    private ffmpegService: FfmpegServiceImpl;
+
     private readonly CLIP_FILE = 'clip.mp4';
     private readonly THUMBNAIL_FILE = 'thumbnail.jpg';
 
@@ -25,8 +28,8 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<MetaData>
         const tempFolder = this.locationService.getStoragePath(LocationType.TEMP);
         // 生成缩略图
         const thumbnailFileName = `${key}-${this.THUMBNAIL_FILE}`;
-        const length = await FfmpegServiceImpl.duration(sourcePath);
-        await FfmpegServiceImpl.thumbnail({
+        const length = await this.ffmpegService.duration(sourcePath);
+        await this.ffmpegService.thumbnail({
             inputFile: sourcePath,
             outputFileName: thumbnailFileName,
             outputFolder: tempFolder,

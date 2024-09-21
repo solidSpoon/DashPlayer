@@ -3,6 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ClipMeta } from '@/common/types/OssObject';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { swrApiMutate } from '@/fronted/lib/swr-util';
 const api = window.electron;
 
 export interface PlayInfo {
@@ -24,6 +25,7 @@ type UseFavouriteClipActions = {
     setCurrentTime: (currentTime: number) => void;
     changeCurrentLineClip: () => void;
     updateClipInfo: (srtKey: string, indexesInSrt: number[]) => Promise<void>;
+    deleteClip: (key: string) => void;
 };
 
 export const mapClipKey = (srtKey: string, indexInSrt: number) => `${srtKey}::=::${indexInSrt}`;
@@ -69,7 +71,19 @@ const useFavouriteClip = create(
                 }
                 return { lineClip };
             });
-        }
+        },
+        deleteClip: async (key: string) => {
+            await api.call('favorite-clips/delete', key);
+            await swrApiMutate('favorite-clips/search');
+            useFile.setState({
+                subtitlePath: null
+            });
+            set((state) => {
+                const lineClip = new Map(state.lineClip);
+                lineClip.set(key, false);
+                return { lineClip };
+            });
+        },
     }))
 );
 

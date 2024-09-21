@@ -38,6 +38,10 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
         const clipDir = path.join(this.getBasePath(), key);
         try {
             const metadataPath = path.join(clipDir, this.METADATA_FILE);
+            if (!fs.existsSync(metadataPath)) {
+                fs.mkdirSync(clipDir, { recursive: true });
+                fs.writeFileSync(metadataPath, JSON.stringify({ key }, null, 2));
+            }
             const parse: T = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             return {
                 ...parse,

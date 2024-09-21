@@ -156,7 +156,7 @@ interface FavoriteClipsDef {
     'favorite-clips/cancel-add': { params: { srtKey: string, indexInSrt: number }, return: void };
     'favorite-clips/exists': { params: { srtKey: string, linesInSrt: number[] }, return: Map<number, boolean> };
     'favorite-clips/task-info': { params: void, return: number };
-    // 'favorite-clips/delete': { params: string, return: void };
+    'favorite-clips/delete': { params: string, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }
 
