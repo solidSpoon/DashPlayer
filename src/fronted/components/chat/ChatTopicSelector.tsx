@@ -1,10 +1,10 @@
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {cn} from "@/fronted/lib/utils";
-import {Card, CardContent, CardHeader, CardTitle} from "@/fronted/components/ui/card";
-import {useEffect, useRef, useState} from "react";
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { cn } from '@/fronted/lib/utils';
+import { Card, CardContent } from '@/fronted/components/ui/card';
+import { useEffect, useRef, useState } from 'react';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-const api = window.electron;
-const ChatTopicSelector = ({className}: {
+
+const ChatTopicSelector = ({ className }: {
     className: string,
 }) => {
 
@@ -16,14 +16,14 @@ const ChatTopicSelector = ({className}: {
 
     const currentRef = useRef<HTMLSpanElement>(null);
 
-  const updateInternalContext = useChatPanel(s => s.updateInternalContext);
+    const updateInternalContext = useChatPanel(s => s.updateInternalContext);
 
     useEffect(() => {
         if (!currentRef.current) {
             return;
         }
         // if (!mouseOver) {
-            currentRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
+        currentRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // }
     }, [mouseOver]);
 
@@ -44,7 +44,7 @@ const ChatTopicSelector = ({className}: {
                             }}
                             // ref={s === currentSentence ? currentRef : null}
                             key={i} className={cn(s === currentSentence ? 'item-current' : 'item-normal')}>
-                          {s.text}
+                            {s.text}
                         </div>
                     ))
                 }
@@ -52,7 +52,7 @@ const ChatTopicSelector = ({className}: {
                 {/*    className="text-sm mb-2 text-foreground/80 sticky bottom-0 bg-gradient-to-t from-background to-transparent  h-6"/>*/}
             </CardContent>
         </Card>
-    )
-}
+    );
+};
 
 export default ChatTopicSelector;

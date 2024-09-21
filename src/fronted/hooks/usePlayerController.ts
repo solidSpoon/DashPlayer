@@ -109,12 +109,20 @@ usePlayerController.subscribe(
     async ({ playing }) => {
         if (!playing) {
             const state = usePlayerController.getState();
-            if (state.autoPause || state.singleRepeat) {
+            const srtTender = state.srtTender;
+            if (state.autoPause || state.singleRepeat || !srtTender) {
                 return;
             }
             updateSentenceInterval = window.setInterval(() => {
                 if (useFile.getState().videoLoaded) {
-                    usePlayerController.getState().tryUpdateCurrentSentence();
+                    const currentTime = state.internal.exactPlayTime;
+                    const nextSentence: SentenceC = srtTender.getByTime(currentTime);
+                    const cs: SentenceC = state.currentSentence;
+                    const isCurrent = cs === nextSentence;
+                    if (isCurrent) {
+                        return;
+                    }
+                    usePlayerController.setState({ currentSentence: nextSentence });
                 }
             }, 1000);
         } else if (updateSentenceInterval) {

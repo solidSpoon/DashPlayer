@@ -1,20 +1,19 @@
 import SentenceC from '../../../common/types/SentenceC';
 import TransHolder from '../../../common/utils/TransHolder';
+import { SrtTender } from '@/fronted/lib/SrtTender';
 
 export interface SubtitleSlice {
     subtitle: SentenceC[];
+    srtTender: SrtTender | null;
     setSubtitle: (subtitle: SentenceC[]) => void;
     mergeSubtitle: (subtitle: SentenceC[]) => void;
     mergeSubtitleTrans: (holder: TransHolder<string>) => void;
-    getSubtitleAt: (time: number) => SentenceC | undefined;
     getSubtitleAround: (index: number, num?: number) => SentenceC[];
 }
 
 export interface PlayerControllerInternal {
     lastSeekToOn: number;
     exactPlayTime: number;
-    subtitleIndex: Map<number, SentenceC[]>;
-    maxIndex: number;
     onPlaySeekTime: number | null;
 }
 
@@ -51,18 +50,10 @@ export interface PlayerSlice {
 
 export interface SentenceSlice {
     currentSentence: SentenceC | undefined;
-    tryUpdateCurrentSentence: () => void;
     adjustStart: (time: number) => void;
     adjustEnd: (time: number) => void;
     clearAdjust: () => void;
 }
-
-export interface WordLevelSlice {
-    // getWordLevel: (word: string) => WordLevelRes | undefined;
-    markWordLevel: (word: string, familiar: boolean) => Promise<void>;
-    syncWordsLevel: (words: string[]) => Promise<void>;
-}
-
 
 export interface ModeSlice {
     showEn: boolean;

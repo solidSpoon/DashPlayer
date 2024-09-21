@@ -1,8 +1,7 @@
 import { StateCreator } from 'zustand/esm';
 import SentenceC from '../../../common/types/SentenceC';
 import { InternalSlice, SubtitleSlice } from './SliceTypes';
-
-const GROUP_SECONDS = 10;
+import { SrtTenderImpl } from '@/fronted/lib/SrtTender';
 
 function mergeArr(baseArr: SentenceC[], diff: SentenceC[]) {
     if (diff.length === 0) {
@@ -17,31 +16,6 @@ function mergeArr(baseArr: SentenceC[], diff: SentenceC[]) {
     });
 }
 
-function indexSubtitle(sentences: SentenceC[]) {
-    const map = new Map<number, SentenceC[]>();
-    sentences.forEach((item) => {
-        const minIndex = Math.floor(
-            Math.min(
-                item.currentBegin ?? 0,
-                item.currentEnd ?? 0,
-                item.nextBegin ?? 0
-            ) / GROUP_SECONDS
-        );
-        const maxIndex = Math.floor(
-            Math.max(
-                item.currentBegin ?? 0,
-                item.currentEnd ?? 0,
-                item.nextBegin ?? 0
-            ) / GROUP_SECONDS
-        );
-        for (let i = minIndex; i <= maxIndex; i += 1) {
-            const group = map.get(i) ?? [];
-            group.push(item);
-            map.set(i, group);
-        }
-    });
-    return map;
-}
 
 const createSubtitleSlice: StateCreator<
     SubtitleSlice & InternalSlice,
@@ -50,21 +24,19 @@ const createSubtitleSlice: StateCreator<
     SubtitleSlice
 > = (set, get) => ({
     subtitle: [],
+    srtTender: null,
     subTitlesStructure: new Map(),
     setSubtitle: (subtitle: SentenceC[]) => {
-        set({ subtitle });
-        get().internal.subtitleIndex = indexSubtitle(subtitle);
-        get().internal.maxIndex = Math.max(
-            ...Array.from(get().internal.subtitleIndex.keys())
-        );
+        const srtTender = new SrtTenderImpl(subtitle);
+        set({ subtitle, srtTender });
     },
     mergeSubtitle: (diff: SentenceC[]) => {
         const newSubtitle = mergeArr(get().subtitle, diff);
         set({ subtitle: newSubtitle });
-        get().internal.subtitleIndex = indexSubtitle(newSubtitle);
-        get().internal.maxIndex = Math.max(
-            ...Array.from(get().internal.subtitleIndex.keys())
-        );
+        const srtTender = get().srtTender;
+        diff.forEach((item) => {
+            srtTender.update(item);
+        });
     },
     mergeSubtitleTrans: (holder) => {
         const subtitle = get().subtitle.map((s) => {
@@ -77,21 +49,12 @@ const createSubtitleSlice: StateCreator<
             return ns;
         });
         set({ subtitle });
-        get().internal.subtitleIndex = indexSubtitle(subtitle);
-        get().internal.maxIndex = Math.max(
-            ...Array.from(get().internal.subtitleIndex.keys())
-        );
+        const srtTender = get().srtTender;
+        subtitle.forEach((item) => {
+            srtTender.update(item);
+        });
     },
-    getSubtitleAt: (time: number) => {
-        const groupIndex = Math.floor(time / GROUP_SECONDS);
-        const group = get().internal.subtitleIndex.get(groupIndex) ?? [];
-        const eleIndex = group.find((e) => e.isCurrent(time))?.index;
-        if (eleIndex === undefined) {
-            return undefined;
-        }
-        return get().subtitle[eleIndex];
-    },
-    getSubtitleAround:(index: number, num = 5) => {
+    getSubtitleAround: (index: number, num = 5) => {
         const min = Math.max(index - num, 0);
         const max = Math.min(index + num, get().subtitle.length - 1);
         const result = [];

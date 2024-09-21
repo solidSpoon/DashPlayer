@@ -6,17 +6,8 @@ import {
     SubtitleSlice,
 } from './SliceTypes';
 import SentenceC from '../../../common/types/SentenceC';
+import CollUtil from '@/common/utils/CollUtil';
 
-function getElementAt(index: number, subtitles: SentenceC[]): SentenceC {
-    let targetIndex = index;
-    if (targetIndex < 0) {
-        targetIndex = 0;
-    }
-    if (targetIndex >= subtitles.length) {
-        targetIndex = subtitles.length - 1;
-    }
-    return subtitles[targetIndex];
-}
 const createControllerSlice: StateCreator<
     ControllerSlice & SentenceSlice & SubtitleSlice & PlayerSlice,
     [],
@@ -26,40 +17,38 @@ const createControllerSlice: StateCreator<
     next: () => {
         const { currentSentence } = getState();
         if (currentSentence) {
-            const target = getElementAt(
-                currentSentence.index + 1,
-                getState().subtitle
-            );
+            const target = CollUtil.validGet(getState().subtitle,currentSentence.index + 1,);
             setState({ currentSentence: target });
+            const srtTender = getState().srtTender;
             getState().seekTo({
-                time: target.currentBegin ?? 0,
+                time: srtTender?.mapSeekTime(target)?.start ?? 0,
             });
         }
     },
     prev: () => {
         const { currentSentence } = getState();
         if (currentSentence) {
-            const target = getElementAt(
-                currentSentence.index - 1,
-                getState().subtitle
-            );
+            const target = CollUtil.validGet(getState().subtitle,currentSentence.index - 1);
             setState({ currentSentence: target });
+            const srtTender = getState().srtTender;
             getState().seekTo({
-                time: target.currentBegin ?? 0,
+                time: srtTender?.mapSeekTime(target)?.start ?? 0,
             });
         }
     },
     jump: (target: SentenceC) => {
         setState({ currentSentence: target });
+        const srtTender = getState().srtTender;
         getState().seekTo({
-            time: target.currentBegin ?? 0,
+            time: srtTender?.mapSeekTime(target)?.start ?? 0,
         });
     },
     repeat: () => {
         const { currentSentence } = getState();
         if (currentSentence) {
+            const srtTender = getState().srtTender;
             getState().seekTo({
-                time: currentSentence.currentBegin ?? 0,
+                time: srtTender?.mapSeekTime(currentSentence)?.start ?? 0,
             });
         }
     },

@@ -1,3 +1,4 @@
+import SentenceC from '@/common/types/SentenceC';
 
 export default class CollUtil {
     public static isEmpty<T>(coll: T[] | null | undefined): boolean {
@@ -20,5 +21,25 @@ export default class CollUtil {
             return null;
         }
         return coll[index];
+    }
+    public static validGet<T>(coll: T[], index: number): T {
+        if (this.isEmpty(coll)) {
+            throw new Error('coll is empty');
+        }
+        let targetIndex = index;
+        if (targetIndex < 0) {
+            targetIndex = 0;
+        }
+        if (targetIndex >= coll.length) {
+            targetIndex = coll.length - 1;
+        }
+        return coll[targetIndex];
+    }
+    static toMap<E, K>(entities: E[], keyFunc: (e: E) => K): Map<K, E> {
+        const result = new Map<K, E>();
+        for (const e of entities) {
+            result.set(keyFunc(e), e);
+        }
+        return result;
     }
 }

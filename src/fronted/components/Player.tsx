@@ -4,7 +4,7 @@ import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
 import PlayerControlPanel from './PlayerControlPanel';
 import { SeekAction } from '../hooks/usePlayerControllerSlices/SliceTypes';
-import PlayerSubtitlePanel from '@/fronted/components/playerSubtitle/PlayerSubtitlePannel';
+import PlayerSubtitlePanel from '@/fronted/components/playerSubtitle/PlayerSubtitlePanel';
 import useLayout from '@/fronted/hooks/useLayout';
 import PlaySpeedToaster from '@/fronted/components/PlaySpeedToaster';
 import { cn } from '@/fronted/lib/utils';
