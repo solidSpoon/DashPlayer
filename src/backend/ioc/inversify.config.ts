@@ -1,6 +1,5 @@
 import { Container } from 'inversify';
 import TYPES from './types';
-import LocalOssService, { OssService } from '@/backend/services/LocalOssService';
 import { MetaData, OssObject } from '@/common/types/OssObject';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/interfaces/controller';
@@ -31,6 +30,10 @@ import SettingServiceImpl from '@/backend/services/SettingServiceImpl';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
 import FavouriteClipsServiceImpl from '@/backend/services/impl/FavouriteClipsServiceImpl';
 import CacheService from '@/backend/services/CacheService';
+import { ClipOssService, OssService } from '@/backend/services/OssService';
+import ClipOssServiceImpl from '@/backend/services/impl/ClipOssServiceImpl';
+import LocationServiceImpl from '@/backend/services/impl/LocationServiceImpl';
+import LocationService from '@/backend/services/LocationService';
 
 
 const container = new Container();
@@ -50,7 +53,7 @@ container.bind<Controller>(TYPES.Controller).to(StorageController).inSingletonSc
 container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 // Services
-container.bind<OssService<MetaData, OssObject>>(TYPES.LocalOss).to(LocalOssService).inSingletonScope();
+container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
 container.bind<WatchProjectService>(TYPES.WatchProject).to(WatchProjectServiceImpl).inSingletonScope();
 container.bind<DlVideoService>(TYPES.DlVideo).to(DlVideoServiceImpl).inSingletonScope();
@@ -60,4 +63,5 @@ container.bind<SubtitleService>(TYPES.SubtitleService).to(SubtitleServiceImpl).i
 container.bind<SystemService>(TYPES.SystemService).to(SystemServiceImpl).inSingletonScope();
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
+container.bind<LocationService>(TYPES.LocationService).to(LocationServiceImpl).inSingletonScope();
 export default container;

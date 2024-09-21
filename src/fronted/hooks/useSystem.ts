@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
+import PathUtil from '@/fronted/lib/PathUtil';
 
 const api = window.electron;
 type State = {
@@ -27,6 +28,7 @@ export const syncStatus = () => {
             isWindows: sysInfo.isWindows,
             pathSeparator: sysInfo.pathSeparator,
         });
+        PathUtil.SEPARATOR = sysInfo.pathSeparator;
     });
 };
 

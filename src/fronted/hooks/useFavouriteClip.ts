@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { OssObject } from '@/common/types/OssObject';
+import { ClipMeta } from '@/common/types/OssObject';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 const api = window.electron;
 
 export interface PlayInfo {
-    video: OssObject;
+    video: ClipMeta;
     /**
      * 从 0 开始的时间
      */
@@ -54,9 +54,9 @@ const useFavouriteClip = create(
                 return { lineClip };
             });
             if (exists) {
-                await api.call('favorite-clips/cancel-add', { srtKey: srtHash, indexInSrt: currentSentence.index });
+                await api.call('favorite-clips/cancel-add', { srtKey: srtHash, indexInSrt: currentSentence.indexInFile });
             } else {
-                await api.call('favorite-clips/add', { videoPath, srtKey: srtHash, indexInSrt: currentSentence.index });
+                await api.call('favorite-clips/add', { videoPath, srtKey: srtHash, indexInSrt: currentSentence.indexInFile });
             }
         },
         updateClipInfo: async (srtKey: string, indexesInSrt: number[]) => {

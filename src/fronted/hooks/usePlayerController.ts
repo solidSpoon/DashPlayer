@@ -200,7 +200,7 @@ useFile.subscribe(
                         .mergeSubtitleTrans(transHolder);
                 }
                 // 加载收藏
-                // useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.indexInFile));
+                useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.indexInFile));
             }
             await sleep(500);
         }

@@ -1,7 +1,7 @@
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import ReactPlayer from 'react-player';
 import UrlUtil from '@/common/utils/UrlUtil';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import useFavouriteClip, { PlayInfo } from '@/fronted/hooks/useFavouriteClip';
 import TagSelector from '@/fronted/components/TagSelector';
 
@@ -35,7 +35,7 @@ const FavouritePlayer = () => {
                     <div className="w-full rounded-lg overflow-hidden">
                         <ReactPlayer
                             ref={playerRef}
-                            url={UrlUtil.file(playInfo?.video.clipPath)}
+                            url={UrlUtil.file(playInfo?.video.baseDir, playInfo?.video.clip_file)}
                             width="100%"
                             height="100%"
                             // onMouseEnter={e => e.currentTarget.play()}

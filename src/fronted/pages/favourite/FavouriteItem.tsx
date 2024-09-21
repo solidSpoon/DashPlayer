@@ -1,16 +1,16 @@
-import { OssObject } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/OssObject';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import React from 'react';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
 
-const FavouriteItem = ({ item }: { item: OssObject }) => {
+const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
     const playInfo = useFavouriteClip(state => state.playInfo);
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const currentTime = useFavouriteClip(state => state.currentTime);
     const lastCurrentLine = React.useRef<SrtLine>();
-    const isCurrentVideo = (video: OssObject) => {
+    const isCurrentVideo = (video: OssObject & MetaData) => {
         return playInfo?.video.key === video.key;
     };
     const isCurrentLine = (line: SrtLine) => {
@@ -29,7 +29,7 @@ const FavouriteItem = ({ item }: { item: OssObject }) => {
             <div className="flex flex-col w-44 gap-1 h-full overflow-hidden p-2 select-text">
                 <img
                     className={cn('w-full rounded-lg')}
-                    src={UrlUtil.dp(item.thumbnailPath)}
+                    src={UrlUtil.dp(item.baseDir, item.thumbnail_file)}
                     style={{
                         aspectRatio: '16/9'
                     }}

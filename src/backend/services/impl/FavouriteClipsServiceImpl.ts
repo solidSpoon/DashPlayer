@@ -1,4 +1,3 @@
-import LocalOssService from '@/backend/services/LocalOssService';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import FfmpegService from '@/backend/services/FfmpegService';
@@ -8,7 +7,6 @@ import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { and, count, desc, eq, gte, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
-import LocationService, { LocationType } from '@/backend/services/LocationService';
 import fs from 'fs';
 import ErrorConstants from '@/common/constants/error-constants';
 import { inject, injectable, postConstruct } from 'inversify';
@@ -22,6 +20,10 @@ import { SrtSentence } from '@/common/types/SentenceC';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
 import dpLog from '@/backend/ioc/logger';
 import CacheService from '@/backend/services/CacheService';
+import LocationService, { LocationType } from '@/backend/services/LocationService';
+import { ClipOssService } from '@/backend/services/OssService';
+import { TagService } from '@/backend/services/TagService';
+import CollUtil from '@/common/utils/CollUtil';
 
 type ClipTask = {
     videoPath: string,
@@ -32,11 +34,17 @@ type ClipTask = {
 };
 @injectable()
 export default class FavouriteClipsServiceImpl implements FavouriteClipsService {
-    @inject(TYPES.LocalOss)
-    private ossService: LocalOssService;
+    @inject(TYPES.ClipOssService)
+    private clipOssService: ClipOssService;
 
     @inject(TYPES.CacheService)
     private cacheService: CacheService;
+
+    @inject(TYPES.LocationService)
+    private locationService: LocationService;
+
+    @inject(TYPES.TagService)
+    private tagService: TagService;
 
     /**
      * key: hash(srtContext)
@@ -120,7 +128,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         }
         const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
         const key = metaData.key;
-        const folder = LocationService.getStoragePath(LocationType.TEMP);
+        const folder = this.locationService.getStoragePath(LocationType.TEMP);
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder, { recursive: true });
         }
@@ -129,7 +137,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             return;
         }
         await FfmpegService.trimVideo(task.videoPath, metaData.start_time, metaData.end_time, tempName);
-        await this.ossService.put(key, tempName, metaData);
+        await this.clipOssService.putClip(key, tempName, metaData);
         await this.addToDb(metaData);
         fs.rmSync(tempName);
     }
@@ -156,6 +164,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const clipEnStr = clipLine.contentEn;
 
         return {
+            clip_file: '',
+            thumbnail_file: '',
+            tags: [],
             key: hash(contentSrtStr),
             video_name: videoPath,
             created_at: Date.now(),
@@ -170,7 +181,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
 
     public async deleteFavoriteClip(key: string): Promise<void> {
         await db.delete(videoClip).where(eq(videoClip.key, key));
-        await this.ossService.delete(key);
+        await this.clipOssService.delete(key);
     }
 
     async exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>> {
@@ -199,7 +210,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
                             tagsRelation,
                             date,
                             includeNoTag
-                        }: ClipQuery): Promise<OssObject[]> {
+                        }: ClipQuery): Promise<(OssObject & MetaData)[]> {
         let where1 = and(sql`1=1`);
         let having1 = and(sql`1=1`);
         if (StrUtil.isNotBlank(keyword)) {
@@ -245,7 +256,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             .having(having1)
             .orderBy(desc(videoClip.created_at))
             .limit(1000);
-        return Promise.all(lines.map((line) => this.ossService.get(line.key)));
+        return Promise.all(lines.map((line) => this.clipOssService.get(line.key)));
     }
 
     private async addToDb(metaData: MetaData) {
@@ -265,6 +276,11 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
                 updated_at: TimeUtil.timeUtc()
             }
         });
+        const tagNames = CollUtil.emptyIfNull(metaData.tags);
+        for (const tagName of tagNames) {
+            const tag = await this.tagService.addTag(tagName);
+            await this.addClipTag(metaData.key, tag.id);
+        }
     }
 
     private async clipInDb(key: string) {
@@ -286,6 +302,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
         }).onConflictDoNothing();
+        await this.syncTagToOss(key);
     }
 
     async deleteClipTag(key: string, tagId: number): Promise<void> {
@@ -303,10 +320,42 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
                 await tx.delete(tag).where(eq(tag.id, tagId));
             }
         });
+        await this.syncTagToOss(key);
+    }
+
+    async renameTag(tagId: number, newName: string): Promise<void> {
+        await this.tagService.updateTag(tagId, newName);
+        // 查出来所有带有这个tag的clip
+        const clips = await db.select().from(clipTagRelation)
+            .leftJoin(videoClip, eq(clipTagRelation.clip_key, videoClip.key))
+            .where(eq(clipTagRelation.tag_id, tagId));
+        for (const clip of clips) {
+            await this.syncTagToOss(clip.dp_video_clip.key);
+        }
     }
 
     taskInfo(): number {
         return this.taskQueue.size;
+    }
+
+    private async syncTagToOss(key: string): Promise<void> {
+        const tags = await this.queryClipTags(key);
+        const tagNames = tags.map((tag) => tag.name);
+        await this.clipOssService.updateTags(key, tagNames);
+    }
+
+    /**
+     * 清除数据库，重新从oss同步
+     */
+    async syncFromOss() {
+        const keys = await this.clipOssService.list();
+        await db.delete(videoClip).where(sql`1=1`);
+        await db.delete(clipTagRelation).where(sql`1=1`);
+        await db.delete(tag).where(sql`1=1`);
+        for (const key of keys) {
+            const clip = await this.clipOssService.get(key);
+            await this.addToDb(clip);
+        }
     }
 
     @postConstruct()
@@ -320,4 +369,5 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             dpLog.error(e);
         });
     }
+
 }

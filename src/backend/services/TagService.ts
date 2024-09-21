@@ -20,7 +20,9 @@ export default class TagServiceImpl implements TagService {
         if (StrUtil.isBlank(name)) {
             throw new Error('name is blank');
         }
-        const e: Tag[] = await db.insert(tag).values({ name }).returning();
+        const e: Tag[] = await db.insert(tag).values({ name })
+            .onConflictDoNothing()
+            .returning();
         return e[0];
     }
 

@@ -20,9 +20,13 @@ export interface MetaData {
      */
     'srt_context': string;
     'srt_context_with_time': string;
+    'clip_file': string;
+    'thumbnail_file': string;
+    'tags': string[];
 }
-export interface OssObject extends MetaData {
-    clipPath: string;
-    thumbnailPath: string;
+export interface OssObject  {
     key: string;
+    baseDir: string;
 }
+
+export type ClipMeta = MetaData & OssObject;

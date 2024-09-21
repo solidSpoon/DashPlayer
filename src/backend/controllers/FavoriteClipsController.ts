@@ -1,6 +1,6 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import { OssObject } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/OssObject';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { Tag } from '@/backend/db/tables/tag';
@@ -31,7 +31,7 @@ export default class FavoriteClipsController implements Controller {
         return this.favouriteClipsService.exists(srtKey, linesInSrt);
     }
 
-    public async search(query: ClipQuery): Promise<OssObject[]> {
+    public async search(query: ClipQuery): Promise<(OssObject & MetaData)[]> {
         return this.favouriteClipsService.search(query);
     }
 

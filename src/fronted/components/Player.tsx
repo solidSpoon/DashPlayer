@@ -71,13 +71,7 @@ export default function Player({ className }: { className?: string }): ReactElem
             const now = Date.now();
             const timeSinceLastSeek = now - lastSeekTimestamp.current;
 
-            if (timeSinceLastSeek >= 300) {
-                // 如果距离上次 seek 已经超过 300ms，立即执行
-                performSeek(seekTime.time);
-                lastSeekTime.current = seekTime;
-                lastSeekTimestamp.current = now;
-            } else {
-                // 如果距离上次 seek 小于 300ms，设置延时
+                // 如果距离上次 seek 小于 200ms，设置延时
                 if (seekTimeoutRef.current) {
                     clearTimeout(seekTimeoutRef.current);
                 }
@@ -87,8 +81,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                     lastSeekTime.current = seekTime;
                     lastSeekTimestamp.current = Date.now();
                     seekTimeoutRef.current = null;
-                }, 300 - timeSinceLastSeek);
-            }
+                }, Math.max(0, 200 - timeSinceLastSeek));
         }
 
         return () => {

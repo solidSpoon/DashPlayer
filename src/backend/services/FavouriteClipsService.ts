@@ -1,4 +1,4 @@
-import { OssObject } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 
@@ -56,12 +56,20 @@ export interface FavouriteClipsService {
      */
     deleteClipTag(key: string, tagId: number): Promise<void>;
 
+    // rename tag
+    /**
+     * Renames a tag.
+     * @param tagId - The ID of the tag to rename.
+     * @param newName - The new name of the tag.
+     */
+    renameTag(tagId: number, newName: string): Promise<void>;
+
     /**
      * Searches for clips based on a query.
      * @param query - The query parameters.
      * @returns A promise that resolves to an array of OssObject.
      */
-    search(query: ClipQuery): Promise<OssObject[]>;
+    search(query: ClipQuery): Promise<(OssObject & MetaData)[]>;
 
     /**
      * Checks if clips exist in the favorites.
@@ -70,4 +78,6 @@ export interface FavouriteClipsService {
      * @returns A promise that resolves to a map of line indices to boolean values indicating existence.
      */
     exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>>;
+
+    syncFromOss(): Promise<void>;
 }

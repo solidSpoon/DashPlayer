@@ -1,7 +1,6 @@
 import { spawn } from 'child_process';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import LocationService from '@/backend/services/LocationService';
 import { DlProgress } from '@/common/types/dl-progress';
 import iconv from 'iconv-lite';
 import path from 'path';
@@ -11,6 +10,7 @@ import ProcessService from '@/backend/services/ProcessService';
 import SystemService from '@/backend/services/SystemService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
+import LocationService, { ProgramType } from '@/backend/services/LocationService';
 
 export interface DlVideoService {
     dlVideo(taskId: number, url: string, savePath: string): Promise<void>;
@@ -19,8 +19,12 @@ export interface DlVideoService {
 
 @injectable()
 export default class DlVideoServiceImpl implements DlVideoService {
+
     @inject(TYPES.SystemService)
     private systemService: SystemService;
+
+    @inject(TYPES.LocationService)
+    private locationService: LocationService;
 
     public async dlVideo(taskId: number, url: string, savePath: string) {
         const result: {
@@ -48,7 +52,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                     result.ref.name = path.basename(name, path.extname(name)) + '.mp4';
                     return name;
                 });
-            await DlVideoServiceImpl.doDlVideo(taskId, result, url, savePath);
+            await this.doDlVideo(taskId, result, url, savePath);
             if (!vName.endsWith('.mp4')) {
                 const vPath = path.join(savePath, vName);
                 if (fs.existsSync(vPath)) {
@@ -103,7 +107,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
         });
     }
 
-    public static async doDlVideo(taskId: number, result: {
+    public  async doDlVideo(taskId: number, result: {
         ref: DlProgress,
         so: string[]
     }, url: string, savePath: string) {
@@ -117,8 +121,8 @@ export default class DlVideoServiceImpl implements DlVideoService {
         });
         return new Promise<void>((resolve, reject) => {
             //yt-dlp -f "bestvideo[height<=1080][height>=?720]" --merge-output-format mp4 https://www.youtube.com/watch?v=EVEIl0V-5QE
-            const task = spawn(LocationService.ytDlPath(), [
-                '--ffmpeg-location', LocationService.libPath(),
+            const task = spawn(this.locationService.getProgramPath(ProgramType.YT_DL), [
+                '--ffmpeg-location', this.locationService.getProgramPath(ProgramType.LIB),
                 '-f', 'bestvideo[height<=1080][height>=?720]+bestaudio/best',
                 // '--simulate',
                 '--merge-output-format', 'mp4',
@@ -188,8 +192,8 @@ export default class DlVideoServiceImpl implements DlVideoService {
         so: string[]
     }, url: string): Promise<string> {
         // 获取yt-dlp的路径和ffmpeg的路径
-        const ytDlpPath = LocationService.ytDlPath();
-        const ffmpegPath = LocationService.libPath();
+        const ytDlpPath = this.locationService.getProgramPath(ProgramType.YT_DL);
+        const ffmpegPath = this.locationService.getProgramPath(ProgramType.LIB);
 
         result.so.push('System: fetching video file name');
         result.ref.stdOut = result.so.join('\n');

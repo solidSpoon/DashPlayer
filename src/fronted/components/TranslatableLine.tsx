@@ -12,7 +12,7 @@ import hash from 'object-hash';
 import useCopyModeController from '../hooks/useCopyModeController';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
-import { Star } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 
 interface TranslatableSubtitleLineParam {
     sentence: SentenceC;
@@ -133,9 +133,9 @@ const TranslatableLine = ({
                     );
                 }) || []}
             </div>
-            <div className={cn('w-10 h-full')}>
+            <div className={cn('w-10 h-full flex items-end justify-center pb-2')}>
                 {isFavourite && (
-                    <Star />
+                    <Bookmark  className={cn('w-5 h-5  text-yellow-500 dark:text-yellow-600')} />
                 )}
             </div>
         </div>

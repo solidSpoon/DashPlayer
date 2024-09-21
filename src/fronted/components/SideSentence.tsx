@@ -5,6 +5,8 @@ import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '@/fronted/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { motion } from 'framer-motion';
+import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
+import useFile from '@/fronted/hooks/useFile';
 
 interface SideSentenceNewParam {
     sentence: SentenceC;
@@ -97,6 +99,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             state.values.get('appearance.fontSize')
         );
         const ap = usePlayerController.getState().internal.onPlaySeekTime !== null;
+        const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
         const [hover, setHover] = React.useState(false);
         const show = usePlayerController(state => {
             if (!state.syncSide) {
@@ -123,7 +126,8 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     'bg-stone-200 dark:bg-neutral-700',
                     'hover:bg-stone-100 dark:hover:bg-neutral-600',
                     !show && 'transition-colors duration-500',
-                    fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg'
+                    fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
+                    isFavourite && 'text-yellow-500 dark:text-yellow-300',
                 )}
                 onClick={() => {
                     onClick(sentence);

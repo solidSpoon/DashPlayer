@@ -8,6 +8,10 @@ export default class CollUtil {
         return !this.isEmpty(coll);
     }
 
+    public static emptyIfNull<T>(coll: T[] | null | undefined): T[] {
+        return coll || [];
+    }
+
     public static safeGet<T>(coll: T[] | null | undefined, index: number): T | null {
         if (this.isEmpty(coll)) {
             return null;

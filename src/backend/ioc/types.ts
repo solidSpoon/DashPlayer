@@ -1,5 +1,5 @@
 const TYPES = {
-    LocalOss: Symbol('LocalOss'),
+    ClipOssService: Symbol('ClipOssService'),
     FavouriteClips: Symbol('FavouriteClips'),
     Controller: Symbol('Controller'),
     WatchProject: Symbol('WatchProject'),
@@ -10,6 +10,7 @@ const TYPES = {
     SystemService: Symbol('SystemService'),
     CacheService: Symbol('CacheService'),
     SettingService: Symbol('SettingService'),
+    LocationService: Symbol('LocationService'),
 };
 
 export default TYPES;
