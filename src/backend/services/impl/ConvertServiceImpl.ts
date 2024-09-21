@@ -20,9 +20,7 @@ export default class ConvertServiceImpl implements ConvertService {
     public async toMp4(taskId: number, file: string): Promise<void> {
         const mp4File = file.replace(path.extname(file), '.mp4');
         const onProgress = (progress: number) => {
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
+            this.dpTaskService.process(taskId, {
                 progress: `正在转换`,
                 result: JSON.stringify({
                     progress,
@@ -31,9 +29,7 @@ export default class ConvertServiceImpl implements ConvertService {
             });
         };
 
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.IN_PROGRESS,
+        this.dpTaskService.process(taskId, {
             progress: '正在转换',
             result: JSON.stringify({
                 progress: 0,
@@ -50,9 +46,7 @@ export default class ConvertServiceImpl implements ConvertService {
                 });
             } catch (e) {
                 console.error('转换失败', e);
-                this.dpTaskService.update({
-                    id: taskId,
-                    status: DpTaskState.FAILED,
+                this.dpTaskService.fail(taskId, {
                     progress: '转换失败',
                     result: JSON.stringify({
                         progress: 0,
@@ -85,9 +79,7 @@ export default class ConvertServiceImpl implements ConvertService {
                 console.error('提取字幕失败', e);
             }
         }
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
+        this.dpTaskService.finish(taskId, {
             progress: '转换完成',
             result: JSON.stringify({
                 progress: 100,

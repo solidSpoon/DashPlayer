@@ -19,11 +19,9 @@ export default class AiFuncServiceImpl implements AiFuncService {
     @inject(TYPES.DpTaskService)
     private dpTaskService: DpTaskService;
 
-    private  async validKey(taskId: number, apiKey: string, endpoint: string) {
+    private async validKey(taskId: number, apiKey: string, endpoint: string) {
         if (StrUtil.isBlank(apiKey) || StrUtil.isBlank(endpoint)) {
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.FAILED,
+            this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
             });
             return false;
@@ -53,43 +51,37 @@ export default class AiFuncServiceImpl implements AiFuncService {
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
         const extractionFunctionSchema = {
-            name: "extractor",
-            description: "Extracts fields from the input.",
-            parameters: zodToJsonSchema(resultSchema),
+            name: 'extractor',
+            description: 'Extracts fields from the input.',
+            parameters: zodToJsonSchema(resultSchema)
         };
         // Instantiate the parser
         const parser = new JsonOutputFunctionsParser();
-        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId));
         if (!chat) return;
         const runnable = chat.bind({
             functions: [extractionFunctionSchema],
-            function_call: {name: "extractor"},
-        })
+            function_call: { name: 'extractor' }
+        });
         const prompt: ChatPromptTemplate = ChatPromptTemplate.fromTemplate(promptStr);
 
         // todo: fix the type
         const chain = prompt
             .pipe(runnable as any)
             .pipe(parser);
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.IN_PROGRESS,
+        this.dpTaskService.process(taskId, {
             progress: 'AI is analyzing...'
         });
 
         const resStream = await chain.stream({});
         for await (const chunk of resStream) {
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
+            this.dpTaskService.process(taskId, {
                 progress: 'AI responseing',
                 result: JSON.stringify(chunk)
             });
         }
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
-            progress: 'AI has responded',
+        this.dpTaskService.finish(taskId, {
+            progress: 'AI has responded'
         });
     }
 }

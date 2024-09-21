@@ -10,6 +10,12 @@ export default interface DpTaskService {
 
     update(task: InsertDpTask): void;
 
+    process(id: number, info: InsertDpTask): void;
+
+    finish(id: number, info: InsertDpTask): void;
+
+    fail(id: number, info: InsertDpTask): void;
+
     cancel(id: number): void;
 
     checkCancel(id: number): void;

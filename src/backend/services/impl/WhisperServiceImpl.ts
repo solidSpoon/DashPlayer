@@ -69,26 +69,20 @@ class WhisperServiceImpl implements WhisperService {
 
     public async transcript(taskId: number, filePath: string) {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.FAILED,
+            this.dpTaskService.fail(taskId, {
                 progress: '未设置 OpenAI 密钥'
             });
             return;
         }
         // await this.whisper();
         this.dpTaskService.checkCancel(taskId);
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.IN_PROGRESS,
+        this.dpTaskService.process(taskId, {
             progress: '正在转换音频'
         });
         try {
             const files = await this.convertAndSplit(taskId, filePath);
             this.dpTaskService.checkCancel(taskId);
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
+            this.dpTaskService.process(taskId, {
                 progress: '正在转录'
             });
             const whisperResponses = await Promise.all(files.map(async (file) => {
@@ -97,9 +91,7 @@ class WhisperServiceImpl implements WhisperService {
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             console.log('srtName', srtName);
             fs.writeFileSync(srtName, toSrt(whisperResponses));
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.DONE,
+            this.dpTaskService.finish(taskId, {
                 progress: '转录完成'
             });
         } catch (error) {

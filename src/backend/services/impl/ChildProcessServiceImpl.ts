@@ -60,11 +60,7 @@ export default class ChildProcessServiceImpl implements ChildProcessService {
         if (childProcesses) {
             childProcesses.forEach(p => {
                 p.on('close', () => {
-                    this.dpTaskService.update({
-                        id: taskId,
-                        status: DpTaskState.CANCELLED,
-                        progress: '任务取消'
-                    });
+                    this.dpTaskService.cancel(taskId);
                 });
                 p.kill(signal);
             });

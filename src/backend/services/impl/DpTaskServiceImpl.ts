@@ -72,6 +72,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
         return taskId;
     }
 
+
     public update(
         task: InsertDpTask
     ) {
@@ -88,6 +89,33 @@ export default class DpTaskServiceImpl implements DpTaskService {
         this.upQueue.set(task.id, {
             ...task,
             updated_at: TimeUtil.timeUtc()
+        });
+    }
+
+    public process(id: number, info: InsertDpTask) {
+        this.update({
+            id,
+            status: DpTaskState.IN_PROGRESS,
+            progress: info.progress,
+            result: info.result
+        });
+    }
+
+    public finish(id: number, info: InsertDpTask) {
+        this.update({
+            id,
+            status: DpTaskState.DONE,
+            progress: info.progress,
+            result: info.result
+        });
+    }
+
+    public fail(id: number, info: InsertDpTask) {
+        this.update({
+            id,
+            status: DpTaskState.FAILED,
+            progress: info.progress,
+            result: info.result
         });
     }
 
@@ -127,6 +155,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
             }
         }, 3000);
     }
+
     public static async cancelAll() {
         await db
             .update(dpTask)

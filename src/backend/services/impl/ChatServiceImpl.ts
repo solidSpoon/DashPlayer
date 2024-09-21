@@ -22,15 +22,11 @@ export default class ChatServiceImpl implements ChatService {
         await RateLimiter.wait('gpt');
         const chat = await this.aiProviderService.getOpenAi();
         if (chat) {
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.FAILED,
+            this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
             });
         }
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.IN_PROGRESS,
+        this.dpTaskService.process(taskId, {
             progress: 'AI is thinking...'
         });
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -41,16 +37,12 @@ export default class ChatServiceImpl implements ChatService {
         for await (const chunk of resStream) {
             res += chunk.content;
             chunks.push(chunk);
-            this.dpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
+            this.dpTaskService.process(taskId, {
                 progress: `AI typing, ${res.length} characters`,
                 result: res
             });
         }
-        this.dpTaskService.update({
-            id: taskId,
-            status: DpTaskState.DONE,
+        this.dpTaskService.finish(taskId, {
             progress: 'AI has responded',
             result: res
         });
