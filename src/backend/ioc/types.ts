@@ -11,6 +11,16 @@ const TYPES = {
     CacheService: Symbol('CacheService'),
     SettingService: Symbol('SettingService'),
     LocationService: Symbol('LocationService'),
+    DpTaskService: Symbol('DpTaskService'),
+    AiFuncService: Symbol('AiFuncService'),
+    AiProviderService: Symbol('AiProviderService'),
+    AiService: Symbol('AiService'),
+    ChatService: Symbol('ChatService'),
+    ChildProcessService: Symbol('ChildProcessService'),
+    FfmpegService: Symbol('FfmpegService'),
+    SplitVideoService: Symbol('SplitVideoService'),
+    WhisperService: Symbol('WhisperService'),
+    ConvertService: Symbol('ConvertService'),
 };
 
 export default TYPES;

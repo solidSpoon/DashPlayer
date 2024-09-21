@@ -4,7 +4,7 @@ import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
-import DpTaskService from '@/backend/services/DpTaskService';
+import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import 'reflect-metadata';
 const mainWindowRef = {
     current: null as BrowserWindow | null
@@ -51,7 +51,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 app.on('ready', async () => {
     await runMigrate();
-    await DpTaskService.cancelAll();
+    await DpTaskServiceImpl.cancelAll();
     createWindow();
     protocol.registerFileProtocol(DP_FILE, (request, callback) => {
         const url: string = request.url.replace(`${DP_FILE}://`, '');

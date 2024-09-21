@@ -1,6 +1,5 @@
 import { ZodObject } from 'zod';
 import { ChatOpenAI } from '@langchain/openai';
-import DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { joinUrl } from '@/common/utils/Util';
 import { storeGet } from '@/backend/store';
@@ -9,11 +8,20 @@ import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputFunctionsParser } from 'langchain/output_parsers';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import StrUtil from '@/common/utils/str-util';
+import { inject, injectable } from 'inversify';
+import DpTaskService from '@/backend/services/DpTaskService';
+import TYPES from '@/backend/ioc/types';
+import AiFuncService from '@/backend/services/AiFuncService';
 
-export default class AiFunc {
-    private static async validKey(taskId: number, apiKey: string, endpoint: string) {
+
+@injectable()
+export default class AiFuncServiceImpl implements AiFuncService {
+    @inject(TYPES.DpTaskService)
+    private dpTaskService: DpTaskService;
+
+    private  async validKey(taskId: number, apiKey: string, endpoint: string) {
         if (StrUtil.isBlank(apiKey) || StrUtil.isBlank(endpoint)) {
-            DpTaskService.update({
+            this.dpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
                 progress: 'OpenAI api key or endpoint is empty'
@@ -23,7 +31,7 @@ export default class AiFunc {
         return true;
     }
 
-    public static async getOpenAi(taskId: number): Promise<ChatOpenAI | null> {
+    public async getOpenAi(taskId: number): Promise<ChatOpenAI | null> {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         if (!await this.validKey(taskId, apiKey, endpoint)) return null;
@@ -42,7 +50,7 @@ export default class AiFunc {
         });
     }
 
-    public static async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
+    public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
         const extractionFunctionSchema = {
             name: "extractor",
@@ -63,7 +71,7 @@ export default class AiFunc {
         const chain = prompt
             .pipe(runnable as any)
             .pipe(parser);
-        DpTaskService.update({
+        this.dpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: 'AI is analyzing...'
@@ -71,14 +79,14 @@ export default class AiFunc {
 
         const resStream = await chain.stream({});
         for await (const chunk of resStream) {
-            DpTaskService.update({
+            this.dpTaskService.update({
                 id: taskId,
                 status: DpTaskState.IN_PROGRESS,
                 progress: 'AI responseing',
                 result: JSON.stringify(chunk)
             });
         }
-        DpTaskService.update({
+        this.dpTaskService.update({
             id: taskId,
             status: DpTaskState.DONE,
             progress: 'AI has responded',

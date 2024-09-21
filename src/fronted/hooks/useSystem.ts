@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import PathUtil from '@/fronted/lib/PathUtil';
+import PathUtil from '@/common/utils/PathUtil';
 
 const api = window.electron;
 type State = {

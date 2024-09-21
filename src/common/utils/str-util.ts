@@ -6,6 +6,10 @@ export default class StrUtil {
         return !this.isBlank(str);
     };
 
+    public static allBlank(...strs: (string | undefined | null)[]): boolean {
+        return strs.every(this.isBlank);
+    }
+
     /**
      * 检查是否存在非空白字符串
      *

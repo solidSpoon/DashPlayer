@@ -1,21 +1,28 @@
-import SplitVideoService from '@/backend/services/SplitVideoService';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import registerRoute from '@/common/api/register';
 import path from 'path';
 import * as os from 'node:os';
-import FfmpegService from '@/backend/services/FfmpegService';
+import FfmpegServiceImpl from '@/backend/services/impl/FfmpegServiceImpl';
 import fs from 'fs';
 import TimeUtil from '@/common/utils/TimeUtil';
 import hash from 'object-hash';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
+import TYPES from '@/backend/ioc/types';
+import SplitVideoService from '@/backend/services/SplitVideoService';
 
 @injectable()
 export default class MediaController implements Controller {
 
+    @inject(TYPES.SplitVideoService)
+    private splitVideoService: SplitVideoService;
+
+    @inject(TYPES.FfmpegService)
+    private ffmpegService: FfmpegServiceImpl;
+
     public async previewSplit(str: string): Promise<ChapterParseResult[]> {
-        return SplitVideoService.previewSplit(str);
+        return this.splitVideoService.previewSplit(str);
     }
 
     public async split({
@@ -27,7 +34,7 @@ export default class MediaController implements Controller {
         srtPath: string | null,
         chapters: ChapterParseResult[]
     }): Promise<string> {
-        return await SplitVideoService.split2({
+        return await this.splitVideoService.split2({
             videoPath,
             srtPath,
             chapters
@@ -45,7 +52,7 @@ export default class MediaController implements Controller {
         if (fs.existsSync(path.join(tmpdir, fileName))) {
             return UrlUtil.dp(path.join(tmpdir, fileName));
         }
-        await FfmpegService.thumbnail({
+        await this.ffmpegService.thumbnail({
             inputFile: filePath,
             outputFileName: fileName,
             outputFolder: tmpdir,
@@ -55,7 +62,7 @@ export default class MediaController implements Controller {
     }
 
     public videoLength(filePath: string): Promise<number> {
-        return FfmpegService.duration(filePath);
+        return this.ffmpegService.duration(filePath);
     }
 
 

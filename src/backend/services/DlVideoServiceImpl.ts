@@ -1,16 +1,16 @@
 import { spawn } from 'child_process';
-import DpTaskService from '@/backend/services/DpTaskService';
+import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { DlProgress } from '@/common/types/dl-progress';
 import iconv from 'iconv-lite';
 import path from 'path';
 import fs from 'fs';
-import FfmpegService from '@/backend/services/FfmpegService';
-import ProcessService from '@/backend/services/ProcessService';
 import SystemService from '@/backend/services/SystemService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import LocationService, { ProgramType } from '@/backend/services/LocationService';
+import ChildProcessService from '@/backend/services/ChildProcessService';
+import FfmpegService from '@/backend/services/FfmpegService';
 
 export interface DlVideoService {
     dlVideo(taskId: number, url: string, savePath: string): Promise<void>;
@@ -26,6 +26,15 @@ export default class DlVideoServiceImpl implements DlVideoService {
     @inject(TYPES.LocationService)
     private locationService: LocationService;
 
+    @inject(TYPES.ChildProcessService)
+    private childProcessService: ChildProcessService;
+
+    @inject(TYPES.DpTaskService)
+    private dpTaskService: DpTaskServiceImpl;
+
+    @inject(TYPES.FfmpegService)
+    private ffmpegService: FfmpegService;
+
     public async dlVideo(taskId: number, url: string, savePath: string) {
         const result: {
             ref: DlProgress
@@ -40,7 +49,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
         };
         result.so.push(`System: downloading video from ${url}`);
         result.ref.stdOut = result.so.join('\n');
-        DpTaskService.update({
+        this.dpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: '正在下载',
@@ -58,19 +67,19 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 if (fs.existsSync(vPath)) {
                     result.so.push('System: converting video to mp4');
                     result.ref.stdOut = result.so.join('\n');
-                    DpTaskService.update({
+                    this.dpTaskService.update({
                         id: taskId,
                         status: DpTaskState.IN_PROGRESS,
                         progress: '正在转换',
                         result: JSON.stringify(result.ref)
                     });
-                    await FfmpegService.toMp4({
+                    await this.ffmpegService.toMp4({
                         inputFile: vPath,
                         onProgress: (progress) => {
                             result.ref.progress = progress;
                             result.so.push(`System: converting video to mp4 ${progress}%`);
                             result.ref.stdOut = result.so.join('\n');
-                            DpTaskService.update({
+                            this.dpTaskService.update({
                                 id: taskId,
                                 status: DpTaskState.IN_PROGRESS,
                                 progress: `正在转换 ${progress}%`,
@@ -82,7 +91,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                     result.so.push('System: video converted to mp4');
                     result.ref.stdOut = result.so.join('\n');
                     result.ref.name = path.basename(vPath, path.extname(vPath)) + '.mp4';
-                    DpTaskService.update({
+                    this.dpTaskService.update({
                         id: taskId,
                         status: DpTaskState.IN_PROGRESS,
                         progress: '转换完成',
@@ -91,7 +100,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 }
             }
         } catch (e) {
-            DpTaskService.update({
+            this.dpTaskService.update({
                 id: taskId,
                 status: DpTaskState.FAILED,
                 progress: '下载失败',
@@ -99,7 +108,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
             });
             return;
         }
-        DpTaskService.update({
+        this.dpTaskService.update({
             id: taskId,
             status: DpTaskState.DONE,
             progress: '下载完成',
@@ -113,7 +122,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
     }, url: string, savePath: string) {
         result.so.push('System: downloading video');
         result.ref.stdOut = result.so.join('\n');
-        DpTaskService.update({
+        this.dpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: '正在下载',
@@ -129,7 +138,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 '-P', savePath,
                 url
             ]);
-            ProcessService.registerTask(taskId, [task]);
+            this.childProcessService.registerTask(taskId, [task]);
             let progress = 0;
             task.stdout.on('data', (data) => {
                 const output = data.toString();
@@ -144,7 +153,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 result.so.push(data.toString().trim());
                 result.ref.stdOut = result.so.join('\n');
                 result.ref.progress = progress;
-                DpTaskService.update({
+                this.dpTaskService.update({
                     id: taskId,
                     status: DpTaskState.IN_PROGRESS,
                     progress: `正在下载 ${progress}%`,
@@ -156,7 +165,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 console.error(`stderr: ${data}`);
                 result.so.push(data.toString().trim());
                 result.ref.stdOut = result.so.join('\n');
-                DpTaskService.update({
+                this.dpTaskService.update({
                     id: taskId,
                     status: DpTaskState.IN_PROGRESS,
                     progress: '下载失败',
@@ -169,7 +178,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 if (code === 0) {
                     resolve();
                 } else {
-                    DpTaskService.update({
+                    this.dpTaskService.update({
                         id: taskId,
                         status: DpTaskState.FAILED,
                         progress: '下载失败',
@@ -197,7 +206,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
 
         result.so.push('System: fetching video file name');
         result.ref.stdOut = result.so.join('\n');
-        DpTaskService.update({
+        this.dpTaskService.update({
             id: taskId,
             status: DpTaskState.IN_PROGRESS,
             progress: '正在获取文件名',
@@ -211,7 +220,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 '--merge-output-format', 'mp4',
                 url
             ]);
-            ProcessService.registerTask(taskId, [process]);
+            this.childProcessService.registerTask(taskId, [process]);
             let output = '';
             process.stdout.on('data', (d: Buffer) => {
                 let encoding = 'utf8';
@@ -227,7 +236,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 }
                 result.so.push(data.toString().trim());
                 result.ref.stdOut = result.so.join('\n');
-                DpTaskService.update({
+                this.dpTaskService.update({
                     id: taskId,
                     status: DpTaskState.IN_PROGRESS,
                     progress: '正在获取文件名',
@@ -239,7 +248,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 console.error('Error:', data.toString());
                 result.so.push(data.toString().trim());
                 result.ref.stdOut = result.so.join('\n');
-                DpTaskService.update({
+                this.dpTaskService.update({
                     id: taskId,
                     status: DpTaskState.IN_PROGRESS,
                     progress: '正在获取文件名',

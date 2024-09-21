@@ -1,69 +1,81 @@
-import DpTaskService from '@/backend/services/DpTaskService';
 import TtsService from '@/backend/services/TtsService';
 import registerRoute from '@/common/api/register';
-import AiFuncService from '@/backend/services/AiFuncService';
-import ChatService from '@/backend/services/ChatService';
+import AiServiceImpl from '@/backend/services/AiServiceImpl';
+import ChatServiceImpl from '@/backend/services/impl/ChatServiceImpl';
 import { MsgT, toLangChainMsg } from '@/common/types/msg/interfaces/MsgT';
-import WhisperService from '@/backend/services/WhisperService';
-import AiFuncExplainSelectService from '@/backend/services/AiFuncs/AiFuncExplainSelectService';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
+import TYPES from '@/backend/ioc/types';
+import DpTaskService from '@/backend/services/DpTaskService';
+import WhisperService from '@/backend/services/WhisperService';
 
 @injectable()
 export default class AiFuncController implements Controller {
 
+    @inject(TYPES.DpTaskService)
+    private dpTaskService: DpTaskService;
+
+    @inject(TYPES.ChatService)
+    private chatService: ChatServiceImpl
+
+    @inject(TYPES.AiService)
+    private aiService: AiServiceImpl
+
+    @inject(TYPES.WhisperService)
+    private whisperService: WhisperService;
+
     public async analyzeNewWords(sentence: string) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.analyzeWord(taskId, sentence).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.analyzeWord(taskId, sentence).then();
         return taskId;
     }
 
     public async analyzeNewPhrases(sentence: string) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.analyzePhrase(taskId, sentence).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.analyzePhrase(taskId, sentence).then();
         return taskId;
     }
 
     public async analyzeGrammars(sentence: string) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.analyzeGrammar(taskId, sentence).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.analyzeGrammar(taskId, sentence).then();
         return taskId;
     }
 
     public async makeSentences({ sentence, point }: { sentence: string, point: string[] }) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.makeSentences(taskId, sentence, point).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.makeSentences(taskId, sentence, point).then();
         return taskId;
     }
 
     public async polish(sentence: string) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.polish(taskId, sentence).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.polish(taskId, sentence).then();
         return taskId;
     }
 
     public async formatSplit(text: string) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.formatSplit(taskId, text).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.formatSplit(taskId, text).then();
         return taskId;
     }
 
     public async phraseGroup(sentence: string) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.phraseGroup(taskId, sentence).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.phraseGroup(taskId, sentence).then();
         return taskId;
     }
 
     public async punctuation({ no, srt }: { no: number, srt: string }) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.punctuation(taskId, no, srt).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.punctuation(taskId, no, srt).then();
         return taskId;
     }
 
     public async translateWithContext({ sentence, context }: { sentence: string, context: string[] }) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.translateWithContext(taskId, sentence, context).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.translateWithContext(taskId, sentence, context).then();
         return taskId;
     }
 
@@ -72,30 +84,30 @@ export default class AiFuncController implements Controller {
     }
 
     public async chat({ msgs }: { msgs: MsgT[] }): Promise<number> {
-        const taskId = await DpTaskService.create();
+        const taskId = await this.dpTaskService.create();
         const ms = msgs.map((msg) => toLangChainMsg(msg));
-        ChatService.chat(taskId, ms).then();
+        this.chatService.chat(taskId, ms).then();
         return taskId;
     }
 
     public async transcript({ filePath }: { filePath: string }) {
-        const taskId = await DpTaskService.create();
+        const taskId = await this.dpTaskService.create();
         console.log('taskId', taskId);
-        WhisperService.transcript(taskId, filePath).then(r => {
+        this.whisperService.transcript(taskId, filePath).then(r => {
             console.log(r);
         });
         return taskId;
     }
 
     public async explainSelectWithContext({ sentence, selectedWord }: { sentence: string, selectedWord: string }) {
-        const taskId = await DpTaskService.create();
-        AiFuncExplainSelectService.run(taskId, sentence, selectedWord).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.explainSelectWithContext(taskId, sentence, selectedWord).then();
         return taskId;
     }
 
     public async explainSelect({ word }: { word: string }) {
-        const taskId = await DpTaskService.create();
-        AiFuncService.explainSelect(taskId, word).then();
+        const taskId = await this.dpTaskService.create();
+        this.aiService.explainSelect(taskId, word).then();
         return taskId;
     }
 

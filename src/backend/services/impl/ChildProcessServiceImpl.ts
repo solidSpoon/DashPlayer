@@ -1,27 +1,37 @@
-import {ChildProcess} from "child_process";
-import DpTaskService from "@/backend/services/DpTaskService";
-import {DpTaskState} from "@/backend/db/tables/dpTask";
-import Ffmpeg from "fluent-ffmpeg";
-import {CancelTokenSource} from "axios";
+import { ChildProcess } from 'child_process';
+import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
+import Ffmpeg from 'fluent-ffmpeg';
+import { CancelTokenSource } from 'axios';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
+import DpTaskService from '@/backend/services/DpTaskService';
+import ChildProcessService from '@/backend/services/ChildProcessService';
 
-export default class ProcessService {
-    private static taskProcessMapping: Map<number, ChildProcess[]> = new Map();
-    private static taskFfmpegMapping: Map<number, Ffmpeg.FfmpegCommand[]> = new Map();
-    private static cancelTokenSourceMapping: Map<number, CancelTokenSource[]> = new Map();
 
-    public static registerTask(taskId: number, process: ChildProcess[]) {
+@injectable()
+export default class ChildProcessServiceImpl implements ChildProcessService {
+
+    @inject(TYPES.DpTaskService)
+    private dpTaskService: DpTaskService;
+
+    private taskProcessMapping: Map<number, ChildProcess[]> = new Map();
+    private taskFfmpegMapping: Map<number, Ffmpeg.FfmpegCommand[]> = new Map();
+    private cancelTokenSourceMapping: Map<number, CancelTokenSource[]> = new Map();
+
+    public registerTask(taskId: number, process: ChildProcess[]) {
         this.register(taskId, process, this.taskProcessMapping, 'close');
     }
 
-    public static registerFfmpeg(taskId: number, process: Ffmpeg.FfmpegCommand[]) {
+    public registerFfmpeg(taskId: number, process: Ffmpeg.FfmpegCommand[]) {
         this.register(taskId, process, this.taskFfmpegMapping, 'end');
     }
 
-    public static registerCancelTokenSource(taskId: number, process: CancelTokenSource[]) {
+    public registerCancelTokenSource(taskId: number, process: CancelTokenSource[]) {
         this.register(taskId, process, this.cancelTokenSourceMapping);
     }
 
-    private static register(taskId: number, process: any[], mapping: Map<number, any[]>, event?: string) {
+    private register(taskId: number, process: any[], mapping: Map<number, any[]>, event?: string) {
         const existingProcesses = mapping.get(taskId) || [];
         mapping.set(taskId, [...existingProcesses, ...process]);
 
@@ -38,21 +48,22 @@ export default class ProcessService {
         }
     }
 
-    public static killTask(taskId: number) {
+    public killTask(taskId: number) {
         this.killProcess(taskId, this.taskProcessMapping);
         this.killProcess(taskId, this.taskFfmpegMapping, 'SIGKILL');
         this.killRequest(taskId);
+        this.dpTaskService.cancel(taskId);
     }
 
-    private static killProcess(taskId: number, mapping: Map<number, any[]>, signal?: string) {
+    private killProcess(taskId: number, mapping: Map<number, any[]>, signal?: string) {
         const childProcesses = mapping.get(taskId);
         if (childProcesses) {
             childProcesses.forEach(p => {
                 p.on('close', () => {
-                    DpTaskService.update({
+                    this.dpTaskService.update({
                         id: taskId,
                         status: DpTaskState.CANCELLED,
-                        progress: '任务取消',
+                        progress: '任务取消'
                     });
                 });
                 p.kill(signal);
@@ -60,7 +71,7 @@ export default class ProcessService {
         }
     }
 
-    private static killRequest(taskId: number) {
+    private killRequest(taskId: number) {
         const cancelTokenSources = this.cancelTokenSourceMapping.get(taskId);
         if (cancelTokenSources) {
             cancelTokenSources.forEach(c => {

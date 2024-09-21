@@ -5,7 +5,7 @@ import TYPES from '@/backend/ioc/types';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import { ClipOssService } from '@/backend/services/OssService';
 import path from 'path';
-import FfmpegService from '@/backend/services/FfmpegService';
+import FfmpegServiceImpl from '@/backend/services/impl/FfmpegServiceImpl';
 import fs from 'fs';
 
 @injectable()
@@ -25,8 +25,8 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<MetaData>
         const tempFolder = this.locationService.getStoragePath(LocationType.TEMP);
         // 生成缩略图
         const thumbnailFileName = `${key}-${this.THUMBNAIL_FILE}`;
-        const length = await FfmpegService.duration(sourcePath);
-        await FfmpegService.thumbnail({
+        const length = await FfmpegServiceImpl.duration(sourcePath);
+        await FfmpegServiceImpl.thumbnail({
             inputFile: sourcePath,
             outputFileName: thumbnailFileName,
             outputFolder: tempFolder,

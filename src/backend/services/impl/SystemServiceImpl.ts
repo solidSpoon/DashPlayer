@@ -1,7 +1,9 @@
 import { WindowState } from '@/common/types/Types';
-import { injectable } from 'inversify';
+import { injectable, postConstruct } from 'inversify';
 import SystemService from '@/backend/services/SystemService';
 import { BrowserWindow } from 'electron';
+import PathUtil from '@/common/utils/PathUtil';
+import path from 'path';
 
 @injectable()
 export default class SystemServiceImpl implements SystemService {
@@ -67,5 +69,10 @@ export default class SystemServiceImpl implements SystemService {
 
     public sendErrorToRenderer(error: Error) {
         this.mainWindow()?.webContents.send('error-msg', error);
+    }
+
+    @postConstruct()
+    init() {
+        PathUtil.SEPARATOR = path.sep;
     }
 }

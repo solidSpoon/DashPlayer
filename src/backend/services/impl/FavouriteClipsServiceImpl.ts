@@ -1,6 +1,5 @@
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
-import FfmpegService from '@/backend/services/FfmpegService';
 import path from 'path';
 import { MetaData, OssObject } from '@/common/types/OssObject';
 import db from '@/backend/db';
@@ -24,6 +23,7 @@ import LocationService, { LocationType } from '@/backend/services/LocationServic
 import { ClipOssService } from '@/backend/services/OssService';
 import { TagService } from '@/backend/services/TagService';
 import CollUtil from '@/common/utils/CollUtil';
+import FfmpegService from '@/backend/services/FfmpegService';
 
 type ClipTask = {
     videoPath: string,
@@ -45,6 +45,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
 
     @inject(TYPES.TagService)
     private tagService: TagService;
+
+    @inject(TYPES.FfmpegService)
+    private ffmpegService: FfmpegService;
 
     /**
      * key: hash(srtContext)
@@ -136,7 +139,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         if (await this.clipInDb(key)) {
             return;
         }
-        await FfmpegService.trimVideo(task.videoPath, metaData.start_time, metaData.end_time, tempName);
+        await this.ffmpegService.trimVideo(task.videoPath, metaData.start_time, metaData.end_time, tempName);
         await this.clipOssService.putClip(key, tempName, metaData);
         await this.addToDb(metaData);
         fs.rmSync(tempName);
