@@ -15,6 +15,9 @@ export interface Sentence {
 
     end: number;
 
+    adjustedStart: number | null;
+    adjustedEnd: number | null;
+
     /**
      * 字幕英文原文
      */
@@ -49,6 +52,9 @@ class SentenceC implements Sentence {
     public start: number;
 
     public end: number;
+
+    adjustedStart: number | null;
+    adjustedEnd: number | null;
 
     /**
      * 字幕英文原文

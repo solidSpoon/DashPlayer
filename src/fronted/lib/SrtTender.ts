@@ -1,4 +1,4 @@
-import SentenceC, { Sentence } from '@/common/types/SentenceC';
+import SentenceC from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
 
 interface TenderLine {
@@ -46,7 +46,8 @@ export class SrtTenderImpl implements SrtTender {
     private lineBucket = new Map<number, TenderLine[]>();
     private readonly lines: TenderLine[] = [];
     private keyLineMapping = new Map<string, number>();
-    private lastIndex: number | null = null;
+    private cacheIndex: number | null = null;
+    private backupIndex: number | null = null;
 
     constructor(sentences: SentenceC[]) {
         if (CollUtil.isEmpty(sentences)) return;
@@ -57,6 +58,7 @@ export class SrtTenderImpl implements SrtTender {
         for (const l of this.lines) {
             this.keyLineMapping.set(TenderUtils.sentenceKey(l.origin), l.index);
         }
+        this.backupIndex = 0;
     }
 
     public getByTime(time: number): SentenceC {
@@ -166,7 +168,7 @@ export class SrtTenderImpl implements SrtTender {
         };
         this.deleteInBucket(tempItem.index);
         this.addInBucket(tempItem);
-        this.lastIndex = null;
+        this.cacheIndex = null;
     }
 
     private addInBucket(tempItem: TenderLine) {
@@ -221,8 +223,8 @@ export class SrtTenderImpl implements SrtTender {
         let index = 0;
         return sentences.map((sentence) => ({
                 index: index++,
-                t1: sentence.start ?? 0,
-                t2: sentence.end ?? 0,
+                t1: [sentence.adjustedStart, sentence.start].find((item) => item !== null) ?? 0,
+                t2: [sentence.adjustedEnd, sentence.end].find((item) => item !== null) ?? 0,
                 opId: this.MAX_OP_ID,
                 origin: sentence
             })
@@ -241,9 +243,11 @@ export class SrtTenderImpl implements SrtTender {
     }
 
     private getByTimeInternal(time: number, isCurrent: (line: TenderLine, time: number) => boolean) {
-        if (this.lastIndex !== null) {
-            const line = this.lines[this.lastIndex];
+        if (this.cacheIndex !== null) {
+            const line = this.lines[this.cacheIndex];
             if (isCurrent(line, time)) {
+                this.cacheIndex = line.index;
+                this.backupIndex = line.index;
                 return line;
             }
         }
@@ -251,11 +255,11 @@ export class SrtTenderImpl implements SrtTender {
         const group = this.lineBucket.get(index) ?? [];
         for (const line of group) {
             if (isCurrent(line, time)) {
+                this.cacheIndex = line.index;
+                this.backupIndex = line.index;
                 return line;
             }
         }
-        const tenderLine = this.lines[this.lines.length - 1];
-        this.lastIndex = tenderLine.index;
-        return tenderLine;
+        return this.lines[this.backupIndex];
     }
 }

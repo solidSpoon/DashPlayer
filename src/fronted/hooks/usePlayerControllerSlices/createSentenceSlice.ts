@@ -46,8 +46,9 @@ const createSentenceSlice: StateCreator<
         await api.call('subtitle-timestamp/update', {
             key: clone.key,
             subtitle_path: subtitlePath,
+            subtitle_hash: useFile.getState().srtHash,
             start_at: start,
-            end_at: end
+            end_at: end,
         });
     },
     adjustEnd: async (time) => {
@@ -72,6 +73,7 @@ const createSentenceSlice: StateCreator<
         await api.call('subtitle-timestamp/update', {
             key: clone.key,
             subtitle_path: subtitlePath,
+            subtitle_hash: useFile.getState().srtHash,
             start_at: start,
             end_at: end
         });
