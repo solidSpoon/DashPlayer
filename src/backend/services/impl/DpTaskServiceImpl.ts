@@ -93,30 +93,39 @@ export default class DpTaskServiceImpl implements DpTaskService {
     }
 
     public process(id: number, info: InsertDpTask) {
-        this.update({
+        const task: InsertDpTask = {
             id,
             status: DpTaskState.IN_PROGRESS,
-            progress: info.progress,
-            result: info.result
-        });
+        };
+        this.updateTaskInfo(task, info);
+        this.update(task);
     }
 
     public finish(id: number, info: InsertDpTask) {
-        this.update({
+        const task:InsertDpTask = {
             id,
             status: DpTaskState.DONE,
-            progress: info.progress,
-            result: info.result
-        });
+        };
+        this.updateTaskInfo(task, info);
+        this.update(task);
     }
 
     public fail(id: number, info: InsertDpTask) {
-        this.update({
+        const task:InsertDpTask = {
             id,
             status: DpTaskState.FAILED,
-            progress: info.progress,
-            result: info.result
-        });
+        };
+        this.updateTaskInfo(task, info);
+        this.update(task);
+    }
+
+    private updateTaskInfo(task: InsertDpTask, info: InsertDpTask) {
+        if (info.progress !== undefined) {
+            task.progress = info.progress;
+        }
+        if (info.result !== undefined) {
+            task.result = info.result;
+        }
     }
 
     cancel(id: number) {
