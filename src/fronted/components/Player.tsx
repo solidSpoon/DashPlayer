@@ -11,6 +11,7 @@ import { cn } from '@/fronted/lib/utils';
 import PlayerToaster from '@/fronted/components/PlayerToaster';
 import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
+import ReactPlayer from 'react-player/file';
 
 const api = window.electron;
 
@@ -44,7 +45,7 @@ export default function Player({ className }: { className?: string }): ReactElem
     const videoId = useFile((s) => s.videoId);
     const loadedVideo = useFile((s) => s.loadedVideo);
     const videoLoaded = useFile((s) => s.videoLoaded);
-    const playerRef = useRef<HTMLVideoElement>(null);
+    const playerRef = useRef<ReactPlayer>(null);
     const playerRefBackground = useRef<HTMLCanvasElement>(null);
     let lastFile: string | undefined;
 
@@ -59,29 +60,27 @@ export default function Player({ className }: { className?: string }): ReactElem
 
     const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const performSeek = (time: number) => {
-        if (playerRef.current !== null) {
-            playerRef.current.currentTime = time;
-            playerRef.current.play().catch(error => console.error('Error playing video:', error));
-        }
-    };
-
     useEffect(() => {
         if (lastSeekTime.current !== seekTime) {
             const now = Date.now();
             const timeSinceLastSeek = now - lastSeekTimestamp.current;
 
-                // 如果距离上次 seek 小于 200ms，设置延时
-                if (seekTimeoutRef.current) {
-                    clearTimeout(seekTimeoutRef.current);
+            // 如果距离上次 seek 小于 200ms，设置延时
+            if (seekTimeoutRef.current) {
+                clearTimeout(seekTimeoutRef.current);
+            }
+            const performSeek = (time: number) => {
+                if (playerRef.current !== null) {
+                    playerRef.current.seekTo(time);
+                    play();
                 }
-
-                seekTimeoutRef.current = setTimeout(() => {
-                    performSeek(seekTime.time);
-                    lastSeekTime.current = seekTime;
-                    lastSeekTimestamp.current = Date.now();
-                    seekTimeoutRef.current = null;
-                }, Math.max(0, 200 - timeSinceLastSeek));
+            };
+            seekTimeoutRef.current = setTimeout(() => {
+                performSeek(seekTime.time);
+                lastSeekTime.current = seekTime;
+                lastSeekTimestamp.current = Date.now();
+                seekTimeoutRef.current = null;
+            }, Math.max(0, 200 - timeSinceLastSeek));
         }
 
         return () => {
@@ -89,43 +88,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                 clearTimeout(seekTimeoutRef.current);
             }
         };
-    }, [seekTime]);
-
-    useEffect(() => {
-        if (playerRef.current) {
-            playerRef.current.volume = volume;
-        }
-    }, [volume]);
-
-    useEffect(() => {
-        if (playerRef.current) {
-            playerRef.current.playbackRate = playbackRate;
-        }
-    }, [playbackRate]);
-
-    useEffect(() => {
-        if (playerRef.current) {
-            if (playing) {
-                console.log('play');
-                playerRef.current.play().catch(error => console.error('Error playing video:', error));
-            }
-            if (!playing) {
-                console.log('pause');
-                playerRef.current.pause();
-            }
-        }
-    }, [playing]);
-
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            if (playerRef.current) {
-                updateExactPlayTime(playerRef.current.currentTime);
-            }
-        }, 50);
-
-        return () => clearInterval(intervalId);
-    }, [updateExactPlayTime]);
-
+    }, [play, seekTime]);
 
     useEffect(() => {
         if (podcastMode) {
@@ -143,7 +106,7 @@ export default function Player({ className }: { className?: string }): ReactElem
             const timeSinceLastDraw = now - lastDrawTime;
 
             if (timeSinceLastDraw >= drawInterval) {
-                const mainVideo = playerRef?.current;
+                const mainVideo = playerRef?.current.getInternalPlayer() as HTMLVideoElement;
                 const backgroundCanvas = playerRefBackground?.current;
 
                 if (
@@ -194,7 +157,7 @@ export default function Player({ className }: { className?: string }): ReactElem
         };
 
         if (videoLoaded) {
-            syncVideos();
+            syncVideos().then();
         }
 
         // 清理操作
@@ -239,17 +202,31 @@ export default function Player({ className }: { className?: string }): ReactElem
                             objectFit: 'cover'
                         }}
                     />
-                    <video
+                    <ReactPlayer
+                        volume={volume}
+                        playbackRate={playbackRate}
+                        playing={playing}
                         ref={playerRef}
                         className="w-full h-full absolute top-0 left-0"
-                        src={UrlUtil.file(videoPath)}
+                        url={UrlUtil.file(videoPath)}
                         muted={muted}
                         autoPlay={playing}
-                        controls={showControlPanel}
+                        controls={false}
+                        width="100%"
+                        height="100%"
+                        progressInterval={50}
                         // 将视频元素从键盘导航顺序中移除
                         tabIndex={-1}
-                        onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-                        onLoadedMetadata={async () => {
+                        config={{
+                            attributes: {
+                                controlsList: 'nofullscreen'
+                            }
+                        }}
+                        onProgress={(progress) => {
+                            updateExactPlayTime(progress.playedSeconds);
+                        }}
+                        onDuration={(d) => setDuration(d)}
+                        onStart={async () => {
                             await jumpToHistoryProgress(videoPath);
                             loadedVideo(videoPath);
                         }}

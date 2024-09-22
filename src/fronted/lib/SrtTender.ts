@@ -8,6 +8,7 @@ interface TenderLine {
     opId: number;
     origin: SentenceC;
 }
+
 export interface SrtTender {
     getByTime(time: number): SentenceC;
 
@@ -44,7 +45,7 @@ export class SrtTenderImpl implements SrtTender {
     private readonly lines: TenderLine[] = [];
     private keyLineMapping = new Map<string, number>();
     private cacheIndex: number | null = null;
-    private backupIndex: number | null = null;
+    private backupIndex = 0;
 
     constructor(sentences: SentenceC[]) {
         if (CollUtil.isEmpty(sentences)) return;
@@ -55,7 +56,6 @@ export class SrtTenderImpl implements SrtTender {
         for (const l of this.lines) {
             this.keyLineMapping.set(TenderUtils.sentenceKey(l.origin), l.index);
         }
-        this.backupIndex = 0;
     }
 
     public getByTime(time: number): SentenceC {
@@ -64,21 +64,29 @@ export class SrtTenderImpl implements SrtTender {
 
     public pin(sentence: SentenceC) {
         const line = this.getByT(sentence);
+        if (!line) return;
         this.put({ ...line });
     }
 
     public mapSeekTime(time: number | SentenceC): { start: number, end: number } {
-        const { t1, t2 } = typeof time === 'number' ?
+        const line = typeof time === 'number' ?
             this.getByTimeInternal(time) :
             this.getByT(time);
+        if (!line) {
+            return {
+                start: 0,
+                end: 0
+            };
+        }
         return {
-            start: t1,
-            end: t2
+            start: line.t1,
+            end: line.t2
         };
     }
 
     public adjustBegin(sentence: SentenceC, time: number): SentenceC {
         const line = this.getByT(sentence);
+        if (!line) return sentence;
         const clone = sentence.clone();
         this.put({
             ...line,
@@ -90,6 +98,7 @@ export class SrtTenderImpl implements SrtTender {
 
     public adjustEnd(sentence: SentenceC, time: number): SentenceC {
         const line = this.getByT(sentence);
+        if (!line) return sentence;
         const clone = sentence.clone();
         this.put({
             ...line,
@@ -101,12 +110,14 @@ export class SrtTenderImpl implements SrtTender {
 
     public adjusted(sentence: SentenceC, delta = 0.05): boolean {
         const line = this.getByT(sentence);
+        if (!line) return false;
         const origin = line.origin;
         return Math.abs(line.t1 - origin.start) > delta || Math.abs(line.t2 - origin.end) > delta;
     }
 
     public clearAdjust(sentence: SentenceC): SentenceC {
         const line = this.getByT(sentence);
+        if (!line) return sentence;
         const clone = sentence.clone();
         this.put({
             ...line,
@@ -119,6 +130,7 @@ export class SrtTenderImpl implements SrtTender {
 
     public timeDiff(sentence: SentenceC): { start: number, end: number } {
         const line = this.getByT(sentence);
+        if (!line) return { start: 0, end: 0 };
         const origin = line.origin;
         return {
             start: line.t1 - origin.start,
@@ -128,14 +140,19 @@ export class SrtTenderImpl implements SrtTender {
 
     public update(sentence: SentenceC) {
         const line = this.getByT(sentence);
+        if (!line) return;
         this.put({
             ...line,
             origin: sentence
         });
     }
 
-    private getByT(sentence: SentenceC): TenderLine {
+    private getByT(sentence: SentenceC): TenderLine | null {
         const index = this.keyLineMapping.get(TenderUtils.sentenceKey(sentence));
+        if (index === undefined) {
+            console.error('can not find sentence', sentence);
+            return null;
+        }
         return this.lines[index];
     }
 
