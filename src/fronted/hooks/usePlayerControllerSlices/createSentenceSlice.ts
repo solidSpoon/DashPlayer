@@ -42,7 +42,7 @@ const createSentenceSlice: StateCreator<
         const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
         usePlayerToaster.getState()
             .setNotification({ type: 'info', text: `start: ${timeDiffStr} s` });
-        const { start, end } = srtTender.mapSeekTimeStraight(clone);
+        const { start, end } = srtTender.mapSeekTime(clone);
         await api.call('subtitle-timestamp/update', {
             key: clone.key,
             subtitle_path: subtitlePath,
@@ -69,7 +69,7 @@ const createSentenceSlice: StateCreator<
         const timeDiffStr = timeDiff > 0 ? `+${timeDiff.toFixed(2)}` : timeDiff.toFixed(2);
         usePlayerToaster.getState()
             .setNotification({ type: 'info', text: `end: ${timeDiffStr} s` });
-        const { start, end } = srtTender.mapSeekTimeStraight(clone);
+        const { start, end } = srtTender.mapSeekTime(clone);
         await api.call('subtitle-timestamp/update', {
             key: clone.key,
             subtitle_path: subtitlePath,
@@ -80,16 +80,15 @@ const createSentenceSlice: StateCreator<
     },
 
     clearAdjust: async () => {
-        const clone = get().currentSentence?.clone();
-        if (!clone) {
+        const ct = get().currentSentence?.clone();
+        if (!ct) {
             return;
         }
         const srtTender = get().srtTender;
         if (!srtTender) {
             return;
         }
-        srtTender.clearAdjust(clone);
-        srtTender.update(clone);
+        const clone = srtTender.clearAdjust(ct);
         get().mergeSubtitle([clone]);
         set({
             currentSentence: clone

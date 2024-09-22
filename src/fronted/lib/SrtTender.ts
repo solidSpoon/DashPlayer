@@ -8,7 +8,6 @@ interface TenderLine {
     opId: number;
     origin: SentenceC;
 }
-
 export interface SrtTender {
     getByTime(time: number): SentenceC;
 
@@ -16,15 +15,13 @@ export interface SrtTender {
 
     mapSeekTime(time: number | SentenceC): { start: number, end: number };
 
-    mapSeekTimeStraight(time: number | SentenceC): { start: number, end: number };
-
     adjustBegin(sentence: SentenceC, time: number): SentenceC;
 
     adjustEnd(sentence: SentenceC, time: number): SentenceC;
 
     adjusted(sentence: SentenceC, delta?: number): boolean;
 
-    clearAdjust(sentence: SentenceC): void;
+    clearAdjust(sentence: SentenceC): SentenceC;
 
     timeDiff(sentence: SentenceC): { start: number, end: number };
 
@@ -62,7 +59,7 @@ export class SrtTenderImpl implements SrtTender {
     }
 
     public getByTime(time: number): SentenceC {
-        return this.getByTimeInternal(time, this.isCurrent.bind(this)).origin;
+        return this.getByTimeInternal(time).origin;
     }
 
     public pin(sentence: SentenceC) {
@@ -72,17 +69,7 @@ export class SrtTenderImpl implements SrtTender {
 
     public mapSeekTime(time: number | SentenceC): { start: number, end: number } {
         const { t1, t2 } = typeof time === 'number' ?
-            this.getByTimeInternal(time, this.isCurrent.bind(this)) :
-            this.getByT(time);
-        return {
-            start: t1,
-            end: t2
-        };
-    }
-
-    public mapSeekTimeStraight(time: number | SentenceC): { start: number, end: number } {
-        const { t1, t2 } = typeof time === 'number' ?
-            this.getByTimeInternal(time, this.isCurrentStraight.bind(this)) :
+            this.getByTimeInternal(time) :
             this.getByT(time);
         return {
             start: t1,
@@ -118,13 +105,16 @@ export class SrtTenderImpl implements SrtTender {
         return Math.abs(line.t1 - origin.start) > delta || Math.abs(line.t2 - origin.end) > delta;
     }
 
-    public clearAdjust(sentence: SentenceC) {
+    public clearAdjust(sentence: SentenceC): SentenceC {
         const line = this.getByT(sentence);
+        const clone = sentence.clone();
         this.put({
             ...line,
             t1: line.origin.start,
-            t2: line.origin.end
+            t2: line.origin.end,
+            origin: clone
         });
+        return clone;
     }
 
     public timeDiff(sentence: SentenceC): { start: number, end: number } {
@@ -152,12 +142,6 @@ export class SrtTenderImpl implements SrtTender {
     private isCurrent(line: TenderLine, time: number) {
         const start = Math.min(line.t1, line.t2, this.nextStart(line));
         const end = Math.max(line.t1, line.t2, this.nextStart(line));
-        return time >= start && time <= end;
-    }
-
-    public isCurrentStraight(line: TenderLine, time: number) {
-        const start = Math.min(line.t1, line.t2);
-        const end = Math.max(line.t1, line.t2);
         return time >= start && time <= end;
     }
 
@@ -225,7 +209,7 @@ export class SrtTenderImpl implements SrtTender {
                 index: index++,
                 t1: [sentence.adjustedStart, sentence.start].find((item) => item !== null) ?? 0,
                 t2: [sentence.adjustedEnd, sentence.end].find((item) => item !== null) ?? 0,
-                opId: this.MAX_OP_ID,
+                opId: 0,
                 origin: sentence
             })
         );
@@ -242,10 +226,10 @@ export class SrtTenderImpl implements SrtTender {
         };
     }
 
-    private getByTimeInternal(time: number, isCurrent: (line: TenderLine, time: number) => boolean) {
+    private getByTimeInternal(time: number) {
         if (this.cacheIndex !== null) {
             const line = this.lines[this.cacheIndex];
-            if (isCurrent(line, time)) {
+            if (this.isCurrent(line, time)) {
                 this.cacheIndex = line.index;
                 this.backupIndex = line.index;
                 return line;
@@ -254,7 +238,7 @@ export class SrtTenderImpl implements SrtTender {
         const index = Math.floor(time / this.GROUP_SECONDS);
         const group = this.lineBucket.get(index) ?? [];
         for (const line of group) {
-            if (isCurrent(line, time)) {
+            if (this.isCurrent(line, time)) {
                 this.cacheIndex = line.index;
                 this.backupIndex = line.index;
                 return line;

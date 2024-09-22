@@ -1,4 +1,6 @@
 import { SentenceStruct } from '@/common/types/SentenceStruct';
+import { Cloneable } from '@/common/interfaces';
+
 
 export interface SrtSentence {
     fileHash: string;
@@ -44,7 +46,7 @@ export interface Sentence {
     struct: SentenceStruct;
 }
 
-class SentenceC implements Sentence {
+class SentenceC implements Sentence , Cloneable {
     public fileHash: string;
     public index: number;
     public indexInFile: number | null;
@@ -53,8 +55,8 @@ class SentenceC implements Sentence {
 
     public end: number;
 
-    adjustedStart: number | null;
-    adjustedEnd: number | null;
+    public adjustedStart: number | null;
+    public adjustedEnd: number | null;
 
     /**
      * 字幕英文原文
@@ -105,8 +107,8 @@ class SentenceC implements Sentence {
         this.index = index;
     }
 
-    public clone(): SentenceC {
-        const result = new SentenceC(this.index);
+    public clone(): this {
+        const result = new SentenceC(this.index) as this;
         for (const key in this) {
             if (Object.prototype.hasOwnProperty.call(this, key)) {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

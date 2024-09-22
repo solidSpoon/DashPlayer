@@ -29,7 +29,7 @@ function onTimeUpdate(
     }
 
     if (currentSentence && playing && autoPause) {
-        const { start, end } = srtTender.mapSeekTimeStraight(currentSentence);
+        const { start, end } = srtTender.mapSeekTime(currentSentence);
         if (exactPlayTime > end) {
             getState().pause();
             getState().onPlaySeek(start);
@@ -37,7 +37,7 @@ function onTimeUpdate(
         return;
     }
     if (currentSentence && playing && singleRepeat) {
-        const { start, end } = srtTender.mapSeekTimeStraight(currentSentence);
+        const { start, end } = srtTender.mapSeekTime(currentSentence);
         if (exactPlayTime > end) {
             getState().seekTo({
                 time: start
