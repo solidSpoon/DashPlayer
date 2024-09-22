@@ -5,7 +5,6 @@ import fs from 'fs';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import hash from 'object-hash';
-import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import { inject, injectable } from 'inversify';
 import SubtitleService from '@/backend/services/SubtitleService';
 import TYPES from '@/backend/ioc/types';
@@ -62,23 +61,16 @@ export class SubtitleServiceImpl implements SubtitleService {
             fileHash: h,
             index: index,
             indexInFile: line.index,
-            currentBegin: line.start,
-            currentEnd: line.end,
+            start: line.start,
+            end: line.end,
             text: line.contentEn,
             textZH: line.contentZh,
             msTranslate: null,
-            originalBegin: null,
-            originalEnd: null,
-            nextBegin: null,
             key: `${h}-${index}`,
             transGroup: 0,
             struct: processSentence(line.contentEn)
         }));
-        for (let i = 1; i < subtitles.length; i += 1) {
-            subtitles[i - 1].nextBegin = subtitles[i].currentBegin;
-            subtitles[i].nextBegin = subtitles[i].currentEnd;
-        }
-        await this.adjustTime(subtitles, h);
+        // await this.adjustTime(subtitles, h);
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });
@@ -92,30 +84,30 @@ export class SubtitleServiceImpl implements SubtitleService {
     }
 
 
-    private async adjustTime(subtitles: Sentence[], hashCode: string) {
-        const adjs = await this.srtTimeAdjustService.getByHash(hashCode);
-        const mapping: Map<string, SubtitleTimestampAdjustment> = new Map();
-        adjs.forEach((item) => {
-            mapping.set(item.key, item);
-        });
-        subtitles.forEach((item) => {
-            const key = item.key;
-            const adj = mapping.get(key);
-            if (adj) {
-                if (
-                    Math.abs((adj.start_at ?? 0) - (item.currentBegin ?? 0)) > 0.05
-                ) {
-                    item.originalBegin = item.currentBegin;
-                    item.currentBegin = adj.start_at ?? undefined;
-                }
-
-                if (Math.abs((adj.end_at ?? 0) - (item.currentEnd ?? 0)) > 0.05) {
-                    item.originalEnd = item.currentEnd;
-                    item.currentEnd = adj.end_at ?? undefined;
-                }
-            }
-        });
-    }
+    // private async adjustTime(subtitles: Sentence[], hashCode: string) {
+    //     const adjs = await this.srtTimeAdjustService.getByHash(hashCode);
+    //     const mapping: Map<string, SubtitleTimestampAdjustment> = new Map();
+    //     adjs.forEach((item) => {
+    //         mapping.set(item.key, item);
+    //     });
+    //     subtitles.forEach((item) => {
+    //         const key = item.key;
+    //         const adj = mapping.get(key);
+    //         if (adj) {
+    //             if (
+    //                 Math.abs((adj.start_at ?? 0) - (item.currentBegin ?? 0)) > 0.05
+    //             ) {
+    //                 item.originalBegin = item.currentBegin;
+    //                 item.currentBegin = adj.start_at ?? undefined;
+    //             }
+    //
+    //             if (Math.abs((adj.end_at ?? 0) - (item.currentEnd ?? 0)) > 0.05) {
+    //                 item.originalEnd = item.currentEnd;
+    //                 item.currentEnd = adj.end_at ?? undefined;
+    //             }
+    //         }
+    //     });
+    // }
 }
 
 interface TokenRes {

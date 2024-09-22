@@ -6,6 +6,7 @@ import usePlayerController from '../hooks/usePlayerController';
 export default function MainSubtitle() {
     const sentence = usePlayerController((state) => state.currentSentence);
     const clearAdjust = usePlayerController((state) => state.clearAdjust);
+    const srtTender = usePlayerController((state) => state.srtTender);
     const ele = (): ReactElement[] => {
         if (sentence === undefined) {
             return [];
@@ -21,7 +22,7 @@ export default function MainSubtitle() {
             if (index === 0) {
                 return (
                     <TranslatableLine
-                        adjusted={sentence.originalBegin != null || sentence.originalEnd != null}
+                        adjusted={srtTender?.adjusted(sentence) ?? false}
                         clearAdjust={clearAdjust}
                         key={`first-${sentence.getKey()}`}
                         sentence={sentence}

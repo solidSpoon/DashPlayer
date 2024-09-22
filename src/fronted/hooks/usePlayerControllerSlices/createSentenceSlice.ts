@@ -25,13 +25,12 @@ const createSentenceSlice: StateCreator<
     currentSentence: undefined,
 
     adjustStart: async (time) => {
-        const clone = get().currentSentence;
+        const cs = get().currentSentence;
         const srtTender = get().srtTender;
-        if (!clone || !srtTender) {
+        if (!cs || !srtTender) {
             return;
         }
-        srtTender.adjustBegin(clone, time);
-        srtTender.update(clone);
+        const clone = srtTender.adjustBegin(cs, time);
         get().mergeSubtitle([clone]);
         set({ currentSentence: clone });
         get().repeat();
@@ -52,13 +51,12 @@ const createSentenceSlice: StateCreator<
         });
     },
     adjustEnd: async (time) => {
-        const clone = get().currentSentence?.clone();
+        const cs = get().currentSentence?.clone();
         const srtTender = get().srtTender;
-        if (!clone || !srtTender) {
+        if (!cs || !srtTender) {
             return;
         }
-        srtTender.adjustEnd(clone, time);
-        srtTender.update(clone);
+        const clone = srtTender.adjustEnd(cs, time);
         get().mergeSubtitle([clone]);
         set({ currentSentence: clone });
         get().repeat();

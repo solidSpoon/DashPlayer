@@ -1,13 +1,13 @@
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import React, {ReactElement} from "react";
-import PlayerTranslatableLine from "@/fronted/components/playerSubtitle/PlayerTranslatableLine";
-import PlayerNormalLine from "@/fronted/components/playerSubtitle/PlayerNormalLine";
-import Util from "@/common/utils/Util";
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import React, { ReactElement } from 'react';
+import PlayerTranslatableLine from '@/fronted/components/playerSubtitle/PlayerTranslatableLine';
+import PlayerNormalLine from '@/fronted/components/playerSubtitle/PlayerNormalLine';
 import StrUtil from '@/common/utils/str-util';
 
 const PlayerSubtitle = () => {
     const sentence = usePlayerController((state) => state.currentSentence);
     const clearAdjust = usePlayerController((state) => state.clearAdjust);
+    const srtTender = usePlayerController((state) => state.srtTender);
     const ele = (): ReactElement[] => {
         if (sentence === undefined) {
             return [];
@@ -15,7 +15,7 @@ const PlayerSubtitle = () => {
         const tempEle: Array<string> = [
             sentence.text,
             sentence.msTranslate,
-            sentence.textZH,
+            sentence.textZH
         ]
             .filter((item) => StrUtil.isNotBlank(item))
             .map((item) => item ?? '');
@@ -23,7 +23,7 @@ const PlayerSubtitle = () => {
             if (index === 0) {
                 return (
                     <PlayerTranslatableLine
-                        adjusted={sentence.originalBegin != undefined || sentence.originalEnd != undefined}
+                        adjusted={srtTender?.adjusted(sentence) ?? false}
                         clearAdjust={clearAdjust}
                         key={`first-${sentence.getKey()}`}
                         sentence={sentence}
@@ -52,7 +52,7 @@ const PlayerSubtitle = () => {
 
     const render = () => {
         if (sentence === undefined) {
-            return <div className="w-full h-full"/>;
+            return <div className="w-full h-full" />;
         }
         return (
             <div
@@ -65,6 +65,6 @@ const PlayerSubtitle = () => {
     };
 
     return render();
-}
+};
 
 export default PlayerSubtitle;

@@ -1,4 +1,4 @@
-import SentenceC from '@/common/types/SentenceC';
+import SentenceC, { Sentence } from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
 
 interface TenderLine {
@@ -12,13 +12,15 @@ interface TenderLine {
 export interface SrtTender {
     getByTime(time: number): SentenceC;
 
+    pin(sentence: SentenceC): void;
+
     mapSeekTime(time: number | SentenceC): { start: number, end: number };
 
     mapSeekTimeStraight(time: number | SentenceC): { start: number, end: number };
 
-    adjustBegin(sentence: SentenceC, time: number): void;
+    adjustBegin(sentence: SentenceC, time: number): SentenceC;
 
-    adjustEnd(sentence: SentenceC, time: number): void;
+    adjustEnd(sentence: SentenceC, time: number): SentenceC;
 
     adjusted(sentence: SentenceC, delta?: number): boolean;
 
@@ -61,6 +63,11 @@ export class SrtTenderImpl implements SrtTender {
         return this.getByTimeInternal(time, this.isCurrent.bind(this)).origin;
     }
 
+    public pin(sentence: SentenceC) {
+        const line = this.getByT(sentence);
+        this.put({ ...line });
+    }
+
     public mapSeekTime(time: number | SentenceC): { start: number, end: number } {
         const { t1, t2 } = typeof time === 'number' ?
             this.getByTimeInternal(time, this.isCurrent.bind(this)) :
@@ -81,34 +88,40 @@ export class SrtTenderImpl implements SrtTender {
         };
     }
 
-    public adjustBegin(sentence: SentenceC, time: number): void {
+    public adjustBegin(sentence: SentenceC, time: number): SentenceC {
         const line = this.getByT(sentence);
+        const clone = sentence.clone();
         this.put({
             ...line,
-            t1: line.t1 + time
+            t1: line.t1 + time,
+            origin: clone
         });
+        return clone;
     }
 
-    public adjustEnd(sentence: SentenceC, time: number): void {
+    public adjustEnd(sentence: SentenceC, time: number): SentenceC {
         const line = this.getByT(sentence);
+        const clone = sentence.clone();
         this.put({
             ...line,
-            t2: line.t2 + time
+            t2: line.t2 + time,
+            origin: clone
         });
+        return clone;
     }
 
     public adjusted(sentence: SentenceC, delta = 0.05): boolean {
         const line = this.getByT(sentence);
         const origin = line.origin;
-        return Math.abs(line.t1 - origin.currentBegin) < delta || Math.abs(line.t2 - origin.currentEnd) < delta;
+        return Math.abs(line.t1 - origin.start) > delta || Math.abs(line.t2 - origin.end) > delta;
     }
 
     public clearAdjust(sentence: SentenceC) {
         const line = this.getByT(sentence);
         this.put({
             ...line,
-            t1: line.origin.currentBegin,
-            t2: line.origin.currentEnd
+            t1: line.origin.start,
+            t2: line.origin.end
         });
     }
 
@@ -116,8 +129,8 @@ export class SrtTenderImpl implements SrtTender {
         const line = this.getByT(sentence);
         const origin = line.origin;
         return {
-            start: line.t1 - origin.currentBegin,
-            end: line.t2 - origin.currentEnd
+            start: line.t1 - origin.start,
+            end: line.t2 - origin.end
         };
     }
 
@@ -152,16 +165,20 @@ export class SrtTenderImpl implements SrtTender {
             opId: this.MAX_OP_ID++
         };
         this.deleteInBucket(tempItem.index);
+        this.addInBucket(tempItem);
+        this.lastIndex = null;
+    }
+
+    private addInBucket(tempItem: TenderLine) {
         this.lines[tempItem.index] = tempItem;
         const [minIndex, maxIndex] = this.mapIndex(tempItem);
         for (let i = minIndex; i <= maxIndex; i += 1) {
             const group = this.lineBucket.get(i) ?? [];
+            group.push(tempItem);
             // opId 越大越靠前
             group.sort((a, b) => b.opId - a.opId);
-            group.push(tempItem);
             this.lineBucket.set(i, group);
         }
-        this.lastIndex = null;
     }
 
     private deleteInBucket(index: number) {
@@ -204,8 +221,8 @@ export class SrtTenderImpl implements SrtTender {
         let index = 0;
         return sentences.map((sentence) => ({
                 index: index++,
-                t1: sentence.currentBegin ?? 0,
-                t2: sentence.currentEnd ?? 0,
+                t1: sentence.start ?? 0,
+                t2: sentence.end ?? 0,
                 opId: this.MAX_OP_ID,
                 origin: sentence
             })

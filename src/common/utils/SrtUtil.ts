@@ -123,8 +123,8 @@ export default class SrtUtil {
     public static toSrtLine(sentence: Sentence): SrtLine {
         return {
             index: sentence.indexInFile,
-            start: sentence.originalBegin??sentence.currentBegin,
-            end: sentence.originalEnd??sentence.currentEnd,
+            start: sentence.start,
+            end: sentence.end,
             contentEn: sentence.text,
             contentZh: sentence.textZH
         }

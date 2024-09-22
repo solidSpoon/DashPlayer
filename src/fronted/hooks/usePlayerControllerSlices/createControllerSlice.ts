@@ -20,6 +20,7 @@ const createControllerSlice: StateCreator<
             const target = CollUtil.validGet(getState().subtitle,currentSentence.index + 1,);
             setState({ currentSentence: target });
             const srtTender = getState().srtTender;
+            srtTender?.pin(target);
             getState().seekTo({
                 time: srtTender?.mapSeekTime(target)?.start ?? 0,
             });
@@ -31,6 +32,7 @@ const createControllerSlice: StateCreator<
             const target = CollUtil.validGet(getState().subtitle,currentSentence.index - 1);
             setState({ currentSentence: target });
             const srtTender = getState().srtTender;
+            srtTender?.pin(target);
             getState().seekTo({
                 time: srtTender?.mapSeekTime(target)?.start ?? 0,
             });
@@ -39,6 +41,7 @@ const createControllerSlice: StateCreator<
     jump: (target: SentenceC) => {
         setState({ currentSentence: target });
         const srtTender = getState().srtTender;
+        srtTender?.pin(target);
         getState().seekTo({
             time: srtTender?.mapSeekTime(target)?.start ?? 0,
         });
@@ -47,6 +50,7 @@ const createControllerSlice: StateCreator<
         const { currentSentence } = getState();
         if (currentSentence) {
             const srtTender = getState().srtTender;
+            srtTender?.pin(currentSentence);
             getState().seekTo({
                 time: srtTender?.mapSeekTime(currentSentence)?.start ?? 0,
             });

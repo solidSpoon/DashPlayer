@@ -1,24 +1,19 @@
-import {SentenceStruct} from "@/common/types/SentenceStruct";
+import { SentenceStruct } from '@/common/types/SentenceStruct';
 
 export interface SrtSentence {
     fileHash: string;
     filePath: string;
     sentences: Sentence[];
 }
-export interface Sentence  {
+
+export interface Sentence {
     fileHash: string;
     index: number;
     indexInFile: number | null;
 
-    currentBegin: number | null;
+    start: number;
 
-    currentEnd: number | null;
-
-    originalBegin: number | null;
-
-    originalEnd: number | null;
-
-    nextBegin: number | null;
+    end: number;
 
     /**
      * 字幕英文原文
@@ -51,15 +46,9 @@ class SentenceC implements Sentence {
     public index: number;
     public indexInFile: number | null;
 
-    public currentBegin: number | null;
+    public start: number;
 
-    public currentEnd: number | null;
-
-    public originalBegin: number | null;
-
-    public originalEnd: number | null;
-
-    public nextBegin: number | null;
+    public end: number;
 
     /**
      * 字幕英文原文
@@ -105,23 +94,6 @@ class SentenceC implements Sentence {
         return result;
     }
 
-    public isCurrent = (time: number): boolean => {
-        if (
-            this.currentBegin === null ||
-            this.currentEnd === null ||
-            this.nextBegin === null
-        ) {
-            return false;
-        }
-        return time >= this.currentBegin - 0.2 && time <= this.nextBegin;
-    };
-
-    public isCurrentStrict = (time: number): boolean => {
-        if (this.currentBegin === null || this.currentEnd === null) {
-            return false;
-        }
-        return time >= this.currentBegin && time <= this.currentEnd;
-    };
 
     constructor(index: number) {
         this.index = index;
