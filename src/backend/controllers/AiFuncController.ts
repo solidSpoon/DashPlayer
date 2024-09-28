@@ -14,16 +14,16 @@ import WhisperService from '@/backend/services/WhisperService';
 export default class AiFuncController implements Controller {
 
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.ChatService)
-    private chatService: ChatServiceImpl
+    private chatService!: ChatServiceImpl
 
     @inject(TYPES.AiService)
-    private aiService: AiServiceImpl
+    private aiService!: AiServiceImpl
 
     @inject(TYPES.WhisperService)
-    private whisperService: WhisperService;
+    private whisperService!: WhisperService;
 
     public async analyzeNewWords(sentence: string) {
         const taskId = await this.dpTaskService.create();

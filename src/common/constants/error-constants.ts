@@ -6,6 +6,6 @@ enum ErrorConstants {
 
 export default ErrorConstants;
 
-export function isErrorCancel(e: Error) {
-  return e.message === ErrorConstants.CANCEL_MSG || e.message === 'ffmpeg was killed with signal SIGKILL';
+export function isErrorCancel(e: unknown): boolean {
+  return e instanceof Error &&(e.message === ErrorConstants.CANCEL_MSG || e.message === 'ffmpeg was killed with signal SIGKILL');
 }

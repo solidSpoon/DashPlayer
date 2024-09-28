@@ -11,10 +11,10 @@ import fs from 'fs';
 @injectable()
 export default class ClipOssServiceImpl extends AbstractOssServiceImpl<MetaData> implements ClipOssService {
     @inject(TYPES.LocationService)
-    private locationService: LocationService;
+    private locationService!: LocationService;
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegServiceImpl;
+    private ffmpegService!: FfmpegServiceImpl;
 
     private readonly CLIP_FILE = 'clip.mp4';
     private readonly THUMBNAIL_FILE = 'thumbnail.jpg';

@@ -1,4 +1,3 @@
-import { SentenceStruct } from '@/common/types/SentenceStruct';
 import registerRoute from '@/common/api/register';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
@@ -11,7 +10,7 @@ import SubtitleService from '@/backend/services/SubtitleService';
 export default class SubtitleController implements Controller {
 
     @inject(TYPES.SubtitleService)
-    private subtitleService: SubtitleService;
+    private subtitleService!: SubtitleService;
 
     public async parseSrt(path: string): Promise<SrtSentence | null> {
         return this.subtitleService.parseSrt(path);

@@ -17,6 +17,7 @@ import ChildProcessService from '@/backend/services/ChildProcessService';
 import FfmpegService from '@/backend/services/FfmpegService';
 import UrlUtil from '@/common/utils/UrlUtil';
 import WhisperService from '@/backend/services/WhisperService';
+import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 interface WhisperResponse {
     language: string;
@@ -59,13 +60,13 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
 @injectable()
 class WhisperServiceImpl implements WhisperService {
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.ChildProcessService)
-    private childProcessService: ChildProcessService;
+    private childProcessService!: ChildProcessService;
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegService;
+    private ffmpegService!: FfmpegService;
 
     public async transcript(taskId: number, filePath: string) {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
@@ -95,11 +96,14 @@ class WhisperServiceImpl implements WhisperService {
                 progress: '转录完成'
             });
         } catch (error) {
+            if (!(error instanceof Error)) {
+                throw error;
+            }
             const cancel = isErrorCancel(error);
             this.dpTaskService.update({
                 id: taskId,
                 status: cancel ? DpTaskState.CANCELLED : DpTaskState.FAILED,
-                progress: cancel ? '任务取消' : error.message
+                progress: cancel ? '任务取消' : error?.message
             });
         }
 

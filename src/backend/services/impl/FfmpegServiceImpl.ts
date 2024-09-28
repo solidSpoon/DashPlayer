@@ -14,7 +14,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
     @inject(TYPES.ChildProcessService)
-    private childProcessService: ChildProcessService;
+    private childProcessService!: ChildProcessService;
 
     static {
         ffmpeg.setFfmpegPath(LocationServiceImpl.ffmpegPath());
@@ -111,51 +111,10 @@ export default class FfmpegServiceImpl implements FfmpegService {
             return new Promise<number>((resolve, reject) => {
                 ffmpeg.ffprobe(filePath, (err, metadata) => {
                     if (err) reject(err);
-                    else resolve(metadata.format.duration);
+                    else resolve(metadata.format.duration ?? 0);
                 });
             });
         });
-    }
-
-
-    /**
-     * 获取视频关键帧的时间戳
-     * F:\DashPlayer\node_modules\ffprobe-static\bin\win32\x64>ffprobe -read_intervals 500%510 -v error -skip_frame nokey -show_entries frame=pkt_pts_time -select_streams v -of csv=p=0 test.mp4
-     * 496.533333
-     * 501.600000
-     * 506.666667
-     */
-    public async keyFrameAt(filePath: string, time: number) {
-        if (time <= 10) return 0;
-        const out = await new Promise((resolve, reject) => {
-            const ff = spawn(LocationServiceImpl.ffprobePath(), [
-                '-read_intervals', `${time - 10}%${time}`,
-                '-v', 'error',
-                '-skip_frame', 'nokey',
-                '-show_entries', 'frame=pkt_pts_time',
-                '-select_streams', 'v',
-                '-of', 'csv=p=0',
-                filePath
-            ]);
-
-            let keyFrameTime: string = null;
-            ff.stdout.on('data', (data) => {
-                const str = data.toString();
-                console.log('keyFrameAt', str);
-                keyFrameTime = data.toString();
-            });
-
-            ff.on('close', (code) => {
-                console.log(`ffprobe process exited with code ${code}`);
-                resolve(keyFrameTime);
-            });
-
-            ff.on('error', (error) => {
-                console.log('An error occurred while executing ffprobe command:', error);
-                reject(error);
-            });
-        });
-        return Number(out);
     }
 
 
@@ -179,6 +138,9 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const totalDuration = await this.duration(inputFile);
         const timeStr = TimeUtil.secondToTimeStr(Math.min(time, totalDuration));
         console.log('timeStr', timeStr);
+        if (!fs.existsSync(outputFolder)) {
+            fs.mkdirSync(outputFolder, { recursive: true });
+        }
         await Lock.sync('ffmpeg', async () => {
             await new Promise((resolve, reject) => {
                 ffmpeg(inputFile)

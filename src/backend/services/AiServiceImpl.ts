@@ -48,10 +48,10 @@ export interface AiService {
 export default class AiServiceImpl implements AiService {
 
     @inject(TYPES.AiFuncService)
-    private aiFuncService: AiFuncServiceImpl;
+    private aiFuncService!: AiFuncServiceImpl;
 
     @inject(TYPES.ChatService)
-    private chatService: ChatService;
+    private chatService!: ChatService;
 
     public async polish(taskId: number, sentence: string) {
         await this.aiFuncService.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
@@ -59,7 +59,7 @@ export default class AiServiceImpl implements AiService {
 
     public async formatSplit(taskId: number, text: string) {
         // await AiFunc.run(taskId, null, AiFuncFormatSplitPrompt.promptFunc(text));
-        await this.chatService.chat(taskId, [new HumanMessage(AiFuncFormatSplitPrompt.promptFunc(text))])
+        await this.chatService.chat(taskId, [new HumanMessage(AiFuncFormatSplitPrompt.promptFunc(text))]);
     }
 
     public async analyzeWord(taskId: number, sentence: string) {
@@ -139,7 +139,7 @@ export default class AiServiceImpl implements AiService {
      * @param fullSrt
      */
     public async punctuation(taskId: number, no: number, fullSrt: string) {
-        const sentence = getSubtitleContent(fullSrt, no);
+        const sentence = getSubtitleContent(fullSrt, no) ?? '';
         const srt = srtSlice(fullSrt, no, 5);
         await this.aiFuncService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, srt));
     }

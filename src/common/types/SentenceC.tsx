@@ -11,7 +11,6 @@ export interface SrtSentence {
 export interface Sentence {
     fileHash: string;
     index: number;
-    indexInFile: number | null;
 
     start: number;
 
@@ -49,7 +48,6 @@ export interface Sentence {
 class SentenceC implements Sentence , Cloneable {
     public fileHash: string;
     public index: number;
-    public indexInFile: number | null;
 
     public start: number;
 

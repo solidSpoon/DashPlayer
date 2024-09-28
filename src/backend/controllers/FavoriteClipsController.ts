@@ -10,7 +10,7 @@ import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService'
 @injectable()
 export default class FavoriteClipsController implements Controller {
     @inject(TYPES.FavouriteClips)
-    private favouriteClipsService: FavouriteClipsService;
+    private favouriteClipsService!: FavouriteClipsService;
 
     public async addClip({ videoPath, srtKey, indexInSrt }: {
         videoPath: string,

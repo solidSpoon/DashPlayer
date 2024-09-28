@@ -25,7 +25,7 @@ function processFilter(filter: string[]) {
 @injectable()
 export default class SystemController implements Controller {
     @inject(TYPES.SystemService)
-    private systemService: SystemService;
+    private systemService!: SystemService;
 
     public async info() {
         return {

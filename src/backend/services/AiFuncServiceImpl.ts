@@ -13,10 +13,10 @@ import AiProviderService from '@/backend/services/AiProviderService';
 @injectable()
 export default class AiFuncServiceImpl implements AiFuncService {
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.AiProviderService)
-    private aiProviderService: AiProviderService;
+    private aiProviderService!: AiProviderService;
 
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
@@ -32,6 +32,7 @@ export default class AiFuncServiceImpl implements AiFuncService {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
             });
+            return;
         }
         const runnable = chat.bind({
             functions: [extractionFunctionSchema],

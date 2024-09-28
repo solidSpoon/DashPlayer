@@ -17,11 +17,13 @@ import createModeSlice from './usePlayerControllerSlices/createModeSlice';
 import createControllerSlice from './usePlayerControllerSlices/createControllerSlice';
 import SentenceC, { SrtSentence } from '../../common/types/SentenceC';
 import useFile from './useFile';
-import Util, { sleep } from '@/common/utils/Util';
+import { sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
 import TransHolder from '../../common/utils/TransHolder';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import StrUtil from '@/common/utils/str-util';
+import { ObjUtil } from '@/backend/utils/ObjUtil';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -117,7 +119,7 @@ usePlayerController.subscribe(
                 if (useFile.getState().videoLoaded) {
                     const currentTime = state.internal.exactPlayTime;
                     const nextSentence: SentenceC = srtTender.getByTime(currentTime);
-                    const cs: SentenceC = state.currentSentence;
+                    const cs: SentenceC | undefined = state.currentSentence;
                     const isCurrent = cs === nextSentence;
                     if (isCurrent) {
                         return;
@@ -164,12 +166,12 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
 useFile.subscribe(
     (s) => s.subtitlePath,
     async (subtitlePath) => {
-        if (Util.isNull(subtitlePath)) {
+        if (StrUtil.isBlank(subtitlePath)) {
             return;
         }
         const CURRENT_FILE = useFile.getState().subtitlePath;
         const srtSubtitles: SrtSentence | null = await api.call('subtitle/srt/parse-to-sentences', subtitlePath);
-        if (Util.isNull(srtSubtitles)) {
+        if (ObjUtil.isNull(srtSubtitles)) {
             if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                 return;
             }
@@ -208,7 +210,7 @@ useFile.subscribe(
                         .mergeSubtitleTrans(transHolder);
                 }
                 // 加载收藏
-                useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.indexInFile));
+                useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.index));
             }
             await sleep(500);
         }

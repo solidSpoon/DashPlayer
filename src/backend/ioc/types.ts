@@ -21,6 +21,7 @@ const TYPES = {
     SplitVideoService: Symbol('SplitVideoService'),
     WhisperService: Symbol('WhisperService'),
     ConvertService: Symbol('ConvertService'),
+    MediaService: Symbol('MediaService'),
 };
 
 export default TYPES;

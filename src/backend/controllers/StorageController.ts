@@ -41,7 +41,7 @@ export const queryCacheSize = async () => {
 
 @injectable()
 export default class StorageController implements Controller {
-    @inject(TYPES.SettingService) private settingService: SettingService;
+    @inject(TYPES.SettingService) private settingService!: SettingService;
 
     public async storeSet({ key, value }: { key: SettingKey, value: string }): Promise<void> {
         await this.settingService.set(key, value);

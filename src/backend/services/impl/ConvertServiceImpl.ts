@@ -12,10 +12,10 @@ import ConvertService from '@/backend/services/ConvertService';
 @injectable()
 export default class ConvertServiceImpl implements ConvertService {
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegService;
+    private ffmpegService!: FfmpegService;
 
     public async toMp4(taskId: number, file: string): Promise<void> {
         const mp4File = file.replace(path.extname(file), '.mp4');

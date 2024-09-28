@@ -14,10 +14,10 @@ import ChildProcessService from '@/backend/services/ChildProcessService';
 @injectable()
 export default class DpTaskController implements Controller {
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.ChildProcessService)
-    private childProcessService: ChildProcessService;
+    private childProcessService!: ChildProcessService;
 
     public async detail(id: number) {
         return this.dpTaskService.detail(id);

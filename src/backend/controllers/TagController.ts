@@ -8,8 +8,8 @@ import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService'
 
 @injectable()
 export default class TagController implements Controller {
-    @inject(TYPES.TagService) private tagService: TagService;
-    @inject(TYPES.FavouriteClips) private favouriteClipsService: FavouriteClipsService;
+    @inject(TYPES.TagService) private tagService!: TagService;
+    @inject(TYPES.FavouriteClips) private favouriteClipsService!: FavouriteClipsService;
 
     public async addTag(name: string): Promise<Tag> {
         return this.tagService.addTag(name);

@@ -35,19 +35,19 @@ type ClipTask = {
 @injectable()
 export default class FavouriteClipsServiceImpl implements FavouriteClipsService {
     @inject(TYPES.ClipOssService)
-    private clipOssService: ClipOssService;
+    private clipOssService!: ClipOssService;
 
     @inject(TYPES.CacheService)
-    private cacheService: CacheService;
+    private cacheService!: CacheService;
 
     @inject(TYPES.LocationService)
-    private locationService: LocationService;
+    private locationService!: LocationService;
 
     @inject(TYPES.TagService)
-    private tagService: TagService;
+    private tagService!: TagService;
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegService;
+    private ffmpegService!: FfmpegService;
 
     /**
      * key: hash(srtContext)
@@ -106,6 +106,10 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
 
         for (const k of notExistKeys) {
             const task = tempMapping.get(k);
+            if (!task) {
+                dpLog.error('task not found');
+                continue;
+            }
             if (task.operation === 'add') {
                 await this.taskAddOperation(task);
             }
@@ -115,6 +119,10 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         }
         for (const k of existsKeys) {
             const task = tempMapping.get(k);
+            if (!task) {
+                dpLog.error('task not found');
+                continue;
+            }
             if (task.operation === 'cancel') {
                 await this.taskCancelOperation(task);
             }
@@ -159,12 +167,12 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const srtLines: SrtLine[] = srt.sentences
             .map((sentence) => SrtUtil.toSrtLine(sentence));
         const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
-        const clipLine = SrtUtil.srtAt(srtLines, indexInSrt);
+        const clipLine = SrtUtil.srtAt(srtLines, indexInSrt) as SrtLine;
         const contentSrtStr = SrtUtil.toSrt(clipContext);
         const contextEnStr = clipContext.map((item) =>
             item.contentEn
         ).filter((item) => StrUtil.isNotBlank(item)).join('\n');
-        const clipEnStr = clipLine.contentEn;
+        const clipEnStr = clipLine?.contentEn ?? '';
 
         return {
             clip_file: '',
@@ -190,6 +198,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             .leftJoin(videoClip, eq(clipTagRelation.clip_key, videoClip.key))
             .where(isNull(videoClip.key));
         for (const tagId of tagIds) {
+            if (!tagId.tag_id) {
+                continue;
+            }
             await db.delete(tag).where(eq(tag.id, tagId.tag_id));
         }
     }
@@ -302,8 +313,12 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const joinRes = await db.select().from(clipTagRelation)
             .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
             .where(eq(clipTagRelation.clip_key, key));
-        return joinRes.map((item) => item.dp_tag);
+        return joinRes
+            .map((item) => item.dp_tag)
+            .filter((item): item is Tag => item !== null);
     }
+
+
 
     async addClipTag(key: string, tagId: number): Promise<void> {
         await db.insert(clipTagRelation).values({
@@ -340,6 +355,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             .leftJoin(videoClip, eq(clipTagRelation.clip_key, videoClip.key))
             .where(eq(clipTagRelation.tag_id, tagId));
         for (const clip of clips) {
+            if (!clip.dp_video_clip) {
+                continue;
+            }
             await this.syncTagToOss(clip.dp_video_clip.key);
         }
     }

@@ -103,8 +103,12 @@ const createSentenceSlice: StateCreator<
 });
 
 export const sentenceClearAllAdjust = async () => {
+    const key = useFile.getState().srtHash;
+    if (StrUtil.isBlank(key)) {
+        return;
+    }
     await api.call('subtitle-timestamp/delete/by-file-hash',
-        useFile.getState().srtHash
+        key
     );
     useFile.setState({
         subtitlePath: null

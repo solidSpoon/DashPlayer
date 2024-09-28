@@ -12,6 +12,7 @@ import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 import FileUtil from '@/backend/utils/FileUtil';
 import CacheService from '@/backend/services/CacheService';
 import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
+import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 
 function groupSentence(
@@ -42,15 +43,16 @@ function groupSentence(
 export class SubtitleServiceImpl implements SubtitleService {
 
     @inject(TYPES.SrtTimeAdjustService)
-    private srtTimeAdjustService: SrtTimeAdjustService;
+    private srtTimeAdjustService!: SrtTimeAdjustService;
     @inject(TYPES.CacheService)
-    private cacheService: CacheService;
+    private cacheService!: CacheService;
 
     public async parseSrt(path: string): Promise<SrtSentence> {
         if (!fs.existsSync(path)) {
-            return null;
+            throw new Error('file not exists');
         }
         const content = await FileUtil.read(path);
+        TypeGuards.assertNotNull(content, 'read file error');
         console.log(content);
         const h = hash(content);
         const cache = this.cacheService.get('cache:srt', h);
@@ -61,7 +63,6 @@ export class SubtitleServiceImpl implements SubtitleService {
         const subtitles = lines.map<Sentence>((line, index) => ({
             fileHash: h,
             index: index,
-            indexInFile: line.index,
             start: line.start,
             end: line.end,
             adjustedStart: null,

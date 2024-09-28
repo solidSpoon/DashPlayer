@@ -4,13 +4,16 @@ import SystemService from '@/backend/services/SystemService';
 import { BrowserWindow } from 'electron';
 import PathUtil from '@/common/utils/PathUtil';
 import path from 'path';
+import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 @injectable()
 export default class SystemServiceImpl implements SystemService {
-    public mainWindowRef: { current: BrowserWindow | null };
+    public mainWindowRef: { current: BrowserWindow | null } = { current: null };
 
     public mainWindow() {
-        return this.mainWindowRef.current;
+        const current = this.mainWindowRef.current;
+        TypeGuards.assertNotNull(current, 'mainWindow is null');
+        return current;
     }
 
     public setMainWindow(mainWindowRef: { current: BrowserWindow | null }) {

@@ -40,7 +40,7 @@ interface AiFuncDef {
 }
 
 interface DpTaskDef {
-    'dp-task/detail': { params: number, return: DpTask | undefined };
+    'dp-task/detail': { params: number, return: DpTask | null };
     'dp-task/cancel': { params: number, return: void };
     'dp-task/details': { params: number[], return: Map<number, DpTask> };
 }
@@ -97,7 +97,7 @@ interface WatchProjectDef {
         return: void
     };
     'watch-project/video/play': { params: number, return: void };
-    'watch-project/video/detail': { params: number, return: WatchProjectVideo };
+    'watch-project/video/detail': { params: number, return: WatchProjectVideo | undefined };
     'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo };
     'watch-project/create/from-folder': { params: string, return: number };
     'watch-project/create/from-files': { params: string[], return: number };

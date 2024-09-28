@@ -1,4 +1,3 @@
-import { DpTaskState } from '@/backend/db/tables/dpTask';
 import RateLimiter from '@/common/utils/RateLimiter';
 import { BaseMessage } from '@langchain/core/messages';
 import { inject, injectable } from 'inversify';
@@ -12,10 +11,10 @@ import AiProviderService from '@/backend/services/AiProviderService';
 export default class ChatServiceImpl implements ChatService {
 
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.AiProviderService)
-    private aiProviderService: AiProviderService;
+    private aiProviderService!: AiProviderService;
 
 
     public async chat(taskId: number, msgs: BaseMessage[]) {

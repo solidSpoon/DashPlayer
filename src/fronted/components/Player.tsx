@@ -106,7 +106,7 @@ export default function Player({ className }: { className?: string }): ReactElem
             const timeSinceLastDraw = now - lastDrawTime;
 
             if (timeSinceLastDraw >= drawInterval) {
-                const mainVideo = playerRef?.current.getInternalPlayer() as HTMLVideoElement;
+                const mainVideo = playerRef?.current?.getInternalPlayer() as HTMLVideoElement;
                 const backgroundCanvas = playerRefBackground?.current;
 
                 if (
@@ -176,7 +176,7 @@ export default function Player({ className }: { className?: string }): ReactElem
             return;
         }
         const result = await api.call('watch-project/video/detail', videoId);
-        const progress = result.current_time ?? 0;
+        const progress = result?.current_time ?? 0;
         console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });
         lastFile = file;

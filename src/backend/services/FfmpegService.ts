@@ -27,8 +27,6 @@ export default interface FfmpegService {
 
     duration(filePath: string): Promise<number>;
 
-    keyFrameAt(filePath: string, time: number): Promise<number>;
-
     thumbnail({
                   inputFile,
                   outputFileName,

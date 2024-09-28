@@ -12,7 +12,7 @@ import Controller from '@/backend/interfaces/controller';
 
 @injectable()
 export default class WatchProjectController implements Controller {
-    @inject(TYPES.WatchProject) private watchProjectService: WatchProjectService;
+    @inject(TYPES.WatchProject) private watchProjectService!: WatchProjectService;
 
     public async updateProgress({ videoId, currentTime, duration }: {
         videoId: number,
@@ -26,7 +26,7 @@ export default class WatchProjectController implements Controller {
         return this.watchProjectService.play(videoId);
     }
 
-    public async videoDetail(videoId: number): Promise<WatchProjectVideo> {
+    public async videoDetail(videoId: number): Promise<WatchProjectVideo | undefined> {
         return this.watchProjectService.videoDetail(videoId);
     }
 

@@ -10,13 +10,13 @@ import FfmpegService from '@/backend/services/FfmpegService';
 @injectable()
 export default class ConvertController implements Controller {
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     @inject(TYPES.ConvertService)
-    private convertService: ConvertService;
+    private convertService!: ConvertService;
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegService;
+    private ffmpegService!: FfmpegService;
 
     public async toMp4(file: string): Promise<number> {
         const taskId = await this.dpTaskService.create();

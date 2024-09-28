@@ -20,19 +20,19 @@ export interface DlVideoService {
 export default class DlVideoServiceImpl implements DlVideoService {
 
     @inject(TYPES.SystemService)
-    private systemService: SystemService;
+    private systemService!: SystemService;
 
     @inject(TYPES.LocationService)
-    private locationService: LocationService;
+    private locationService!: LocationService;
 
     @inject(TYPES.ChildProcessService)
-    private childProcessService: ChildProcessService;
+    private childProcessService!: ChildProcessService;
 
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskServiceImpl;
+    private dpTaskService!: DpTaskServiceImpl;
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegService;
+    private ffmpegService!: FfmpegService;
 
     public async dlVideo(taskId: number, url: string, savePath: string) {
         const result: {

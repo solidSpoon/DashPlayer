@@ -1,6 +1,6 @@
-import Util from "@/common/utils/Util";
 import moment from "moment";
 import StrUtil from '@/common/utils/str-util';
+import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 export default class TimeUtil {
     public static secondToTimeStrCompact(second: number | null | undefined): string {
@@ -18,7 +18,7 @@ export default class TimeUtil {
      * @param second
      */
     public static secondToTimeStr(second: number | null | undefined): string {
-        if (Util.isNull(second)) {
+        if (TypeGuards.isNull(second)) {
             return '';
         }
         return moment.utc(second * 1000).format('HH:mm:ss');
@@ -29,7 +29,7 @@ export default class TimeUtil {
      * @param second
      */
     public static secondToTimeStrWithMs(second: number | null | undefined): string {
-        if (Util.isNull(second)) {
+        if (TypeGuards.isNull(second)) {
             return '';
         }
         return moment.utc(second * 1000).format('HH:mm:ss.SSS');

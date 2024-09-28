@@ -13,7 +13,7 @@ import ChildProcessService from '@/backend/services/ChildProcessService';
 export default class ChildProcessServiceImpl implements ChildProcessService {
 
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     private taskProcessMapping: Map<number, ChildProcess[]> = new Map();
     private taskFfmpegMapping: Map<number, Ffmpeg.FfmpegCommand[]> = new Map();

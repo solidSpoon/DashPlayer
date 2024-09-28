@@ -45,6 +45,9 @@ const useFavouriteClip = create(
             const videoPath = useFile.getState().videoPath;
             const srtHash = useFile.getState().srtHash;
             const currentSentence = usePlayerController.getState().currentSentence;
+            if (!videoPath || !srtHash || !currentSentence) {
+                return;
+            }
             const key = mapClipKey(srtHash, currentSentence.index);
             let exists = get().lineClip.get(key);
             if (exists === undefined) {
@@ -56,9 +59,9 @@ const useFavouriteClip = create(
                 return { lineClip };
             });
             if (exists) {
-                await api.call('favorite-clips/cancel-add', { srtKey: srtHash, indexInSrt: currentSentence.indexInFile });
+                await api.call('favorite-clips/cancel-add', { srtKey: srtHash, indexInSrt: currentSentence?.index });
             } else {
-                await api.call('favorite-clips/add', { videoPath, srtKey: srtHash, indexInSrt: currentSentence.indexInFile });
+                await api.call('favorite-clips/add', { videoPath, srtKey: srtHash, indexInSrt: currentSentence?.index });
             }
         },
         updateClipInfo: async (srtKey: string, indexesInSrt: number[]) => {

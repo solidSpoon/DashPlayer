@@ -11,7 +11,7 @@ import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 @injectable()
 export default class SrtTimeAdjustController implements Controller {
     @inject(TYPES.SrtTimeAdjustService)
-    private srtTimeAdjustService: SrtTimeAdjustService;
+    private srtTimeAdjustService!: SrtTimeAdjustService;
 
     /**
      * 记录调整时间

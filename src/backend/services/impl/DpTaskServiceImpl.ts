@@ -23,7 +23,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
     public cancelQueue: Set<number> = new Set();
 
 
-    public async detail(id: number): Promise<DpTask | undefined> {
+    public async detail(id: number): Promise<DpTask | null> {
 
         if (cache.has(id)) {
             console.log('temp task');
@@ -36,7 +36,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
             .where(eq(dpTask.id, id));
 
         if (tasks.length === 0) {
-            return undefined;
+            return null;
         }
         return tasks[0];
     }

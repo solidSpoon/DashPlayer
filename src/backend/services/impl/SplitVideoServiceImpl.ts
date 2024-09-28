@@ -11,6 +11,7 @@ import { inject, injectable } from 'inversify';
 import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import SplitVideoService from '@/backend/services/SplitVideoService';
+import dpLog from '@/backend/ioc/logger';
 
 
 export interface VideoSplitResult {
@@ -24,50 +25,13 @@ export interface VideoSplitResult {
 class SplitVideoServiceImpl implements SplitVideoService {
 
     @inject(TYPES.FfmpegService)
-    private ffmpegService: FfmpegService;
+    private ffmpegService!: FfmpegService;
 
     public async previewSplit(str: string) {
         return parseChapter(str);
     }
 
-    async split({
-                    videoPath,
-                    srtPath,
-                    chapters
-                }: {
-        videoPath: string,
-        srtPath: string | null,
-        chapters: ChapterParseResult[]
-    }) {
-        const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
-        const splitedVideos: VideoSplitResult[] = await this.splitVideoPart2(videoPath, chapters, folderName);
-        if (StrUtil.isBlank(srtPath) || !fs.existsSync(srtPath)) {
-            return;
-        }
-        const content = await FileUtil.read(srtPath);
-        if (content === null) {
-            return;
-        }
-        const srt = SrtUtil.parseSrt(content);
-        for (const srtItem of splitedVideos) {
-            const lines = srt
-                .filter(line => line.end >= srtItem.start && line.start <= srtItem.end)
-                .map((line, index) => ({
-                    index: index + 1,
-                    start: Math.max(line.start - srtItem.start, 0),
-                    end: line.end - srtItem.start,
-                    contentEn: line.contentEn,
-                    contentZh: line.contentZh
-                }));
-            const srtContent = SrtUtil.toNewSrt(lines);
-            const fileName = srtItem.title.replace(path.extname(videoPath), '.srt');
-            fs.writeFileSync(fileName, srtContent);
-        }
-        return folderName;
-    }
-
-
-    async split2({
+    async splitByChapters({
                      videoPath,
                      srtPath,
                      chapters
@@ -77,9 +41,10 @@ class SplitVideoServiceImpl implements SplitVideoService {
         chapters: ChapterParseResult[]
     }) {
         const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
-        const splitedVideos = await this.splitVideoPart(videoPath, chapters, folderName);
+        const splitVideos = await this.splitVideoPart(videoPath, chapters, folderName);
         if (StrUtil.isBlank(srtPath) || !fs.existsSync(srtPath)) {
-            return;
+            dpLog.error('srtPath is blank or not exists');
+            return folderName;
         }
         const srtSplit: {
             start: number,
@@ -88,7 +53,7 @@ class SplitVideoServiceImpl implements SplitVideoService {
             duration: number
         }[] = [];
         let offset = -0.2;
-        for (const v of splitedVideos) {
+        for (const v of splitVideos) {
             const duration = await this.ffmpegService.duration(v);
             // 同名srt
             srtSplit.push({
@@ -102,7 +67,8 @@ class SplitVideoServiceImpl implements SplitVideoService {
 
         const content = await FileUtil.read(srtPath);
         if (content === null) {
-            return;
+            dpLog.error('read srt file failed');
+            return folderName;
         }
         const srt = SrtUtil.parseSrt(content);
         for (const srtItem of srtSplit) {
@@ -150,30 +116,6 @@ class SplitVideoServiceImpl implements SplitVideoService {
             splitedVideos.push(newName);
         }
         return splitedVideos;
-    }
-
-    private async splitVideoPart2(videoPath: string, chapters: ChapterParseResult[], folderName: string) {
-        if (!fs.existsSync(folderName)) {
-            fs.mkdirSync(folderName, { recursive: true });
-        }
-        const resultChapters: VideoSplitResult[] = [];
-        for (const chapter of chapters) {
-            const newName = path.join(folderName, `${chapter.timestampStart}-${chapter.title}${path.extname(videoPath)}`.replaceAll(':', ''));
-            const startTime = await this.ffmpegService.keyFrameAt(videoPath, TimeUtil.parseDuration(chapter.timestampStart));
-            await this.ffmpegService.splitVideo({
-                inputFile: videoPath,
-                startSecond: startTime,
-                endSecond: TimeUtil.parseDuration(chapter.timestampEnd),
-                outputFile: newName
-            });
-            resultChapters.push({
-                ...chapter,
-                title: newName,
-                start: startTime,
-                end: TimeUtil.parseDuration(chapter.timestampEnd)
-            });
-        }
-        return resultChapters;
     }
 }
 

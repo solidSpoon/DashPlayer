@@ -11,7 +11,6 @@ export default class AiProviderServiceImpl implements AiProviderService {
     public getOpenAi(): ChatOpenAI {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
-        if (StrUtil.allBlank(apiKey, endpoint)) return null;
         let model = storeGet('model.gpt.default');
         if (StrUtil.isBlank(model)) {
             model = 'gpt-4o-mini';

@@ -9,7 +9,7 @@ import SettingService from '@/backend/services/SettingService';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
-    @inject(TYPES.SystemService) private systemService: SystemService;
+    @inject(TYPES.SystemService) private systemService!: SystemService;
     public async set(key: SettingKey, value: string): Promise<void> {
         if (storeSet(key, value)) {
             this.systemService.mainWindow()?.webContents.send('store-update', key, value);

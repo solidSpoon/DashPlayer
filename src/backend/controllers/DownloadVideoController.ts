@@ -10,14 +10,14 @@ import DpTaskService from '@/backend/services/DpTaskService';
 @injectable()
 export default class DownloadVideoController implements Controller {
     @inject(TYPES.DlVideo)
-    private dlVideoService: DlVideoService;
+    private dlVideoService!: DlVideoService;
 
 
     @inject(TYPES.LocationService)
-    private locationService: LocationService;
+    private locationService!: LocationService;
 
     @inject(TYPES.DpTaskService)
-    private dpTaskService: DpTaskService;
+    private dpTaskService!: DpTaskService;
 
     async downloadVideo({ url }: {
         url: string

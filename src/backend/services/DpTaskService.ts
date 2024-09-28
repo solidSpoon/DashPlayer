@@ -2,7 +2,7 @@ import { DpTask, InsertDpTask } from '@/backend/db/tables/dpTask';
 
 
 export default interface DpTaskService {
-    detail(id: number): Promise<DpTask | undefined>;
+    detail(id: number): Promise<DpTask | null>;
 
     details(ids: number[]): Promise<Map<number, DpTask>>;
 
