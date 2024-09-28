@@ -14,6 +14,7 @@ import {
     ContextMenuItem,
     ContextMenuTrigger
 } from "@/fronted/components/ui/context-menu";
+import UrlUtil from '@/common/utils/UrlUtil';
 
 const api = window.electron;
 
@@ -25,7 +26,6 @@ const ProjectListCard = ({proj, onSelected}: {
     // const { data: video } = useSWR(['watch-project/video/detail/by-pid', proj.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
     const {data: projDetail} = useSWR(['watch-project/detail', proj.id], ([key, projId]) => api.call('watch-project/detail', projId));
     const video = projDetail?.videos?.find((v) => v.current_playing) || CollUtil.safeGet(projDetail?.videos, 0);
-    console.log('tttttttt', video);
     const {data: url} = useSWR(video?.video_path ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.video_path, video.current_time] : null,
         async ([_key, path, time]) => {
@@ -49,7 +49,7 @@ const ProjectListCard = ({proj, onSelected}: {
                 >
                     <div className={cn('relative w-full rounded-lg overflow-hidden border-none')}>
                         {url ? <img
-                            src={url}
+                            src={UrlUtil.file(url)}
                             style={{
                                 aspectRatio: '16/9'
                             }}

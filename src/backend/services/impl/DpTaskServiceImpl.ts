@@ -7,27 +7,25 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import ErrorConstants from '@/common/constants/error-constants';
 import { injectable, postConstruct } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
-
-
-const cache: LRUCache<number, InsertDpTask> = new LRUCache({
-    maxSize: 2000,
-    sizeCalculation: (value, key) => {
-        return 1;
-    }
-});
+import dpLog from '@/backend/ioc/logger';
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
 
-    public upQueue: Map<number, InsertDpTask> = new Map();
-    public cancelQueue: Set<number> = new Set();
-
+    private upQueue: Map<number, InsertDpTask> = new Map();
+    private cancelQueue: Set<number> = new Set();
+    private cache: LRUCache<number, InsertDpTask> = new LRUCache({
+        maxSize: 2000,
+        sizeCalculation: (value, key) => {
+            return 1;
+        }
+    });
 
     public async detail(id: number): Promise<DpTask | null> {
 
-        if (cache.has(id)) {
+        if (this.cache.has(id)) {
             console.log('temp task');
-            return cache.get(id) as DpTask;
+            return this.cache.get(id) as DpTask;
         }
 
         const tasks: DpTask[] = await db
@@ -62,7 +60,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
                 progress: '任务创建成功'
             }).returning();
         const taskId = task[0].id;
-        cache.set(taskId, {
+        this.cache.set(taskId, {
             id: taskId,
             status: DpTaskState.INIT,
             progress: '任务创建成功',
@@ -79,9 +77,9 @@ export default class DpTaskServiceImpl implements DpTaskService {
         if (task.id === undefined || task.id === null) {
             return;
         }
-        if (cache.has(task.id)) {
-            cache.set(task.id, {
-                ...cache.get(task.id),
+        if (this.cache.has(task.id)) {
+            this.cache.set(task.id, {
+                ...this.cache.get(task.id),
                 ...task,
                 updated_at: TimeUtil.timeUtc()
             });
@@ -121,9 +119,11 @@ export default class DpTaskServiceImpl implements DpTaskService {
 
     private updateTaskInfo(task: InsertDpTask, info: InsertDpTask) {
         if (info.progress !== undefined) {
+            dpLog.info(`task ${task.id} progress: ${info.progress}`);
             task.progress = info.progress;
         }
         if (info.result !== undefined) {
+            dpLog.info(`task ${task.id} result: ${info.result}`);
             task.result = info.result;
         }
     }

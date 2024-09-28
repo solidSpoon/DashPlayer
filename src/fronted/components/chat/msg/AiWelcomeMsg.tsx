@@ -15,7 +15,6 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const {detail: transTaskResp} = useDpTaskViewer<AiFuncTranslateWithContextRes>(msg.translateTask);
     const createTopic = useChatPanel(s => s.createFromSelect);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
-    const retry = useChatPanel(s => s.retry);
     const complete =
         !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
 

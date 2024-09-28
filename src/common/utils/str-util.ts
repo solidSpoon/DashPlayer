@@ -6,7 +6,7 @@ export default class StrUtil {
 
     // Type predicate: Returns true if `str` is a non-blank string
     public static isNotBlank(str: string | undefined | null): str is string {
-        return !this.isBlank(str);
+        return !StrUtil.isBlank(str);
     }
 
     public static allBlank(...strs: (string | undefined | null)[]): boolean {
@@ -20,6 +20,6 @@ export default class StrUtil {
      * @returns {boolean} - True if any string is non-blank
      */
     public static hasNonBlank(...strs: (string | undefined | null)[]): boolean {
-        return strs.some(this.isNotBlank);
+        return strs.some(StrUtil.isNotBlank);
     }
 }

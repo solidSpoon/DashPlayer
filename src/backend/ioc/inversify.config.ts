@@ -52,6 +52,8 @@ import ConvertService from '@/backend/services/ConvertService';
 import ConvertServiceImpl from '@/backend/services/impl/ConvertServiceImpl';
 import SplitVideoService from '@/backend/services/SplitVideoService';
 import SplitVideoServiceImpl from '@/backend/services/impl/SplitVideoServiceImpl';
+import MediaService from '@/backend/services/MediaService';
+import MediaServiceImpl from '@/backend/services/impl/MediaServiceImpl';
 
 
 const container = new Container();
@@ -92,4 +94,5 @@ container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncServiceImpl).inSingl
 container.bind<WhisperService>(TYPES.WhisperService).to(WhisperServiceImpl).inSingletonScope();
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
+container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 export default container;

@@ -1,29 +1,35 @@
 import useSWR from 'swr';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
-import {Button} from '@/fronted/components/ui/button';
-import {Film, ListVideo, Trash2} from 'lucide-react';
-import CollUtil from "@/common/utils/CollUtil";
-import TimeUtil from "@/common/utils/TimeUtil";
-import {Progress} from "@/fronted/components/ui/progress";
-import {ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger} from "@/fronted/components/ui/context-menu";
+import { WatchProject, WatchProjectType } from '@/backend/db/tables/watchProjects';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { Button } from '@/fronted/components/ui/button';
+import { Film, ListVideo, Trash2 } from 'lucide-react';
+import CollUtil from '@/common/utils/CollUtil';
+import TimeUtil from '@/common/utils/TimeUtil';
+import { Progress } from '@/fronted/components/ui/progress';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger
+} from '@/fronted/components/ui/context-menu';
+import UrlUtil from '@/common/utils/UrlUtil';
 
 const api = window.electron;
 
-const ProjectListItem = ({proj, onSelected}: {
+const ProjectListItem = ({ proj, onSelected }: {
     proj: WatchProject,
     className?: string,
     onSelected: () => void;
 }) => {
-    const {data: projDetail} = useSWR(['watch-project/detail', proj.id], ([key, projId]) => api.call('watch-project/detail', projId));
+    const { data: projDetail } = useSWR(['watch-project/detail', proj.id], ([key, projId]) => api.call('watch-project/detail', projId));
     const video = projDetail?.videos?.find((v) => v.current_playing) || CollUtil.safeGet(projDetail?.videos, 0);
 
-    const {data: url} = useSWR(video?.video_path ?
+    const { data: url } = useSWR(video?.video_path ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.video_path, video.current_time] : null,
         async ([key, path, time]) => {
-            return await api.call('split-video/thumbnail', {filePath: path, time});
+            return await api.call('split-video/thumbnail', { filePath: path, time });
         }
     );
     console.log('updtime', video?.updated_at);
@@ -43,7 +49,7 @@ const ProjectListItem = ({proj, onSelected}: {
                     className={cn('flex gap-6  p-4 rounded-xl', (hover || contextMenu) && 'bg-muted')}>
                     <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
                         {url ? <img
-                            src={url}
+                            src={UrlUtil.file(url)}
                             style={{
                                 aspectRatio: '16/9'
                             }}
@@ -54,12 +60,12 @@ const ProjectListItem = ({proj, onSelected}: {
                                 aspectRatio: '16/9'
                             }}
                             className={'w-full bg-gray-500 flex items-center justify-center'}>
-                            <Film/>
+                            <Film />
                         </div>}
                         <div
                             className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
                             {proj.project_type === WatchProjectType.FILE ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
-                                <ListVideo className={'w-4 h-4 mr-1'}/>{`${projDetail?.videos?.length} videos`}</>}
+                                <ListVideo className={'w-4 h-4 mr-1'} />{`${projDetail?.videos?.length} videos`}</>}
                         </div>
                         <Progress
                             className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
@@ -72,7 +78,7 @@ const ProjectListItem = ({proj, onSelected}: {
                             className={' w-full line-clamp-2 break-words h-fit'}
                         >{proj.project_name}</div>
                         <div className={'text-sm text-muted-foreground mt-2'}>
-                            {TimeUtil.dateToRelativeTime(TimeUtil.isoToDate(video?.updated_at))}
+                            {TimeUtil.dateToRelativeTime(TimeUtil.isoToDate(video?.updated_at ?? ''))}
                         </div>
                     </div>
 

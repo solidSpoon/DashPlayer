@@ -2,7 +2,7 @@ import { DpTask } from '@/backend/db/tables/dpTask';
 import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
 import {useEffect} from "react";
 
-const useDpTaskViewer = <T>(taskId: number, isString = false): {
+const useDpTaskViewer = <T>(taskId: number|null, isString = false): {
     task: DpTask | null,
     detail: T | null,
 } => {

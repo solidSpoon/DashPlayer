@@ -56,7 +56,7 @@ export default class AiFuncServiceImpl implements AiFuncService {
             });
         }
         this.dpTaskService.finish(taskId, {
-            progress: 'AI has responded'
+            progress: 'AI has responded',
         });
     }
 }

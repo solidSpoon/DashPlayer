@@ -45,31 +45,44 @@ export interface Sentence {
     struct: SentenceStruct;
 }
 
-class SentenceC implements Sentence , Cloneable {
+class SentenceC implements Sentence, Cloneable {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     public fileHash: string;
     public index: number;
-
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     public start: number;
-
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     public end: number;
-
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     public adjustedStart: number | null;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     public adjustedEnd: number | null;
 
     /**
      * 字幕英文原文
      */
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
     public text: string | null;
 
     /**
      * 字幕中文原文
      */
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
     public textZH: string | null;
 
 
     /**
      * 字幕机器翻译
      */
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
     public msTranslate: string | null;
 
     /**
@@ -81,7 +94,8 @@ class SentenceC implements Sentence , Cloneable {
      * 批量翻译的分组, 从1开始
      */
     public transGroup = 0;
-
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     struct: SentenceStruct;
 
     public getKey = (): string => {

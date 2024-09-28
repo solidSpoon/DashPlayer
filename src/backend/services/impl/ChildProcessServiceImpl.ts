@@ -1,6 +1,4 @@
 import { ChildProcess } from 'child_process';
-import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
 import Ffmpeg from 'fluent-ffmpeg';
 import { CancelTokenSource } from 'axios';
 import { inject, injectable } from 'inversify';
