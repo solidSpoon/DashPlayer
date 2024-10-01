@@ -1,5 +1,5 @@
 import ffmpeg from 'fluent-ffmpeg';
-import Lock from '@/common/utils/Lock';
+import { WaitLock } from '@/common/utils/Lock';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -29,6 +29,8 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
      *
      */
+    @WaitLock('ffmpeg')
+    @ErrorHandler()
     public async splitVideo({
                                 inputFile,
                                 startSecond,
@@ -41,36 +43,35 @@ export default class FfmpegServiceImpl implements FfmpegService {
         outputFile: string
     }) {
         console.log('splitVideo', inputFile, startSecond, endSecond, outputFile);
-        await Lock.sync('ffmpeg', async () => {
-            await new Promise((resolve, reject) => {
-                const ff = spawn(LocationServiceImpl.ffmpegPath(), [
-                    '-y',
-                    '-ss', TimeUtil.secondToTimeStrWithMs(startSecond),
-                    '-t', (endSecond - startSecond).toString(),
-                    '-accurate_seek',
-                    '-i', inputFile,
-                    '-codec', 'copy',
-                    '-avoid_negative_ts', '1',
-                    outputFile
-                ]);
+        await new Promise((resolve, reject) => {
+            const ff = spawn(LocationServiceImpl.ffmpegPath(), [
+                '-y',
+                '-ss', TimeUtil.secondToTimeStrWithMs(startSecond),
+                '-t', (endSecond - startSecond).toString(),
+                '-accurate_seek',
+                '-i', inputFile,
+                '-codec', 'copy',
+                '-avoid_negative_ts', '1',
+                outputFile
+            ]);
 
+            ff.on('close', (code) => {
+                console.log(`child process exited with code ${code}`);
+                resolve(null);
+            });
 
-                ff.on('close', (code) => {
-                    console.log(`child process exited with code ${code}`);
-                    resolve(null);
-                });
-
-                ff.on('error', (error) => {
-                    console.log('An error occurred while executing ffmpeg command:', error);
-                    reject(error);
-                });
+            ff.on('error', (error) => {
+                console.log('An error occurred while executing ffmpeg command:', error);
+                reject(error);
             });
         });
+
     }
 
     /**
      * ffmpeg.exe -i "In.mp4" -f segment -segment_times 00:00:06.165,00:00:14.293 -c copy -map 0 "Out_%%02d.mp4"
      */
+    @WaitLock('ffmpeg')
     public async splitVideoByTimes({
                                        inputFile,
                                        times,
@@ -110,13 +111,12 @@ export default class FfmpegServiceImpl implements FfmpegService {
         });
     }
 
+    @WaitLock('ffprobe')
     public async duration(filePath: string): Promise<number> {
-        return await Lock.sync<number>('ffprobe', async () => {
-            return new Promise<number>((resolve, reject) => {
-                ffmpeg.ffprobe(filePath, (err, metadata) => {
-                    if (err) reject(err);
-                    else resolve(metadata.format.duration ?? 0);
-                });
+        return new Promise<number>((resolve, reject) => {
+            ffmpeg.ffprobe(filePath, (err, metadata) => {
+                if (err) reject(err);
+                else resolve(metadata.format.duration ?? 0);
             });
         });
     }
@@ -128,6 +128,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * input: eg:视频文件路径 /a/b/c.mp4
      * output: eg:缩略图文件路径 /a/b/c.jpg
      */
+    @WaitLock('ffmpeg')
     public async thumbnail({
                                inputFile,
                                outputFileName,
@@ -145,20 +146,17 @@ export default class FfmpegServiceImpl implements FfmpegService {
         if (!fs.existsSync(outputFolder)) {
             fs.mkdirSync(outputFolder, { recursive: true });
         }
-        await Lock.sync('ffmpeg', async () => {
-            await new Promise((resolve, reject) => {
-                ffmpeg(inputFile)
-                    .screenshots({
-                        timestamps: [timeStr],
-                        filename: outputFileName,
-                        folder: outputFolder,
-                        size: '320x?'
-                    })
-                    .on('end', resolve)
-                    .on('error', reject);
-            });
+        await new Promise((resolve, reject) => {
+            ffmpeg(inputFile)
+                .screenshots({
+                    timestamps: [timeStr],
+                    filename: outputFileName,
+                    folder: outputFolder,
+                    size: '320x?'
+                })
+                .on('end', resolve)
+                .on('error', reject);
         });
-
     }
 
 
@@ -169,6 +167,8 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * @param outputFolder
      * @param segmentTime
      */
+    @WaitLock('ffmpeg')
+    @ErrorHandler()
     public async splitToAudio({
                                   taskId,
                                   inputFile,
@@ -209,11 +209,6 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 });
             this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
             command.run();
-        }).catch((e) => {
-            if (e.message === this.KILL_SIGNAL) {
-                return Promise.reject(new CancelByUserError());
-            }
-            return Promise.reject(e);
         });
     }
 
@@ -221,6 +216,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * 视频转为mp4
      * ffmpeg -i input.mp4 -c:v libx264 -c:a aac output.mp4
      */
+    @WaitLock('ffmpeg')
     public async toMp4({
                            inputFile,
                            onProgress
@@ -229,24 +225,22 @@ export default class FfmpegServiceImpl implements FfmpegService {
         onProgress?: (progress: number) => void
     }): Promise<string> {
         const output = inputFile.replace(path.extname(inputFile), '.mp4');
-        await Lock.sync('ffmpeg', async () => {
-                await new Promise((resolve, reject) => {
-                    ffmpeg(inputFile)
-                        .output(output)
-                        .on('progress', (progress) => {
-                            if (progress.percent) {
-                                console.log('progress', progress.percent);
-                                if (onProgress) {
-                                    onProgress(progress.percent);
-                                }
-                            }
-                        })
-                        .on('end', resolve)
-                        .on('error', reject)
-                        .run();
-                });
-            }
-        );
+
+        await new Promise((resolve, reject) => {
+            ffmpeg(inputFile)
+                .output(output)
+                .on('progress', (progress) => {
+                    if (progress.percent) {
+                        console.log('progress', progress.percent);
+                        if (onProgress) {
+                            onProgress(progress.percent);
+                        }
+                    }
+                })
+                .on('end', resolve)
+                .on('error', reject)
+                .run();
+        });
         return output;
     }
 
@@ -255,6 +249,8 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * ffmpeg -i "vid.mkv" -map 0 -c copy -c:a aac "MP4/vid.mp4"
      * ffmpeg -i output.mkv -map 0:v -map 0:a -c:v copy -c:a aac -ac 1 output.mp4
      */
+    @WaitLock('ffmpeg')
+    @ErrorHandler()
     public async mkvToMp4({
                               taskId,
                               inputFile,
@@ -265,37 +261,29 @@ export default class FfmpegServiceImpl implements FfmpegService {
         onProgress?: (progress: number) => void
     }): Promise<string> {
         const output = inputFile.replace(path.extname(inputFile), '.mp4');
-        await Lock.sync('ffmpeg', async () => {
-                await new Promise((resolve, reject) => {
-                    const command = ffmpeg(inputFile)
-                        .outputOptions([
-                            '-map', '0:v',
-                            '-map', '0:a',
-                            '-c:v', 'copy',
-                            '-c:a', 'aac',
-                            '-ac', '1'
-                        ])
-                        .output(output)
-                        .on('progress', (progress) => {
-                            if (progress.percent) {
-                                console.log('progress', progress.percent);
-                                if (onProgress) {
-                                    onProgress(progress.percent);
-                                }
-                            }
-                        })
-                        .on('end', resolve)
-                        .on('error', reject);
-                    this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
-                    command
-                        .run();
-                });
-            }
-        ).catch((e) => {
-            if (e.message === this.KILL_SIGNAL) {
-                return Promise.reject(new CancelByUserError());
-            }
-            return Promise.reject(e);
+        await new Promise((resolve, reject) => {
+            const command = ffmpeg(inputFile)
+                .outputOptions([
+                    '-map', '0:v',
+                    '-map', '0:a',
+                    '-c:v', 'copy',
+                    '-c:a', 'aac',
+                    '-ac', '1'
+                ])
+                .output(output)
+                .on('progress', (progress) => {
+                    if (progress.percent) {
+                        console.log('progress', progress.percent);
+                        if (onProgress) {
+                            onProgress(progress.percent);
+                        }
+                    }
+                })
+                .on('end', resolve)
+                .on('error', reject);
+            this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
+            command
+                .run();
         });
         return output;
     }
@@ -304,6 +292,8 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * 提取字幕
      * ffmpeg -i "vid.mkv" -map 0:s:m:language:eng? -map 0:s:0? -c:s srt "vid.srt"
      */
+    @WaitLock('ffmpeg')
+    @ErrorHandler()
     public async extractSubtitles({
                                       taskId,
                                       inputFile,
@@ -316,31 +306,29 @@ export default class FfmpegServiceImpl implements FfmpegService {
         en: boolean
     }): Promise<string> {
         const outputSubtitle = inputFile.replace(path.extname(inputFile), '.srt');
-        await Lock.sync('ffmpeg', async () => {
-                await new Promise((resolve, reject) => {
-                    const mapSrt = en ? '0:s:m:language:eng?' : '0:s:0?';
-                    const command = ffmpeg(inputFile)
-                        .outputOptions([
-                            '-map', mapSrt,
-                            '-c:s', 'srt' // 输出格式为 srt
-                        ])
-                        .output(outputSubtitle)
-                        .on('progress', (progress) => {
-                            if (progress.percent) {
-                                console.log('progress', progress.percent);
-                                if (onProgress) {
-                                    onProgress(progress.percent);
-                                }
-                            }
-                        })
-                        .on('end', resolve)
-                        .on('error', reject);
-                    this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
-                    command
-                        .run();
-                });
-            }
-        ).catch((e) => {
+
+        await new Promise((resolve, reject) => {
+            const mapSrt = en ? '0:s:m:language:eng?' : '0:s:0?';
+            const command = ffmpeg(inputFile)
+                .outputOptions([
+                    '-map', mapSrt,
+                    '-c:s', 'srt' // 输出格式为 srt
+                ])
+                .output(outputSubtitle)
+                .on('progress', (progress) => {
+                    if (progress.percent) {
+                        console.log('progress', progress.percent);
+                        if (onProgress) {
+                            onProgress(progress.percent);
+                        }
+                    }
+                })
+                .on('end', resolve)
+                .on('error', reject);
+            this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
+            command
+                .run();
+        }).catch((e) => {
             if (e.message === this.KILL_SIGNAL) {
                 return Promise.reject(new CancelByUserError());
             }
@@ -356,31 +344,47 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * @param {number} endTime - 截取结束时间（秒）。
      * @param {string} outputPath - 输出视频文件的路径。
      */
+    @WaitLock('ffmpeg')
     public async trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string) {
         const duration = endTime - startTime;
-        await Lock.sync('ffmpeg', async () => {
-            await new Promise((resolve, reject) => {
-                ffmpeg(inputPath)
-                    .setStartTime(startTime)
-                    .setDuration(duration)
-                    .audioChannels(1)
-                    .videoCodec('libx265')
-                    .audioCodec('aac')
-                    .audioBitrate('64k')
-                    .outputOptions(['-crf 28', '-vf scale=640:-1'])
-                    .output(outputPath)
-                    .on('start', function(commandLine) {
-                        console.log('Spawned Ffmpeg with command: ' + commandLine);
-                    })
-                    .on('end', resolve)
-                    .on('error', (err) => {
-                        console.error('An error occurred while trimming video:', err);
-                        reject(err);
-                    })
-                    .run();
-            });
+
+        await new Promise((resolve, reject) => {
+            ffmpeg(inputPath)
+                .setStartTime(startTime)
+                .setDuration(duration)
+                .audioChannels(1)
+                .videoCodec('libx265')
+                .audioCodec('aac')
+                .audioBitrate('64k')
+                .outputOptions(['-crf 28', '-vf scale=640:-1'])
+                .output(outputPath)
+                .on('start', function(commandLine) {
+                    console.log('Spawned Ffmpeg with command: ' + commandLine);
+                })
+                .on('end', resolve)
+                .on('error', (err) => {
+                    console.error('An error occurred while trimming video:', err);
+                    reject(err);
+                })
+                .run();
         });
     }
-
 }
 
+
+function ErrorHandler() {
+    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value;
+        descriptor.value = async function(...args: any[]) {
+            try {
+                return await originalMethod.apply(this, args);
+            } catch (e) {
+                if (e instanceof Error && e.message === 'ffmpeg was killed with signal SIGKILL') {
+                    throw new CancelByUserError();
+                }
+                throw e;
+            }
+        };
+        return descriptor;
+    };
+}
