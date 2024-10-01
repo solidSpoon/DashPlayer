@@ -1,8 +1,5 @@
 import { ZodObject } from 'zod';
 import RateLimiter from '@/common/utils/RateLimiter';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { JsonOutputFunctionsParser } from 'langchain/output_parsers';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
@@ -20,13 +17,7 @@ export default class AiFuncServiceImpl implements AiFuncService {
 
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
-        const extractionFunctionSchema = {
-            name: 'extractor',
-            description: 'Extracts fields from the input.',
-            parameters: zodToJsonSchema(resultSchema)
-        };
         // Instantiate the parser
-        const parser = new JsonOutputFunctionsParser();
         const chat = this.aiProviderService.getOpenAi();
         if (!chat) {
             this.dpTaskService.fail(taskId, {
@@ -34,21 +25,13 @@ export default class AiFuncServiceImpl implements AiFuncService {
             });
             return;
         }
-        const runnable = chat.bind({
-            functions: [extractionFunctionSchema],
-            function_call: { name: 'extractor' }
-        });
-        const prompt: ChatPromptTemplate = ChatPromptTemplate.fromTemplate(promptStr);
+        const structuredLlm = chat.withStructuredOutput(resultSchema);
 
-        // todo: fix the type
-        const chain = prompt
-            .pipe(runnable as any)
-            .pipe(parser);
         this.dpTaskService.process(taskId, {
             progress: 'AI is analyzing...'
         });
 
-        const resStream = await chain.stream({});
+        const resStream = await structuredLlm.stream(promptStr);
         for await (const chunk of resStream) {
             this.dpTaskService.process(taskId, {
                 progress: 'AI responseing',

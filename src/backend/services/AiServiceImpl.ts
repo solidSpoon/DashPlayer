@@ -8,7 +8,6 @@ import { AiAnalyseGrammarsPrompt } from '@/common/types/aiRes/AiAnalyseGrammarsR
 import { AiFuncExplainSelectWithContextPrompt } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
 import { AiFuncExplainSelectPrompt } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
-import { HumanMessage } from '@langchain/core/messages';
 import { AiPhraseGroupPrompt } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { AiFuncTranslateWithContextPrompt } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 import { AiFuncPunctuationPrompt } from '@/common/types/aiRes/AiPunctuationResp';
@@ -17,6 +16,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import AiFuncServiceImpl from '@/backend/services/AiFuncServiceImpl';
 import ChatService from '@/backend/services/ChatService';
+import { HumanMessage } from '@langchain/core/messages';
 
 export interface AiService {
     polish(taskId: number, sentence: string): Promise<void>;
