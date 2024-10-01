@@ -55,6 +55,10 @@ export default class FavoriteClipsController implements Controller {
         return this.favouriteClipsService.deleteFavoriteClip(key);
     }
 
+    public async syncFromOss(): Promise<void> {
+        return this.favouriteClipsService.syncFromOss();
+    }
+
     registerRoutes(): void {
         registerRoute('favorite-clips/add', (p) => this.addClip(p));
         registerRoute('favorite-clips/cancel-add', (p) => this.cancelAddClip(p));
@@ -65,6 +69,7 @@ export default class FavoriteClipsController implements Controller {
         registerRoute('favorite-clips/delete-clip-tag', (p) => this.deleteClipTag(p));
         registerRoute('favorite-clips/task-info', () => this.taskInfo());
         registerRoute('favorite-clips/delete', (p) => this.delete(p));
+        registerRoute('favorite-clips/sync-from-oss', () => this.syncFromOss());
     }
 
 }

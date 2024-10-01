@@ -9,28 +9,46 @@ import * as React from 'react';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import { FolderOpen } from 'lucide-react';
 import useSystem from '@/fronted/hooks/useSystem';
+import Combobox from '@/fronted/components/setting/Combobox';
+import useSWR from 'swr';
+import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
+import { Label } from '@/fronted/components/ui/label';
+import useFile from '@/fronted/hooks/useFile';
 
 const api = window.electron;
 const StorageSetting = () => {
     const [size, setSize] = useState<string>('0 KB');
     const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
-        'storage.path'
+        'storage.path',
+        'storage.collection'
     ]);
     useEffect(() => {
         const init = async () => {
-            const s = await api.call('storage/cache/size', null);
+            const s = await api.call('storage/cache/size');
             setSize(s);
         };
         init();
     }, []);
 
+
+    const handleSubmit = async () => {
+        submit();
+        await api.call('favorite-clips/sync-from-oss');
+        await swrApiMutate('favorite-clips/search');
+        useFile.setState({
+            subtitlePath: null
+        });
+    };
+
     const handleClear = async () => {
-        await api.call('system/reset-db', null);
+        await api.call('system/reset-db');
     };
 
     const handleOpen = async () => {
-        await api.call('system/open-folder/cache', null);
+        await api.call('system/open-folder/cache');
     };
+
+    const { data: collectionPaths } = useSWR(apiPath('storage/collection/paths'), (url) => api.call(url));
 
     return (
         <div className="w-full h-full flex flex-col gap-4">
@@ -62,12 +80,24 @@ const StorageSetting = () => {
                     />
                     <Button className={'mb-1.5'} variant={'outline'} size={'icon'}
                             onClick={async () => {
-                                const folder: string[] = await api.call('system/select-folder', null);
+                                const folder: string[] = await api.call('system/select-folder', {});
                                 if (folder.length > 0) {
                                     const f = `${folder[0]}${useSystem.getState().pathSeparator}DashPlayer`;
                                     setSettingFunc('storage.path')(f);
                                 }
                             }}><FolderOpen /></Button>
+                </div>
+                <div className="flex gap-2 items-end">
+                    <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
+                        <Label>切换收藏夹</Label>
+                        <Combobox
+                            options={collectionPaths?.map((p) => ({ value: p, label: p })) ?? []}
+                            value={setting('storage.collection')}
+                            onSelect={setSettingFunc('storage.collection')} />
+                        <p>
+                            favourite_clips 文件夹下的子文件夹会被视为收藏夹
+                        </p>
+                    </div>
                 </div>
             </ItemWrapper>
             <FooterWrapper>
@@ -85,7 +115,7 @@ const StorageSetting = () => {
                 </Button>
                 <Button
                     disabled={eqServer}
-                    onClick={submit}
+                    onClick={handleSubmit}
                 >
                     Apply
                 </Button>

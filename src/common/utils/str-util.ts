@@ -8,9 +8,12 @@ export default class StrUtil {
     public static isNotBlank(str: string | undefined | null): str is string {
         return !StrUtil.isBlank(str);
     }
-
     public static allBlank(...strs: (string | undefined | null)[]): boolean {
         return strs.every(this.isBlank);
+    }
+
+    public static ifBlank(str: string | undefined | null, defaultStr: string): string {
+        return StrUtil.isBlank(str) ? defaultStr : str!;
     }
 
     /**

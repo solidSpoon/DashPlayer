@@ -39,10 +39,10 @@ export class FolderSelectAction {
 
 const FolderSelector = ({ onSelected, className }: FolderSelecterProps) => {
     const handleClick = async () => {
-        const ps = await api.call('system/select-folder', null);
+        const ps = await api.call('system/select-folder',{});
         console.log('project', ps);
         if (ps.length > 0) {
-            onSelected(ps[0]);
+            onSelected?.(ps[0]);
         }
     };
 

@@ -1,9 +1,9 @@
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import React from 'react';
-import {emptyFunc} from "@/common/utils/Util";
-import {cn} from "@/fronted/lib/utils";
-import {Button} from "@/fronted/components/ui/button";
+import { emptyFunc } from '@/common/utils/Util';
+import { cn } from '@/fronted/lib/utils';
+import { Button } from '@/fronted/components/ui/button';
 
 const api = window.electron;
 
@@ -12,11 +12,12 @@ export interface FolderSelectorProps {
     className?: string;
 }
 
-const ConvertFolderSelector = ({onSelected, className}:FolderSelectorProps) => {
+const ConvertFolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
     const handleClick = async () => {
-        const ps = await api.call('system/select-folder', null);
+        const ps = await api.call('system/select-folder', {});
+        if (!ps) return;
         if (ps?.length > 0) {
-            await onSelected(ps);
+            onSelected?.(ps);
         }
     };
 
@@ -41,6 +42,6 @@ const ConvertFolderSelector = ({onSelected, className}:FolderSelectorProps) => {
 ConvertFolderSelector.defaultProps = {
     onSelected: emptyFunc,
     className: ''
-}
+};
 
 export default ConvertFolderSelector;

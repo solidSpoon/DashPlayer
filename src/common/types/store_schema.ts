@@ -28,5 +28,6 @@ export const SettingKeyObj = {
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
     'storage.path': '',
+    'storage.collection': 'default',
 }
 export type SettingKey = keyof typeof SettingKeyObj;

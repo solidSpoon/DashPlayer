@@ -57,7 +57,7 @@ interface SystemDef {
         return: string[]
     };
     'system/select-folder': {
-        params: void,
+        params: { defaultPath?: string }
         return: string[]
     };
     'system/path-info': {
@@ -124,6 +124,7 @@ interface StorageDef {
     'storage/put': { params: { key: SettingKey, value: string }, return: void };
     'storage/get': { params: SettingKey, return: string };
     'storage/cache/size': { params: void, return: string };
+    'storage/collection/paths': { params: void, return: string[] };
 }
 
 interface SplitVideoDef {
@@ -157,6 +158,7 @@ interface FavoriteClipsDef {
     'favorite-clips/exists': { params: { srtKey: string, linesInSrt: number[] }, return: Map<number, boolean> };
     'favorite-clips/task-info': { params: void, return: number };
     'favorite-clips/delete': { params: string, return: void };
+    'favorite-clips/sync-from-oss': { params: void, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }
 

@@ -5,6 +5,8 @@ import StrUtil from '@/common/utils/str-util';
 import LocationService, { LocationType, ProgramType } from '@/backend/services/LocationService';
 import { injectable } from 'inversify';
 
+import fs from 'fs';
+
 @injectable()
 export default class LocationServiceImpl implements LocationService {
     private static readonly isDev = process.env.NODE_ENV === 'development';
@@ -34,7 +36,7 @@ export default class LocationServiceImpl implements LocationService {
         return path.join(basePath, type);
     }
 
-    private static getStorageBathPath() {
+    public static getStorageBathPath() {
         const p = storeGet('storage.path');
         if (StrUtil.isBlank(p)) {
             const documentsPath = app.getPath('documents');
@@ -46,7 +48,11 @@ export default class LocationServiceImpl implements LocationService {
     }
 
     getStoragePath(type: LocationType): string {
-        return LocationServiceImpl.getStoragePath(type);
+        const p = LocationServiceImpl.getStoragePath(type);
+        if (LocationType.FAVORITE_CLIPS === type) {
+            return path.join(p, StrUtil.ifBlank(storeGet('storage.collection') ,'default'));
+        }
+        return p;
     }
 
     getProgramPath(type: ProgramType): string {
@@ -63,4 +69,15 @@ export default class LocationServiceImpl implements LocationService {
                 return '';
         }
     }
+
+    listCollectionPaths(): string[] {
+        const strings = fs.readdirSync(LocationServiceImpl.getStoragePath(LocationType.FAVORITE_CLIPS))
+            .filter(name => !name.startsWith('.'));
+        const current = storeGet('storage.collection');
+        if (StrUtil.isNotBlank(current) && !strings.includes(current)) {
+            strings.unshift(current);
+        }
+        return strings;
+    }
+
 }

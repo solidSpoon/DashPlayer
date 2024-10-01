@@ -16,4 +16,6 @@ export default interface LocationService {
     getStoragePath(type: LocationType): string;
 
     getProgramPath(type: ProgramType): string;
+
+    listCollectionPaths(): string[];
 }

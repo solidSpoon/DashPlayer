@@ -11,6 +11,7 @@ import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import StrUtil from '@/common/utils/str-util';
 import TYPES from '@/backend/ioc/types';
+import OpenDialogOptions = Electron.OpenDialogOptions;
 
 /**
  * eg: .mkv -> mkv
@@ -46,10 +47,14 @@ export default class SystemController implements Controller {
         return files.filePaths;
     }
 
-    public async selectFolder(): Promise<string[]> {
-        const files = await dialog.showOpenDialog({
+    public async selectFolder({ defaultPath }: { defaultPath?: string }): Promise<string[]> {
+        const options: OpenDialogOptions = {
             properties: ['openDirectory']
-        });
+        };
+        if (defaultPath) {
+            options.defaultPath = defaultPath;
+        }
+        const files = await dialog.showOpenDialog(options);
         return files.filePaths;
     }
 
@@ -104,7 +109,7 @@ export default class SystemController implements Controller {
     public registerRoutes(): void {
         registerRoute('system/info', (_) => this.info());
         registerRoute('system/select-file', (p) => this.selectFile(p));
-        registerRoute('system/select-folder', (p) => this.selectFolder());
+        registerRoute('system/select-folder', (p) => this.selectFolder(p));
         registerRoute('system/path-info', (p) => this.pathInfo(p));
         registerRoute('system/reset-db', (_) => this.resetDb());
         registerRoute('system/open-folder', (p) => this.openFolder(p));

@@ -7,6 +7,7 @@ import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/services/SettingService';
+import LocationService from '@/backend/services/LocationService';
 
 export const BASE_PATH = path.join(app.getPath('userData'), 'useradd');
 const formatBytes = (bytes: number): string => {
@@ -42,6 +43,7 @@ export const queryCacheSize = async () => {
 @injectable()
 export default class StorageController implements Controller {
     @inject(TYPES.SettingService) private settingService!: SettingService;
+    @inject(TYPES.LocationService) private locationService!: LocationService;
 
     public async storeSet({ key, value }: { key: SettingKey, value: string }): Promise<void> {
         await this.settingService.set(key, value);
@@ -55,9 +57,15 @@ export default class StorageController implements Controller {
         return queryCacheSize();
     }
 
+    public async listCollectionPaths(): Promise<string[]> {
+        return this.locationService.listCollectionPaths();
+    }
+
+
     registerRoutes(): void {
         registerRoute('storage/put', (p) => this.storeSet(p));
         registerRoute('storage/get', (p) => this.storeGet(p));
         registerRoute('storage/cache/size', (p) => this.queryCacheSize());
+        registerRoute('storage/collection/paths', () => this.listCollectionPaths());
     }
 }

@@ -26,7 +26,7 @@ const electronHandler = {
         return on('error-msg', func as never);
     },
     // 调用函数的方法
-    call: async function invok<K extends keyof ApiMap>(path: K, param: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {
+    call: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {
         return ipcRenderer.invoke(path, param);
     }
 };
