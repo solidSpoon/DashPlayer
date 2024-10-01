@@ -85,7 +85,8 @@ export default class FfmpegServiceImpl implements FfmpegService {
     }): Promise<string[]> {
         // 设置扩展名和输入相同
         const outputFormat = path.join(outputFolder, `${outputFilePrefix}_%03d${path.extname(inputFile)}`);
-        return new Promise((resolve, reject) => {
+
+        await new Promise<void>((resolve, reject) => {
             ffmpeg(inputFile)
                 .outputOptions([
                     '-f', 'segment',
@@ -95,20 +96,17 @@ export default class FfmpegServiceImpl implements FfmpegService {
                     '-reset_timestamps', '1'
                 ])
                 .output(outputFormat)
-                .on('end', async () => {
-                    try {
-                        const files = await FileUtil.listFiles(outputFolder);
-                        // Filter the files to start with the output file prefix
-                        const outputFiles = files.filter(file => file.startsWith(outputFilePrefix))
-                            .map(file => path.join(outputFolder, file));
-                        resolve(outputFiles);
-                    } catch (e) {
-                        reject(e);
-                    }
-                })
+                .on('end', resolve)
                 .on('error', reject)
                 .run();
         });
+
+        const files = await FileUtil.listFiles(outputFolder);
+        // Filter the files to start with the output file prefix
+        const outputFiles = files.filter(file => file.startsWith(outputFilePrefix))
+            .map(file => path.join(outputFolder, file));
+
+        return outputFiles;
     }
 
     @WaitLock('ffprobe')
@@ -180,36 +178,35 @@ export default class FfmpegServiceImpl implements FfmpegService {
         outputFolder: string,
         segmentTime: number,
     }): Promise<string[]> {
-        return new Promise<string[]>((resolve, reject) => {
-            const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
-            const command = ffmpeg(inputFile)
-                .outputOptions([
-                    '-vn',
-                    '-f', 'segment',
-                    '-segment_time', `${segmentTime}`,
-                    '-acodec', 'libmp3lame',
-                    '-qscale:a', '9'
-                ])
-                .output(outputFormat)
-                .on('end', () => {
-                    // Get the list of files in the output directory
-                    fs.readdir(outputFolder, (err, files) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            // Filter the files to only include .mp3 files
-                            const outputFiles = files.filter(file => path.extname(file) === '.mp3')
-                                .map(file => path.join(outputFolder, file));
-                            resolve(outputFiles);
-                        }
-                    });
-                })
-                .on('error', (err) => {
-                    reject(err);
-                });
-            this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
-            command.run();
+        const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
+        const command = ffmpeg(inputFile)
+            .outputOptions([
+                '-vn',
+                '-f', 'segment',
+                '-segment_time', `${segmentTime}`,
+                '-acodec', 'libmp3lame',
+                '-qscale:a', '9'
+            ])
+            .output(outputFormat);
+
+        this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
+
+        await new Promise<void>((resolve, reject) => {
+            command
+                .on('end', resolve)
+                .on('error', reject)
+                .run();
         });
+
+        // Get the list of files in the output directory
+        const files = await fs.promises.readdir(outputFolder);
+
+        // Filter the files to only include .mp3 files
+        const outputFiles = files
+            .filter(file => path.extname(file) === '.mp3')
+            .map(file => path.join(outputFolder, file));
+
+        return outputFiles;
     }
 
     /**
