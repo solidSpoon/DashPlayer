@@ -2,7 +2,6 @@ import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { DpTask } from '@/backend/db/tables/dpTask';
 import { YdRes } from '@/common/types/YdRes';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectServiceImpl';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { WindowState } from '@/common/types/Types';
@@ -16,6 +15,7 @@ import { FolderVideos } from '@/common/types/tonvert-type';
 import { OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
+import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },

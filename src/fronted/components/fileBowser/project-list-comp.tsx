@@ -11,7 +11,8 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from '@/fronted/components/ui/breadcrumb';
-import {WatchProjectListVO} from "@/backend/services/WatchProjectServiceImpl";
+
+import { WatchProjectListVO } from '@/common/types/watch-project';
 
 export interface ProjectListCompProps {
     projEle: (p: WatchProjectListVO, handleClick: () => void) => React.JSX.Element;

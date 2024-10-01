@@ -7,3 +7,6 @@ export interface Convertible<T> {
 }
 
 
+export interface Cancelable {
+    cancel(): void;
+}

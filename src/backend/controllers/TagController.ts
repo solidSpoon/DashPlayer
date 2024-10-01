@@ -1,7 +1,7 @@
 import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { TagService } from '@/backend/services/TagService';
+import TagService from '@/backend/services/TagService';
 import registerRoute from '@/common/api/register';
 import { Tag } from '@/backend/db/tables/tag';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';

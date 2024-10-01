@@ -14,12 +14,6 @@ import SplitVideoService from '@/backend/services/SplitVideoService';
 import dpLog from '@/backend/ioc/logger';
 
 
-export interface VideoSplitResult {
-    title: string,
-    start: number,
-    end: number,
-}
-
 
 @injectable()
 class SplitVideoServiceImpl implements SplitVideoService {

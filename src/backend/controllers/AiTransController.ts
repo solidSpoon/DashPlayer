@@ -1,17 +1,21 @@
 import registerRoute from '@/common/api/register';
 import { YdRes } from '@/common/types/YdRes';
-import AiTransService from '@/backend/services/AiTransService';
 import Controller from '@/backend/interfaces/controller';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
+import TranslateService from '@/backend/services/AiTransServiceImpl';
 
 @injectable()
 export default class AiTransController implements Controller {
+    @inject(TYPES.TranslateService)
+    private translateService!: TranslateService;
+
     public async batchTranslate(sentences: string[]): Promise<Map<string, string>> {
-        return AiTransService.batchTranslate(sentences);
+        return this.translateService.transSentences(sentences);
     }
 
     public async youDaoTrans(str: string): Promise<YdRes | null> {
-        return AiTransService.youDaoTrans(str);
+        return this.translateService.transWord(str);
     }
 
     registerRoutes(): void {

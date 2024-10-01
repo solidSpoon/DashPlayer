@@ -1,14 +1,11 @@
 import registerRoute from '@/common/api/register';
-import {
-    WatchProjectListVO,
-    WatchProjectService,
-    WatchProjectVO
-} from '@/backend/services/WatchProjectServiceImpl';
+import WatchProjectService from '@/backend/services/WatchProjectService';
 import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import path from 'path';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/interfaces/controller';
+import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
 
 @injectable()
 export default class WatchProjectController implements Controller {

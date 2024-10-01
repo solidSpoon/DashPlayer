@@ -12,16 +12,18 @@ const TYPES = {
     SettingService: Symbol('SettingService'),
     LocationService: Symbol('LocationService'),
     DpTaskService: Symbol('DpTaskService'),
-    AiFuncService: Symbol('AiFuncService'),
-    AiProviderService: Symbol('AiProviderService'),
     AiService: Symbol('AiService'),
     ChatService: Symbol('ChatService'),
-    ChildProcessService: Symbol('ChildProcessService'),
     FfmpegService: Symbol('FfmpegService'),
     SplitVideoService: Symbol('SplitVideoService'),
     WhisperService: Symbol('WhisperService'),
     ConvertService: Symbol('ConvertService'),
     MediaService: Symbol('MediaService'),
+    TranslateService: Symbol('TranslateService'),
+    // Clients
+    YouDaoClientProvider: Symbol('YouDaoClientProvider'),
+    TencentClientProvider: Symbol('TencentClientProvider'),
+    OpenAiClientProvider: Symbol('OpenAiClientProvider'),
 };
 
 export default TYPES;

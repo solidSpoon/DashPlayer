@@ -21,7 +21,7 @@ import dpLog from '@/backend/ioc/logger';
 import CacheService from '@/backend/services/CacheService';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import { ClipOssService } from '@/backend/services/OssService';
-import { TagService } from '@/backend/services/TagService';
+import TagService from '@/backend/services/TagService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/services/FfmpegService';
 
@@ -317,7 +317,6 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             .map((item) => item.dp_tag)
             .filter((item): item is Tag => item !== null);
     }
-
 
 
     async addClipTag(key: string, tagId: number): Promise<void> {

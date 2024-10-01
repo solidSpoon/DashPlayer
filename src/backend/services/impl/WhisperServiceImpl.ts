@@ -1,6 +1,4 @@
 import fs from 'fs';
-import axios from 'axios';
-import FormData from 'form-data';
 import path from 'path';
 import * as os from 'os';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
@@ -9,28 +7,15 @@ import RateLimiter from '@/common/utils/RateLimiter';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import StrUtil from '@/common/utils/str-util';
-import ErrorConstants, { isErrorCancel } from '@/common/constants/error-constants';
+import { isErrorCancel } from '@/common/constants/error-constants';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '../DpTaskService';
 import TYPES from '@/backend/ioc/types';
-import ChildProcessService from '@/backend/services/ChildProcessService';
 import FfmpegService from '@/backend/services/FfmpegService';
-import UrlUtil from '@/common/utils/UrlUtil';
 import WhisperService from '@/backend/services/WhisperService';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
+import OpenAiWhisperRequest, { WhisperResponse } from '@/backend/objs/OpenAiWhisperRequest';
 
-interface WhisperResponse {
-    language: string;
-    duration: number;
-    text: string;
-    offset: number;
-    segments: {
-        seek: number;
-        start: number;
-        end: number;
-        text: string;
-    }[];
-}
 
 interface SplitChunk {
     offset: number;
@@ -62,9 +47,6 @@ class WhisperServiceImpl implements WhisperService {
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
 
-    @inject(TYPES.ChildProcessService)
-    private childProcessService!: ChildProcessService;
-
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
 
@@ -75,8 +57,6 @@ class WhisperServiceImpl implements WhisperService {
             });
             return;
         }
-        // await this.whisper();
-        this.dpTaskService.checkCancel(taskId);
         this.dpTaskService.process(taskId, {
             progress: '正在转换音频'
         });
@@ -125,39 +105,19 @@ class WhisperServiceImpl implements WhisperService {
 
     private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
         await RateLimiter.wait('whisper');
-        const data = new FormData();
-        data.append('file', fs.createReadStream(chunk.filePath) as any);
-        data.append('model', 'whisper-1');
-        data.append('language', 'en');
-        data.append('response_format', 'verbose_json');
-        // 创建一个 CancelToken 的实例
-        const CancelToken = axios.CancelToken;
-        const source = CancelToken.source();
-        const config = {
-            method: 'post',
-            url: UrlUtil.joinWebUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/transcriptions'),
-            headers: {
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
-                'Content-Type': 'multipart/form-data',
-                ...data.getHeaders()
-            },
-            data: data,
-            timeout: 1000 * 60 * 10,
-            cancelToken: source.token
-        };
 
-        this.childProcessService.registerCancelTokenSource(taskId, [source]);
-
-        const response = await axios(config)
-            .catch((error) => {
-                if (axios.isCancel(error)) {
-                    throw new Error(ErrorConstants.CANCEL_MSG);
-                }
-                throw error;
+        const req = OpenAiWhisperRequest.build(chunk.filePath);
+        if (TypeGuards.isNull(req)) {
+            this.dpTaskService.fail(taskId, {
+                progress: '未设置 OpenAI 密钥'
             });
+            throw new Error('未设置 OpenAI 密钥');
+        }
+        this.dpTaskService.registerTask(taskId, req);
+        const response = await req.invoke();
+
         return {
-            ...response.data,
+            ...response,
             offset: chunk.offset
         };
     }

@@ -8,6 +8,8 @@ import ErrorConstants from '@/common/constants/error-constants';
 import { injectable, postConstruct } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import dpLog from '@/backend/ioc/logger';
+import { Cancelable } from '@/common/interfaces';
+import CancelByUserError from '@/backend/errors/CancelByUserError';
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
@@ -20,6 +22,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
             return 1;
         }
     });
+    private taskMapping: Map<number, Cancelable[]> = new Map();
 
     public async detail(id: number): Promise<DpTask | null> {
 
@@ -130,6 +133,12 @@ export default class DpTaskServiceImpl implements DpTaskService {
 
     cancel(id: number) {
         this.cancelQueue.add(id);
+        const cancelable = this.taskMapping.get(id);
+        if (cancelable) {
+            cancelable.forEach(c => {
+                c.cancel();
+            });
+        }
     }
 
     checkCancel(id: number) {
@@ -139,7 +148,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
                 status: DpTaskState.CANCELLED,
                 progress: '任务取消'
             });
-            throw new Error(ErrorConstants.CANCEL_MSG);
+            throw new CancelByUserError();
         }
     }
 
@@ -175,4 +184,10 @@ export default class DpTaskServiceImpl implements DpTaskService {
             })
             .where(or(eq(dpTask.status, DpTaskState.INIT), eq(dpTask.status, DpTaskState.IN_PROGRESS)));
     }
+
+    public registerTask(taskId: number, process: Cancelable) {
+        const existingProcesses = this.taskMapping.get(taskId) || [];
+        this.taskMapping.set(taskId, [...existingProcesses, process]);
+    }
+
 }

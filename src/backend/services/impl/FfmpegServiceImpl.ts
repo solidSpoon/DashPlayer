@@ -7,14 +7,18 @@ import fs from 'fs';
 import LocationServiceImpl from '@/backend/services/impl/LocationServiceImpl';
 import FileUtil from '@/backend/utils/FileUtil';
 import { inject, injectable } from 'inversify';
-import ChildProcessService from '@/backend/services/ChildProcessService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
+import FfmpegTask from '@/backend/objs/FfmpegTask';
+import DpTaskService from '@/backend/services/DpTaskService';
+import CancelByUserError from '@/backend/errors/CancelByUserError';
 
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
-    @inject(TYPES.ChildProcessService)
-    private childProcessService!: ChildProcessService;
+    @inject(TYPES.DpTaskService)
+    private dpTaskService!: DpTaskService;
+
+    private readonly KILL_SIGNAL = 'ffmpeg was killed with signal SIGKILL';
 
     static {
         ffmpeg.setFfmpegPath(LocationServiceImpl.ffmpegPath());
@@ -176,7 +180,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         outputFolder: string,
         segmentTime: number,
     }): Promise<string[]> {
-        return new Promise((resolve, reject) => {
+        return new Promise<string[]>((resolve, reject) => {
             const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
             const command = ffmpeg(inputFile)
                 .outputOptions([
@@ -203,8 +207,13 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 .on('error', (err) => {
                     reject(err);
                 });
-            this.childProcessService.registerFfmpeg(taskId, [command]);
+            this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
             command.run();
+        }).catch((e) => {
+            if (e.message === this.KILL_SIGNAL) {
+                return Promise.reject(new CancelByUserError());
+            }
+            return Promise.reject(e);
         });
     }
 
@@ -277,12 +286,17 @@ export default class FfmpegServiceImpl implements FfmpegService {
                         })
                         .on('end', resolve)
                         .on('error', reject);
-                    this.childProcessService.registerFfmpeg(taskId, [command]);
+                    this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
                     command
                         .run();
                 });
             }
-        );
+        ).catch((e) => {
+            if (e.message === this.KILL_SIGNAL) {
+                return Promise.reject(new CancelByUserError());
+            }
+            return Promise.reject(e);
+        });
         return output;
     }
 
@@ -321,12 +335,17 @@ export default class FfmpegServiceImpl implements FfmpegService {
                         })
                         .on('end', resolve)
                         .on('error', reject);
-                    this.childProcessService.registerFfmpeg(taskId, [command]);
+                    this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
                     command
                         .run();
                 });
             }
-        );
+        ).catch((e) => {
+            if (e.message === this.KILL_SIGNAL) {
+                return Promise.reject(new CancelByUserError());
+            }
+            return Promise.reject(e);
+        });
         return outputSubtitle;
     }
 

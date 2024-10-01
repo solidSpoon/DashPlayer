@@ -8,8 +8,9 @@ export interface YouDaoConfig {
     appKey: string;
     secretKey: string;
 }
-class YouDaoTranslator {
+class YouDaoClient {
     private config: YouDaoConfig;
+    private readonly YOU_DAO_HOST = 'http://openapi.youdao.com/api';
 
     constructor(config: YouDaoConfig) {
         this.config = config;
@@ -50,11 +51,10 @@ class YouDaoTranslator {
      * 进行翻译
      */
     public async translate(word: string): Promise<string | null> {
-        const youdaoHost = 'http://openapi.youdao.com/api';
         // 在get请求中，中文需要进行uri编码
         const encodeURIWord = encodeURI(word);
-        const salt = YouDaoTranslator.getRandomN(1000);
-        const sign = YouDaoTranslator.md5(
+        const salt = YouDaoClient.getRandomN(1000);
+        const sign = YouDaoClient.md5(
             this.config.appKey + word + salt + this.config.secretKey
         );
         const paramsJson = new Map<string, string>();
@@ -65,7 +65,7 @@ class YouDaoTranslator {
         paramsJson.set('salt', salt.toString());
         paramsJson.set('sign', sign);
         // let url = `http://openapi.youdao.com/api?q=${encodeURI(q)}&from=${from}&to=${to}&appKey=${appKey}&salt=${salt}&sign=${sign}`;
-        const url = `${youdaoHost}?${YouDaoTranslator.generateUrlParams(
+        const url = `${this.YOU_DAO_HOST}?${YouDaoClient.generateUrlParams(
             paramsJson
         )}`;
         const result = await axios.get(url);
@@ -76,4 +76,4 @@ class YouDaoTranslator {
         return JSON.stringify(result.data);
     }
 }
-export default YouDaoTranslator;
+export default YouDaoClient;

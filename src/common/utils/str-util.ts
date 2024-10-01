@@ -25,4 +25,8 @@ export default class StrUtil {
     public static hasNonBlank(...strs: (string | undefined | null)[]): boolean {
         return strs.some(StrUtil.isNotBlank);
     }
+
+    public static hasBlank(...strs: (string | undefined | null)[]): boolean {
+        return strs.some(StrUtil.isBlank);
+    }
 }

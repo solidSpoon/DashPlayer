@@ -4,7 +4,9 @@ import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/services/ChatService';
-import AiProviderService from '@/backend/services/AiProviderService';
+import { ChatOpenAI } from '@langchain/openai';
+import ClientProviderService from '@/backend/services/ClientProviderService';
+import { ZodObject } from 'zod';
 
 
 @injectable()
@@ -13,13 +15,13 @@ export default class ChatServiceImpl implements ChatService {
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
 
-    @inject(TYPES.AiProviderService)
-    private aiProviderService!: AiProviderService;
+    @inject(TYPES.OpenAiClientProvider)
+    private aiProviderService!: ClientProviderService<ChatOpenAI>;
 
 
     public async chat(taskId: number, msgs: BaseMessage[]) {
         await RateLimiter.wait('gpt');
-        const chat = this.aiProviderService.getOpenAi();
+        const chat = this.aiProviderService.getClient();
         if (chat) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
@@ -44,6 +46,33 @@ export default class ChatServiceImpl implements ChatService {
         this.dpTaskService.finish(taskId, {
             progress: 'AI has responded',
             result: res
+        });
+    }
+
+    public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
+        await RateLimiter.wait('gpt');
+        const chat = this.aiProviderService.getClient();
+        if (!chat) {
+            this.dpTaskService.fail(taskId, {
+                progress: 'OpenAI api key or endpoint is empty'
+            });
+            return;
+        }
+        const structuredLlm = chat.withStructuredOutput(resultSchema);
+
+        this.dpTaskService.process(taskId, {
+            progress: 'AI is analyzing...'
+        });
+
+        const resStream = await structuredLlm.stream(promptStr);
+        for await (const chunk of resStream) {
+            this.dpTaskService.process(taskId, {
+                progress: 'AI responding',
+                result: JSON.stringify(chunk)
+            });
+        }
+        this.dpTaskService.finish(taskId, {
+            progress: 'AI has responded',
         });
     }
 }

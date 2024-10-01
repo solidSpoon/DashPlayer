@@ -1,4 +1,5 @@
 import { DpTask, InsertDpTask } from '@/backend/db/tables/dpTask';
+import { Cancelable } from '@/common/interfaces';
 
 
 export default interface DpTaskService {
@@ -21,4 +22,6 @@ export default interface DpTaskService {
     checkCancel(id: number): void;
 
     cancelAll(): Promise<void>;
+
+    registerTask(taskId: number, process: Cancelable): void;
 }

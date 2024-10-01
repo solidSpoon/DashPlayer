@@ -14,7 +14,6 @@ import { AiFuncPunctuationPrompt } from '@/common/types/aiRes/AiPunctuationResp'
 import { getSubtitleContent, srtSlice } from '@/common/utils/srtSlice';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import AiFuncServiceImpl from '@/backend/services/AiFuncServiceImpl';
 import ChatService from '@/backend/services/ChatService';
 import { HumanMessage } from '@langchain/core/messages';
 
@@ -47,14 +46,11 @@ export interface AiService {
 @injectable()
 export default class AiServiceImpl implements AiService {
 
-    @inject(TYPES.AiFuncService)
-    private aiFuncService!: AiFuncServiceImpl;
-
     @inject(TYPES.ChatService)
     private chatService!: ChatService;
 
     public async polish(taskId: number, sentence: string) {
-        await this.aiFuncService.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
+        await this.chatService.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
     }
 
     public async formatSplit(taskId: number, text: string) {
@@ -73,7 +69,7 @@ export default class AiServiceImpl implements AiService {
                 })
             ).describe('A list of new words for an intermediate English speaker, if none, it should be an empty list')
         });
-        await this.aiFuncService.run(taskId, schema, analyzeWordsPrompt(sentence));
+        await this.chatService.run(taskId, schema, analyzeWordsPrompt(sentence));
     }
 
     public async analyzePhrase(taskId: number, sentence: string) {
@@ -87,7 +83,7 @@ export default class AiServiceImpl implements AiService {
             ).describe('A list of phrases for an intermediate English speaker, if none, it should be an empty list')
         });
 
-        await this.aiFuncService.run(taskId, schema, analyzePhrasesPrompt(sentence));
+        await this.chatService.run(taskId, schema, analyzePhrasesPrompt(sentence));
     }
 
     public async analyzeGrammar(taskId: number, sentence: string) {
@@ -96,7 +92,7 @@ export default class AiServiceImpl implements AiService {
         sentence = sentence.replaceAll(/\n/g, ' ');
         const promptStr = AiAnalyseGrammarsPrompt.promptFunc(sentence);
         console.log('promptStr', promptStr);
-        await this.aiFuncService.run(taskId, AiAnalyseGrammarsPrompt.schema, promptStr);
+        await this.chatService.run(taskId, AiAnalyseGrammarsPrompt.schema, promptStr);
     }
 
     public async makeSentences(taskId: number, sentence: string, point: string[]) {
@@ -110,7 +106,7 @@ export default class AiServiceImpl implements AiService {
             ).describe('A list of example sentences for an intermediate English speaker. length should be 5')
         });
 
-        await this.aiFuncService.run(taskId, schema, exampleSentences(point));
+        await this.chatService.run(taskId, schema, exampleSentences(point));
 
     }
 
@@ -118,7 +114,7 @@ export default class AiServiceImpl implements AiService {
         const schema = z.object({
             sentences: z.array(z.string()).describe('A list of synonymous sentences for the input sentence, length should be 3')
         });
-        await this.aiFuncService.run(taskId, schema, synonymousSentence(sentence));
+        await this.chatService.run(taskId, schema, synonymousSentence(sentence));
     }
 
     /**
@@ -127,7 +123,7 @@ export default class AiServiceImpl implements AiService {
      * @param sentence
      */
     public async phraseGroup(taskId: number, sentence: string) {
-        await this.aiFuncService.run(taskId, AiPhraseGroupPrompt.schema, AiPhraseGroupPrompt.promptFunc(sentence));
+        await this.chatService.run(taskId, AiPhraseGroupPrompt.schema, AiPhraseGroupPrompt.promptFunc(sentence));
     }
 
 
@@ -141,20 +137,20 @@ export default class AiServiceImpl implements AiService {
     public async punctuation(taskId: number, no: number, fullSrt: string) {
         const sentence = getSubtitleContent(fullSrt, no) ?? '';
         const srt = srtSlice(fullSrt, no, 5);
-        await this.aiFuncService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, srt));
+        await this.chatService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, srt));
     }
 
     public async explainSelect(taskId: number, word: string) {
-        await this.aiFuncService.run(taskId, AiFuncExplainSelectPrompt.schema, AiFuncExplainSelectPrompt.promptFunc(word));
+        await this.chatService.run(taskId, AiFuncExplainSelectPrompt.schema, AiFuncExplainSelectPrompt.promptFunc(word));
 
     }
 
     public async explainSelectWithContext(taskId: number, sentence: string, selectedWord: string) {
-        await this.aiFuncService.run(taskId, AiFuncExplainSelectWithContextPrompt.schema, AiFuncExplainSelectWithContextPrompt.promptFunc(sentence, selectedWord));
+        await this.chatService.run(taskId, AiFuncExplainSelectWithContextPrompt.schema, AiFuncExplainSelectWithContextPrompt.promptFunc(sentence, selectedWord));
     }
 
     public async translateWithContext(taskId: number, sentence: string, context: string[]) {
-        await this.aiFuncService.run(taskId, AiFuncTranslateWithContextPrompt.schema, AiFuncTranslateWithContextPrompt.promptFunc(sentence, context));
+        await this.chatService.run(taskId, AiFuncTranslateWithContextPrompt.schema, AiFuncTranslateWithContextPrompt.promptFunc(sentence, context));
     }
 }
 

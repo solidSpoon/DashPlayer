@@ -8,8 +8,8 @@ import SystemService from '@/backend/services/SystemService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import LocationService, { ProgramType } from '@/backend/services/LocationService';
-import ChildProcessService from '@/backend/services/ChildProcessService';
 import FfmpegService from '@/backend/services/FfmpegService';
+import ChildProcessTask from '@/backend/objs/ChildProcessTask';
 
 export interface DlVideoService {
     dlVideo(taskId: number, url: string, savePath: string): Promise<void>;
@@ -24,9 +24,6 @@ export default class DlVideoServiceImpl implements DlVideoService {
 
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
-
-    @inject(TYPES.ChildProcessService)
-    private childProcessService!: ChildProcessService;
 
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskServiceImpl;
@@ -123,7 +120,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 '-P', savePath,
                 url
             ]);
-            this.childProcessService.registerTask(taskId, [task]);
+            this.dpTaskService.registerTask(taskId, new ChildProcessTask(task));
             let progress = 0;
             task.stdout.on('data', (data) => {
                 const output = data.toString();
@@ -197,7 +194,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 '--merge-output-format', 'mp4',
                 url
             ]);
-            this.childProcessService.registerTask(taskId, [process]);
+            this.dpTaskService.registerTask(taskId, new ChildProcessTask(process));
             let output = '';
             process.stdout.on('data', (d: Buffer) => {
                 let encoding = 'utf8';
