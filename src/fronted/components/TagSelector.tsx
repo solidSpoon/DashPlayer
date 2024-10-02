@@ -15,7 +15,7 @@ import {
     PopoverContent,
     PopoverTrigger
 } from '@/fronted/components/ui/popover';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import { Tag } from '@/backend/db/tables/tag';
 import { Plus, X } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
@@ -40,8 +40,10 @@ export default function TagSelector() {
     const [tagToRename, setTagToRename] = React.useState<Tag | null>(null);
 
     const handleSelectTag = async (tag: Tag) => {
+        const key = playInfo?.video.key;
+        if (!key) return;
         await api.call('favorite-clips/add-clip-tag', {
-            key: playInfo.video.key,
+            key: key,
             tagId: tag.id
         });
         await swrApiMutate('favorite-clips/query-clip-tags');
@@ -52,8 +54,10 @@ export default function TagSelector() {
 
     const handleCreateTag = async (name: string) => {
         const newTag = await api.call('tag/add', name);
+        const key = playInfo?.video.key;
+        if (!key) return;
         await api.call('favorite-clips/add-clip-tag', {
-            key: playInfo.video.key,
+            key: key,
             tagId: newTag.id
         });
         await swrApiMutate('favorite-clips/query-clip-tags'); // 重新获取标签数据
@@ -86,8 +90,10 @@ export default function TagSelector() {
                     {tag.name}
                     <Button variant="ghost" size="icon" className="m-0.5 h-5 w-5"
                             onClick={async () => {
+                                const key = playInfo?.video.key;
+                                if (!key) return;
                                 await api.call('favorite-clips/delete-clip-tag', {
-                                    key: playInfo.video.key,
+                                    key: key,
                                     tagId: tag.id
                                 });
                                 await clipTagMutate();

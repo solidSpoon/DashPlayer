@@ -1,4 +1,5 @@
 export type ClipSrtLine = {
+    index: number;
     start: number;
     end: number;
     contentEn: string;

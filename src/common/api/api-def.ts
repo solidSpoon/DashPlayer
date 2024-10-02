@@ -12,7 +12,7 @@ import { SettingKey } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
 
-import { OssObject } from '@/common/types/OssObject';
+import { ClipMeta, OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
@@ -150,7 +150,7 @@ interface ConvertDef {
 
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtKey: string, indexInSrt: number }, return: void };
-    'favorite-clips/search': { params: ClipQuery, return: OssObject[] };
+    'favorite-clips/search': { params: ClipQuery, return: ClipMeta[] };
     'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
     'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
     'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };

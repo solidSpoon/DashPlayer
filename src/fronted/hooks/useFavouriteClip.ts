@@ -1,16 +1,13 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { ClipMeta } from '@/common/types/OssObject';
+import { ClipMeta, ClipSrtLine } from '@/common/types/OssObject';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
 import { Nullable } from '@/common/types/Types';
 import StrUtil from '@/common/utils/str-util';
-import { SrtSentence } from '@/common/types/SentenceC';
-import { ObjUtil } from '@/backend/utils/ObjUtil';
 import TransHolder from '@/common/utils/TransHolder';
-import { sleep } from '@/common/utils/Util';
-import { SrtTender } from '@/fronted/lib/SrtTender';
+import { ClipTenderImpl, SrtTender } from '@/fronted/lib/SrtTender';
 
 const api = window.electron;
 
@@ -26,7 +23,7 @@ export interface PlayInfo {
 type UseFavouriteClipState = {
     playInfo: PlayInfo | null;
     currentTime: number;
-    srtTender: SrtTender | null;
+    srtTender: SrtTender<ClipSrtLine> | null;
     lineClip: Map<string, boolean>;
     transMap: TransHolder<string>;
 };
@@ -44,6 +41,7 @@ const useFavouriteClip = create(
     subscribeWithSelector<UseFavouriteClipState & UseFavouriteClipActions>((set, get) => ({
         playInfo: null,
         currentTime: 0,
+        srtTender: null,
         lineClip: new Map(),
         transMap: TransHolder.from(new Map()),
         setPlayInfo: (playInfo: PlayInfo | null) => {
@@ -115,8 +113,17 @@ useFavouriteClip.subscribe(
     (s) => s.playInfo?.video.clip_content,
     async (clipContent) => {
         if (!clipContent) {
+            useFavouriteClip.setState({
+                srtTender: null,
+                transMap: TransHolder.from(new Map())
+            });
             return;
         }
+        const srtKey = useFavouriteClip.getState().playInfo?.video.key??'';
+        const clipTender = new ClipTenderImpl(clipContent, srtKey);
+        useFavouriteClip.setState({
+            srtTender: clipTender
+        });
         console.log('clipContent trans', clipContent);
         const currentHolder = useFavouriteClip.getState().transMap;
         const param = clipContent

@@ -1,6 +1,6 @@
 import { ClipSrtLine, MetaData, OssObject } from '@/common/types/OssObject';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { Button } from '@/fronted/components/ui/button';
@@ -12,15 +12,24 @@ const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const currentTime = useFavouriteClip(state => state.currentTime);
     const deleteClip = useFavouriteClip(state => state.deleteClip);
-    const lastCurrentLine = React.useRef<ClipSrtLine>();
-    const isCurrentVideo = (video: OssObject & MetaData) => {
-        return playInfo?.video.key === video.key;
-    };
-    const isCurrentLine = (line: ClipSrtLine) => {
+    const srtTender = useFavouriteClip(state => state.srtTender);
+    const [currentLine, setCurrentLine] = React.useState<ClipSrtLine | null>(null);
+
+    useEffect(() => {
+        if (playInfo?.video.key !== item.key) {
+            if (currentLine) {
+                setCurrentLine(null);
+            }
+            return;
+        }
         const valid = Date.now() - (playInfo?.timeUpdated ?? 0) > 500;
         const ct = valid ? currentTime : (playInfo?.time ?? 0);
-        return line.start <= ct && line.end > ct;
-    };
+        const line = srtTender?.getByTime(ct) ?? null;
+        if (line !== currentLine) {
+            setCurrentLine(line);
+        }
+    }, [currentLine, currentTime, playInfo, srtTender]);
+
 
     const lines: ClipSrtLine[] = item.clip_content ?? [];
     return (
@@ -37,30 +46,24 @@ const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
             </div>
             <div className="w-0 flex-1 flex flex-col gap h-full overflow-hidden select-text">
                 <div className={cn('text-base cursor-pointer')}>
-                    {lines.map((contextLine: ClipSrtLine,index) => {
-                        const isCurrent = isCurrentVideo(item) && isCurrentLine(contextLine);
-                        if (isCurrent) {
-                            lastCurrentLine.current = contextLine;
-                        }
-
-                        return (<span key={`${item.key}-${index}`}
-                                      onClick={() => {
-                                          setPlayInfo({
-                                              video: item,
-                                              time: contextLine.start,
-                                              timeUpdated: Date.now()
-                                          });
-                                          // setPlay(true);
-                                          console.log('setPlayInfo', contextLine.start);
-                                      }}
-                                      className={cn('hover:underline',
-                                          isCurrent && 'text-primary',
-                                          contextLine.isClip && 'font-bold'
-                                      )}>
-                                                {contextLine.contentEn}
-                                            </span>
-                        );
-                    })}
+                    {lines.map((contextLine: ClipSrtLine, index) =>
+                        <span key={`${item.key}-${index}`}
+                              onClick={() => {
+                                  setPlayInfo({
+                                      video: item,
+                                      time: contextLine.start,
+                                      timeUpdated: Date.now()
+                                  });
+                                  // setPlay(true);
+                                  console.log('setPlayInfo', contextLine.start);
+                              }}
+                              className={cn('hover:underline',
+                                  contextLine === currentLine && 'text-primary',
+                                  contextLine.isClip && 'font-bold'
+                              )}>
+                              {contextLine.contentEn}
+                        </span>
+                    )}
                 </div>
                 <div className="flex gap-2 items-start">
                     <div

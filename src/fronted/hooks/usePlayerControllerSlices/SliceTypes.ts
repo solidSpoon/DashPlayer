@@ -4,7 +4,7 @@ import { SrtTender } from '@/fronted/lib/SrtTender';
 
 export interface SubtitleSlice {
     subtitle: Sentence[];
-    srtTender: SrtTender | null;
+    srtTender: SrtTender<Sentence> | null;
     setSubtitle: (subtitle: Sentence[]) => void;
     mergeSubtitle: (subtitle: Sentence[]) => void;
     mergeSubtitleTrans: (holder: TransHolder<string>) => void;

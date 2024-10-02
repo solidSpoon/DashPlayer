@@ -32,7 +32,7 @@ const FavouritePlayer = () => {
     const [line] = playInfo?.video?.clip_content?.filter((line) => line.isClip) ?? [];
 
     return (
-        <div className={'w-full flex flex-col'}>
+        <div className={'w-full flex flex-col gap-4'}>
             {playInfo && <>
                 <AspectRatio ratio={16 / 9}>
                     <div className="w-full rounded-lg overflow-hidden">
@@ -61,9 +61,6 @@ const FavouritePlayer = () => {
                 </AspectRatio>
                 <TagSelector />
                 <FavouriteMainSrt/>
-                <div className="flex justify-center">
-                    <button onClick={() => setPlayInfo(null)} className="btn btn-primary">Close</button>
-                </div>
             </>}
         </div>
     );

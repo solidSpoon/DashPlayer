@@ -16,7 +16,9 @@ import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 const api = window.electron;
 
 const Loader = () => {
-    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info',  null));
+    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info'),{
+        fallbackData: 0
+    });
     const has = unfinishedLength > 0;
 
     useEffect(() => {
@@ -48,7 +50,7 @@ const Favorite = () => {
     const [keyword, setKeyword] = useState('');
     const [tagRelation, setTagRelation] = useState<'and' | 'or'>('and');
     const [tags, setTags] = useState<Tag[]>([]);
-    const [date, setDate] = useState<DateRange>({ from: null, to: null });
+    const [date, setDate] = useState<DateRange>({ from: undefined, to: undefined });
     const [includeNoTag, setIncludeNoTag] = useState(false);
     const [keywordRange, setKeywordRange] = useState<'clip' | 'context'>('clip');
     const { data } = useSWR([apiPath('favorite-clips/search'), keyword, tags, date, tagRelation, includeNoTag, keywordRange], () => {

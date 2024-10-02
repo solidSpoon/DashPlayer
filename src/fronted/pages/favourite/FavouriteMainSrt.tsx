@@ -1,19 +1,22 @@
 import React from 'react';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
-const api = window.electron;
 const FavouriteMainSrt = () => {
-    useFavouriteClip(state => state.currentTime);
+    const currentTime = useFavouriteClip(state => state.currentTime);
     const playInfo = useFavouriteClip(state => state.playInfo);
-
-    const [line] = playInfo?.video?.clip_content?.filter((line) => line.isClip) ?? [];
-
-    if (!line) {
+    const srtTender = useFavouriteClip(state => state.srtTender);
+    const transMap = useFavouriteClip(state => state.transMap);
+    if (!playInfo || !srtTender) {
         return <> </>;
     }
+    const line = srtTender.getByTime(currentTime);
+
     return (
-        <div className={'w-full flex flex-col'}>
-            <div className="flex justify-center">
+        <div className={'w-full flex flex-col py-2 gap-2 select-text'}>
+            <div className="flex justify-center text-2xl">
                 {line.contentEn}
+            </div>
+            <div className="flex justify-center">
+                {transMap.get(line.contentEn)}
             </div>
             <div className="flex justify-center">
                 {line.contentZh}

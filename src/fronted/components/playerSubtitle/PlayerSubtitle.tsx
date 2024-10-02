@@ -25,7 +25,7 @@ const PlayerSubtitle = () => {
                     <PlayerTranslatableLine
                         adjusted={srtTender?.adjusted(sentence) ?? false}
                         clearAdjust={clearAdjust}
-                        key={`first-${sentence.getKey()}`}
+                        key={`first-${sentence.key}`}
                         sentence={sentence}
                     />
                 );
@@ -33,7 +33,7 @@ const PlayerSubtitle = () => {
             if (index === 1) {
                 return (
                     <PlayerNormalLine
-                        key={`second-${sentence.getKey()}`}
+                        key={`second-${sentence.key}`}
                         text={item}
                         order="second"
                     />
@@ -42,7 +42,7 @@ const PlayerSubtitle = () => {
 
             return (
                 <PlayerNormalLine
-                    key={`third-${sentence.getKey()}`}
+                    key={`third-${sentence.key}`}
                     text={item}
                     order="third"
                 />
@@ -56,7 +56,7 @@ const PlayerSubtitle = () => {
         }
         return (
             <div
-                key={`trans-sub:${sentence?.getKey()}`}
+                key={`trans-sub:${sentence?.key}`}
                 className="flex flex-col w-full text-center text-textColor justify-center items-center gap-2"
             >
                 {ele()}

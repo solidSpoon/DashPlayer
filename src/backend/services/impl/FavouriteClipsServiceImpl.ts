@@ -182,7 +182,8 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             item.contentEn
         ).filter((item) => StrUtil.isNotBlank(item)).join('\n');
         const startTime = clipContext[0].start ?? 0;
-        const clipJson: ClipSrtLine[] = clipContext.map((item) => ({
+        const clipJson: ClipSrtLine[] = clipContext.map((item, index) => ({
+            index: index,
             start: item.start - startTime,
             end: item.end - startTime,
             contentEn: item.contentEn,
