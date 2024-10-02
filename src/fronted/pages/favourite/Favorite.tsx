@@ -12,11 +12,12 @@ import TagQuery from '@/fronted/components/query/TagQuery';
 import { DateRange } from 'react-day-picker';
 import { Tag } from '@/backend/db/tables/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
+import { Virtuoso } from 'react-virtuoso';
 
 const api = window.electron;
 
 const Loader = () => {
-    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info'),{
+    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info'), {
         fallbackData: 0
     });
     const has = unfinishedLength > 0;
@@ -63,6 +64,8 @@ const Favorite = () => {
             date,
             includeNoTag
         });
+    },{
+        fallbackData: []
     });
 
 
@@ -92,7 +95,7 @@ const Favorite = () => {
                     onKeywordRangeChange={setKeywordRange}
                 />
                 <DatePickerWithRange dateRange={date} onDateRangeChange={setDate} />
-                <TagQuery onUpdate={(t,r,includeNoTag) => {
+                <TagQuery onUpdate={(t, r, includeNoTag) => {
                     setTags(t);
                     setTagRelation(r);
                     setIncludeNoTag(includeNoTag);
@@ -104,12 +107,12 @@ const Favorite = () => {
                      gridTemplateRows: '100%'
                  }}
             >
-                <div className={'max-w-3xl flex flex-col gap-8 overflow-y-scroll scrollbar-none'}>
+                <Virtuoso
 
-                    {data?.map((item) => (
-                        <FavouriteItem item={item} />
-                    ))}
-                </div>
+                    className={cn('max-w-3xl scrollbar-none')}
+                    data={data}
+                    itemContent={(_index, item) => <FavouriteItem item={item} />}
+                />
                 <FavouritePlayer />
             </div>
         </div>

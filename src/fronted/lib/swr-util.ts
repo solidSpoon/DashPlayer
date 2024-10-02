@@ -22,7 +22,7 @@ export const swrMutate = async (swrKey: string) => {
                 return key.length > 0 && key[0] === swrKey;
             }
         },
-        undefined,
+        (currentData) => currentData,
         {revalidate: true}
     )
 }

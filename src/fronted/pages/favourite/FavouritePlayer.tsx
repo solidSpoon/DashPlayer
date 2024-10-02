@@ -5,9 +5,10 @@ import React, { useEffect } from 'react';
 import useFavouriteClip, { PlayInfo } from '@/fronted/hooks/useFavouriteClip';
 import TagSelector from '@/fronted/components/TagSelector';
 import FavouriteMainSrt from '@/fronted/pages/favourite/FavouriteMainSrt';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 const FavouritePlayer = () => {
-    // const [play, setPlay] = useState(true);
+
     const setCurrentTime = useFavouriteClip(state => state.setCurrentTime);
     const playInfo = useFavouriteClip(state => state.playInfo);
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
@@ -18,18 +19,22 @@ const FavouritePlayer = () => {
         setTimeout(() => {
             if (playerRef.current !== null) {
                 playerRef.current.seekTo(playInfo?.time);
-                // playerRef.current.seekTo(playInfo?.time);
             }
         }, 100);
     }
-
+    useHotkeys('space', (e) => {
+        e.preventDefault();
+        const current = playerRef.current;
+        if (current) {
+            const internalPlayer = current.getInternalPlayer() as HTMLVideoElement;
+            internalPlayer.paused ? internalPlayer.play() : internalPlayer.pause();
+        }
+    });
     useEffect(() => {
         return () => {
             setPlayInfo(null);
         };
     }, [setPlayInfo]);
-
-    const [line] = playInfo?.video?.clip_content?.filter((line) => line.isClip) ?? [];
 
     return (
         <div className={'w-full flex flex-col gap-4'}>
@@ -60,7 +65,7 @@ const FavouritePlayer = () => {
                     </div>
                 </AspectRatio>
                 <TagSelector />
-                <FavouriteMainSrt/>
+                <FavouriteMainSrt />
             </>}
         </div>
     );

@@ -287,7 +287,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             .groupBy(videoClip.key)
             .having(having1)
             .orderBy(desc(videoClip.created_at))
-            .limit(1000);
+            .limit(5000);
         return Promise.all(lines.map((line) => this.clipOssService.get(line.key)));
     }
 

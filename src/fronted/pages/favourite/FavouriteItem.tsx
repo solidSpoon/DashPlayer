@@ -8,6 +8,7 @@ import { Trash2 } from 'lucide-react';
 
 
 const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
+    console.log('fav item', item);
     const playInfo = useFavouriteClip(state => state.playInfo);
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const currentTime = useFavouriteClip(state => state.currentTime);
@@ -28,13 +29,13 @@ const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
         if (line !== currentLine) {
             setCurrentLine(line);
         }
-    }, [currentLine, currentTime, playInfo, srtTender]);
+    }, [currentLine, currentTime, item.key, playInfo, srtTender]);
 
 
-    const lines: ClipSrtLine[] = item.clip_content ?? [];
+    const lines: ClipSrtLine[] = item?.clip_content ?? [];
     return (
         <div key={item.key}
-             className={cn('flex max-w-3xl items-center gap-4 rounded-xl')}>
+             className={cn('flex max-w-3xl items-start gap-4 rounded-xl pb-8')}>
             <div className="flex flex-col w-44 gap-1 h-full overflow-hidden p-2 select-text">
                 <img
                     className={cn('w-full rounded-lg')}
