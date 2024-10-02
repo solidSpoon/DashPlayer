@@ -67,12 +67,12 @@ const HomePage = () => {
                         to="/home" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
-                          className="font-semibold ">
-                        Split Video
-                    </Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/favorite'}
+                          className="font-semibold ">Favorite Clips</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/transcript'}
                           className="font-semibold ">Transcript</Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
+                          className="font-semibold ">Split Video</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/download'}
                           className="font-semibold ">Download</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/convert'}

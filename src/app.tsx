@@ -56,7 +56,7 @@ const App = () => {
                                     element={<Eb key="transcript"><Transcript /></Eb>}
                                 />
                                 <Route
-                                path="Favorite"
+                                path="favorite"
                                 element={<Eb key="favorite"><Favorite /></Eb>}
                                 />
                                 <Route
