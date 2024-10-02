@@ -4,6 +4,7 @@ export enum LocationType {
     LOGS = 'logs',
     VIDEOS = 'videos',
     TEMP_OSS = 'temp_oss',
+    DATA = 'data',
 }
 
 export enum ProgramType {

@@ -3,9 +3,8 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import LocationServiceImpl from '@/backend/services/impl/LocationServiceImpl';
 import FileUtil from '@/backend/utils/FileUtil';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, postConstruct } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
 import FfmpegTask from '@/backend/objs/FfmpegTask';
@@ -13,16 +12,14 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import CancelByUserError from '@/backend/errors/CancelByUserError';
 import dpLog from '@/backend/ioc/logger';
 import ffmpeg from 'fluent-ffmpeg';
+import LocationService, { ProgramType } from '@/backend/services/LocationService';
 
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
-
-    static {
-        ffmpeg.setFfmpegPath(LocationServiceImpl.ffmpegPath());
-        ffmpeg.setFfprobePath(LocationServiceImpl.ffprobePath());
-    }
+    @inject(TYPES.LocationService)
+    private locationService!: LocationService;
 
     /**
      * ffmpeg -y -ss {} -t {} -accurate_seek -i {} -codec copy  -avoid_negative_ts 1 {}
@@ -138,7 +135,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
             });
         await new Promise<void>((resolve, reject) => {
             ffmpegCommand.on('end', () => resolve()).on('error', (err) => reject(err));
-        })
+        });
     }
 
 
@@ -339,7 +336,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
 
     private async runFfmpegCommand(args: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            const ff = spawn(LocationServiceImpl.ffmpegPath(), args);
+            const ff = spawn(this.locationService.getProgramPath(ProgramType.FFMPEG), args);
             ff.on('close', (code) => {
                 dpLog.log(`child process exited with code ${code}`);
                 resolve();
@@ -349,6 +346,12 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 reject(error);
             });
         });
+    }
+
+    @postConstruct()
+    private init() {
+        ffmpeg.setFfmpegPath(this.locationService.getProgramPath(ProgramType.FFMPEG));
+        ffmpeg.setFfprobePath(this.locationService.getProgramPath(ProgramType.FFPROBE));
     }
 }
 
