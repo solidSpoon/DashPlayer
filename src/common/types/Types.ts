@@ -6,3 +6,4 @@ export type WindowState =
     | 'closed'
     | 'home'
     | 'player';
+export type Nullable<T> = T | null | undefined;

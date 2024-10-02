@@ -1,13 +1,13 @@
 import { StateCreator } from 'zustand/esm';
-import SentenceC from '../../../common/types/SentenceC';
+import { Sentence } from '@/common/types/SentenceC';
 import { InternalSlice, SubtitleSlice } from './SliceTypes';
 import { SrtTenderImpl } from '@/fronted/lib/SrtTender';
 
-function mergeArr(baseArr: SentenceC[], diff: SentenceC[]) {
+function mergeArr(baseArr: Sentence[], diff: Sentence[]) {
     if (diff.length === 0) {
         return baseArr;
     }
-    const mapping = new Map<number, SentenceC>();
+    const mapping = new Map<number, Sentence>();
     diff.forEach((item) => {
         mapping.set(item.index, item);
     });
@@ -26,14 +26,18 @@ const createSubtitleSlice: StateCreator<
     subtitle: [],
     srtTender: null,
     subTitlesStructure: new Map(),
-    setSubtitle: (subtitle: SentenceC[]) => {
+    setSubtitle: (subtitle: Sentence[]) => {
         const srtTender = new SrtTenderImpl(subtitle);
         set({ subtitle, srtTender });
     },
-    mergeSubtitle: (diff: SentenceC[]) => {
+    mergeSubtitle: (diff: Sentence[]) => {
         const newSubtitle = mergeArr(get().subtitle, diff);
         set({ subtitle: newSubtitle });
         const srtTender = get().srtTender;
+        if (!srtTender)  {
+            console.error('srtTender is null');
+            return;
+        }
         diff.forEach((item) => {
             srtTender.update(item);
         });
@@ -44,12 +48,16 @@ const createSubtitleSlice: StateCreator<
             if (!trans) {
                 return s;
             }
-            const ns = s.clone();
+            const ns = {...s};
             ns.msTranslate = trans;
             return ns;
         });
         set({ subtitle });
         const srtTender = get().srtTender;
+        if (!srtTender)  {
+            console.error('srtTender is null');
+            return;
+        }
         subtitle.forEach((item) => {
             srtTender.update(item);
         });

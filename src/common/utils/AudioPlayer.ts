@@ -1,5 +1,7 @@
 import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
+import { Nullable } from '@/common/types/Types';
+import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 const cache = new Map<string, string>();
 const api = window.electron;
@@ -16,7 +18,10 @@ async function getAudioUrl(outURl: string) {
     return audioUrl;
 }
 
-export const playAudioUrl = async (audioUrl: string) => {
+export const playAudioUrl = async (audioUrl: Nullable<string>) => {
+    if (TypeGuards.isNull(audioUrl)) {
+        return;
+    }
     player?.pause();
     console.log('playAudioUrl', audioUrl);
     player = new Audio(audioUrl);

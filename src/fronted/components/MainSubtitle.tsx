@@ -24,7 +24,7 @@ export default function MainSubtitle() {
                     <TranslatableLine
                         adjusted={srtTender?.adjusted(sentence) ?? false}
                         clearAdjust={clearAdjust}
-                        key={`first-${sentence.getKey()}`}
+                        key={`first-${sentence.key}`}
                         sentence={sentence}
                     />
                 );
@@ -32,7 +32,7 @@ export default function MainSubtitle() {
             if (index === 1) {
                 return (
                     <NormalLine
-                        key={`second-${sentence.getKey()}`}
+                        key={`second-${sentence.key}`}
                         text={item}
                         order="second"
                     />
@@ -41,7 +41,7 @@ export default function MainSubtitle() {
 
             return (
                 <NormalLine
-                    key={`third-${sentence.getKey()}`}
+                    key={`third-${sentence.key}`}
                     text={item}
                     order="third"
                 />
@@ -55,7 +55,7 @@ export default function MainSubtitle() {
         }
         return (
             <div
-                key={`trans-sub:${sentence?.getKey()}`}
+                key={`trans-sub:${sentence?.key}`}
                 className="flex flex-col w-full text-center text-textColor shadow-inner h-0"
             >
                 {ele()}

@@ -107,7 +107,7 @@ const ControlBox = () => {
     );
     const setSetting = useSetting((s) => s.setSetting);
     const setting = useSetting((s) => s.setting);
-    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size', null));
+    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
     const { podcstMode, setPodcastMode } = useLayout(useShallow(s => ({
         podcstMode: s.podcastMode,
         setPodcastMode: s.setPodcastMode

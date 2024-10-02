@@ -1,4 +1,4 @@
-import SentenceC from '@/common/types/SentenceC';
+import { Sentence } from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
 
 interface TenderLine {
@@ -6,32 +6,32 @@ interface TenderLine {
     t1: number;
     t2: number;
     opId: number;
-    origin: SentenceC;
+    origin: Sentence;
 }
 
 export interface SrtTender {
-    getByTime(time: number): SentenceC;
+    getByTime(time: number): Sentence;
 
-    pin(sentence: SentenceC): void;
+    pin(sentence: Sentence): void;
 
-    mapSeekTime(time: number | SentenceC): { start: number, end: number };
+    mapSeekTime(time: number | Sentence): { start: number, end: number };
 
-    adjustBegin(sentence: SentenceC, time: number): SentenceC;
+    adjustBegin(sentence: Sentence, time: number): Sentence;
 
-    adjustEnd(sentence: SentenceC, time: number): SentenceC;
+    adjustEnd(sentence: Sentence, time: number): Sentence;
 
-    adjusted(sentence: SentenceC, delta?: number): boolean;
+    adjusted(sentence: Sentence, delta?: number): boolean;
 
-    clearAdjust(sentence: SentenceC): SentenceC;
+    clearAdjust(sentence: Sentence): Sentence;
 
-    timeDiff(sentence: SentenceC): { start: number, end: number };
+    timeDiff(sentence: Sentence): { start: number, end: number };
 
-    update(sentence: SentenceC): void;
+    update(sentence: Sentence): void;
 }
 
 
 class TenderUtils {
-    public static sentenceKey(sentence: SentenceC) {
+    public static sentenceKey(sentence: Sentence) {
         return `${sentence.fileHash}-${sentence.index}`;
     }
 }
@@ -47,7 +47,7 @@ export class SrtTenderImpl implements SrtTender {
     private cacheIndex: number | null = null;
     private backupIndex = 0;
 
-    constructor(sentences: SentenceC[]) {
+    constructor(sentences: Sentence[]) {
         if (CollUtil.isEmpty(sentences)) return;
         const tempLines = this.mapToLine(sentences);
         tempLines.forEach((item) => {
@@ -58,17 +58,17 @@ export class SrtTenderImpl implements SrtTender {
         }
     }
 
-    public getByTime(time: number): SentenceC {
+    public getByTime(time: number): Sentence {
         return this.getByTimeInternal(time).origin;
     }
 
-    public pin(sentence: SentenceC) {
+    public pin(sentence: Sentence) {
         const line = this.getByT(sentence);
         if (!line) return;
         this.put({ ...line });
     }
 
-    public mapSeekTime(time: number | SentenceC): { start: number, end: number } {
+    public mapSeekTime(time: number | Sentence): { start: number, end: number } {
         const line = typeof time === 'number' ?
             this.getByTimeInternal(time) :
             this.getByT(time);
@@ -84,10 +84,10 @@ export class SrtTenderImpl implements SrtTender {
         };
     }
 
-    public adjustBegin(sentence: SentenceC, time: number): SentenceC {
+    public adjustBegin(sentence: Sentence, time: number): Sentence {
         const line = this.getByT(sentence);
         if (!line) return sentence;
-        const clone = sentence.clone();
+        const clone = { ...sentence };
         this.put({
             ...line,
             t1: line.t1 + time,
@@ -96,10 +96,10 @@ export class SrtTenderImpl implements SrtTender {
         return clone;
     }
 
-    public adjustEnd(sentence: SentenceC, time: number): SentenceC {
+    public adjustEnd(sentence: Sentence, time: number): Sentence {
         const line = this.getByT(sentence);
         if (!line) return sentence;
-        const clone = sentence.clone();
+        const clone = { ...sentence };
         this.put({
             ...line,
             t2: line.t2 + time,
@@ -108,17 +108,17 @@ export class SrtTenderImpl implements SrtTender {
         return clone;
     }
 
-    public adjusted(sentence: SentenceC, delta = 0.05): boolean {
+    public adjusted(sentence: Sentence, delta = 0.05): boolean {
         const line = this.getByT(sentence);
         if (!line) return false;
         const origin = line.origin;
         return Math.abs(line.t1 - origin.start) > delta || Math.abs(line.t2 - origin.end) > delta;
     }
 
-    public clearAdjust(sentence: SentenceC): SentenceC {
+    public clearAdjust(sentence: Sentence): Sentence {
         const line = this.getByT(sentence);
         if (!line) return sentence;
-        const clone = sentence.clone();
+        const clone = {...sentence};
         this.put({
             ...line,
             t1: line.origin.start,
@@ -128,7 +128,7 @@ export class SrtTenderImpl implements SrtTender {
         return clone;
     }
 
-    public timeDiff(sentence: SentenceC): { start: number, end: number } {
+    public timeDiff(sentence: Sentence): { start: number, end: number } {
         const line = this.getByT(sentence);
         if (!line) return { start: 0, end: 0 };
         const origin = line.origin;
@@ -138,7 +138,7 @@ export class SrtTenderImpl implements SrtTender {
         };
     }
 
-    public update(sentence: SentenceC) {
+    public update(sentence: Sentence) {
         const line = this.getByT(sentence);
         if (!line) return;
         this.put({
@@ -147,7 +147,7 @@ export class SrtTenderImpl implements SrtTender {
         });
     }
 
-    private getByT(sentence: SentenceC): TenderLine | null {
+    private getByT(sentence: Sentence): TenderLine | null {
         const index = this.keyLineMapping.get(TenderUtils.sentenceKey(sentence));
         if (index === undefined) {
             console.error('can not find sentence', sentence);
@@ -220,7 +220,7 @@ export class SrtTenderImpl implements SrtTender {
         return Math.max(line.t1, line.t2);
     }
 
-    private mapToLine(sentences: SentenceC[]): TenderLine[] {
+    private mapToLine(sentences: Sentence[]): TenderLine[] {
         let index = 0;
         return sentences.map((sentence) => ({
                 index: index++,

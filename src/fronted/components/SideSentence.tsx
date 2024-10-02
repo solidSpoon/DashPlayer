@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import SentenceC from '../../common/types/SentenceC';
 import useSetting from '../hooks/useSetting';
 import usePlayerController from '../hooks/usePlayerController';
 import { cn } from '@/fronted/lib/utils';
@@ -7,10 +6,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { motion } from 'framer-motion';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
+import { Sentence } from '@/common/types/SentenceC';
 
 interface SideSentenceNewParam {
-    sentence: SentenceC;
-    onClick: (sentence: SentenceC) => void;
+    sentence: Sentence;
+    onClick: (sentence: Sentence) => void;
     isCurrent: boolean;
     isRepeat: boolean;
 }

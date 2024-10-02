@@ -1,7 +1,7 @@
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import path from 'path';
-import { MetaData, OssObject } from '@/common/types/OssObject';
+import { ClipSrtLine, MetaData, OssObject } from '@/common/types/OssObject';
 import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -147,7 +147,8 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         if (await this.clipInDb(key)) {
             return;
         }
-        await this.ffmpegService.trimVideo(task.videoPath, metaData.start_time, metaData.end_time, tempName);
+        const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
+        await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
         await this.clipOssService.putClip(key, tempName, metaData);
         await this.addToDb(metaData);
         fs.rmSync(tempName);
@@ -163,17 +164,31 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         await this.deleteFavoriteClip(key);
     }
 
+    private mapTrimRange(srt: SrtSentence, indexInSrt: number): [number, number] {
+        const srtLines: SrtLine[] = srt.sentences
+            .map((sentence) => SrtUtil.toSrtLine(sentence));
+        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
+        const startTime = clipContext[0].start ?? 0;
+        return [startTime, clipContext[clipContext.length - 1].end ?? 0];
+    }
+
     private mapToMetaData(videoPath: string, srt: SrtSentence, indexInSrt: number): MetaData {
         const srtLines: SrtLine[] = srt.sentences
             .map((sentence) => SrtUtil.toSrtLine(sentence));
         const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
         const clipLine = SrtUtil.srtAt(srtLines, indexInSrt) as SrtLine;
         const contentSrtStr = SrtUtil.toSrt(clipContext);
-        const contextEnStr = clipContext.map((item) =>
+        clipContext.map((item) =>
             item.contentEn
         ).filter((item) => StrUtil.isNotBlank(item)).join('\n');
-        const clipEnStr = clipLine?.contentEn ?? '';
-
+        const startTime = clipContext[0].start ?? 0;
+        const clipJson: ClipSrtLine[] = clipContext.map((item) => ({
+            start: item.start - startTime,
+            end: item.end - startTime,
+            contentEn: item.contentEn,
+            contentZh: item.contentZh,
+            isClip: item === clipLine
+        }));
         return {
             clip_file: '',
             thumbnail_file: '',
@@ -181,12 +196,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             key: hash(contentSrtStr),
             video_name: videoPath,
             created_at: Date.now(),
-            start_time: clipContext[0].start ?? 0,
-            end_time: clipContext[clipContext.length - 1].end ?? 0,
-            srt_clip: clipEnStr,
-            srt_clip_with_time: SrtUtil.toSrt([clipLine]),
-            srt_context: contextEnStr,
-            srt_context_with_time: contentSrtStr
+            clip_content: clipJson,
         };
     }
 
@@ -281,19 +291,22 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     private async addToDb(metaData: MetaData) {
+        const srtLines = metaData.clip_content ?? [];
+        const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
+        const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
         await db.insert(videoClip).values({
             key: metaData.key,
             video_name: metaData.video_name,
-            srt_clip: metaData.srt_clip,
-            srt_context: metaData.srt_context,
+            srt_clip: srtClip,
+            srt_context: srtContext,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
         }).onConflictDoUpdate({
             target: [videoClip.key],
             set: {
                 video_name: metaData.video_name,
-                srt_clip: metaData.srt_clip,
-                srt_context: metaData.srt_context,
+                srt_clip: srtClip,
+                srt_context: srtContext,
                 updated_at: TimeUtil.timeUtc()
             }
         });

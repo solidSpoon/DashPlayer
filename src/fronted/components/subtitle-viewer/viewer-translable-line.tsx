@@ -4,11 +4,11 @@ import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronte
 import {Button} from '@/fronted/components/ui/button';
 import {cn} from "@/fronted/lib/utils";
 import Word from "@/fronted/components/Word";
-import SentenceC from "@/common/types/SentenceC";
+import { Sentence } from '@/common/types/SentenceC';
 import hash from "object-hash";
 
 interface TranslatableSubtitleLineParam {
-    sentence: SentenceC;
+    sentence: Sentence;
     adjusted: boolean;
     clearAdjust: () => void;
     className?: string;

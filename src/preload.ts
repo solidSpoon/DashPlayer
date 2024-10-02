@@ -1,8 +1,9 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
-import {SettingKey} from './common/types/store_schema';
-import {ApiDefinitions, ApiMap} from "@/common/api/api-def";
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { SettingKey } from './common/types/store_schema';
+import { ApiDefinitions, ApiMap } from '@/common/api/api-def';
+import { Nullable } from '@/common/types/Types';
 
 export type Channels =
     | 'main-state'
@@ -28,6 +29,15 @@ const electronHandler = {
     // 调用函数的方法
     call: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {
         return ipcRenderer.invoke(path, param);
+    },
+    // 调用函数的方法
+    safeCall: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return'] | null> {
+        try {
+            return await ipcRenderer.invoke(path, param);
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
     }
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

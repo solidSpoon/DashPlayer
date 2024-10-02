@@ -5,8 +5,8 @@ import {
     SentenceSlice,
     SubtitleSlice,
 } from './SliceTypes';
-import SentenceC from '../../../common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
+import { Sentence } from '@/common/types/SentenceC';
 
 const createControllerSlice: StateCreator<
     ControllerSlice & SentenceSlice & SubtitleSlice & PlayerSlice,
@@ -38,7 +38,7 @@ const createControllerSlice: StateCreator<
             });
         }
     },
-    jump: (target: SentenceC) => {
+    jump: (target: Sentence) => {
         setState({ currentSentence: target });
         const srtTender = getState().srtTender;
         srtTender?.pin(target);

@@ -49,7 +49,8 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
         convert: s.convert
     })));
     const { task: dpTask } = useDpTaskViewer(taskId);
-    const progress = StrUtil.isNotBlank(dpTask?.result) ? JSON.parse(dpTask.result) : {
+    const resultJson = dpTask?.result;
+    const progress = StrUtil.isNotBlank(resultJson) ? JSON.parse(resultJson) : {
         progress: 0,
         path: file
     } as ConvertResult;
@@ -93,7 +94,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                                     if (dpTask?.status === DpTaskState.IN_PROGRESS) {
                                         await api.call('dp-task/cancel', taskId);
                                     } else {
-                                        onDeleted();
+                                        onDeleted?.();
                                     }
                                 }}
                                 className={cn(buttonVariant === 'small' && 'px-2.5 py-0.5 text-xs h-6')}

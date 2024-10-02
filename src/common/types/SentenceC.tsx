@@ -1,5 +1,4 @@
 import { SentenceStruct } from '@/common/types/SentenceStruct';
-import { Cloneable } from '@/common/interfaces';
 
 
 export interface SrtSentence {
@@ -22,12 +21,12 @@ export interface Sentence {
     /**
      * 字幕英文原文
      */
-    text: string | null;
+    text: string;
 
     /**
      * 字幕中文原文
      */
-    textZH: string | null;
+    textZH: string;
 
 
     /**
@@ -44,92 +43,3 @@ export interface Sentence {
 
     struct: SentenceStruct;
 }
-
-class SentenceC implements Sentence, Cloneable {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    public fileHash: string;
-    public index: number;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    public start: number;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    public end: number;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    public adjustedStart: number | null;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    public adjustedEnd: number | null;
-
-    /**
-     * 字幕英文原文
-     */
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-    public text: string | null;
-
-    /**
-     * 字幕中文原文
-     */
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-    public textZH: string | null;
-
-
-    /**
-     * 字幕机器翻译
-     */
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-    public msTranslate: string | null;
-
-    /**
-     * DB key
-     */
-    public key = '';
-
-    /**
-     * 批量翻译的分组, 从1开始
-     */
-    public transGroup = 0;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    struct: SentenceStruct;
-
-    public getKey = (): string => {
-        return this.key;
-    };
-
-    public static from(a: Sentence): SentenceC {
-        const result = new SentenceC(a.index);
-        for (const key in a) {
-            if (Object.prototype.hasOwnProperty.call(a, key)) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                result[key as keyof SentenceC] = a[key as keyof Sentence];
-            }
-        }
-        return result;
-    }
-
-
-    constructor(index: number) {
-        this.index = index;
-    }
-
-    public clone(): this {
-        const result = new SentenceC(this.index) as this;
-        for (const key in this) {
-            if (Object.prototype.hasOwnProperty.call(this, key)) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                result[key as keyof SentenceC] = this[key as keyof SentenceC];
-            }
-        }
-        return result;
-    }
-}
-
-export default SentenceC;

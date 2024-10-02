@@ -4,7 +4,6 @@ import StrUtil from '@/common/utils/str-util';
 import fs from 'fs';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Sentence, SrtSentence } from '@/common/types/SentenceC';
-import hash from 'object-hash';
 import { inject, injectable } from 'inversify';
 import SubtitleService from '@/backend/services/SubtitleService';
 import TYPES from '@/backend/ioc/types';
@@ -13,6 +12,7 @@ import FileUtil from '@/backend/utils/FileUtil';
 import CacheService from '@/backend/services/CacheService';
 import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { ObjUtil } from '@/backend/utils/ObjUtil';
 
 
 function groupSentence(
@@ -54,7 +54,7 @@ export class SubtitleServiceImpl implements SubtitleService {
         const content = await FileUtil.read(path);
         TypeGuards.assertNotNull(content, 'read file error');
         console.log(content);
-        const h = hash(content);
+        const h = ObjUtil.hash(content);
         const cache = this.cacheService.get('cache:srt', h);
         if (cache) {
             return cache;

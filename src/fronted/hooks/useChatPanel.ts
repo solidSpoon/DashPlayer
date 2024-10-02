@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import UndoRedo from '@/common/utils/UndoRedo';
-import { engEqual, p}from '@/common/utils/Util';
+import { engEqual, p } from '@/common/utils/Util';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
@@ -18,6 +18,7 @@ import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes'
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import StrUtil from '@/common/utils/str-util';
+import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 const api = window.electron;
 
@@ -46,7 +47,7 @@ const undoRedo = new UndoRedo<ChatPanelState>();
 export type ChatPanelState = {
     internal: {
         context: {
-            value: string;
+            value: string | null;
             time: number;
         }
         chatTaskQueue: CustomMessage<any>[];
@@ -88,13 +89,13 @@ const copy = (state: ChatPanelState): ChatPanelState => {
             context: {
                 ...state.internal.context
             },
-            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy()),
+            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy())
         },
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
             phraseTask: state.tasks.phraseTask,
             grammarTask: state.tasks.grammarTask,
-            sentenceTask: state.tasks.sentenceTask,
+            sentenceTask: state.tasks.sentenceTask
         },
         topic: state.topic,
         messages: state.messages,
@@ -113,13 +114,13 @@ const empty = (): ChatPanelState => {
                 value: null,
                 time: 0
             },
-            chatTaskQueue: [],
+            chatTaskQueue: []
         },
         tasks: {
             vocabularyTask: null,
             phraseTask: null,
             grammarTask: null,
-            sentenceTask: [],
+            sentenceTask: []
         },
         topic: 'offscreen',
         messages: [],
@@ -161,14 +162,14 @@ const useChatPanel = create(
             });
 
         },
-        createFromSelect: async (str: string) => {
+        createFromSelect: async (str?: string) => {
             let text = str;
             if (StrUtil.isBlank(text)) {
                 text = p(window.getSelection()?.toString());
                 // 去除换行符
                 text = text?.replace(/\n/g, '');
                 if (StrUtil.isBlank(text)) {
-                    text = useChatPanel.getState().context;
+                    text = useChatPanel.getState().context ?? '';
                 }
                 if (StrUtil.isBlank(text)) {
                     return;
@@ -185,10 +186,13 @@ const useChatPanel = create(
             const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
             const topic = { content: text };
             const currentSentence = usePlayerController.getState().currentSentence;
-            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence?.index ?? 0, 5);
+            const context: string[] = subtitles
+                .filter(TypeGuards.isNotNull)
+                .map(e => e.text ?? '');
             const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
-                sentence: text,
-                context: subtitles.map(e => e.text)
+                sentence: text??'',
+                context: context
             }), {
                 interval: 100
             });
@@ -217,18 +221,19 @@ const useChatPanel = create(
         createFromCurrent: async () => {
             undoRedo.add(copy(get()));
             const ct = usePlayerController.getState().currentSentence;
-            const synTask = await registerDpTask(() => api.call('ai-func/polish', ct.text), {
+            if (!ct) return;
+            const synTask = await registerDpTask(() => api.call('ai-func/polish', ct.text ?? ''), {
                 interval: 100
             });
-            const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text);
-            const tt = new HumanTopicMessage(get().topic, ct.text, phraseGroupTask);
+            const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text ?? '');
+            const tt = new HumanTopicMessage(get().topic, ct.text ?? '', phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitlePath ?? '';
             console.log(url);
             const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
             console.log('text', text);
             const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
-                no: ct.indexInFile,
+                no: ct.index,
                 srt: text
             }), {
                 interval: 100
@@ -246,6 +251,7 @@ const useChatPanel = create(
                 }
             };
             const currentSentence = usePlayerController.getState().currentSentence;
+            if (!currentSentence) return;
             const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
             const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
                 sentence: currentSentence.text,
@@ -314,7 +320,7 @@ const useChatPanel = create(
             });
         },
         ctxMenuExplain: async () => {
-            const userSelect = window.getSelection().toString();
+            const userSelect = window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(userSelect)) return;
             const context = get().context;
             if (StrUtil.isBlank(context) || engEqual(context, userSelect)) {
@@ -323,7 +329,7 @@ const useChatPanel = create(
                 }), {
                     interval: 100
                 });
-                get().addChatTask(new AiCtxMenuExplainSelectMessage(taskId, get().topic, context));
+                get().addChatTask(new AiCtxMenuExplainSelectMessage(taskId, get().topic, context ?? ''));
             } else {
                 const taskId = await registerDpTask(() => api.call('ai-func/explain-select-with-context', {
                     sentence: context,
@@ -335,7 +341,7 @@ const useChatPanel = create(
             }
         },
         ctxMenuPlayAudio: async () => {
-            let text = window.getSelection().toString();
+            let text: string | null = window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
@@ -344,9 +350,9 @@ const useChatPanel = create(
             await playAudioUrl(ttsUrl);
         },
         ctxMenuPolish: async () => {
-            let text = window.getSelection().toString();
+            let text = window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
-                text = get().context;
+                text = get().context ?? '';
             }
             if (StrUtil.isBlank(text)) return;
             const taskId = await registerDpTask(() => api.call('ai-func/polish', text), {
@@ -384,11 +390,12 @@ const useChatPanel = create(
             if (type === 'welcome') {
                 const msg = get().messages[1].copy() as AiWelcomeMessage;
                 const ct = usePlayerController.getState().currentSentence;
+                if (!ct) return;
                 const polishTask = await registerDpTask(() => api.call('ai-func/polish', msg.originalTopic), {
                     interval: 100
                 });
                 const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
-                    no: ct.indexInFile,
+                    no: ct.index,
                     srt: msg.originalTopic
                 }), {
                     interval: 100
@@ -402,7 +409,7 @@ const useChatPanel = create(
             }
         },
         ctxMenuQuote: () => {
-            let text = window.getSelection().toString();
+            let text: string | null = window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
@@ -417,7 +424,7 @@ const useChatPanel = create(
 
         },
         ctxMenuCopy: async () => {
-            let text = window.getSelection().toString();
+            let text: string | null = window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
@@ -549,7 +556,7 @@ useChatPanel.subscribe(
             return;
         }
         if (running) return;
-        running = true
+        running = true;
         const tasks = useChatPanel.getState().tasks;
         if (!tasks.vocabularyTask) {
             await runVocabulary();

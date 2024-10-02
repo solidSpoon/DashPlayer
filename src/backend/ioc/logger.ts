@@ -7,7 +7,7 @@ import { LocationType } from '@/backend/services/LocationService';
 log.initialize({ preload: true });
 
 
-const logPath = LocationServiceImpl.getStoragePath(LocationType.LOGS);
+const logPath = LocationServiceImpl.localGetStoragePath(LocationType.LOGS);
 
 log.transports.file.level = "info";
 log.transports.file.resolvePathFn = () =>

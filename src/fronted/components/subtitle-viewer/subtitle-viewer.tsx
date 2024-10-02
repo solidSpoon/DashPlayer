@@ -1,6 +1,6 @@
 import { cn } from '@/fronted/lib/utils';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
-import SentenceC from '@/common/types/SentenceC';
+import { Sentence } from '@/common/types/SentenceC';
 import ViewerTranslatableLine from '@/fronted/components/subtitle-viewer/viewer-translable-line';
 import ViewerControlPanel from '@/fronted/components/subtitle-viewer/viewer-control-pannel';
 import { useShallow } from 'zustand/react/shallow';
@@ -8,16 +8,20 @@ import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';
 
 const SubtitleViewer = ({ className }: { className?: string }) => {
-    const current: SentenceC = usePlayerController((s) => s.currentSentence);
-    const subtitleAround: SentenceC[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
-    const subtitleBefore: SentenceC[] = subtitleAround.filter((s) => s.index < current.index).sort((a, b) => b.index - a.index);
-    const subtitleAfter: SentenceC[] = subtitleAround.filter((s) => s.index > current.index).sort((a, b) => a.index - b.index);
+    const current: Sentence | undefined = usePlayerController((s) => s.currentSentence);
+    const subtitleAround: Sentence[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
+    const currentIndex = current?.index ?? 0;
+    const subtitleBefore: Sentence[] = subtitleAround.filter((s) => s.index < currentIndex).sort((a, b) => b.index - a.index);
+    const subtitleAfter: Sentence[] = subtitleAround.filter((s) => s.index > currentIndex).sort((a, b) => a.index - b.index);
 
     const showCn = usePlayerController(s => s.showCn);
     const srtTender = usePlayerController(s => s.srtTender);
     const { clearAdjust } = usePlayerController(useShallow(s => ({
         clearAdjust: s.clearAdjust
     })));
+    if (!current || !srtTender) {
+        return <div className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)} />;
+    }
     return (
         <div
             className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)}

@@ -1,7 +1,5 @@
-import SentenceC from '@/common/types/SentenceC';
-
 export default class CollUtil {
-    public static isEmpty<T>(coll: T[] | null | undefined): boolean {
+    public static isEmpty<T>(coll: T[] | null | undefined): coll is null | undefined | [] {
         return !coll || coll.length === 0;
     }
 

@@ -1,14 +1,14 @@
-import SentenceC from '../../../common/types/SentenceC';
+import { Sentence } from '@/common/types/SentenceC';
 import TransHolder from '../../../common/utils/TransHolder';
 import { SrtTender } from '@/fronted/lib/SrtTender';
 
 export interface SubtitleSlice {
-    subtitle: SentenceC[];
+    subtitle: Sentence[];
     srtTender: SrtTender | null;
-    setSubtitle: (subtitle: SentenceC[]) => void;
-    mergeSubtitle: (subtitle: SentenceC[]) => void;
+    setSubtitle: (subtitle: Sentence[]) => void;
+    mergeSubtitle: (subtitle: Sentence[]) => void;
     mergeSubtitleTrans: (holder: TransHolder<string>) => void;
-    getSubtitleAround: (index: number, num?: number) => SentenceC[];
+    getSubtitleAround: (index: number, num?: number) => Sentence[];
 }
 
 export interface PlayerControllerInternal {
@@ -49,7 +49,7 @@ export interface PlayerSlice {
 }
 
 export interface SentenceSlice {
-    currentSentence: SentenceC | undefined;
+    currentSentence: Sentence | undefined;
     adjustStart: (time: number) => void;
     adjustEnd: (time: number) => void;
     clearAdjust: () => void;
@@ -76,5 +76,5 @@ export interface ControllerSlice {
     repeat: () => void;
     next: () => void;
     prev: () => void;
-    jump: (target: SentenceC) => void;
+    jump: (target: Sentence) => void;
 }

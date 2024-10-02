@@ -1,5 +1,7 @@
 import Util from '@/common/utils/Util';
 import { Sentence } from '@/common/types/SentenceC';
+import { ClipSrtLine } from '@/common/types/OssObject';
+import CollUtil from '@/common/utils/CollUtil';
 
 
 export type SrtLine = {

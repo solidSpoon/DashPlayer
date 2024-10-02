@@ -7,7 +7,7 @@ import { cn } from '@/fronted/lib/utils';
 import { FONT_SIZE } from '../styles/style';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
-import SentenceC from '@/common/types/SentenceC';
+import { Sentence } from '@/common/types/SentenceC';
 import hash from 'object-hash';
 import useCopyModeController from '../hooks/useCopyModeController';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
@@ -15,7 +15,7 @@ import useFile from '@/fronted/hooks/useFile';
 import { Bookmark } from 'lucide-react';
 
 interface TranslatableSubtitleLineParam {
-    sentence: SentenceC;
+    sentence: Sentence;
     adjusted: boolean;
     clearAdjust: () => void;
 }

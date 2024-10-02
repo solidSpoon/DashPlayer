@@ -9,10 +9,10 @@ import Word from '@/fronted/components/Word';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
 import hash from "object-hash";
-import SentenceC from "@/common/types/SentenceC";
+import { Sentence } from '@/common/types/SentenceC';
 
 interface PlayerTranslatableSubtitleLineParam {
-    sentence: SentenceC;
+    sentence: Sentence;
     adjusted: boolean;
     clearAdjust: () => void;
 }

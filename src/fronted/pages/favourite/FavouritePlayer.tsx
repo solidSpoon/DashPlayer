@@ -4,6 +4,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import React, { useEffect } from 'react';
 import useFavouriteClip, { PlayInfo } from '@/fronted/hooks/useFavouriteClip';
 import TagSelector from '@/fronted/components/TagSelector';
+import FavouriteMainSrt from '@/fronted/pages/favourite/FavouriteMainSrt';
 
 const FavouritePlayer = () => {
     // const [play, setPlay] = useState(true);
@@ -12,7 +13,7 @@ const FavouritePlayer = () => {
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const playerRef = React.useRef<ReactPlayer>(null);
     const lastSeekTime = React.useRef<PlayInfo>();
-    if (lastSeekTime.current !== playInfo) {
+    if (lastSeekTime.current !== playInfo && playInfo) {
         lastSeekTime.current = playInfo;
         setTimeout(() => {
             if (playerRef.current !== null) {
@@ -28,6 +29,8 @@ const FavouritePlayer = () => {
         };
     }, [setPlayInfo]);
 
+    const [line] = playInfo?.video?.clip_content?.filter((line) => line.isClip) ?? [];
+
     return (
         <div className={'w-full flex flex-col'}>
             {playInfo && <>
@@ -38,11 +41,18 @@ const FavouritePlayer = () => {
                             url={UrlUtil.file(playInfo?.video.baseDir, playInfo?.video.clip_file)}
                             width="100%"
                             height="100%"
+                            controls={true}
                             // onMouseEnter={e => e.currentTarget.play()}
                             // onMouseLeave={e => e.currentTarget.pause()}
                             playing={true}
                             onProgress={(state) => {
                                 setCurrentTime(state.playedSeconds);
+                            }}
+                            onStart={async () => {
+                                //jump
+                                if (playInfo?.time) {
+                                    playerRef.current?.seekTo(playInfo?.time);
+                                }
                             }}
 
                             loop
@@ -50,6 +60,10 @@ const FavouritePlayer = () => {
                     </div>
                 </AspectRatio>
                 <TagSelector />
+                <FavouriteMainSrt/>
+                <div className="flex justify-center">
+                    <button onClick={() => setPlayInfo(null)} className="btn btn-primary">Close</button>
+                </div>
             </>}
         </div>
     );

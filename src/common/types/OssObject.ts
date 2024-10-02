@@ -1,3 +1,10 @@
+export type ClipSrtLine = {
+    start: number;
+    end: number;
+    contentEn: string;
+    contentZh: string;
+    isClip: boolean;
+}
 export interface MetaData {
     'key': string;
     /**
@@ -8,18 +15,7 @@ export interface MetaData {
      * 创建时间
      */
     'created_at': number;
-    'start_time': number,
-    'end_time': number,
-    /**
-     * 收藏的行
-     */
-    'srt_clip': string;
-    'srt_clip_with_time': string;
-    /**
-     * 周围的字幕
-     */
-    'srt_context': string;
-    'srt_context_with_time': string;
+    'clip_content': ClipSrtLine[];
     'clip_file': string;
     'thumbnail_file': string;
     'tags': string[];

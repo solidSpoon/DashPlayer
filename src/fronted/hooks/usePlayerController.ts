@@ -15,7 +15,7 @@ import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice
 import createInternalSlice from './usePlayerControllerSlices/createInternalSlice';
 import createModeSlice from './usePlayerControllerSlices/createModeSlice';
 import createControllerSlice from './usePlayerControllerSlices/createControllerSlice';
-import SentenceC, { SrtSentence } from '../../common/types/SentenceC';
+import { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import useFile from './useFile';
 import { sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
@@ -118,8 +118,8 @@ usePlayerController.subscribe(
             updateSentenceInterval = window.setInterval(() => {
                 if (useFile.getState().videoLoaded) {
                     const currentTime = state.internal.exactPlayTime;
-                    const nextSentence: SentenceC = srtTender.getByTime(currentTime);
-                    const cs: SentenceC | undefined = state.currentSentence;
+                    const nextSentence: Sentence = srtTender.getByTime(currentTime);
+                    const cs: Sentence | undefined = state.currentSentence;
                     const isCurrent = cs === nextSentence;
                     if (isCurrent) {
                         return;
@@ -139,7 +139,7 @@ usePlayerController.subscribe(
  *
  */
 
-function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
+function filterUserCanSee(finishedGroup: Set<number>, subtitle: Sentence[]) {
     const currentGroup =
         usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
@@ -181,7 +181,7 @@ useFile.subscribe(
             usePlayerController.getState().setSubtitle([]);
             return;
         }
-        const subtitle = srtSubtitles.sentences.map(s => SentenceC.from(s));
+        const subtitle = srtSubtitles.sentences;
         if (CURRENT_FILE !== useFile.getState().subtitlePath) {
             return;
         }
@@ -194,12 +194,14 @@ useFile.subscribe(
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
             // console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
+                console.log('test error before');
                 const transHolder = TransHolder.from(
                     // eslint-disable-next-line no-await-in-loop
                     await api.call('ai-trans/batch-translate',
                         userCanSee.map((s) => s.text ?? '')
                     )
                 );
+                console.log('test error after');
                 if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }

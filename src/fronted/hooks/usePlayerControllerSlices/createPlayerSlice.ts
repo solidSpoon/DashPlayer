@@ -8,7 +8,7 @@ import {
 } from './SliceTypes';
 import useSetting from '@/fronted/hooks/useSetting';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
-import SentenceC from '@/common/types/SentenceC';
+import { Sentence } from '@/common/types/SentenceC';
 
 const OVERDUE_TIME = 600;
 const isTimeOverdue = (time: number) => {
@@ -46,7 +46,7 @@ function onTimeUpdate(
         return;
     }
     if (!singleRepeat && !autoPause) {
-        const nextSentence: SentenceC = srtTender.getByTime(exactPlayTime);
+        const nextSentence: Sentence = srtTender.getByTime(exactPlayTime);
         const isCurrent = currentSentence === nextSentence;
         if (isCurrent) {
             return;
@@ -77,8 +77,9 @@ const createPlayerSlice: StateCreator<
     setMuted: (muted) => set({ muted }),
     setVolume: (volume) => set({ volume }),
     play: () => {
-        if (get().internal.onPlaySeekTime) {
-            get().seekTo({ time: get().internal.onPlaySeekTime });
+        const onPlaySeekTime = get().internal.onPlaySeekTime;
+        if (onPlaySeekTime) {
+            get().seekTo({ time: onPlaySeekTime });
         } else {
             set({ playing: true });
         }

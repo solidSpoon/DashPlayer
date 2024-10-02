@@ -52,7 +52,7 @@ const createSentenceSlice: StateCreator<
         });
     },
     adjustEnd: async (time) => {
-        const cs = get().currentSentence?.clone();
+        const cs = get().currentSentence;
         const srtTender = get().srtTender;
         if (!cs || !srtTender) {
             return;
@@ -80,7 +80,7 @@ const createSentenceSlice: StateCreator<
     },
 
     clearAdjust: async () => {
-        const ct = get().currentSentence?.clone();
+        const ct = get().currentSentence;
         if (!ct) {
             return;
         }

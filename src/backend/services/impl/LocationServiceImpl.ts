@@ -31,7 +31,7 @@ export default class LocationServiceImpl implements LocationService {
         return this.isDev ? path.resolve('scripts') : `${process.resourcesPath}/scripts`;
     }
 
-    public static getStoragePath(type: LocationType) {
+    public static localGetStoragePath(type: LocationType) {
         const basePath = this.getStorageBathPath();
         return path.join(basePath, type);
     }
@@ -48,7 +48,7 @@ export default class LocationServiceImpl implements LocationService {
     }
 
     getStoragePath(type: LocationType): string {
-        const p = LocationServiceImpl.getStoragePath(type);
+        const p = LocationServiceImpl.localGetStoragePath(type);
         if (LocationType.FAVORITE_CLIPS === type) {
             return path.join(p, StrUtil.ifBlank(storeGet('storage.collection') ,'default'));
         }
@@ -71,7 +71,7 @@ export default class LocationServiceImpl implements LocationService {
     }
 
     listCollectionPaths(): string[] {
-        const strings = fs.readdirSync(LocationServiceImpl.getStoragePath(LocationType.FAVORITE_CLIPS))
+        const strings = fs.readdirSync(LocationServiceImpl.localGetStoragePath(LocationType.FAVORITE_CLIPS))
             .filter(name => !name.startsWith('.'));
         const current = storeGet('storage.collection');
         if (StrUtil.isNotBlank(current) && !strings.includes(current)) {

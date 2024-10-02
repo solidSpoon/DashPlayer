@@ -1,9 +1,10 @@
-import moment from "moment";
+import moment from 'moment';
 import StrUtil from '@/common/utils/str-util';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { Nullable } from '@/common/types/Types';
 
 export default class TimeUtil {
-    public static secondToTimeStrCompact(second: number | null | undefined): string {
+    public static secondToTimeStrCompact(second: Nullable<number>): string {
         if (second === null || second === undefined) {
             return '';
         }
@@ -17,7 +18,7 @@ export default class TimeUtil {
      * 00:00:00
      * @param second
      */
-    public static secondToTimeStr(second: number | null | undefined): string {
+    public static secondToTimeStr(second: Nullable<number>): string {
         if (TypeGuards.isNull(second)) {
             return '';
         }
@@ -28,14 +29,14 @@ export default class TimeUtil {
      * 00:00:00.000
      * @param second
      */
-    public static secondToTimeStrWithMs(second: number | null | undefined): string {
+    public static secondToTimeStrWithMs(second: Nullable<number>): string {
         if (TypeGuards.isNull(second)) {
             return '';
         }
         return moment.utc(second * 1000).format('HH:mm:ss.SSS');
     }
 
-    public static isoToDate(iso: string): Date {
+    public static isoToDate(iso: Nullable<string>): Date {
         if (StrUtil.isBlank(iso)) {
             return new Date();
         }

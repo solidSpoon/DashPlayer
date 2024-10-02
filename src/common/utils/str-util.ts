@@ -1,13 +1,14 @@
 export default class StrUtil {
     // Type predicate: Returns true if `str` is null, undefined, or only whitespace
-    public static isBlank(str: string | undefined | null): str is null | undefined | '' {
-        return !str || str.trim() === '';
+    public static isBlank(str: string | undefined | null): str is undefined | null | '' {
+        return str === undefined || str === null || str.trim() === '';
     }
 
     // Type predicate: Returns true if `str` is a non-blank string
     public static isNotBlank(str: string | undefined | null): str is string {
         return !StrUtil.isBlank(str);
     }
+
     public static allBlank(...strs: (string | undefined | null)[]): boolean {
         return strs.every(this.isBlank);
     }
