@@ -1,4 +1,4 @@
-import { MetaData, OssObject } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 

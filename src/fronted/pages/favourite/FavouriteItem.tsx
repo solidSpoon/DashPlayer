@@ -1,4 +1,4 @@
-import { ClipSrtLine, MetaData, OssObject } from '@/common/types/OssObject';
+import { ClipSrtLine, MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';

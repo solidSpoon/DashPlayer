@@ -1,7 +1,7 @@
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import path from 'path';
-import { ClipSrtLine, MetaData, OssObject } from '@/common/types/OssObject';
+import { ClipSrtLine, MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';

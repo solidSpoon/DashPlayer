@@ -12,10 +12,10 @@ import { SettingKey } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
 
-import { ClipMeta, OssObject } from '@/common/types/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
+import { ClipMeta } from '@/common/types/clipMeta';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },

@@ -1,6 +1,6 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import { MetaData, OssObject } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { Tag } from '@/backend/db/tables/tag';

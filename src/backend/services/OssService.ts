@@ -1,4 +1,4 @@
-import { MetaData, OssObject } from '@/common/types/OssObject';
+import { MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 
 
 export interface ClipOssService extends OssService<MetaData> {

@@ -1,12 +1,12 @@
 import { injectable } from 'inversify';
-import { OssObject } from '@/common/types/OssObject';
+import { OssObject } from '@/common/types/clipMeta/OssObject';
 import path from 'path';
 import fs from 'fs';
 import { OssService } from '@/backend/services/OssService';
 import dpLog from '@/backend/ioc/logger';
 
 @injectable()
-export default abstract class AbstractOssServiceImpl<T> implements OssService<T> {
+export default abstract class AbstractOssServiceImpl<I,R> implements OssService<T> {
 
     private readonly METADATA_FILE = 'metadata.json';
 

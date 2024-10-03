@@ -1,6 +1,6 @@
 import { Sentence } from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
-import { ClipSrtLine } from '@/common/types/OssObject';
+import { ClipSrtLine } from '@/common/types/clipMeta/OssObject';
 
 interface TenderLine<T> {
     index: number;

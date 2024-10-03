@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { ClipMeta, ClipSrtLine } from '@/common/types/OssObject';
+import { ClipSrtLine } from '@/common/types/clipMeta/OssObject';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
@@ -8,6 +8,7 @@ import { Nullable } from '@/common/types/Types';
 import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { ClipTenderImpl, SrtTender } from '@/fronted/lib/SrtTender';
+import { ClipMeta } from '@/common/types/clipMeta';
 
 const api = window.electron;
 

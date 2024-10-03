@@ -1,5 +1,5 @@
 import AbstractOssServiceImpl from '@/backend/services/impl/AbstractOssServiceImpl';
-import { MetaData } from '@/common/types/OssObject';
+import { ClipMeta } from '@/common/types/clipMeta';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
@@ -9,7 +9,7 @@ import FfmpegServiceImpl from '@/backend/services/impl/FfmpegServiceImpl';
 import fs from 'fs';
 
 @injectable()
-export default class ClipOssServiceImpl extends AbstractOssServiceImpl<MetaData> implements ClipOssService {
+export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta> implements ClipOssService {
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
