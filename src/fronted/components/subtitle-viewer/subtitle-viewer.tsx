@@ -57,10 +57,10 @@ const SubtitleViewer = ({ className }: { className?: string }) => {
                             adjusted={srtTender.adjusted(current) ?? false} clearAdjust={clearAdjust}
                             sentence={current}
                         />
-                        {!StrUtil.isBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl')}>
+                        {!StrUtil.isBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl text-center')}>
                             {current?.msTranslate}
                         </div>}
-                        {!StrUtil.isBlank(current?.textZH) && showCn && <div className={cn('text-2xl')}>
+                        {!StrUtil.isBlank(current?.textZH) && showCn && <div className={cn('text-2xl text-center')}>
                             {current?.textZH}
                         </div>}
                     </div>
