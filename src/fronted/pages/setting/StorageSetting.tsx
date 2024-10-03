@@ -14,6 +14,7 @@ import useSWR from 'swr';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Label } from '@/fronted/components/ui/label';
 import useFile from '@/fronted/hooks/useFile';
+import toast from 'react-hot-toast';
 
 const api = window.electron;
 const StorageSetting = () => {
@@ -31,13 +32,16 @@ const StorageSetting = () => {
     }, []);
 
 
-    const handleSubmit = async () => {
-        submit();
+    async function reloadOss() {
         await api.call('favorite-clips/sync-from-oss');
         await swrApiMutate('favorite-clips/search');
         useFile.setState({
             subtitlePath: null
         });
+    }
+
+    const handleSubmit = async () => {
+        submit();
     };
 
     const handleClear = async () => {
@@ -90,10 +94,25 @@ const StorageSetting = () => {
                 <div className="flex gap-2 items-end">
                     <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
                         <Label>切换收藏夹</Label>
-                        <Combobox
-                            options={collectionPaths?.map((p) => ({ value: p, label: p })) ?? []}
-                            value={setting('storage.collection')}
-                            onSelect={setSettingFunc('storage.collection')} />
+                        <div className={'flex gap-2'}>
+                            <Combobox
+                                options={collectionPaths?.map((p) => ({ value: p, label: p })) ?? []}
+                                value={setting('storage.collection')}
+                                onSelect={setSettingFunc('storage.collection')} />
+                            <Button
+                                disabled={!eqServer}
+                                onClick={async () => {
+                                    await toast.promise(reloadOss(), {
+                                        loading: '正在加载本地收藏夹',
+                                        success: '本地收藏夹加载成功',
+                                        error: '本地收藏夹加载失败'
+                                    });
+                                }}
+                                variant={'outline'}>
+                                重新同步收藏夹数据
+                            </Button>
+                        </div>
+
                         <p>
                             favourite_clips 文件夹下的子文件夹会被视为收藏夹
                         </p>
@@ -115,7 +134,14 @@ const StorageSetting = () => {
                 </Button>
                 <Button
                     disabled={eqServer}
-                    onClick={handleSubmit}
+                    onClick={async () => {
+                        await handleSubmit();
+                        await toast.promise(reloadOss(), {
+                            loading: '正在加载本地收藏夹',
+                            success: '本地收藏夹加载成功',
+                            error: '本地收藏夹加载失败'
+                        });
+                    }}
                 >
                     Apply
                 </Button>

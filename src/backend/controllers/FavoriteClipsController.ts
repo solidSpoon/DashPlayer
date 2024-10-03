@@ -1,11 +1,11 @@
 import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import { MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 
 @injectable()
 export default class FavoriteClipsController implements Controller {
@@ -31,7 +31,7 @@ export default class FavoriteClipsController implements Controller {
         return this.favouriteClipsService.exists(srtKey, linesInSrt);
     }
 
-    public async search(query: ClipQuery): Promise<(OssObject & MetaData)[]> {
+    public async search(query: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
         return this.favouriteClipsService.search(query);
     }
 

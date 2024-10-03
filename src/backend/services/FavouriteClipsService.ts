@@ -1,6 +1,6 @@
-import { MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 
 /**
  * FavouriteClipsService
@@ -69,7 +69,7 @@ export interface FavouriteClipsService {
      * @param query - The query parameters.
      * @returns A promise that resolves to an array of OssObject.
      */
-    search(query: ClipQuery): Promise<(OssObject & MetaData)[]>;
+    search(query: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]>;
 
     /**
      * Checks if clips exist in the favorites.

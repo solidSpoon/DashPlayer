@@ -1,18 +1,38 @@
 import { injectable } from 'inversify';
-import { OssObject } from '@/common/types/clipMeta/OssObject';
 import path from 'path';
 import fs from 'fs';
 import { OssService } from '@/backend/services/OssService';
 import dpLog from '@/backend/ioc/logger';
+import { OssBaseMeta } from '@/common/types/clipMeta';
 
 @injectable()
-export default abstract class AbstractOssServiceImpl<I,R> implements OssService<T> {
+export default abstract class AbstractOssServiceImpl<T> implements OssService<T> {
 
     private readonly METADATA_FILE = 'metadata.json';
 
+    /**
+     * 获取存储库的基本路径
+     */
     abstract getBasePath(): string;
 
-    public async putFile( key: string, fileName: string, sourcePath: string) {
+    /**
+     * 获取当前元数据版本
+     */
+    abstract getVersion(): number;
+
+    /**
+     * 验证元数据是否符合最新版本
+     */
+    abstract verifyNewMetadata(metadata: any): boolean;
+
+    /**
+     * 解析元数据为最新版本
+     * @param metadata
+     * @returns null if metadata is invalid
+     */
+    abstract parseMetadata(metadata: any): OssBaseMeta & T | null;
+
+    public async putFile(key: string, fileName: string, sourcePath: string) {
         const clipDir = path.join(this.getBasePath(), key);
         try {
             fs.mkdirSync(clipDir, { recursive: true });
@@ -24,7 +44,7 @@ export default abstract class AbstractOssServiceImpl<I,R> implements OssService<
         }
     }
 
-    public async delete( key: string) {
+    public async delete(key: string) {
         const clipDir = path.join(this.getBasePath(), key);
         try {
             fs.rmSync(clipDir, { recursive: true, force: true });
@@ -34,27 +54,26 @@ export default abstract class AbstractOssServiceImpl<I,R> implements OssService<
         }
     }
 
-    public async get( key: string): Promise<OssObject & T> {
+    public async get(key: string): Promise<OssBaseMeta & T | null> {
         const clipDir = path.join(this.getBasePath(), key);
         try {
             const metadataPath = path.join(clipDir, this.METADATA_FILE);
             if (!fs.existsSync(metadataPath)) {
-                fs.mkdirSync(clipDir, { recursive: true });
-                fs.writeFileSync(metadataPath, JSON.stringify({ key }, null, 2));
+                return null;
             }
-            const parse: T = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-            return {
-                ...parse,
-                key,
-                baseDir: clipDir,
-            }
+            const metaFileInfo: T & OssBaseMeta = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+            const res = {
+                ...metaFileInfo,
+                baseDir: clipDir
+            };
+            return this.parseMetadata(res);
         } catch (error) {
             dpLog.error(`Error retrieving file`, error);
-            throw error;
+            return null;
         }
     }
 
-    public async updateMetadata( key: string, newMetadata: Partial<T>): Promise<void> {
+    public async updateMetadata(key: string, newMetadata: Partial<T>): Promise<void> {
         const clipDir = path.join(this.getBasePath(), key);
         const metadataPath = path.join(clipDir, this.METADATA_FILE);
         try {
@@ -62,7 +81,16 @@ export default abstract class AbstractOssServiceImpl<I,R> implements OssService<
                 fs.writeFileSync(metadataPath, JSON.stringify(newMetadata, null, 2));
             }
             const existingMetadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-            const updatedMetadata = { ...existingMetadata, ...newMetadata } as T;
+            const updatedMetadata = {
+                ...existingMetadata,
+                version: this.getVersion(),
+                key: key,
+                baseDir: clipDir,
+                ...newMetadata
+            } as T & OssBaseMeta;
+            if (!this.verifyNewMetadata(updatedMetadata)) {
+                throw new Error('Invalid metadata');
+            }
             fs.writeFileSync(metadataPath, JSON.stringify(updatedMetadata, null, 2));
         } catch (error) {
             dpLog.error(`Error updating metadata `, error);

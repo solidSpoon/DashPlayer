@@ -1,13 +1,13 @@
-import { ClipSrtLine, MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { Button } from '@/fronted/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import { ClipMeta, OssBaseMeta,ClipSrtLine } from '@/common/types/clipMeta';
 
 
-const FavouriteItem = ({ item }: { item: OssObject & MetaData }) => {
+const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
     console.log('fav item', item);
     const playInfo = useFavouriteClip(state => state.playInfo);
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);

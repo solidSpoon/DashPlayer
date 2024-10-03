@@ -1,7 +1,6 @@
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import path from 'path';
-import { ClipSrtLine, MetaData, OssObject } from '@/common/types/clipMeta/OssObject';
 import db from '@/backend/db';
 import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -24,6 +23,7 @@ import { ClipOssService } from '@/backend/services/OssService';
 import TagService from '@/backend/services/TagService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/services/FfmpegService';
+import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 
 type ClipTask = {
     videoPath: string,
@@ -138,7 +138,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             return;
         }
         const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
-        const key = metaData.key;
+        const key = this.mapToMetaKey(srt, task.indexInSrt);
         const folder = this.locationService.getStoragePath(LocationType.TEMP);
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder, { recursive: true });
@@ -150,7 +150,11 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
         await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
         await this.clipOssService.putClip(key, tempName, metaData);
-        await this.addToDb(metaData);
+        const meta = await this.clipOssService.get(key);
+        if (!meta) {
+            throw new Error('meta not found');
+        }
+        await this.addToDb(meta);
         fs.rmSync(tempName);
     }
 
@@ -159,8 +163,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         if (!srt) {
             return;
         }
-        const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
-        const key = metaData.key;
+        const key = this.mapToMetaKey(srt, task.indexInSrt);
         await this.deleteFavoriteClip(key);
     }
 
@@ -172,12 +175,19 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         return [startTime, clipContext[clipContext.length - 1].end ?? 0];
     }
 
-    private mapToMetaData(videoPath: string, srt: SrtSentence, indexInSrt: number): MetaData {
+    private mapToMetaKey(srt: SrtSentence, indexInSrt: number): string {
+        const srtLines: SrtLine[] = srt.sentences
+            .map((sentence) => SrtUtil.toSrtLine(sentence));
+        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
+        const contentSrtStr = SrtUtil.toSrt(clipContext);
+        return hash(contentSrtStr);
+    }
+
+    private mapToMetaData(videoPath: string, srt: SrtSentence, indexInSrt: number): ClipMeta {
         const srtLines: SrtLine[] = srt.sentences
             .map((sentence) => SrtUtil.toSrtLine(sentence));
         const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
         const clipLine = SrtUtil.srtAt(srtLines, indexInSrt) as SrtLine;
-        const contentSrtStr = SrtUtil.toSrt(clipContext);
         clipContext.map((item) =>
             item.contentEn
         ).filter((item) => StrUtil.isNotBlank(item)).join('\n');
@@ -194,10 +204,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             clip_file: '',
             thumbnail_file: '',
             tags: [],
-            key: hash(contentSrtStr),
             video_name: videoPath,
             created_at: Date.now(),
-            clip_content: clipJson,
+            clip_content: clipJson
         };
     }
 
@@ -242,7 +251,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
                             tagsRelation,
                             date,
                             includeNoTag
-                        }: ClipQuery): Promise<(OssObject & MetaData)[]> {
+                        }: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
         let where1 = and(sql`1=1`);
         let having1 = and(sql`1=1`);
         if (StrUtil.isNotBlank(keyword)) {
@@ -288,10 +297,13 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             .having(having1)
             .orderBy(desc(videoClip.created_at))
             .limit(5000);
-        return Promise.all(lines.map((line) => this.clipOssService.get(line.key)));
+        return Promise.all(lines
+            .map((line) => this.clipOssService.get(line.key)))
+            .then((res) => res.filter((item) => item !== null)) as Promise<(OssBaseMeta & ClipMeta)[]>;
+
     }
 
-    private async addToDb(metaData: MetaData) {
+    private async addToDb(metaData: ClipMeta & OssBaseMeta) {
         const srtLines = metaData.clip_content ?? [];
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
         const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
@@ -395,6 +407,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         await db.delete(tag).where(sql`1=1`);
         for (const key of keys) {
             const clip = await this.clipOssService.get(key);
+            if (!clip) {
+                continue;
+            }
             await this.addToDb(clip);
         }
     }

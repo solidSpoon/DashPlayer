@@ -1,5 +1,5 @@
 import AbstractOssServiceImpl from '@/backend/services/impl/AbstractOssServiceImpl';
-import { ClipMeta } from '@/common/types/clipMeta';
+import { ClipMeta, ClipVersion, OssBaseMeta } from '@/common/types/clipMeta';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
@@ -7,6 +7,8 @@ import { ClipOssService } from '@/backend/services/OssService';
 import path from 'path';
 import FfmpegServiceImpl from '@/backend/services/impl/FfmpegServiceImpl';
 import fs from 'fs';
+import { MetaDataSchemaV1 } from '@/common/types/clipMeta/ClipMetaDataV1';
+import { OssBaseSchema } from '@/common/types/clipMeta/base';
 
 @injectable()
 export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta> implements ClipOssService {
@@ -19,12 +21,35 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta>
     private readonly CLIP_FILE = 'clip.mp4';
     private readonly THUMBNAIL_FILE = 'thumbnail.jpg';
 
+    getVersion(): number {
+        return ClipVersion;
+    }
+
     getBasePath(): string {
         return this.locationService.getStoragePath(LocationType.FAVORITE_CLIPS);
     }
+    parseMetadata(metadata: any): (OssBaseMeta & ClipMeta) | null {
+        const version = metadata?.version;
+        if (!version) {
+            return null;
+        }
+        if (version === 1) {
+            const safeParse = MetaDataSchemaV1.merge(OssBaseSchema).safeParse(metadata);
+            if (safeParse.success) {
+                return safeParse.data;
+            }
+        }
+        return null;
+    }
 
+    verifyNewMetadata(metadata: any): boolean {
+        if (this.getVersion() !== metadata?.version) {
+            return false;
+        }
+        return MetaDataSchemaV1.merge(OssBaseSchema).safeParse(metadata).success;
+    }
 
-    async putClip(key: string, sourcePath: string, metadata: MetaData): Promise<void> {
+    async putClip(key: string, sourcePath: string, metadata: ClipMeta): Promise<void> {
         const tempFolder = this.locationService.getStoragePath(LocationType.TEMP);
         // 生成缩略图
         const thumbnailFileName = `${key}-${this.THUMBNAIL_FILE}`;
@@ -48,6 +73,4 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta>
     async updateTags(key: string, tags: string[]): Promise<void> {
         await this.updateMetadata(key, { tags: tags });
     }
-
-
 }

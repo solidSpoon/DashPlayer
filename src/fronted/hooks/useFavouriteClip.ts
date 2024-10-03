@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { ClipSrtLine } from '@/common/types/clipMeta/OssObject';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
@@ -8,12 +7,12 @@ import { Nullable } from '@/common/types/Types';
 import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { ClipTenderImpl, SrtTender } from '@/fronted/lib/SrtTender';
-import { ClipMeta } from '@/common/types/clipMeta';
+import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 
 const api = window.electron;
 
 export interface PlayInfo {
-    video: ClipMeta;
+    video: ClipMeta & OssBaseMeta;
     /**
      * 从 0 开始的时间
      */

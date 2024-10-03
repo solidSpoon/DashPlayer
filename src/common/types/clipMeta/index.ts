@@ -1,8 +1,7 @@
-import { ClipMetaInsertV1, ClipMetaV1 } from '@/common/types/clipMeta/ClipMetaDataV1';
-import { ClipVersionEnum } from '@/common/types/clipMeta/base';
+import { ClipMetaV1, ClipSrtLineV1 } from '@/common/types/clipMeta/ClipMetaDataV1';
 import { OssObjectType } from '@/common/types/clipMeta/base';
 
-export type ClipMetaInsert = ClipMetaInsertV1;
 export type ClipMeta = ClipMetaV1;
-export const ClipVersion = ClipVersionEnum.enum['1'];
-export type OssObject = OssObjectType;
+export const ClipVersion = 1;
+export type OssBaseMeta = OssObjectType;
+export type ClipSrtLine = ClipSrtLineV1;
