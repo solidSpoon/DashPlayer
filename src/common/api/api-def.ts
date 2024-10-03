@@ -15,7 +15,7 @@ import { FolderVideos } from '@/common/types/tonvert-type';
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
-import { ClipMeta } from '@/common/types/clipMeta';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -150,7 +150,7 @@ interface ConvertDef {
 
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtKey: string, indexInSrt: number }, return: void };
-    'favorite-clips/search': { params: ClipQuery, return: ClipMeta[] };
+    'favorite-clips/search': { params: ClipQuery, return:  (ClipMeta & OssBaseMeta)[] };
     'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
     'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
     'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };

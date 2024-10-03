@@ -12,7 +12,6 @@ import SideBar from '@/fronted/components/SideBar';
 import Chat from '@/fronted/components/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
 import {SWR_KEY} from "@/fronted/lib/swr-util";
 
@@ -20,7 +19,7 @@ const api = window.electron;
 
 const PlayerP = () => {
     const {videoId} = useParams();
-    const {data: video} = useSWR<WatchProjectVideo>([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-project/video/detail', Number(videoId)));
+    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-project/video/detail', Number(videoId)));
     console.log('playerp', videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);

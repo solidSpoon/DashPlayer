@@ -4,7 +4,7 @@ import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { Button } from '@/fronted/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { ClipMeta, OssBaseMeta,ClipSrtLine } from '@/common/types/clipMeta';
+import { ClipMeta, OssBaseMeta, ClipSrtLine } from '@/common/types/clipMeta';
 
 
 const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
@@ -50,9 +50,10 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
                     {lines.map((contextLine: ClipSrtLine, index) =>
                         <span key={`${item.key}-${index}`}
                               onClick={() => {
+                                  srtTender?.pin(contextLine);
                                   setPlayInfo({
                                       video: item,
-                                      time: contextLine.start,
+                                      time: srtTender?.mapSeekTime(contextLine).start ?? contextLine.start,
                                       timeUpdated: Date.now()
                                   });
                                   // setPlay(true);

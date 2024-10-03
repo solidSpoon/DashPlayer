@@ -12,13 +12,13 @@ const FavouriteMainSrt = () => {
 
     return (
         <div className={'w-full flex flex-col py-2 gap-2 select-text'}>
-            <div className="flex justify-center text-2xl">
+            <div className="flex justify-center text-2xl text-center">
                 {line.contentEn}
             </div>
-            <div className="flex justify-center">
+            <div className="flex justify-center text-center">
                 {transMap.get(line.contentEn)}
             </div>
-            <div className="flex justify-center">
+            <div className="flex justify-center text-center">
                 {line.contentZh}
             </div>
         </div>

@@ -36,7 +36,7 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
     private MAX_OP_ID = 0;
     private lineBucket = new Map<number, TenderLine<T>[]>();
     private readonly lines: TenderLine<T>[] = [];
-    private keyLineMapping = new Map<string, number>();
+    private keyLineMapping:Map<string, number> | null = null;
     private cacheIndex: number | null = null;
     private backupIndex = 0;
 
@@ -46,9 +46,15 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
         tempLines.forEach((item) => {
             this.put(item);
         });
+    }
+
+    private getKeyLineMapping() {
+        if (this.keyLineMapping) return this.keyLineMapping;
+        this.keyLineMapping = new Map();
         for (const l of this.lines) {
             this.keyLineMapping.set(this.getOriginKey(l.origin), l.index);
         }
+        return this.keyLineMapping;
     }
 
     abstract getOriginStart(sentence: T): number;
@@ -151,9 +157,9 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
     }
 
     private getByT(sentence: T): TenderLine<T> | null {
-        const index = this.keyLineMapping.get(this.getOriginKey(sentence));
+        const index = this.getKeyLineMapping().get(this.getOriginKey(sentence));
         if (index === undefined) {
-            console.error('can not find sentence', sentence);
+            console.error('can not find sentence', sentence, this.getOriginKey(sentence), this.getKeyLineMapping());
             return null;
         }
         return this.lines[index];
