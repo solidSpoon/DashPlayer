@@ -67,9 +67,9 @@ export interface ModeSlice {
     changeShowCn: () => void;
     changeShowEnCn: () => void;
     changeSyncSide: () => void;
-    changeSingleRepeat: () => void;
+    changeSingleRepeat: (target?:boolean) => void;
     changeShowWordLevel: () => void;
-    changeAutoPause: () => void;
+    changeAutoPause: (target?:boolean) => void;
 }
 
 export interface ControllerSlice {

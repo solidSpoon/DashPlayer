@@ -18,15 +18,33 @@ const createModeSlice: StateCreator<
     changeShowEnCn: () =>
         set((state) => ({
             showEn: !state.showEn,
-            showCn: !state.showEn,
+            showCn: !state.showEn
         })),
     changeSyncSide: () => set((state) => ({ syncSide: !state.syncSide })),
-    changeSingleRepeat: () =>
-        set((state) => ({ singleRepeat: !state.singleRepeat })),
+    changeSingleRepeat: (target) => {
+        if (target === undefined ) {
+            set((state) => ({ singleRepeat: !state.singleRepeat }));
+        } else {
+            if (target !== get().singleRepeat) {
+                set({
+                    singleRepeat: target
+                });
+            }
+        }
+    },
     changeShowWordLevel: () =>
         set((state) => ({ showWordLevel: !state.showWordLevel })),
-    changeAutoPause: () =>
-        set((state) => ({ autoPause: !state.autoPause })),
+    changeAutoPause: (target) => {
+        if (target === undefined) {
+            set((state) => ({ autoPause: !state.autoPause }));
+        } else {
+            if (target !== get().autoPause) {
+                set({
+                    autoPause: target
+                });
+            }
+        }
+    }
 });
 
 export default createModeSlice;

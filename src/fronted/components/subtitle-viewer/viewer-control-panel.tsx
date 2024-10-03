@@ -10,14 +10,14 @@ import {Pause, Play} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
 import TimeUtil from "@/common/utils/TimeUtil";
 
-export interface PlayerControlPannelProps {
+export interface PlayerControlPanelProps {
     className?: string;
 
 }
 
-const ViewerControlPannel = ({
+const ViewerControlPanel = ({
                                  className
-                             }: PlayerControlPannelProps) => {
+                             }: PlayerControlPanelProps) => {
     const {
         playTime,
         duration,
@@ -30,7 +30,9 @@ const ViewerControlPannel = ({
         onPlay,
         onPause,
         playing,
-        onTimeChange
+        onTimeChange,
+        changeAutoPause,
+        changeSingleRepeat
     } = usePlayerController(
         useShallow((s) => ({
             playTime: s.playTime,
@@ -44,7 +46,9 @@ const ViewerControlPannel = ({
             onPlay: s.play,
             onPause: s.pause,
             playing: s.playing,
-            onTimeChange: s.seekTo
+            onTimeChange: s.seekTo,
+            changeAutoPause: s.changeAutoPause,
+            changeSingleRepeat: s.changeSingleRepeat
         }))
     );
     const [mouseOver, setMouseOver] = useState<boolean>(false);
@@ -88,14 +92,16 @@ const ViewerControlPannel = ({
                         min={0}
                         value={[currentValue]}
                         onValueChange={(value) => {
-                            console.log('onValueChange', value);
+                            console.log('onValueChange   fff', value);
                             setCurrentValue(value[0]);
                             setSelecting(true);
-                            onPause?.();
+                            onTimeChange?.({time: value[0]});
+                            changeAutoPause(false);
+                            changeSingleRepeat(false);
                         }}
                         onValueCommit={(value) => {
                             currentValueUpdateTime.current = Date.now();
-                            onTimeChange?.({time: value[0]});
+                            // onTimeChange?.({time: value[0]});
                             setSelecting(false);
                         }}
                     />
@@ -147,7 +153,7 @@ const ViewerControlPannel = ({
 
     );
 };
-ViewerControlPannel.defaultProps = {
+ViewerControlPanel.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
@@ -161,4 +167,4 @@ ViewerControlPannel.defaultProps = {
     playing: false
 };
 
-export default ViewerControlPannel;
+export default ViewerControlPanel;

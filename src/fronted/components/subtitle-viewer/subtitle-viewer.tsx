@@ -2,7 +2,7 @@ import { cn } from '@/fronted/lib/utils';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { Sentence } from '@/common/types/SentenceC';
 import ViewerTranslatableLine from '@/fronted/components/subtitle-viewer/viewer-translable-line';
-import ViewerControlPanel from '@/fronted/components/subtitle-viewer/viewer-control-pannel';
+import ViewerControlPanel from '@/fronted/components/subtitle-viewer/viewer-control-panel';
 import { useShallow } from 'zustand/react/shallow';
 import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';

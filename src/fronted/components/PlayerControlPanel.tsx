@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from './VolumeSlider';
 import usePlayerController from '../hooks/usePlayerController';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import SpeedSlider from './speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
 import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButton';
-import {Pause, Play} from "lucide-react";
-import {Button} from "@/fronted/components/ui/button";
-import TimeUtil from "@/common/utils/TimeUtil";
+import { Pause, Play } from 'lucide-react';
+import { Button } from '@/fronted/components/ui/button';
+import TimeUtil from '@/common/utils/TimeUtil';
 
 export interface PlayerControlPanelProps {
     className?: string;
@@ -21,12 +21,12 @@ export interface PlayerControlPanelProps {
 }
 
 const PlayerControlPanel = ({
-                                 className,
-                                 onTimeChange,
-                                 onPause,
-                                 onPlay,
-                                 playing
-                             }: PlayerControlPanelProps) => {
+                                className,
+                                onTimeChange,
+                                onPause,
+                                onPlay,
+                                playing
+                            }: PlayerControlPanelProps) => {
     const {
         playTime,
         duration,
@@ -35,7 +35,9 @@ const PlayerControlPanel = ({
         playbackRate,
         setPlaybackRate,
         muted,
-        setMuted
+        setMuted,
+        changeSingleRepeat,
+        changeAutoPause
     } = usePlayerController(
         useShallow((s) => ({
             playTime: s.playTime,
@@ -45,7 +47,11 @@ const PlayerControlPanel = ({
             playbackRate: s.playbackRate,
             setPlaybackRate: s.setPlaybackRate,
             setMuted: s.setMuted,
-            muted: s.muted
+            muted: s.muted,
+            singleRepeat: s.singleRepeat,
+            autoPause: s.autoPause,
+            changeSingleRepeat: s.changeSingleRepeat,
+            changeAutoPause: s.changeAutoPause
         }))
     );
     const fullScreen = useLayout(s => s.fullScreen);
@@ -134,7 +140,7 @@ const PlayerControlPanel = ({
                 >
                     {mouseOverOut && (<>
                         <Slider
-                            className=''
+                            className=""
                             max={duration}
                             min={0}
                             value={[currentValue]}
@@ -143,16 +149,18 @@ const PlayerControlPanel = ({
                                 setCurrentValue(value[0]);
                                 setSelecting(true);
                                 onTimeChange?.(value[0]);
+                                changeAutoPause(false);
+                                changeSingleRepeat(false);
                                 // onPause?.();
                             }}
                             onValueCommit={(value) => {
                                 currentValueUpdateTime.current = Date.now();
-                                onTimeChange?.(value[0]);
+                                // onTimeChange?.(value[0]);
                                 setSelecting(false);
                             }}
                         />
-                        <div className='w-full flex justify-between items-center'>
-                            <div className='flex gap-4 items-center'>
+                        <div className="w-full flex justify-between items-center">
+                            <div className="flex gap-4 items-center">
                                 <Button
                                     onClick={() => {
                                         if (playing) {
@@ -161,9 +169,9 @@ const PlayerControlPanel = ({
                                             onPlay?.();
                                         }
                                     }}
-                                    size='icon'
-                                    variant='ghost'
-                                    className='w-9 h-9'
+                                    size="icon"
+                                    variant="ghost"
+                                    className="w-9 h-9"
                                 >
                                     {playing ? (
                                         <Pause />
@@ -171,14 +179,14 @@ const PlayerControlPanel = ({
                                         <Play />
                                     )}
                                 </Button>
-                                <div className=' h-full flex items-center font-mono'>
+                                <div className=" h-full flex items-center font-mono">
                                     {`${TimeUtil.secondToTimeStr(
                                         currentValue
                                     )} / ${TimeUtil.secondToTimeStr(duration)}`}
                                 </div>
                             </div>
-                            <div className='h-full flex-1' />
-                            <div className='flex justify-center items-end gap-4'>
+                            <div className="h-full flex-1" />
+                            <div className="flex justify-center items-end gap-4">
                                 <SpeedSlider
                                     speed={playbackRate}
                                     onSpeedChange={setPlaybackRate}
