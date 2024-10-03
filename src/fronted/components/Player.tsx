@@ -210,7 +210,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                         className="w-full h-full absolute top-0 left-0"
                         url={UrlUtil.file(videoPath)}
                         muted={muted}
-                        autoPlay={playing}
+                        autoPlay={true}
                         controls={false}
                         width="100%"
                         height="100%"
