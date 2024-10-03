@@ -93,6 +93,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
             return;
         }
         const url = ydResp?.speakUrl;
+        console.log('url', url);
         if (StrUtil.isNotBlank(url)) {
             await playUrl(url);
         } else {

@@ -13,7 +13,10 @@ export default class TagServiceImpl implements TagService {
             throw new Error('name is blank');
         }
         const e: Tag[] = await db.insert(tag).values({ name })
-            .onConflictDoNothing()
+            .onConflictDoUpdate({
+                target: [tag.name],
+                set: { name }
+            })
             .returning();
         return e[0];
     }

@@ -1,10 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { format } from 'date-fns';
+import { format, endOfDay } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-
 
 import {
     Popover,
@@ -14,7 +13,6 @@ import {
 import { Calendar } from '@/fronted/components/ui/calendar';
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
-
 
 const DatePickerWithRange = ({
                                  className,
@@ -26,6 +24,24 @@ const DatePickerWithRange = ({
     onDateRangeChange?: (dateRange: DateRange) => void;
 }) => {
     const dateEmpty: boolean = !dateRange || (!dateRange.from && !dateRange.to);
+
+    console.log('dateRange', dateRange);
+
+    const formatDateRange = (range: DateRange | undefined) => {
+        if (!range) return { from: undefined, to: undefined };
+        return {
+            from: range.from,
+            to: range.to ? endOfDay(range.to) : undefined
+        };
+    };
+
+    const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
+        if (onDateRangeChange) {
+            onDateRangeChange(formatDateRange(newDateRange));
+        }
+    };
+
+    const displayDateRange = formatDateRange(dateRange);
 
     return (
         <div className={cn('grid gap-2', className)}>
@@ -40,14 +56,14 @@ const DatePickerWithRange = ({
                         )}
                     >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                            dateRange.to ? (
+                        {displayDateRange.from ? (
+                            displayDateRange.to ? (
                                 <>
-                                    {format(dateRange.from, 'LLL dd, y')} -{' '}
-                                    {format(dateRange.to, 'LLL dd, y')}
+                                    {format(displayDateRange.from, 'LLL dd, y')} -{' '}
+                                    {format(displayDateRange.to, 'LLL dd, y')}
                                 </>
                             ) : (
-                                format(dateRange.from, 'LLL dd, y')
+                                format(displayDateRange.from, 'LLL dd, y')
                             )
                         ) : (
                             <span>Pick a date</span>
@@ -60,7 +76,7 @@ const DatePickerWithRange = ({
                         mode="range"
                         defaultMonth={dateRange?.from}
                         selected={dateRange}
-                        onSelect={onDateRangeChange}
+                        onSelect={handleDateRangeChange}
                         numberOfMonths={2}
                     />
                 </PopoverContent>
@@ -68,4 +84,5 @@ const DatePickerWithRange = ({
         </div>
     );
 };
+
 export default DatePickerWithRange;

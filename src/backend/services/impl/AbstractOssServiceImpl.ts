@@ -64,6 +64,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             const metaFileInfo: T & OssBaseMeta = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
             const res = {
                 ...metaFileInfo,
+                key: key,
                 baseDir: clipDir
             };
             return this.parseMetadata(res);
