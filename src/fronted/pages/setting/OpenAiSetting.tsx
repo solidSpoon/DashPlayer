@@ -13,12 +13,15 @@ import {
 } from '@/fronted/components/ui/dropdown-menu';
 import { EllipsisVertical, Eraser, SquarePlus } from 'lucide-react';
 import * as React from 'react';
+import { Switch } from '@/fronted/components/ui/switch';
+import { Label } from '@/fronted/components/ui/label';
 
 const api = window.electron;
 const OpenAiSetting = () => {
     const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
         'apiKeys.openAi.key',
         'apiKeys.openAi.endpoint',
+        'apiKeys.openAi.stream',
         'model.gpt.default'
     ]);
 
@@ -76,6 +79,24 @@ const OpenAiSetting = () => {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
+                <div className="flex flex-col gap-2 pl-2">
+                    <Label>Streaming Response</Label>
+                    <div className="flex items-center space-x-2">
+                        <Switch id="stream"
+                                checked={setting('apiKeys.openAi.stream') === 'on'}
+                                onCheckedChange={(checked) => {
+                                    if (checked) {
+                                        setSettingFunc('apiKeys.openAi.stream')('on');
+                                    } else {
+                                        setSettingFunc('apiKeys.openAi.stream')('off');
+                                    }
+                                }}
+                        />
+                        <Label
+                            className="font-light">观察到有些代理商在启用流式响应时会出现问题，如果你遇到问题，请尝试关闭此选项</Label>
+                    </div>
+                </div>
+
                 <div
                     className={cn(
                         'text-sm text-gray-500 mt-2 flex flex-row gap-2'

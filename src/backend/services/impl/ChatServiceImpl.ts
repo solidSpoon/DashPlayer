@@ -7,6 +7,7 @@ import ChatService from '@/backend/services/ChatService';
 import { ChatOpenAI } from '@langchain/openai';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import { ZodObject } from 'zod';
+import { storeGet } from '@/backend/store';
 
 
 @injectable()
@@ -64,15 +65,25 @@ export default class ChatServiceImpl implements ChatService {
             progress: 'AI is analyzing...'
         });
 
-        const resStream = await structuredLlm.stream(promptStr);
-        for await (const chunk of resStream) {
-            this.dpTaskService.process(taskId, {
-                progress: 'AI responding',
-                result: JSON.stringify(chunk)
-            });
+        const streaming = storeGet('apiKeys.openAi.stream') === 'on';
+
+        let resStr = null;
+        if (streaming) {
+            const resStream = await structuredLlm.stream(promptStr);
+            for await (const chunk of resStream) {
+                resStr = JSON.stringify(chunk);
+                this.dpTaskService.process(taskId, {
+                    progress: 'AI is analyzing...',
+                    result: resStr
+                });
+            }
+        } else {
+            const res = await structuredLlm.invoke(promptStr);
+            resStr = JSON.stringify(res);
         }
         this.dpTaskService.finish(taskId, {
             progress: 'AI has responded',
+            result: resStr
         });
     }
 }

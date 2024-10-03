@@ -25,7 +25,7 @@ export default class AiProviderServiceImpl implements ClientProviderService<Chat
             openAIApiKey: apiKey,
             configuration: {
                 baseURL: joinUrl(endpoint, '/v1')
-            }
+            },
         });
     }
 }

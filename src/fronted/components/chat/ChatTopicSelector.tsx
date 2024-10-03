@@ -10,7 +10,7 @@ const ChatTopicSelector = ({ className }: {
 
     const currentSentence = usePlayerController(state => state.currentSentence);
 
-    const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+    const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence?.index??0, 5);
 
     const [mouseOver, setMouseOver] = useState(false);
 

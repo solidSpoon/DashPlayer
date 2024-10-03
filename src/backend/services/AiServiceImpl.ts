@@ -60,7 +60,7 @@ export default class AiServiceImpl implements AiService {
 
     public async analyzeWord(taskId: number, sentence: string) {
         const schema = z.object({
-            hasNewWord: z.boolean().describe('是否包含中等难度及以上的单词'),
+            hasNewWord: z.boolean().describe('是否包含中等难度及以上的单词, if true, then the words field should not be empty'),
             words: z.array(
                 z.object({
                     word: z.string().describe('The word'),
@@ -142,7 +142,6 @@ export default class AiServiceImpl implements AiService {
 
     public async explainSelect(taskId: number, word: string) {
         await this.chatService.run(taskId, AiFuncExplainSelectPrompt.schema, AiFuncExplainSelectPrompt.promptFunc(word));
-
     }
 
     public async explainSelectWithContext(taskId: number, sentence: string, selectedWord: string) {

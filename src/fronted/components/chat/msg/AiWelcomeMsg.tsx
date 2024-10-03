@@ -10,9 +10,9 @@ import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTransl
 import StrUtil from '@/common/utils/str-util';
 
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
-    const {detail: polishTaskRes} = useDpTaskViewer<AiFuncPolishRes>(msg.polishTask);
-    const {detail: punctuationTaskResp} = useDpTaskViewer<AiFuncPunctuationRes>(msg.punctuationTask);
-    const {detail: transTaskResp} = useDpTaskViewer<AiFuncTranslateWithContextRes>(msg.translateTask);
+    const { detail: polishTaskRes } = useDpTaskViewer<AiFuncPolishRes>(msg.polishTask);
+    const { detail: punctuationTaskResp } = useDpTaskViewer<AiFuncPunctuationRes>(msg.punctuationTask);
+    const { detail: transTaskResp } = useDpTaskViewer<AiFuncTranslateWithContextRes>(msg.translateTask);
     const createTopic = useChatPanel(s => s.createFromSelect);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     const complete =
@@ -38,7 +38,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                     }}
                 >
                     <p><Playable>{msg.originalTopic}</Playable></p>
-                    <p>{transTaskResp?.translation}</p>
+                    {StrUtil.isNotBlank(transTaskResp?.translation) && <p>{transTaskResp?.translation}</p>}
                 </blockquote>
                 <p>已经为您生成了这个句子的知识点, 包括生词, 短语, 语法, 例句等</p>
                 {complete && <>
@@ -49,7 +49,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                     >点击切换</span></p>
                     <blockquote
                         onContextMenu={(e) => {
-                            updateInternalContext(punctuationTaskResp?.completeVersion);
+                            updateInternalContext(punctuationTaskResp?.completeVersion ?? '');
                         }}
                     >
                         <p>{punctuationTaskResp?.completeVersion}</p>
@@ -60,19 +60,19 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
                     <p>这个句子还有如下几种表达方式:</p>
                     <li
                         onContextMenu={(e) => {
-                            updateInternalContext(polishTaskRes.edit1);
+                            updateInternalContext(polishTaskRes?.edit1 ?? '');
                         }}
-                    ><Playable>{polishTaskRes.edit1}</Playable></li>
+                    ><Playable>{polishTaskRes?.edit1}</Playable></li>
                     <li
                         onContextMenu={(e) => {
-                            updateInternalContext(polishTaskRes.edit2);
+                            updateInternalContext(polishTaskRes?.edit2 ?? '');
                         }}
-                    ><Playable>{polishTaskRes.edit2}</Playable></li>
+                    ><Playable>{polishTaskRes?.edit2}</Playable></li>
                     <li
                         onContextMenu={(e) => {
-                            updateInternalContext(polishTaskRes.edit3);
+                            updateInternalContext(polishTaskRes?.edit3 ?? '');
                         }}
-                    ><Playable>{polishTaskRes.edit3}</Playable></li>
+                    ><Playable>{polishTaskRes?.edit3}</Playable></li>
                 </>)}
             </div>
         </div>

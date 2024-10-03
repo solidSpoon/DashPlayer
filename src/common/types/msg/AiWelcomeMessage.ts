@@ -101,7 +101,8 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     }
 
     getTaskIds(): number[] {
-        return [this.polishTask, this.translateTask, this.punctuationTask].filter(t => t !== null);
+        return [this.polishTask, this.translateTask, this.punctuationTask]
+            .filter(t => t !== null) as number[];
     }
 }
 
