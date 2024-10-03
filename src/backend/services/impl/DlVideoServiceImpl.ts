@@ -10,10 +10,7 @@ import TYPES from '@/backend/ioc/types';
 import LocationService, { ProgramType } from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
 import ChildProcessTask from '@/backend/objs/ChildProcessTask';
-
-export interface DlVideoService {
-    dlVideo(taskId: number, url: string, savePath: string): Promise<void>;
-}
+import DlVideoService from '@/backend/services/DlVideoService';
 
 
 @injectable()
@@ -112,8 +109,8 @@ export default class DlVideoServiceImpl implements DlVideoService {
         });
         return new Promise<void>((resolve, reject) => {
             //yt-dlp -f "bestvideo[height<=1080][height>=?720]" --merge-output-format mp4 https://www.youtube.com/watch?v=EVEIl0V-5QE
-            const task = spawn(this.locationService.getProgramPath(ProgramType.YT_DL), [
-                '--ffmpeg-location', this.locationService.getProgramPath(ProgramType.LIB),
+            const task = spawn(this.locationService.getThirdLibPath(ProgramType.YT_DL), [
+                '--ffmpeg-location', this.locationService.getThirdLibPath(ProgramType.LIB),
                 '-f', 'bestvideo[height<=1080][height>=?720]+bestaudio/best',
                 // '--simulate',
                 '--merge-output-format', 'mp4',
@@ -177,8 +174,8 @@ export default class DlVideoServiceImpl implements DlVideoService {
         so: string[]
     }, url: string): Promise<string> {
         // 获取yt-dlp的路径和ffmpeg的路径
-        const ytDlpPath = this.locationService.getProgramPath(ProgramType.YT_DL);
-        const ffmpegPath = this.locationService.getProgramPath(ProgramType.LIB);
+        const ytDlpPath = this.locationService.getThirdLibPath(ProgramType.YT_DL);
+        const ffmpegPath = this.locationService.getThirdLibPath(ProgramType.LIB);
 
         result.so.push('System: fetching video file name');
         result.ref.stdOut = result.so.join('\n');

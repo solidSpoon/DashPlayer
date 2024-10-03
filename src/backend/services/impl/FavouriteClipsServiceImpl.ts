@@ -139,7 +139,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         }
         const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
         const key = this.mapToMetaKey(srt, task.indexInSrt);
-        const folder = this.locationService.getStoragePath(LocationType.TEMP);
+        const folder = this.locationService.getDetailLibraryPath(LocationType.TEMP);
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder, { recursive: true });
         }

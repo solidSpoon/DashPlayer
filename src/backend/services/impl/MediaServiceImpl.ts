@@ -19,11 +19,11 @@ export default class MediaServiceImpl implements MediaService {
 
     private generateThumbnailPath(sourceFilePath: string, timestamp: number): string {
         const thumbnailFileName = ObjUtil.hash(sourceFilePath) + '-' + timestamp + '.jpg';
-        return path.join(this.locationService.getStoragePath(LocationType.TEMP), thumbnailFileName);
+        return path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), thumbnailFileName);
     }
 
     private getTempDirectoryPath() {
-        return this.locationService.getStoragePath(LocationType.TEMP);
+        return this.locationService.getDetailLibraryPath(LocationType.TEMP);
     }
 
     async thumbnail(sourceFilePath: string, timestamp?: number): Promise<string> {

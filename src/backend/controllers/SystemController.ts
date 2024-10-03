@@ -6,12 +6,12 @@ import { WindowState } from '@/common/types/Types';
 import SystemService from '@/backend/services/SystemService';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
 import Release from '@/common/types/release';
-import { BASE_PATH } from '@/backend/controllers/StorageController';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import StrUtil from '@/common/utils/str-util';
 import TYPES from '@/backend/ioc/types';
 import OpenDialogOptions = Electron.OpenDialogOptions;
+import LocationService from '@/backend/services/LocationService';
 
 /**
  * eg: .mkv -> mkv
@@ -27,6 +27,8 @@ function processFilter(filter: string[]) {
 export default class SystemController implements Controller {
     @inject(TYPES.SystemService)
     private systemService!: SystemService;
+    @inject(TYPES.LocationService)
+    private locationService!: LocationService;
 
     public async info() {
         return {
@@ -47,12 +49,15 @@ export default class SystemController implements Controller {
         return files.filePaths;
     }
 
-    public async selectFolder({ defaultPath }: { defaultPath?: string }): Promise<string[]> {
+    public async selectFolder({ defaultPath , createDirectory}: { defaultPath?: string,createDirectory?:boolean }): Promise<string[]> {
         const options: OpenDialogOptions = {
             properties: ['openDirectory']
         };
         if (defaultPath) {
             options.defaultPath = defaultPath;
+        }
+        if (createDirectory) {
+            options.properties?.push('createDirectory');
         }
         const files = await dialog.showOpenDialog(options);
         return files.filePaths;
@@ -102,7 +107,7 @@ export default class SystemController implements Controller {
     }
 
     public async openCacheDir() {
-        await shell.openPath(BASE_PATH);
+        await shell.openPath(this.locationService.getBaseLibraryPath());
     }
 
 

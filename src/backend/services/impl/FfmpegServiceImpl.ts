@@ -336,7 +336,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
 
     private async runFfmpegCommand(args: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            const ff = spawn(this.locationService.getProgramPath(ProgramType.FFMPEG), args);
+            const ff = spawn(this.locationService.getThirdLibPath(ProgramType.FFMPEG), args);
             ff.on('close', (code) => {
                 dpLog.log(`child process exited with code ${code}`);
                 resolve();
@@ -350,8 +350,8 @@ export default class FfmpegServiceImpl implements FfmpegService {
 
     @postConstruct()
     private init() {
-        ffmpeg.setFfmpegPath(this.locationService.getProgramPath(ProgramType.FFMPEG));
-        ffmpeg.setFfprobePath(this.locationService.getProgramPath(ProgramType.FFPROBE));
+        ffmpeg.setFfmpegPath(this.locationService.getThirdLibPath(ProgramType.FFMPEG));
+        ffmpeg.setFfprobePath(this.locationService.getThirdLibPath(ProgramType.FFPROBE));
     }
 }
 

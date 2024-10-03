@@ -194,7 +194,7 @@ const ControlBox = () => {
                     onCheckedChange: changeAutoPause,
                     id: 'autoPause',
                     label: '自动暂停',
-                    tooltip: `当前句子结束自动暂停`
+                    tooltip: `当前句子结束自动暂停 快捷键为 ${getShortcut('shortcut.autoPause')}`
                 })}
                 {controlItem({
                     checked: setting('appearance.theme') === 'dark',

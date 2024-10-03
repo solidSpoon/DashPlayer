@@ -15,6 +15,10 @@ import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Label } from '@/fronted/components/ui/label';
 import useFile from '@/fronted/hooks/useFile';
 import toast from 'react-hot-toast';
+import StrUtil from '@/common/utils/str-util';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import Md from '@/fronted/components/chat/markdown';
+import { codeBlock } from 'common-tags';
 
 const api = window.electron;
 const StorageSetting = () => {
@@ -84,9 +88,9 @@ const StorageSetting = () => {
                     />
                     <Button className={'mb-1.5'} variant={'outline'} size={'icon'}
                             onClick={async () => {
-                                const folder: string[] = await api.call('system/select-folder', {});
+                                const folder: string[] = await api.call('system/select-folder', {createDirectory: true});
                                 if (folder.length > 0) {
-                                    const f = `${folder[0]}${useSystem.getState().pathSeparator}DashPlayer`;
+                                    const f = `${folder[0]}`;
                                     setSettingFunc('storage.path')(f);
                                 }
                             }}><FolderOpen /></Button>
@@ -98,19 +102,37 @@ const StorageSetting = () => {
                             <Combobox
                                 options={collectionPaths?.map((p) => ({ value: p, label: p })) ?? []}
                                 value={setting('storage.collection')}
-                                onSelect={setSettingFunc('storage.collection')} />
-                            <Button
-                                disabled={!eqServer}
-                                onClick={async () => {
-                                    await toast.promise(reloadOss(), {
-                                        loading: '正在加载本地收藏夹',
-                                        success: '本地收藏夹加载成功',
-                                        error: '本地收藏夹加载失败'
-                                    });
-                                }}
-                                variant={'outline'}>
-                                重新同步收藏夹数据
-                            </Button>
+                                onSelect={(value) => {
+                                    if (StrUtil.isNotBlank(value)) {
+                                        setSettingFunc('storage.collection')(value);
+                                    }
+                                }} />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            disabled={!eqServer}
+                                            onClick={async () => {
+                                                await toast.promise(reloadOss(), {
+                                                    loading: '正在加载本地收藏夹',
+                                                    success: '本地收藏夹加载成功',
+                                                    error: '本地收藏夹加载失败'
+                                                });
+                                            }}
+                                            variant={'outline'}>
+                                            重新同步收藏夹数据
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
+                                        <Md>
+                                            {codeBlock`
+                                            #### 重新同步收藏夹数据
+                                            将该文件夹中的数据同步到 DashPlayer 中，遇到问题可以尝试使用此功能。
+                                            `}
+                                        </Md>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
 
                         <p>

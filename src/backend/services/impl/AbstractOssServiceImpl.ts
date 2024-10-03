@@ -101,6 +101,9 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
 
     public async list(): Promise<string[]> {
         const basePath = this.getBasePath();
+        if (!fs.existsSync(basePath)) {
+            return [];
+        }
         try {
             const items = fs.readdirSync(basePath, { withFileTypes: true });
             return items

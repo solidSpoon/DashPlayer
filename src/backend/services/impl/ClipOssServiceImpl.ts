@@ -26,7 +26,7 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta>
     }
 
     getBasePath(): string {
-        return this.locationService.getStoragePath(LocationType.FAVORITE_CLIPS);
+        return this.locationService.getBaseClipPath();
     }
     parseMetadata(metadata: any): (OssBaseMeta & ClipMeta) | null {
         const version = metadata?.version;
@@ -50,7 +50,7 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta>
     }
 
     async putClip(key: string, sourcePath: string, metadata: ClipMeta): Promise<void> {
-        const tempFolder = this.locationService.getStoragePath(LocationType.TEMP);
+        const tempFolder = this.locationService.getDetailLibraryPath(LocationType.TEMP);
         // 生成缩略图
         const thumbnailFileName = `${key}-${this.THUMBNAIL_FILE}`;
         const length = await this.ffmpegService.duration(sourcePath);

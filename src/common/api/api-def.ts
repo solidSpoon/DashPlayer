@@ -57,7 +57,7 @@ interface SystemDef {
         return: string[]
     };
     'system/select-folder': {
-        params: { defaultPath?: string }
+        params: { defaultPath?: string, createDirectory?: boolean },
         return: string[]
     };
     'system/path-info': {

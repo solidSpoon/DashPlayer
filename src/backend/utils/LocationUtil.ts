@@ -9,14 +9,10 @@ export default class LocationUtil {
 
     public static staticGetStoragePath(type: LocationType | string) {
         const basePath = this.getStorageBathPath();
-        const p = path.join(basePath, type);
-        if (LocationType.FAVORITE_CLIPS === type) {
-            return path.join(p, StrUtil.ifBlank(storeGet('storage.collection'), 'default'));
-        }
-        return p;
+        return path.join(basePath, type);
     }
 
-    private static getStorageBathPath() {
+    public static getStorageBathPath() {
         let p = storeGet('storage.path');
         if (StrUtil.isBlank(p)) {
             const documentsPath = app.getPath('documents');

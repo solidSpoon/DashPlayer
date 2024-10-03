@@ -13,10 +13,15 @@ export enum ProgramType {
     YT_DL = 'yt-dlp',
     LIB = 'lib',
 }
-export default interface LocationService {
-    getStoragePath(type: LocationType): string;
 
-    getProgramPath(type: ProgramType): string;
+export default interface LocationService {
+    getDetailLibraryPath(type: LocationType): string;
+
+    getBaseLibraryPath(): string;
+
+    getBaseClipPath(): string;
+
+    getThirdLibPath(type: ProgramType): string;
 
     listCollectionPaths(): string[];
 }

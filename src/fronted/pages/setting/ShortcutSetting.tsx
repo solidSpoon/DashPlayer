@@ -157,6 +157,7 @@ const ShortcutSetting = () => {
         'shortcut.repeatSentence',
         'shortcut.playPause',
         'shortcut.repeatSingleSentence',
+        'shortcut.autoPause',
         'shortcut.toggleEnglishDisplay',
         'shortcut.toggleChineseDisplay',
         'shortcut.toggleBilingualDisplay',
@@ -212,6 +213,13 @@ const ShortcutSetting = () => {
                     defaultValue={SettingKeyObj['shortcut.repeatSingleSentence']}
                     value={setting('shortcut.repeatSingleSentence')}
                     setValue={setSettingFunc('shortcut.repeatSingleSentence')}
+                />
+                <ShortCutRecorder
+                    title="自动暂停"
+                    description="当前句子播放完后自动暂停"
+                    defaultValue={SettingKeyObj['shortcut.autoPause']}
+                    value={setting('shortcut.autoPause')}
+                    setValue={setSettingFunc('shortcut.autoPause')}
                 />
                 <ShortCutRecorder
                     title="展示/隐藏英文"

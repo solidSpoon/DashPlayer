@@ -4,7 +4,6 @@ import FavoriteClipsController from '@/backend/controllers/FavoriteClipsControll
 import Controller from '@/backend/interfaces/controller';
 import WatchProjectController from '@/backend/controllers/WatchProjectController';
 import DownloadVideoController from '@/backend/controllers/DownloadVideoController';
-import DlVideoServiceImpl, { DlVideoService } from '@/backend/services/DlVideoServiceImpl';
 import TagService from '@/backend/services/TagService';
 import TagController from '@/backend/controllers/TagController';
 import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
@@ -59,6 +58,8 @@ import WatchProjectService from '@/backend/services/WatchProjectService';
 import WatchProjectServiceImpl from '@/backend/services/impl/WatchProjectServiceImpl';
 import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
+import DlVideoService from '@/backend/services/DlVideoService';
+import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
 
 
 const container = new Container();

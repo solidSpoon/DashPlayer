@@ -4,6 +4,7 @@ export const SettingKeyObj = {
     'shortcut.repeatSentence': 'down,s',
     'shortcut.playPause': 'space,up,w',
     'shortcut.repeatSingleSentence': 'r',
+    'shortcut.autoPause': 'u',
     'shortcut.toggleEnglishDisplay': 'e',
     'shortcut.toggleChineseDisplay': 'c',
     'shortcut.toggleWordLevelDisplay': 'l',

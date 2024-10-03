@@ -1,11 +1,10 @@
 import registerRoute from '@/common/api/register';
-import { DlVideoService } from '@/backend/services/DlVideoServiceImpl';
-import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import DpTaskService from '@/backend/services/DpTaskService';
+import DlVideoService from '@/backend/services/DlVideoService';
 
 @injectable()
 export default class DownloadVideoController implements Controller {
@@ -24,7 +23,7 @@ export default class DownloadVideoController implements Controller {
     }): Promise<number> {
         // 系统下载文件夹
         const taskId = await this.dpTaskService.create();
-        const downloadFolder = this.locationService.getStoragePath(LocationType.VIDEOS);
+        const downloadFolder = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
         this.dlVideoService.dlVideo(taskId, url, downloadFolder).then();
         return taskId;
     }

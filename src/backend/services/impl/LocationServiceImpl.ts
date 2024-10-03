@@ -11,11 +11,20 @@ import LocationUtil from '@/backend/utils/LocationUtil';
 export default class LocationServiceImpl implements LocationService {
     private static readonly isDev = process.env.NODE_ENV === 'development';
 
-    getStoragePath(type: LocationType): string {
-        return LocationUtil.staticGetStoragePath(type)
+    getDetailLibraryPath(type: LocationType): string {
+        return LocationUtil.staticGetStoragePath(type);
     }
 
-    getProgramPath(type: ProgramType): string {
+    getBaseLibraryPath(): string {
+        return LocationUtil.getStorageBathPath();
+    }
+
+    getBaseClipPath(): string {
+        const p = LocationUtil.staticGetStoragePath(LocationType.FAVORITE_CLIPS);
+        return path.join(p, StrUtil.ifBlank(storeGet('storage.collection'), 'default'));
+    }
+
+    getThirdLibPath(type: ProgramType): string {
         switch (type) {
             case ProgramType.FFMPEG:
                 return LocationServiceImpl.isDev ? path.resolve('lib/ffmpeg') : `${process.resourcesPath}/lib/ffmpeg`;
@@ -31,17 +40,16 @@ export default class LocationServiceImpl implements LocationService {
     }
 
     listCollectionPaths(): string[] {
-        const storagePath = this.getStoragePath(LocationType.FAVORITE_CLIPS);
-        if (!fs.existsSync(storagePath)) {
-            fs.mkdirSync(storagePath, { recursive: true });
+        const storagePath = this.getDetailLibraryPath(LocationType.FAVORITE_CLIPS);
+        const folders: string[] = [];
+        if (fs.existsSync(storagePath)) {
+            folders.push(...fs.readdirSync(storagePath).filter(name => !name.startsWith('.')));
         }
-        const strings = fs.readdirSync(storagePath)
-            .filter(name => !name.startsWith('.'));
         const current = storeGet('storage.collection');
-        if (StrUtil.isNotBlank(current) && !strings.includes(current)) {
-            strings.unshift(current);
+        if (StrUtil.isNotBlank(current) && !folders.includes(current)) {
+            folders.unshift(current);
         }
-        return strings;
+        return folders;
     }
 
 }

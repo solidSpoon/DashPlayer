@@ -1,5 +1,7 @@
 import { StateCreator } from 'zustand/esm';
 import { ModeSlice, PlayerSlice, SentenceSlice } from './SliceTypes';
+import toast from 'react-hot-toast';
+import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 
 const createModeSlice: StateCreator<
     PlayerSlice & SentenceSlice & ModeSlice,
@@ -36,9 +38,11 @@ const createModeSlice: StateCreator<
         set((state) => ({ showWordLevel: !state.showWordLevel })),
     changeAutoPause: (target) => {
         if (target === undefined) {
+            usePlayerToaster.getState().setNotification({ type: 'info', text: get().autoPause ? 'Auto pause off' : 'Auto pause on' });
             set((state) => ({ autoPause: !state.autoPause }));
         } else {
             if (target !== get().autoPause) {
+                usePlayerToaster.getState().setNotification({ type: 'info', text: get().autoPause ? 'Auto pause off' : 'Auto pause on' });
                 set({
                     autoPause: target
                 });

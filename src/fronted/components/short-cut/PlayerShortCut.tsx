@@ -28,7 +28,8 @@ export default function PlayerShortCut() {
         adjustEnd,
         clearAdjust,
         nextRate,
-        pause
+        pause,
+        changeAutoPause
     } = usePlayerController(
         useShallow((s) => ({
             space: s.space,
@@ -44,7 +45,8 @@ export default function PlayerShortCut() {
             adjustEnd: s.adjustEnd,
             clearAdjust: s.clearAdjust,
             nextRate: s.nextRate,
-            pause: s.pause
+            pause: s.pause,
+            changeAutoPause:s.changeAutoPause
         }))
     );
     const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
@@ -105,7 +107,8 @@ export default function PlayerShortCut() {
         }
     });
     useHotkeys(process(setting('shortcut.playPause')), space);
-    useHotkeys(process(setting('shortcut.repeatSingleSentence')), changeSingleRepeat);
+    useHotkeys(process(setting('shortcut.repeatSingleSentence')), ()=>changeSingleRepeat());
+    useHotkeys(process(setting('shortcut.autoPause')), ()=>changeAutoPause());
     useHotkeys(process(setting('shortcut.toggleEnglishDisplay')), changeShowEn);
     useHotkeys(process(setting('shortcut.toggleChineseDisplay')), changeShowCn);
     useHotkeys(process(setting('shortcut.toggleBilingualDisplay')), changeShowEnCn);
