@@ -170,7 +170,8 @@ const ShortcutSetting = () => {
         'shortcut.clearAdjust',
         'shortcut.nextPlaybackRate',
         'shortcut.aiChat',
-        'shortcut.toggleCopyMode'
+        'shortcut.toggleCopyMode',
+        'shortcut.addClip'
     ]);
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
@@ -303,6 +304,13 @@ const ShortcutSetting = () => {
                     defaultValue={SettingKeyObj['shortcut.toggleCopyMode']}
                     value={setting('shortcut.toggleCopyMode')}
                     setValue={setSettingFunc('shortcut.toggleCopyMode')}
+                />
+                <ShortCutRecorder
+                    title="添加/取消收藏"
+                    description="使用这个快捷键可以添加/取消收藏当前句子"
+                    defaultValue={SettingKeyObj['shortcut.addClip']}
+                    value={setting('shortcut.addClip')}
+                    setValue={setSettingFunc('shortcut.addClip')}
                 />
             </ItemWrapper>
 

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import * as os from 'os';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { storeGet } from '@/backend/store';
 import RateLimiter from '@/common/utils/RateLimiter';
@@ -15,6 +14,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import WhisperService from '@/backend/services/WhisperService';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import OpenAiWhisperRequest, { WhisperResponse } from '@/backend/objs/OpenAiWhisperRequest';
+import LocationService, { LocationType } from '@/backend/services/LocationService';
 
 
 interface SplitChunk {
@@ -49,6 +49,8 @@ class WhisperServiceImpl implements WhisperService {
 
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
+    @inject(TYPES.LocationService)
+    private locationService!: LocationService;
 
     public async transcript(taskId: number, filePath: string) {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
@@ -124,7 +126,7 @@ class WhisperServiceImpl implements WhisperService {
 
     async convertAndSplit(taskId: number, filePath: string): Promise<SplitChunk[]> {
         const folderName = hash(filePath);
-        const tempDir = path.join(os.tmpdir(), 'dp/whisper/', folderName);
+        const tempDir = path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), '/whisper/', folderName);
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }

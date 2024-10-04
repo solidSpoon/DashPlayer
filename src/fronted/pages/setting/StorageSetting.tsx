@@ -76,17 +76,18 @@ const StorageSetting = () => {
                     <text>{size}</text>
                 </div>
 
-                <div className="flex gap-2 items-end">
+                <div className="flex gap-2 items-start">
                     <SettingInput
                         className={cn('w-fit')}
                         type="text"
                         inputWidth="w-96"
                         placeHolder="Documents/DashPlayer"
                         setValue={setSettingFunc('storage.path')}
-                        title="Storage Path"
+                        title="存储路径（Library Path）"
                         value={setting('storage.path')}
+                        description={'切换存储路径后请完全退出 DashPlayer 并重新打开'}
                     />
-                    <Button className={'mb-1.5'} variant={'outline'} size={'icon'}
+                    <Button className={'mt-5'} variant={'outline'} size={'icon'}
                             onClick={async () => {
                                 const folder: string[] = await api.call('system/select-folder', {createDirectory: true});
                                 if (folder.length > 0) {
@@ -135,8 +136,8 @@ const StorageSetting = () => {
                             </TooltipProvider>
                         </div>
 
-                        <p>
-                            favourite_clips 文件夹下的子文件夹会被视为收藏夹
+                        <p className={'text-sm text-muted-foreground"'}>
+                            favourite_clips 文件夹下的子文件夹会被视为收藏夹，如有需求您可以去该文件夹下创建新的收藏夹。
                         </p>
                     </div>
                 </div>
@@ -152,7 +153,7 @@ const StorageSetting = () => {
                     onClick={handleOpen}
                     variant="secondary"
                 >
-                    打开缓存文件夹
+                    打开 Library 文件夹
                 </Button>
                 <Button
                     disabled={eqServer}

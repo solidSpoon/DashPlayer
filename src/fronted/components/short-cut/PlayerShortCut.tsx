@@ -140,7 +140,7 @@ export default function PlayerShortCut() {
             exitCopyMode();
         }
     }, { keyup: true, keydown: true });
-    useHotkeys('l', async () => {
+    useHotkeys(process(setting('shortcut.addClip')), async () => {
         useFavouriteClip.getState().changeCurrentLineClip();
     });
     return <></>;
