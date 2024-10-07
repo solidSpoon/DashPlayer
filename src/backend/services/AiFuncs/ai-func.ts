@@ -44,18 +44,18 @@ export default class AiFunc {
     public static async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
         const extractionFunctionSchema = {
-            name: "extractor",
-            description: "Extracts fields from the input.",
-            parameters: zodToJsonSchema(resultSchema),
+            name: 'extractor',
+            description: 'Extracts fields from the input.',
+            parameters: zodToJsonSchema(resultSchema)
         };
         // Instantiate the parser
         const parser = new JsonOutputFunctionsParser();
-        const chat: ChatOpenAI = (await this.getOpenAi(taskId))
+        const chat: ChatOpenAI = (await this.getOpenAi(taskId));
         if (!chat) return;
         const runnable = chat.bind({
             functions: [extractionFunctionSchema],
-            function_call: {name: "extractor"},
-        })
+            function_call: { name: 'extractor' }
+        });
         const prompt: ChatPromptTemplate = ChatPromptTemplate.fromTemplate(promptStr);
 
         // todo: fix the type
@@ -68,19 +68,29 @@ export default class AiFunc {
             progress: 'AI is analyzing...'
         });
 
-        const resStream = await chain.stream({});
-        for await (const chunk of resStream) {
-            DpTaskService.update({
-                id: taskId,
-                status: DpTaskState.IN_PROGRESS,
-                progress: 'AI responseing',
-                result: JSON.stringify(chunk)
-            });
+        const streamMode = (storeGet('apiKeys.openAi.stream') ?? 'on') === 'on';
+        let resJson = '';
+        if (streamMode) {
+            const resStream = await chain.stream({});
+            for await (const chunk of resStream) {
+                resJson = JSON.stringify(chunk);
+                DpTaskService.update({
+                    id: taskId,
+                    status: DpTaskState.IN_PROGRESS,
+                    progress: 'AI responseing',
+                    result: resJson
+                });
+            }
+        } else {
+            const tr =  await chain.invoke({});
+            resJson = JSON.stringify(tr);
         }
+
         DpTaskService.update({
             id: taskId,
             status: DpTaskState.DONE,
             progress: 'AI has responded',
+            result: resJson
         });
     }
 }
