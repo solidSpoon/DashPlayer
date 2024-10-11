@@ -20,6 +20,7 @@ export type SettingType =
     | 'shortcut'
     | 'storage'
     | 'update'
+    | 'asr'
     | 'appearance';
 const Sidebar = () => {
     const location = useLocation();
@@ -72,6 +73,7 @@ const Sidebar = () => {
             {ele('字幕翻译', 'tenant', <Languages />)}
             {ele('查单词', 'you-dao', <WholeWord />)}
             {ele('OpenAI', 'open-ai', <Bot />)}
+            {ele("语音识别", "asr", <Bot />)}
             {ele('存储', 'storage', <Database />)}
             {ele('版本更新', 'update', <Compass />)}
         </div>

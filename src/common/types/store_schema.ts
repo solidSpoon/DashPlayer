@@ -28,5 +28,8 @@ export const SettingKeyObj = {
     'model.gpt.default': 'gpt-4o-mini',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
+    'asr.provider': 'openid',
+    'asr.spark.appId': '',
+    'asr.spark.secretKey': '',
 }
 export type SettingKey = keyof typeof SettingKeyObj;

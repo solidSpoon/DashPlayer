@@ -27,6 +27,7 @@ import Convert from '@/fronted/pages/convert/Convert';
 import { ErrorBoundary } from 'react-error-boundary';
 import FallBack from '@/fronted/components/FallBack';
 import Eb from '@/fronted/components/Eb';
+import ASRSetting from './fronted/pages/setting/ASRSetting';
 
 const api = window.electron;
 const App = () => {
@@ -90,6 +91,10 @@ const App = () => {
                                     <Route
                                         path="open-ai"
                                         element={<Eb><OpenAiSetting /></Eb>}
+                                    />
+                                     <Route
+                                        path="asr"
+                                        element={<Eb><ASRSetting /></Eb>}
                                     />
                                     <Route
                                         path="storage"
