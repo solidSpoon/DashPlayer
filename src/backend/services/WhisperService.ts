@@ -12,6 +12,7 @@ import RateLimiter from "@/common/utils/RateLimiter";
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import hash from "object-hash";
 import ProcessService from "@/backend/services/ProcessService";
+import { sparkASRRequest } from './SparkASR';
 
 interface WhisperResponse {
     language: string;
@@ -114,7 +115,7 @@ class WhisperService {
         throw error;
     }
 
-    private static async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
+    private static async openAIWhisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
         await RateLimiter.wait('whisper');
         const data = new FormData();
         data.append('file', fs.createReadStream(chunk.filePath) as any);
@@ -147,8 +148,33 @@ class WhisperService {
                 }
                 throw error;
             });
+            
         return {
             ...response.data,
+            offset: chunk.offset
+        };
+    }
+    private static async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
+        const provider = storeGet('asr.provider')
+        if (provider ==='spark') {
+            return this.sparkASR(taskId,chunk)
+        }
+        return this.openAIWhisper(taskId, chunk);
+    }
+    private static async sparkASR(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
+        await RateLimiter.wait('whisper');
+        const appId = storeGet('asr.spark.appId');
+        const secretKey = storeGet('asr.spark.secretKey');
+        const CancelToken = axios.CancelToken;
+        const source = CancelToken.source();
+        const resp  = await sparkASRRequest(chunk.filePath,appId,secretKey,source).catch((error)=>{
+            if (axios.isCancel(error)) {
+                throw new Error(CANCEL_MSG);
+            }
+            throw error;
+        }) 
+        return {
+            ...resp,
             offset: chunk.offset
         };
     }
