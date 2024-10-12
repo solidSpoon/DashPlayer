@@ -9,6 +9,9 @@ import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import WhisperService from '@/backend/services/WhisperService';
+import { storeGet } from '@/backend/store';
+import container from '../ioc/inversify.config';
+
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -21,9 +24,6 @@ export default class AiFuncController implements Controller {
 
     @inject(TYPES.AiService)
     private aiService!: AiServiceImpl
-
-    @inject(TYPES.WhisperService)
-    private whisperService!: WhisperService;
 
     public async analyzeNewWords(sentence: string) {
         const taskId = await this.dpTaskService.create();
@@ -93,7 +93,9 @@ export default class AiFuncController implements Controller {
     public async transcript({ filePath }: { filePath: string }) {
         const taskId = await this.dpTaskService.create();
         console.log('taskId', taskId);
-        this.whisperService.transcript(taskId, filePath).then(r => {
+        const provider = storeGet('asr.provider')
+        const whisperService:WhisperService = container.getNamed<WhisperService>(TYPES.WhisperService ,provider );
+        whisperService.transcript(taskId, filePath).then(r => {
             console.log(r);
         });
         return taskId;

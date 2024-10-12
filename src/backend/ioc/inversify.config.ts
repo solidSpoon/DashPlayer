@@ -60,6 +60,7 @@ import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
 import DlVideoService from '@/backend/services/DlVideoService';
 import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
+import XfyunWhisperServiceImpl from '@/backend/services/impl/XfyunWhisperServiceImpl';
 
 
 const container = new Container();
@@ -97,7 +98,8 @@ container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingl
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<AiService>(TYPES.AiService).to(AiServiceImpl).inSingletonScope();
-container.bind<WhisperService>(TYPES.WhisperService).to(WhisperServiceImpl).inSingletonScope();
+container.bind<WhisperService>(TYPES.WhisperService).to(WhisperServiceImpl).inSingletonScope().whenTargetNamed("openai");
+container.bind<WhisperService>(TYPES.WhisperService).to(XfyunWhisperServiceImpl).inSingletonScope().whenTargetNamed("xfyun");
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();

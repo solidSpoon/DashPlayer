@@ -20,6 +20,7 @@ import toast, { Toaster as HotToaster } from 'react-hot-toast';
 import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
 import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
+import AsrSetting from '@/fronted/pages/setting/AsrSetting';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from '@/fronted/components/short-cut/GlobalShortCut';
 import DownloadVideo from '@/fronted/pages/DownloadVideo';
@@ -95,6 +96,10 @@ const App = () => {
                                     <Route
                                         path="open-ai"
                                         element={<Eb><OpenAiSetting /></Eb>}
+                                    />
+                                    <Route
+                                        path="asr"
+                                        element={<Eb><AsrSetting /></Eb>}
                                     />
                                     <Route
                                         path="storage"

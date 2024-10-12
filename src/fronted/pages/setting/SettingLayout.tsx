@@ -11,12 +11,13 @@ import {
 import {cn} from "@/fronted/lib/utils";
 import Separator from '@/fronted/components/Separtor';
 import {buttonVariants} from "@/fronted/components/ui/button";
-import { Bot, Command, Compass, Database, Languages, Palette, Server, WholeWord } from 'lucide-react';
+import { Bot, Command, Compass, Database, Languages, Palette, AudioLines, WholeWord } from 'lucide-react';
 
 export type SettingType =
     | 'you-dao'
     | 'tenant'
     | 'open-ai'
+    | 'asr'
     | 'shortcut'
     | 'storage'
     | 'update'
@@ -72,6 +73,7 @@ const Sidebar = () => {
             {ele('字幕翻译', 'tenant', <Languages />)}
             {ele('查单词', 'you-dao', <WholeWord />)}
             {ele('OpenAI', 'open-ai', <Bot />)}
+            {ele('语音识别', 'asr', <AudioLines />)}
             {ele('存储', 'storage', <Database />)}
             {ele('版本更新', 'update', <Compass />)}
         </div>

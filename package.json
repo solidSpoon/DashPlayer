@@ -76,6 +76,7 @@
         "@radix-ui/react-toast": "^1.1.5",
         "@radix-ui/react-toggle": "^1.0.3",
         "@radix-ui/react-tooltip": "^1.0.7",
+        "@one-api-audio/xfyun": "^1",
         "@turf/turf": "^6.5.0",
         "@types/fluent-ffmpeg": "^2.1.24",
         "@uidotdev/usehooks": "^2.4.1",
