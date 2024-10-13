@@ -10,10 +10,30 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import ChildProcessTask from '@/backend/objs/ChildProcessTask';
 import DlVideoService from '@/backend/services/DlVideoService';
 
+class DownloadProgress {
+    name = '';
+    progress = 0;
+    private stdOutLines: string[] = [];
+
+    public appendStdOut(line: string) {
+        this.stdOutLines.push(line.trim());
+    }
+
+    public get stdOut(): string {
+        return this.stdOutLines.join('\n');
+    }
+
+    public toJSON(): DlProgress {
+        return {
+            name: this.name,
+            progress: this.progress,
+            stdOut: this.stdOut
+        };
+    }
+}
 
 @injectable()
 export default class DlVideoServiceImpl implements DlVideoService {
-
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
@@ -24,203 +44,191 @@ export default class DlVideoServiceImpl implements DlVideoService {
     private ffmpegService!: FfmpegService;
 
     public async dlVideo(taskId: number, url: string, savePath: string) {
-        const result: {
-            ref: DlProgress
-            so: string[]
-        } = {
-            ref: {
-                name: '',
-                progress: 0,
-                stdOut: ''
-            },
-            so: []
-        };
-        result.so.push(`System: downloading video from ${url}`);
-        result.ref.stdOut = result.so.join('\n');
+        const progress = new DownloadProgress();
+        progress.appendStdOut(`System: downloading video from ${url}`);
         this.dpTaskService.process(taskId, {
             progress: '正在下载',
-            result: JSON.stringify(result.ref)
+            result: JSON.stringify(progress.toJSON())
         });
+
         try {
-            const vName = await this.doDlVideoFileName(taskId, result, url)
-                .then((name) => {
-                    result.ref.name = path.basename(name, path.extname(name)) + '.mp4';
-                    return name;
-                });
-            await this.doDlVideo(taskId, result, url, savePath);
-            if (!vName.endsWith('.mp4')) {
-                const vPath = path.join(savePath, vName);
-                if (fs.existsSync(vPath)) {
-                    result.so.push('System: converting video to mp4');
-                    result.ref.stdOut = result.so.join('\n');
+            // Get the video file name
+            const videoFileName = await this.getVideoFileName(taskId, progress, url);
+            progress.name = path.basename(videoFileName, path.extname(videoFileName)) + '.mp4';
+
+            // Download the video
+            await this.downloadVideo(taskId, progress, url, savePath);
+
+            // If the downloaded file is not mp4, convert it
+            if (!videoFileName.endsWith('.mp4')) {
+                const videoPath = path.join(savePath, videoFileName);
+                if (fs.existsSync(videoPath)) {
+                    progress.appendStdOut('System: converting video to mp4');
                     this.dpTaskService.process(taskId, {
                         progress: '正在转换',
-                        result: JSON.stringify(result.ref)
+                        result: JSON.stringify(progress.toJSON())
                     });
+
                     await this.ffmpegService.toMp4({
-                        inputFile: vPath,
-                        onProgress: (progress) => {
-                            result.ref.progress = progress;
-                            result.so.push(`System: converting video to mp4 ${progress}%`);
-                            result.ref.stdOut = result.so.join('\n');
+                        inputFile: videoPath,
+                        onProgress: (percent) => {
+                            progress.progress = percent;
+                            progress.appendStdOut(`System: converting video to mp4 ${percent}%`);
                             this.dpTaskService.process(taskId, {
-                                progress: `正在转换 ${progress}%`,
-                                result: JSON.stringify(result.ref)
+                                progress: `正在转换 ${percent}%`,
+                                result: JSON.stringify(progress.toJSON())
                             });
                         }
                     });
-                    fs.unlinkSync(vPath);
-                    result.so.push('System: video converted to mp4');
-                    result.ref.stdOut = result.so.join('\n');
-                    result.ref.name = path.basename(vPath, path.extname(vPath)) + '.mp4';
+
+                    fs.unlinkSync(videoPath);
+                    progress.appendStdOut('System: video converted to mp4');
+                    progress.name = path.basename(videoPath, path.extname(videoPath)) + '.mp4';
                     this.dpTaskService.process(taskId, {
                         progress: '转换完成',
-                        result: JSON.stringify(result.ref)
+                        result: JSON.stringify(progress.toJSON())
                     });
                 }
             }
-        } catch (e) {
+        } catch (error: any) {
+            progress.appendStdOut(`Error: ${error.message || error}`);
             this.dpTaskService.fail(taskId, {
                 progress: '下载失败',
-                result: JSON.stringify(result.ref)
+                result: JSON.stringify(progress.toJSON())
             });
             return;
         }
+
         this.dpTaskService.finish(taskId, {
             progress: '下载完成',
-            result: JSON.stringify(result.ref)
+            result: JSON.stringify(progress.toJSON())
         });
     }
 
-    public async doDlVideo(taskId: number, result: {
-        ref: DlProgress,
-        so: string[]
-    }, url: string, savePath: string) {
-        result.so.push('System: downloading video');
-        result.ref.stdOut = result.so.join('\n');
-        this.dpTaskService.process(taskId, {
-            progress: '正在下载',
-            result: JSON.stringify(result.ref)
-        });
-        return new Promise<void>((resolve, reject) => {
-            //yt-dlp -f "bestvideo[height<=1080][height>=?720]" --merge-output-format mp4 https://www.youtube.com/watch?v=EVEIl0V-5QE
-            const task = spawn(this.locationService.getThirdLibPath(ProgramType.YT_DL), [
-                '--ffmpeg-location', this.locationService.getThirdLibPath(ProgramType.LIB),
-                '-f', 'bestvideo[height<=1080][height>=?720]+bestaudio/best',
-                // '--simulate',
-                '--merge-output-format', 'mp4',
-                '-P', savePath,
-                url
-            ]);
-            task.stdout.setEncoding('utf8');
-            task.stderr.setEncoding('utf8');
-            this.dpTaskService.registerTask(taskId, new ChildProcessTask(task));
-            let progress = 0;
-            task.stdout.on('data', (data:string) => {
-                const output = data;
-                console.log(output); // 打印 yt-dlp 的输出
-
-                // 正则表达式匹配下载进度
-                const progressMatch = output.match(/\[download\]\s+(\d+\.?\d*)%/);
-                if (progressMatch) {
-                    // console.log(`Download progress: ${progressMatch[1]}%`);
-                    progress = parseFloat(progressMatch[1]);
-                }
-                result.so.push(data.toString().trim());
-                result.ref.stdOut = result.so.join('\n');
-                result.ref.progress = progress;
-                this.dpTaskService.process(taskId, {
-                    progress: `正在下载 ${progress}%`,
-                    result: JSON.stringify(result.ref)
-                });
-            });
-
-            task.stderr.on('data', (data:string) => {
-                console.error(`stderr: ${data}`);
-                result.so.push(data.trim());
-                result.ref.stdOut = result.so.join('\n');
-                this.dpTaskService.process(taskId, {
-                    progress: '下载失败',
-                    result: JSON.stringify(result.ref)
-                });
-            });
-
-            task.on('close', (code) => {
-                console.log(`child process exited with code ${code}`);
-                if (code === 0) {
-                    resolve();
-                } else {
-                    this.dpTaskService.fail(taskId, {
-                        progress: '下载失败',
-                        result: JSON.stringify(result.ref)
-                    });
-                    reject(`child process exited with code ${code}`);
-                }
-            });
-        });
-    }
-
-    /**
-     * yt-dlp -f "bestvideo[height<=1080][height>=?720]" --get-filename --merge-output-format mp4 https://www.youtube.com/watch?v=EVEIl0V-5QE
-     * @param taskId
-     * @param result
-     * @param url
-     */
-    public async doDlVideoFileName(taskId: number, result: {
-        ref: DlProgress,
-        so: string[]
-    }, url: string): Promise<string> {
-        // 获取yt-dlp的路径和ffmpeg的路径
+    private async getVideoFileName(
+        taskId: number,
+        progress: DownloadProgress,
+        url: string
+    ): Promise<string> {
         const ytDlpPath = this.locationService.getThirdLibPath(ProgramType.YT_DL);
         const ffmpegPath = this.locationService.getThirdLibPath(ProgramType.LIB);
 
-        result.so.push('System: fetching video file name');
-        result.ref.stdOut = result.so.join('\n');
+        progress.appendStdOut('System: fetching video file name');
         this.dpTaskService.process(taskId, {
             progress: '正在获取文件名',
-            result: JSON.stringify(result.ref)
+            result: JSON.stringify(progress.toJSON())
         });
+
         return new Promise<string>((resolve, reject) => {
-            const process = spawn(ytDlpPath, [
-                '--ffmpeg-location', ffmpegPath,
-                '-f', 'bestvideo[height<=1080][height>=?720]',
+            let output = '';
+
+            const ytDlpProcess = spawn(ytDlpPath, [
+                '--ffmpeg-location',
+                ffmpegPath,
+                '-f',
+                'bestvideo[height<=1080][height>=?720]',
                 '--get-filename',
-                '--merge-output-format', 'mp4',
+                '--merge-output-format',
+                'mp4',
                 url
             ]);
-            process.stdout.setEncoding('utf8');
-            this.dpTaskService.registerTask(taskId, new ChildProcessTask(process));
-            let output = '';
-            process.stdout.on('data', (data: string) => {
-                output += data;
-                // 如果有视频文件扩展名，说明获取到了文件名
-                const videoExtensions = ['.mp4', '.mkv', '.flv', '.avi', '.mov', '.wmv', 'webm'];
-                if (videoExtensions.some(ext => output.trim().endsWith(ext))) {
-                    resolve(output.trim());
-                }
-                result.so.push(data.toString().trim());
-                result.ref.stdOut = result.so.join('\n');
-                this.dpTaskService.process(taskId, {
-                    progress: '正在获取文件名',
-                    result: JSON.stringify(result.ref)
-                });
+
+            ytDlpProcess.stdout.setEncoding('utf8');
+
+            this.dpTaskService.registerTask(taskId, new ChildProcessTask(ytDlpProcess));
+
+            ytDlpProcess.stdout.on('data', (data: string) => {
+                output += data.toString();
+                progress.appendStdOut(data.toString());
             });
 
-            process.stderr.on('data', (data: string) => {
+            ytDlpProcess.stderr.on('data', (data: string) => {
                 console.error('Error:', data.toString());
-                result.so.push(data.toString().trim());
-                result.ref.stdOut = result.so.join('\n');
-                this.dpTaskService.process(taskId, {
-                    progress: '正在获取文件名',
-                    result: JSON.stringify(result.ref)
-                });
+                progress.appendStdOut(data.toString());
             });
 
-            process.on('close', (code: number) => {
-                if (code === 0 && output.trim().endsWith('.mp4')) {
+            ytDlpProcess.on('close', (code: number) => {
+                if (code === 0 && output.trim()) {
                     resolve(output.trim());
                 } else {
-                    reject(`yt-dlp process exited with code ${code}`);
+                    const errorMsg = `yt-dlp process exited with code ${code}`;
+                    progress.appendStdOut(errorMsg);
+                    reject(new Error(errorMsg));
+                }
+            });
+        });
+    }
+
+    private async downloadVideo(
+        taskId: number,
+        progress: DownloadProgress,
+        url: string,
+        savePath: string
+    ): Promise<void> {
+        progress.appendStdOut('System: downloading video');
+        this.dpTaskService.process(taskId, {
+            progress: '正在下载',
+            result: JSON.stringify(progress.toJSON())
+        });
+
+        return new Promise<void>((resolve, reject) => {
+            const ytDlpPath = this.locationService.getThirdLibPath(ProgramType.YT_DL);
+            const ffmpegPath = this.locationService.getThirdLibPath(ProgramType.LIB);
+
+            const args = [
+                '--ffmpeg-location',
+                ffmpegPath,
+                '-f',
+                'bestvideo[height<=1080][height>=?720]+bestaudio/best',
+                '--merge-output-format',
+                'mp4',
+                '-P',
+                savePath,
+                url
+            ];
+
+            const ytDlpProcess = spawn(ytDlpPath, args);
+
+            ytDlpProcess.stdout.setEncoding('utf8');
+            ytDlpProcess.stderr.setEncoding('utf8');
+            let percentProgress = 0;
+
+            this.dpTaskService.registerTask(taskId, new ChildProcessTask(ytDlpProcess));
+
+            ytDlpProcess.stdout.on('data', (data: string) => {
+                console.log(data);
+                progress.appendStdOut(data);
+
+                const progressMatch = data.match(/\[download\]\s+(\d+(\.\d+)?)%/);
+                if (progressMatch) {
+                    percentProgress = parseFloat(progressMatch[1]);
+                    console.log(`Download progress: ${percentProgress}%`);
+                    progress.progress = percentProgress;
+
+                    this.dpTaskService.process(taskId, {
+                        progress: `正在下载 ${percentProgress}%`,
+                        result: JSON.stringify(progress.toJSON())
+                    });
+                }
+            });
+
+            ytDlpProcess.stderr.on('data', (data: string) => {
+                console.error(`stderr: ${data}`);
+                progress.appendStdOut(data);
+            });
+
+            ytDlpProcess.on('close', (code: number) => {
+                console.log(`yt-dlp process exited with code ${code}`);
+                if (code === 0) {
+                    resolve();
+                } else {
+                    const errorMsg = `yt-dlp process exited with code ${code}`;
+                    progress.appendStdOut(errorMsg);
+                    this.dpTaskService.fail(taskId, {
+                        progress: '下载失败',
+                        result: JSON.stringify(progress.toJSON())
+                    });
+                    reject(new Error(errorMsg));
                 }
             });
         });

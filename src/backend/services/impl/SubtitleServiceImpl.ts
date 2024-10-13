@@ -54,14 +54,19 @@ export class SubtitleServiceImpl implements SubtitleService {
         const content = await FileUtil.read(path);
         TypeGuards.assertNotNull(content, 'read file error');
         console.log(content);
-        const h = ObjUtil.hash(content);
-        const cache = this.cacheService.get('cache:srt', h);
+        const hashKey = ObjUtil.hash(content);
+        const cache = this.cacheService.get('cache:srt', hashKey);
         if (cache) {
-            return cache;
+            const adjustedSentence = await this.adjustTime(cache.sentences, hashKey);
+            return {
+                fileHash: hashKey,
+                filePath: path,
+                sentences: adjustedSentence
+            };
         }
         const lines: SrtLine[] = SrtUtil.parseSrt(content);
         const subtitles = lines.map<Sentence>((line, index) => ({
-            fileHash: h,
+            fileHash: hashKey,
             index: index,
             start: line.start,
             end: line.end,
@@ -70,39 +75,43 @@ export class SubtitleServiceImpl implements SubtitleService {
             text: line.contentEn,
             textZH: line.contentZh,
             msTranslate: null,
-            key: `${h}-${index}`,
+            key: `${hashKey}-${index}`,
             transGroup: 0,
             struct: processSentence(line.contentEn)
         }));
-        await this.adjustTime(subtitles, h);
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });
         const res = {
-            fileHash: h,
+            fileHash: hashKey,
             filePath: path,
             sentences: subtitles
         };
-        this.cacheService.set('cache:srt', h, res);
-        return res;
+        this.cacheService.set('cache:srt', hashKey, res);
+        const adjustedSentence = await this.adjustTime(subtitles, hashKey);
+        return {
+            ...res,
+            sentences: adjustedSentence
+        };
     }
 
 
-    private async adjustTime(subtitles: Sentence[], hashCode: string) {
+    private async adjustTime(subtitles: Sentence[], hashCode: string): Promise<Sentence[]> {
         const adjs = await this.srtTimeAdjustService.getByHash(hashCode);
         const mapping: Map<string, SubtitleTimestampAdjustment> = new Map();
         adjs.forEach((item) => {
             mapping.set(item.key, item);
         });
-        subtitles.forEach((item) => {
-            const key = item.key;
-            const adj = mapping.get(key);
-            if (adj?.start_at) {
-                item.adjustedStart = adj.start_at;
+        return subtitles.map((item) => {
+            const adj = mapping.get(item.key);
+            if (!adj) {
+                return item;
             }
-            if (adj?.end_at) {
-                item.adjustedEnd = adj.end_at;
-            }
+            return {
+                ...item,
+                adjustedStart: adj.start_at,
+                adjustedEnd: adj.end_at
+            };
         });
     }
 }

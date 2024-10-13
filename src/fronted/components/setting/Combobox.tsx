@@ -46,7 +46,7 @@ export default function Combobox({ options, value, onSelect, className = '' }: C
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0">
                 <Command>
-                    <CommandInput placeholder="Search framework..." />
+                    <CommandInput placeholder="Type to search..." />
                     <CommandList>
                         <CommandEmpty>No framework found.</CommandEmpty>
                         <CommandGroup>

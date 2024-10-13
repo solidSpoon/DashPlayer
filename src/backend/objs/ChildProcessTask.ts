@@ -9,6 +9,6 @@ export default class ChildProcessTask implements Cancelable {
     }
 
     cancel(): void {
-        this.process.kill('SIGKILL');
+        this.process.kill();
     }
 }

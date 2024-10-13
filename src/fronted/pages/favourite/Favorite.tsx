@@ -81,7 +81,7 @@ const Favorite = () => {
                 </h1>
                 <div className="flex items-center gap-4">
                     <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                        Add subtitles to your videos using OpenAI's Whisper Large model
+                       Manage and re-watch your favorite clips
                     </h2>
                     <Loader />
                 </div>
