@@ -60,6 +60,8 @@ import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
 import DlVideoService from '@/backend/services/DlVideoService';
 import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
+import WatchHistoryService from '@/backend/services/WatchHistoryService';
+import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryServiceImpl';
 
 
 const container = new Container();
@@ -102,4 +104,5 @@ container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSi
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
+container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 export default container;

@@ -1,4 +1,6 @@
 import path from 'path';
+import leven from 'leven';
+import StrUtil from '@/common/utils/str-util';
 
 type SRTMatch = {
     path: string;
@@ -39,6 +41,9 @@ export default class MatchSrt {
      * @returns 匹配的字幕文件路径列表，按优先级降序排列
      */
     public static matchAll(videoPath: string, srtPaths: string[]): string[] {
+        if (srtPaths?.length === 0 || StrUtil.isBlank(videoPath)) {
+            return [];
+        }
         // 提取视频文件名（不含扩展名）
         const videoName = extractBaseName(videoPath).toLowerCase();
 
@@ -58,10 +63,14 @@ export default class MatchSrt {
                 }
             }
         });
-
+        if (matches.length === 0) {
+            srtPaths.forEach((srtPath) => {
+                const distance = leven(videoName, extractBaseName(srtPath).toLowerCase());
+                matches.push({ path: srtPath, priority: 1000 - distance });
+            });
+        }
         // 按优先级降序排序
         matches.sort((a, b) => b.priority - a.priority);
-
         // 提取排序后的字幕路径
         return matches.map(match => match.path);
     }

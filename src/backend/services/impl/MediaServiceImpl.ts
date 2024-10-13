@@ -54,5 +54,12 @@ export default class MediaServiceImpl implements MediaService {
         adjustedTimestamp = Math.min(Math.max(adjustedTimestamp, 0), duration);
         return Math.floor(adjustedTimestamp / 15);
     }
+
+    async duration(inputFile: string): Promise<number> {
+        if (!fs.existsSync(inputFile)) {
+            return 0;
+        }
+        return this.ffmpegService.duration(inputFile);
+    }
 }
 
