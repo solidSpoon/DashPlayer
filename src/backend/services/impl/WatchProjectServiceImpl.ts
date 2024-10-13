@@ -11,26 +11,8 @@ import WatchProjectService from '@/backend/services/WatchProjectService';
 import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import TYPES from '@/backend/ioc/types';
+import MatchSrt from '@/backend/utils/MatchSrt';
 
-
-const findSubtitle = (
-    videoName: string,
-    subtitleFilesList: string[]
-): string | undefined => {
-    const subtitleFile = subtitleFilesList.find((subtitleFileName) =>
-        subtitleFileName.startsWith(videoName)
-    );
-    if (subtitleFile) {
-        return subtitleFile;
-    }
-    const videoNameWithoutExt = videoName.substring(
-        0,
-        videoName.lastIndexOf('.')
-    );
-    return subtitleFilesList.find((subtitleFileName) =>
-        subtitleFileName.startsWith(videoNameWithoutExt)
-    );
-};
 
 @injectable()
 export default class WatchProjectServiceImpl implements WatchProjectService {
@@ -41,11 +23,11 @@ export default class WatchProjectServiceImpl implements WatchProjectService {
         const res: WatchProject[] = await db.select()
             .from(watchProjects)
             .orderBy(desc(watchProjects.updated_at));
-        res.forEach((p) => {
+        await Promise.all(res.map(async (p) => {
             if (!fs.existsSync(p.project_path)) {
-                this.delete(p.id);
+                await this.delete(p.id);
             }
-        });
+        }));
         const vos: WatchProject[] = await db.select()
             .from(watchProjects)
             .orderBy(desc(watchProjects.updated_at));
@@ -54,6 +36,7 @@ export default class WatchProjectServiceImpl implements WatchProjectService {
             return { video: v, ...p };
         }));
     }
+
 
     public async detail(id: number): Promise<WatchProjectVO> {
         const [project]: WatchProject[] = await db.select()
@@ -169,7 +152,7 @@ export default class WatchProjectServiceImpl implements WatchProjectService {
                 project_id: vpr.id,
                 video_name: path.basename(vp),
                 video_path: vp,
-                subtitle_path: findSubtitle(vp, srtPaths),
+                subtitle_path: MatchSrt.matchOne(vp, srtPaths),
                 current_playing: false,
                 current_time: 0,
                 duration: 0
@@ -249,7 +232,7 @@ export default class WatchProjectServiceImpl implements WatchProjectService {
                 .from(watchProjectVideos)
                 .where(eq(watchProjectVideos.project_id, projId)))[0];
         }
-        return v;
+        return v || null;
     }
 
     async detailByVid(vid: number) {
@@ -276,4 +259,61 @@ export default class WatchProjectServiceImpl implements WatchProjectService {
             unsupported: videos.filter((v) => !MediaUtil.supported(v)).length
         };
     }
+
+
+    // private async syncFromLibrary(): Promise<void> {
+    //     const dirPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+    //     // 分别列出文件和文件夹
+    //     const files = fs.readdirSync(dirPath);
+    //     const folders = files.filter((f) => fs.statSync(path.join(dirPath, f)).isDirectory());
+    //     const videos = files.filter((f) => MediaUtil.isMedia(f));
+    //     const srts = files.filter((f) => MediaUtil.isSrt(f));
+    //     const vp: InsertWatchProject = {
+    //         project_name: path.basename(dirPath),
+    //         project_type: WatchProjectType.DIRECTORY,
+    //         project_path: dirPath
+    //     };
+    //     const [vpr]: WatchProject[] = await db.insert(watchProjects)
+    //         .values([vp])
+    //         .onConflictDoUpdate({
+    //             target: watchProjects.project_path,
+    //             set: {
+    //                 project_name: vp.project_name,
+    //                 project_type: vp.project_type,
+    //                 updated_at: TimeUtil.timeUtc()
+    //             }
+    //         })
+    //         .returning();
+    //
+    //     const files = fs.readdirSync(dirPath);
+    //     const videos = files.filter((f) => MediaUtil.isMedia(f));
+    //     const srts = files.filter((f) => MediaUtil.isSrt(f));
+    //     const videoPaths = videos.map((v) => path.join(dirPath, v));
+    //     const srtPaths = srts.map((s) => path.join(dirPath, s));
+    //     const videoInserts: InsertWatchProjectVideo[] = videoPaths.map((vp, idx) => {
+    //         return {
+    //             project_id: vpr.id,
+    //             video_name: path.basename(vp),
+    //             video_path: vp,
+    //             subtitle_path: MatchSrt.matchOne(vp, srtPaths),
+    //             current_playing: false,
+    //             current_time: 0,
+    //             duration: 0
+    //         };
+    //     });
+    //     await Promise.all(videoInserts.map(async (v) => {
+    //         await db.insert(watchProjectVideos)
+    //             .values([v])
+    //             .onConflictDoUpdate({
+    //                 target: [watchProjectVideos.project_id, watchProjectVideos.video_path],
+    //                 set: {
+    //                     ...v,
+    //                     id: undefined,
+    //                     project_id: vpr.id,
+    //                     updated_at: TimeUtil.timeUtc()
+    //                 }
+    //             });
+    //     }));
+    //     return vpr.id;
+    // }
 }

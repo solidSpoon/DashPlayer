@@ -27,6 +27,9 @@ export default class MediaServiceImpl implements MediaService {
     }
 
     async thumbnail(sourceFilePath: string, timestamp?: number): Promise<string> {
+        if (!fs.existsSync(sourceFilePath)) {
+            return '';
+        }
         const duration = await this.ffmpegService.duration(sourceFilePath);
         const adjustedTimestamp = this.calculateAdjustedTimestamp(timestamp, duration);
         const tempDirectoryPath = this.getTempDirectoryPath();

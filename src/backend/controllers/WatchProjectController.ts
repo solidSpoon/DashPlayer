@@ -71,18 +71,18 @@ export default class WatchProjectController implements Controller {
     }
 
     registerRoutes(): void {
-        registerRoute('watch-project/progress/update', this.updateProgress.bind(this));
-        registerRoute('watch-project/video/play', this.play.bind(this));
-        registerRoute('watch-project/video/detail', this.videoDetail.bind(this));
-        registerRoute('watch-project/video/detail/by-pid', this.videoDetailByPid.bind(this));
-        registerRoute('watch-project/create/from-folder', this.createFromFolder.bind(this));
-        registerRoute('watch-project/create/from-files', this.createFromFiles.bind(this));
-        registerRoute('watch-project/analyse-folder', this.analyseFolder.bind(this));
-        registerRoute('watch-project/create/from-download', this.tryCreateFromDownload.bind(this));
-        registerRoute('watch-project/delete', this.delete.bind(this));
-        registerRoute('watch-project/detail', this.detail.bind(this));
-        registerRoute('watch-project/detail/by-vid', this.detailByVid.bind(this));
-        registerRoute('watch-project/list', this.list.bind(this));
-        registerRoute('watch-project/attach-srt', this.attachSrt.bind(this));
+        registerRoute('watch-project/progress/update', (p) => this.updateProgress(p));
+        registerRoute('watch-project/video/play', (p) => this.play(p));
+        registerRoute('watch-project/video/detail', (p) => this.videoDetail(p));
+        registerRoute('watch-project/video/detail/by-pid', (p) => this.videoDetailByPid(p));
+        registerRoute('watch-project/create/from-folder', (p) => this.createFromFolder(p));
+        registerRoute('watch-project/create/from-files', (p) => this.createFromFiles(p));
+        registerRoute('watch-project/analyse-folder', (p) => this.analyseFolder(p));
+        registerRoute('watch-project/create/from-download', (p) => this.tryCreateFromDownload(p));
+        registerRoute('watch-project/delete', (p) => this.delete(p));
+        registerRoute('watch-project/detail', (p) => this.detail(p));
+        registerRoute('watch-project/detail/by-vid', (p) => this.detailByVid(p));
+        registerRoute('watch-project/list', (p) => this.list());
+        registerRoute('watch-project/attach-srt', (p) => this.attachSrt(p));
     }
 }
