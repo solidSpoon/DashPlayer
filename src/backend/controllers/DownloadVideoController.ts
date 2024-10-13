@@ -29,6 +29,6 @@ export default class DownloadVideoController implements Controller {
     }
 
     registerRoutes(): void {
-        registerRoute('download-video/url', this.downloadVideo.bind(this));
+        registerRoute('download-video/url', (p) => this.downloadVideo(p));
     }
 }

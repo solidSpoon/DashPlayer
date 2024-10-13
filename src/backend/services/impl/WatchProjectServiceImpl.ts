@@ -6,10 +6,11 @@ import fs from 'fs';
 import MediaUtil from '@/common/utils/MediaUtil';
 import path from 'path';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { app } from 'electron';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import WatchProjectService from '@/backend/services/WatchProjectService';
 import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
+import LocationService, { LocationType } from '@/backend/services/LocationService';
+import TYPES from '@/backend/ioc/types';
 
 
 const findSubtitle = (
@@ -33,6 +34,9 @@ const findSubtitle = (
 
 @injectable()
 export default class WatchProjectServiceImpl implements WatchProjectService {
+    @inject(TYPES.LocationService)
+    private locationService!: LocationService;
+
     public async list(): Promise<WatchProjectListVO[]> {
         const res: WatchProject[] = await db.select()
             .from(watchProjects)
@@ -256,7 +260,7 @@ export default class WatchProjectServiceImpl implements WatchProjectService {
     }
 
     tryCreateFromDownload(fileName: string) {
-        const downloadFolder = app.getPath('downloads');
+        const downloadFolder = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
         const fPath = path.join(downloadFolder, fileName);
         if (fs.existsSync(fPath)) {
             return this.createFromFiles([fPath]);

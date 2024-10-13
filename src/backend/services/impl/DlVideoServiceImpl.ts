@@ -1,10 +1,8 @@
 import { spawn } from 'child_process';
 import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import { DlProgress } from '@/common/types/dl-progress';
-import iconv from 'iconv-lite';
 import path from 'path';
 import fs from 'fs';
-import SystemService from '@/backend/services/SystemService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import LocationService, { ProgramType } from '@/backend/services/LocationService';
@@ -15,9 +13,6 @@ import DlVideoService from '@/backend/services/DlVideoService';
 
 @injectable()
 export default class DlVideoServiceImpl implements DlVideoService {
-
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
 
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
@@ -117,10 +112,12 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 '-P', savePath,
                 url
             ]);
+            task.stdout.setEncoding('utf8');
+            task.stderr.setEncoding('utf8');
             this.dpTaskService.registerTask(taskId, new ChildProcessTask(task));
             let progress = 0;
-            task.stdout.on('data', (data) => {
-                const output = data.toString();
+            task.stdout.on('data', (data:string) => {
+                const output = data;
                 console.log(output); // 打印 yt-dlp 的输出
 
                 // 正则表达式匹配下载进度
@@ -138,9 +135,9 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 });
             });
 
-            task.stderr.on('data', (data) => {
+            task.stderr.on('data', (data:string) => {
                 console.error(`stderr: ${data}`);
-                result.so.push(data.toString().trim());
+                result.so.push(data.trim());
                 result.ref.stdOut = result.so.join('\n');
                 this.dpTaskService.process(taskId, {
                     progress: '下载失败',
@@ -191,14 +188,10 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 '--merge-output-format', 'mp4',
                 url
             ]);
+            process.stdout.setEncoding('utf8');
             this.dpTaskService.registerTask(taskId, new ChildProcessTask(process));
             let output = '';
-            process.stdout.on('data', (d: Buffer) => {
-                let encoding = 'utf8';
-                if (this.systemService.isWindows()) {
-                    encoding = 'cp936';
-                }
-                const data = iconv.decode(d, encoding);
+            process.stdout.on('data', (data: string) => {
                 output += data;
                 // 如果有视频文件扩展名，说明获取到了文件名
                 const videoExtensions = ['.mp4', '.mkv', '.flv', '.avi', '.mov', '.wmv', 'webm'];
@@ -213,7 +206,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
                 });
             });
 
-            process.stderr.on('data', (data: Buffer) => {
+            process.stderr.on('data', (data: string) => {
                 console.error('Error:', data.toString());
                 result.so.push(data.toString().trim());
                 result.ref.stdOut = result.so.join('\n');
