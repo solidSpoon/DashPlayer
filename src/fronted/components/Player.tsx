@@ -71,7 +71,7 @@ export default function Player({ className }: { className?: string }): ReactElem
             }
             const performSeek = (time: number) => {
                 if (playerRef.current !== null) {
-                    playerRef.current.seekTo(time);
+                    playerRef.current.seekTo(time, 'seconds');
                     play();
                 }
             };
