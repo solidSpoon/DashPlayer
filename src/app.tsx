@@ -127,3 +127,6 @@ syncStatus();
 api.onErrorMsg((error: Error) => {
     toast.error(error.message);
 });
+api.onInfoMsg((info: string) => {
+    toast.success(info);
+});

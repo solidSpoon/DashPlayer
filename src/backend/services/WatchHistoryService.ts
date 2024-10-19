@@ -18,7 +18,7 @@ interface WatchHistoryService {
     delete(id: string): Promise<void>;
 
 
-    analyseFolder(path: string): { supported: number, unsupported: number };
+    analyseFolder(path: string): Promise<{ supported: number, unsupported: number }>;
 }
 
 export default WatchHistoryService;

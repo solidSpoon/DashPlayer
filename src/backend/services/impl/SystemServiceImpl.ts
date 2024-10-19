@@ -74,6 +74,10 @@ export default class SystemServiceImpl implements SystemService {
         this.mainWindow()?.webContents.send('error-msg', error);
     }
 
+    public sendInfoToRenderer(info: string) {
+        this.mainWindow()?.webContents.send('info-msg', info);
+    }
+
     @postConstruct()
     init() {
         PathUtil.SEPARATOR = path.sep;

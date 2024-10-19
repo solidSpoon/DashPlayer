@@ -3,12 +3,12 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { SettingKey } from './common/types/store_schema';
 import { ApiDefinitions, ApiMap } from '@/common/api/api-def';
-import { Nullable } from '@/common/types/Types';
 
 export type Channels =
     | 'main-state'
     | 'store-update'
-    | 'error-msg';
+    | 'error-msg'
+    | 'info-msg';
 const on = (channel: Channels, func: (...args: unknown[]) => void) => {
     const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
         func(...args);
@@ -25,6 +25,9 @@ const electronHandler = {
     },
     onErrorMsg: (func: (error: Error) => void) => {
         return on('error-msg', func as never);
+    },
+    onInfoMsg: (func: (info: string) => void) => {
+        return on('info-msg', func as never);
     },
     // 调用函数的方法
     call: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {

@@ -15,6 +15,8 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
+import SystemService from '@/backend/services/SystemService';
+import FileUtil from '@/backend/utils/FileUtil';
 
 
 @injectable()
@@ -23,6 +25,8 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     private locationService!: LocationService;
     @inject(TYPES.MediaService)
     private mediaService!: MediaService;
+    @inject(TYPES.SystemService)
+    private systemService!: SystemService;
 
     private mapId(folder: string, name: string, type: WatchHistoryType) {
         return ObjUtil.hash(`${folder}-${name}-${type}`);
@@ -136,20 +140,28 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     public async delete(id: string): Promise<void> {
-        if (!ObjUtil.isHash(id)) {
-            await db.delete(watchHistory).where(eq(watchHistory.base_path, id));
+
+        if (ObjUtil.isHash(id)) {
+            await this.deleteById(id);
         } else {
-            throw new Error('Not implemented');
+            const basePath = path.dirname(id);
+            const fileName = path.basename(id);
+            await this.deleteByFile(basePath, fileName);
         }
+        const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+        await FileUtil.cleanEmptyDirectories(libraryPath);
     }
-    public analyseFolder(path: string): { supported: number, unsupported: number } {
-        const files = fs.readdirSync(path);
+
+
+    public async analyseFolder(path: string): Promise<{ supported: number, unsupported: number }> {
+        const files = await FileUtil.listFiles(path);
         const videos = files.filter((f) => MediaUtil.isMedia(f));
         return {
             supported: videos.filter((v) => MediaUtil.supported(v)).length,
             unsupported: videos.filter((v) => !MediaUtil.supported(v)).length
         };
     }
+
     public async updateProgress(file: string, currentPosition: number): Promise<void> {
         const base_path = path.dirname(file);
         const file_name = path.basename(file);
@@ -214,7 +226,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
 
 
     private async listSrtFiles(folder: string): Promise<string[]> {
-        const files = fs.readdirSync(folder);
+        const files = await FileUtil.listFiles(folder);
         return files.filter(file => MediaUtil.isSrt(file))
             .map(file => path.join(folder, file));
     }
@@ -282,11 +294,22 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
      * @private
      */
     public async attachSrt(videoPath: string, srtPath: string) {
-        if (!fs.existsSync(videoPath) || !fs.existsSync(srtPath)) {
+        if (!fs.existsSync(videoPath)) {
             return;
         }
+
         const video = path.basename(videoPath);
         const folder = path.dirname(videoPath);
+
+        // 如果 srtPath 只是文件名，则使用视频文件的目录作为根目录
+        if (path.dirname(srtPath) === '.') {
+            srtPath = path.join(folder, srtPath);
+        }
+
+        if (!fs.existsSync(srtPath)) {
+            return;
+        }
+
         const records: WatchHistory[] = await db.select().from(watchHistory)
             .where(
                 and(
@@ -294,6 +317,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
                     eq(watchHistory.file_name, video)
                 )
             );
+
         for (const record of records) {
             if (record.srt_file === srtPath) {
                 continue;
@@ -310,6 +334,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
     }
 
+
     /**
      * 同步视频库中的文件
      * @private
@@ -319,7 +344,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (!fs.existsSync(libraryPath)) {
             return;
         }
-        const files = fs.readdirSync(libraryPath);
+        const files = await FileUtil.listFiles(libraryPath);
         const videoFiles = files.filter(file => MediaUtil.isVideo(file))
             .map(file => path.join(libraryPath, file));
         const srtFiles = files.filter(file => MediaUtil.isSrt(file));
@@ -365,4 +390,67 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             .then();
     }
 
+    private async deleteById(id: string) {
+        const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+        const [record]: WatchHistory[] = await db.select().from(watchHistory)
+            .where(eq(watchHistory.id, id));
+        if (!record) {
+            return;
+        }
+        // 如果是 libraryPath 或子文件夹下的文件
+        // 删除文件
+        const filePath = path.join(record.base_path, record.file_name);
+        if (filePath.startsWith(libraryPath)) {
+            await FileUtil.deleteFile(filePath);
+            this.systemService.sendInfoToRenderer('该文件位于视频库中，已为您删除原文件');
+        }
+        await db.delete(watchHistory)
+            .where(eq(watchHistory.id, id));
+        // 删除字幕文件
+        if (record.srt_file && record.srt_file.startsWith(libraryPath)) {
+            const srtExists = await db.select().from(watchHistory)
+                .where(eq(watchHistory.srt_file, record.srt_file));
+            if (CollUtil.isEmpty(srtExists)) {
+                await FileUtil.deleteFile(record.srt_file);
+            }
+        }
+    }
+
+    private async deleteByFile(basePath: string, fileName: string) {
+        const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+        const records: WatchHistory[] = await db.select().from(watchHistory)
+            .where(
+                and(
+                    eq(watchHistory.base_path, basePath),
+                    eq(watchHistory.file_name, fileName)
+                )
+            );
+        if (CollUtil.isEmpty(records)) {
+            return;
+        }
+        // 如果是 libraryPath 或子文件夹下的文件
+        // 删除文件
+        const filePath = path.join(records[0].base_path, records[0].file_name);
+
+        if (filePath.startsWith(libraryPath)) {
+            await FileUtil.deleteFile(filePath);
+            this.systemService.sendInfoToRenderer('该文件位于视频库中，已为您删除原文件');
+        }
+        await db.delete(watchHistory)
+            .where(and(
+                eq(watchHistory.base_path, basePath),
+                eq(watchHistory.file_name, fileName)
+            ));
+
+        const uniqueSrtFiles = [...new Set(records.map(record => record.srt_file).filter(StrUtil.isNotBlank))];
+        for (const srtFile of uniqueSrtFiles) {
+            if (srtFile.startsWith(libraryPath)) {
+                const srtExists = await db.select().from(watchHistory)
+                    .where(eq(watchHistory.srt_file, srtFile));
+                if (CollUtil.isEmpty(srtExists)) {
+                    await FileUtil.deleteFile(srtFile);
+                }
+            }
+        }
+    }
 }

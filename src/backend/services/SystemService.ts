@@ -14,6 +14,8 @@ export default interface SystemService {
 
     sendErrorToRenderer(error: Error): void;
 
+    sendInfoToRenderer(info: string): void;
+
     mainWindow(): Electron.BrowserWindow;
 
     setMainWindow(mainWindowRef: { current: BrowserWindow | null }): void;
