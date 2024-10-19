@@ -1,6 +1,4 @@
-import React, {useEffect} from 'react';
-import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
+import React from 'react';
 import useSWR from 'swr';
 import {SWR_KEY} from '@/fronted/lib/swr-util';
 import {cn} from '@/fronted/lib/utils';
@@ -11,47 +9,48 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from '@/fronted/components/ui/breadcrumb';
-
-import { WatchProjectListVO } from '@/common/types/watch-project';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import PathUtil from '@/common/utils/PathUtil';
 
 export interface ProjectListCompProps {
-    projEle: (p: WatchProjectListVO, handleClick: () => void) => React.JSX.Element;
-    videoEle: (p: WatchProjectVideo) => React.JSX.Element;
+    projEle: (p: WatchHistoryVO, handleClick: () => void) => React.JSX.Element;
+    videoEle: (p: WatchHistoryVO) => React.JSX.Element;
     backEle?: (root: boolean, handleClick: () => void) => React.JSX.Element;
     className?: string;
-    enterProj?: number | null;
+    enterProj?: string | null;
 }
 
 const api = window.electron;
-const listFetcher = () => api.call('watch-project/list', null);
-const detailFetcher =async ([_key, projId]: [string, number]) => {
-    return (await api.call('watch-project/detail', projId)).videos;
+const listFetcher = () => api.call('watch-history/list');
+const detailFetcher =async ([_key, basePath]: [string, string]) => {
+    return (await api.call('watch-history/list', basePath));
 };
 
-const ProjectDetailList = ({videoEle, projId}: {
-    videoEle: (p: WatchProjectVideo) => React.JSX.Element;
-    projId: number;
+const ProjectDetailList = ({videoEle, videoPath}: {
+    videoEle: (p: WatchHistoryVO) => React.JSX.Element;
+    videoPath: string;
 }) => {
+    const basePath = PathUtil.parse(videoPath).dir;
     const {
         data
-    } = useSWR([SWR_KEY.WATCH_PROJECT_DETAIL, projId], detailFetcher, {fallbackData: []});
+    } = useSWR([SWR_KEY.WATCH_PROJECT_DETAIL, basePath], detailFetcher, {fallbackData: []});
     return <> {data.map((item) => videoEle(item))}</>;
 };
 
 
 const ProjectListComp = ({className, videoEle, projEle, backEle, enterProj = null}: ProjectListCompProps) => {
     const {data} = useSWR(SWR_KEY.WATCH_PROJECT_LIST, listFetcher, {fallbackData: []});
-    const [projId, setProjId] = React.useState<number | null>(null);
-    const [projName, setProjName] = React.useState<string>('');
-    useEffect(() => {
-        if (enterProj !== null) {
-            const item = data.find((item) => item.id === enterProj);
-            if (item && item.project_type === WatchProjectType.DIRECTORY) {
-                setProjId(item.id);
-                setProjName(item.project_name);
-            }
-        }
-    }, [data, enterProj]);
+    console.log('data', data,enterProj);
+    const [basePath, setBasePath] = React.useState<string>('');
+    // useEffect(() => {
+    //     if (enterProj !== null) {
+    //         const item = data.find((item) => item.id === enterProj);
+    //         if (item && item.isFolder) {
+    //             setProjId(item.id);
+    //             setProjName(item.project_name);
+    //         }
+    //     }
+    // }, [data, enterProj]);
     return (
         <div className={cn('flex flex-col gap-2', className)}>
             <Breadcrumb className={cn('')}>
@@ -59,32 +58,32 @@ const ProjectListComp = ({className, videoEle, projEle, backEle, enterProj = nul
                     <BreadcrumbItem>
                         <BreadcrumbLink
                             onClick={() => {
-                                setProjId(null);
-                                setProjName('');
+                                setBasePath('');
                             }}
                         >Recent</BreadcrumbLink>
-                        {projName && <>
+                        {enterProj && <>
                             <BreadcrumbSeparator/>
-                            <BreadcrumbLink>{projName}</BreadcrumbLink>
+                            <BreadcrumbLink>{enterProj}</BreadcrumbLink>
                         </>}
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
             <div className={cn('h-0 flex-1 overflow-y-auto scrollbar-none')}>
-                {backEle(projId === null, () => {
-                    setProjId(null);
-                    setProjName('');
-                })}
-                {projId === null && data.map((item, idx) => {
+                {/* {backEle?.(StrUtil.isBlank(projId) , () => { */}
+                {/*     setProjId(null); */}
+                {/*     setProjName(''); */}
+                {/* })} */}
+                {enterProj === null && data.map((item, idx) => {
+                    console.log('ininininin');
                     const handleClick = () => {
-                        if (item.project_type === WatchProjectType.DIRECTORY) {
-                            setProjId(item.id);
-                            setProjName(item.project_name);
+                        if (item.isFolder) {
+                            // setProjId(item.id);
+                            // setProjName(item.project_name);
                         }
                     };
                     return projEle(item, handleClick);
                 })}
-                {projId !== null && <ProjectDetailList videoEle={videoEle} projId={projId}/>}
+                {enterProj !== null && <ProjectDetailList videoEle={videoEle} videoPath={enterProj}/>}
             </div>
         </div>
     );

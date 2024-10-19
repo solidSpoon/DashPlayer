@@ -1,9 +1,9 @@
-import {create} from 'zustand';
-import {persist, subscribeWithSelector} from 'zustand/middleware';
-import {ChapterParseResult} from "@/common/types/chapter-result";
-import MediaUtil from "@/common/utils/MediaUtil";
-import useDpTaskCenter from "@/fronted/hooks/useDpTaskCenter";
-import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
+import { create } from 'zustand';
+import { persist, subscribeWithSelector } from 'zustand/middleware';
+import { ChapterParseResult } from '@/common/types/chapter-result';
+import MediaUtil from '@/common/utils/MediaUtil';
+import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
@@ -42,22 +42,22 @@ const useSplit = create(
                     return;
                 }
                 if (MediaUtil.isMedia(filePath)) {
-                    set({videoPath: filePath});
+                    set({ videoPath: filePath });
                 }
                 if (MediaUtil.isSrt(filePath)) {
-                    set({srtPath: filePath});
+                    set({ srtPath: filePath });
                 }
-                set({parseResult: get().parseResult.map(r => ({...r, taskId: null}))});
+                set({ parseResult: get().parseResult.map(r => ({ ...r, taskId: null })) });
             },
             setUseInput: (input) => {
-                set({userInput: input});
+                set({ userInput: input });
             },
             deleteFile: (filePath) => {
                 if (get().videoPath === filePath) {
-                    set({videoPath: null});
+                    set({ videoPath: null });
                 }
                 if (get().srtPath === filePath) {
-                    set({srtPath: null});
+                    set({ srtPath: null });
                 }
             },
             runSplitAll: async () => {
@@ -70,11 +70,11 @@ const useSplit = create(
                     }
                 }
                 const folderName = await api.call('split-video/split', {
-                    videoPath: useSplit.getState().videoPath,
+                    videoPath: useSplit.getState().videoPath ?? '',
                     srtPath: useSplit.getState().srtPath,
                     chapters: useSplit.getState().parseResult
                 });
-                await api.call('watch-project/create/from-folder', folderName);
+                await api.call('watch-history/create', [folderName]);
                 await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
             },
             aiFormat: async () => {
@@ -82,17 +82,17 @@ const useSplit = create(
                     return;
                 }
                 const userInput = get().userInput;
-                set({inputable: false});
+                set({ inputable: false });
                 await useDpTaskCenter.getState().register(() => api.call('ai-func/format-split', userInput), {
                     onUpdated: (task) => {
                         if (StrUtil.isBlank(task?.result)) return;
                         // const res = JSON.parse(task.result) as AiFuncFormatSplitRes;
                         useSplit.setState({
-                            userInput: task.result,
+                            userInput: task.result
                         });
                     },
                     onFinish: () => {
-                        useSplit.setState({inputable: true});
+                        useSplit.setState({ inputable: true });
                     },
                     interval: 100
                 });
@@ -112,7 +112,7 @@ useSplit.subscribe(
     (s) => s.userInput,
     async (topic) => {
         if (StrUtil.isBlank(topic)) {
-            useSplit.setState({parseResult: []});
+            useSplit.setState({ parseResult: [] });
             return;
         }
         const result = await api.call('split-video/preview', topic);

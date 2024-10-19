@@ -175,8 +175,8 @@ export default function Player({ className }: { className?: string }): ReactElem
         if (videoId === null) {
             return;
         }
-        const result = await api.call('watch-project/video/detail', videoId);
-        const progress = result?.current_time ?? 0;
+        const result = await api.call('watch-history/detail', videoId);
+        const progress = result?.current_position ?? 0;
         console.log('jumpToHistoryProgress', progress);
         seekTo({ time: progress });
         lastFile = file;

@@ -1,1 +1,0 @@
-ALTER TABLE dp_subtitle_timestamp_adjustment ADD `subtitle_hash` text;

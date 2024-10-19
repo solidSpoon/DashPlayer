@@ -1,37 +1,34 @@
 import useSWR from 'swr';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
-import {Film, ListVideo, Trash2} from 'lucide-react';
-import {Button} from '@/fronted/components/ui/button';
-import TimeUtil from "@/common/utils/TimeUtil";
-import CollUtil from "@/common/utils/CollUtil";
-import {Progress} from "@/fronted/components/ui/progress";
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { Film, ListVideo, Trash2 } from 'lucide-react';
+import { Button } from '@/fronted/components/ui/button';
+import TimeUtil from '@/common/utils/TimeUtil';
+import { Progress } from '@/fronted/components/ui/progress';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
-} from "@/fronted/components/ui/context-menu";
+} from '@/fronted/components/ui/context-menu';
 import UrlUtil from '@/common/utils/UrlUtil';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import PathUtil from '@/common/utils/PathUtil';
 
 const api = window.electron;
 
-const ProjectListCard = ({proj, onSelected}: {
-    proj: WatchProject,
+const ProjectListCard = ({ video, onSelected }: {
+    video: WatchHistoryVO,
     className?: string
     onSelected: () => void;
 }) => {
-    // const { data: video } = useSWR(['watch-project/video/detail/by-pid', proj.id], ([key, projId]) => api.call('watch-project/video/detail/by-pid', projId));
-    const {data: projDetail} = useSWR(['watch-project/detail', proj.id], ([key, projId]) => api.call('watch-project/detail', projId));
-    const video = projDetail?.videos?.find((v) => v.current_playing) || CollUtil.safeGet(projDetail?.videos, 0);
-    const {data: url} = useSWR(video?.video_path ?
-            [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.video_path, video.current_time] : null,
-        async ([_key, path, time]) => {
-            return await api.call('split-video/thumbnail', {filePath: path, time});
+    const { data: url } = useSWR([SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] ,
+        async ([_key, path, file, time]) => {
+            return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
+    console.log('video', video);
     const [hover, setHover] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState(false);
     return (
@@ -53,23 +50,23 @@ const ProjectListCard = ({proj, onSelected}: {
                             style={{
                                 aspectRatio: '16/9'
                             }}
-                            className={cn("w-full object-cover", (hover || contextMenu) && 'filter brightness-75')}
-                            alt={proj.project_name}
+                            className={cn('w-full object-cover', (hover || contextMenu) && 'filter brightness-75')}
+                            alt={video.fileName}
                         /> : <div
                             style={{
                                 aspectRatio: '16/9'
                             }}
                             className={'w-full bg-gray-500 flex items-center justify-center'}>
-                            <Film className={'w-8 h-8'}/>
+                            <Film className={'w-8 h-8'} />
                         </div>}
                         <div
                             className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
-                            {proj.project_type === WatchProjectType.FILE ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
-                                <ListVideo className={'w-4 h-4 mr-1'}/>{`${projDetail?.videos?.length} videos`}</>}
+                            {!video.isFolder ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
+                                <ListVideo className={'w-4 h-4'} /></>}
                         </div>
                         <Progress
                             className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
-                            value={Math.floor((video?.current_time || 0) / (video?.duration || 1) * 100)}
+                            value={Math.floor((video?.current_position || 0) / (video?.duration || 1) * 100)}
                         />
 
 
@@ -80,8 +77,8 @@ const ProjectListCard = ({proj, onSelected}: {
                                 variant={'ghost'}
                                 onClick={async (e) => {
                                     e.stopPropagation();
-                                    console.log('swrdelete', proj.id);
-                                    await api.call('watch-project/delete', proj.id);
+                                    console.log('swrdelete', video.id);
+                                    await api.call('watch-history/delete', video.id);
                                     await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                                 }}
                             >
@@ -94,18 +91,18 @@ const ProjectListCard = ({proj, onSelected}: {
 
                     <div
                         className={cn('w-full line-clamp-2 break-words', (hover || contextMenu) && 'underline')}
-                    >{proj.project_name}</div>
+                    >{video.fileName}</div>
                 </div>
             </ContextMenuTrigger>
             <ContextMenuContent>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('system/open-folder', proj.project_path);
+                        await api.call('system/open-folder', video.basePath);
                     }}
                 >Show In Explorer</ContextMenuItem>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('watch-project/delete', proj.id);
+                        await api.call('watch-history/delete', video.id);
                         await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                     }}
                 >Delete</ContextMenuItem>

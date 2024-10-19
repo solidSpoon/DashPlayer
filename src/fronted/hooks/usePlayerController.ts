@@ -85,15 +85,14 @@ usePlayerController.subscribe(
             if (count % 5 !== 0) {
                 return;
             }
-            const file = useFile.getState().videoId;
+            const file = useFile.getState().videoPath;
             if (!file) {
                 return;
             }
 
-            await api.call('watch-project/progress/update', {
-                videoId: file,
-                currentTime: playTime,
-                duration
+            await api.call('watch-history/progress/update', {
+                file: file,
+                currentPosition: playTime,
             });
         }
     },

@@ -15,21 +15,19 @@ export interface FolderSelecterProps {
 }
 
 export class FolderSelectAction {
-    public static defaultAction(onSelected?: (vid: number) => void) {
+    public static defaultAction(onSelected?: (vid: string) => void) {
         return async (fp: string) => {
-            const pid = await api.call('watch-project/create/from-folder', fp);
-            const v = await api.call('watch-project/video/detail/by-pid', pid);
-            onSelected?.(v.id);
+            const [id] = await api.call('watch-history/create', [fp]);
+            onSelected?.(id);
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
             await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
         };
     }
-    public static defaultAction2(onSelected: (vid: number, fp: string) => void) {
+    public static defaultAction2(onSelected: (vid: string, fp: string) => void) {
         return async (fp: string) => {
-            const pid = await api.call('watch-project/create/from-folder', fp);
-            const v = await api.call('watch-project/video/detail/by-pid', pid);
-            onSelected(v.id, fp);
+            const [id] = await api.call('watch-history/create', [fp]);
+            onSelected(id, fp);
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
             await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);

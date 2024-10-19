@@ -45,7 +45,7 @@ const useTranscript = create(
                 const taskId = await useDpTaskCenter.getState().register(() => api.call('ai-func/transcript', { filePath: file }), {
                     onFinish: async (task) => {
                         if (task.status !== DpTaskState.DONE) return;
-                        await api.call('watch-project/attach-srt', {
+                        await api.call('watch-history/attach-srt', {
                             videoPath: file,
                             srtPath: 'same'
                         });

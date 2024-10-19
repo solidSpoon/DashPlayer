@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 import { Nullable } from '@/common/types/Types';
+import PathUtil from '@/common/utils/PathUtil';
 
 const api = window.electron;
 
@@ -83,9 +84,10 @@ const DownloadVideo = () => {
                                         if (task.status !== DpTaskState.DONE) return;
                                         const { name } = extracted(task);
                                         toast.success(`Downloaded ${name}, Start transcription`);
-                                        const pId = await api.call('watch-project/create/from-download', name);
-                                        const watchProjectVideo = await api.call('watch-project/video/detail/by-pid', pId);
-                                        await useTranscript.getState().onTranscript(watchProjectVideo.video_path);
+                                        // todo
+                                        const [pId] = await api.call('watch-history/create', [name]);
+                                        const watchProjectVideo = await api.call('watch-history/detail', pId);
+                                        await useTranscript.getState().onTranscript(PathUtil.join(watchProjectVideo?.basePath, watchProjectVideo?.fileName));
                                     }
                                 });
                                 setTaskId(taskId);

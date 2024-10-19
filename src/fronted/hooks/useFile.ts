@@ -5,8 +5,7 @@ import StrUtil from '@/common/utils/str-util';
 
 type UseFileState = {
     videoPath: string | null;
-    videoId: number | null;
-    projectId: number | null;
+    videoId: string | null;
     subtitlePath: string | null;
     videoLoaded: boolean;
     srtHash: string | null;
@@ -56,7 +55,6 @@ const useFile = create(
                 subtitlePath: null,
                 videoLoaded: false,
                 videoId: null,
-                projectId: null,
                 srtHash: null
             });
         },

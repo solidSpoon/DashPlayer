@@ -1,16 +1,18 @@
-import {WatchProjectVideo} from "@/backend/db/tables/watchProjectVideos";
-import React from "react";
+import React from 'react';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
-} from "@/fronted/components/ui/context-menu";
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
-import {cn} from "@/fronted/lib/utils";
-import MediaUtil from "@/common/utils/MediaUtil";
-import {FileAudio2, FileVideo2} from "lucide-react";
-import Style from "@/fronted/styles/style";
+} from '@/fronted/components/ui/context-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { cn } from '@/fronted/lib/utils';
+import MediaUtil from '@/common/utils/MediaUtil';
+import { FileAudio2, FileVideo2 } from 'lucide-react';
+import Style from '@/fronted/styles/style';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import PathUtil from '@/common/utils/PathUtil';
+
 export interface CtxMenu {
     icon: React.ReactNode;
     text: string;
@@ -20,8 +22,8 @@ export interface CtxMenu {
 
 export type BrowserItemVariant = 'highlight' | 'normal' | 'lowlight';
 
-const VideoItem2 = ({pv, variant = 'normal', ctxMenus, onClick}: {
-    pv: WatchProjectVideo,
+const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
+    pv: WatchHistoryVO,
     variant?: BrowserItemVariant;
     onClick?: () => void,
     ctxMenus: CtxMenu[]
@@ -49,11 +51,11 @@ const VideoItem2 = ({pv, variant = 'normal', ctxMenus, onClick}: {
                                 }}
                             >
                                 <>
-                                    {MediaUtil.isAudio(pv.video_path) &&
-                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                    {MediaUtil.isVideo(pv.video_path) &&
-                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
-                                    <div className="truncate w-0 flex-1">{pv.video_name}</div>
+                                    {MediaUtil.isAudio(pv.fileName) &&
+                                        <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                    {MediaUtil.isVideo(pv.fileName) &&
+                                        <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                    <div className="truncate w-0 flex-1">{pv.fileName}</div>
                                 </>
                             </div>
                         </TooltipTrigger>
@@ -61,7 +63,7 @@ const VideoItem2 = ({pv, variant = 'normal', ctxMenus, onClick}: {
                             side={'bottom'}
                             align={'start'}
                         >
-                            {pv.video_path}
+                            {PathUtil.join(pv.basePath, pv.fileName)}
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

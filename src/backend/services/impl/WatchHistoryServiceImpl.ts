@@ -1,7 +1,7 @@
 import { inject, injectable, postConstruct } from 'inversify';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import TYPES from '@/backend/ioc/types';
-import { watchHistory, WatchHistory, WatchHistoryType } from '@/backend/db/tables/playHistory';
+import { watchHistory, WatchHistory, WatchHistoryType } from '@/backend/db/tables/watchHistory';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import db from '@/backend/db';
 import fs from 'fs';
@@ -14,6 +14,7 @@ import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import MatchSrt from '@/backend/utils/MatchSrt';
+import MediaUtil from '@/common/utils/MediaUtil';
 
 
 @injectable()
@@ -27,8 +28,49 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return ObjUtil.hash(`${folder}-${name}-${type}`);
     }
 
-    public async list(): Promise<WatchHistoryVO[]> {
+    public async list(bathPath: string): Promise<WatchHistoryVO[]> {
         await this.syncLibrary();
+        if (StrUtil.isNotBlank(bathPath)) {
+            if (ObjUtil.isHash(bathPath)) {
+                const [record] = await db.select().from(watchHistory)
+                    .where(eq(watchHistory.id, bathPath));
+                if (!record || record.project_type !== WatchHistoryType.FILE) {
+                    return [];
+                }
+                bathPath = record.base_path;
+            }
+            if (!fs.existsSync(bathPath) || !fs.statSync(bathPath).isDirectory()) {
+                return [];
+            }
+            const exist = await db.select().from(watchHistory).where(
+                and(
+                    eq(watchHistory.base_path, bathPath),
+                    eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
+                )
+            ).then(records => CollUtil.isNotEmpty(records));
+            if (!exist) {
+                return [];
+            }
+            await this.tryCreateFromFolder(bathPath);
+            const records = await db.select().from(watchHistory)
+                .where(
+                    and(
+                        eq(watchHistory.base_path, bathPath),
+                        eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
+                    )
+                ).orderBy(desc(watchHistory.updated_at));
+            if (CollUtil.isEmpty(records)) {
+                return [];
+            }
+            const result = [];
+            for (const record of records) {
+                const vo = await this.buildVoFromFile(record);
+                if (vo) {
+                    result.push(vo);
+                }
+            }
+            return result;
+        }
         const result = [];
         const files: WatchHistory[] = await db.select().from(watchHistory)
             .where(eq(watchHistory.project_type, WatchHistoryType.FILE));
@@ -52,75 +94,67 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return result;
     }
 
-    public async detail(folder: string): Promise<WatchHistoryVO[]> {
-        if (!fs.existsSync(folder)) {
-            return [];
+    public async detail(id: string): Promise<WatchHistoryVO | null> {
+        const [record] = await db.select().from(watchHistory)
+            .where(eq(watchHistory.id, id));
+        if (!record) {
+            return null;
         }
-        await this.tryAddMedia(folder);
-        const records = await db.select().from(watchHistory)
-            .where(
-                and(
-                    eq(watchHistory.base_path, folder),
-                    eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
-                )
-            ).orderBy(desc(watchHistory.updated_at));
-        if (CollUtil.isEmpty(records)) {
-            return [];
-        }
-        const result = [];
-        for (const record of records) {
-            const vo = await this.buildVoFromFile(record);
-            if (vo) {
-                result.push(vo);
-            }
-        }
-        return result;
+        return this.buildVoFromFile(record);
     }
 
-    public async create(files: string[]) {
+    public async create(files: string[]): Promise<string[]> {
+        const ids: string[] = [];
         const existFiles = files.filter(file => fs.existsSync);
-
-    };
-
-    private async addMedia(fp: string) {
-        if (!fs.existsSync(fp)) {
-            return;
-        }
-        // 判断是否是文件夹
-        const stat = fs.statSync(fp);
-        if (stat.isFile()) {
-            await this.addDoUpdate(path.dirname(fp), path.basename(fp), WatchHistoryType.FILE);
-        }
-        if (stat.isDirectory()) {
-            const files = fs.readdirSync(fp);
-            for (const file of files) {
-                await this.addDoUpdate(fp, file, WatchHistoryType.DIRECTORY);
+        const folders = existFiles.filter(file => fs.statSync(file).isDirectory());
+        if (CollUtil.isNotEmpty(folders)) {
+            for (const folder of folders) {
+                const sids = await this.tryCreateFromFolder(folder);
+                sids.push(...sids);
             }
         }
-    }
-
-    private async tryAddMedia(fp: string) {
-        if (!fs.existsSync(fp)) {
-            return;
-        }
-        // 判断是否是文件夹
-        const stat = fs.statSync(fp);
-        if (stat.isFile()) {
-            await this.addDoNothing(path.dirname(fp), path.basename(fp), WatchHistoryType.FILE);
-        }
-        if (stat.isDirectory()) {
-            const files = fs.readdirSync(fp);
-            for (const file of files) {
-                await this.addDoNothing(fp, file, WatchHistoryType.DIRECTORY);
+        const videos = existFiles
+            .filter(file => fs.statSync(file).isFile())
+            .filter(file => MediaUtil.isVideo(file));
+        const srtFiles = existFiles
+            .filter(file => fs.statSync(file).isFile())
+            .filter(file => MediaUtil.isSrt(file));
+        for (const video of videos) {
+            const sids = await this.tryCreate(video);
+            ids.push(...sids);
+            const srtFile = MatchSrt.matchOne(video, srtFiles);
+            if (srtFile) {
+                await this.attachSrt(video, srtFile);
             }
         }
+        for (const id of ids) {
+            await db.update(watchHistory).set({
+                updated_at: TimeUtil.timeUtc()
+            }).where(eq(watchHistory.id, id));
+        }
+        return ids;
     }
 
-    async updateProgress(file: string, duration: number): Promise<void> {
+    public async delete(id: string): Promise<void> {
+        if (!ObjUtil.isHash(id)) {
+            await db.delete(watchHistory).where(eq(watchHistory.base_path, id));
+        } else {
+            throw new Error('Not implemented');
+        }
+    }
+    public analyseFolder(path: string): { supported: number, unsupported: number } {
+        const files = fs.readdirSync(path);
+        const videos = files.filter((f) => MediaUtil.isMedia(f));
+        return {
+            supported: videos.filter((v) => MediaUtil.supported(v)).length,
+            unsupported: videos.filter((v) => !MediaUtil.supported(v)).length
+        };
+    }
+    public async updateProgress(file: string, currentPosition: number): Promise<void> {
         const base_path = path.dirname(file);
         const file_name = path.basename(file);
         await db.update(watchHistory).set({
-            current_position: duration,
+            current_position: currentPosition,
             updated_at: TimeUtil.timeUtc()
         }).where(
             and(
@@ -129,38 +163,6 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             )
         );
     }
-
-
-    private async addDoNothing(basePath: string, fileName: string, type: WatchHistoryType) {
-        const id = this.mapId(basePath, fileName, type);
-        await db.insert(watchHistory).values({
-            id,
-            base_path: basePath,
-            file_name: fileName,
-            project_type: WatchHistoryType.DIRECTORY,
-            current_position: 0
-        }).onConflictDoNothing({
-            target: [watchHistory.id]
-        });
-    }
-
-
-    private async addDoUpdate(basePath: string, fileName: string, type: WatchHistoryType) {
-        const id = this.mapId(basePath, fileName, type);
-        await db.insert(watchHistory).values({
-            id,
-            base_path: basePath,
-            file_name: fileName,
-            project_type: WatchHistoryType.DIRECTORY,
-            current_position: 0
-        }).onConflictDoUpdate({
-            target: [watchHistory.id],
-            set: {
-                updated_at: TimeUtil.timeUtc()
-            }
-        });
-    }
-
 
     private async buildVoFromFolder(folder: string): Promise<WatchHistoryVO | null> {
         const folderVideos: WatchHistory[] = await db.select().from(watchHistory)
@@ -198,16 +200,146 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
         const duration = await this.mediaService.duration(filePath);
         return {
+            id: history.id,
             basePath: history.base_path,
             fileName: history.file_name,
             isFolder: false,
             updatedAt: TimeUtil.isoToDate(history.updated_at),
             duration,
             current_position: history.current_position,
-            srtFile: srtFile ?? ''
+            srtFile: srtFile ?? '',
+            playing: false
         };
     }
 
+
+    private async listSrtFiles(folder: string): Promise<string[]> {
+        const files = fs.readdirSync(folder);
+        return files.filter(file => MediaUtil.isSrt(file))
+            .map(file => path.join(folder, file));
+    }
+
+    private async tryCreateFromFolder(folder: string): Promise<string[]> {
+        const ids: string[] = [];
+        if (!fs.existsSync(folder) || !fs.statSync(folder).isDirectory()) {
+            return ids;
+        }
+        const files = fs.readdirSync(folder);
+        const videoFiles = files.filter(file => MediaUtil.isVideo(file))
+            .map(file => path.join(folder, file));
+        const srtFiles = files.filter(file => MediaUtil.isSrt(file));
+        for (const video of videoFiles) {
+            const sids = await this.tryCreate(video, WatchHistoryType.DIRECTORY);
+            ids.push(...sids);
+            const srtFile = MatchSrt.matchOne(video, srtFiles);
+            if (srtFile) {
+                await this.attachSrt(video, srtFile);
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * 如果不存在就创建一个历史记录
+     * @param video
+     * @param type
+     * @private
+     */
+    private async tryCreate(video: string, type: WatchHistoryType = WatchHistoryType.FILE): Promise<string[]> {
+        const ids: string[] = [];
+        if (!fs.existsSync(video)) {
+            return ids;
+        }
+        const folder = path.dirname(video);
+        const name = path.basename(video);
+        const records: WatchHistory[] = await db.select().from(watchHistory)
+            .where(
+                and(
+                    eq(watchHistory.base_path, folder),
+                    eq(watchHistory.file_name, name),
+                    eq(watchHistory.project_type, type)
+                )
+            );
+        if (CollUtil.isEmpty(records)) {
+            const [record]: WatchHistory[] = await db.insert(watchHistory).values({
+                id: this.mapId(folder, name, type),
+                base_path: folder,
+                file_name: name,
+                project_type: type,
+                current_position: 0
+            }).returning();
+            ids.push(record.id);
+        }
+        records.forEach(record => ids.push(record.id));
+        return ids;
+    }
+
+
+    /**
+     * 关联字幕文件
+     * @param videoPath
+     * @param srtPath
+     * @private
+     */
+    public async attachSrt(videoPath: string, srtPath: string) {
+        if (!fs.existsSync(videoPath) || !fs.existsSync(srtPath)) {
+            return;
+        }
+        const video = path.basename(videoPath);
+        const folder = path.dirname(videoPath);
+        const records: WatchHistory[] = await db.select().from(watchHistory)
+            .where(
+                and(
+                    eq(watchHistory.base_path, folder),
+                    eq(watchHistory.file_name, video)
+                )
+            );
+        for (const record of records) {
+            if (record.srt_file === srtPath) {
+                continue;
+            }
+            await db.update(watchHistory).set({
+                srt_file: srtPath,
+                updated_at: TimeUtil.timeUtc()
+            }).where(
+                and(
+                    eq(watchHistory.base_path, folder),
+                    eq(watchHistory.file_name, video)
+                )
+            );
+        }
+    }
+
+    /**
+     * 同步视频库中的文件
+     * @private
+     */
+    private async syncLibrary() {
+        const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+        if (!fs.existsSync(libraryPath)) {
+            return;
+        }
+        const files = fs.readdirSync(libraryPath);
+        const videoFiles = files.filter(file => MediaUtil.isVideo(file))
+            .map(file => path.join(libraryPath, file));
+        const srtFiles = files.filter(file => MediaUtil.isSrt(file));
+        for (const video of videoFiles) {
+            await this.tryCreate(video);
+            const srtFile = MatchSrt.matchOne(video, srtFiles);
+            if (srtFile) {
+                await this.attachSrt(video, srtFile);
+            }
+        }
+        const folders = files.filter(file => fs.statSync(path.join(libraryPath, file)).isDirectory());
+        for (const folder of folders) {
+            await this.tryCreateFromFolder(path.join(libraryPath, folder));
+        }
+    }
+
+    /**
+     * 清理已删除的历史记录
+     * @private
+     */
     private async cleanDeletedHistory() {
         const files = await db.selectDistinct({
             base_path: watchHistory.base_path,
@@ -226,27 +358,11 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
     }
 
-    private async syncLibrary() {
-        const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
-        if (!fs.existsSync(libraryPath)) {
-            return;
-        }
-        const files = fs.readdirSync(libraryPath);
-        for (const file of files) {
-            const filePath = path.join(libraryPath, file);
-            await this.tryAddMedia(filePath);
-        }
-    }
-
-    private async listSrtFiles(folder: string): Promise<string[]> {
-        const files = fs.readdirSync(folder);
-        return files.filter(file => file.endsWith('.srt'))
-            .map(file => path.join(folder, file));
-    }
-
     @postConstruct()
-    private async init() {
-        await this.cleanDeletedHistory();
+    public init() {
+        this.cleanDeletedHistory()
+            .then(() => this.syncLibrary())
+            .then();
     }
 
 }

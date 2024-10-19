@@ -21,22 +21,13 @@ const HomePage = () => {
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
 
-    async function handleClickById(projectId: number) {
-        const project = await api.call('watch-project/detail', projectId);
-        let video = project.videos.find((v) => v.current_playing);
-        if (!video && project.videos.length > 0) {
-            video = project.videos[0];
-        }
-        if (!video) {
-            return;
-        }
-        const videoId = video.id;
+    async function handleClickById(vId: string) {
         await api.call('system/window-size/change', 'player');
         changeSideBar(false);
-        navigate(`/player/${videoId}`);
+        navigate(`/player/${vId}`);
     }
 
-    const { data: vps } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-project/list'));
+    const { data: vps } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-history/list'));
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
     // 从第四个开始截取num个
@@ -91,7 +82,7 @@ const HomePage = () => {
                                 await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
-                                const analyse = await api.call('watch-project/analyse-folder', fp);
+                                const analyse = await api.call('watch-history/analyse-folder', fp);
                                 if (analyse?.unsupported > 0) {
                                     const folderList = await api.call('convert/from-folder', [fp]);
                                     setTimeout(() => {
@@ -125,7 +116,7 @@ const HomePage = () => {
                                     <ProjectListCard
                                         key={v.id}
                                         onSelected={() => handleClickById(v.id)}
-                                        proj={v} />
+                                        video={v} />
                                 ))}
                         </CardContent>
                     </Card>
@@ -134,7 +125,7 @@ const HomePage = () => {
                             <ProjectListItem
                                 key={v.id}
                                 onSelected={() => handleClickById(v.id)}
-                                proj={v} />
+                                video={v} />
                         ))}
                     </div>
                     <Button

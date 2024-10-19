@@ -1,4 +1,3 @@
-import {WatchProject, WatchProjectType} from "@/backend/db/tables/watchProjects";
 import {BrowserItemVariant, CtxMenu} from "@/fronted/components/fileBowser/VideoItem2";
 import React from "react";
 import {
@@ -14,12 +13,10 @@ import Style from "@/fronted/styles/style";
 import MediaUtil from "@/common/utils/MediaUtil";
 import {Button} from "@/fronted/components/ui/button";
 import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
-import {WatchProjectVideo} from "@/backend/db/tables/watchProjectVideos";
-import StrUtil from '@/common/utils/str-util';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 const api = window.electron;
-const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
-    p: WatchProject;
-    v: WatchProjectVideo;
+const ProjItem2 = ({v, onClick, ctxMenus, variant = 'normal'}: {
+    v: WatchHistoryVO;
     variant?: BrowserItemVariant;
     onClick?: () => void,
     ctxMenus: CtxMenu[]
@@ -47,19 +44,19 @@ const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
                                 }}
                             >
                                 <>
-                                    {(StrUtil.isBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
+                                    {(v.isFolder) &&
                                         <Folder className={cn(Style.file_browser_icon)}/>}
-                                    {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
+                                    {!v.isFolder && MediaUtil.isAudio(v?.fileName) &&
                                         <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                    {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
+                                    {!v.isFolder && MediaUtil.isVideo(v?.fileName) &&
                                         <FileVideo2 className={cn(Style.file_browser_icon)}/>}
-                                    <div className="truncate w-0 flex-1">{p.project_name}</div>
+                                    <div className="truncate w-0 flex-1">{v.fileName}</div>
                                     <Button size={'icon'} variant={'ghost'}
                                             className={'w-6 h-6'}
                                             disabled={variant === 'highlight'}
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                await api.call('watch-project/delete', p.id);
+                                                await api.call('watch-history/delete', v.id);
                                                 await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                                             }}
                                     >
@@ -72,7 +69,7 @@ const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
                             side={'bottom'}
                             align={'start'}
                         >
-                            {p.project_name}
+                            {v.fileName}
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

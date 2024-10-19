@@ -23,14 +23,13 @@ export class FileAction {
             if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
                 if (StrUtil.isNotBlank(videoPath)) {
-                    await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
+                    await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
                     useFile.getState().clearSrt();
                 }
             } else {
-                const pid = await api.call('watch-project/create/from-files', ps);
-                const v = await api.call('watch-project/video/detail/by-pid', pid);
+                const [id] = await api.call('watch-history/create', ps);
                 await api.call('system/window-size/change', 'player');
-                navigate(`/player/${v.id}`);
+                navigate(`/player/${id}`);
                 const hasUnsupported = UnsupportedVideoFormats.some(f => ps.some(p => p.endsWith(f)));
                 if (hasUnsupported) {
                     const vs = ps.filter(p => MediaUtil.isMedia(p));
@@ -61,15 +60,14 @@ export class FileAction {
             if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
                 if (StrUtil.isNotBlank(videoPath)) {
-                    await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
+                    await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
                     useFile.getState().clearSrt();
                 }
             } else {
-                const pid = await api.call('watch-project/create/from-files', ps);
-                const v = await api.call('watch-project/video/detail/by-pid', pid);
+                const [id] = await api.call('watch-history/create', ps);
                 await api.call('system/window-size/change', 'player');
                 useLayout.getState().changeSideBar(false);
-                navigate(`/player/${v.id}`);
+                navigate(`/player/${id}`);
 
                 const hasUnsupported = UnsupportedVideoFormats.some(f => ps.some(p => p.endsWith(f)));
                 if (hasUnsupported) {

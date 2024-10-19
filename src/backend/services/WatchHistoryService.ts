@@ -1,16 +1,24 @@
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 interface WatchHistoryService {
-    list(): Promise<WatchHistoryVO[]>;
+    list(basePath: string): Promise<WatchHistoryVO[]>;
 
-    detail(folder: string) : Promise<WatchHistoryVO[]>;
+    detail(folder: string): Promise<WatchHistoryVO | null>;
+
     /**
      * 添加媒体文件
-     * @param filePath 文件或文件夹路径
+     * @param filePaths
      */
-    create(filePaths: string[]): Promise<void>;
+    create(filePaths: string[]): Promise<string[]>;
 
-    updateProgress(file: string, duration: number): Promise<void>;
+    updateProgress(file: string, currentPosition: number): Promise<void>;
+
+    attachSrt(videoPath: string, srtPath: string): Promise<void>;
+
+    delete(id: string): Promise<void>;
+
+
+    analyseFolder(path: string): { supported: number, unsupported: number };
 }
 
 export default WatchHistoryService;

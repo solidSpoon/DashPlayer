@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
-import { WatchProjectType } from '@/backend/db/tables/watchProjects';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
@@ -14,12 +13,14 @@ import VideoItem2, { BrowserItemVariant } from '@/fronted/components/fileBowser/
 import ProjItem2 from '@/fronted/components/fileBowser/ProjItem2';
 import { toast } from 'sonner';
 import useConvert from '@/fronted/hooks/useConvert';
+import PathUtil from '@/common/utils/PathUtil';
 
 const api = window.electron;
 const FileBrowser = () => {
     const navigate = useNavigate();
-    const pId = useFile(state => state.projectId);
-    const vId = useFile(state => state.videoId);
+    const file = useFile(state => state.videoPath);
+    const basePath = file ? PathUtil.parse(file).dir : null;
+    const videoName = file ? PathUtil.parse(file).base : null;
     return (
         <Card
             onClick={(e) => {
@@ -42,7 +43,7 @@ const FileBrowser = () => {
                     <FolderSelector
                         onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
                             navigate(`/player/${vid}`);
-                            const analyse = await api.call('watch-project/analyse-folder', fp);
+                            const analyse = await api.call('watch-history/analyse-folder', fp);
                             if (analyse?.unsupported > 0) {
                                 const folderList = await api.call('convert/from-folder', [fp]);
                                 setTimeout(() => {
@@ -64,7 +65,7 @@ const FileBrowser = () => {
                 </div>
 
                 <ProjectListComp
-                    enterProj={pId}
+                    // enterProj={basePath}
                     backEle={(root, hc) => {
                         return (
                             <TooltipProvider>
@@ -91,9 +92,9 @@ const FileBrowser = () => {
                     }}
                     videoEle={(pv) => {
                         let variant: BrowserItemVariant = 'normal';
-                        if (vId === pv.id) {
+                        if (file === PathUtil.join(pv.basePath, pv.fileName)) {
                             variant = 'highlight';
-                        } else if (pv.current_time > 5) {
+                        } else if (pv.duration > 5) {
                             variant = 'lowlight';
                         }
                         return (
@@ -105,7 +106,7 @@ const FileBrowser = () => {
                                         icon: <Folder />,
                                         text: 'Show In Explorer',
                                         onClick: async () => {
-                                            await api.call('system/open-folder', pv.video_path);
+                                            await api.call('system/open-folder', pv.basePath);
                                         }
                                     }
                                 ]} variant={variant} />
@@ -117,36 +118,32 @@ const FileBrowser = () => {
                                 icon: <Folder />,
                                 text: 'Show In Explorer',
                                 onClick: async () => {
-                                    await api.call('system/open-folder', p.project_path);
+                                    await api.call('system/open-folder', p.basePath);
                                 }
                             },
                             {
                                 icon: <X />,
                                 text: 'Delete',
-                                disabled: pId === p.id,
+                                disabled: file === PathUtil.join(p.basePath, p.fileName),
                                 onClick: async () => {
-                                    await api.call('watch-project/delete', p.id);
+                                    await api.call('watch-history/delete', p.id);
                                     await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
                                 }
                             }
                         ];
                         let variant: BrowserItemVariant = 'normal';
-                        if (pId === p.id) {
+                        if (file === PathUtil.join(p.basePath, p.fileName)) {
                             variant = 'highlight';
-                        } else if (p.project_type === WatchProjectType.FILE && p.video?.current_time > 5) {
+                        } else if (!p.isFolder && p?.current_position > 5) {
                             variant = 'lowlight';
                         }
                         return (
-                            <ProjItem2 p={p}
-                                       v={p.video}
+                            <ProjItem2 v={p}
                                        variant={variant}
                                        onClick={async () => {
                                            hc();
-                                           if (p.project_type === WatchProjectType.FILE) {
-                                               const v = await api.call('watch-project/video/detail/by-pid', p.id);
-                                               if (v?.id) {
-                                                   navigate(`/player/${v.id}`);
-                                               }
+                                           if (!p.isFolder) {
+                                               navigate(`/player/${p.id}`);
                                            }
                                        }}
                                        ctxMenus={ctxMenus} />

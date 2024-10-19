@@ -1,7 +1,6 @@
 import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { DpTask } from '@/backend/db/tables/dpTask';
 import { YdRes } from '@/common/types/YdRes';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { WindowState } from '@/common/types/Types';
@@ -14,8 +13,8 @@ import { FolderVideos } from '@/common/types/tonvert-type';
 
 import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
-import { WatchProjectListVO, WatchProjectVO } from '@/common/types/watch-project';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -91,23 +90,17 @@ interface AiTransDef {
     'ai-trans/word': { params: string, return: YdRes | null };
 }
 
-interface WatchProjectDef {
-    'watch-project/progress/update': {
-        params: { videoId: number, currentTime: number, duration: number },
+interface WatchHistoryDef {
+    'watch-history/list': { params: string, return: WatchHistoryVO[] };
+    'watch-history/progress/update': {
+        params: { file: string, currentPosition: number },
         return: void
     };
-    'watch-project/video/play': { params: number, return: void };
-    'watch-project/video/detail': { params: number, return: WatchProjectVideo | undefined };
-    'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo };
-    'watch-project/create/from-folder': { params: string, return: number };
-    'watch-project/create/from-files': { params: string[], return: number };
-    'watch-project/create/from-download': { params: string, return: number };
-    'watch-project/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
-    'watch-project/delete': { params: number, return: void };
-    'watch-project/detail': { params: number, return: WatchProjectVO };
-    'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };
-    'watch-project/list': { params: void, return: WatchProjectListVO[] };
-    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
+    'watch-history/create': { params: string[], return: string[] };
+    'watch-history/delete': { params: string, return: void };
+    'watch-history/detail': { params: string, return: WatchHistoryVO | null };
+    'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
+    'watch-history/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
 }
 
 interface SubtitleControllerDef {
@@ -150,7 +143,7 @@ interface ConvertDef {
 
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtKey: string, indexInSrt: number }, return: void };
-    'favorite-clips/search': { params: ClipQuery, return:  (ClipMeta & OssBaseMeta)[] };
+    'favorite-clips/search': { params: ClipQuery, return: (ClipMeta & OssBaseMeta)[] };
     'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
     'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
     'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };
@@ -175,7 +168,7 @@ export type ApiDefinitions = ApiDefinition
     & DpTaskDef
     & SystemDef
     & AiTransDef
-    & WatchProjectDef
+    & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef
     & SubtitleTimestampAdjustmentControllerDef

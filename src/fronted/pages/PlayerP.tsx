@@ -14,12 +14,13 @@ import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
 import {SWR_KEY} from "@/fronted/lib/swr-util";
+import PathUtil from '@/common/utils/PathUtil';
 
 const api = window.electron;
 
 const PlayerP = () => {
     const {videoId} = useParams();
-    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-project/video/detail', Number(videoId)));
+    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
     console.log('playerp', videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
@@ -44,16 +45,17 @@ const PlayerP = () => {
             if (!video) {
                 return;
             }
-            useFile.setState({videoId: video.id, projectId: video.project_id});
+            useFile.setState({videoId: video.id});
             const vp = useFile.getState().videoPath;
             const sp = useFile.getState().subtitlePath;
-            if (video.video_path && vp !== video.video_path) {
-                useFile.getState().updateFile(video.video_path);
+            const videoPath = PathUtil.join(video.basePath, video.fileName);
+            if (videoPath && vp !== videoPath) {
+                useFile.getState().updateFile(videoPath);
             }
-            if (video.subtitle_path && sp !== video.subtitle_path) {
-                useFile.getState().updateFile(video.subtitle_path);
+            if (video.srtFile && sp !== video.srtFile) {
+                useFile.getState().updateFile(video.srtFile);
             }
-            await api.call('watch-project/video/play', video.id);
+            // await api.call('watch-project/video/play', video.id);
         };
         runEffect();
     }, [video]);

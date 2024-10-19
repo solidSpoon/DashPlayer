@@ -2,7 +2,6 @@ import { Container } from 'inversify';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/interfaces/controller';
-import WatchProjectController from '@/backend/controllers/WatchProjectController';
 import DownloadVideoController from '@/backend/controllers/DownloadVideoController';
 import TagService from '@/backend/services/TagService';
 import TagController from '@/backend/controllers/TagController';
@@ -54,14 +53,13 @@ import { ChatOpenAI } from '@langchain/openai';
 import TranslateServiceImpl from '@/backend/services/impl/TranslateServiceImpl';
 import TranslateService from '@/backend/services/AiTransServiceImpl';
 import TagServiceImpl from '@/backend/services/impl/TagServiceImpl';
-import WatchProjectService from '@/backend/services/WatchProjectService';
-import WatchProjectServiceImpl from '@/backend/services/impl/WatchProjectServiceImpl';
 import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
 import DlVideoService from '@/backend/services/DlVideoService';
 import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryServiceImpl';
+import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
 
 
 const container = new Container();
@@ -71,7 +69,6 @@ container.bind<ClientProviderService<TencentClient>>(TYPES.TencentClientProvider
 container.bind<ClientProviderService<ChatOpenAI>>(TYPES.OpenAiClientProvider).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
-container.bind<Controller>(TYPES.Controller).to(WatchProjectController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(DownloadVideoController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SrtTimeAdjustController).inSingletonScope();
@@ -83,10 +80,10 @@ container.bind<Controller>(TYPES.Controller).to(MediaController).inSingletonScop
 container.bind<Controller>(TYPES.Controller).to(StorageController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 // Services
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
-container.bind<WatchProjectService>(TYPES.WatchProject).to(WatchProjectServiceImpl).inSingletonScope();
 container.bind<DlVideoService>(TYPES.DlVideo).to(DlVideoServiceImpl).inSingletonScope();
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();

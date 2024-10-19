@@ -6,7 +6,7 @@ export const watchHistory = sqliteTable('dp_watch_history', {
     base_path: text('project_name').notNull(),
     file_name: text('project_path').notNull(),
     project_type: integer('project_type', { mode: 'number' }).notNull(),
-    current_position: integer('last_watch_time').notNull().default(0),
+    current_position: integer('current_position').notNull().default(0),
     srt_file: text('srt_file'),
     created_at: text('created_at')
         .notNull()
