@@ -6,7 +6,7 @@ import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Folder, X } from 'lucide-react';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { apiPath, SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
 import VideoItem2, { BrowserItemVariant } from '@/fronted/components/fileBowser/VideoItem2';
@@ -14,13 +14,15 @@ import ProjItem2 from '@/fronted/components/fileBowser/ProjItem2';
 import { toast } from 'sonner';
 import useConvert from '@/fronted/hooks/useConvert';
 import PathUtil from '@/common/utils/PathUtil';
+import useSWR from 'swr';
 
 const api = window.electron;
 const FileBrowser = () => {
     const navigate = useNavigate();
     const file = useFile(state => state.videoPath);
-    const basePath = file ? PathUtil.parse(file).dir : null;
-    const videoName = file ? PathUtil.parse(file).base : null;
+    const videoId = useFile(state => state.videoId);
+    const { data } = useSWR([apiPath('watch-history/detail'), videoId],([_p,v])=> api.call('watch-history/detail', v??''),{fallbackData: null});
+    console.log('file', data);
     return (
         <Card
             onClick={(e) => {
@@ -65,7 +67,7 @@ const FileBrowser = () => {
                 </div>
 
                 <ProjectListComp
-                    // enterProj={basePath}
+                    enterProj={data?.isFolder ? data?.basePath : ''}
                     backEle={(root, hc) => {
                         return (
                             <TooltipProvider>
@@ -141,6 +143,7 @@ const FileBrowser = () => {
                             <ProjItem2 v={p}
                                        variant={variant}
                                        onClick={async () => {
+                                           console.log('click', p.id);
                                            hc();
                                            if (!p.isFolder) {
                                                navigate(`/player/${p.id}`);

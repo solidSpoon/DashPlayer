@@ -6,7 +6,7 @@ import { ObjUtil } from '@/backend/utils/ObjUtil';
 import db from '@/backend/db';
 import fs from 'fs';
 import path from 'path';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import MediaService from '@/backend/services/MediaService';
 import TimeUtil from '@/common/utils/TimeUtil';
 import CollUtil from '@/common/utils/CollUtil';
@@ -62,7 +62,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
                         eq(watchHistory.base_path, bathPath),
                         eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
                     )
-                ).orderBy(desc(watchHistory.updated_at));
+                ).orderBy(asc(watchHistory.file_name));
             if (CollUtil.isEmpty(records)) {
                 return [];
             }
@@ -104,7 +104,14 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (!record) {
             return null;
         }
-        return this.buildVoFromFile(record);
+        const r = await this.buildVoFromFile(record);
+        if (!r) {
+            return null;
+        }
+        return {
+            ...r,
+            isFolder: record.project_type === WatchHistoryType.DIRECTORY
+        }
     }
 
     public async create(files: string[]): Promise<string[]> {

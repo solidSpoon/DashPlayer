@@ -4,12 +4,10 @@ import React from 'react';
 import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
-import { toast } from 'sonner';
-import useConvert from '@/fronted/hooks/useConvert';
 
 const api = window.electron;
 
-export interface FolderSelecterProps {
+export interface FolderSelectorProps {
     onSelected?: (fp: string) => void;
     className?: string;
 }
@@ -35,7 +33,7 @@ export class FolderSelectAction {
     }
 }
 
-const FolderSelector = ({ onSelected, className }: FolderSelecterProps) => {
+const FolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
     const handleClick = async () => {
         const ps = await api.call('system/select-folder',{});
         console.log('project', ps);

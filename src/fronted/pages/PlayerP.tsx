@@ -15,6 +15,7 @@ import useSWR from 'swr';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
 import {SWR_KEY} from "@/fronted/lib/swr-util";
 import PathUtil from '@/common/utils/PathUtil';
+import usePlayerController from '@/fronted/hooks/usePlayerController';
 
 const api = window.electron;
 
@@ -42,6 +43,7 @@ const PlayerP = () => {
     console.log('referrer', referrer);
     useEffect(() => {
         const runEffect = async () => {
+            console.log('effect video', video);
             if (!video) {
                 return;
             }
@@ -51,6 +53,7 @@ const PlayerP = () => {
             const videoPath = PathUtil.join(video.basePath, video.fileName);
             if (videoPath && vp !== videoPath) {
                 useFile.getState().updateFile(videoPath);
+                usePlayerController.getState().play();
             }
             if (video.srtFile && sp !== video.srtFile) {
                 useFile.getState().updateFile(video.srtFile);
