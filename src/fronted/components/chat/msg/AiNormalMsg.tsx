@@ -18,7 +18,7 @@ export function AiNormalMsg({msg}: { msg: AiNormalMessage }) {
             </div>
             <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
                 <Md>
-                    {content}
+                    {content??''}
                 </Md>
             </div>
         </div>

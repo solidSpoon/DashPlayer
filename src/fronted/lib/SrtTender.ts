@@ -87,6 +87,7 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
                 end: 0
             };
         }
+        console.log('seek to internal', line.t1, line.origin)
         return {
             start: line.t1,
             end: line.t2

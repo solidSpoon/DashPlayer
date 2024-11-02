@@ -14,14 +14,16 @@ const FavouritePlayer = () => {
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const playerRef = React.useRef<ReactPlayer>(null);
     const lastSeekTime = React.useRef<PlayInfo>();
-    if (lastSeekTime.current !== playInfo && playInfo) {
-        lastSeekTime.current = playInfo;
-        setTimeout(() => {
-            if (playerRef.current !== null) {
-                playerRef.current.seekTo(playInfo?.time);
+    useEffect(() => {
+        if (playInfo && playInfo !== lastSeekTime.current) {
+            lastSeekTime.current = playInfo;
+            console.log('seek to', playInfo.time);
+            const player = playerRef.current;
+            if (player) {
+                player.seekTo(playInfo.time);
             }
-        }, 100);
-    }
+        }
+    }, [playInfo]);
     useHotkeys('space', (e) => {
         e.preventDefault();
         const current = playerRef.current;
@@ -55,10 +57,15 @@ const FavouritePlayer = () => {
                             }}
                             onStart={async () => {
                                 //jump
+                                console.log('start');
                                 if (playInfo?.time) {
                                     playerRef.current?.seekTo(playInfo?.time);
                                 }
                             }}
+                            onReady={() => {
+                                console.log('ready');
+                            }}
+
 
                             loop
                         />

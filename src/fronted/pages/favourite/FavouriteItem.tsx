@@ -5,6 +5,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { Button } from '@/fronted/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { ClipMeta, OssBaseMeta, ClipSrtLine } from '@/common/types/clipMeta';
+import { ClipTenderImpl } from '@/fronted/lib/SrtTender';
 
 
 const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
@@ -13,8 +14,12 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const currentTime = useFavouriteClip(state => state.currentTime);
     const deleteClip = useFavouriteClip(state => state.deleteClip);
-    const srtTender = useFavouriteClip(state => state.srtTender);
     const [currentLine, setCurrentLine] = React.useState<ClipSrtLine | null>(null);
+
+    const tender = React.useMemo(() => {
+        console.log('tender', item.clip_content, item.key);
+        return new ClipTenderImpl(item.clip_content, item.key);
+    }, [item.clip_content, item.key]);
 
     useEffect(() => {
         if (playInfo?.video.key !== item.key) {
@@ -25,11 +30,11 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
         }
         const valid = Date.now() - (playInfo?.timeUpdated ?? 0) > 500;
         const ct = valid ? currentTime : (playInfo?.time ?? 0);
-        const line = srtTender?.getByTime(ct) ?? null;
+        const line = tender?.getByTime(ct) ?? null;
         if (line !== currentLine) {
             setCurrentLine(line);
         }
-    }, [currentLine, currentTime, item.key, playInfo, srtTender]);
+    }, [currentLine, currentTime, item.key, playInfo, tender]);
 
 
     const lines: ClipSrtLine[] = item?.clip_content ?? [];
@@ -50,10 +55,10 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
                     {lines.map((contextLine: ClipSrtLine, index) =>
                         <span key={`${item.key}-${index}`}
                               onClick={() => {
-                                  srtTender?.pin(contextLine);
+                                  tender?.pin(contextLine);
                                   setPlayInfo({
                                       video: item,
-                                      time: srtTender?.mapSeekTime(contextLine).start ?? contextLine.start,
+                                      time: tender?.mapSeekTime(contextLine).start ?? contextLine.start,
                                       timeUpdated: Date.now()
                                   });
                                   // setPlay(true);
