@@ -121,7 +121,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (CollUtil.isNotEmpty(folders)) {
             for (const folder of folders) {
                 const sids = await this.tryCreateFromFolder(folder);
-                sids.push(...sids);
+                ids.push(...sids);
             }
         }
         const videos = existFiles

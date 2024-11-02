@@ -26,6 +26,7 @@ export class FolderSelectAction {
     public static defaultAction2(onSelected: (vid: string, fp: string) => void) {
         return async (fp: string) => {
             const [id] = await api.call('watch-history/create', [fp]);
+            console.log('create id', id);
             onSelected(id, fp);
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrApiMutate('watch-history/list');

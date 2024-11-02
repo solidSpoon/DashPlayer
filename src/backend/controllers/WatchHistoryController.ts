@@ -49,5 +49,6 @@ export default class WatchHistoryController implements Controller {
         registerRoute('watch-history/group-delete', (p) => this.groupDelete(p));
         registerRoute('watch-history/detail', (p) => this.detail(p));
         registerRoute('watch-history/attach-srt', (p) => this.attachSrt(p));
+        registerRoute('watch-history/analyse-folder', (p) => this.analyseFolder(p));
     }
 }
