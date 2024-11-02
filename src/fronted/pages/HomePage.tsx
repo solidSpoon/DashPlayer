@@ -8,7 +8,7 @@ import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { Button } from '@/fronted/components/ui/button';
 import useSWR from 'swr';
-import { SWR_KEY } from '@/fronted/lib/swr-util';
+import { apiPath, SWR_KEY } from '@/fronted/lib/swr-util';
 import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
 import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
@@ -27,7 +27,7 @@ const HomePage = () => {
         navigate(`/player/${vId}`);
     }
 
-    const { data: vps } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-history/list'));
+    const { data: vps } = useSWR(apiPath('watch-history/list'), () => api.call('watch-history/list'));
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
     // 从第四个开始截取num个

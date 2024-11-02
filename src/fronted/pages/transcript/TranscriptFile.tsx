@@ -3,7 +3,7 @@ import { cn } from '@/fronted/lib/utils';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Folder } from 'lucide-react';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import { useShallow } from 'zustand/react/shallow';
@@ -37,7 +37,7 @@ const TranscriptFile = () => {
                             await api.call('watch-history/attach-srt', { videoPath: vp, srtPath: sp });
                         }
                     }
-                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                    await swrApiMutate('watch-history/list');
                     await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
                 }} />
                 <FolderSelector onSelected={FolderSelectAction.defaultAction()} />

@@ -129,7 +129,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                 {/*<ContextMenuItem*/}
                 {/*    onClick={async () => {*/}
                 {/*        await api.call('watch-project/delete', proj.id);*/}
-                {/*        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);*/}
+                {/*        await swrApiMutate('watch-history/list');*/}
                 {/*    }}*/}
                 {/*>Delete</ContextMenuItem>*/}
             </ContextMenuContent>

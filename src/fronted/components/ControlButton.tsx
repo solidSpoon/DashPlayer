@@ -3,7 +3,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {cn} from "@/fronted/lib/utils";
 import useLayout from '../hooks/useLayout';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import {useHotkeys} from "react-hotkeys-hook";
 import {Button} from "@/fronted/components/ui/button";
 
@@ -23,7 +23,7 @@ export default function ControlButton() {
                         ' fixed bottom-12 right-12 z-[99]',
                     )}
                     onClick={async () => {
-                        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST)
+                        await swrApiMutate('watch-history/list');
                         pauseMeasurement();
                         changeSideBar(!showSideBar);
                     }}

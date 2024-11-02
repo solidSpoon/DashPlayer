@@ -146,15 +146,21 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return ids;
     }
 
-    public async delete(id: string): Promise<void> {
-
-        if (ObjUtil.isHash(id)) {
-            await this.deleteById(id);
-        } else {
-            const basePath = path.dirname(id);
-            const fileName = path.basename(id);
-            await this.deleteByFile(basePath, fileName);
+    public async groupDelete(id: string): Promise<void> {
+        const toDeleteIds:string[] = [];
+        const [record] = await db.select().from(watchHistory)
+            .where(eq(watchHistory.id, id));
+        if (!record) {
+            return;
         }
+        if (record.project_type === WatchHistoryType.DIRECTORY) {
+            const records = await db.select().from(watchHistory)
+                .where(and(eq(watchHistory.base_path, record.base_path), eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)));
+            toDeleteIds.push(...records.map(r => r.id));
+        } else {
+            toDeleteIds.push(record.id);
+        }
+        await Promise.all(toDeleteIds.map(id => this.deleteById(id)));
         const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
         await FileUtil.cleanEmptyDirectories(libraryPath);
     }
@@ -419,44 +425,6 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
                 .where(eq(watchHistory.srt_file, record.srt_file));
             if (CollUtil.isEmpty(srtExists)) {
                 await FileUtil.deleteFile(record.srt_file);
-            }
-        }
-    }
-
-    private async deleteByFile(basePath: string, fileName: string) {
-        const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
-        const records: WatchHistory[] = await db.select().from(watchHistory)
-            .where(
-                and(
-                    eq(watchHistory.base_path, basePath),
-                    eq(watchHistory.file_name, fileName)
-                )
-            );
-        if (CollUtil.isEmpty(records)) {
-            return;
-        }
-        // 如果是 libraryPath 或子文件夹下的文件
-        // 删除文件
-        const filePath = path.join(records[0].base_path, records[0].file_name);
-
-        if (filePath.startsWith(libraryPath)) {
-            await FileUtil.deleteFile(filePath);
-            this.systemService.sendInfoToRenderer('该文件位于视频库中，已为您删除原文件');
-        }
-        await db.delete(watchHistory)
-            .where(and(
-                eq(watchHistory.base_path, basePath),
-                eq(watchHistory.file_name, fileName)
-            ));
-
-        const uniqueSrtFiles = [...new Set(records.map(record => record.srt_file).filter(StrUtil.isNotBlank))];
-        for (const srtFile of uniqueSrtFiles) {
-            if (srtFile.startsWith(libraryPath)) {
-                const srtExists = await db.select().from(watchHistory)
-                    .where(eq(watchHistory.srt_file, srtFile));
-                if (CollUtil.isEmpty(srtExists)) {
-                    await FileUtil.deleteFile(srtFile);
-                }
             }
         }
     }

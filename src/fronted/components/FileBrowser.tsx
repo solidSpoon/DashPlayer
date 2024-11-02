@@ -6,7 +6,7 @@ import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Folder, X } from 'lucide-react';
-import { apiPath, SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { apiPath, SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
 import VideoItem2, { BrowserItemVariant } from '@/fronted/components/fileBowser/VideoItem2';
@@ -128,8 +128,8 @@ const FileBrowser = () => {
                                 text: 'Delete',
                                 disabled: file === PathUtil.join(p.basePath, p.fileName),
                                 onClick: async () => {
-                                    await api.call('watch-history/delete', p.id);
-                                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                                    await api.call('watch-history/group-delete', p.id);
+                                    await swrApiMutate('watch-history/list');
                                 }
                             }
                         ];

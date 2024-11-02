@@ -12,7 +12,7 @@ import { FileAudio2, FileVideo2, Folder, X } from 'lucide-react';
 import Style from '@/fronted/styles/style';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { Button } from '@/fronted/components/ui/button';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 
@@ -58,8 +58,8 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                             disabled={variant === 'highlight'}
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                await api.call('watch-history/delete', v.id);
-                                                await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                                                await api.call('watch-history/group-delete', v.id);
+                                                await swrApiMutate('watch-history/list');
                                             }}
                                     >
                                         <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'} />

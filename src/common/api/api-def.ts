@@ -97,7 +97,7 @@ interface WatchHistoryDef {
         return: void
     };
     'watch-history/create': { params: string[], return: string[] };
-    'watch-history/delete': { params: string, return: void };
+    'watch-history/group-delete': { params: string, return: void };
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/analyse-folder': { params: string, return: { supported: number, unsupported: number } };

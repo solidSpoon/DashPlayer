@@ -15,7 +15,7 @@ interface WatchHistoryService {
 
     attachSrt(videoPath: string, srtPath: string): Promise<void>;
 
-    delete(id: string): Promise<void>;
+    groupDelete(id: string): Promise<void>;
 
 
     analyseFolder(path: string): Promise<{ supported: number, unsupported: number }>;

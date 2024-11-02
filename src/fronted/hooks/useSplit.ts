@@ -3,7 +3,7 @@ import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
@@ -75,7 +75,7 @@ const useSplit = create(
                     chapters: useSplit.getState().parseResult
                 });
                 await api.call('watch-history/create', [folderName]);
-                await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                await swrApiMutate('watch-history/list');
             },
             aiFormat: async () => {
                 if (StrUtil.isBlank(get().userInput)) {

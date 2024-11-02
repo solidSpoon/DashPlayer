@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import { Film, ListVideo, Trash2 } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -78,8 +78,8 @@ const ProjectListCard = ({ video, onSelected }: {
                                 onClick={async (e) => {
                                     e.stopPropagation();
                                     console.log('swrdelete', video.id);
-                                    await api.call('watch-history/delete', video.id);
-                                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                                    await api.call('watch-history/group-delete', video.id);
+                                    await swrApiMutate('watch-history/list');
                                 }}
                             >
                                 <Trash2
@@ -102,8 +102,8 @@ const ProjectListCard = ({ video, onSelected }: {
                 >Show In Explorer</ContextMenuItem>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('watch-history/delete', video.id);
-                        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                        await api.call('watch-history/group-delete', video.id);
+                        await swrApiMutate('watch-history/list');
                     }}
                 >Delete</ContextMenuItem>
             </ContextMenuContent>

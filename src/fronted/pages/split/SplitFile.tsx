@@ -6,7 +6,7 @@ import useSplit from '@/fronted/hooks/useSplit';
 import {useShallow} from 'zustand/react/shallow';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {Folder, X} from 'lucide-react';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import FileSelector from "@/fronted/components/fileBowser/FileSelector";
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
@@ -40,7 +40,7 @@ const SplitFile = () => {
                             await api.call('watch-history/attach-srt', {videoPath, srtPath: sp});
                         }
                     }
-                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                    await swrApiMutate('watch-history/list');
                     await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
                 }}/>
                 <FolderSelector onSelected={FolderSelectAction.defaultAction()}/>
@@ -103,8 +103,8 @@ const SplitFile = () => {
                             text: 'Delete',
                             disabled: false,
                             onClick: async () => {
-                                await api.call('watch-history/delete', p.id);
-                                await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                                await api.call('watch-history/group-delete', p.id);
+                                await swrApiMutate('watch-history/list');
                             }
                         }
                     ];

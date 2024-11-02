@@ -8,7 +8,7 @@ import MediaUtil, {
     UnsupportedVideoFormats
 } from '@/common/utils/MediaUtil';
 import useFile from '@/fronted/hooks/useFile';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import useLayout from '@/fronted/hooks/useLayout';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast } from 'sonner';
@@ -49,7 +49,7 @@ export class FileAction {
                 }
             }
             await swrMutate(SWR_KEY.PLAYER_P);
-            await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+            await swrApiMutate('watch-history/list');
             await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
         };
 
@@ -88,7 +88,7 @@ export class FileAction {
                 }
             }
             await swrMutate(SWR_KEY.PLAYER_P);
-            await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+            await swrApiMutate('watch-history/list');
             await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
         };
 
