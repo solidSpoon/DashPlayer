@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
@@ -6,7 +6,7 @@ import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Folder, X } from 'lucide-react';
-import { apiPath, SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
+import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
 import VideoItem2, { BrowserItemVariant } from '@/fronted/components/fileBowser/VideoItem2';
@@ -15,14 +15,26 @@ import { toast } from 'sonner';
 import useConvert from '@/fronted/hooks/useConvert';
 import PathUtil from '@/common/utils/PathUtil';
 import useSWR from 'swr';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 const api = window.electron;
 const FileBrowser = () => {
     const navigate = useNavigate();
     const file = useFile(state => state.videoPath);
     const videoId = useFile(state => state.videoId);
-    const { data } = useSWR([apiPath('watch-history/detail'), videoId],([_p,v])=> api.call('watch-history/detail', v??''),{fallbackData: null});
-    console.log('file', data);
+
+    const [previousData, setPreviousData] = useState<WatchHistoryVO | null>(null);
+    const { data } = useSWR(
+        [apiPath('watch-history/detail'), videoId],
+        ([_p, v]) => api.call('watch-history/detail', v ?? ''),
+        {
+            revalidateOnFocus: false,
+            fallbackData: previousData,
+            onSuccess: (data) => {
+                setPreviousData(data);
+            }
+        }
+    );
     return (
         <Card
             onClick={(e) => {

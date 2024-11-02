@@ -25,9 +25,10 @@ const api = window.electron;
 
 
 const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = '' }: ProjectListCompProps) => {
-    const [basePath, setBasePath] = React.useState<string>(enterProj);
-    const { data } = useSWR([apiPath('watch-history/list'), basePath], ([p, bp]) => api.call('watch-history/list', bp), { fallbackData: [] });
-    console.log('data', enterProj);
+    const [basePath, setBasePath] = React.useState<string|null>(null);
+    const finalPath = basePath ?? enterProj;
+    console.log('finalPath', finalPath);
+    const { data } = useSWR([apiPath('watch-history/list'), finalPath], ([p, bp]) => api.call('watch-history/list', bp));
     return (
         <div className={cn('flex flex-col gap-2', className)}>
             <Breadcrumb className={cn('')}>
@@ -38,18 +39,18 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
                                 setBasePath('');
                             }}
                         >Recent</BreadcrumbLink>
-                        {StrUtil.isNotBlank(basePath) && <>
+                        {StrUtil.isNotBlank(finalPath) && <>
                             <BreadcrumbSeparator />
-                            <BreadcrumbLink>{PathUtil.parse(basePath).base}</BreadcrumbLink>
+                            <BreadcrumbLink>{PathUtil.parse(finalPath).base}</BreadcrumbLink>
                         </>}
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
             <div className={cn('h-0 flex-1 overflow-y-auto scrollbar-none')}>
-                {backEle?.(StrUtil.isBlank(basePath) , () => {
+                {backEle?.(StrUtil.isBlank(finalPath) , () => {
                     setBasePath('');
                 })}
-                {StrUtil.isBlank(basePath) && data.map((item, idx) => {
+                {StrUtil.isBlank(finalPath) && data?.map((item, idx) => {
                     const handleClick = () => {
                         if (item.isFolder) {
                             setBasePath(item.basePath);
@@ -57,7 +58,7 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
                     };
                     return projEle(item, handleClick);
                 })}
-                {StrUtil.isNotBlank(basePath) && data.map((item, idx) => {
+                {StrUtil.isNotBlank(finalPath) && data?.map((item, idx) => {
                     return videoEle(item);
                 })}
             </div>
