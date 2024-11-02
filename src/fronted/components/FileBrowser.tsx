@@ -96,7 +96,7 @@ const FileBrowser = () => {
                         let variant: BrowserItemVariant = 'normal';
                         if (file === PathUtil.join(pv.basePath, pv.fileName)) {
                             variant = 'highlight';
-                        } else if (pv.duration > 5) {
+                        } else if (pv.current_position > 5) {
                             variant = 'lowlight';
                         }
                         return (
