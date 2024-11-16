@@ -125,7 +125,7 @@ const DownloadVideo = () => {
                                     下载视频
                                 </CardTitle>
                                 <CardDescription>
-                                    文件将保存在下载文件夹
+                                    文件将保存在 Library 的 videos 文件夹中
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
