@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1729317662412,
-      "tag": "0000_fair_northstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1729336042485,
-      "tag": "0001_talented_jocasta",
+      "when": 1731730527741,
+      "tag": "0000_funny_mauler",
       "breakpoints": true
     }
   ]
