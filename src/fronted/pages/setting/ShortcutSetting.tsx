@@ -312,6 +312,13 @@ const ShortcutSetting = () => {
                     value={setting('shortcut.addClip')}
                     setValue={setSettingFunc('shortcut.addClip')}
                 />
+                <ShortCutRecorder
+                    title="展示/隐藏控制界面"
+                    description="在播放器界面和控制界面之间切换"
+                    defaultValue={SettingKeyObj['shortcut.addClip']}
+                    value={setting('shortcut.addClip')}
+                    setValue={setSettingFunc('shortcut.addClip')}
+                />
             </ItemWrapper>
 
             <FooterWrapper>
