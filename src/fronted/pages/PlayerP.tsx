@@ -1,8 +1,8 @@
-import {AnimatePresence, motion} from 'framer-motion';
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {useLocation, useParams, useSearchParams} from 'react-router-dom';
-import useLayout, {cpW} from '@/fronted/hooks/useLayout';
-import {cn} from "@/fronted/lib/utils";
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import useLayout, { cpW } from '@/fronted/hooks/useLayout';
+import { cn } from '@/fronted/lib/utils';
 import FileBrowser from '@/fronted/components/FileBrowser';
 import ControlBox from '@/fronted/components/ControlBox';
 import ControlButton from '@/fronted/components/ControlButton';
@@ -13,15 +13,17 @@ import Chat from '@/fronted/components/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
 import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
-import {SWR_KEY} from "@/fronted/lib/swr-util";
+import { SWR_KEY } from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
+import StrUtil from '@/common/utils/str-util';
+import CollUtil from '@/common/utils/CollUtil';
 
 const api = window.electron;
 
 const PlayerP = () => {
-    const {videoId} = useParams();
-    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
+    const { videoId } = useParams();
+    const { data: video } = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
     console.log('playerp', videoId, video);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
@@ -47,7 +49,7 @@ const PlayerP = () => {
             if (!video) {
                 return;
             }
-            useFile.setState({videoId: video.id});
+            useFile.setState({ videoId: video.id });
             const vp = useFile.getState().videoPath;
             const sp = useFile.getState().subtitlePath;
             const videoPath = PathUtil.join(video.basePath, video.fileName);
@@ -55,18 +57,25 @@ const PlayerP = () => {
                 useFile.getState().updateFile(videoPath);
                 usePlayerController.getState().play();
             }
-            if (video.srtFile && sp !== video.srtFile) {
-                useFile.getState().updateFile(video.srtFile);
+
+            let subtitlePath = video.srtFile;
+            if (StrUtil.isBlank(subtitlePath)) {
+                const availableSrt = await api.call('watch-history/suggest-srt', videoPath);
+                subtitlePath = CollUtil.getFirst(availableSrt) ?? '';
+            }
+
+            if (subtitlePath && sp !== video.srtFile) {
+                useFile.getState().updateFile(subtitlePath);
             }
             // await api.call('watch-project/video/play', video.id);
         };
         runEffect();
     }, [video]);
     useEffect(() => {
-        setSearchParams({sideBarAnimation: 'true'});
+        setSearchParams({ sideBarAnimation: 'true' });
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
-    const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
+    const [pos, setPos] = useState({ x: 0, y: 0, scale: 1 });
     useLayoutEffect(() => {
         const updatePos = () => {
             if (posRef.current === null) {
@@ -117,17 +126,17 @@ const PlayerP = () => {
                             className={cn(
                                 'col-start-1 col-end-2 row-start-1 row-end-3'
                             )}
-                            initial={{x: -1000}}
+                            initial={{ x: -1000 }}
                             animate={{
                                 x: 0
                             }}
-                            exit={{x: -1000}}
+                            exit={{ x: -1000 }}
                             transition={{
                                 type: 'tween',
                                 duration: sideBarAnimation ? 0 : 0
                             }}
                         >
-                            <SideBar compact={!w('xl')}/>
+                            <SideBar compact={!w('xl')} />
                         </motion.div>
                         <motion.div
                             className={cn(
@@ -135,17 +144,17 @@ const PlayerP = () => {
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
-                            initial={{x: 1000}}
+                            initial={{ x: 1000 }}
                             animate={{
                                 x: 0
                             }}
-                            exit={{x: 1000}}
+                            exit={{ x: 1000 }}
                             transition={{
                                 type: 'tween',
                                 duration: 0.2
                             }}
                         >
-                            <FileBrowser/>
+                            <FileBrowser />
                         </motion.div>
 
                         <motion.div
@@ -154,18 +163,18 @@ const PlayerP = () => {
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
-                            initial={{y: -1000}}
+                            initial={{ y: -1000 }}
                             animate={{
                                 y: 0,
                                 x: 0
                             }}
-                            exit={{y: -1000}}
+                            exit={{ y: -1000 }}
                             transition={{
                                 type: 'tween',
                                 duration: 0.2
                             }}
                         >
-                            <ControlBox/>
+                            <ControlBox />
                         </motion.div>
                     </>
                 )}
@@ -175,7 +184,7 @@ const PlayerP = () => {
                         gridArea: '2 / 2 / 2 / 3'
                     }}
                 >
-                    <div className="w-full h-full" ref={posRef}/>
+                    <div className="w-full h-full" ref={posRef} />
                 </div>
                 <div
                     className={cn(
@@ -191,16 +200,16 @@ const PlayerP = () => {
                         transformOrigin: 'top left'
                     }}
                 >
-                    <PlayerPPlayer/>
+                    <PlayerPPlayer />
                 </div>
                 {chatTopic === 'offscreen' && (
                     <>
-                        <ControlButton/>
-                        <PlayerShortCut/>
+                        <ControlButton />
+                        <PlayerShortCut />
                     </>
                 )}
                 <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <Chat/>}
+                    {chatTopic !== 'offscreen' && <Chat />}
                 </AnimatePresence>
 
             </div>

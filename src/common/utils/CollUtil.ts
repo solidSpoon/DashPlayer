@@ -33,6 +33,11 @@ export default class CollUtil {
         }
         return coll[targetIndex];
     }
+
+    public static getFirst<T>(coll: T[] | null | undefined): T | null {
+        return this.safeGet(coll, 0);
+    }
+
     static toMap<E, K>(entities: E[], keyFunc: (e: E) => K): Map<K, E> {
         const result = new Map<K, E>();
         for (const e of entities) {

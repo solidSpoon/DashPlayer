@@ -28,6 +28,10 @@ export default class WatchHistoryController implements Controller {
         await this.watchHistoryService.attachSrt(videoPath, srtPath);
     }
 
+    public async suggestSrt(file: string): Promise<string[]> {
+        return this.watchHistoryService.suggestSrt(file);
+    }
+
     public async groupDelete(id: string): Promise<void> {
         return this.watchHistoryService.groupDelete(id);
     }
@@ -49,6 +53,7 @@ export default class WatchHistoryController implements Controller {
         registerRoute('watch-history/group-delete', (p) => this.groupDelete(p));
         registerRoute('watch-history/detail', (p) => this.detail(p));
         registerRoute('watch-history/attach-srt', (p) => this.attachSrt(p));
+        registerRoute('watch-history/suggest-srt', (p) => this.suggestSrt(p));
         registerRoute('watch-history/analyse-folder', (p) => this.analyseFolder(p));
     }
 }

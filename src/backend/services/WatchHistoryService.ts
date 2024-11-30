@@ -7,7 +7,7 @@ interface WatchHistoryService {
 
     /**
      * 添加媒体文件
-     * @param filePaths
+     * @param filePaths 路径列表，可以是文件或文件夹
      */
     create(filePaths: string[]): Promise<string[]>;
 
@@ -17,8 +17,13 @@ interface WatchHistoryService {
 
     groupDelete(id: string): Promise<void>;
 
-
     analyseFolder(path: string): Promise<{ supported: number, unsupported: number }>;
+
+    /**
+     * 获取推荐的字幕文件
+     * @param file 视频文件路径
+     */
+    suggestSrt(file: string): Promise<string[]>;
 }
 
 export default WatchHistoryService;

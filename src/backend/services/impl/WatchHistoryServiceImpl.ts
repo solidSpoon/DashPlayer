@@ -111,7 +111,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return {
             ...r,
             isFolder: record.project_type === WatchHistoryType.DIRECTORY
-        }
+        };
     }
 
     public async create(files: string[]): Promise<string[]> {
@@ -127,16 +127,9 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         const videos = existFiles
             .filter(file => fs.statSync(file).isFile())
             .filter(file => MediaUtil.isVideo(file));
-        const srtFiles = existFiles
-            .filter(file => fs.statSync(file).isFile())
-            .filter(file => MediaUtil.isSrt(file));
         for (const video of videos) {
             const sids = await this.tryCreate(video);
             ids.push(...sids);
-            const srtFile = MatchSrt.matchOne(video, srtFiles);
-            if (srtFile) {
-                await this.attachSrt(video, srtFile);
-            }
         }
         for (const id of ids) {
             await db.update(watchHistory).set({
@@ -147,7 +140,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     public async groupDelete(id: string): Promise<void> {
-        const toDeleteIds:string[] = [];
+        const toDeleteIds: string[] = [];
         const [record] = await db.select().from(watchHistory)
             .where(eq(watchHistory.id, id));
         if (!record) {
@@ -252,14 +245,9 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         const files = fs.readdirSync(folder);
         const videoFiles = files.filter(file => MediaUtil.isVideo(file))
             .map(file => path.join(folder, file));
-        const srtFiles = files.filter(file => MediaUtil.isSrt(file));
         for (const video of videoFiles) {
             const sids = await this.tryCreate(video, WatchHistoryType.DIRECTORY);
             ids.push(...sids);
-            const srtFile = MatchSrt.matchOne(video, srtFiles);
-            if (srtFile) {
-                await this.attachSrt(video, srtFile);
-            }
         }
         return ids;
     }
@@ -347,6 +335,14 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
     }
 
+    async suggestSrt(file: string): Promise<string[]> {
+        const folder = path.dirname(file);
+        const files = await FileUtil.listFiles(folder);
+        const srtInFolder = files.filter(file => MediaUtil.isSrt(file))
+            .map(file => path.join(folder, file));
+        return MatchSrt.matchAll(file, srtInFolder);
+    }
+
 
     /**
      * 同步视频库中的文件
@@ -360,13 +356,8 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         const files = await FileUtil.listFiles(libraryPath);
         const videoFiles = files.filter(file => MediaUtil.isVideo(file))
             .map(file => path.join(libraryPath, file));
-        const srtFiles = files.filter(file => MediaUtil.isSrt(file));
         for (const video of videoFiles) {
             await this.tryCreate(video);
-            const srtFile = MatchSrt.matchOne(video, srtFiles);
-            if (srtFile) {
-                await this.attachSrt(video, srtFile);
-            }
         }
         const folders = files.filter(file => fs.statSync(path.join(libraryPath, file)).isDirectory());
         for (const folder of folders) {
@@ -375,7 +366,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     /**
-     * 清理已删除的历史记录
+     * 删除源文件不存在的记录
      * @private
      */
     private async cleanDeletedHistory() {
@@ -403,6 +394,11 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             .then();
     }
 
+    /**
+     * 根据 id 删除记录，如果是视频库中的文件，删除原文件
+     * @param id 视频 id
+     * @private
+     */
     private async deleteById(id: string) {
         const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
         const [record]: WatchHistory[] = await db.select().from(watchHistory)
