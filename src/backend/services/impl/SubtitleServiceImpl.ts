@@ -1,4 +1,4 @@
-import nlp from 'compromise';
+import nlp from 'compromise/one';
 import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
 import StrUtil from '@/common/utils/str-util';
 import fs from 'fs';
@@ -153,6 +153,9 @@ function tokenizeAndProcess(text: string): TokenRes[] {
             res.push(item);
             continue;
         }
+        if (item.word.length === 0) {
+            continue;
+        }
         const last = res.pop();
         // eg: i'm
         // 把last 按照 ' 分割, 第一个分给last, 第二个分给item
@@ -175,8 +178,8 @@ function tokenizeAndProcess(text: string): TokenRes[] {
 }
 
 function isWord(token: string) {
-    const noWordRegex = /[^A-Za-z0-9-]/;
-    return !noWordRegex.test(token);
+    const regExp = /[A-Za-z]/;
+    return regExp.test(token);
 }
 
 class SentenceHolder {
@@ -221,6 +224,18 @@ const processSentence = (sentence: string): SentenceStruct => {
                     blocks.push({ blockParts });
                     blockParts = [];
                 }
+            } else if (pw.includes(' ')) {
+                if (blockParts.length > 0) {
+                    blocks.push({ blockParts });
+                    blockParts = [];
+                }
+                blockParts.push({
+                    content: pw.trim(),
+                    implicit: '',
+                    isWord: false
+                });
+                blocks.push({ blockParts });
+                blockParts = [];
             } else {
                 blockParts.push({
                     content: pw,
