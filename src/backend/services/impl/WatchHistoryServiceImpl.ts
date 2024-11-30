@@ -116,7 +116,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
 
     public async create(files: string[]): Promise<string[]> {
         const ids: string[] = [];
-        const existFiles = files.filter(file => fs.existsSync);
+        const existFiles = files.filter(file => fs.existsSync(file));
         const folders = existFiles.filter(file => fs.statSync(file).isDirectory());
         if (CollUtil.isNotEmpty(folders)) {
             for (const folder of folders) {

@@ -9,6 +9,7 @@ import LocationService, { ProgramType } from '@/backend/services/LocationService
 import FfmpegService from '@/backend/services/FfmpegService';
 import ChildProcessTask from '@/backend/objs/ChildProcessTask';
 import DlVideoService from '@/backend/services/DlVideoService';
+import { cookieType } from '@/common/types/DlVideoType';
 
 class DownloadProgress {
     name = '';
@@ -43,7 +44,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
 
-    public async dlVideo(taskId: number, url: string, savePath: string) {
+    public async dlVideo(taskId: number, url: string, cookies: string, savePath: string) {
         const progress = new DownloadProgress();
         progress.appendStdOut(`System: downloading video from ${url}`);
         this.dpTaskService.process(taskId, {
@@ -53,11 +54,11 @@ export default class DlVideoServiceImpl implements DlVideoService {
 
         try {
             // Get the video file name
-            const videoFileName = await this.getVideoFileName(taskId, progress, url);
+            const videoFileName = await this.getVideoFileName(taskId, progress, url,cookies);
             progress.name = path.basename(videoFileName, path.extname(videoFileName)) + '.mp4';
 
             // Download the video
-            await this.downloadVideo(taskId, progress, url, savePath);
+            await this.downloadVideo(taskId, progress, url,cookies, savePath);
 
             // If the downloaded file is not mp4, convert it
             if (!videoFileName.endsWith('.mp4')) {
@@ -108,7 +109,8 @@ export default class DlVideoServiceImpl implements DlVideoService {
     private async getVideoFileName(
         taskId: number,
         progress: DownloadProgress,
-        url: string
+        url: string,
+        cookies: string
     ): Promise<string> {
         const ytDlpPath = this.locationService.getThirdLibPath(ProgramType.YT_DL);
         const ffmpegPath = this.locationService.getThirdLibPath(ProgramType.LIB);
@@ -122,12 +124,14 @@ export default class DlVideoServiceImpl implements DlVideoService {
         return new Promise<string>((resolve, reject) => {
             let output = '';
 
+            const cookiesArg = cookies === cookieType('no-cookie') ? [] : ['--cookies-from-browser', cookies];
+
             const ytDlpProcess = spawn(ytDlpPath, [
                 '--ffmpeg-location',
                 ffmpegPath,
                 '-f',
                 'bestvideo[height<=1080][height>=?720]',
-                '--cookies-from-browser', 'chrome',
+                ...cookiesArg,
                 '--get-filename',
                 '--merge-output-format',
                 'mp4',
@@ -164,6 +168,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
         taskId: number,
         progress: DownloadProgress,
         url: string,
+        cookies: string,
         savePath: string
     ): Promise<void> {
         progress.appendStdOut('System: downloading video');
@@ -176,12 +181,14 @@ export default class DlVideoServiceImpl implements DlVideoService {
             const ytDlpPath = this.locationService.getThirdLibPath(ProgramType.YT_DL);
             const ffmpegPath = this.locationService.getThirdLibPath(ProgramType.LIB);
 
+            const cookiesArg = cookies === cookieType('no-cookie') ? [] : ['--cookies-from-browser', cookies];
+
             const args = [
                 '--ffmpeg-location',
                 ffmpegPath,
                 '-f',
                 'bestvideo[height<=1080][height>=?720]+bestaudio/best',
-                '--cookies-from-browser', 'chrome',
+                ...cookiesArg,
                 '--merge-output-format',
                 'mp4',
                 '-P',

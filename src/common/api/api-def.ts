@@ -15,6 +15,7 @@ import { Tag } from '@/backend/db/tables/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import { COOKIE } from '@/common/types/DlVideoType';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -97,6 +98,7 @@ interface WatchHistoryDef {
         return: void
     };
     'watch-history/create': { params: string[], return: string[] };
+    'watch-history/create/from-library': { params: string[], return: string[] };
     'watch-history/group-delete': { params: string, return: void };
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
@@ -132,7 +134,7 @@ interface SplitVideoDef {
 }
 
 interface DownloadVideoDef {
-    'download-video/url': { params: { url: string }, return: number };
+    'download-video/url': { params: { url: string, cookies: COOKIE }, return: number };
 }
 
 interface ConvertDef {

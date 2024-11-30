@@ -5,11 +5,14 @@ import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/interfaces/controller';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import LocationService, { LocationType } from '@/backend/services/LocationService';
 
 @injectable()
 export default class WatchHistoryController implements Controller {
     @inject(TYPES.WatchHistoryService)
     private watchHistoryService!: WatchHistoryService;
+    @inject(TYPES.LocationService)
+    private locationService!: LocationService;
 
     public async updateProgress({ file, currentPosition }: {
         file: string, currentPosition: number
@@ -17,7 +20,11 @@ export default class WatchHistoryController implements Controller {
         return this.watchHistoryService.updateProgress(file, currentPosition);
     }
 
-    public async create(files: string[]): Promise<string[]> {
+    public async create(files: string[], concatLibrary = false): Promise<string[]> {
+        const lp = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+        if (concatLibrary) {
+            files = files.map((f) => path.join(lp, f));
+        }
         return this.watchHistoryService.create(files);
     }
 
@@ -43,13 +50,16 @@ export default class WatchHistoryController implements Controller {
     public async detail(id: string): Promise<WatchHistoryVO | null> {
         return this.watchHistoryService.detail(id);
     }
+
     public async analyseFolder(path: string): Promise<{ supported: number, unsupported: number }> {
         return this.watchHistoryService.analyseFolder(path);
     }
+
     registerRoutes(): void {
         registerRoute('watch-history/list', (p) => this.list(p));
         registerRoute('watch-history/progress/update', (p) => this.updateProgress(p));
         registerRoute('watch-history/create', (p) => this.create(p));
+        registerRoute('watch-history/create/from-library', (p) => this.create(p, true));
         registerRoute('watch-history/group-delete', (p) => this.groupDelete(p));
         registerRoute('watch-history/detail', (p) => this.detail(p));
         registerRoute('watch-history/attach-srt', (p) => this.attachSrt(p));

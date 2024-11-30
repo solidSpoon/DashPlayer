@@ -23,6 +23,9 @@ import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 import { Nullable } from '@/common/types/Types';
 import PathUtil from '@/common/utils/PathUtil';
+import { BsBrowserChrome, BsBrowserEdge, BsBrowserFirefox, BsBrowserSafari, BsIncognito } from 'react-icons/bs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
+import { COOKIE, cookieType } from '@/common/types/DlVideoType';
 
 const api = window.electron;
 
@@ -40,6 +43,7 @@ const DownloadVideo = () => {
     const { task: dpTask } = useDpTaskViewer(taskId);
     console.log('task', dpTask);
     const [url, setUrl] = useLocalStorage('download-video-url', '');
+    const [cookies, setCookies] = useLocalStorage<COOKIE>('download-video-cookies', 'no-cookie');
     const consoleRef = React.useRef<HTMLPreElement>(null);
     React.useEffect(() => {
         if (consoleRef.current) {
@@ -66,7 +70,7 @@ const DownloadVideo = () => {
                 </h2>
                 <Separator orientation="horizontal" className="px-0" />
             </div>
-            <div className={cn('h-0 flex-1 flex flex-col items-center')}>
+            <div className={cn('h-0 flex-1 flex flex-col items-center gap-2')}>
                 <div className="flex w-full max-w-3xl items-center space-x-2">
                     <Input type="url" placeholder="Paste video URL here"
                            value={url} onChange={e => {
@@ -79,13 +83,16 @@ const DownloadVideo = () => {
                         disabled={inProgress}
                         onClick={async () => {
                             if (StrUtil.isNotBlank(url)) {
-                                const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', { url }), {
+                                const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {
+                                    url,
+                                    cookies
+                                }), {
                                     onFinish: async (task) => {
                                         if (task.status !== DpTaskState.DONE) return;
                                         const { name } = extracted(task);
                                         toast.success(`Downloaded ${name}, Start transcription`);
                                         // todo
-                                        const [pId] = await api.call('watch-history/create', [name]);
+                                        const [pId] = await api.call('watch-history/create/from-library', [name]);
                                         const watchProjectVideo = await api.call('watch-history/detail', pId);
                                         await useTranscript.getState().onTranscript(PathUtil.join(watchProjectVideo?.basePath, watchProjectVideo?.fileName));
                                     }
@@ -104,7 +111,10 @@ const DownloadVideo = () => {
                             <DropdownMenuItem
                                 onClick={async () => {
                                     if (StrUtil.isNotBlank(url)) {
-                                        const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', { url }), {
+                                        const taskId = await useDpTaskCenter.getState().register(() => api.call('download-video/url', {
+                                            url,
+                                            cookies
+                                        }), {
                                             onFinish: async (task) => {
                                                 if (task.status !== DpTaskState.DONE) return;
                                                 const { name } = extracted(task);
@@ -118,6 +128,46 @@ const DownloadVideo = () => {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
+                <div className="flex w-full max-w-3xl items-center space-x-2">
+                    <Select value={cookies} onValueChange={s => setCookies(s as COOKIE)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder={<BsBrowserChrome />} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={cookieType('chrome')}>
+                                <div className="flex items-center">
+                                    <BsBrowserChrome className="h-4 w-4 mr-2" />
+                                    Cookies from Chrome
+                                </div>
+                            </SelectItem>
+                            <SelectItem value={cookieType('edge')}>
+                                <div className="flex items-center">
+                                    <BsBrowserEdge className="h-4 w-4 mr-2" />
+                                    Cookies from Edge
+                                </div>
+                            </SelectItem>
+                            <SelectItem value={cookieType('firefox')}>
+                                <div className="flex items-center">
+                                    <BsBrowserFirefox className="h-4 w-4 mr-2" />
+                                    Cookies from Firefox
+                                </div>
+                            </SelectItem>
+                            <SelectItem value={cookieType('safari')}>
+                                <div className="flex items-center">
+                                    <BsBrowserSafari className="h-4 w-4 mr-2" />
+                                    Cookies from Safari
+                                </div>
+                            </SelectItem>
+                            <SelectItem value={cookieType('no-cookie')}>
+                                <div className="flex items-center">
+                                    <BsIncognito className="h-4 w-4 mr-2" />
+                                    No Cookies
+                                </div>
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 {taskId ? <>
                         <Card className={'w-full relative max-w-3xl mt-4'}>
                             <CardHeader>
