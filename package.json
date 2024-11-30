@@ -1,7 +1,7 @@
 {
     "name": "dash-player",
     "productName": "DashPlayer",
-    "version": "4.4.0",
+    "version": "4.4.1",
     "description": "My Electron application description",
     "main": ".vite/build/main.js",
     "scripts": {
@@ -58,7 +58,7 @@
         "@electron-forge/publisher-github": "^7.4.0",
         "@ffmpeg-installer/ffmpeg": "^1.1.0",
         "@floating-ui/react": "^0.26.9",
-        "@hookform/resolvers": "^3.9.0",
+        "@hookform/resolvers": "^3.9.1",
         "@langchain/core": "^0.3.5",
         "@radix-ui/react-aspect-ratio": "^1.1.0",
         "@radix-ui/react-checkbox": "^1.0.4",
@@ -120,7 +120,7 @@
         "react-day-picker": "8.10.1",
         "react-dom": "^18.2.0",
         "react-error-boundary": "^4.0.13",
-        "react-hook-form": "^7.53.0",
+        "react-hook-form": "^7.53.2",
         "react-hot-toast": "^2.4.1",
         "react-hotkeys-hook": "^4.5.0",
         "react-icons": "^4.12.0",
