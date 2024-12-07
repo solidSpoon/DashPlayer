@@ -26,7 +26,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/fronted/components/ui/dropdown-menu';
-import { Nullable } from '@/common/types/Types';
 
 const merge = (a: string, b: string) => {
     const aArr = a.split(',');
@@ -171,7 +170,8 @@ const ShortcutSetting = () => {
         'shortcut.nextPlaybackRate',
         'shortcut.aiChat',
         'shortcut.toggleCopyMode',
-        'shortcut.addClip'
+        'shortcut.addClip',
+        'shortcut.openControlPanel'
     ]);
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
@@ -315,9 +315,9 @@ const ShortcutSetting = () => {
                 <ShortCutRecorder
                     title="展示/隐藏控制界面"
                     description="在播放器界面和控制界面之间切换"
-                    defaultValue={SettingKeyObj['shortcut.addClip']}
-                    value={setting('shortcut.addClip')}
-                    setValue={setSettingFunc('shortcut.addClip')}
+                    defaultValue={SettingKeyObj['shortcut.openControlPanel']}
+                    value={setting('shortcut.openControlPanel')}
+                    setValue={setSettingFunc('shortcut.openControlPanel')}
                 />
             </ItemWrapper>
 
