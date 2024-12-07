@@ -3,17 +3,17 @@ import { IconOpenAI } from '@/fronted/components/chat/icons';
 import Playable from '@/fronted/components/chat/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
-import { strNotBlank } from '@/common/utils/Util';
 import MsgDelete from '@/fronted/components/chat/msg/MsgDelete';
 import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import StrUtil from '@/common/utils/str-util';
 
 export function AiCtxMenuPolishMsg({ msg }: { msg: AiCtxMenuPolishMessage }) {
     const { detail: resp } = useDpTaskViewer<AiFuncPolishRes>(msg.taskId);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     return (
         <div className={cn('group relative flex items-start')}>
-            <MsgDelete msg={msg}/>
+            <MsgDelete msg={msg} />
             <div
                 className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
                 <IconOpenAI />
@@ -27,7 +27,7 @@ export function AiCtxMenuPolishMsg({ msg }: { msg: AiCtxMenuPolishMessage }) {
                 >
                     <p><Playable>{msg.origin}</Playable></p>
                 </blockquote>
-                {(strNotBlank(resp?.edit1) || strNotBlank(resp?.edit2) || strNotBlank(resp?.edit3)) && <h4>这个句子有如下几种表达方式:</h4>}
+                {StrUtil.hasNonBlank(resp?.edit1, resp?.edit2, resp?.edit3) && <h4>这个句子有如下几种表达方式:</h4>}
                 {resp?.edit1 && <p
                     onContextMenu={(e) => {
                         updateInternalContext(resp.edit1);

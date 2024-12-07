@@ -1,4 +1,5 @@
 import {mutate} from 'swr';
+import { ApiMap } from '@/common/api/api-def';
 
 export const SWR_KEY = {
     PLAYER_P: 'PLAYER_P_SWR',
@@ -21,7 +22,15 @@ export const swrMutate = async (swrKey: string) => {
                 return key.length > 0 && key[0] === swrKey;
             }
         },
-        undefined,
+        (currentData) => currentData,
         {revalidate: true}
     )
+}
+
+export const swrApiMutate = async<K extends keyof ApiMap> (path: K) => {
+    await swrMutate(path);
+}
+
+export const apiPath = <K extends keyof ApiMap>(p: K) => {
+    return p;
 }

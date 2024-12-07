@@ -1,15 +1,15 @@
 // 00:00:00 Intro
 // 00:01:55 Chapter 1
 
-import {strNotBlank} from "@/common/utils/Util";
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import TimeUtil from "@/common/utils/TimeUtil";
+import StrUtil from '@/common/utils/str-util';
 
 
 function parseChapter(str: string) {
     //split the string by new line
     const lines = str.split('\n')
-        .filter(strNotBlank)
+        .filter(StrUtil.isNotBlank)
         .map((line) => line.trim())
         .map(parseLine);
     if (lines.length > 0) {

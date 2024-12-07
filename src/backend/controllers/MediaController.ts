@@ -1,19 +1,25 @@
-import Controller from '@/backend/interfaces/controller';
-import SplitVideoService from '@/backend/services/SplitVideoService';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import registerRoute from '@/common/api/register';
-import path from 'path';
-import * as os from 'node:os';
-import FfmpegService from '@/backend/services/FfmpegService';
-import fs from 'fs';
-import TimeUtil from '@/common/utils/TimeUtil';
-import hash from 'object-hash';
-import UrlUtil from '@/common/utils/UrlUtil';
+import FfmpegServiceImpl from '@/backend/services/impl/FfmpegServiceImpl';
+import { inject, injectable } from 'inversify';
+import Controller from '@/backend/interfaces/controller';
+import TYPES from '@/backend/ioc/types';
+import SplitVideoService from '@/backend/services/SplitVideoService';
+import MediaService from '../services/MediaService';
 
+@injectable()
 export default class MediaController implements Controller {
 
+    @inject(TYPES.SplitVideoService)
+    private splitVideoService!: SplitVideoService;
+
+    @inject(TYPES.FfmpegService)
+    private ffmpegService!: FfmpegServiceImpl;
+    @inject(TYPES.MediaService)
+    private mediaService!: MediaService;
+
     public async previewSplit(str: string): Promise<ChapterParseResult[]> {
-        return SplitVideoService.previewSplit(str);
+        return this.splitVideoService.previewSplit(str);
     }
 
     public async split({
@@ -25,7 +31,7 @@ export default class MediaController implements Controller {
         srtPath: string | null,
         chapters: ChapterParseResult[]
     }): Promise<string> {
-        return await SplitVideoService.split2({
+        return await this.splitVideoService.splitByChapters({
             videoPath,
             srtPath,
             chapters
@@ -34,33 +40,18 @@ export default class MediaController implements Controller {
 
 
     public async thumbnail({filePath, time}: { filePath: string, time: number }): Promise<string> {
-        const finalTime = TimeUtil.toGroupMiddle(time);
-        const tmpdir = path.join(os.tmpdir(), 'dp/thumbnail');
-        if (!fs.existsSync(tmpdir)) {
-            fs.mkdirSync(tmpdir, {recursive: true});
-        }
-        const fileName = `${hash(filePath)}-${Math.floor(finalTime)}.jpg`;
-        if (fs.existsSync(path.join(tmpdir, fileName))) {
-            return UrlUtil.dp(path.join(tmpdir, fileName));
-        }
-        await FfmpegService.thumbnail({
-            inputFile: filePath,
-            outputFileName: fileName,
-            outputFolder: tmpdir,
-            time: finalTime
-        });
-        return UrlUtil.dp(path.join(tmpdir, fileName));
+        return this.mediaService.thumbnail(filePath, time);
     }
 
     public videoLength(filePath: string): Promise<number> {
-        return FfmpegService.duration(filePath);
+        return this.ffmpegService.duration(filePath);
     }
 
 
     registerRoutes(): void {
-        registerRoute('split-video/preview', this.previewSplit);
-        registerRoute('split-video/split', this.split);
-        registerRoute('split-video/thumbnail', this.thumbnail);
-        registerRoute('split-video/video-length', this.videoLength);
+        registerRoute('split-video/preview', (p)=>this.previewSplit(p));
+        registerRoute('split-video/split', (p)=>this.split(p));
+        registerRoute('split-video/thumbnail', (p)=>this.thumbnail(p));
+        registerRoute('split-video/video-length', (p)=>this.videoLength(p));
     }
 }

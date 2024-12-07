@@ -19,7 +19,7 @@ import Md from '@/fronted/components/chat/markdown';
 import { codeBlock } from 'common-tags';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import useFile from '@/fronted/hooks/useFile';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
@@ -47,7 +47,7 @@ const Transcript = () => {
                         className={'justify-start'}
                         onClick={async () => {
                             const srtPath = useFile.getState().videoPath;
-                            if (strBlank(srtPath)) {
+                            if (StrUtil.isBlank(srtPath)) {
                                 toast.error('请先选择一个视频文件');
                                 return;
                             }
@@ -107,7 +107,7 @@ const ControlBox = () => {
     );
     const setSetting = useSetting((s) => s.setSetting);
     const setting = useSetting((s) => s.setting);
-    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size', null));
+    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
     const { podcstMode, setPodcastMode } = useLayout(useShallow(s => ({
         podcstMode: s.podcastMode,
         setPodcastMode: s.setPodcastMode
@@ -194,7 +194,7 @@ const ControlBox = () => {
                     onCheckedChange: changeAutoPause,
                     id: 'autoPause',
                     label: '自动暂停',
-                    tooltip: `当前句子结束自动暂停`
+                    tooltip: `当前句子结束自动暂停 快捷键为 ${getShortcut('shortcut.autoPause')}`
                 })}
                 {controlItem({
                     checked: setting('appearance.theme') === 'dark',

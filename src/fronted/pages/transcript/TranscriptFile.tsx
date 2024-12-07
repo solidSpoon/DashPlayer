@@ -1,32 +1,22 @@
 import React from 'react';
-import Util from '@/common/utils/Util';
-import {cn} from '@/fronted/lib/utils';
-import {WatchProject, WatchProjectType} from '@/backend/db/tables/watchProjects';
+import { cn } from '@/fronted/lib/utils';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import {Button} from '@/fronted/components/ui/button';
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
-import FileBrowserIcon from '@/fronted/components/fileBowser/FileBrowserIcon';
-import {ArrowRight, FileAudio2, FileVideo2, Folder} from 'lucide-react';
-import {WatchProjectVideo} from '@/backend/db/tables/watchProjectVideos';
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuTrigger
-} from '@/fronted/components/ui/context-menu';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
-import Style from '@/fronted/styles/style';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { Folder } from 'lucide-react';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useTranscript from '@/fronted/hooks/useTranscript';
-import {useShallow} from 'zustand/react/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
-import FileSelector from "@/fronted/components/fileBowser/FileSelector";
-import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
-import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
+import FileSelector from '@/fronted/components/fileBowser/FileSelector';
+import ProjItem2 from '@/fronted/components/fileBowser/ProjItem2';
+import VideoItem2 from '@/fronted/components/fileBowser/VideoItem2';
+import StrUtil from '@/common/utils/str-util';
+import PathUtil from '@/common/utils/PathUtil';
 
 const api = window.electron;
 const TranscriptFile = () => {
-    const {files, onAddToQueue} = useTranscript(useShallow(s => ({
+    const { files, onAddToQueue } = useTranscript(useShallow(s => ({
         files: s.files,
         onAddToQueue: s.onAddToQueue
     })));
@@ -40,17 +30,17 @@ const TranscriptFile = () => {
                     const vp = ps.find(MediaUtil.isMedia);
                     const sp = ps.find(MediaUtil.isSrt);
                     if (vp) {
-                        await api.call('watch-project/create/from-files', ps);
+                        await api.call('watch-history/create', ps);
                     }
                     if (sp) {
-                        if (Util.strNotBlank(vp)) {
-                            await api.call('watch-project/attach-srt', {videoPath: vp, srtPath: sp});
+                        if (StrUtil.isNotBlank(vp)) {
+                            await api.call('watch-history/attach-srt', { videoPath: vp, srtPath: sp });
                         }
                     }
-                    await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                    await swrApiMutate('watch-history/list');
                     await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
-                }}/>
-                <FolderSelector onSelected={FolderSelectAction.defaultAction()}/>
+                }} />
+                <FolderSelector onSelected={FolderSelectAction.defaultAction()} />
             </div>
 
             <ProjectListComp
@@ -81,40 +71,39 @@ const TranscriptFile = () => {
                 videoEle={(pv) => {
                     const ctxMenus = [
                         {
-                            icon: <Folder/>,
+                            icon: <Folder />,
                             text: 'Show In Explorer',
                             onClick: async () => {
-                                await api.call('system/open-folder', pv.video_path);
+                                await api.call('system/open-folder', pv.basePath);
                             }
                         }
                     ];
                     return <VideoItem2 pv={pv}
                                        ctxMenus={ctxMenus}
                                        onClick={() => {
-                                           onAddToQueue(pv.video_path);
+                                           onAddToQueue(PathUtil.join(pv.basePath, pv.fileName));
                                        }}
-                                       variant={queue.includes(pv.video_path) ? 'lowlight' : 'normal'}/>
+                                       variant={queue.includes(PathUtil.join(pv.basePath, pv.fileName)) ? 'lowlight' : 'normal'} />;
                 }}
                 projEle={(p, hc) => {
                     const ctxMenus = [
                         {
-                            icon: <Folder/>,
+                            icon: <Folder />,
                             text: 'Show In Explorer',
                             onClick: async () => {
-                                await api.call('system/open-folder', p.project_path);
+                                await api.call('system/open-folder', p.basePath);
                             }
-                        },
+                        }
                     ];
-                    return <ProjItem2 p={p} v={p.video}
+                    return <ProjItem2 v={p}
                                       ctxMenus={ctxMenus}
-                                      variant={queue.includes(p.project_path) ? 'lowlight' : 'normal'}
+                                      variant={queue.includes(PathUtil.join(p.basePath, p.fileName)) ? 'lowlight' : 'normal'}
                                       onClick={() => {
                                           hc();
-                                          if (p.project_type === WatchProjectType.FILE) {
-                                              const pVideo = p.video;
-                                              onAddToQueue(pVideo.video_path);
+                                          if (!p.isFolder) {
+                                              onAddToQueue(PathUtil.join(p.basePath, p.fileName));
                                           }
-                                      }}/>
+                                      }} />;
                 }}
 
                 className={cn('w-full h-0 flex-1 scrollbar-none')}

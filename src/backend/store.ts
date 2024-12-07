@@ -1,12 +1,12 @@
 import Store from 'electron-store';
 import {SettingKey, SettingKeyObj} from "@/common/types/store_schema";
-import {strBlank} from "@/common/utils/Util";
+import StrUtil from '@/common/utils/str-util';
 
 
 const store = new Store();
 
 export const storeSet = (key: SettingKey, value: string | undefined | null): boolean => {
-    if (strBlank(value)) {
+    if (StrUtil.isBlank(value)) {
         value = SettingKeyObj[key];
     }
     const oldValue = store.get(key, SettingKeyObj[key]);

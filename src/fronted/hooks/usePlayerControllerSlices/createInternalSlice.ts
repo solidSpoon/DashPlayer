@@ -12,7 +12,7 @@ const createInternalSlice: StateCreator<
         exactPlayTime: 0,
         subtitleIndex: new Map(),
         maxIndex: 0,
-        wordLevel: new Map(),
+        onPlaySeekTime: null,
     },
 });
 

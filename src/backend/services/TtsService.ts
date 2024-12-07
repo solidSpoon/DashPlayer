@@ -1,10 +1,11 @@
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { storeGet } from '@/backend/store';
 import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';
 import fs from 'fs';
 import RateLimiter from "@/common/utils/RateLimiter";
+import dpLog from '@/backend/ioc/logger';
 
 class TtsService {
     static joinUrl = (base: string, path2: string) => {
@@ -13,10 +14,10 @@ class TtsService {
 
     // ...
     public static async tts(str: string) {
-        if (strBlank(storeGet('apiKeys.openAi.key')) || strBlank(storeGet('apiKeys.openAi.endpoint'))) {
-            return null;
+        if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
+            throw new Error('OpenAI API key or endpoint is not set');
         }
-        RateLimiter.wait('tts')
+        await RateLimiter.wait('tts')
         const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
         const headers = {
             'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
@@ -42,7 +43,8 @@ class TtsService {
             fs.writeFileSync(outputPath, Buffer.from(response.data), 'binary');
             return outputPath;
         } catch (error) {
-            console.log(error);
+            dpLog.error(error);
+            throw new Error('Failed to generate TTS');
         }
     }
 

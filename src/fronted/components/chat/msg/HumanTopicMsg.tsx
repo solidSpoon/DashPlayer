@@ -3,19 +3,19 @@ import useDpTask from '@/fronted/hooks/useDpTask';
 import { AiPhraseGroupElement, AiPhraseGroupRes } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import { strBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import '../../../styles/topic.css';
 
 const process = (original: string, parseRes: AiPhraseGroupRes): (string | AiPhraseGroupElement)[] => {
     if ((parseRes?.phraseGroups ?? [].length) === 0) return [original];
-    if (strBlank(original)) return [];
+    if (StrUtil.isBlank(original)) return [];
     const res = [];
     let text = original;
     for (const group of parseRes.phraseGroups) {
-        if (strBlank(group?.original)) continue;
-        if (strBlank(text)) {
+        if (StrUtil.isBlank(group?.original)) continue;
+        if (StrUtil.isBlank(text)) {
             // res.push(group);
             continue;
         }
@@ -45,7 +45,7 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
         //判空
         if (!tags) return 'bg-secondary';
         const comment = tags.join(',');
-        if (strBlank(comment)) return 'bg-secondary';
+        if (StrUtil.isBlank(comment)) return 'bg-secondary';
         // 为包含 主语、谓语、宾语、表语 的词组添加颜色
         if (comment.includes('主语')) {
             return 'bg-red-100';

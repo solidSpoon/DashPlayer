@@ -1,5 +1,9 @@
 {
     "compilerOptions": {
+        "strict": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "types": ["reflect-metadata"],
         "target": "ESNext",
         "module": "commonjs",
         "allowJs": true,

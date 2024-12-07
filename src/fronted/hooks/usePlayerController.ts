@@ -15,12 +15,15 @@ import createSentenceSlice from './usePlayerControllerSlices/createSentenceSlice
 import createInternalSlice from './usePlayerControllerSlices/createInternalSlice';
 import createModeSlice from './usePlayerControllerSlices/createModeSlice';
 import createControllerSlice from './usePlayerControllerSlices/createControllerSlice';
-import SentenceC, { SrtSentence } from '../../common/types/SentenceC';
+import { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import useFile from './useFile';
-import Util, { sleep } from '@/common/utils/Util';
+import { sleep } from '@/common/utils/Util';
 import useSetting from './useSetting';
 import TransHolder from '../../common/utils/TransHolder';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import StrUtil from '@/common/utils/str-util';
+import { ObjUtil } from '@/backend/utils/ObjUtil';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -82,15 +85,14 @@ usePlayerController.subscribe(
             if (count % 5 !== 0) {
                 return;
             }
-            const file = useFile.getState().videoId;
+            const file = useFile.getState().videoPath;
             if (!file) {
                 return;
             }
 
-            await api.call('watch-project/progress/update', {
-                videoId: file,
-                currentTime: playTime,
-                duration
+            await api.call('watch-history/progress/update', {
+                file: file,
+                currentPosition: playTime,
             });
         }
     },
@@ -108,12 +110,20 @@ usePlayerController.subscribe(
     async ({ playing }) => {
         if (!playing) {
             const state = usePlayerController.getState();
-            if (state.autoPause || state.singleRepeat) {
+            const srtTender = state.srtTender;
+            if (state.autoPause || state.singleRepeat || !srtTender) {
                 return;
             }
             updateSentenceInterval = window.setInterval(() => {
                 if (useFile.getState().videoLoaded) {
-                    usePlayerController.getState().tryUpdateCurrentSentence();
+                    const currentTime = state.internal.exactPlayTime;
+                    const nextSentence: Sentence = srtTender.getByTime(currentTime);
+                    const cs: Sentence | undefined = state.currentSentence;
+                    const isCurrent = cs === nextSentence;
+                    if (isCurrent) {
+                        return;
+                    }
+                    usePlayerController.setState({ currentSentence: nextSentence });
                 }
             }, 1000);
         } else if (updateSentenceInterval) {
@@ -128,7 +138,7 @@ usePlayerController.subscribe(
  *
  */
 
-function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
+function filterUserCanSee(finishedGroup: Set<number>, subtitle: Sentence[]) {
     const currentGroup =
         usePlayerController.getState().currentSentence?.transGroup ?? 1;
     let shouldTransGroup = [currentGroup - 1, currentGroup, currentGroup + 1];
@@ -155,12 +165,12 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: SentenceC[]) {
 useFile.subscribe(
     (s) => s.subtitlePath,
     async (subtitlePath) => {
-        if (Util.isNull(subtitlePath)) {
+        if (StrUtil.isBlank(subtitlePath)) {
             return;
         }
         const CURRENT_FILE = useFile.getState().subtitlePath;
         const srtSubtitles: SrtSentence | null = await api.call('subtitle/srt/parse-to-sentences', subtitlePath);
-        if (Util.isNull(srtSubtitles)) {
+        if (ObjUtil.isNull(srtSubtitles)) {
             if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                 return;
             }
@@ -170,7 +180,7 @@ useFile.subscribe(
             usePlayerController.getState().setSubtitle([]);
             return;
         }
-        const subtitle = srtSubtitles.sentences.map(s => SentenceC.from(s));
+        const subtitle = srtSubtitles.sentences;
         if (CURRENT_FILE !== useFile.getState().subtitlePath) {
             return;
         }
@@ -183,12 +193,14 @@ useFile.subscribe(
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
             // console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
+                console.log('test error before');
                 const transHolder = TransHolder.from(
                     // eslint-disable-next-line no-await-in-loop
                     await api.call('ai-trans/batch-translate',
                         userCanSee.map((s) => s.text ?? '')
                     )
                 );
+                console.log('test error after');
                 if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }
@@ -198,6 +210,8 @@ useFile.subscribe(
                         .getState()
                         .mergeSubtitleTrans(transHolder);
                 }
+                // 加载收藏
+                useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.index));
             }
             await sleep(500);
         }

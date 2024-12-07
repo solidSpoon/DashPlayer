@@ -3,13 +3,13 @@ import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import Header from '@/fronted/components/setting/Header';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import Separator from '@/fronted/components/Separtor';
-import {Button} from "@/fronted/components/ui/button";
-import {Label} from "@/fronted/components/ui/label";
-import {Input} from "@/fronted/components/ui/input";
-import * as React from "react";
-import {useRecordHotkeys} from "react-hotkeys-hook";
-import {DialogClose} from "@radix-ui/react-dialog";
-import {cn} from "@/fronted/lib/utils";
+import { Button } from '@/fronted/components/ui/button';
+import { Label } from '@/fronted/components/ui/label';
+import { Input } from '@/fronted/components/ui/input';
+import * as React from 'react';
+import { useRecordHotkeys } from 'react-hotkeys-hook';
+import { DialogClose } from '@radix-ui/react-dialog';
+import { cn } from '@/fronted/lib/utils';
 import {
     Dialog,
     DialogContent,
@@ -17,9 +17,9 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger
-} from "@/fronted/components/ui/dialog";
-import {EllipsisVertical, Eraser, SquarePlus} from "lucide-react";
-import {SettingKeyObj} from "@/common/types/store_schema";
+} from '@/fronted/components/ui/dialog';
+import { EllipsisVertical, Eraser, SquarePlus } from 'lucide-react';
+import { SettingKeyObj } from '@/common/types/store_schema';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -32,7 +32,7 @@ const merge = (a: string, b: string) => {
     const bArr = b.split(',');
     const res = Array.from(new Set([...aArr, ...bArr])).join(',');
     return res;
-}
+};
 const ShortCutRecorder = ({
                               title,
                               description,
@@ -54,11 +54,11 @@ const ShortCutRecorder = ({
 }) => {
     // 打印快捷键
     // const [open, setOpen] = React.useState(false);
-    const [keys, {start, stop, isRecording}] = useRecordHotkeys();
+    const [keys, { start, stop, isRecording }] = useRecordHotkeys();
     // const [recordOpen, setRecordOpen] = React.useState(false);
     const trigger = React.useRef<HTMLButtonElement>(null);
     return (
-        <div className={cn("grid w-full items-center gap-1.5 pl-2")}>
+        <div className={cn('grid w-full items-center gap-1.5 pl-2')}>
             <Label>{title}</Label>
             <div className={'flex justify-start'}>
                 <Input
@@ -66,7 +66,7 @@ const ShortCutRecorder = ({
                     type={type}
                     value={value}
                     onChange={(event) => setValue(event.target.value)}
-                    placeholder={placeHolder}/>
+                    placeholder={placeHolder} />
                 <DropdownMenu>
                     <DropdownMenuTrigger>
                         <Button variant={'outline'} size={'icon'}>
@@ -78,10 +78,10 @@ const ShortCutRecorder = ({
                                 // setRecordOpen(true);
                                 trigger.current?.click();
                             }}
-                        ><SquarePlus className={'h-4 w-4 mr-2'}/>录制快捷键</DropdownMenuItem>
+                        ><SquarePlus className={'h-4 w-4 mr-2'} />录制快捷键</DropdownMenuItem>
                         <DropdownMenuItem
-                            onClick={() => setValue(defaultValue)}
-                        ><Eraser className={'h-4 w-4 mr-2'}/>重置为默认值</DropdownMenuItem>
+                            onClick={() => setValue(defaultValue ?? '')}
+                        ><Eraser className={'h-4 w-4 mr-2'} />重置为默认值</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <Dialog
@@ -133,29 +133,30 @@ const ShortCutRecorder = ({
 
             <p
 
-                className={cn("text-sm text-muted-foreground")}
+                className={cn('text-sm text-muted-foreground')}
 
             >
                 {description}
             </p>
         </div>
-    )
+    );
 };
 ShortCutRecorder.defaultProps = {
     placeHolder: '',
     type: 'text',
     inputWidth: 'w-96',
     description: '',
-    defaultValue: '',
+    defaultValue: ''
 };
 
 const ShortcutSetting = () => {
-    const {setting, setSettingFunc, submit, eqServer} = useSettingForm([
+    const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
         'shortcut.previousSentence',
         'shortcut.nextSentence',
         'shortcut.repeatSentence',
         'shortcut.playPause',
         'shortcut.repeatSingleSentence',
+        'shortcut.autoPause',
         'shortcut.toggleEnglishDisplay',
         'shortcut.toggleChineseDisplay',
         'shortcut.toggleBilingualDisplay',
@@ -169,11 +170,13 @@ const ShortcutSetting = () => {
         'shortcut.nextPlaybackRate',
         'shortcut.aiChat',
         'shortcut.toggleCopyMode',
+        'shortcut.addClip',
+        'shortcut.openControlPanel'
     ]);
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
-            <Header title="快捷键" description="多个快捷键用 , 分割"/>
-            <Separator orientation="horizontal" className="px-0"/>
+            <Header title="快捷键" description="多个快捷键用 , 分割" />
+            <Separator orientation="horizontal" className="px-0" />
             <ItemWrapper>
                 {/*<div className={'flex justify-start'}>*/}
                 <ShortCutRecorder
@@ -213,6 +216,13 @@ const ShortcutSetting = () => {
                     setValue={setSettingFunc('shortcut.repeatSingleSentence')}
                 />
                 <ShortCutRecorder
+                    title="自动暂停"
+                    description="当前句子播放完后自动暂停"
+                    defaultValue={SettingKeyObj['shortcut.autoPause']}
+                    value={setting('shortcut.autoPause')}
+                    setValue={setSettingFunc('shortcut.autoPause')}
+                />
+                <ShortCutRecorder
                     title="展示/隐藏英文"
                     description="展示/隐藏英文字幕"
                     defaultValue={SettingKeyObj['shortcut.toggleEnglishDisplay']}
@@ -245,7 +255,7 @@ const ShortcutSetting = () => {
                     description="在播放器速度选择弹窗勾选的速度中切换"
                     defaultValue={SettingKeyObj['shortcut.nextPlaybackRate']}
                     value={setting('shortcut.nextPlaybackRate')}
-                    setValue={setSettingFunc('shortcut.nextPlaybackRate')}/>
+                    setValue={setSettingFunc('shortcut.nextPlaybackRate')} />
                 <ShortCutRecorder
                     title="开始时间 -"
                     description="当精听一句话时, 可能遇到字幕时间不准确的情况, 可以通过这个快捷键来调整字幕的开始时间"
@@ -294,6 +304,20 @@ const ShortcutSetting = () => {
                     defaultValue={SettingKeyObj['shortcut.toggleCopyMode']}
                     value={setting('shortcut.toggleCopyMode')}
                     setValue={setSettingFunc('shortcut.toggleCopyMode')}
+                />
+                <ShortCutRecorder
+                    title="添加/取消收藏"
+                    description="使用这个快捷键可以添加/取消收藏当前句子"
+                    defaultValue={SettingKeyObj['shortcut.addClip']}
+                    value={setting('shortcut.addClip')}
+                    setValue={setSettingFunc('shortcut.addClip')}
+                />
+                <ShortCutRecorder
+                    title="展示/隐藏控制界面"
+                    description="在播放器界面和控制界面之间切换"
+                    defaultValue={SettingKeyObj['shortcut.openControlPanel']}
+                    value={setting('shortcut.openControlPanel')}
+                    setValue={setSettingFunc('shortcut.openControlPanel')}
                 />
             </ItemWrapper>
 

@@ -1,33 +1,12 @@
 {
-  "version": "5",
+  "version": "7",
   "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1708658238024,
-      "tag": "0000_nostalgic_northstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1712286295825,
-      "tag": "0001_chubby_wong",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1713007646532,
-      "tag": "0002_curvy_professor_monster",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1714105274431,
-      "tag": "0003_freezing_hiroim",
+      "version": "6",
+      "when": 1731730527741,
+      "tag": "0000_funny_mauler",
       "breakpoints": true
     }
   ]

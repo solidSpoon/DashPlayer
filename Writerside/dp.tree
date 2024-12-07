@@ -15,6 +15,8 @@
         <toc-element topic="Config-Tencent-API.md"/>
         <toc-element topic="Config-OpenAI-API.md"/>
     </toc-element>
+    <toc-element topic="favorite.md"/>
+    <toc-element topic="storage.md"/>
     <toc-element topic="Use-Bluetooth-Game-Controller.md"/>
     <toc-element topic="AI-Subtitles.md">
     </toc-element>

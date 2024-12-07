@@ -1,21 +1,27 @@
-import path from 'path';
-export default class LocationService {
-    private static readonly isDev = process.env.NODE_ENV === 'development';
-    public static ffmpegPath() {
-        return this.isDev ? path.resolve('lib/ffmpeg') : `${process.resourcesPath}/lib/ffmpeg`;
-    }
-    public static ffprobePath() {
-        return this.isDev ? path.resolve('lib/ffprobe') : `${process.resourcesPath}/lib/ffprobe`;
-    }
+export enum LocationType {
+    FAVORITE_CLIPS = 'favorite_clips',
+    TEMP = 'temp',
+    LOGS = 'logs',
+    VIDEOS = 'videos',
+    TEMP_OSS = 'temp_oss',
+    DATA = 'data',
+}
 
-    public static ytDlPath() {
-        return this.isDev ? path.resolve('lib/yt-dlp') : `${process.resourcesPath}/lib/yt-dlp`;
-    }
-    public static libPath() {
-        return this.isDev ? path.resolve('lib') : `${process.resourcesPath}/lib`;
-    }
+export enum ProgramType {
+    FFMPEG = 'ffmpeg',
+    FFPROBE = 'ffprobe',
+    YT_DL = 'yt-dlp',
+    LIB = 'lib',
+}
 
-    public static scriptPath() {
-        return this.isDev ? path.resolve('scripts') : `${process.resourcesPath}/scripts`;
-    }
+export default interface LocationService {
+    getDetailLibraryPath(type: LocationType): string;
+
+    getBaseLibraryPath(): string;
+
+    getBaseClipPath(): string;
+
+    getThirdLibPath(type: ProgramType): string;
+
+    listCollectionPaths(): string[];
 }

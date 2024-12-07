@@ -1,21 +1,36 @@
-import Controller from "@/backend/interfaces/controller";
-import registerRoute from "@/common/api/register";
-import DlVideoService from "@/backend/services/DlVideoService";
-import { app } from 'electron';
+import registerRoute from '@/common/api/register';
+import { inject, injectable } from 'inversify';
+import Controller from '@/backend/interfaces/controller';
+import TYPES from '@/backend/ioc/types';
+import LocationService, { LocationType } from '@/backend/services/LocationService';
 import DpTaskService from '@/backend/services/DpTaskService';
+import DlVideoService from '@/backend/services/DlVideoService';
+import { COOKIE } from '@/common/types/DlVideoType';
 
+@injectable()
 export default class DownloadVideoController implements Controller {
-    async downloadVideo({url}: {
-        url: string
+    @inject(TYPES.DlVideo)
+    private dlVideoService!: DlVideoService;
+
+
+    @inject(TYPES.LocationService)
+    private locationService!: LocationService;
+
+    @inject(TYPES.DpTaskService)
+    private dpTaskService!: DpTaskService;
+
+    async downloadVideo({ url,cookies }: {
+        url: string,
+        cookies: COOKIE
     }): Promise<number> {
         // 系统下载文件夹
-        const taskId = await DpTaskService.create();
-        const downloadFolder = app.getPath('downloads');
-        DlVideoService.dlVideo(taskId, url, downloadFolder).then();
+        const taskId = await this.dpTaskService.create();
+        const downloadFolder = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+        this.dlVideoService.dlVideo(taskId, url,cookies, downloadFolder).then();
         return taskId;
     }
 
-    registerRoutes() {
-        registerRoute('download-video/url', this.downloadVideo);
+    registerRoutes(): void {
+        registerRoute('download-video/url', (p) => this.downloadVideo(p));
     }
 }

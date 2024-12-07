@@ -6,7 +6,7 @@ import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes'
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
-import { strNotBlank } from '@/common/utils/Util';
+import StrUtil from '@/common/utils/str-util';
 
 
 export interface WelcomeMessageProps {
@@ -70,7 +70,7 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
         // 词组
         const phraseGroup:string[] = await getDpTaskResult<AiAnalyseNewPhrasesRes>(tasks.phraseTask).then(res => (res?.phrases ?? []).map(p => `- ${p.phrase}(${p.meaning})`));
         // 同义句
-        const polish = await getDpTaskResult<AiFuncPolishRes>(this.polishTask).then(res => [res?.edit1, res?.edit2, res?.edit3].filter(s=>strNotBlank(s)).map(s => `- ${s}`));
+        const polish = await getDpTaskResult<AiFuncPolishRes>(this.polishTask).then(res => [res?.edit1, res?.edit2, res?.edit3].filter(s=>StrUtil.isNotBlank(s)).map(s => `- ${s}`));
         return [{
             type: "ai",
             content: MSG
@@ -101,7 +101,8 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
     }
 
     getTaskIds(): number[] {
-        return [this.polishTask, this.translateTask, this.punctuationTask].filter(t => t !== null);
+        return [this.polishTask, this.translateTask, this.punctuationTask]
+            .filter(t => t !== null) as number[];
     }
 }
 

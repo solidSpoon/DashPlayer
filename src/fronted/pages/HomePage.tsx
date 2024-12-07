@@ -8,7 +8,7 @@ import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { Button } from '@/fronted/components/ui/button';
 import useSWR from 'swr';
-import { SWR_KEY } from '@/fronted/lib/swr-util';
+import { apiPath, SWR_KEY } from '@/fronted/lib/swr-util';
 import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
 import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
@@ -21,22 +21,13 @@ const HomePage = () => {
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
 
-    async function handleClickById(projectId: number) {
-        const project = await api.call('watch-project/detail', projectId);
-        let video = project.videos.find((v) => v.current_playing);
-        if (!video && project.videos.length > 0) {
-            video = project.videos[0];
-        }
-        if (!video) {
-            return;
-        }
-        const videoId = video.id;
+    async function handleClickById(vId: string) {
         await api.call('system/window-size/change', 'player');
         changeSideBar(false);
-        navigate(`/player/${videoId}`);
+        navigate(`/player/${vId}`);
     }
 
-    const { data: vps } = useSWR(SWR_KEY.WATCH_PROJECT_LIST, () => api.call('watch-project/list', null));
+    const { data: vps } = useSWR(apiPath('watch-history/list'), () => api.call('watch-history/list'));
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
     // 从第四个开始截取num个
@@ -67,12 +58,12 @@ const HomePage = () => {
                         to="/home" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
-                          className="font-semibold ">
-                        Split Video
-                    </Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/favorite'}
+                          className="font-semibold ">Favorite Clips</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/transcript'}
                           className="font-semibold ">Transcript</Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
+                          className="font-semibold ">Split Video</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/download'}
                           className="font-semibold ">Download</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/convert'}
@@ -91,7 +82,7 @@ const HomePage = () => {
                                 await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
-                                const analyse = await api.call('watch-project/analyse-folder', fp);
+                                const analyse = await api.call('watch-history/analyse-folder', fp);
                                 if (analyse?.unsupported > 0) {
                                     const folderList = await api.call('convert/from-folder', [fp]);
                                     setTimeout(() => {
@@ -125,7 +116,7 @@ const HomePage = () => {
                                     <ProjectListCard
                                         key={v.id}
                                         onSelected={() => handleClickById(v.id)}
-                                        proj={v} />
+                                        video={v} />
                                 ))}
                         </CardContent>
                     </Card>
@@ -134,7 +125,7 @@ const HomePage = () => {
                             <ProjectListItem
                                 key={v.id}
                                 onSelected={() => handleClickById(v.id)}
-                                proj={v} />
+                                video={v} />
                         ))}
                     </div>
                     <Button

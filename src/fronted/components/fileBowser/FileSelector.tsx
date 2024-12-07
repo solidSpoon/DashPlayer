@@ -8,11 +8,11 @@ import MediaUtil, {
     UnsupportedVideoFormats
 } from '@/common/utils/MediaUtil';
 import useFile from '@/fronted/hooks/useFile';
-import { strNotBlank } from '@/common/utils/Util';
-import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import useLayout from '@/fronted/hooks/useLayout';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast } from 'sonner';
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 
@@ -22,15 +22,14 @@ export class FileAction {
         return async (ps: string[]) => {
             if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
-                if (strNotBlank(videoPath)) {
-                    await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
+                if (StrUtil.isNotBlank(videoPath)) {
+                    await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
                     useFile.getState().clearSrt();
                 }
             } else {
-                const pid = await api.call('watch-project/create/from-files', ps);
-                const v = await api.call('watch-project/video/detail/by-pid', pid);
+                const [id] = await api.call('watch-history/create', ps);
                 await api.call('system/window-size/change', 'player');
-                navigate(`/player/${v.id}`);
+                navigate(`/player/${id}`);
                 const hasUnsupported = UnsupportedVideoFormats.some(f => ps.some(p => p.endsWith(f)));
                 if (hasUnsupported) {
                     const vs = ps.filter(p => MediaUtil.isMedia(p));
@@ -50,7 +49,7 @@ export class FileAction {
                 }
             }
             await swrMutate(SWR_KEY.PLAYER_P);
-            await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+            await swrApiMutate('watch-history/list');
             await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
         };
 
@@ -60,16 +59,15 @@ export class FileAction {
         return async (ps: string[]) => {
             if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
-                if (strNotBlank(videoPath)) {
-                    await api.call('watch-project/attach-srt', { videoPath, srtPath: ps[0] });
+                if (StrUtil.isNotBlank(videoPath)) {
+                    await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
                     useFile.getState().clearSrt();
                 }
             } else {
-                const pid = await api.call('watch-project/create/from-files', ps);
-                const v = await api.call('watch-project/video/detail/by-pid', pid);
+                const [id] = await api.call('watch-history/create', ps);
                 await api.call('system/window-size/change', 'player');
                 useLayout.getState().changeSideBar(false);
-                navigate(`/player/${v.id}`);
+                navigate(`/player/${id}`);
 
                 const hasUnsupported = UnsupportedVideoFormats.some(f => ps.some(p => p.endsWith(f)));
                 if (hasUnsupported) {
@@ -90,7 +88,7 @@ export class FileAction {
                 }
             }
             await swrMutate(SWR_KEY.PLAYER_P);
-            await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+            await swrApiMutate('watch-history/list');
             await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
         };
 

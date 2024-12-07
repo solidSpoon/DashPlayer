@@ -1,9 +1,113 @@
 {
-  "version": "5",
+  "version": "6",
   "dialect": "sqlite",
-  "id": "311c22ef-2d26-47d9-8732-a2637ed426fa",
+  "id": "42ddbe7e-c3ed-4803-b9f3-29e9767dac43",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
+    "dp_clip_tag_relation": {
+      "name": "dp_clip_tag_relation",
+      "columns": {
+        "clip_key": {
+          "name": "clip_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "dp_clip_tag_relation_clip_key_tag_id_pk": {
+          "columns": [
+            "clip_key",
+            "tag_id"
+          ],
+          "name": "dp_clip_tag_relation_clip_key_tag_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dp_task": {
+      "name": "dp_task",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'init'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'任务创建成功'"
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "dp_kvs": {
       "name": "dp_kvs",
       "columns": {
@@ -56,7 +160,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "dp_sentence_translates": {
       "name": "dp_sentence_translates",
@@ -110,7 +215,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "dp_stems": {
       "name": "dp_stems",
@@ -165,7 +271,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "dp_subtitle_timestamp_adjustment": {
       "name": "dp_subtitle_timestamp_adjustment",
@@ -186,6 +293,13 @@
         },
         "subtitle_name": {
           "name": "subtitle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "subtitle_hash": {
+          "name": "subtitle_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -233,10 +347,11 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
-    "dp_watch_projects": {
-      "name": "dp_watch_projects",
+    "dp_tag": {
+      "name": "dp_tag",
       "columns": {
         "id": {
           "name": "id",
@@ -244,6 +359,108 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "dp_tag_name_unique": {
+          "name": "dp_tag_name_unique",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dp_video_clip": {
+      "name": "dp_video_clip",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "video_name": {
+          "name": "video_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "srt_clip": {
+          "name": "srt_clip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "srt_context": {
+          "name": "srt_context",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dp_watch_history": {
+      "name": "dp_watch_history",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
         },
         "project_name": {
           "name": "project_name",
@@ -252,43 +469,34 @@
           "notNull": true,
           "autoincrement": false
         },
-        "type": {
-          "name": "type",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "project_key": {
-          "name": "project_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "project_path": {
           "name": "project_path",
-          "type": "text(1024)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "current_video_id": {
-          "name": "current_video_id",
+        "project_type": {
+          "name": "project_type",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "current_position": {
+          "name": "current_position",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": 0
         },
-        "last_watch_time": {
-          "name": "last_watch_time",
+        "srt_file": {
+          "name": "srt_file",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
@@ -308,20 +516,22 @@
         }
       },
       "indexes": {
-        "dp_watch_projects_project_key_unique": {
-          "name": "dp_watch_projects_project_key_unique",
+        "base_path_file_name_idx": {
+          "name": "base_path_file_name_idx",
           "columns": [
-            "project_key"
+            "project_name",
+            "project_path"
           ],
-          "isUnique": true
+          "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
-    "dp_watch_project_videos": {
-      "name": "dp_watch_project_videos",
+    "dp_word_translates": {
+      "name": "dp_word_translates",
       "columns": {
         "id": {
           "name": "id",
@@ -330,57 +540,19 @@
           "notNull": true,
           "autoincrement": true
         },
-        "project_id": {
-          "name": "project_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "video_name": {
-          "name": "video_name",
+        "word": {
+          "name": "word",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "video_path": {
-          "name": "video_path",
-          "type": "text(1024)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "current_playing": {
-          "name": "current_playing",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "subtitle_path": {
-          "name": "subtitle_path",
-          "type": "text(1024)",
+        "translate": {
+          "name": "translate",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "current_time": {
-          "name": "current_time",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "duration": {
-          "name": "duration",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -400,18 +572,18 @@
         }
       },
       "indexes": {
-        "dp_watch_project_videos_project_id_video_path_unique": {
-          "name": "dp_watch_project_videos_project_id_video_path_unique",
+        "dp_word_translates_word_unique": {
+          "name": "dp_word_translates_word_unique",
           "columns": [
-            "project_id",
-            "video_path"
+            "word"
           ],
           "isUnique": true
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "dp_words": {
       "name": "dp_words",
@@ -479,67 +651,18 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "dp_word_translates": {
-      "name": "dp_word_translates",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "word": {
-          "name": "word",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "translate": {
-          "name": "translate",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {
-        "dp_word_translates_word_unique": {
-          "name": "dp_word_translates_word_unique",
-          "columns": [
-            "word"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
     "schemas": {},
     "tables": {},
     "columns": {}
+  },
+  "internal": {
+    "indexes": {}
   }
 }

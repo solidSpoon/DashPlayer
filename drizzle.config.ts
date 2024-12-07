@@ -1,16 +1,15 @@
 import type { Config } from 'drizzle-kit';
 import path from 'path';
-import { app } from 'electron';
+
+const DEV_LIB_PATH = '/Users/solidspoon/Desktop/DashPlayer';
 
 export default {
+    dialect: 'sqlite',
     schema: './src/backend/db/tables',
     out: './drizzle/migrations',
-    driver: 'better-sqlite', // 'pg' | 'mysql2' | 'better-sqlite' | 'libsql' | 'turso'
     dbCredentials: {
         url: path.join(
-            app?.getPath?.('userData') ?? __dirname,
-            'useradd',
-            'dp_db.sqlite3'
+            DEV_LIB_PATH, 'data', 'dp_db.sqlite3'
         ),
     },
 } as Config;

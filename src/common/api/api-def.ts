@@ -1,10 +1,6 @@
 import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { DpTask } from '@/backend/db/tables/dpTask';
 import { YdRes } from '@/common/types/YdRes';
-import { WatchProjectVideo } from '@/backend/db/tables/watchProjectVideos';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
-import { WatchProject } from '@/backend/db/tables/watchProjects';
-import { WatchProjectListVO, WatchProjectVO } from '@/backend/services/WatchProjectNewService';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { WindowState } from '@/common/types/Types';
@@ -14,6 +10,12 @@ import {
 import { SettingKey } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
+
+import { Tag } from '@/backend/db/tables/tag';
+import { ClipQuery } from '@/common/api/dto';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import { COOKIE } from '@/common/types/DlVideoType';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -38,19 +40,24 @@ interface AiFuncDef {
 }
 
 interface DpTaskDef {
-    'dp-task/detail': { params: number, return: DpTask | undefined };
+    'dp-task/detail': { params: number, return: DpTask | null };
     'dp-task/cancel': { params: number, return: void };
     'dp-task/details': { params: number[], return: Map<number, DpTask> };
 }
 
 interface SystemDef {
-    'system/is-windows': { params: void, return: boolean };
+    'system/info': {
+        params: void, return: {
+            isWindows: boolean,
+            pathSeparator: string,
+        }
+    };
     'system/select-file': {
         params: string[],
         return: string[]
     };
     'system/select-folder': {
-        params: void,
+        params: { defaultPath?: string, createDirectory?: boolean },
         return: string[]
     };
     'system/path-info': {
@@ -84,27 +91,22 @@ interface AiTransDef {
     'ai-trans/word': { params: string, return: YdRes | null };
 }
 
-interface WatchProjectDef {
-    'watch-project/progress/update': {
-        params: { videoId: number, currentTime: number, duration: number },
+interface WatchHistoryDef {
+    'watch-history/list': { params: string, return: WatchHistoryVO[] };
+    'watch-history/progress/update': {
+        params: { file: string, currentPosition: number },
         return: void
     };
-    'watch-project/video/play': { params: number, return: void };
-    'watch-project/video/detail': { params: number, return: WatchProjectVideo };
-    'watch-project/video/detail/by-pid': { params: number, return: WatchProjectVideo };
-    'watch-project/create/from-folder': { params: string, return: number };
-    'watch-project/create/from-files': { params: string[], return: number };
-    'watch-project/create/from-download': { params: string, return: number };
-    'watch-project/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
-    'watch-project/delete': { params: number, return: void };
-    'watch-project/detail': { params: number, return: WatchProjectVO };
-    'watch-project/detail/by-vid': { params: number, return: WatchProjectVO };
-    'watch-project/list': { params: void, return: WatchProjectListVO[] };
-    'watch-project/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
+    'watch-history/create': { params: string[], return: string[] };
+    'watch-history/create/from-library': { params: string[], return: string[] };
+    'watch-history/group-delete': { params: string, return: void };
+    'watch-history/detail': { params: string, return: WatchHistoryVO | null };
+    'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
+    'watch-history/suggest-srt': { params: string, return: string[] };
+    'watch-history/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
 }
 
 interface SubtitleControllerDef {
-    'subtitle/sentences/process': { params: string[], return: SentenceStruct[] };
     'subtitle/srt/parse-to-sentences': { params: string, return: SrtSentence | null };
 }
 
@@ -118,6 +120,7 @@ interface StorageDef {
     'storage/put': { params: { key: SettingKey, value: string }, return: void };
     'storage/get': { params: SettingKey, return: string };
     'storage/cache/size': { params: void, return: string };
+    'storage/collection/paths': { params: void, return: string[] };
 }
 
 interface SplitVideoDef {
@@ -131,7 +134,7 @@ interface SplitVideoDef {
 }
 
 interface DownloadVideoDef {
-    'download-video/url': { params: { url: string }, return: number };
+    'download-video/url': { params: { url: string, cookies: COOKIE }, return: number };
 }
 
 interface ConvertDef {
@@ -141,19 +144,42 @@ interface ConvertDef {
 
 }
 
+interface FavoriteClipsDef {
+    'favorite-clips/add': { params: { videoPath: string, srtKey: string, indexInSrt: number }, return: void };
+    'favorite-clips/search': { params: ClipQuery, return: (ClipMeta & OssBaseMeta)[] };
+    'favorite-clips/query-clip-tags': { params: string, return: Tag[] };
+    'favorite-clips/add-clip-tag': { params: { key: string, tagId: number }, return: void };
+    'favorite-clips/delete-clip-tag': { params: { key: string, tagId: number }, return: void };
+    'favorite-clips/cancel-add': { params: { srtKey: string, indexInSrt: number }, return: void };
+    'favorite-clips/exists': { params: { srtKey: string, linesInSrt: number[] }, return: Map<number, boolean> };
+    'favorite-clips/task-info': { params: void, return: number };
+    'favorite-clips/delete': { params: string, return: void };
+    'favorite-clips/sync-from-oss': { params: void, return: void };
+    // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
+}
+
+interface TagDef {
+    'tag/add': { params: string, return: Tag };
+    'tag/delete': { params: number, return: void };
+    'tag/update': { params: { id: number, name: string }, return: void };
+    'tag/search': { params: string, return: Tag[] };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
     & DpTaskDef
     & SystemDef
     & AiTransDef
-    & WatchProjectDef
+    & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & DownloadVideoDef
-    & ConvertDef;
+    & ConvertDef
+    & FavoriteClipsDef
+    & TagDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

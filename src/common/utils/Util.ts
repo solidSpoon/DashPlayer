@@ -1,11 +1,5 @@
 import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
 
-export const strBlank = (str: string | undefined | null): boolean => {
-    return !str || str.trim() === '';
-};
-export const strNotBlank = (str: string | undefined | null): boolean => {
-    return !strBlank(str);
-};
 
 /**
  * 只对比英文字符。不区分大小写
@@ -36,8 +30,6 @@ export const joinUrl = (base: string, path: string): string => {
 };
 
 export default class Util {
-    static strBlank = strBlank;
-    static strNotBlank = strNotBlank;
     static engEqual = engEqual;
     static sleep = sleep;
     static p = p;

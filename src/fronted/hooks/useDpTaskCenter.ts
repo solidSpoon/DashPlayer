@@ -83,7 +83,7 @@ useDpTaskCenter.subscribe(
             let sleepTime = 1000;
             const time = new Date().getTime();
             const taskIds = Array.from(localTasks.values())
-                .filter(l => time - updateMapping.get(l.taskId) >= l.interval)
+                .filter(l => time - (updateMapping?.get(l.taskId) ?? 0) >= l.interval)
                 .map(l => l.taskId);
             sleepTime = Math.min(sleepTime, ...Array.from(localTasks.values()).map(l => l.interval));
             const tasksResp = await api.call('dp-task/details', taskIds);
@@ -94,9 +94,9 @@ useDpTaskCenter.subscribe(
                     || t.status === DpTaskState.FAILED
                     || t.status === DpTaskState.CANCELLED
                 ) {
-                    localTasks.get(t.id).onUpdated(t);
+                    localTasks.get(t.id)?.onUpdated(t);
                     try {
-                        localTasks.get(t.id).onFinish(t);
+                        localTasks.get(t.id)?.onFinish(t);
                     } catch (e) {
                         console.error(e);
                     }
@@ -104,7 +104,7 @@ useDpTaskCenter.subscribe(
                     updateMapping.delete(t.id);
                 } else if (t.status === DpTaskState.INIT || t.status === DpTaskState.IN_PROGRESS) {
                     updateMapping.set(t.id, time);
-                    localTasks.get(t.id).onUpdated(t);
+                    localTasks.get(t.id)?.onUpdated(t);
                 } else {
                     localTasks.delete(t.id);
                     updateMapping.delete(t.id);
@@ -128,7 +128,7 @@ useDpTaskCenter.subscribe(
     }
 );
 
-export const getDpTask = async (taskId: number | null | undefined): Promise<DpTask> => {
+export const getDpTask = async (taskId: number | null | undefined): Promise<DpTask | null> => {
     if (taskId === null || taskId === undefined) {
         return null;
     }
@@ -145,7 +145,10 @@ export const getDpTaskResult = async <T>(taskId: number | null | undefined, isSt
         return null;
     }
     const task = await getDpTask(taskId);
-    if (task.status !== DpTaskState.DONE) {
+    if (task?.status !== DpTaskState.DONE) {
+        return null;
+    }
+    if (task?.result === null) {
         return null;
     }
     try {

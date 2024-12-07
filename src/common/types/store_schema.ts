@@ -4,6 +4,7 @@ export const SettingKeyObj = {
     'shortcut.repeatSentence': 'down,s',
     'shortcut.playPause': 'space,up,w',
     'shortcut.repeatSingleSentence': 'r',
+    'shortcut.autoPause': 'u',
     'shortcut.toggleEnglishDisplay': 'e',
     'shortcut.toggleChineseDisplay': 'c',
     'shortcut.toggleWordLevelDisplay': 'l',
@@ -17,6 +18,8 @@ export const SettingKeyObj = {
     'shortcut.nextPlaybackRate': 'p',
     'shortcut.aiChat': 'slash',
     'shortcut.toggleCopyMode': 'shift+y',
+    'shortcut.addClip': 'shift+l',
+    'shortcut.openControlPanel': 'shift+p',
     'userSelect.playbackRateStack':'',
     'apiKeys.youdao.secretId': '',
     'apiKeys.youdao.secretKey': '',
@@ -28,5 +31,7 @@ export const SettingKeyObj = {
     'model.gpt.default': 'gpt-4o-mini',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
+    'storage.path': '',
+    'storage.collection': 'default',
 }
 export type SettingKey = keyof typeof SettingKeyObj;

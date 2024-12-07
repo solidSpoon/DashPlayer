@@ -1,26 +1,24 @@
-import {WatchProject, WatchProjectType} from "@/backend/db/tables/watchProjects";
-import {BrowserItemVariant, CtxMenu} from "@/fronted/components/fileBowser/VideoItem2";
-import useSWR from "swr";
-import React from "react";
+import { BrowserItemVariant, CtxMenu } from '@/fronted/components/fileBowser/VideoItem2';
+import React from 'react';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger
-} from "@/fronted/components/ui/context-menu";
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/fronted/components/ui/tooltip";
-import {cn} from "@/fronted/lib/utils";
-import {strBlank} from "@/common/utils/Util";
-import {FileAudio2, FileVideo2, Folder, X} from "lucide-react";
-import Style from "@/fronted/styles/style";
-import MediaUtil from "@/common/utils/MediaUtil";
-import {Button} from "@/fronted/components/ui/button";
-import {SWR_KEY, swrMutate} from "@/fronted/lib/swr-util";
-import {WatchProjectVideo} from "@/backend/db/tables/watchProjectVideos";
+} from '@/fronted/components/ui/context-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { cn } from '@/fronted/lib/utils';
+import { FileAudio2, FileVideo2, Folder, X } from 'lucide-react';
+import Style from '@/fronted/styles/style';
+import MediaUtil from '@/common/utils/MediaUtil';
+import { Button } from '@/fronted/components/ui/button';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
+import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import PathUtil from '@/common/utils/PathUtil';
+
 const api = window.electron;
-const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
-    p: WatchProject;
-    v: WatchProjectVideo;
+const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
+    v: WatchHistoryVO;
     variant?: BrowserItemVariant;
     onClick?: () => void,
     ctxMenus: CtxMenu[]
@@ -48,23 +46,23 @@ const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
                                 }}
                             >
                                 <>
-                                    {(strBlank(v?.video_path) || p.project_type === WatchProjectType.DIRECTORY) &&
-                                        <Folder className={cn(Style.file_browser_icon)}/>}
-                                    {p.project_type === WatchProjectType.FILE && MediaUtil.isAudio(v?.video_path) &&
-                                        <FileAudio2 className={cn(Style.file_browser_icon)}/>}
-                                    {p.project_type === WatchProjectType.FILE && MediaUtil.isVideo(v?.video_path) &&
-                                        <FileVideo2 className={cn(Style.file_browser_icon)}/>}
-                                    <div className="truncate w-0 flex-1">{p.project_name}</div>
+                                    {(v.isFolder) &&
+                                        <Folder className={cn(Style.file_browser_icon)} />}
+                                    {!v.isFolder && MediaUtil.isAudio(v?.fileName) &&
+                                        <FileAudio2 className={cn(Style.file_browser_icon)} />}
+                                    {!v.isFolder && MediaUtil.isVideo(v?.fileName) &&
+                                        <FileVideo2 className={cn(Style.file_browser_icon)} />}
+                                    <div className="truncate w-0 flex-1">{v.isFolder? PathUtil.parse(v.basePath).base:v.fileName}</div>
                                     <Button size={'icon'} variant={'ghost'}
                                             className={'w-6 h-6'}
                                             disabled={variant === 'highlight'}
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                await api.call('watch-project/delete', p.id);
-                                                await swrMutate(SWR_KEY.WATCH_PROJECT_LIST);
+                                                await api.call('watch-history/group-delete', v.id);
+                                                await swrApiMutate('watch-history/list');
                                             }}
                                     >
-                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'}/>
+                                        <X className={'w-4 h-4 scale-0 group-hover/item:scale-100'} />
                                     </Button>
                                 </>
                             </div>
@@ -73,7 +71,7 @@ const ProjItem2 = ({p,v, onClick, ctxMenus, variant = 'normal'}: {
                             side={'bottom'}
                             align={'start'}
                         >
-                            {p.project_name}
+                            {v.fileName}
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

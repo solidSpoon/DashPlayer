@@ -6,6 +6,7 @@ import usePlayerController from '../hooks/usePlayerController';
 export default function MainSubtitle() {
     const sentence = usePlayerController((state) => state.currentSentence);
     const clearAdjust = usePlayerController((state) => state.clearAdjust);
+    const srtTender = usePlayerController((state) => state.srtTender);
     const ele = (): ReactElement[] => {
         if (sentence === undefined) {
             return [];
@@ -21,9 +22,9 @@ export default function MainSubtitle() {
             if (index === 0) {
                 return (
                     <TranslatableLine
-                        adjusted={sentence.originalBegin != null || sentence.originalEnd != null}
+                        adjusted={srtTender?.adjusted(sentence) ?? false}
                         clearAdjust={clearAdjust}
-                        key={`first-${sentence.getKey()}`}
+                        key={`first-${sentence.key}`}
                         sentence={sentence}
                     />
                 );
@@ -31,7 +32,7 @@ export default function MainSubtitle() {
             if (index === 1) {
                 return (
                     <NormalLine
-                        key={`second-${sentence.getKey()}`}
+                        key={`second-${sentence.key}`}
                         text={item}
                         order="second"
                     />
@@ -40,7 +41,7 @@ export default function MainSubtitle() {
 
             return (
                 <NormalLine
-                    key={`third-${sentence.getKey()}`}
+                    key={`third-${sentence.key}`}
                     text={item}
                     order="third"
                 />
@@ -54,7 +55,7 @@ export default function MainSubtitle() {
         }
         return (
             <div
-                key={`trans-sub:${sentence?.getKey()}`}
+                key={`trans-sub:${sentence?.key}`}
                 className="flex flex-col w-full text-center text-textColor shadow-inner h-0"
             >
                 {ele()}

@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
-import { FaVolumeHigh, FaVolumeLow } from 'react-icons/fa6';
-import { FaVolumeMute } from 'react-icons/fa';
-import { MySlider } from './MySlider';
-import { IoVolumeHigh, IoVolumeLow, IoVolumeMute, IoVolumeOff } from 'react-icons/io5';
 import {Slider} from "@/fronted/components/ui/slider";
 import {Toggle} from "@/fronted/components/ui/toggle";
 import {cn} from "@/fronted/lib/utils";
-import {useLocalStorage} from "@uidotdev/usehooks";
 import {Volume, Volume1, Volume2, VolumeX} from "lucide-react";
 
 export interface VolumeSliderProps {

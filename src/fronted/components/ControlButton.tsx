@@ -3,16 +3,26 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {cn} from "@/fronted/lib/utils";
 import useLayout from '../hooks/useLayout';
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
-import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import {useHotkeys} from "react-hotkeys-hook";
 import {Button} from "@/fronted/components/ui/button";
+import useSetting from '@/fronted/hooks/useSetting';
+
+const process = (values: string) => values
+    .split(',')
+    .map((k) => k.replaceAll(' ', ''))
+    .filter((k) => k !== '')
+    // remove left right up down space
+    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down' && k !== 'space')
 
 export default function ControlButton() {
     const changeSideBar = useLayout((s) => s.changeSideBar);
     const showSideBar = useLayout((s) => s.showSideBar);
     const pauseMeasurement = useSubtitleScroll(state => state.pauseMeasurement);
     const fullScreen = useLayout(s => s.fullScreen);
-    useHotkeys('ctrl', () => {
+    const setting = useSetting((s) => s.setting);
+
+    useHotkeys(process(setting('shortcut.openControlPanel')), () => {
         changeSideBar(!showSideBar);
     });
     return (
@@ -23,7 +33,7 @@ export default function ControlButton() {
                         ' fixed bottom-12 right-12 z-[99]',
                     )}
                     onClick={async () => {
-                        await swrMutate(SWR_KEY.WATCH_PROJECT_LIST)
+                        await swrApiMutate('watch-history/list');
                         pauseMeasurement();
                         changeSideBar(!showSideBar);
                     }}

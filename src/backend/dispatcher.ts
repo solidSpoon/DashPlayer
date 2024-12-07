@@ -1,33 +1,13 @@
-import StorageController from './controllers/StorageController';
-import SubtitleTimestampAdjustmentController from '@/backend/controllers/SubtitleTimestampAdjustmentController';
-import Controller from "@/backend/interfaces/controller";
-import AiFuncController from "@/backend/controllers/AiFuncController";
-import SystemController from "@/backend/controllers/SystemController";
-import DpTaskController from "@/backend/controllers/DpTaskController";
-import AiTransController from "@/backend/controllers/AiTransController";
-import WatchProjectController from '@/backend/controllers/WatchProjectController';
-import SubtitleController from '@/backend/controllers/SubtitleController';
-import MediaController from "@/backend/controllers/MediaController";
-import DownloadVideoController from "@/backend/controllers/DownloadVideoController";
-import ConvertController from "@/backend/controllers/ConvertController";
+import Controller from '@/backend/interfaces/controller';
+import container from '@/backend/ioc/inversify.config';
+import TYPES from '@/backend/ioc/types';
+import SystemService from '@/backend/services/SystemService';
+import { BrowserWindow } from 'electron';
 
-
-const controllers: Controller[] = [
-    new AiFuncController(),
-    new SystemController(),
-    new DpTaskController(),
-    new AiTransController(),
-    new WatchProjectController(),
-    new SubtitleController(),
-    new MediaController(),
-    new SubtitleTimestampAdjustmentController(),
-    new StorageController(),
-    new DownloadVideoController(),
-    new ConvertController(),
-]
-
-export default function registerHandler() {
-    controllers.forEach((controller) => {
-        controller.registerRoutes();
+export default function registerHandler(mainWindowRef: { current: BrowserWindow | null }) {
+    const controllerBeans = container.getAll<Controller>(TYPES.Controller);
+    controllerBeans.forEach((bean) => {
+        bean.registerRoutes();
     });
+    container.get<SystemService>(TYPES.SystemService).setMainWindow(mainWindowRef);
 }

@@ -1,5 +1,7 @@
 import { StateCreator } from 'zustand/esm';
 import { ModeSlice, PlayerSlice, SentenceSlice } from './SliceTypes';
+import toast from 'react-hot-toast';
+import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 
 const createModeSlice: StateCreator<
     PlayerSlice & SentenceSlice & ModeSlice,
@@ -18,15 +20,35 @@ const createModeSlice: StateCreator<
     changeShowEnCn: () =>
         set((state) => ({
             showEn: !state.showEn,
-            showCn: !state.showEn,
+            showCn: !state.showEn
         })),
     changeSyncSide: () => set((state) => ({ syncSide: !state.syncSide })),
-    changeSingleRepeat: () =>
-        set((state) => ({ singleRepeat: !state.singleRepeat })),
+    changeSingleRepeat: (target) => {
+        if (target === undefined ) {
+            set((state) => ({ singleRepeat: !state.singleRepeat }));
+        } else {
+            if (target !== get().singleRepeat) {
+                set({
+                    singleRepeat: target
+                });
+            }
+        }
+    },
     changeShowWordLevel: () =>
         set((state) => ({ showWordLevel: !state.showWordLevel })),
-    changeAutoPause: () =>
-        set((state) => ({ autoPause: !state.autoPause })),
+    changeAutoPause: (target) => {
+        if (target === undefined) {
+            usePlayerToaster.getState().setNotification({ type: 'info', text: get().autoPause ? 'Auto pause off' : 'Auto pause on' });
+            set((state) => ({ autoPause: !state.autoPause }));
+        } else {
+            if (target !== get().autoPause) {
+                usePlayerToaster.getState().setNotification({ type: 'info', text: get().autoPause ? 'Auto pause off' : 'Auto pause on' });
+                set({
+                    autoPause: target
+                });
+            }
+        }
+    }
 });
 
 export default createModeSlice;

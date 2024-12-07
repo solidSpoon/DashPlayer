@@ -16,6 +16,7 @@ const ChatLeftWords = ({ className }: {
 
     const { detail } = useDpTaskViewer<AiAnalyseNewWordsRes>(typeof tid === 'number' ? tid : null);
     const retry = useChatPanel(state => state.retry);
+    console.log('detail', detail);
     return (
 
         <div className={cn('flex flex-col', className)}>

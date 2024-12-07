@@ -5,11 +5,11 @@ import {twMerge} from 'tailwind-merge';
 import WordPop from './WordPop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
 import usePlayerController from '../hooks/usePlayerController';
-import {strNotBlank} from '@/common/utils/Util';
 import useSWR from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
 import useCopyModeController from '../hooks/useCopyModeController';
+import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
 export interface WordParam {
@@ -93,7 +93,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
             return;
         }
         const url = ydResp?.speakUrl;
-        if (strNotBlank(url)) {
+        console.log('url', url);
+        if (StrUtil.isNotBlank(url)) {
             await playUrl(url);
         } else {
             await playWord(word);

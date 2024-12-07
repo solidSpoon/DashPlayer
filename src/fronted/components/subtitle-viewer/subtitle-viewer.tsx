@@ -1,22 +1,27 @@
-import {cn} from "@/fronted/lib/utils";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import SentenceC from "@/common/types/SentenceC";
-import ViewerTranslableLine from "@/fronted/components/subtitle-viewer/viewer-translable-line";
-import {strBlank} from "@/common/utils/Util";
-import ViewerControlPannel from "@/fronted/components/subtitle-viewer/viewer-control-pannel";
+import { cn } from '@/fronted/lib/utils';
+import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { Sentence } from '@/common/types/SentenceC';
+import ViewerTranslatableLine from '@/fronted/components/subtitle-viewer/viewer-translable-line';
+import ViewerControlPanel from '@/fronted/components/subtitle-viewer/viewer-control-panel';
 import { useShallow } from 'zustand/react/shallow';
+import StrUtil from '@/common/utils/str-util';
+import FuncUtil from '@/common/utils/func-util';
 
-const SubtitleViewer = ({className}: { className?: string }) => {
-    const current: SentenceC = usePlayerController((s) => s.currentSentence);
-    const subtitleAround: SentenceC[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
-    const subtitleBefore: SentenceC[] = subtitleAround.filter((s) => s.index < current.index).sort((a, b) => b.index - a.index);
-    const subtitleAfter: SentenceC[] = subtitleAround.filter((s) => s.index > current.index).sort((a, b) => a.index - b.index)
+const SubtitleViewer = ({ className }: { className?: string }) => {
+    const current: Sentence | undefined = usePlayerController((s) => s.currentSentence);
+    const subtitleAround: Sentence[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
+    const currentIndex = current?.index ?? 0;
+    const subtitleBefore: Sentence[] = subtitleAround.filter((s) => s.index < currentIndex).sort((a, b) => b.index - a.index);
+    const subtitleAfter: Sentence[] = subtitleAround.filter((s) => s.index > currentIndex).sort((a, b) => a.index - b.index);
 
-    const showCn = usePlayerController(s=>s.showCn);
-    const { adjusted, clearAdjust } = usePlayerController(useShallow(s=>({
-        adjusted: s.currentSentence.originalBegin != null || s.currentSentence.originalEnd != null,
+    const showCn = usePlayerController(s => s.showCn);
+    const srtTender = usePlayerController(s => s.srtTender);
+    const { clearAdjust } = usePlayerController(useShallow(s => ({
         clearAdjust: s.clearAdjust
     })));
+    if (!current || !srtTender) {
+        return <div className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)} />;
+    }
     return (
         <div
             className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)}
@@ -30,9 +35,8 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                     className={cn('row-start-1 row-end-3 col-start-1 col-end-2 flex flex-col-reverse items-center justify-start gap-10 text-foreground/50 overflow-hidden pb-8')}>
                     {
                         subtitleBefore.map((s) => (
-                            <ViewerTranslableLine
-                                adjusted={false} clearAdjust={() => {
-                            }}
+                            <ViewerTranslatableLine
+                                adjusted={false} clearAdjust={FuncUtil.blank}
                                 key={s.key} className={cn('text-3xl')}
                                 sentence={s}
                             />
@@ -48,24 +52,23 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                             'bg-stone-50 dark:bg-neutral-700 text-foreground/80 border-8 rounded-2xl border-stone-100 dark:border-neutral-800'
                         )}
                     >
-                        <ViewerTranslableLine
+                        <ViewerTranslatableLine
                             className={cn('text-4xl')}
-                            adjusted={adjusted} clearAdjust={clearAdjust}
+                            adjusted={srtTender.adjusted(current) ?? false} clearAdjust={clearAdjust}
                             sentence={current}
                         />
-                        {!strBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl')}>
+                        {!StrUtil.isBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl text-center')}>
                             {current?.msTranslate}
                         </div>}
-                        {!strBlank(current?.textZH) && showCn && <div className={cn('text-2xl')}>
+                        {!StrUtil.isBlank(current?.textZH) && showCn && <div className={cn('text-2xl text-center')}>
                             {current?.textZH}
                         </div>}
                     </div>
                     {
                         subtitleAfter.map((s) => (
-                            <ViewerTranslableLine
+                            <ViewerTranslatableLine
                                 sentence={s}
-                                adjusted={false} clearAdjust={() => {
-                            }}
+                                adjusted={false} clearAdjust={FuncUtil.blank}
                                 key={s.key} className={cn('text-3xl text-foreground/75')} />
 
                         ))
@@ -78,16 +81,16 @@ const SubtitleViewer = ({className}: { className?: string }) => {
                     'bg-gradient-to-b from-transparent to-stone-100 dark:from-transparent dark:to-neutral-800'
                 )}></div>
             </div>
-            <ViewerControlPannel
+            <ViewerControlPanel
 
                 className={'absolute left-0 bottom-0'} />
             {/* </CardContent> */}
         </div>
     );
 
-}
+};
 export default SubtitleViewer;
 
 SubtitleViewer.defaultProps = {
     className: ''
-}
+};

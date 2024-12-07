@@ -1,25 +1,40 @@
-import Controller from '@/backend/interfaces/controller';
 import registerRoute from '@/common/api/register';
-import DpTaskService from "@/backend/services/DpTaskService";
-import ConvertService from "@/backend/services/ConvertService";
-import {FolderVideos} from "@/common/types/tonvert-type";
-import FfmpegService from "@/backend/services/FfmpegService";
+import { FolderVideos } from '@/common/types/tonvert-type';
+import Controller from '@/backend/interfaces/controller';
+import { inject, injectable } from 'inversify';
+import TYPES from '@/backend/ioc/types';
+import DpTaskService from '@/backend/services/DpTaskService';
+import ConvertService from '@/backend/services/ConvertService';
+import FfmpegService from '@/backend/services/FfmpegService';
 
-export default class ConvertController implements Controller{
+@injectable()
+export default class ConvertController implements Controller {
+    @inject(TYPES.DpTaskService)
+    private dpTaskService!: DpTaskService;
+
+    @inject(TYPES.ConvertService)
+    private convertService!: ConvertService;
+
+    @inject(TYPES.FfmpegService)
+    private ffmpegService!: FfmpegService;
+
     public async toMp4(file: string): Promise<number> {
-        const taskId = await DpTaskService.create();
-        ConvertService.toMp4(taskId, file).then();
+        const taskId = await this.dpTaskService.create();
+        this.convertService.toMp4(taskId, file).then();
         return taskId;
     }
+
     public async fromFolder(folders: string[]): Promise<FolderVideos[]> {
-        return ConvertService.fromFolder(folders);
+        return this.convertService.fromFolder(folders);
     }
+
     public async videoLength(filePath: string): Promise<number> {
-        return FfmpegService.duration(filePath);
+        return this.ffmpegService.duration(filePath);
     }
+
     registerRoutes(): void {
-        registerRoute('convert/to-mp4', this.toMp4);
-        registerRoute('convert/from-folder', this.fromFolder);
-        registerRoute('convert/video-length', this.videoLength);
+        registerRoute('convert/to-mp4', (p) => this.toMp4(p));
+        registerRoute('convert/from-folder', (p) => this.fromFolder(p));
+        registerRoute('convert/video-length', (p) => this.videoLength(p));
     }
 }

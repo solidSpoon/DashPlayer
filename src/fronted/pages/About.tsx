@@ -8,7 +8,7 @@ import useSWR from "swr";
 
 const api = window.electron;
 const About = () => {
-    const {data:appVersion} = useSWR('system/app-version', () => api.call('system/app-version', null),{
+    const {data:appVersion} = useSWR('system/app-version', () => api.call('system/app-version'),{
         fallbackData: '0.0.0'
     })
     return (
