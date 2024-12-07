@@ -12,7 +12,7 @@ jobs:
           [
             { name: 'linux', image: 'ubuntu-latest' },
             { name: 'windows', image: 'windows-latest' },
-            { name: 'macos-x64', image: 'macos-12' },
+#            { name: 'macos-x64', image: 'macos-12' },
             { name: 'macos-arm64', image: 'macos-14' },
           ]
     runs-on: ${{ matrix.os.image }}
