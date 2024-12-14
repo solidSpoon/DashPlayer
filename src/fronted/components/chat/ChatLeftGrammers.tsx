@@ -8,6 +8,7 @@ import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
+import StrUtil from '@/common/utils/str-util';
 
 const ChatLeftGrammers = ({ className }: {
     className: string,
@@ -30,10 +31,9 @@ const ChatLeftGrammers = ({ className }: {
                 <CardContent>
                     {!detail && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
                         className={'h-6 mt-2'} /></>}
-                    {detail?.hasGrammar}
-                    {detail?.hasGrammar && (
+                    {StrUtil.isNotBlank(detail?.grammarsMd) && (
                         <Md>
-                            {detail?.grammarsMd}
+                            {detail?.grammarsMd??''}
                         </Md>
                     )}
                 </CardContent>
