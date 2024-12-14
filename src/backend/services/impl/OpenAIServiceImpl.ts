@@ -29,18 +29,4 @@ export class OpenAIServiceImpl implements OpenAiService {
         });
         return this.openai;
     }
-
-    public async whisper(file: string, signal?: AbortSignal): Promise<TranscriptionVerbose> {
-        const openAi = this.getOpenAi();
-        if (!openAi) {
-            return Promise.reject('未设置 OpenAI 密钥');
-        }
-        const transcription = await openAi.audio.transcriptions.create({
-            file: fs.createReadStream(file),
-            model: "whisper-1",
-            response_format: "verbose_json",
-            timestamp_granularities: ["segment"]
-        });
-        return transcription;
-    }
 }
