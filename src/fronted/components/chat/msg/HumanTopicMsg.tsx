@@ -40,7 +40,7 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     const dpTask = useDpTask(msg.phraseGroupTask, 200);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     console.log('HumanTopicMsg', dpTask);
-    const res = JSON.parse(strBlank(dpTask?.result) ? '{}': dpTask.result) as AiPhraseGroupRes;
+    const res = JSON.parse(StrUtil.isBlank(dpTask?.result) ? '{}': dpTask.result) as AiPhraseGroupRes;
     const mapColor = (tags: string[]): string => {
         //判空
         if (!tags) return 'bg-secondary';
