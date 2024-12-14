@@ -15,6 +15,8 @@ import WhisperService from '@/backend/services/WhisperService';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import OpenAiWhisperRequest, { WhisperResponse } from '@/backend/objs/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
+import dpLog from '@/backend/ioc/logger';
+import { OpenAiService } from '@/backend/services/OpenAiService';
 
 
 interface SplitChunk {
@@ -51,23 +53,21 @@ class WhisperServiceImpl implements WhisperService {
     private ffmpegService!: FfmpegService;
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
+    @inject(TYPES.OpenAiService)
+    private openAiService!: OpenAiService;
+
 
     public async transcript(taskId: number, filePath: string) {
-        if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
-            this.dpTaskService.fail(taskId, {
-                progress: '未设置 OpenAI 密钥'
-            });
-            return;
-        }
         this.dpTaskService.process(taskId, {
             progress: '正在转换音频'
         });
         try {
-            const files = await this.convertAndSplit(taskId, filePath);
+            let files = await this.convertAndSplit(taskId, filePath);
             this.dpTaskService.checkCancel(taskId);
             this.dpTaskService.process(taskId, {
                 progress: '正在转录'
             });
+            files = [files[0]];
             const whisperResponses = await Promise.all(files.map(async (file) => {
                 return await this.whisperThreeTimes(taskId, file);
             }));
@@ -78,6 +78,7 @@ class WhisperServiceImpl implements WhisperService {
                 progress: '转录完成'
             });
         } catch (error) {
+            dpLog.error(error);
             if (!(error instanceof Error)) {
                 throw error;
             }
@@ -107,8 +108,8 @@ class WhisperServiceImpl implements WhisperService {
 
     private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
         await RateLimiter.wait('whisper');
-
-        const req = OpenAiWhisperRequest.build(chunk.filePath);
+        const openAi = this.openAiService.getOpenAi();
+        const req = OpenAiWhisperRequest.build(openAi, chunk.filePath);
         if (TypeGuards.isNull(req)) {
             this.dpTaskService.fail(taskId, {
                 progress: '未设置 OpenAI 密钥'
@@ -138,7 +139,7 @@ class WhisperServiceImpl implements WhisperService {
             taskId,
             inputFile: filePath,
             outputFolder: tempDir,
-            segmentTime: 60 * 5
+            segmentTime: 60
         });
         const chunks: SplitChunk[] = [];
         let offset = 0;
