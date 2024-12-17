@@ -21,6 +21,7 @@ const TYPES = {
     MediaService: Symbol('MediaService'),
     TranslateService: Symbol('TranslateService'),
     WatchHistoryService: Symbol('WatchHistoryService'),
+    OpenAiService: Symbol('OpenAiService'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),

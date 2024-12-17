@@ -9,7 +9,7 @@ import { RefreshCcw } from 'lucide-react';
 import '../../../styles/topic.css';
 
 const process = (original: string, parseRes: AiPhraseGroupRes): (string | AiPhraseGroupElement)[] => {
-    if ((parseRes?.phraseGroups ?? [].length) === 0) return [original];
+    if (((parseRes?.phraseGroups ?? []).length) === 0) return [original];
     if (StrUtil.isBlank(original)) return [];
     const res = [];
     let text = original;
@@ -40,7 +40,7 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     const dpTask = useDpTask(msg.phraseGroupTask, 200);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     console.log('HumanTopicMsg', dpTask);
-    const res = JSON.parse(StrUtil.isBlank(dpTask?.result) ? '{}': dpTask.result) as AiPhraseGroupRes;
+    const res = JSON.parse(dpTask?.result ?? '{}') as AiPhraseGroupRes;
     const mapColor = (tags: string[]): string => {
         //判空
         if (!tags) return 'bg-secondary';
@@ -94,7 +94,8 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
                                             , mapColor(group?.tags ?? [])
                                         )}>
                                     {words.map((word, i) => {
-                                        return <span data-tags={group.tags} data-trans={group.translation} className="word">
+                                        return <span data-tags={group.tags} data-trans={group.translation}
+                                                     className="word">
                                     {word}
                                     </span>;
                                     })}

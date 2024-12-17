@@ -60,6 +60,8 @@ import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
+import { OpenAIServiceImpl } from '@/backend/services/impl/OpenAIServiceImpl';
+import { OpenAiService } from '@/backend/services/OpenAiService';
 
 
 const container = new Container();
@@ -102,4 +104,5 @@ container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceI
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
+container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
 export default container;
