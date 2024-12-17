@@ -126,7 +126,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
         const videos = existFiles
             .filter(file => fs.statSync(file).isFile())
-            .filter(file => MediaUtil.isVideo(file));
+            .filter(file => MediaUtil.isMedia(file));
         for (const video of videos) {
             const sids = await this.tryCreate(video);
             ids.push(...sids);
@@ -243,7 +243,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             return ids;
         }
         const files = fs.readdirSync(folder);
-        const videoFiles = files.filter(file => MediaUtil.isVideo(file))
+        const videoFiles = files.filter(file => MediaUtil.isMedia(file))
             .map(file => path.join(folder, file));
         for (const video of videoFiles) {
             const sids = await this.tryCreate(video, WatchHistoryType.DIRECTORY);
@@ -354,7 +354,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             return;
         }
         const files = await FileUtil.listFiles(libraryPath);
-        const videoFiles = files.filter(file => MediaUtil.isVideo(file))
+        const videoFiles = files.filter(file => MediaUtil.isMedia(file))
             .map(file => path.join(libraryPath, file));
         for (const video of videoFiles) {
             await this.tryCreate(video);
