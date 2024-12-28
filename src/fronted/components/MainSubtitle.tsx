@@ -1,5 +1,5 @@
 import React, { ReactElement } from 'react';
-import TranslatableLine from './TranslatableLine';
+import TranslatableLine from './srt-cops/translatable-line';
 import NormalLine from './NormalLine';
 import usePlayerController from '../hooks/usePlayerController';
 

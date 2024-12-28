@@ -2,7 +2,7 @@ import {cn} from "@/fronted/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
 import { darkColor, lightColor } from '@/fronted/styles/style';
 import Player from '@/fronted/components/Player';
-import SubtitleViewer from '@/fronted/components/subtitle-viewer/subtitle-viewer';
+import PodcastViewer from '@/fronted/components/srt-cops/podcast-viewer';
 import MainSubtitle from '@/fronted/components/MainSubtitle';
 import Subtitle from '@/fronted/components/Subtitle';
 import React from 'react';
@@ -11,7 +11,7 @@ import useLayout from '@/fronted/hooks/useLayout';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import StrUtil from '@/common/utils/str-util';
 
-const PlayerPPlayer = () => {
+const PlayerSrtLayout = () => {
     const hasSubTitle = useFile((s) => StrUtil.isNotBlank(s.subtitlePath));
     const showSideBar = useLayout((state) => state.showSideBar);
     const fullScreen = useLayout((s) => s.fullScreen);
@@ -60,7 +60,7 @@ const PlayerPPlayer = () => {
                             <div
                                 className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
                                 <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')} />
-                                {podcastMode && <SubtitleViewer
+                                {podcastMode && <PodcastViewer
                                     className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
                                 />}
                             </div>
@@ -92,7 +92,6 @@ const PlayerPPlayer = () => {
                                 if (fullScreen) {
                                     return;
                                 }
-                                console.log('eeeeeea', e);
                                 setSizeOb(e);
                             }}
                         >
@@ -104,4 +103,4 @@ const PlayerPPlayer = () => {
     )
 }
 
-export default PlayerPPlayer;
+export default PlayerSrtLayout;

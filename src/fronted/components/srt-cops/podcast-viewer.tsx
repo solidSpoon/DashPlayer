@@ -1,13 +1,13 @@
 import { cn } from '@/fronted/lib/utils';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { Sentence } from '@/common/types/SentenceC';
-import ViewerTranslatableLine from '@/fronted/components/subtitle-viewer/viewer-translable-line';
+import TranslatableLinePodcast from '@/fronted/components/srt-cops/translatable-line-podcast';
 import ViewerControlPanel from '@/fronted/components/subtitle-viewer/viewer-control-panel';
 import { useShallow } from 'zustand/react/shallow';
 import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';
 
-const SubtitleViewer = ({ className }: { className?: string }) => {
+const PodcastViewer = ({ className }: { className?: string }) => {
     const current: Sentence | undefined = usePlayerController((s) => s.currentSentence);
     const subtitleAround: Sentence[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
     const currentIndex = current?.index ?? 0;
@@ -35,7 +35,7 @@ const SubtitleViewer = ({ className }: { className?: string }) => {
                     className={cn('row-start-1 row-end-3 col-start-1 col-end-2 flex flex-col-reverse items-center justify-start gap-10 text-foreground/50 overflow-hidden pb-8')}>
                     {
                         subtitleBefore.map((s) => (
-                            <ViewerTranslatableLine
+                            <TranslatableLinePodcast
                                 adjusted={false} clearAdjust={FuncUtil.blank}
                                 key={s.key} className={cn('text-3xl')}
                                 sentence={s}
@@ -52,7 +52,7 @@ const SubtitleViewer = ({ className }: { className?: string }) => {
                             'bg-stone-50 dark:bg-neutral-700 text-foreground/80 border-8 rounded-2xl border-stone-100 dark:border-neutral-800'
                         )}
                     >
-                        <ViewerTranslatableLine
+                        <TranslatableLinePodcast
                             className={cn('text-4xl')}
                             adjusted={srtTender.adjusted(current) ?? false} clearAdjust={clearAdjust}
                             sentence={current}
@@ -66,7 +66,7 @@ const SubtitleViewer = ({ className }: { className?: string }) => {
                     </div>
                     {
                         subtitleAfter.map((s) => (
-                            <ViewerTranslatableLine
+                            <TranslatableLinePodcast
                                 sentence={s}
                                 adjusted={false} clearAdjust={FuncUtil.blank}
                                 key={s.key} className={cn('text-3xl text-foreground/75')} />
@@ -89,8 +89,8 @@ const SubtitleViewer = ({ className }: { className?: string }) => {
     );
 
 };
-export default SubtitleViewer;
+export default PodcastViewer;
 
-SubtitleViewer.defaultProps = {
+PodcastViewer.defaultProps = {
     className: ''
 };

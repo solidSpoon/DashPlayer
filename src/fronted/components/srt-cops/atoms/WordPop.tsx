@@ -10,7 +10,7 @@ import {cn} from "@/fronted/lib/utils";
 
 export interface WordSubParam {
     word: string;
-    translation: YdRes | undefined;
+    translation: YdRes | null | undefined;
     hoverColor: string;
 }
 
@@ -40,30 +40,36 @@ const WordPop = React.forwardRef(
 
         const { getReferenceProps, getFloatingProps } = useInteractions([]);
 
+        const [isLoading, setIsLoading] = React.useState(true);
+
+        // 监听 iframe 加载完成
+        const handleIframeLoad = () => {
+            setIsLoading(false);
+        };
+
         const popper = () => {
-            if (!translation) {
-                return <div className="text-2xl">loading</div>;
-            }
-            console.log('aaaa', translation.query);
             return (
                 <div
                     className={cn(
                         'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start  bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none',
+                        isLoading ? 'opacity-0' : 'opacity-100',
                         translation?.webdict?.url && 'pt-4'
                     )}
                 >
                     {translation?.webdict?.url && (
-                        <div className={'w-full overflow-y-scroll overflow-x-hidden scrollbar-none'}>
+                        <div className={cn('w-full overflow-y-scroll overflow-x-hidden scrollbar-none',
+
+                        )}>
                             <iframe
                                 className="w-full h-[8000px] -mt-[50px]"
                                 src={translation.webdict.url}
                                 title="dict"
+                                onLoad={handleIframeLoad}
                             />
                         </div>
                     )}
-
                     <div className="sticky bottom-0 text-cyan-900 text-lg text-center w-full pt-1 mt-1 pb-2">
-                        {translation.translation}
+                        {translation?.translation}
                     </div>
                 </div>
             );

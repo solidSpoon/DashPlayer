@@ -5,7 +5,7 @@ import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { p } from '@/common/utils/Util';
 import { FONT_SIZE } from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';
-import Word from '@/fronted/components/Word';
+import Word from '@/fronted/components/srt-cops/atoms/Word';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
 import hash from "object-hash";

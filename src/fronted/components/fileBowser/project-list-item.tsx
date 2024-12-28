@@ -3,7 +3,7 @@ import { cn } from '@/fronted/lib/utils';
 import React from 'react';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import { Button } from '@/fronted/components/ui/button';
-import { Film, ListVideo, Trash2 } from 'lucide-react';
+import { Film, ListVideo, Trash2, Music } from 'lucide-react'; // 添加 Music 图标导入
 import TimeUtil from '@/common/utils/TimeUtil';
 import { Progress } from '@/fronted/components/ui/progress';
 import {
@@ -15,6 +15,8 @@ import {
 import UrlUtil from '@/common/utils/UrlUtil';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
+import MediaUtil from '@/common/utils/MediaUtil';
+import MusicCard from '@/fronted/components/fileBowser/music-card';
 
 const api = window.electron;
 
@@ -23,15 +25,19 @@ const ProjectListItem = ({ video, onSelected }: {
     className?: string,
     onSelected: () => void;
 }) => {
+    // 判断是否为 MP3 文件
+    const isAudio = MediaUtil.isAudio(video.fileName);
 
     const { data: url } = useSWR(
-            [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position],
+        !isAudio ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] : null,
         async ([key, path, file, time]) => {
             return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
+
     const [hover, setHover] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState(false);
+
     return (
         <ContextMenu
             onOpenChange={(open) => {
@@ -45,20 +51,26 @@ const ProjectListItem = ({ video, onSelected }: {
                     onClick={onSelected}
                     className={cn('flex gap-6  p-4 rounded-xl', (hover || contextMenu) && 'bg-muted')}>
                     <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
-                        {url ? <img
-                            src={UrlUtil.file(url)}
-                            style={{
-                                aspectRatio: '16/9'
-                            }}
-                            className="w-full object-cover"
-                            alt={video.fileName}
-                        /> : <div
-                            style={{
-                                aspectRatio: '16/9'
-                            }}
-                            className={'w-full bg-gray-500 flex items-center justify-center'}>
-                            <Film />
-                        </div>}
+                        {isAudio ? (
+                            <MusicCard fileName={video.fileName}/>
+                        ) : url ? (
+                            <img
+                                src={UrlUtil.file(url)}
+                                style={{
+                                    aspectRatio: '16/9'
+                                }}
+                                className="w-full object-cover"
+                                alt={video.fileName}
+                            />
+                        ) : (
+                            <div
+                                style={{
+                                    aspectRatio: '16/9'
+                                }}
+                                className={'w-full bg-gray-500 flex items-center justify-center'}>
+                                <Film />
+                            </div>
+                        )}
                         <div
                             className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
                             {!video.isFolder ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
@@ -109,10 +121,7 @@ const ProjectListItem = ({ video, onSelected }: {
                 >Delete</ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>
-
     );
-
-
 };
 
 export default ProjectListItem;

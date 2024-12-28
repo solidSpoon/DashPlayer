@@ -1,4 +1,4 @@
-import {create, UseBoundStore} from 'zustand';
+import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 
 const api = window.electron;
@@ -44,7 +44,7 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         }
     }))
 );
-api.call('system/info', null).then((sysInfo) => {
+api.call('system/info').then((sysInfo) => {
     if (sysInfo.isWindows) {
         useLayout.setState({titleBarHeight: 28});
     } else {
