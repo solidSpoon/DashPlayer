@@ -18,7 +18,8 @@ import PathUtil from '@/common/utils/PathUtil';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
-
+import MediaUtil from '@/common/utils/MediaUtil';
+import toast from 'react-hot-toast';
 const api = window.electron;
 
 const PlayerP = () => {
@@ -66,6 +67,24 @@ const PlayerP = () => {
 
             if (subtitlePath && sp !== video.srtFile) {
                 useFile.getState().updateFile(subtitlePath);
+            }
+            if(MediaUtil.isAudio(video.fileName)) {
+                const currentMode = useLayout.getState().podcastMode;
+                if (!currentMode) {
+                    useLayout.getState().setPodcastMode(true);
+                    toast('Podcast Mode Enabled', {
+                        icon: '🎙️'
+                    });
+                }
+            } else {
+                const currentMode = useLayout.getState().podcastMode;
+                if (currentMode) {
+                    useLayout.getState().setPodcastMode(false);
+                    // 视频模式
+                    toast('Podcast Mode Disabled', {
+                        icon: '📺'
+                    });
+                }
             }
             // await api.call('watch-project/video/play', video.id);
         };
