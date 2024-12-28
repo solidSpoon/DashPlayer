@@ -20,8 +20,9 @@ import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import toast from 'react-hot-toast';
+import { ModeSwitchToast } from '@/fronted/components/toasts/ModeSwitchToast';
 const api = window.electron;
-
+const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const PlayerP = () => {
     const { videoId } = useParams();
     const { data: video } = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
@@ -72,20 +73,45 @@ const PlayerP = () => {
                 const currentMode = useLayout.getState().podcastMode;
                 if (!currentMode) {
                     useLayout.getState().setPodcastMode(true);
-                    toast('Podcast Mode Enabled', {
-                        icon: '🎙️'
-                    });
+                    toast(
+                        (t) => (
+                            <ModeSwitchToast
+                                mode="podcast"
+                                onCancel={() => {
+                                    useLayout.getState().setPodcastMode(false);
+                                    toast.dismiss(t.id);
+                                }}
+                            />
+                        ),
+                        {
+                            id: MODE_SWITCH_TOAST_ID,
+                            duration: 5000,
+                        }
+                    );
                 }
             } else {
                 const currentMode = useLayout.getState().podcastMode;
                 if (currentMode) {
                     useLayout.getState().setPodcastMode(false);
-                    // 视频模式
-                    toast('Podcast Mode Disabled', {
-                        icon: '📺'
-                    });
+                    toast(
+                        (t) => (
+                            <ModeSwitchToast
+                                mode="video"
+                                onCancel={() => {
+                                    useLayout.getState().setPodcastMode(true);
+                                    toast.dismiss(t.id);
+                                }}
+                            />
+                        ),
+                        {
+                            id: MODE_SWITCH_TOAST_ID,
+                            duration: 5000,
+                        }
+                    );
                 }
             }
+
+
             // await api.call('watch-project/video/play', video.id);
         };
         runEffect();
