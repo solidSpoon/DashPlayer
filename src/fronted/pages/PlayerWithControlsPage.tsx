@@ -12,7 +12,7 @@ import SideBar from '@/fronted/components/SideBar';
 import Chat from '@/fronted/components/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
-import PlayerPPlayer from '@/fronted/components/PlayerPPlayer';
+import PlayerSrtLayout from '@/fronted/components/PlayerSrtLayout';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
@@ -23,7 +23,7 @@ import toast from 'react-hot-toast';
 import { ModeSwitchToast } from '@/fronted/components/toasts/ModeSwitchToast';
 const api = window.electron;
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
-const PlayerP = () => {
+const PlayerWithControlsPage = () => {
     const { videoId } = useParams();
     const { data: video } = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
     console.log('playerp', videoId, video);
@@ -245,7 +245,7 @@ const PlayerP = () => {
                         transformOrigin: 'top left'
                     }}
                 >
-                    <PlayerPPlayer />
+                    <PlayerSrtLayout />
                 </div>
                 {chatTopic === 'offscreen' && (
                     <>
@@ -263,4 +263,4 @@ const PlayerP = () => {
         ;
 };
 
-export default PlayerP;
+export default PlayerWithControlsPage;

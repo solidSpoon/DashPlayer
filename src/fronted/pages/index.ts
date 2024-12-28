@@ -1,3 +1,3 @@
-import PlayerP from './PlayerP';
+import PlayerWithControlsPage from './PlayerWithControlsPage';
 
-export { PlayerP };
+export { PlayerWithControlsPage };

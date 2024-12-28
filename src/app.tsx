@@ -4,7 +4,7 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import HomePage from '@/fronted/pages/HomePage';
 import TitleBarLayout from '@/fronted/pages/TieleBarLayout';
-import PlayerP from '@/fronted/pages/PlayerP';
+import PlayerWithControlsPage from '@/fronted/pages/PlayerWithControlsPage';
 import Layout from '@/fronted/pages/Layout';
 import About from '@/fronted/pages/About';
 import SettingLayout from '@/fronted/pages/setting/SettingLayout';
@@ -48,7 +48,7 @@ const App = () => {
                         <Route element={<TitleBarLayout />}>
                             <Route
                                 path="player/:videoId"
-                                element={<PlayerP />}
+                                element={<PlayerWithControlsPage />}
                             />
                             <Route path="*" element={<Layout />}>
                                 <Route

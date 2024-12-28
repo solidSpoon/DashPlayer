@@ -4,11 +4,11 @@ import {Feature, Polygon} from '@turf/turf';
 import {twMerge} from 'tailwind-merge';
 import WordPop from './WordPop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
-import usePlayerController from '../hooks/usePlayerController';
+import usePlayerController from '../../../hooks/usePlayerController';
 import useSWR from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
-import useCopyModeController from '../hooks/useCopyModeController';
+import useCopyModeController from '../../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
 
 const api = window.electron;
@@ -139,17 +139,6 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                     </div>
                 )}
             </div>
-            {/* {showWordLevel && wordLevel?.familiar === false && ( */}
-            {/*     <div */}
-            {/*         className={twMerge( */}
-            {/*             'flex items-center pt-2 justify-center text-xl text-textColor/80', */}
-            {/*             theme === 'dark' && 'text-amber-400/75', */}
-            {/*             !show && 'text-transparent' */}
-            {/*         )} */}
-            {/*     > */}
-            {/*         ({wordLevel.translate}) */}
-            {/*     </div> */}
-            {/* )} */}
         </div>
     );
 };
