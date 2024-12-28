@@ -52,13 +52,13 @@ const WordPop = React.forwardRef(
                 <div
                     className={cn(
                         'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start  bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none',
+                        isLoading ? 'opacity-0' : 'opacity-100',
                         translation?.webdict?.url && 'pt-4'
                     )}
                 >
                     {translation?.webdict?.url && (
                         <div className={cn('w-full overflow-y-scroll overflow-x-hidden scrollbar-none',
-                            isLoading ? 'opacity-0' : 'opacity-100',
-                            'transition-opacity duration-100 ease-in-out'
+
                         )}>
                             <iframe
                                 className="w-full h-[8000px] -mt-[50px]"
