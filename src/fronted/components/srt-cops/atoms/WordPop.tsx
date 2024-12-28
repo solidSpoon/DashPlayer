@@ -10,7 +10,7 @@ import {cn} from "@/fronted/lib/utils";
 
 export interface WordSubParam {
     word: string;
-    translation: YdRes | undefined;
+    translation: YdRes | null | undefined;
     hoverColor: string;
 }
 
@@ -40,11 +40,14 @@ const WordPop = React.forwardRef(
 
         const { getReferenceProps, getFloatingProps } = useInteractions([]);
 
+        const [isLoading, setIsLoading] = React.useState(true);
+
+        // 监听 iframe 加载完成
+        const handleIframeLoad = () => {
+            setIsLoading(false);
+        };
+
         const popper = () => {
-            if (!translation) {
-                return <div className="text-2xl">loading</div>;
-            }
-            console.log('aaaa', translation.query);
             return (
                 <div
                     className={cn(
@@ -53,17 +56,20 @@ const WordPop = React.forwardRef(
                     )}
                 >
                     {translation?.webdict?.url && (
-                        <div className={'w-full overflow-y-scroll overflow-x-hidden scrollbar-none'}>
+                        <div className={cn('w-full overflow-y-scroll overflow-x-hidden scrollbar-none',
+                            isLoading ? 'opacity-0' : 'opacity-100',
+                            'transition-opacity duration-100 ease-in-out'
+                        )}>
                             <iframe
                                 className="w-full h-[8000px] -mt-[50px]"
                                 src={translation.webdict.url}
                                 title="dict"
+                                onLoad={handleIframeLoad}
                             />
                         </div>
                     )}
-
                     <div className="sticky bottom-0 text-cyan-900 text-lg text-center w-full pt-1 mt-1 pb-2">
-                        {translation.translation}
+                        {translation?.translation}
                     </div>
                 </div>
             );

@@ -117,7 +117,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                     }
                 }}
             >
-                {pop && hovered && ydResp && !isCopyMode? (
+                {pop && hovered && !isCopyMode? (
                     <WordPop
                         word={word}
                         translation={ydResp}
