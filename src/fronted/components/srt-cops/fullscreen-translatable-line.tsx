@@ -9,6 +9,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { Button } from '@/fronted/components/ui/button';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLineCore from '@/fronted/components/srt-cops/atoms/translatable-line-core';
+import { Bookmark } from 'lucide-react';
+import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
+import useFile from '@/fronted/hooks/useFile';
 
 interface PlayerTranslatableSubtitleLineParam {
     sentence: Sentence;
@@ -26,6 +29,7 @@ const FullscreenTranslatableLine = ({
     );
     const show = usePlayerController((state) => state.showEn);
     const text = sentence.text;
+    const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
 
     return (!p(text) || !show) ? (
         <div />
@@ -65,7 +69,11 @@ const FullscreenTranslatableLine = ({
                 <TranslatableLineCore sentence={sentence} show={show} hoverDark />
 
                 {adjusted && (
-                    <div className={cn('w-10 h-full flex-shrink-0')} />
+                    <div className={cn('w-10 h-full flex-shrink-0 py-2.5')}>
+                        {isFavourite && (
+                            <Bookmark className={cn('w-5 h-5 text-white ml-auto')} />
+                        )}
+                    </div>
                 )}
             </div>
 
