@@ -10,7 +10,7 @@ import { Sentence } from '@/common/types/SentenceC';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
 import { Bookmark } from 'lucide-react';
-import TranslatableLineCore from '@/fronted/components/srt-cops/atoms/TranslatableLineCore';
+import TranslatableLineCore from '@/fronted/components/srt-cops/atoms/translatable-line-core';
 
 interface TranslatableSubtitleLineParam {
     sentence: Sentence;
@@ -52,15 +52,15 @@ const TranslatableLine = ({
                 fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large']
             )}
         >
-            <div className={cn('w-10 h-full translate-x-2.5 flex justify-center items-center')}>
+            <div className={cn('w-10 m-2.5 h-10 flex-shrink-0')}>
                 {adjusted && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
                                     onClick={clearAdjust}
-                                    variant={'ghost'} size={'icon'} className={'p-1'}>
-                                    <AiOutlineFieldTime className={cn('w-full h-full fill-black')} />
+                                    variant={'ghost'} size={'icon'}>
+                                    <AiOutlineFieldTime className={cn('fill-black')} />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -71,7 +71,7 @@ const TranslatableLine = ({
                 )}
             </div>
             <TranslatableLineCore sentence={sentence} show={show || hovered} />
-            <div className={cn('w-10 h-full flex items-end justify-center pb-2')}>
+            <div className={cn('w-10 h-full flex items-end justify-center pb-2 flex-shrink-0')}>
                 {isFavourite && (
                     <Bookmark className={cn('w-5 h-5  text-yellow-500 dark:text-yellow-600')} />
                 )}
