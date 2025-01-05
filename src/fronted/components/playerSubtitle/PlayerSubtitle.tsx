@@ -1,6 +1,6 @@
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import React, { ReactElement } from 'react';
-import PlayerTranslatableLine from '@/fronted/components/playerSubtitle/PlayerTranslatableLine';
+import FullscreenTranslatableLine from '@/fronted/components/srt-cops/fullscreen-translatable-line';
 import PlayerNormalLine from '@/fronted/components/playerSubtitle/PlayerNormalLine';
 import StrUtil from '@/common/utils/str-util';
 
@@ -22,7 +22,7 @@ const PlayerSubtitle = () => {
         return tempEle.map((item, index) => {
             if (index === 0) {
                 return (
-                    <PlayerTranslatableLine
+                    <FullscreenTranslatableLine
                         adjusted={srtTender?.adjusted(sentence) ?? false}
                         clearAdjust={clearAdjust}
                         key={`first-${sentence.key}`}

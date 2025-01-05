@@ -1,8 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import * as turf from '@turf/turf';
 import {Feature, Polygon} from '@turf/turf';
-import {twMerge} from 'tailwind-merge';
-import WordPop from './WordPop';
+import WordPop from './word-pop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
 import usePlayerController from '../../../hooks/usePlayerController';
 import useSWR from "swr";
@@ -18,7 +17,6 @@ export interface WordParam {
     pop: boolean;
     requestPop: () => void;
     show: boolean;
-    hoverColor?: string;
     alwaysDark?: boolean;
 }
 
@@ -102,7 +100,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     };
 
     return (
-        <div className={twMerge('flex gap-1')}>
+        <div className={cn('flex gap-1')}>
             <div
                 ref={eleRef}
                 className="rounded select-none"
@@ -146,6 +144,5 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
 export default Word;
 
 Word.defaultProps = {
-    hoverColor: 'bg-stone-100',
     alwaysDark: false,
 }

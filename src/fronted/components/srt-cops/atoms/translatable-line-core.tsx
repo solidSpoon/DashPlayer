@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Word from './Word';
+import Word from './word';
 import useSetting from '../../../hooks/useSetting';
 import { cn } from '@/fronted/lib/utils';
 import { FONT_SIZE } from '../../../styles/style';
@@ -10,12 +10,14 @@ import useCopyModeController from '../../../hooks/useCopyModeController';
 interface TranslatableSubtitleLineCoreParam {
     sentence: Sentence;
     show: boolean;
+    hoverDark?: boolean;
 }
 
-const TranslatableLine = ({
-                              sentence,
-                              show
-                          }: TranslatableSubtitleLineCoreParam) => {
+const TranslatableLineCore = ({
+                                  sentence,
+                                  show,
+                                  hoverDark
+                              }: TranslatableSubtitleLineCoreParam) => {
     const text = sentence.text;
     const sentenceStruct = sentence.struct;
     const fontSize = useSetting((state) =>
@@ -41,7 +43,7 @@ const TranslatableLine = ({
     ) : (
         <div
             className={cn(
-                'flex flex-wrap justify-center items-end w-0 flex-1 px-10 pt-2.5 pb-2.5 gap-x-2 gap-y-1',
+                'flex flex-wrap justify-center items-end  px-10 pt-2.5 pb-2.5 gap-x-2 gap-y-1',
                 FONT_SIZE['ms1-large'],
                 fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
                 fontSize === 'fontSizeMedium' && FONT_SIZE['ms1-medium'],
@@ -64,7 +66,8 @@ const TranslatableLine = ({
                                         requestPop={() =>
                                             handleRequestPop(partId)
                                         }
-                                        show
+                                        show={show}
+                                        alwaysDark={hoverDark}
                                     />
                                 );
                             }
@@ -82,4 +85,8 @@ const TranslatableLine = ({
     );
 };
 
-export default TranslatableLine;
+export default TranslatableLineCore;
+
+TranslatableLineCore.defaultProps = {
+    hoverDark: false
+};
