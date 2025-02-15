@@ -1,9 +1,9 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { codeBlock } from 'common-tags';
 import { Topic } from '@/fronted/hooks/useChatPanel';
 import { getDpTaskResult } from '@/fronted/hooks/useDpTaskCenter';
 import { AiFuncExplainSelectWithContextRes } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
+import { CoreMessage } from 'ai';
 
 export default class AiCtxMenuExplainSelectWithContextMessage implements CustomMessage<AiCtxMenuExplainSelectWithContextMessage> {
     public taskId: number;
@@ -11,7 +11,7 @@ export default class AiCtxMenuExplainSelectWithContextMessage implements CustomM
     public context: string;
     public selected: string;
 
-    constructor(taskId: number, topic:Topic, context: string, selected: string) {
+    constructor(taskId: number, topic: Topic, context: string, selected: string) {
         this.taskId = taskId;
         this.context = context;
         this.selected = selected;
@@ -24,20 +24,20 @@ export default class AiCtxMenuExplainSelectWithContextMessage implements CustomM
 
     msgType: MsgType = 'ai-func-explain-select-with-context';
 
-    async toMsg(): Promise<MsgT[]> {
+    async toMsg(): Promise<CoreMessage[]> {
         const resp = await getDpTaskResult<AiFuncExplainSelectWithContextRes>(this.taskId);
         // 根据以上信息编造一个假的回复
         const aiResp = codeBlock`
         好的，我来解释一下这句话中的"${this.selected}"。
 
-        "${this.selected}"的意思是${resp?.word.meaningZh + resp.word.meaningEn}。
+        "${this.selected}"的意思是${resp?.word?.meaningZh ?? '' + resp?.word?.meaningEn ?? ''}。
         在这句话中，"${this.selected}"的意思是${resp?.word.meaningInSentence}。
-        `
+        `;
         return [{
-            type:'human',
+            role: 'user',
             content: `请帮我解释下面这句话中的"${this.selected}"\n"""\n${this.context}\n"""`
-        },{
-            type:'ai',
+        }, {
+            role: 'assistant',
             content: aiResp
         }];
     }

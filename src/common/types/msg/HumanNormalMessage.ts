@@ -1,6 +1,6 @@
 import CustomMessage, {MsgType} from "@/common/types/msg/interfaces/CustomMessage";
-import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 import { Topic } from '@/fronted/hooks/useChatPanel';
+import { CoreMessage } from 'ai';
 
 class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
     public content: string;
@@ -10,9 +10,9 @@ class HumanNormalMessage implements CustomMessage<HumanNormalMessage> {
         this.content = content;
     }
 
-    async toMsg(): Promise<MsgT[]> {
+    async toMsg(): Promise<CoreMessage[]> {
         return [{
-            type: "human",
+            role: "user",
             content: this.content
         }]
     }

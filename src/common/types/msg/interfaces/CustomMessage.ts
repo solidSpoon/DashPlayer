@@ -1,8 +1,8 @@
-import {MsgT} from "@/common/types/msg/interfaces/MsgT";
 import { Topic } from '@/fronted/hooks/useChatPanel';
+import { CoreMessage } from 'ai';
 
 export default interface CustomMessage<T> {
-    toMsg(): Promise<MsgT[]>;
+    toMsg(): Promise<CoreMessage[]>;
 
     msgType: MsgType;
 

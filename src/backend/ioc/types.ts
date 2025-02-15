@@ -25,7 +25,7 @@ const TYPES = {
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
-    OpenAiClientProvider: Symbol('OpenAiClientProvider'),
+    AiProviderService: Symbol('AiProviderService'),
 };
 
 export default TYPES;

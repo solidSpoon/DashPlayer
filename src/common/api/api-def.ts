@@ -1,4 +1,3 @@
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { DpTask } from '@/backend/db/tables/dpTask';
 import { YdRes } from '@/common/types/YdRes';
 import { ChapterParseResult } from '@/common/types/chapter-result';
@@ -16,6 +15,7 @@ import { ClipQuery } from '@/common/api/dto';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import { COOKIE } from '@/common/types/DlVideoType';
+import { CoreMessage } from 'ai';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -32,7 +32,7 @@ interface AiFuncDef {
     'ai-func/analyze-grammars': { params: string, return: number };
     'ai-func/analyze-new-phrases': { params: string, return: number };
     'ai-func/analyze-new-words': { params: string, return: number };
-    'ai-func/chat': { params: { msgs: MsgT[] }, return: number };
+    'ai-func/chat': { params: { msgs: CoreMessage[] }, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: number };
     'ai-func/explain-select-with-context': { params: { sentence: string, selectedWord: string }, return: number };
     'ai-func/explain-select': { params: { word: string }, return: number };

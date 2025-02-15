@@ -1,9 +1,9 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { codeBlock } from 'common-tags';
 import { Topic } from '@/fronted/hooks/useChatPanel';
 import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import { getDpTaskResult } from '@/fronted/hooks/useDpTaskCenter';
+import { CoreMessage } from 'ai';
 
 export default class AiCtxMenuPolishMessage implements CustomMessage<AiCtxMenuPolishMessage> {
     public taskId: number;
@@ -22,8 +22,8 @@ export default class AiCtxMenuPolishMessage implements CustomMessage<AiCtxMenuPo
 
     msgType: MsgType = 'ai-func-polish';
 
-    async toMsg(): Promise<MsgT[]> {
-        const resp: AiFuncPolishRes = await getDpTaskResult<AiFuncPolishRes>(this.taskId);
+    async toMsg(): Promise<CoreMessage[]> {
+        const resp: AiFuncPolishRes | null= await getDpTaskResult<AiFuncPolishRes>(this.taskId);
         // 根据以上信息编造一个假的回复
         const aiResp = codeBlock`
         好的，这句话可以这样润色：
@@ -33,10 +33,10 @@ export default class AiCtxMenuPolishMessage implements CustomMessage<AiCtxMenuPo
         - ${resp?.edit3}
         `
         return [{
-            type:'human',
+            role:'user',
             content: `帮我用三种方式润色这句话，让它更地道`
         },{
-            type:'ai',
+            role:'assistant',
             content: aiResp
         }];
     }
