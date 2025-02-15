@@ -1,44 +1,41 @@
 import RateLimiter from '@/common/utils/RateLimiter';
-import { BaseMessage } from '@langchain/core/messages';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/services/ChatService';
-import { ChatOpenAI } from '@langchain/openai';
-import ClientProviderService from '@/backend/services/ClientProviderService';
 import { ZodObject } from 'zod';
-import { storeGet } from '@/backend/store';
-
-
+import { CoreMessage, streamObject, streamText } from 'ai';
+import AiProviderService from '@/backend/services/AiProviderService';
 @injectable()
 export default class ChatServiceImpl implements ChatService {
 
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
 
-    @inject(TYPES.OpenAiClientProvider)
-    private aiProviderService!: ClientProviderService<ChatOpenAI>;
+    @inject(TYPES.AiProviderService)
+    private aiProviderService!: AiProviderService;
 
 
-    public async chat(taskId: number, msgs: BaseMessage[]) {
+    public async chat(taskId: number, msgs: CoreMessage[]) {
         await RateLimiter.wait('gpt');
-        const chat = this.aiProviderService.getClient();
-        if (chat) {
+        const model = this.aiProviderService.getModel();
+        if (!model) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
             });
+            return;
         }
         this.dpTaskService.process(taskId, {
             progress: 'AI is thinking...'
         });
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const resStream = await chat.stream(msgs);
-        const chunks = [];
+
+        const result = streamText({
+            model: model,
+            messages: msgs
+        });
         let res = '';
-        for await (const chunk of resStream) {
-            res += chunk.content;
-            chunks.push(chunk);
+        for await (const chunk of result.textStream) {
+            res += chunk;
             this.dpTaskService.process(taskId, {
                 progress: `AI typing, ${res.length} characters`,
                 result: res
@@ -52,38 +49,29 @@ export default class ChatServiceImpl implements ChatService {
 
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
         await RateLimiter.wait('gpt');
-        const chat = this.aiProviderService.getClient();
-        if (!chat) {
+        const model = this.aiProviderService.getModel();
+        if (!model) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
             });
             return;
         }
-        const structuredLlm = chat.withStructuredOutput(resultSchema);
-
+        const { partialObjectStream } = streamObject({
+            model: model,
+            schema: resultSchema,
+            prompt: promptStr,
+        });
         this.dpTaskService.process(taskId, {
             progress: 'AI is analyzing...'
         });
-
-        const streaming = storeGet('apiKeys.openAi.stream') === 'on';
-
-        let resStr = null;
-        if (streaming) {
-            const resStream = await structuredLlm.stream(promptStr);
-            for await (const chunk of resStream) {
-                resStr = JSON.stringify(chunk);
-                this.dpTaskService.process(taskId, {
-                    progress: 'AI is analyzing...',
-                    result: resStr
-                });
-            }
-        } else {
-            const res = await structuredLlm.invoke(promptStr);
-            resStr = JSON.stringify(res);
+        for await (const partialObject of partialObjectStream) {
+            this.dpTaskService.process(taskId, {
+                progress: 'AI is analyzing...',
+                result: JSON.stringify(partialObject)
+            });
         }
         this.dpTaskService.finish(taskId, {
-            progress: 'AI has responded',
-            result: resStr
+            progress: 'AI has responded'
         });
     }
 }

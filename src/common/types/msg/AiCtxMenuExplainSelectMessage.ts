@@ -1,9 +1,9 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { codeBlock } from 'common-tags';
 import { Topic } from '@/fronted/hooks/useChatPanel';
 import { AiFuncExplainSelectRes } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 import { getDpTaskResult } from '@/fronted/hooks/useDpTaskCenter';
+import { CoreMessage } from 'ai';
 
 export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCtxMenuExplainSelectMessage> {
     public taskId: number;
@@ -22,7 +22,7 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
 
     msgType: MsgType = 'ai-func-explain-select';
 
-    async toMsg(): Promise<MsgT[]> {
+    async toMsg(): Promise<CoreMessage[]> {
 
         const resp = await getDpTaskResult<AiFuncExplainSelectRes>(this.taskId);
         // 根据以上信息编造一个假的回复
@@ -38,10 +38,10 @@ export default class AiCtxMenuExplainSelectMessage implements CustomMessage<AiCt
         - 例句3：${resp?.examplesSentence3}
         `
         return [{
-            type:'human',
+            role:'user',
             content: `请帮我理解这个单词/短语 ${this.word}`
         },{
-            type:'ai',
+            role:'assistant',
             content: aiResp
         }];
     }

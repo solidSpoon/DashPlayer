@@ -1,7 +1,7 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import { Topic } from '@/fronted/hooks/useChatPanel';
 import { getDpTaskResult } from '@/fronted/hooks/useDpTaskCenter';
+import { CoreMessage } from 'ai';
 
 class AiNormalMessage implements CustomMessage<AiNormalMessage> {
     private readonly topic: Topic;
@@ -12,11 +12,11 @@ class AiNormalMessage implements CustomMessage<AiNormalMessage> {
         this.taskId = taskId;
     }
 
-    async toMsg(): Promise<MsgT[]> {
+    async toMsg(): Promise<CoreMessage[]> {
         const msg = await getDpTaskResult<string>(this.taskId, true);
         return [{
-            type: 'ai',
-            content: msg,
+            role: 'assistant',
+            content: msg ?? ''
         }];
     }
 

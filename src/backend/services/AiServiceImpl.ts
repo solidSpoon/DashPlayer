@@ -15,7 +15,6 @@ import { getSubtitleContent, srtSlice } from '@/common/utils/srtSlice';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/services/ChatService';
-import { HumanMessage } from '@langchain/core/messages';
 
 export interface AiService {
     polish(taskId: number, sentence: string): Promise<void>;
@@ -55,7 +54,10 @@ export default class AiServiceImpl implements AiService {
 
     public async formatSplit(taskId: number, text: string) {
         // await AiFunc.run(taskId, null, AiFuncFormatSplitPrompt.promptFunc(text));
-        await this.chatService.chat(taskId, [new HumanMessage(AiFuncFormatSplitPrompt.promptFunc(text))]);
+        await this.chatService.chat(taskId, [{
+            role: 'user',
+            content: AiFuncFormatSplitPrompt.promptFunc(text)
+        }]);
     }
 
     public async analyzeWord(taskId: number, sentence: string) {

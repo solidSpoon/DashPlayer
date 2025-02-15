@@ -49,7 +49,6 @@ import MediaServiceImpl from '@/backend/services/impl/MediaServiceImpl';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import YouDaoProvider from '@/backend/services/impl/clients/YouDaoProvider';
 import TencentProvider from '@/backend/services/impl/clients/TencentProvider';
-import { ChatOpenAI } from '@langchain/openai';
 import TranslateServiceImpl from '@/backend/services/impl/TranslateServiceImpl';
 import TranslateService from '@/backend/services/AiTransServiceImpl';
 import TagServiceImpl from '@/backend/services/impl/TagServiceImpl';
@@ -62,13 +61,14 @@ import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryService
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
 import { OpenAIServiceImpl } from '@/backend/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/services/OpenAiService';
+import AiProviderService from '@/backend/services/AiProviderService';
 
 
 const container = new Container();
 // Clients
 container.bind<ClientProviderService<YouDaoClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
 container.bind<ClientProviderService<TencentClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
-container.bind<ClientProviderService<ChatOpenAI>>(TYPES.OpenAiClientProvider).to(AiProviderServiceImpl).inSingletonScope();
+container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(DownloadVideoController).inSingletonScope();

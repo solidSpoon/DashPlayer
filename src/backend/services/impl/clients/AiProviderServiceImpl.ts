@@ -1,14 +1,16 @@
-import { ChatOpenAI } from '@langchain/openai';
 import { storeGet } from '@/backend/store';
 import StrUtil from '@/common/utils/str-util';
 import { joinUrl } from '@/common/utils/Util';
 import { injectable } from 'inversify';
-import ClientProviderService from '@/backend/services/ClientProviderService';
+import AiProviderService from '@/backend/services/AiProviderService';
+import { createOpenAI } from '@ai-sdk/openai';
+import { LanguageModelV1 } from 'ai';
 
 
 @injectable()
-export default class AiProviderServiceImpl implements ClientProviderService<ChatOpenAI> {
-    public getClient(): ChatOpenAI | null {
+export default class AiProviderServiceImpl implements AiProviderService {
+
+    public getModel():LanguageModelV1 | null {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         let model = storeGet('model.gpt.default');
@@ -18,14 +20,11 @@ export default class AiProviderServiceImpl implements ClientProviderService<Chat
         if (StrUtil.hasBlank(apiKey, endpoint)) {
             return null;
         }
-        console.log(apiKey, endpoint);
-        return new ChatOpenAI({
-            modelName: model,
-            temperature: 0.7,
-            openAIApiKey: apiKey,
-            configuration: {
-                baseURL: joinUrl(endpoint, '/v1')
-            },
+        const openai = createOpenAI({
+            compatibility: 'compatible',
+            baseURL: joinUrl(endpoint, '/v1'),
+            apiKey: apiKey
         });
+        return openai(model);
     }
 }

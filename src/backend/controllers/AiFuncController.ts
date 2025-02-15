@@ -2,13 +2,13 @@ import TtsService from '@/backend/services/TtsService';
 import registerRoute from '@/common/api/register';
 import AiServiceImpl from '@/backend/services/AiServiceImpl';
 import ChatServiceImpl from '@/backend/services/impl/ChatServiceImpl';
-import { MsgT, toLangChainMsg } from '@/common/types/msg/interfaces/MsgT';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import WhisperService from '@/backend/services/WhisperService';
+import { CoreMessage } from 'ai';
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -83,10 +83,9 @@ export default class AiFuncController implements Controller {
         return UrlUtil.dp(await TtsService.tts(string));
     }
 
-    public async chat({ msgs }: { msgs: MsgT[] }): Promise<number> {
+    public async chat({ msgs }: { msgs: CoreMessage[] }): Promise<number> {
         const taskId = await this.dpTaskService.create();
-        const ms = msgs.map((msg) => toLangChainMsg(msg));
-        this.chatService.chat(taskId, ms).then();
+        this.chatService.chat(taskId, msgs).then();
         return taskId;
     }
 

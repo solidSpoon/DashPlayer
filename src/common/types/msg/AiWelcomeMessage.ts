@@ -1,5 +1,4 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
-import { MsgT } from '@/common/types/msg/interfaces/MsgT';
 import useChatPanel, { Topic } from '@/fronted/hooks/useChatPanel';
 import { getDpTaskResult } from '@/fronted/hooks/useDpTaskCenter';
 import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
@@ -7,6 +6,7 @@ import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrases
 import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 import StrUtil from '@/common/utils/str-util';
+import { CoreMessage } from 'ai';
 
 
 export interface WelcomeMessageProps {
@@ -61,7 +61,7 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
         this.topic = props.topic;
     }
 
-    async toMsg(): Promise<MsgT[]> {
+    async toMsg(): Promise<CoreMessage[]> {
         const tasks = useChatPanel.getState().tasks;
         // 翻译
         const translate:string = await getDpTaskResult<AiFuncTranslateWithContextRes>(this.translateTask).then(res => res?.translation ?? '');
@@ -72,7 +72,7 @@ class AiWelcomeMessage implements CustomMessage<AiWelcomeMessage> {
         // 同义句
         const polish = await getDpTaskResult<AiFuncPolishRes>(this.polishTask).then(res => [res?.edit1, res?.edit2, res?.edit3].filter(s=>StrUtil.isNotBlank(s)).map(s => `- ${s}`));
         return [{
-            type: "ai",
+            role: "assistant",
             content: MSG
                 .replace("{originalTopic}", this.originalTopic)
                 .replace("{translate}", translate)
