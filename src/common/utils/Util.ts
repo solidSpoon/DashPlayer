@@ -1,4 +1,5 @@
-import {DpTask, DpTaskState} from "@/backend/db/tables/dpTask";
+import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import { Nullable } from 'vitest';
 
 
 /**
@@ -35,16 +36,20 @@ export default class Util {
     static p = p;
     static arrayChanged = arrayChanged;
     static joinUrl = joinUrl;
+
     public static isNull(obj: any): boolean {
         return obj === null || obj === undefined;
     }
+
     public static isNotNull(obj: any): boolean {
         return !this.isNull(obj);
     }
+
     public static trim(str: string | null | undefined): string {
         return (str ?? '').trim();
     }
-    public static cmpTaskState(task:DpTask, status:(DpTaskState|'none')[]):boolean {
+
+    public static cmpTaskState(task: Nullable<DpTask>, status: (DpTaskState | 'none')[]): boolean {
         const taskStatus = task?.status;
         if (taskStatus === undefined || taskStatus === null) {
             return status.includes('none');
@@ -55,4 +60,4 @@ export default class Util {
 
 export const emptyFunc = () => {
     return;
-}
+};

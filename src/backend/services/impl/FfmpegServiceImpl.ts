@@ -9,11 +9,11 @@ import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
 import FfmpegTask from '@/backend/objs/FfmpegTask';
 import DpTaskService from '@/backend/services/DpTaskService';
-import CancelByUserError from '@/backend/errors/CancelByUserError';
 import dpLog from '@/backend/ioc/logger';
 import ffmpeg from 'fluent-ffmpeg';
 import LocationService, { ProgramType } from '@/backend/services/LocationService';
 import { VideoInfo } from '@/common/types/video-info';
+import { CancelByUserError } from '@/backend/errors/errors';
 
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
@@ -100,6 +100,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
             });
         });
     }
+
     /**
      * 获取视频文件的详细信息
      */

@@ -4,12 +4,12 @@ import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/d
 
 import LRUCache from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
-import ErrorConstants from '@/common/constants/error-constants';
 import { injectable, postConstruct } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import dpLog from '@/backend/ioc/logger';
 import { Cancelable } from '@/common/interfaces';
-import CancelByUserError from '@/backend/errors/CancelByUserError';
+
+import { CancelByUserError } from '@/backend/errors/errors';
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
@@ -188,6 +188,9 @@ export default class DpTaskServiceImpl implements DpTaskService {
     public registerTask(taskId: number, process: Cancelable) {
         const existingProcesses = this.taskMapping.get(taskId) || [];
         this.taskMapping.set(taskId, [...existingProcesses, process]);
+        if (this.cancelQueue.has(taskId)) {
+            process.cancel();
+        }
     }
 
 }

@@ -4,24 +4,9 @@ import RateLimiter from '@/common/utils/RateLimiter';
 import StrUtil from '@/common/utils/str-util';
 import { Cancelable } from '@/common/interfaces';
 import OpenAI from 'openai';
-
-import { z } from 'zod';
 import dpLog from '@/backend/ioc/logger';
 import { WhisperResponseFormatError } from '@/backend/errors/errors';
-import { WhisperResponseVerifySchema } from '@/common/types/video-info';
-
-export interface WhisperResponse {
-    language: string;
-    duration: number;
-    text: string;
-    offset: number;
-    segments: {
-        seek: number;
-        start: number;
-        end: number;
-        text: string;
-    }[];
-}
+import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
 
 class OpenAiWhisperRequest implements Cancelable {
     private readonly file: string;
@@ -55,9 +40,8 @@ class OpenAiWhisperRequest implements Cancelable {
         }
         return {
             language: transcription.language,
-            duration: Number(transcription.duration),
+            duration: transcription.duration,
             text: transcription.text,
-            offset: 0,
             segments: transcription.segments?.map((seg) => ({
                 seek: seg.seek,
                 start: seg.start,

@@ -3,37 +3,37 @@ import path from 'path';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
-import { isErrorCancel } from '@/common/constants/error-constants';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '../DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
 import WhisperService from '@/backend/services/WhisperService';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
-import OpenAiWhisperRequest, { WhisperResponse } from '@/backend/objs/OpenAiWhisperRequest';
+import OpenAiWhisperRequest from '@/backend/objs/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import dpLog from '@/backend/ioc/logger';
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import { WaitLock } from '@/common/utils/Lock';
-import { SplitChunk, WhisperContext, WhisperContextSchema } from '@/common/types/video-info';
+import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
 import { ConfigTender } from '@/backend/objs/config-tender';
 import FileUtil from '@/backend/utils/FileUtil';
-import { WhisperResponseFormatError } from '@/backend/errors/errors';
+import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
 
 /**
  * 将 Whisper 的 API 响应转换成 SRT 文件格式
  */
-function toSrt(whisperResponses: WhisperResponse[]): string {
+function toSrt(chunks: SplitChunk[]): string {
     // 按 offset 排序确保顺序正确
-    whisperResponses.sort((a, b) => a.offset - b.offset);
+    chunks.sort((a, b) => a.offset - b.offset);
     let counter = 1;
     const lines: SrtLine[] = [];
-    for (const wr of whisperResponses) {
-        for (const segment of wr.segments) {
+    for (const c of chunks) {
+        const segments = c.response?.segments??[];
+        for (const segment of segments) {
             lines.push({
                 index: counter,
-                start: segment.start + wr.offset,
-                end: segment.end + wr.offset,
+                start: segment.start + c.offset,
+                end: segment.end + c.offset,
                 contentEn: segment.text,
                 contentZh: ''
             });
@@ -106,6 +106,8 @@ class WhisperServiceImpl implements WhisperService {
             const unfinishedChunks = context.chunks.filter(chunk => !chunk.response);
             if (unfinishedChunks.length === 0) {
                 this.dpTaskService.finish(taskId, { progress: '转录完成' });
+                context.state = 'done';
+                configTender.save(context);
                 return;
             }
 
@@ -118,7 +120,7 @@ class WhisperServiceImpl implements WhisperService {
 
             try {
                 // 对所有分片并发执行转录
-                await Promise.all(context.chunks.map(async (chunk) => {
+                const results = await Promise.allSettled(context.chunks.map(async (chunk) => {
                     // 如果该 chunk 已经有结果，则跳过
                     if (chunk.response) return;
                     await this.whisperThreeTimes(taskId, chunk);
@@ -126,6 +128,12 @@ class WhisperServiceImpl implements WhisperService {
                     const progress = Math.floor((completedCount / context.chunks.length) * 100);
                     this.dpTaskService.update({ id: taskId, progress: `正在转录 ${progress}%` });
                 }));
+                // 检查是否有错误
+                for (const result of results) {
+                    if (result.status === 'rejected') {
+                        throw result.reason;
+                    }
+                }
             } finally {
                 // 保存当前状态
                 configTender.save(context);
@@ -134,17 +142,16 @@ class WhisperServiceImpl implements WhisperService {
             // 整理结果，生成 SRT 文件
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             dpLog.info(`[WhisperService] Task ID: ${taskId} - 生成 SRT 文件: ${srtName}`);
-            const whisperResponses = context.chunks.map(chunk => chunk.response as WhisperResponse);
-            fs.writeFileSync(srtName, toSrt(whisperResponses));
+            fs.writeFileSync(srtName, toSrt(context.chunks));
 
             // 完成任务，并保存状态
-            context.state = 'processed';
+            context.state = 'done';
             configTender.save(context);
             this.dpTaskService.finish(taskId, { progress: '转录完成' });
         } catch (error) {
             dpLog.error(error);
             if (!(error instanceof Error)) throw error;
-            const cancel = isErrorCancel(error);
+            const cancel = error instanceof CancelByUserError
             this.dpTaskService.update({
                 id: taskId,
                 status: cancel ? DpTaskState.CANCELLED : DpTaskState.FAILED,
@@ -188,7 +195,7 @@ class WhisperServiceImpl implements WhisperService {
         }
         this.dpTaskService.registerTask(taskId, req);
         const response = await req.invoke();
-        return { ...response, offset: chunk.offset };
+        return { ...response };
     }
 
     /**
