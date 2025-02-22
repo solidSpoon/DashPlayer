@@ -18,9 +18,13 @@ import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema } from '@/common/types/video-info';
 import { ConfigTender } from '@/backend/objs/config-tender';
 import FileUtil from '@/backend/utils/FileUtil';
+import { WhisperResponseFormatError } from '@/backend/errors/errors';
 
-
+/**
+ * 将 Whisper 的 API 响应转换成 SRT 文件格式
+ */
 function toSrt(whisperResponses: WhisperResponse[]): string {
+    // 按 offset 排序确保顺序正确
     whisperResponses.sort((a, b) => a.offset - b.offset);
     let counter = 1;
     const lines: SrtLine[] = [];
@@ -39,7 +43,6 @@ function toSrt(whisperResponses: WhisperResponse[]): string {
     return SrtUtil.toNewSrt(lines);
 }
 
-
 @injectable()
 class WhisperServiceImpl implements WhisperService {
     @inject(TYPES.DpTaskService)
@@ -47,21 +50,23 @@ class WhisperServiceImpl implements WhisperService {
 
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
+
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
+
     @inject(TYPES.OpenAiService)
     private openAiService!: OpenAiService;
 
     private static readonly INFO_FILE = 'info.json';
 
-
     public async transcript(taskId: number, filePath: string) {
-        this.dpTaskService.process(taskId, {
-            progress: '正在转换音频'
-        });
+        this.dpTaskService.process(taskId, { progress: '正在转换音频' });
         try {
+            // 分配用于储存中间产生的文件夹
             const folder = this.allocateFolder(filePath);
-            const defaultValue: WhisperContext = {
+
+            // 初始化默认的上下文
+            const defaultContext: WhisperContext = {
                 filePath,
                 folder,
                 state: 'init',
@@ -69,113 +74,135 @@ class WhisperServiceImpl implements WhisperService {
                 chunks: [],
                 updatedTime: Date.now()
             };
+
+            const infoPath = path.join(folder, WhisperServiceImpl.INFO_FILE);
             const configTender = new ConfigTender<WhisperContext, typeof WhisperContextSchema>(
-                path.join(folder, WhisperServiceImpl.INFO_FILE),
+                infoPath,
                 WhisperContextSchema,
-                defaultValue
+                defaultContext
             );
 
+            // 读取当前上下文
             const context: WhisperContext = configTender.get();
-            const videoChanged = !FileUtil.compareVideoInfo(context.videoInfo, await this.ffmpegService.getVideoInfo(filePath));
-            const expired = Date.now() - context.updatedTime > 3 * 60 * 60 * 1000;
-            // 过期时间 3 小时
-            if (context.state !== 'processed'
-                || expired
-                || videoChanged) {
-                // 重新转换
-                await this.convertAndSplit(taskId, context);
-                configTender.save(context);
-                configTender.setKey('state', 'processed');
 
+            // 判断是否需要重新分割转录：状态不为 processed、文件过期（3小时）或视频文件发生变化
+            const newVideoInfo = await this.ffmpegService.getVideoInfo(filePath);
+            const videoChanged = !FileUtil.compareVideoInfo(context.videoInfo, newVideoInfo);
+            const expired = Date.now() - context.updatedTime > 3 * 60 * 60 * 1000; // 3 小时
+            if (context.state !== 'processed' || expired || videoChanged) {
+                // 重新转换并分割
+                await this.convertAndSplit(taskId, context);
+                context.videoInfo = newVideoInfo;
+                context.updatedTime = Date.now();
+                // 先保存最新的 chunks 信息
+                configTender.save(context);
             }
+
+            // 检查是否取消
             this.dpTaskService.checkCancel(taskId);
-            const unFinishedChunk = context.chunks.filter((chunk) => !chunk.response);
-            if (unFinishedChunk.length === 0) {
-                this.dpTaskService.finish(taskId, {
-                    progress: '转录完成'
-                });
+
+            // 获取尚未转录的 chunk
+            const unfinishedChunks = context.chunks.filter(chunk => !chunk.response);
+            if (unfinishedChunks.length === 0) {
+                this.dpTaskService.finish(taskId, { progress: '转录完成' });
                 return;
             }
+
+            // 使用共享计数器更新并行转录进度
+            let completedCount = context.chunks.filter(chunk => chunk.response).length;
+
             this.dpTaskService.process(taskId, {
-                // 百分比
-                progress: `正在转录 ${Math.floor((context.chunks.length - unFinishedChunk.length) / context.chunks.length * 100)}%`
+                progress: `正在转录 ${Math.floor((completedCount / context.chunks.length) * 100)}%`
             });
-            await Promise.all(context.chunks.map(async (file) => {
-                await this.whisperThreeTimes(taskId, file);
-                const ufc = context.chunks.filter((chunk) => !chunk.response);
-                this.dpTaskService.update({
-                    id: taskId,
-                    progress: `正在转录 ${Math.floor((context.chunks.length - ufc.length) / context.chunks.length * 100)}%`
-                });
-            }));
+
+            try {
+                // 对所有分片并发执行转录
+                await Promise.all(context.chunks.map(async (chunk) => {
+                    // 如果该 chunk 已经有结果，则跳过
+                    if (chunk.response) return;
+                    await this.whisperThreeTimes(taskId, chunk);
+                    completedCount = context.chunks.filter(chunk => chunk.response).length;
+                    const progress = Math.floor((completedCount / context.chunks.length) * 100);
+                    this.dpTaskService.update({ id: taskId, progress: `正在转录 ${progress}%` });
+                }));
+            } finally {
+                // 保存当前状态
+                configTender.save(context);
+            }
+
+            // 整理结果，生成 SRT 文件
             const srtName = filePath.replace(path.extname(filePath), '.srt');
-            console.log('srtName', srtName);
-            const whisperResponses = context.chunks.map((chunk) => chunk.response as WhisperResponse);
+            dpLog.info(`[WhisperService] Task ID: ${taskId} - 生成 SRT 文件: ${srtName}`);
+            const whisperResponses = context.chunks.map(chunk => chunk.response as WhisperResponse);
             fs.writeFileSync(srtName, toSrt(whisperResponses));
-            this.dpTaskService.finish(taskId, {
-                progress: '转录完成'
-            });
+
+            // 完成任务，并保存状态
             context.state = 'processed';
             configTender.save(context);
+            this.dpTaskService.finish(taskId, { progress: '转录完成' });
         } catch (error) {
             dpLog.error(error);
-            if (!(error instanceof Error)) {
-                throw error;
-            }
+            if (!(error instanceof Error)) throw error;
             const cancel = isErrorCancel(error);
             this.dpTaskService.update({
                 id: taskId,
                 status: cancel ? DpTaskState.CANCELLED : DpTaskState.FAILED,
-                progress: cancel ? '任务取消' : error?.message
+                progress: cancel ? '任务取消' : error.message
             });
         }
-
     }
 
-
+    /**
+     * 针对单个 chunk 调用 Whisper API，最多尝试 3 次
+     */
     private async whisperThreeTimes(taskId: number, chunk: SplitChunk) {
-        let error: any = null;
-        for (let i = 0; i < 3; i++) {
+        let lastError: unknown = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
             try {
-                dpLog.info(`${this.logPrefix(taskId)} Attempt ${i + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
+                dpLog.info(`[WhisperService] Task ID: ${taskId} - Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
                 chunk.response = await this.whisper(taskId, chunk);
                 return;
-            } catch (e) {
-                error = e;
+            } catch (err) {
+                if (err instanceof WhisperResponseFormatError) {
+                    // 如果是格式错误，直接抛出
+                    throw Error('Whisper API 返回格式错误');
+                }
+                lastError = err;
             }
             this.dpTaskService.checkCancel(taskId);
         }
-        throw error;
+        throw lastError;
     }
 
-    private logPrefix = (taskId: number) => {
-        return `[WhisperService] Task ID: ${taskId} -`;
-    };
-
+    /**
+     * 调用 Whisper API
+     */
     @WaitLock('whisper')
     private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
         const openAi = this.openAiService.getOpenAi();
         const req = OpenAiWhisperRequest.build(openAi, chunk.filePath);
         if (TypeGuards.isNull(req)) {
-            this.dpTaskService.fail(taskId, {
-                progress: '未设置 OpenAI 密钥'
-            });
+            this.dpTaskService.fail(taskId, { progress: '未设置 OpenAI 密钥' });
             throw new Error('未设置 OpenAI 密钥');
         }
         this.dpTaskService.registerTask(taskId, req);
         const response = await req.invoke();
-
-        return {
-            ...response,
-            offset: chunk.offset
-        };
+        return { ...response, offset: chunk.offset };
     }
 
+    /**
+     * 删除指定目录下的所有文件，然后利用 ffmpeg 执行分割音频操作并生成 chunks
+     */
     async convertAndSplit(taskId: number, context: WhisperContext): Promise<void> {
-        // 删除该目录下的所有文件
-        fs.readdirSync(context.folder).forEach((file) => {
-            fs.unlinkSync(path.join(context.folder, file));
-        });
+        const filesInFolder = await FileUtil.listFiles(context.folder);
+        for (const file of filesInFolder) {
+            try {
+                fs.unlinkSync(path.join(context.folder, file));
+            } catch (err) {
+                dpLog.warn(`[WhisperService] 忽略删除文件 ${file} 的错误：${err}`);
+            }
+        }
+        // 执行分割操作
         const files = await this.ffmpegService.splitToAudio({
             taskId,
             inputFile: context.filePath,
@@ -186,25 +213,23 @@ class WhisperServiceImpl implements WhisperService {
         let offset = 0;
         for (const file of files) {
             const duration = await this.ffmpegService.duration(file);
-            chunks.push({
-                offset,
-                filePath: file
-            });
+            chunks.push({ offset, filePath: file });
             offset += duration;
         }
         context.chunks = chunks;
     }
 
-
-    private allocateFolder(filePath: string) {
+    /**
+     * 为指定文件分配一个存放临时文件的文件夹（文件夹名称基于文件路径的 hash 值）
+     */
+    private allocateFolder(filePath: string): string {
         const folderName = hash(filePath);
-        const tempDir = path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), '/whisper/', folderName);
+        const tempDir = path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), 'whisper', folderName);
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
         return tempDir;
     }
 }
-
 
 export default WhisperServiceImpl;
