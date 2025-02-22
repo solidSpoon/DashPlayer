@@ -1,11 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import { storeGet } from '@/backend/store';
-import RateLimiter from '@/common/utils/RateLimiter';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
-import StrUtil from '@/common/utils/str-util';
 import { isErrorCancel } from '@/common/constants/error-constants';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '../DpTaskService';
@@ -17,12 +14,11 @@ import OpenAiWhisperRequest, { WhisperResponse } from '@/backend/objs/OpenAiWhis
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import dpLog from '@/backend/ioc/logger';
 import { OpenAiService } from '@/backend/services/OpenAiService';
+import { WaitLock } from '@/common/utils/Lock';
+import { SplitChunk, WhisperContext, WhisperContextSchema } from '@/common/types/video-info';
+import { ConfigTender } from '@/backend/objs/config-tender';
+import FileUtil from '@/backend/utils/FileUtil';
 
-
-interface SplitChunk {
-    offset: number;
-    filePath: string;
-}
 
 function toSrt(whisperResponses: WhisperResponse[]): string {
     whisperResponses.sort((a, b) => a.offset - b.offset);
@@ -56,27 +52,71 @@ class WhisperServiceImpl implements WhisperService {
     @inject(TYPES.OpenAiService)
     private openAiService!: OpenAiService;
 
+    private static readonly INFO_FILE = 'info.json';
+
 
     public async transcript(taskId: number, filePath: string) {
         this.dpTaskService.process(taskId, {
             progress: '正在转换音频'
         });
         try {
-            let files = await this.convertAndSplit(taskId, filePath);
+            const folder = this.allocateFolder(filePath);
+            const defaultValue: WhisperContext = {
+                filePath,
+                folder,
+                state: 'init',
+                videoInfo: await this.ffmpegService.getVideoInfo(filePath),
+                chunks: [],
+                updatedTime: Date.now()
+            };
+            const configTender = new ConfigTender<WhisperContext, typeof WhisperContextSchema>(
+                path.join(folder, WhisperServiceImpl.INFO_FILE),
+                WhisperContextSchema,
+                defaultValue
+            );
+
+            const context: WhisperContext = configTender.get();
+            const videoChanged = !FileUtil.compareVideoInfo(context.videoInfo, await this.ffmpegService.getVideoInfo(filePath));
+            const expired = Date.now() - context.updatedTime > 3 * 60 * 60 * 1000;
+            // 过期时间 3 小时
+            if (context.state !== 'processed'
+                || expired
+                || videoChanged) {
+                // 重新转换
+                await this.convertAndSplit(taskId, context);
+                configTender.save(context);
+                configTender.setKey('state', 'processed');
+
+            }
             this.dpTaskService.checkCancel(taskId);
+            const unFinishedChunk = context.chunks.filter((chunk) => !chunk.response);
+            if (unFinishedChunk.length === 0) {
+                this.dpTaskService.finish(taskId, {
+                    progress: '转录完成'
+                });
+                return;
+            }
             this.dpTaskService.process(taskId, {
-                progress: '正在转录'
+                // 百分比
+                progress: `正在转录 ${Math.floor((context.chunks.length - unFinishedChunk.length) / context.chunks.length * 100)}%`
             });
-            files = [files[0]];
-            const whisperResponses = await Promise.all(files.map(async (file) => {
-                return await this.whisperThreeTimes(taskId, file);
+            await Promise.all(context.chunks.map(async (file) => {
+                await this.whisperThreeTimes(taskId, file);
+                const ufc = context.chunks.filter((chunk) => !chunk.response);
+                this.dpTaskService.update({
+                    id: taskId,
+                    progress: `正在转录 ${Math.floor((context.chunks.length - ufc.length) / context.chunks.length * 100)}%`
+                });
             }));
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             console.log('srtName', srtName);
+            const whisperResponses = context.chunks.map((chunk) => chunk.response as WhisperResponse);
             fs.writeFileSync(srtName, toSrt(whisperResponses));
             this.dpTaskService.finish(taskId, {
                 progress: '转录完成'
             });
+            context.state = 'processed';
+            configTender.save(context);
         } catch (error) {
             dpLog.error(error);
             if (!(error instanceof Error)) {
@@ -93,11 +133,13 @@ class WhisperServiceImpl implements WhisperService {
     }
 
 
-    private async whisperThreeTimes(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
+    private async whisperThreeTimes(taskId: number, chunk: SplitChunk) {
         let error: any = null;
         for (let i = 0; i < 3; i++) {
             try {
-                return await this.whisper(taskId, chunk);
+                dpLog.info(`${this.logPrefix(taskId)} Attempt ${i + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
+                chunk.response = await this.whisper(taskId, chunk);
+                return;
             } catch (e) {
                 error = e;
             }
@@ -106,8 +148,12 @@ class WhisperServiceImpl implements WhisperService {
         throw error;
     }
 
+    private logPrefix = (taskId: number) => {
+        return `[WhisperService] Task ID: ${taskId} -`;
+    };
+
+    @WaitLock('whisper')
     private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
-        await RateLimiter.wait('whisper');
         const openAi = this.openAiService.getOpenAi();
         const req = OpenAiWhisperRequest.build(openAi, chunk.filePath);
         if (TypeGuards.isNull(req)) {
@@ -125,20 +171,15 @@ class WhisperServiceImpl implements WhisperService {
         };
     }
 
-    async convertAndSplit(taskId: number, filePath: string): Promise<SplitChunk[]> {
-        const folderName = hash(filePath);
-        const tempDir = path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), '/whisper/', folderName);
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-        }
+    async convertAndSplit(taskId: number, context: WhisperContext): Promise<void> {
         // 删除该目录下的所有文件
-        fs.readdirSync(tempDir).forEach((file) => {
-            fs.unlinkSync(path.join(tempDir, file));
+        fs.readdirSync(context.folder).forEach((file) => {
+            fs.unlinkSync(path.join(context.folder, file));
         });
         const files = await this.ffmpegService.splitToAudio({
             taskId,
-            inputFile: filePath,
-            outputFolder: tempDir,
+            inputFile: context.filePath,
+            outputFolder: context.folder,
             segmentTime: 60
         });
         const chunks: SplitChunk[] = [];
@@ -151,7 +192,17 @@ class WhisperServiceImpl implements WhisperService {
             });
             offset += duration;
         }
-        return chunks;
+        context.chunks = chunks;
+    }
+
+
+    private allocateFolder(filePath: string) {
+        const folderName = hash(filePath);
+        const tempDir = path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), '/whisper/', folderName);
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+        return tempDir;
     }
 }
 

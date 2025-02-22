@@ -13,6 +13,7 @@ import CancelByUserError from '@/backend/errors/CancelByUserError';
 import dpLog from '@/backend/ioc/logger';
 import ffmpeg from 'fluent-ffmpeg';
 import LocationService, { ProgramType } from '@/backend/services/LocationService';
+import { VideoInfo } from '@/common/types/video-info';
 
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
@@ -99,7 +100,34 @@ export default class FfmpegServiceImpl implements FfmpegService {
             });
         });
     }
+    /**
+     * 获取视频文件的详细信息
+     */
+    @WaitLock('ffprobe')
+    @logParams()
+    public async getVideoInfo(filePath: string): Promise<VideoInfo> {
+        // 获取文件基本信息
+        const stats = await fs.promises.stat(filePath);
 
+        // 获取ffprobe信息
+        const probeData = await new Promise<any>((resolve, reject) => {
+            ffmpeg.ffprobe(filePath, (err, metadata) => {
+                if (err) reject(err);
+                else resolve(metadata);
+            });
+        });
+
+        return {
+            filename: path.basename(filePath),
+            duration: probeData.format.duration || 0,
+            size: stats.size,
+            modifiedTime: stats.mtimeMs,
+            createdTime: stats.ctimeMs,
+            bitrate: probeData.format.bit_rate ? parseInt(probeData.format.bit_rate) : undefined,
+            videoCodec: probeData.streams.find((s: any) => s.codec_type === 'video')?.codec_name,
+            audioCodec: probeData.streams.find((s: any) => s.codec_type === 'audio')?.codec_name
+        };
+    }
 
     /**
      * 截取视频的缩略图

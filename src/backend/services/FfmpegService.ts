@@ -1,3 +1,4 @@
+import { VideoInfo } from '@/common/types/video-info';
 
 
 export default interface FfmpegService {
@@ -82,5 +83,10 @@ export default interface FfmpegService {
     }): Promise<string>;
 
     trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
+
+    /**
+     * Get video information
+     */
+    getVideoInfo(filePath: string): Promise<VideoInfo>;
 }
 

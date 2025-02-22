@@ -7,18 +7,8 @@ import OpenAI from 'openai';
 
 import { z } from 'zod';
 import dpLog from '@/backend/ioc/logger';
-
-const WhisperResponseVerifySchema = z.object({
-    language: z.string(),
-    duration: z.union([z.number(), z.string()]),
-    text: z.string(),
-    segments: z.array(z.object({
-        seek: z.number(),
-        start: z.number(),
-        end: z.number(),
-        text: z.string()
-    }))
-});
+import { WhisperResponseFormatError } from '@/backend/errors/errors';
+import { WhisperResponseVerifySchema } from '@/common/types/video-info';
 
 export interface WhisperResponse {
     language: string;
@@ -55,19 +45,13 @@ class OpenAiWhisperRequest implements Cancelable {
     public async invoke(): Promise<WhisperResponse> {
         this.cancel();
         await RateLimiter.wait('whisper');
-        this.abortController = new AbortController();
-        const transcription = await this.openAi.audio.transcriptions.create({
-            file: fs.createReadStream(this.file),
-            model: "whisper-1",
-            response_format: "verbose_json",
-            timestamp_granularities: ["segment"]
-        }, {signal: this.abortController.signal});
+        const transcription = await this.doTranscription();
         // 用 zed 校验一下 transcription 是否为 类型 TranscriptionVerbose
         const parseRes = WhisperResponseVerifySchema.safeParse(transcription);
         if (!parseRes.success) {
             // dperror 为什么不匹配
             dpLog.error('Invalid response from OpenAI', parseRes.error.errors);
-            throw new Error('Invalid response from OpenAI');
+            throw new WhisperResponseFormatError();
         }
         return {
             language: transcription.language,
@@ -79,9 +63,24 @@ class OpenAiWhisperRequest implements Cancelable {
                 start: seg.start,
                 end: seg.end,
                 text: seg.text
-            }))??[]
-        }
+            })) ?? []
+        };
 
+    }
+
+    private async doTranscription() {
+        this.abortController = new AbortController();
+        try {
+            return await this.openAi.audio.transcriptions.create({
+                file: fs.createReadStream(this.file),
+                model: 'whisper-1',
+                response_format: 'verbose_json',
+                timestamp_granularities: ['segment']
+            }, { signal: this.abortController.signal });
+        } catch (error) {
+            dpLog.error(error);
+            throw error;
+        }
     }
 
     public cancel(): void {
