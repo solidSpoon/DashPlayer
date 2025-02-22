@@ -1,10 +1,12 @@
 export type LOCK_KEY =
     | 'ffmpeg'
     | 'ffprobe'
+    | 'whisper'
 
 const LockConfig: Record<LOCK_KEY, { size: number }> = {
     ffmpeg: {size: 5},
-    ffprobe: {size: 5}
+    ffprobe: {size: 5},
+    whisper: {size: 10}
 };
 
 export default class Lock {

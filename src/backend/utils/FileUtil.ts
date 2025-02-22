@@ -4,6 +4,8 @@ import iconv from 'iconv-lite';
 import { dialog } from 'electron';
 import path from 'path';
 import OpenDialogOptions = Electron.OpenDialogOptions;
+import { Nullable } from '@/common/types/Types';
+import { VideoInfo } from '@/common/types/video-info';
 
 /**
  * 装饰器工厂，用于处理路径访问权限错误
@@ -245,5 +247,40 @@ export default class FileUtil {
         } catch (error) {
             return false;
         }
+    }
+
+    /**
+     * 比较两个视频信息是否相同
+     * @returns true 如果视频未被修改，false 如果视频已被修改
+     */
+    public static compareVideoInfo(info1: Nullable<VideoInfo> , info2: Nullable<VideoInfo> ): boolean {
+        if (!info1 || !info2) return false;
+        // 基本信息比较
+        const basicCheck =
+            info1.filename === info2.filename &&
+            info1.size === info2.size &&
+            Math.abs(info1.duration - info2.duration) < 0.1; // 允许0.1秒的误差
+
+        // 如果基本信息不同，直接返回false
+        if (!basicCheck) return false;
+
+        // 编码信息比较（如果都存在的话）
+        if (info1.videoCodec && info2.videoCodec &&
+            info1.videoCodec !== info2.videoCodec) {
+            return false;
+        }
+
+        if (info1.audioCodec && info2.audioCodec &&
+            info1.audioCodec !== info2.audioCodec) {
+            return false;
+        }
+
+        // 比特率比较（如果都存在的话）
+        if (info1.bitrate && info2.bitrate &&
+            Math.abs(info1.bitrate - info2.bitrate) > 1000) { // 允许1kb/s的误差
+            return false;
+        }
+
+        return true;
     }
 }

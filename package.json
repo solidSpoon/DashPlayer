@@ -1,7 +1,7 @@
 {
     "name": "dash-player",
     "productName": "DashPlayer",
-    "version": "5.1.3",
+    "version": "5.1.4",
     "description": "My Electron application description",
     "main": ".vite/build/main.js",
     "scripts": {
@@ -139,6 +139,7 @@
         "tailwind-merge": "^2.2.1",
         "tailwindcss-animate": "^1.0.7",
         "tencentcloud-sdk-nodejs": "^4.0.764",
+        "ts-error": "^1.0.6",
         "vaul": "^0.9.0",
         "zod": "^3.23.8",
         "zod-to-json-schema": "^3.22.5",
