@@ -28,7 +28,7 @@ function toSrt(chunks: SplitChunk[]): string {
     let counter = 1;
     const lines: SrtLine[] = [];
     for (const c of chunks) {
-        const segments = c.response?.segments??[];
+        const segments = c.response?.segments ?? [];
         for (const segment of segments) {
             lines.push({
                 index: counter,
@@ -42,6 +42,9 @@ function toSrt(chunks: SplitChunk[]): string {
     }
     return SrtUtil.toNewSrt(lines);
 }
+
+// 设置过期时间阈值，单位毫秒（此处示例为 3 小时）
+const EXPIRATION_THRESHOLD = 3 * 60 * 60 * 1000;
 
 @injectable()
 class WhisperServiceImpl implements WhisperService {
@@ -88,7 +91,7 @@ class WhisperServiceImpl implements WhisperService {
             // 判断是否需要重新分割转录：状态不为 processed、文件过期（3小时）或视频文件发生变化
             const newVideoInfo = await this.ffmpegService.getVideoInfo(filePath);
             const videoChanged = !FileUtil.compareVideoInfo(context.videoInfo, newVideoInfo);
-            const expired = Date.now() - context.updatedTime > 3 * 60 * 60 * 1000; // 3 小时
+            const expired = Date.now() - context.updatedTime > EXPIRATION_THRESHOLD;
             if (context.state !== 'processed' || expired || videoChanged) {
                 // 重新转换并分割
                 await this.convertAndSplit(taskId, context);
@@ -151,13 +154,14 @@ class WhisperServiceImpl implements WhisperService {
         } catch (error) {
             dpLog.error(error);
             if (!(error instanceof Error)) throw error;
-            const cancel = error instanceof CancelByUserError
+            const cancel = error instanceof CancelByUserError;
             this.dpTaskService.update({
                 id: taskId,
                 status: cancel ? DpTaskState.CANCELLED : DpTaskState.FAILED,
                 progress: cancel ? '任务取消' : error.message
             });
         }
+        await this.cleanExpiredFolders();
     }
 
     /**
@@ -237,6 +241,54 @@ class WhisperServiceImpl implements WhisperService {
             fs.mkdirSync(tempDir, { recursive: true });
         }
         return tempDir;
+    }
+
+    /**
+     * 扫描 whisper 的临时目录，删除超过有效期的目录
+     */
+    private cleanExpiredFolders(): void {
+        try {
+            const whisperBaseDir = path.join(
+                this.locationService.getDetailLibraryPath(LocationType.TEMP),
+                'whisper'
+            );
+            if (!fs.existsSync(whisperBaseDir)) return;
+            const folders = fs.readdirSync(whisperBaseDir);
+            for (const folderName of folders) {
+                const folderPath = path.join(whisperBaseDir, folderName);
+                if (!fs.statSync(folderPath).isDirectory()) continue;
+                let folderExpired = false;
+                const infoPath = path.join(folderPath, WhisperServiceImpl.INFO_FILE);
+                if (fs.existsSync(infoPath)) {
+                    try {
+                        const content = fs.readFileSync(infoPath, { encoding: 'utf8' });
+                        const info = JSON.parse(content) as Partial<WhisperContext>;
+                        // 检查 updatedTime 是否存在且是数字，否则直接认定为过期
+                        if (
+                            typeof info.updatedTime !== 'number' ||
+                            Date.now() - info.updatedTime > EXPIRATION_THRESHOLD
+                        ) {
+                            folderExpired = true;
+                        }
+                    } catch (err) {
+                        dpLog.warn(
+                            `[WhisperService] 解析${infoPath}失败：${err}，将直接删除此目录`
+                        );
+                        folderExpired = true;
+                    }
+                } else {
+                    // info.json 不存在直接删除
+                    folderExpired = true;
+                }
+                if (folderExpired) {
+                    dpLog.info(`[WhisperService] 删除过期目录: ${folderPath}`);
+                    // 删除整个文件夹（包括目录下的所有内容）
+                    fs.rmSync(folderPath, { recursive: true, force: true });
+                }
+            }
+        } catch (err) {
+            dpLog.error(`[WhisperService] 清理过期目录失败：${err}`);
+        }
     }
 }
 
