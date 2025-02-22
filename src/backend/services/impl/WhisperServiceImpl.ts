@@ -94,6 +94,7 @@ class WhisperServiceImpl implements WhisperService {
                 await this.convertAndSplit(taskId, context);
                 context.videoInfo = newVideoInfo;
                 context.updatedTime = Date.now();
+                context.state = 'processed';
                 // 先保存最新的 chunks 信息
                 configTender.save(context);
             }
