@@ -59,7 +59,9 @@ const TranslatableLine = ({
                             <TooltipTrigger asChild>
                                 <Button
                                     onClick={clearAdjust}
-                                    variant={'ghost'} size={'icon'}>
+                                    variant={'ghost'} size={'icon'}
+                                    className={cn('[&_svg]:size-7')}
+                                >
                                     <AiOutlineFieldTime className={cn('fill-black')} />
                                 </Button>
                             </TooltipTrigger>
