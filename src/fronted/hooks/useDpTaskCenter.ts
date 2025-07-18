@@ -1,25 +1,15 @@
-import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
-import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
-import { emptyFunc, sleep } from '@/common/utils/Util';
+import {create} from 'zustand';
+import {subscribeWithSelector} from 'zustand/middleware';
+import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
+import {emptyFunc} from '@/common/utils/Util';
 
 const api = window.electron;
 
-export interface Listener {
-    taskId: number;
-    onFinish: (task: DpTask) => void;
-    onUpdated: (task: DpTask) => void;
-    createAt: number;
-    interval: number;
-}
-
 type UseDpTaskCenterState = {
-    listeners: Listener[];
     tasks: Map<number, DpTask | 'init'>;
 };
 
 type DpTaskConfig = {
-    interval?: number;
     onFinish?: (task: DpTask) => void;
     onUpdated?: (task: DpTask) => void;
 };
@@ -30,103 +20,101 @@ type UseDpTaskCenterStateAction = {
 
 const useDpTaskCenter = create(
     subscribeWithSelector<UseDpTaskCenterState & UseDpTaskCenterStateAction>((set, get) => ({
-        listeners: [],
         tasks: new Map(),
         register: async (func, config) => {
+            // 1. 执行后端任务创建函数
             const taskId = await func();
-            const tasks = new Map(get().tasks);
-            tasks.set(taskId, 'init');
-            set({ tasks });
-            const newListeners = [...get().listeners];
 
-            const time = new Date().getTime();
-            newListeners.push({
-                taskId,
-                onFinish: config?.onFinish ?? emptyFunc,
-                onUpdated: config?.onUpdated ?? emptyFunc,
-                interval: config?.interval ?? 1000,
-                createAt: time
-            });
-            console.log('register', taskId, newListeners);
-            set({ listeners: newListeners });
+            // 2. (可选) 立即获取一次任务状态，填充缓存
+            // 这样UI可以几乎无延迟地显示 "初始化中..."
+            get().tryRegister(taskId);
+
+            // 3. 使用 zustand.subscribe 来处理回调
+            const onUpdated = config?.onUpdated ?? emptyFunc;
+            const onFinish = config?.onFinish ?? emptyFunc;
+
+            // 如果有任何回调，则创建订阅
+            if (config?.onFinish || config?.onUpdated) {
+                const unsubscribe = useDpTaskCenter.subscribe(
+                    // 订阅 specific task 的变化
+                    state => state.tasks.get(taskId),
+                    (task, previousTask) => {
+                        if (task && task !== 'init') {
+                            // 触发 onUpdated 回调
+                            onUpdated(task);
+
+                            // 检查是否为最终状态
+                            const isFinalState =
+                                task.status === DpTaskState.DONE ||
+                                task.status === DpTaskState.FAILED ||
+                                task.status === DpTaskState.CANCELLED;
+
+                            if (isFinalState) {
+                                // 触发 onFinish 回调
+                                onFinish(task);
+                                // 任务结束后，自动取消订阅，避免内存泄漏
+                                unsubscribe();
+                            }
+                        }
+                    }
+                );
+            }
+
             return taskId;
         },
-        tryRegister(taskId: number) {
-            if (!get().tasks.has(taskId)) {
-                get().register(async () => taskId);
+        tryRegister: async (taskId) => {
+            const existing = get().tasks.get(taskId);
+            if (existing && existing !== 'init') return existing as DpTask;
+            if (existing === 'init') return null;
+
+            set(state => ({tasks: new Map(state.tasks).set(taskId, 'init')}));
+            try {
+                const task = await api.call('dp-task/detail', taskId);
+                if (!task) {
+                    console.warn(`Task ${taskId} not found, removing from cache.`);
+                    set(state => {
+                        const newTasks = new Map(state.tasks);
+                        newTasks.delete(taskId);
+                        return {tasks: newTasks};
+                    });
+                    return null;
+                }
+                set(state => ({tasks: new Map(state.tasks).set(taskId, task)}));
+                return task;
+            } catch (error) {
+                console.error(`Failed to fetch initial state for task ${taskId}:`, error);
+                set(state => {
+                    const newTasks = new Map(state.tasks);
+                    newTasks.delete(taskId);
+                    return {tasks: newTasks};
+                });
+                return null;
             }
-        }
+        },
     }))
 );
 
 export default useDpTaskCenter;
 
-let running = false;
-useDpTaskCenter.subscribe(
-    (s) => s.listeners,
-    async () => {
-        console.log('try start fetching tasks');
-        if (running) return;
-        running = true;
-        console.log('start fetching tasks');
-
-        const localTasks: Map<number, Listener> = new Map();
-        const updateMapping = new Map<number, number>();
-        const listeners = useDpTaskCenter.getState().listeners;
-        listeners.forEach(l => {
-            localTasks.set(l.taskId, l);
-            updateMapping.set(l.taskId, 0);
-            console.log('add tasks listener', l.taskId);
+// --- 全局监听器管理 (不变) ---
+let cleanupListener: (() => void) | null = null;
+export const startListeningToDpTasks = () => {
+    if (!cleanupListener) {
+        cleanupListener = api.onTaskUpdate((updatedTask: DpTask) => {
+            if (!updatedTask || !updatedTask.id) return;
+            console.log('on task update', updatedTask.id, updatedTask.status);
+            useDpTaskCenter.setState(state => ({
+                tasks: new Map(state.tasks).set(updatedTask.id, updatedTask)
+            }));
         });
-        useDpTaskCenter.getState().listeners.splice(0);
-        while (localTasks.size > 0) {
-            let sleepTime = 1000;
-            const time = new Date().getTime();
-            const taskIds = Array.from(localTasks.values())
-                .filter(l => time - (updateMapping?.get(l.taskId) ?? 0) >= l.interval)
-                .map(l => l.taskId);
-            sleepTime = Math.min(sleepTime, ...Array.from(localTasks.values()).map(l => l.interval));
-            const tasksResp = await api.call('dp-task/details', taskIds);
-            const newHookTasks = new Map();
-            Array.from(tasksResp.values()).forEach(t => {
-                newHookTasks.set(t.id, t);
-                if (t.status === DpTaskState.DONE
-                    || t.status === DpTaskState.FAILED
-                    || t.status === DpTaskState.CANCELLED
-                ) {
-                    localTasks.get(t.id)?.onUpdated(t);
-                    try {
-                        localTasks.get(t.id)?.onFinish(t);
-                    } catch (e) {
-                        console.error(e);
-                    }
-                    localTasks.delete(t.id);
-                    updateMapping.delete(t.id);
-                } else if (t.status === DpTaskState.INIT || t.status === DpTaskState.IN_PROGRESS) {
-                    updateMapping.set(t.id, time);
-                    localTasks.get(t.id)?.onUpdated(t);
-                } else {
-                    localTasks.delete(t.id);
-                    updateMapping.delete(t.id);
-                }
-            });
-            const temp = new Map(useDpTaskCenter.getState().tasks);
-            newHookTasks.forEach((v, k) => {
-                temp.set(k, v);
-            });
-            useDpTaskCenter.setState({ tasks: temp });
-            await sleep(sleepTime);
-            useDpTaskCenter.getState().listeners.forEach(l => {
-                localTasks.set(l.taskId, l);
-                updateMapping.set(l.taskId, 0);
-                console.log('add tasks listener', l.taskId);
-            });
-            useDpTaskCenter.getState().listeners.splice(0);
-        }
-        console.log('end fetching tasks');
-        running = false;
     }
-);
+};
+export const stopListeningToDpTasks = () => {
+    if (cleanupListener) {
+        cleanupListener();
+        cleanupListener = null;
+    }
+};
 
 export const getDpTask = async (taskId: number | null | undefined): Promise<DpTask | null> => {
     if (taskId === null || taskId === undefined) {

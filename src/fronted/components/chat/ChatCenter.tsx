@@ -55,11 +55,14 @@ const ChatCenter = () => {
 
     const taskIds = messages.flatMap((msg) => msg.getTaskIds());
     const hasUnFinishedTask: boolean = useDpTaskCenter((s) => {
+        if (!taskIds || taskIds.length === 0) {
+            return false;
+        }
         const ts: DpTask[] = taskIds.map(taskId => s.tasks.get(taskId))
-            .filter((task): task is DpTask => task && task !== 'init');
-        return ts.filter(task => (task?.status??DpTaskState.DONE)  !== DpTaskState.DONE)
-            .length > 0;
-    });
+            .filter((task): task is DpTask => !!task && task !== 'init');
+        return ts.some(task => task.status !== DpTaskState.DONE);
+    }) ?? false;
+
     console.log('hasUnFinishedTask', hasUnFinishedTask);
 
     return (
