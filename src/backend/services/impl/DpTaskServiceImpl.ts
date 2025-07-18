@@ -184,6 +184,9 @@ export default class DpTaskServiceImpl implements DpTaskService {
         }, 3000);
     }
 
+    /**
+     * 应用重启时取消所有任务
+     */
     public static async cancelAll() {
         await db
             .update(dpTask)

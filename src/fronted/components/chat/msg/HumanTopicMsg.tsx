@@ -65,7 +65,7 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     };
 
 
-    console.log('HumanTopicMsg', res);
+    // console.log('HumanTopicMsg', res);
     const content = process(msg.content, res);
     return (
         <div

@@ -417,7 +417,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     @postConstruct()
     public postConstruct() {
         const func = async () => {
-            dpLog.info('FavouriteClipsServiceImpl task start');
+            // dpLog.info('FavouriteClipsServiceImpl task start');
             await this.checkQueue();
             setTimeout(func, 1000);
         };

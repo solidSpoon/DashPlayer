@@ -102,7 +102,7 @@ export const startListeningToDpTasks = () => {
     if (!cleanupListener) {
         cleanupListener = api.onTaskUpdate((updatedTask: DpTask) => {
             if (!updatedTask || !updatedTask.id) return;
-            console.log('on task update', updatedTask.id, updatedTask.status);
+            // console.log('on task update', updatedTask.id, updatedTask.status);
             useDpTaskCenter.setState(state => ({
                 tasks: new Map(state.tasks).set(updatedTask.id, updatedTask)
             }));
