@@ -74,9 +74,6 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                         if (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none'])) {
                             onDelete();
                         } else {
-                            toast('发送了取消请求', {
-                                icon: '🚀'
-                            });
                             api.call('dp-task/cancel', taskId ?? undefined);
                         }
                     }}
