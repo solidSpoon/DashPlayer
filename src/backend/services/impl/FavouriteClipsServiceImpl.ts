@@ -1,4 +1,3 @@
-import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import path from 'path';
 import db from '@/backend/db';
@@ -24,6 +23,7 @@ import TagService from '@/backend/services/TagService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/services/FfmpegService';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
+import SrtUtil, { SrtLine } from "@/common/utils/SrtUtil";
 
 type ClipTask = {
     videoPath: string,
@@ -84,9 +84,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
         const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.toSrtLine(sentence));
-        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.toSrt(clipContext);
+            .map((sentence) => SrtUtil.fromSentence(sentence));
+        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
+        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
         return hash(contentSrtStr);
     }
 
@@ -169,25 +169,25 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
 
     private mapTrimRange(srt: SrtSentence, indexInSrt: number): [number, number] {
         const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.toSrtLine(sentence));
-        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
+            .map((sentence) => SrtUtil.fromSentence(sentence));
+        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
         const startTime = clipContext[0].start ?? 0;
         return [startTime, clipContext[clipContext.length - 1].end ?? 0];
     }
 
     private mapToMetaKey(srt: SrtSentence, indexInSrt: number): string {
         const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.toSrtLine(sentence));
-        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.toSrt(clipContext);
+            .map((sentence) => SrtUtil.fromSentence(sentence));
+        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
+        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
         return hash(contentSrtStr);
     }
 
     private mapToMetaData(videoPath: string, srt: SrtSentence, indexInSrt: number): ClipMeta {
         const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.toSrtLine(sentence));
-        const clipContext = SrtUtil.srtAround(srtLines, indexInSrt, 5);
-        const clipLine = SrtUtil.srtAt(srtLines, indexInSrt) as SrtLine;
+            .map((sentence) => SrtUtil.fromSentence(sentence));
+        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
+        const clipLine = SrtUtil.findByIndex(srtLines, indexInSrt) as SrtLine;
         clipContext.map((item) =>
             item.contentEn
         ).filter((item) => StrUtil.isNotBlank(item)).join('\n');

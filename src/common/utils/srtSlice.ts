@@ -1,4 +1,4 @@
-import SrtUtil from '@/common/utils/SrtUtil';
+import SrtUtil from "@/common/utils/SrtUtil";
 
 /**
  * 将 SRT 文件切片，返回指定范围内的字幕内容。

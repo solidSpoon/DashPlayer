@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '../DpTaskService';
@@ -18,6 +17,7 @@ import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } fro
 import { ConfigTender } from '@/backend/objs/config-tender';
 import FileUtil from '@/backend/utils/FileUtil';
 import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
+import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 
 /**
  * 将 Whisper 的 API 响应转换成 SRT 文件格式
@@ -40,7 +40,9 @@ function toSrt(chunks: SplitChunk[]): string {
             counter++;
         }
     }
-    return SrtUtil.toNewSrt(lines);
+    return SrtUtil.srtLinesToSrt(lines, {
+        reindex: true,
+    });
 }
 
 // 设置过期时间阈值，单位毫秒（此处示例为 3 小时）
