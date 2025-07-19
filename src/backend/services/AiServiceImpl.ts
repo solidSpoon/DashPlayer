@@ -15,6 +15,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/services/ChatService';
 import SrtUtil from "@/common/utils/SrtUtil";
+import { pipe } from 'lodash/fp';
 
 export interface AiService {
     polish(taskId: number, sentence: string): Promise<void>;
@@ -139,8 +140,9 @@ export default class AiServiceImpl implements AiService {
     public async punctuation(taskId: number, no: number, fullSrt: string) {
         const srtLines = SrtUtil.parseSrt(fullSrt);
         const sentence = SrtUtil.findByIndex(srtLines, no)?.contentEn ?? '';
-        const aroundLines = SrtUtil.getAround(srtLines, no, 5);
-        const around = SrtUtil.srtLinesToSrt(aroundLines);
+        const rangePipe = pipe(SrtUtil.getAround, SrtUtil.srtLinesToSrt);
+        // 获取前后5行字幕
+        const around = rangePipe(srtLines, no, 5);
         await this.chatService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, around));
     }
 
