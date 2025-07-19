@@ -92,14 +92,16 @@ export class FfmpegCommands {
      * 构建生成缩略图命令
      */
     static buildThumbnail(inputFile: string, outputFolder: string, outputFileName: string, time: number): ffmpeg.FfmpegCommand {
-        const timeStr = TimeUtil.secondToTimeStr(time);
-        return ffmpeg(inputFile).screenshots({
-            timestamps: [timeStr],
-            filename: outputFileName,
-            folder: outputFolder,
-            size: '320x?'
-        });
+        const outputPath = path.join(outputFolder, outputFileName);
+
+        return ffmpeg(inputFile)
+            .seekInput(time)
+            .frames(1)
+            .size('320x?')
+            .output(outputPath);
     }
+
+
 
     /**
      * 构建裁剪视频命令

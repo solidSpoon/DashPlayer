@@ -140,7 +140,7 @@ export default class SrtUtil {
      */
     public static validateSrtLine(srtLine: SrtLine): boolean {
         return (
-            srtLine.index > 0 &&
+            srtLine.index >= 0 &&
             srtLine.start >= 0 &&
             srtLine.end > srtLine.start &&
             isFinite(srtLine.start) &&
