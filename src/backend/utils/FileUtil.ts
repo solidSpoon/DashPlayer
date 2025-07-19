@@ -240,7 +240,7 @@ export default class FileUtil {
     /**
      * 路径是否存在
      */
-    public static async exists(path: string): Promise<boolean> {
+    public static async pathExists(path: string): Promise<boolean> {
         try {
             await fsPromises.access(path);
             return true;
@@ -248,6 +248,18 @@ export default class FileUtil {
             return false;
         }
     }
+    /**
+     * 文件是否存在
+     */
+    public static async fileExists(path: string): Promise<boolean> {
+        try {
+            const stats = await fsPromises.stat(path);
+            return stats.isFile();
+        } catch (error) {
+            return false;
+        }
+    }
+
 
     /**
      * 比较两个视频信息是否相同

@@ -212,6 +212,12 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             return null;
         }
         let srtFile = history.srt_file;
+        if (StrUtil.isNotBlank(srtFile)) {
+            const exists = await FileUtil.fileExists(srtFile);
+            if (!exists) {
+                srtFile = '';
+            }
+        }
         if (StrUtil.isBlank(srtFile)) {
             const srtFiles = await this.listSrtFiles(base_path);
             srtFile = MatchSrt.matchOne(filePath, srtFiles);
