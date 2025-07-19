@@ -59,9 +59,9 @@ const Transcript = () => {
                         }}
                         variant={'ghost'}
                     >
-                        <Captions className="mr-2 h-4 w-4" />生成字幕
-                        {inProgress &&
-                            <span className="ml-1 text-xs text-gray-500"><span className={'font-mono'}>{Math.floor(duration / 1000)}</span> 秒</span>}
+                        <Captions className="mr-2 h-4 w-4" />
+                        {inProgress ? task?.progress ?? '转录中' : '生成字幕'
+                        }
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
