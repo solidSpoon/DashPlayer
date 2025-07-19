@@ -32,10 +32,42 @@ const ChatCenter = () => {
         input: s.input,
         setInput: s.setInput,
     })));
+
     const inputRef = React.useRef<HTMLTextAreaElement>(null);
     const formRef = React.useRef<HTMLFormElement>(null);
+    // 添加消息容器的 ref
+    const messagesContainerRef = React.useRef<HTMLDivElement>(null);
+
     // 中文输入法状态
     const [isComposing, setIsComposing] = React.useState(false);
+    // 智能滚动状态
+    const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true);
+
+    // 自动滚动到底部的函数
+    const scrollToBottom = React.useCallback(() => {
+        if (messagesContainerRef.current && shouldAutoScroll) {
+            messagesContainerRef.current.scrollTo({
+                top: messagesContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [shouldAutoScroll]);
+
+    // 监听消息变化，自动滚动到底部
+    React.useEffect(() => {
+        // 使用 setTimeout 确保 DOM 更新完成后再滚动
+        const timer = setTimeout(scrollToBottom, 0);
+        return () => clearTimeout(timer);
+    }, [messages, streamingMessage, scrollToBottom]);
+
+    // 处理滚动事件，检测用户是否在底部
+    const handleScroll = React.useCallback(() => {
+        if (messagesContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+            setShouldAutoScroll(isNearBottom);
+        }
+    }, []);
 
     const mapping = (msg: CustomMessage<any>) => {
         switch (msg.msgType) {
@@ -76,6 +108,8 @@ const ChatCenter = () => {
         const trimmedInput = input.trim();
         if (!trimmedInput || hasUnFinishedTask) return;
 
+        // 发送消息前强制设置自动滚动为 true
+        setShouldAutoScroll(true);
         await sent(trimmedInput);
         setInput('');
         inputRef.current?.focus();
@@ -113,8 +147,10 @@ const ChatCenter = () => {
 
     return (
         <div
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
             className={cn('w-full grow-0 flex flex-col px-2 overflow-y-auto gap-4',
-            'scrollbar-none',
+                'scrollbar-none',
             )}
         >
             {
