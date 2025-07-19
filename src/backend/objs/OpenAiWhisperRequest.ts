@@ -1,12 +1,12 @@
 import { storeGet } from '@/backend/store';
 import fs from 'fs';
-import RateLimiter from '@/common/utils/RateLimiter';
 import StrUtil from '@/common/utils/str-util';
 import { Cancelable } from '@/common/interfaces';
 import OpenAI from 'openai';
 import dpLog from '@/backend/ioc/logger';
 import { WhisperResponseFormatError } from '@/backend/errors/errors';
 import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
+import {WaitRateLimit} from "@/common/utils/RateLimiter";
 
 class OpenAiWhisperRequest implements Cancelable {
     private readonly file: string;
@@ -27,9 +27,9 @@ class OpenAiWhisperRequest implements Cancelable {
         return new OpenAiWhisperRequest(openai, file);
     }
 
+    @WaitRateLimit('whisper')
     public async invoke(): Promise<WhisperResponse> {
         this.cancel();
-        await RateLimiter.wait('whisper');
         const transcription = await this.doTranscription();
         // 用 zed 校验一下 transcription 是否为 类型 TranscriptionVerbose
         const parseRes = WhisperResponseVerifySchema.safeParse(transcription);

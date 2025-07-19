@@ -1,4 +1,3 @@
-import RateLimiter from '@/common/utils/RateLimiter';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
@@ -7,6 +6,7 @@ import { ZodObject } from 'zod';
 import { CoreMessage, streamObject, streamText } from 'ai';
 import AiProviderService from '@/backend/services/AiProviderService';
 import {AiStringResponse} from "@/common/types/aiRes/AiStringResponse";
+import { WaitRateLimit } from '@/common/utils/RateLimiter';
 @injectable()
 export default class ChatServiceImpl implements ChatService {
 
@@ -17,8 +17,8 @@ export default class ChatServiceImpl implements ChatService {
     private aiProviderService!: AiProviderService;
 
 
+    @WaitRateLimit('gpt')
     public async chat(taskId: number, msgs: CoreMessage[]) {
-        await RateLimiter.wait('gpt');
         const model = this.aiProviderService.getModel();
         if (!model) {
             this.dpTaskService.fail(taskId, {
@@ -51,8 +51,8 @@ export default class ChatServiceImpl implements ChatService {
         });
     }
 
+    @WaitRateLimit('gpt')
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
-        await RateLimiter.wait('gpt');
         const model = this.aiProviderService.getModel();
         if (!model) {
             this.dpTaskService.fail(taskId, {

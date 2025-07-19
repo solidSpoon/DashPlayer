@@ -1,9 +1,9 @@
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { ClientConfig } from 'tencentcloud-sdk-nodejs/tencentcloud/common/interface';
 import TransHolder from '@/common/utils/TransHolder';
-import RateLimiter from '@/common/utils/RateLimiter';
 import dpLog from '@/backend/ioc/logger';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
+import {WaitRateLimit} from "@/common/utils/RateLimiter";
 
 class TencentClient extends Client {
     private readonly SIZE_LIMIT: number;
@@ -42,8 +42,8 @@ class TencentClient extends Client {
         }
     }
 
+    @WaitRateLimit('tencent')
     private async trans(source: string[]) {
-        await RateLimiter.wait('tencent');
         const param = {
             Source: 'en',
             Target: 'zh',
