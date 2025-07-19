@@ -120,7 +120,7 @@ class WhisperServiceImpl implements WhisperService {
             let completedCount = context.chunks.filter(chunk => chunk.response).length;
 
             this.dpTaskService.process(taskId, {
-                progress: `正在转录 ${Math.floor((completedCount / context.chunks.length) * 100)}%`
+                progress: `正在转录 ${Math.floor((completedCount / context.chunks.length) * 100 * 0.6) + 40}%`
             });
 
             try {
@@ -130,7 +130,7 @@ class WhisperServiceImpl implements WhisperService {
                     if (chunk.response) return;
                     await this.whisperThreeTimes(taskId, chunk);
                     completedCount = context.chunks.filter(chunk => chunk.response).length;
-                    const progress = Math.floor((completedCount / context.chunks.length) * 100);
+                    const progress = Math.floor((completedCount / context.chunks.length) * 100 * 0.6) + 40;
                     this.dpTaskService.update({ id: taskId, progress: `正在转录 ${progress}%` });
                 }));
                 // 检查是否有错误
@@ -163,7 +163,7 @@ class WhisperServiceImpl implements WhisperService {
                 progress: cancel ? '任务取消' : error.message
             });
         }
-        await this.cleanExpiredFolders();
+        this.cleanExpiredFolders();
     }
 
     /**
@@ -221,7 +221,13 @@ class WhisperServiceImpl implements WhisperService {
             taskId,
             inputFile: context.filePath,
             outputFolder: context.folder,
-            segmentTime: 60
+            segmentTime: 60,
+            onProgress: (progress) => {
+                this.dpTaskService.update({
+                    id: taskId,
+                    progress: `正在分割音频 ${Math.floor(progress * 0.4)}%`
+                });
+            }
         });
         const chunks: SplitChunk[] = [];
         let offset = 0;

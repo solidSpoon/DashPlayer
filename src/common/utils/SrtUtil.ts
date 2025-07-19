@@ -82,7 +82,8 @@ export default class SrtUtil {
             throw new Error('Invalid seconds value');
         }
 
-        const duration = moment.duration(seconds * 1000);
+        const totalMs = Math.round(seconds * 1000);
+        const duration = moment.duration(totalMs);
 
         const hours = Math.floor(duration.asHours()).toString().padStart(2, '0');
         const minutes = duration.minutes().toString().padStart(2, '0');

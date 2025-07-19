@@ -1,4 +1,4 @@
-import { VideoInfo } from '@/common/types/video-info';
+import {VideoInfo} from '@/common/types/video-info';
 
 
 export default interface FfmpegService {
@@ -44,12 +44,14 @@ export default interface FfmpegService {
                      taskId,
                      inputFile,
                      outputFolder,
-                     segmentTime
+                     segmentTime,
+                     onProgress
                  }: {
         taskId: number,
         inputFile: string,
         outputFolder: string,
         segmentTime: number,
+        onProgress?: (progress: number) => void
     }): Promise<string[]>;
 
     toMp4({

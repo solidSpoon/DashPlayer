@@ -1,19 +1,19 @@
 // @/backend/services/impl/FfmpegServiceImpl.ts
-import { inject, injectable, postConstruct } from 'inversify';
-import { WaitLock } from '@/common/utils/Lock';
-import { spawn } from 'child_process';
+import {inject, injectable, postConstruct} from 'inversify';
+import {WaitLock} from '@/common/utils/Lock';
+import {spawn} from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
 import DpTaskService from '@/backend/services/DpTaskService';
-import LocationService, { ProgramType } from '@/backend/services/LocationService';
+import LocationService, {ProgramType} from '@/backend/services/LocationService';
 import FfmpegTask from '@/backend/objs/FfmpegTask';
 import dpLog from '@/backend/ioc/logger';
-import { VideoInfo } from '@/common/types/video-info';
-import { CancelByUserError } from '@/backend/errors/errors';
-import { FfmpegCommands } from '@/backend/utils/FfmpegCommands';
+import {VideoInfo} from '@/common/types/video-info';
+import {CancelByUserError} from '@/backend/errors/errors';
+import {FfmpegCommands} from '@/backend/utils/FfmpegCommands';
 
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
@@ -120,7 +120,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const actualTime = Math.min(time, totalDuration);
 
         if (!fs.existsSync(outputFolder)) {
-            fs.mkdirSync(outputFolder, { recursive: true });
+            fs.mkdirSync(outputFolder, {recursive: true});
         }
 
         const command = FfmpegCommands.buildThumbnail(inputFile, outputFolder, outputFileName, actualTime);
@@ -135,17 +135,21 @@ export default class FfmpegServiceImpl implements FfmpegService {
                                   taskId,
                                   inputFile,
                                   outputFolder,
-                                  segmentTime
+                                  segmentTime,
+                                  onProgress
                               }: {
         taskId: number,
         inputFile: string,
         outputFolder: string,
         segmentTime: number,
+        onProgress?: (percent: number) => void
     }): Promise<string[]> {
         const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
         const command = FfmpegCommands.buildSplitToAudio(inputFile, segmentTime, outputFormat);
-
-        await this.executeFluentCommand(command, { taskId });
+        await this.executeFluentCommand(command, {
+            taskId,
+            onProgress: onProgress ? onProgress : undefined
+        });
         return await this.getOutputFiles(outputFolder, 'output_', '.mp3');
     }
 
@@ -163,7 +167,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
         const command = FfmpegCommands.buildToMp4(inputFile, outputFile);
 
-        await this.executeFluentCommand(command, { onProgress });
+        await this.executeFluentCommand(command, {onProgress});
         return outputFile;
     }
 
@@ -183,7 +187,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
         const command = FfmpegCommands.buildMkvToMp4(inputFile, outputFile);
 
-        await this.executeFluentCommand(command, { taskId, onProgress });
+        await this.executeFluentCommand(command, {taskId, onProgress});
         return outputFile;
     }
 
@@ -205,7 +209,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const outputFile = inputFile.replace(path.extname(inputFile), '.srt');
         const command = FfmpegCommands.buildExtractSubtitles(inputFile, outputFile, en);
 
-        await this.executeFluentCommand(command, { taskId, onProgress });
+        await this.executeFluentCommand(command, {taskId, onProgress});
         return outputFile;
     }
 
@@ -233,7 +237,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
             onProgress?: (progress: number) => void
         } = {}
     ): Promise<void> {
-        const { taskId, onProgress } = options;
+        const {taskId, onProgress} = options;
 
         return new Promise<void>((resolve, reject) => {
             if (taskId) {
@@ -246,7 +250,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 })
                 .on('progress', (progress) => {
                     if (progress.percent && onProgress) {
-                        onProgress(progress.percent);
+                        onProgress(Math.floor(Math.max(progress.percent, 0)));
                     }
                 })
                 .on('end', () => {
