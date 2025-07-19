@@ -60,6 +60,7 @@ const ChatCenter = () => {
         }
         const ts: DpTask[] = taskIds.map(taskId => s.tasks.get(taskId))
             .filter((task): task is DpTask => !!task && task !== 'init');
+        console.log('hasUnFinishedTask', ts);
         return ts.some(task => task.status !== DpTaskState.DONE);
     }) ?? false;
 
