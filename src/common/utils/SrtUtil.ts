@@ -122,7 +122,7 @@ export default class SrtUtil {
         for (const line of lines) {
             const trimmedLine = Util.trim(line);
             if (trimmedLine) {
-                if (this.isChinese(line)) {
+                if (SrtUtil.isChinese(line)) {
                     contentZh.push(trimmedLine);
                 } else {
                     contentEn.push(trimmedLine);
@@ -199,7 +199,7 @@ export default class SrtUtil {
             contentZh
         };
 
-        if (!this.validateSrtLine(srtLine)) {
+        if (!SrtUtil.validateSrtLine(srtLine)) {
             throw new Error('Invalid SrtLine parameters');
         }
 
@@ -210,7 +210,7 @@ export default class SrtUtil {
      * 从 Sentence 创建 SrtLine（复用 createSrtLine）
      */
     public static fromSentence(sentence: Sentence): SrtLine {
-        return this.createSrtLine(
+        return SrtUtil.createSrtLine(
             sentence.index,
             sentence.start,
             sentence.end,
@@ -223,7 +223,7 @@ export default class SrtUtil {
      * 克隆 SrtLine（复用 createSrtLine）
      */
     public static cloneSrtLine(srtLine: SrtLine): SrtLine {
-        return this.createSrtLine(
+        return SrtUtil.createSrtLine(
             srtLine.index,
             srtLine.start,
             srtLine.end,
@@ -239,7 +239,7 @@ export default class SrtUtil {
         srtLine: SrtLine,
         updates: Partial<Omit<SrtLine, 'readonly'>>
     ): SrtLine {
-        return this.createSrtLine(
+        return SrtUtil.createSrtLine(
             updates.index ?? srtLine.index,
             updates.start ?? srtLine.start,
             updates.end ?? srtLine.end,
@@ -298,31 +298,31 @@ export default class SrtUtil {
         }
 
         // 复用时间解析方法
-        const start = this.timeStringToSeconds(timeParts[0].trim());
-        const end = this.timeStringToSeconds(timeParts[1].trim());
+        const start = SrtUtil.timeStringToSeconds(timeParts[0].trim());
+        const end = SrtUtil.timeStringToSeconds(timeParts[1].trim());
 
         if (end <= start) {
             throw new Error('End time must be greater than start time');
         }
 
         // 复用内容解析方法
-        const { contentEn, contentZh } = this.parseContentLines(parsedBlock.contentLines);
+        const { contentEn, contentZh } = SrtUtil.parseContentLines(parsedBlock.contentLines);
 
         // 复用创建方法
-        return this.createSrtLine(parsedBlock.index, start, end, contentEn, contentZh);
+        return SrtUtil.createSrtLine(parsedBlock.index, start, end, contentEn, contentZh);
     }
 
     /**
      * 直接将 SRT 文本块转换为 SrtLine（复用解析方法）
      */
     public static srtBlockToSrtLine(block: Nullable<string>): SrtLine | null {
-        const parsedBlock = this.parseSrtBlock(block);
+        const parsedBlock = SrtUtil.parseSrtBlock(block);
         if (!parsedBlock) {
             return null;
         }
 
         try {
-            return this.parsedBlockToSrtLine(parsedBlock);
+            return SrtUtil.parsedBlockToSrtLine(parsedBlock);
         } catch (error: unknown) {
             console.warn('Failed to convert SRT block to SrtLine:', getErrorMessage(error));
             return null;
@@ -351,12 +351,12 @@ export default class SrtUtil {
         const index = useOriginalIndex ? srtLine.index : (newIndex ?? srtLine.index);
 
         // 复用时间转换方法
-        const startTime = this.secondsToTimeString(srtLine.start);
-        const endTime = this.secondsToTimeString(srtLine.end);
+        const startTime = SrtUtil.secondsToTimeString(srtLine.start);
+        const endTime = SrtUtil.secondsToTimeString(srtLine.end);
         const timeString = `${startTime} --> ${endTime}`;
 
         // 复用内容获取方法
-        const content = this.getContentByType(srtLine, contentType, separator);
+        const content = SrtUtil.getContentByType(srtLine, contentType, separator);
 
         return `${index}\n${timeString}\n${content}`;
     }
@@ -367,7 +367,7 @@ export default class SrtUtil {
      * 按时间排序（复用验证方法）
      */
     public static sortByTime(srtLines: SrtLine[]): SrtLine[] {
-        return srtLines.filter(line => this.validateSrtLine(line))
+        return srtLines.filter(line => SrtUtil.validateSrtLine(line))
             .sort((a, b) => a.start - b.start);
     }
 
@@ -375,7 +375,7 @@ export default class SrtUtil {
      * 按索引排序（复用验证方法）
      */
     public static sortByIndex(srtLines: SrtLine[]): SrtLine[] {
-        return srtLines.filter(line => this.validateSrtLine(line))
+        return srtLines.filter(line => SrtUtil.validateSrtLine(line))
             .sort((a, b) => a.index - b.index);
     }
 
@@ -383,21 +383,21 @@ export default class SrtUtil {
      * 过滤空内容（复用空内容检查）
      */
     public static filterEmpty(srtLines: SrtLine[]): SrtLine[] {
-        return srtLines.filter(line => !this.isEmptyContent(line));
+        return srtLines.filter(line => !SrtUtil.isEmptyContent(line));
     }
 
     /**
      * 过滤有效的字幕行（复用验证方法）
      */
     public static filterValid(srtLines: SrtLine[]): SrtLine[] {
-        return srtLines.filter(line => this.validateSrtLine(line));
+        return srtLines.filter(line => SrtUtil.validateSrtLine(line));
     }
 
     /**
      * 根据索引查找
      */
     public static findByIndex(srtLines: SrtLine[], index: number): SrtLine | undefined {
-        return this.filterValid(srtLines).find(line => line.index === index);
+        return SrtUtil.filterValid(srtLines).find(line => line.index === index);
     }
 
     /**
@@ -408,7 +408,7 @@ export default class SrtUtil {
         startTime: number,
         endTime: number
     ): SrtLine[] {
-        return this.filterValid(srtLines).filter(line =>
+        return SrtUtil.filterValid(srtLines).filter(line =>
             !(line.end <= startTime || line.start >= endTime)
         );
     }
@@ -421,7 +421,7 @@ export default class SrtUtil {
             return [];
         }
 
-        const sortedLines = this.sortByIndex(srtLines);
+        const sortedLines = SrtUtil.sortByIndex(srtLines);
         if (sortedLines.length === 0) {
             return [];
         }
@@ -446,7 +446,7 @@ export default class SrtUtil {
         }
 
         return srtLines.map(line =>
-            this.updateSrtLine(line, {
+            SrtUtil.updateSrtLine(line, {
                 start: Math.max(0, line.start + offsetSeconds),
                 end: Math.max(0, line.end + offsetSeconds)
             })
@@ -462,7 +462,7 @@ export default class SrtUtil {
         }
 
         return srtLines.map(line =>
-            this.updateSrtLine(line, {
+            SrtUtil.updateSrtLine(line, {
                 start: line.start * scale,
                 end: line.end * scale
             })
@@ -477,16 +477,16 @@ export default class SrtUtil {
             return [...(srtLines || [])];
         }
 
-        const sortedLines = this.sortByTime(srtLines);
+        const sortedLines = SrtUtil.sortByTime(srtLines);
         const merged: SrtLine[] = [];
-        let current = this.cloneSrtLine(sortedLines[0]);
+        let current = SrtUtil.cloneSrtLine(sortedLines[0]);
 
         for (let i = 1; i < sortedLines.length; i++) {
             const next = sortedLines[i];
 
             if (current.end >= next.start) {
                 // 重叠，合并（复用更新方法）
-                current = this.updateSrtLine(current, {
+                current = SrtUtil.updateSrtLine(current, {
                     end: Math.max(current.end, next.end),
                     contentEn: [current.contentEn, next.contentEn]
                         .filter(Boolean)
@@ -498,7 +498,7 @@ export default class SrtUtil {
             } else {
                 // 不重叠，保存当前并开始新的
                 merged.push(current);
-                current = this.cloneSrtLine(next);
+                current = SrtUtil.cloneSrtLine(next);
             }
         }
 
@@ -525,7 +525,7 @@ export default class SrtUtil {
         const srtLines: SrtLine[] = [];
 
         for (const block of blocks) {
-            const srtLine = this.srtBlockToSrtLine(block); // 复用块转换方法
+            const srtLine = SrtUtil.srtBlockToSrtLine(block); // 复用块转换方法
             if (srtLine) {
                 srtLines.push(srtLine);
             }
@@ -563,17 +563,17 @@ export default class SrtUtil {
 
         // 复用过滤方法
         if (filterEmpty) {
-            lines = this.filterEmpty(lines);
+            lines = SrtUtil.filterEmpty(lines);
         }
 
         // 复用排序方法
         if (sortByTime) {
-            lines = this.sortByTime(lines);
+            lines = SrtUtil.sortByTime(lines);
         }
 
         // 复用块转换方法
         const blocks = lines.map((line, index) =>
-            this.srtLineToBlock(line, {
+            SrtUtil.srtLineToBlock(line, {
                 useOriginalIndex: !reindex,
                 newIndex: reindex ? index + 1 : undefined,
                 contentType,
@@ -588,7 +588,7 @@ export default class SrtUtil {
      * 生成标准 SRT 文件内容（复用转换方法）
      */
     public static generateSrt(srtLines: SrtLine[], reindex = false): string {
-        return this.srtLinesToSrt(srtLines, { reindex });
+        return SrtUtil.srtLinesToSrt(srtLines, { reindex });
     }
 
     /**
@@ -605,7 +605,7 @@ export default class SrtUtil {
         emptyCount: number;
     } {
         if (!srtLines || srtLines.length === 0) {
-            const emptyTime = this.secondsToTimeString(0); // 复用时间转换
+            const emptyTime = SrtUtil.secondsToTimeString(0); // 复用时间转换
             return {
                 totalCount: 0,
                 totalDuration: emptyTime,
@@ -618,19 +618,19 @@ export default class SrtUtil {
             };
         }
 
-        const sortedLines = this.sortByTime(srtLines); // 复用排序方法
+        const sortedLines = SrtUtil.sortByTime(srtLines); // 复用排序方法
         const totalSeconds = srtLines.reduce((sum, line) => sum + (line.end - line.start), 0);
         const averageSeconds = totalSeconds / srtLines.length;
         const chineseCount = srtLines.filter(line => line.contentZh.length > 0).length;
         const englishCount = srtLines.filter(line => line.contentEn.length > 0).length;
-        const emptyCount = srtLines.filter(line => this.isEmptyContent(line)).length; // 复用空内容检查
+        const emptyCount = srtLines.filter(line => SrtUtil.isEmptyContent(line)).length; // 复用空内容检查
 
         return {
             totalCount: srtLines.length,
-            totalDuration: this.secondsToTimeString(totalSeconds), // 复用时间转换
-            averageDuration: this.secondsToTimeString(averageSeconds), // 复用时间转换
-            firstSubtitle: this.secondsToTimeString(sortedLines[0].start), // 复用时间转换
-            lastSubtitle: this.secondsToTimeString(sortedLines[sortedLines.length - 1].end), // 复用时间转换
+            totalDuration: SrtUtil.secondsToTimeString(totalSeconds), // 复用时间转换
+            averageDuration: SrtUtil.secondsToTimeString(averageSeconds), // 复用时间转换
+            firstSubtitle: SrtUtil.secondsToTimeString(sortedLines[0].start), // 复用时间转换
+            lastSubtitle: SrtUtil.secondsToTimeString(sortedLines[sortedLines.length - 1].end), // 复用时间转换
             chineseCount,
             englishCount,
             emptyCount
