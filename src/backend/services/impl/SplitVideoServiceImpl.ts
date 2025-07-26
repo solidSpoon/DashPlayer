@@ -2,7 +2,6 @@ import parseChapter from '@/common/utils/praser/chapter-parser';
 import path from 'path';
 import fs from 'fs';
 import { ChapterParseResult } from '@/common/types/chapter-result';
-import SrtUtil from '@/common/utils/SrtUtil';
 import hash from 'object-hash';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -12,6 +11,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import SplitVideoService from '@/backend/services/SplitVideoService';
 import dpLog from '@/backend/ioc/logger';
+import SrtUtil from "@/common/utils/SrtUtil";
 
 
 
@@ -75,7 +75,9 @@ class SplitVideoServiceImpl implements SplitVideoService {
                     contentEn: line.contentEn,
                     contentZh: line.contentZh
                 }));
-            const srtContent = SrtUtil.toNewSrt(lines);
+            const srtContent = SrtUtil.srtLinesToSrt(lines, {
+                reindex: true
+            });
             fs.writeFileSync(srtItem.name, srtContent);
         }
         return folderName;

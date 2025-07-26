@@ -16,7 +16,6 @@ const ChatLeftGrammers = ({ className }: {
     const retry = useChatPanel(state => state.retry);
     const tid = useChatPanel(state => state.tasks.grammarTask);
     const {detail} = useDpTaskViewer<AiAnalyseGrammarsRes>(typeof tid === 'number' ? tid : null);
-    console.log('detail', detail);
     return (
         <div className={cn('flex flex-col', className)}>
             <Card className={'shadow-none relative'}>

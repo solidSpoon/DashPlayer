@@ -1,34 +1,43 @@
-import { DpTask } from '@/backend/db/tables/dpTask';
+// src/fronted/hooks/useDpTaskViewer.ts
+import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { useEffect } from 'react';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { Nullable } from '@/common/types/Types';
 
-const useDpTaskViewer = <T>(taskId: Nullable<number>, isString = false): {
+const useDpTaskViewer = <T>(taskId: Nullable<number>): {
     task: DpTask | null,
     detail: T | null,
 } => {
     useEffect(() => {
-        if (taskId !== null && taskId !== undefined) {
+        if (TypeGuards.isNotNull(taskId)) {
             useDpTaskCenter.getState().tryRegister(taskId);
         }
     }, [taskId]);
-    const task: DpTask | undefined | 'init' = useDpTaskCenter((s) => TypeGuards.isNull(taskId) ? undefined : s.tasks.get(taskId));
-    let detail: T | null = null;
-    if (task === 'init' || task === undefined) {
+
+    const taskData = useDpTaskCenter(state => TypeGuards.isNull(taskId) ? undefined : state.tasks.get(taskId));
+
+    if (!taskData || taskData === 'init') {
         return { task: null, detail: null };
     }
-    if (task.result) {
-        if (isString) {
-            return { task, detail: task.result as unknown as T };
-        }
+
+    const task = taskData;
+    let detail: T | null = null;
+
+    if (task.result) { // 不再检查 task.status === DpTaskState.DONE
         try {
+            // console.log('on task update parse', task.id);
             detail = JSON.parse(task.result);
         } catch (e) {
-            console.error(e);
+            // 在流式场景下，后端传来的数据可能暂时不完整，解析失败是可能的
+            // 可以选择静默处理，或者只在非最终状态下静默
+            if (task.status === DpTaskState.DONE) {
+                console.error(`Failed to parse final task result for task ID ${task.id}.`, e);
+            }
         }
     }
 
     return { task, detail };
 };
+
 export default useDpTaskViewer;

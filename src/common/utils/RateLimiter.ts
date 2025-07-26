@@ -12,7 +12,7 @@ const RateLimitConfig: Record<RATE_LIMIT_KEY, { maxRequests: number; timeWindow:
 };
 
 
-export default class RateLimiter {
+export class RateLimiter {
     private static limits: Map<string, number[]> = new Map();
 
     public static async wait(key: RATE_LIMIT_KEY): Promise<void> {
@@ -42,3 +42,24 @@ export default class RateLimiter {
         this.limits.set(key, timestamps);
     }
 }
+
+export function WaitRateLimit(key: RATE_LIMIT_KEY) {
+    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value;
+
+        // 确保原始方法是异步函数
+        if (typeof originalMethod !== 'function' || originalMethod.constructor.name !== 'AsyncFunction') {
+            throw new Error(`@WaitRateLimit can only be applied to async methods. Found on ${propertyKey}.`);
+        }
+
+        descriptor.value = async function(...args: any[]) {
+            // 在执行原始方法之前，调用 RateLimiter 的 wait 方法
+            await RateLimiter.wait(key);
+            // 等待结束后，执行原始方法
+            return await originalMethod.apply(this, args);
+        };
+
+        return descriptor;
+    };
+}
+

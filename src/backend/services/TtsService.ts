@@ -4,20 +4,19 @@ import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';
 import fs from 'fs';
-import RateLimiter from "@/common/utils/RateLimiter";
 import dpLog from '@/backend/ioc/logger';
+import {WaitRateLimit} from "@/common/utils/RateLimiter";
 
 class TtsService {
     static joinUrl = (base: string, path2: string) => {
         return base.replace(/\/+$/, '') + '/' + path2.replace(/^\/+/, '');
     };
 
-    // ...
+    @WaitRateLimit('tts')
     public static async tts(str: string) {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
             throw new Error('OpenAI API key or endpoint is not set');
         }
-        await RateLimiter.wait('tts')
         const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
         const headers = {
             'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,

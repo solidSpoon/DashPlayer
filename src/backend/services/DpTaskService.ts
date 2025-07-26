@@ -21,7 +21,5 @@ export default interface DpTaskService {
 
     checkCancel(id: number): void;
 
-    cancelAll(): Promise<void>;
-
     registerTask(taskId: number, process: Cancelable): void;
 }
