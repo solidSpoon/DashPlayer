@@ -19,6 +19,7 @@ import { ConvertResult } from '@/common/types/tonvert-type';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
+import UrlUtil from "@/common/utils/UrlUtil";
 
 const api = window.electron;
 
@@ -64,7 +65,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                     className={cn('flex gap-6  p-4 relative rounded-xl overflow-hidden', className)}>
                     <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
                         {url ? <img
-                            src={url}
+                            src={UrlUtil.file(url)}
                             style={{
                                 aspectRatio: '16/9'
                             }}
@@ -115,7 +116,10 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                     </div>
 
                     <Progress
-                        className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
+                        className={cn(
+                            'absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500',
+                            '[&>*]:transition-transform [&>*]:duration-700 [&>*]:ease-out'
+                        )}
                         value={progress.progress}
                     />
                 </div>
