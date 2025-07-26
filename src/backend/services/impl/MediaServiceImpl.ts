@@ -59,8 +59,8 @@ export default class MediaServiceImpl implements MediaService {
         // 计算区间中间值：区间起始点 + 7秒 (整数)
         const intervalMiddle = intervalIndex * 15 + 7;
 
-        // 确保不超过duration范围
-        return Math.min(intervalMiddle, Math.floor(duration));
+        // 确保不超过duration范围，并且留出1秒的缓冲
+        return Math.min(intervalMiddle, Math.floor(duration) - 1);
     }
 
 
