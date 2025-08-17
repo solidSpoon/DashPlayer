@@ -2,6 +2,7 @@ import type {ForgeConfig} from '@electron-forge/shared-types';
 import {MakerSquirrel} from '@electron-forge/maker-squirrel';
 import {MakerDeb} from '@electron-forge/maker-deb';
 import {MakerRpm} from '@electron-forge/maker-rpm';
+import {MakerWix} from '@electron-forge/maker-wix';
 import {VitePlugin} from '@electron-forge/plugin-vite';
 import {FusesPlugin} from '@electron-forge/plugin-fuses';
 import {FuseV1Options, FuseVersion} from '@electron/fuses';
@@ -39,6 +40,24 @@ const config: ForgeConfig = {
                 name: 'dash-player',
                 productName: 'DashPlayer',
                 icon: './assets/icons/icon.png',
+            }
+        }),
+        new MakerWix({
+            name: 'DashPlayer',
+            description: 'A video player for English learning',
+            manufacturer: 'solidSpoon',
+            version: '5.1.7',
+            icon: './assets/icons/icon.ico',
+            ui: {
+                chooseDirectory: true,
+                images: {
+                    background: './assets/icons/install.png',
+                    banner: './assets/icons/install.png'
+                }
+            },
+            features: {
+                autoUpdate: false,
+                autoLaunch: false
             }
         })],
     plugins: [

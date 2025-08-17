@@ -23,6 +23,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Install WiX Toolset (Windows only)
+        if: matrix.os.name == 'windows'
+        run: |
+          choco install wixtoolset
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
       - run: yarn install --frozen-lockfile
       - name: Publish app
         env:
