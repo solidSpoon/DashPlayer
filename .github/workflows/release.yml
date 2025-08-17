@@ -10,10 +10,10 @@ jobs:
       matrix:
         os:
           [
-            { name: 'linux', image: 'ubuntu-latest' },
+#            { name: 'linux', image: 'ubuntu-latest' },
             { name: 'windows', image: 'windows-latest' },
-            { name: 'macos-x64', image: 'macos-13' },
-            { name: 'macos-arm64', image: 'macos-14' },
+#            { name: 'macos-x64', image: 'macos-13' },
+#            { name: 'macos-arm64', image: 'macos-14' },
           ]
     runs-on: ${{ matrix.os.image }}
     steps:
