@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import toast from 'react-hot-toast';
 import { cn } from '@/fronted/lib/utils';

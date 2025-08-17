@@ -1,6 +1,5 @@
 import { StateCreator } from 'zustand/esm';
 import { ModeSlice, PlayerSlice, SentenceSlice } from './SliceTypes';
-import toast from 'react-hot-toast';
 import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 
 const createModeSlice: StateCreator<

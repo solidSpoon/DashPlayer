@@ -14,6 +14,12 @@
         "react-app"
     ],
     "parser": "@typescript-eslint/parser",
+    "ignorePatterns": [
+        "vite.*.config.ts",
+        "node_modules/**",
+        ".vite/**",
+        "out/**"
+    ],
     "settings": {
         "import/resolver": {
             "node": {
