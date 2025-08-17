@@ -18,7 +18,8 @@
         "vite.*.config.ts",
         "node_modules/**",
         ".vite/**",
-        "out/**"
+        "out/**",
+        "**/*.md"
     ],
     "settings": {
         "import/resolver": {
