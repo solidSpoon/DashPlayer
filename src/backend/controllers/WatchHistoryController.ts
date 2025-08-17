@@ -55,6 +55,10 @@ export default class WatchHistoryController implements Controller {
         return this.watchHistoryService.analyseFolder(path);
     }
 
+    public async getNextVideo(currentId: string): Promise<WatchHistoryVO | null> {
+        return this.watchHistoryService.getNextVideo(currentId);
+    }
+
     registerRoutes(): void {
         registerRoute('watch-history/list', (p) => this.list(p));
         registerRoute('watch-history/progress/update', (p) => this.updateProgress(p));
@@ -65,5 +69,6 @@ export default class WatchHistoryController implements Controller {
         registerRoute('watch-history/attach-srt', (p) => this.attachSrt(p));
         registerRoute('watch-history/suggest-srt', (p) => this.suggestSrt(p));
         registerRoute('watch-history/analyse-folder', (p) => this.analyseFolder(p));
+        registerRoute('watch-history/get-next-video', (p) => this.getNextVideo(p));
     }
 }

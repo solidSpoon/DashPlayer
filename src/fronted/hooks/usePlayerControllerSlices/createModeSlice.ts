@@ -15,6 +15,7 @@ const createModeSlice: StateCreator<
     singleRepeat: false,
     autoPause: false,
     showWordLevel: false,
+    autoPlayNext: false,
     changeShowEn: () => set((state) => ({ showEn: !state.showEn })),
     changeShowCn: () => set((state) => ({ showCn: !state.showCn })),
     changeShowEnCn: () =>
@@ -45,6 +46,17 @@ const createModeSlice: StateCreator<
                 usePlayerToaster.getState().setNotification({ type: 'info', text: get().autoPause ? 'Auto pause off' : 'Auto pause on' });
                 set({
                     autoPause: target
+                });
+            }
+        }
+    },
+    changeAutoPlayNext: (target) => {
+        if (target === undefined) {
+            set((state) => ({ autoPlayNext: !state.autoPlayNext }));
+        } else {
+            if (target !== get().autoPlayNext) {
+                set({
+                    autoPlayNext: target
                 });
             }
         }
