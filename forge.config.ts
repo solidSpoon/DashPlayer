@@ -46,18 +46,9 @@ const config: ForgeConfig = {
             name: 'DashPlayer',
             description: 'A video player for English learning',
             manufacturer: 'solidSpoon',
-            version: '5.1.7',
             icon: './assets/icons/icon.ico',
             ui: {
-                chooseDirectory: true,
-                images: {
-                    background: './assets/icons/install.png',
-                    banner: './assets/icons/install.png'
-                }
-            },
-            features: {
-                autoUpdate: false,
-                autoLaunch: false
+                chooseDirectory: true
             }
         })],
     plugins: [
