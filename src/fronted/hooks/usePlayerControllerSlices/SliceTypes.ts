@@ -62,6 +62,7 @@ export interface ModeSlice {
     singleRepeat: boolean;
     autoPause: boolean;
     showWordLevel: boolean;
+    autoPlayNext: boolean;
 
     changeShowEn: () => void;
     changeShowCn: () => void;
@@ -70,6 +71,7 @@ export interface ModeSlice {
     changeSingleRepeat: (target?:boolean) => void;
     changeShowWordLevel: () => void;
     changeAutoPause: (target?:boolean) => void;
+    changeAutoPlayNext: (target?:boolean) => void;
 }
 
 export interface ControllerSlice {

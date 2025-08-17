@@ -12,6 +12,7 @@ import PlayerToaster from '@/fronted/components/PlayerToaster';
 import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import ReactPlayer from 'react-player/file';
+import { useNavigate } from 'react-router-dom';
 
 const api = window.electron;
 
@@ -26,7 +27,8 @@ export default function Player({ className }: { className?: string }): ReactElem
         updateExactPlayTime,
         setDuration,
         seekTo,
-        playbackRate
+        playbackRate,
+        autoPlayNext
     } = usePlayerController(
         useShallow((state) => ({
             playing: state.playing,
@@ -38,7 +40,8 @@ export default function Player({ className }: { className?: string }): ReactElem
             updateExactPlayTime: state.updateExactPlayTime,
             setDuration: state.setDuration,
             seekTo: state.seekTo,
-            playbackRate: state.playbackRate
+            playbackRate: state.playbackRate,
+            autoPlayNext: state.autoPlayNext
         }))
     );
     const videoPath = useFile((s) => s.videoPath);
@@ -47,6 +50,7 @@ export default function Player({ className }: { className?: string }): ReactElem
     const videoLoaded = useFile((s) => s.videoLoaded);
     const playerRef = useRef<ReactPlayer>(null);
     const playerRefBackground = useRef<HTMLCanvasElement>(null);
+    const navigate = useNavigate();
     let lastFile: string | undefined;
 
     const fullScreen = useLayout((s) => s.fullScreen);
@@ -182,6 +186,24 @@ export default function Player({ className }: { className?: string }): ReactElem
         lastFile = file;
     };
 
+    const handleAutoPlayNext = async () => {
+        if (!autoPlayNext || !videoId) {
+            return;
+        }
+
+        try {
+            const nextVideo = await api.call('watch-history/get-next-video', videoId);
+            if (nextVideo) {
+                console.log('Auto playing next video:', nextVideo.fileName);
+                navigate(`/player/${nextVideo.id}`);
+            } else {
+                console.log('No next video found');
+            }
+        } catch (error) {
+            console.error('Failed to get next video:', error);
+        }
+    };
+
     console.log('videoPath', videoPath);
     const render = (): ReactElement => {
         if (StrUtil.isBlank(videoPath)) {
@@ -230,6 +252,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                             await jumpToHistoryProgress(videoPath);
                             loadedVideo(videoPath);
                         }}
+                        onEnded={handleAutoPlayNext}
                     />
                     {!fullScreen && (!showControlPanel && (
                         <PlayerControlPanel

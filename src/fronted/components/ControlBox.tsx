@@ -88,7 +88,9 @@ const ControlBox = () => {
         changeSyncSide,
         changeSingleRepeat,
         autoPause,
-        changeAutoPause
+        changeAutoPause,
+        autoPlayNext,
+        changeAutoPlayNext
     } = usePlayerController(
         useShallow((s) => ({
             showEn: s.showEn,
@@ -102,7 +104,9 @@ const ControlBox = () => {
             singleRepeat: s.singleRepeat,
             changeSingleRepeat: s.changeSingleRepeat,
             autoPause: s.autoPause,
-            changeAutoPause: s.changeAutoPause
+            changeAutoPause: s.changeAutoPause,
+            autoPlayNext: s.autoPlayNext,
+            changeAutoPlayNext: s.changeAutoPlayNext
         }))
     );
     const setSetting = useSetting((s) => s.setSetting);
@@ -195,6 +199,13 @@ const ControlBox = () => {
                     id: 'autoPause',
                     label: '自动暂停',
                     tooltip: `当前句子结束自动暂停 快捷键为 ${getShortcut('shortcut.autoPause')}`
+                })}
+                {controlItem({
+                    checked: autoPlayNext,
+                    onCheckedChange: changeAutoPlayNext,
+                    id: 'autoPlayNext',
+                    label: '自动播放下一个',
+                    tooltip: '文件夹模式下视频结束后自动播放下一个视频'
                 })}
                 {controlItem({
                     checked: setting('appearance.theme') === 'dark',

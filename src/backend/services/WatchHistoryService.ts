@@ -24,6 +24,12 @@ interface WatchHistoryService {
      * @param file 视频文件路径
      */
     suggestSrt(file: string): Promise<string[]>;
+
+    /**
+     * 获取下一个视频
+     * @param currentId 当前视频ID
+     */
+    getNextVideo(currentId: string): Promise<WatchHistoryVO | null>;
 }
 
 export default WatchHistoryService;

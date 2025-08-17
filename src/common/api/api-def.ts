@@ -104,6 +104,7 @@ interface WatchHistoryDef {
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/suggest-srt': { params: string, return: string[] };
     'watch-history/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
+    'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };
 }
 
 interface SubtitleControllerDef {
