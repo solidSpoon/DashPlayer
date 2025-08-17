@@ -7,6 +7,7 @@ import {VitePlugin} from '@electron-forge/plugin-vite';
 import {FusesPlugin} from '@electron-forge/plugin-fuses';
 import {FuseV1Options, FuseVersion} from '@electron/fuses';
 import MakerDMG from '@electron-forge/maker-dmg';
+import packageJson from './package.json';
 
 const config: ForgeConfig = {
     packagerConfig: {
@@ -46,7 +47,9 @@ const config: ForgeConfig = {
             name: 'DashPlayer',
             description: 'A video player for English learning',
             manufacturer: 'solidSpoon',
+            version: packageJson.version,
             icon: './assets/icons/icon.ico',
+            exe: 'dash-player.exe',
             ui: {
                 chooseDirectory: true
             }
