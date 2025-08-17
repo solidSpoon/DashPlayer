@@ -32,13 +32,6 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
     console.log('taskk', task);
 
     let msg = task?.progress ?? '未开始';
-    if (task?.status === DpTaskState.IN_PROGRESS) {
-        console.log(task.created_at, task.updated_at);
-        const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
-        const now = new Date().getTime();
-        const duration = Math.floor((now - createdAt) / 1000);
-        msg = `${task.progress} ${duration}s`;
-    }
     if (task?.status === DpTaskState.DONE) {
         const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
         const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
@@ -74,9 +67,6 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                         if (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none'])) {
                             onDelete();
                         } else {
-                            toast('发送了取消请求', {
-                                icon: '🚀'
-                            });
                             api.call('dp-task/cancel', taskId ?? undefined);
                         }
                     }}

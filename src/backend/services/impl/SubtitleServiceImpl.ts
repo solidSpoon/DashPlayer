@@ -2,7 +2,6 @@ import nlp from 'compromise/one';
 import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
 import StrUtil from '@/common/utils/str-util';
 import fs from 'fs';
-import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
 import SubtitleService from '@/backend/services/SubtitleService';
@@ -13,6 +12,7 @@ import CacheService from '@/backend/services/CacheService';
 import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
+import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 
 
 function groupSentence(
@@ -53,7 +53,6 @@ export class SubtitleServiceImpl implements SubtitleService {
         }
         const content = await FileUtil.read(path);
         TypeGuards.assertNotNull(content, 'read file error');
-        console.log(content);
         const hashKey = ObjUtil.hash(content);
         const cache = this.cacheService.get('cache:srt', hashKey);
         if (cache) {
@@ -147,7 +146,6 @@ function tokenizeAndProcess(text: string): TokenRes[] {
             };
         });
     const res: TokenRes[] = [];
-    console.log(JSON.stringify(temp, null, 2));
     for (const item of temp) {
         if (item.pos.length > 0) {
             res.push(item);

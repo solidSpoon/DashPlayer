@@ -1,14 +1,16 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import { SettingKey } from './common/types/store_schema';
-import { ApiDefinitions, ApiMap } from '@/common/api/api-def';
+import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
+import {SettingKey} from './common/types/store_schema';
+import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
+import {DpTask} from "@/backend/db/tables/dpTask";
 
 export type Channels =
     | 'main-state'
     | 'store-update'
     | 'error-msg'
-    | 'info-msg';
+    | 'info-msg'
+    | 'dp-task-update';
 const on = (channel: Channels, func: (...args: unknown[]) => void) => {
     const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
         func(...args);
@@ -28,6 +30,10 @@ const electronHandler = {
     },
     onInfoMsg: (func: (info: string) => void) => {
         return on('info-msg', func as never);
+    },
+    onTaskUpdate: (func: (task: DpTask) => void) => {
+        console.log('onTaskUpdate');
+        return on('dp-task-update', func as never);
     },
     // 调用函数的方法
     call: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {

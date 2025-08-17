@@ -11,10 +11,11 @@ import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit'
 import { AiPhraseGroupPrompt } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { AiFuncTranslateWithContextPrompt } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 import { AiFuncPunctuationPrompt } from '@/common/types/aiRes/AiPunctuationResp';
-import { getSubtitleContent, srtSlice } from '@/common/utils/srtSlice';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/services/ChatService';
+import SrtUtil from "@/common/utils/SrtUtil";
+import { pipe } from 'lodash/fp';
 
 export interface AiService {
     polish(taskId: number, sentence: string): Promise<void>;
@@ -137,9 +138,12 @@ export default class AiServiceImpl implements AiService {
      * @param fullSrt
      */
     public async punctuation(taskId: number, no: number, fullSrt: string) {
-        const sentence = getSubtitleContent(fullSrt, no) ?? '';
-        const srt = srtSlice(fullSrt, no, 5);
-        await this.chatService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, srt));
+        const srtLines = SrtUtil.parseSrt(fullSrt);
+        const sentence = SrtUtil.findByIndex(srtLines, no)?.contentEn ?? '';
+        const rangePipe = pipe(SrtUtil.getAround, SrtUtil.srtLinesToSrt);
+        // 获取前后5行字幕
+        const around = rangePipe(srtLines, no, 5);
+        await this.chatService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, around));
     }
 
     public async explainSelect(taskId: number, word: string) {

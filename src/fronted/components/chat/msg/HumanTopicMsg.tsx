@@ -1,5 +1,4 @@
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
-import useDpTask from '@/fronted/hooks/useDpTask';
 import { AiPhraseGroupElement, AiPhraseGroupRes } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
@@ -7,13 +6,15 @@ import StrUtil from '@/common/utils/str-util';
 import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import '../../../styles/topic.css';
+import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
+import {Nullable} from "@/common/types/Types";
 
-const process = (original: string, parseRes: AiPhraseGroupRes): (string | AiPhraseGroupElement)[] => {
+const process = (original: string, parseRes: Nullable<AiPhraseGroupRes>): (string | AiPhraseGroupElement)[] => {
     if (((parseRes?.phraseGroups ?? []).length) === 0) return [original];
     if (StrUtil.isBlank(original)) return [];
     const res = [];
     let text = original;
-    for (const group of parseRes.phraseGroups) {
+    for (const group of parseRes?.phraseGroups??[]) {
         if (StrUtil.isBlank(group?.original)) continue;
         if (StrUtil.isBlank(text)) {
             // res.push(group);
@@ -37,10 +38,10 @@ const process = (original: string, parseRes: AiPhraseGroupRes): (string | AiPhra
 };
 const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     const retry = useChatPanel(state => state.retry);
-    const dpTask = useDpTask(msg.phraseGroupTask, 200);
+    const {detail:res} = useDpTaskViewer<AiPhraseGroupRes>(msg.phraseGroupTask);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
-    console.log('HumanTopicMsg', dpTask);
-    const res = JSON.parse(dpTask?.result ?? '{}') as AiPhraseGroupRes;
+    // console.log('HumanTopicMsg', dpTask);
+    // const res = JSON.parse(dpTask?.result ?? '{}') as AiPhraseGroupRes;
     const mapColor = (tags: string[]): string => {
         //判空
         if (!tags) return 'bg-secondary';
@@ -64,7 +65,7 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     };
 
 
-    console.log('HumanTopicMsg', res);
+    // console.log('HumanTopicMsg', res);
     const content = process(msg.content, res);
     return (
         <div

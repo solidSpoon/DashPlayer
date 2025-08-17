@@ -1,19 +1,21 @@
-import { eq, or } from 'drizzle-orm';
+import {eq, or} from 'drizzle-orm';
 import db from '@/backend/db/db';
-import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/dpTask';
+import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpTask';
 
 import LRUCache from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { injectable, postConstruct } from 'inversify';
+import {inject, injectable, postConstruct} from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import dpLog from '@/backend/ioc/logger';
-import { Cancelable } from '@/common/interfaces';
+import {Cancelable} from '@/common/interfaces';
 
-import { CancelByUserError } from '@/backend/errors/errors';
+import {CancelByUserError} from '@/backend/errors/errors';
+import TYPES from "@/backend/ioc/types";
+import SystemService from "@/backend/services/SystemService";
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
-
+    @inject(TYPES.SystemService) private systemService!: SystemService;
     private upQueue: Map<number, InsertDpTask> = new Map();
     private cancelQueue: Set<number> = new Set();
     private cache: LRUCache<number, InsertDpTask> = new LRUCache({
@@ -23,6 +25,16 @@ export default class DpTaskServiceImpl implements DpTaskService {
         }
     });
     private taskMapping: Map<number, Cancelable[]> = new Map();
+
+    private notify(taskId: number) {
+        // 调用你自己的 detail 方法获取最新数据
+        this.detail(taskId)
+            .then(task => {
+                if (task) {
+                    this.systemService.sendDpTaskUpdate(task);
+                }
+            })
+    }
 
     public async detail(id: number): Promise<DpTask | null> {
 
@@ -70,6 +82,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
         });
+        this.notify(taskId);
         return taskId;
     }
 
@@ -91,6 +104,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
             ...task,
             updated_at: TimeUtil.timeUtc()
         });
+        this.notify(task.id);
     }
 
     public process(id: number, info: InsertDpTask) {
@@ -103,7 +117,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
     }
 
     public finish(id: number, info: InsertDpTask) {
-        const task:InsertDpTask = {
+        const task: InsertDpTask = {
             id,
             status: DpTaskState.DONE,
         };
@@ -112,7 +126,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
     }
 
     public fail(id: number, info: InsertDpTask) {
-        const task:InsertDpTask = {
+        const task: InsertDpTask = {
             id,
             status: DpTaskState.FAILED,
         };
@@ -152,10 +166,6 @@ export default class DpTaskServiceImpl implements DpTaskService {
         }
     }
 
-    public async cancelAll() {
-        await DpTaskServiceImpl.cancelAll();
-    }
-
     @postConstruct()
     public postConstruct() {
         setInterval(async () => {
@@ -174,6 +184,9 @@ export default class DpTaskServiceImpl implements DpTaskService {
         }, 3000);
     }
 
+    /**
+     * 应用重启时取消所有任务
+     */
     public static async cancelAll() {
         await db
             .update(dpTask)

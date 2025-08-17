@@ -1,12 +1,12 @@
 import { storeGet } from '@/backend/store';
 import fs from 'fs';
-import RateLimiter from '@/common/utils/RateLimiter';
 import axios from 'axios';
 import UrlUtil from '@/common/utils/UrlUtil';
 import dpLog from '@/backend/ioc/logger';
 import StrUtil from '@/common/utils/str-util';
 import path from 'path';
 import os from 'node:os';
+import {WaitRateLimit} from "@/common/utils/RateLimiter";
 
 class OpenAiTtsRequest {
     private readonly apiKey: string;
@@ -28,8 +28,8 @@ class OpenAiTtsRequest {
         return new OpenAiTtsRequest(str, apiKey, endpoint);
     }
 
+    @WaitRateLimit('tts')
     public async invoke() {
-        await RateLimiter.wait('tts');
         const url = UrlUtil.joinWebUrl(this.endpoint, '/v1/audio/speech');
         const headers = {
             'Authorization': `Bearer ${this.apiKey}`,

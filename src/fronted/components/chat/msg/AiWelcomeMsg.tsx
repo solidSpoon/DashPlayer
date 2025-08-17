@@ -18,7 +18,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const complete =
         !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
 
-    console.log('AiWelcomeMsg', transTaskResp);
+    // console.log('AiWelcomeMsg', transTaskResp);
     return (
         <div className={cn('group relative flex items-start')}>
             {/* <Button variant={'ghost'} size={'icon'} onClick={()=>retry('welcome')} */}

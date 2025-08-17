@@ -5,7 +5,7 @@ import { BrowserWindow } from 'electron';
 import PathUtil from '@/common/utils/PathUtil';
 import path from 'path';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
-
+import {DpTask} from "@/backend/db/tables/dpTask";
 @injectable()
 export default class SystemServiceImpl implements SystemService {
     public mainWindowRef: { current: BrowserWindow | null } = { current: null };
@@ -76,6 +76,16 @@ export default class SystemServiceImpl implements SystemService {
 
     public sendInfoToRenderer(info: string) {
         this.mainWindow()?.webContents.send('info-msg', info);
+    }
+
+    /**
+     * (新增) 实现发送任务更新的逻辑
+     */
+    public sendDpTaskUpdate(task: DpTask): void {
+        const win = this.mainWindow();
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('dp-task-update', task);
+        }
     }
 
     @postConstruct()
