@@ -84,6 +84,7 @@ interface SystemDef {
     'system/check-update': { params: void, return: Release[] };
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
+    'system/test-renderer-api': { params: void, return: void };
 }
 
 interface AiTransDef {
@@ -165,6 +166,7 @@ interface TagDef {
     'tag/update': { params: { id: number, name: string }, return: void };
     'tag/search': { params: string, return: Tag[] };
 }
+
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition

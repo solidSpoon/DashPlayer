@@ -1,6 +1,7 @@
 import { WindowState } from '@/common/types/Types';
 import { BrowserWindow } from 'electron';
 import {DpTask} from "@/backend/db/tables/dpTask";
+import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 
 /**
  * SystemService
@@ -25,4 +26,17 @@ export default interface SystemService {
      * @param task 更新后的任务对象
      */
     sendDpTaskUpdate(task: DpTask): void;
+
+    /**
+     * 测试反向API调用 - 显示通知
+     */
+    testRendererApiCall(): Promise<void>;
+
+    /**
+     * 调用前端API - 使用key作为第一个参数
+     */
+    callRendererApi<K extends keyof RendererApiDefinitions>(
+        path: K,
+        params: RendererApiDefinitions[K]['params']
+    ): Promise<RendererApiDefinitions[K]['return']>;
 }
