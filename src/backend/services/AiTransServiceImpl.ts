@@ -5,7 +5,6 @@ export default interface TranslateService {
     transSentences(sentences: string[]): Promise<Map<string, string>>;
 
     groupTranslate(params: {
-        engine: 'tencent' | 'openai';
         fileHash: string;
         indices: number[];
         useCache?: boolean;

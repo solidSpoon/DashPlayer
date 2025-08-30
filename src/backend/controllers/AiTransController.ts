@@ -32,7 +32,6 @@ export default class AiTransController implements Controller {
      * @param params - 包含引擎、文件哈希和句子索引的请求参数
      */
     public async requestGroupTranslation(params: {
-        engine: 'tencent' | 'openai',
         fileHash: string,
         indices: number[],
         useCache?: boolean
@@ -50,8 +49,5 @@ export default class AiTransController implements Controller {
 
         // 注册新的核心翻译接口
         registerRoute('ai-trans/request-group-translation', (p) => this.requestGroupTranslation(p));
-
-        // 保留测试路由以供调试
-        registerRoute('ai-trans/test-tencent', () => this.translateService.testTencentTranslation());
     }
 }

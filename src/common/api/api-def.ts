@@ -94,7 +94,6 @@ interface AiTransDef {
     // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)
     'ai-trans/request-group-translation': {
         params: {
-            engine: 'tencent' | 'openai',
             fileHash: string,
             indices: number[],
             useCache?: boolean

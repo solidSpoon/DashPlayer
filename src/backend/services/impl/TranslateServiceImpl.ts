@@ -15,10 +15,10 @@ import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { p } from '@/common/utils/Util';
 import { YdRes } from '@/common/types/YdRes';
-import SubtitleService from '@/backend/services/SubtitleService';
 import SystemService from '@/backend/services/SystemService';
 import AiProviderService from '@/backend/services/AiProviderService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
+import SettingService from '@/backend/services/SettingService';
 import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
 import dpLog from '@/backend/ioc/logger';
@@ -32,25 +32,28 @@ export default class TranslateServiceImpl implements TranslateService {
     private youDaoProvider!: ClientProviderService<YouDaoClient>;
     @inject(TYPES.TencentClientProvider)
     private tencentProvider!: ClientProviderService<TencentClient>;
-    @inject(TYPES.SubtitleService)
-    private subtitleService!: SubtitleService;
     @inject(TYPES.SystemService)
     private systemService!: SystemService;
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
     @inject(TYPES.CacheService)
     private cacheService!: CacheService;
-
-    // --- 新版核心翻译逻辑 ---
+    @inject(TYPES.SettingService)
+    private settingService!: SettingService;
 
     public async groupTranslate(params: {
-        engine: 'tencent' | 'openai';
         fileHash: string;
         indices: number[];
         useCache?: boolean;
     }): Promise<void> {
-        const { engine, fileHash, indices, useCache = true } = params;
+        const { fileHash, indices, useCache = true } = params;
         if (!indices || indices.length === 0) {
+            return;
+        }
+
+        const engine = await this.settingService.getCurrentTranslationProvider();
+        if (!engine) {
+            dpLog.error('没有启用的翻译服务');
             return;
         }
 
@@ -96,6 +99,12 @@ export default class TranslateServiceImpl implements TranslateService {
     }
 
     private async processTencentBatch(tasks: Sentence[]): Promise<void> {
+        const currentProvider = await this.settingService.getCurrentTranslationProvider();
+        if (currentProvider !== 'tencent') {
+            dpLog.error('腾讯翻译服务未启用');
+            return;
+        }
+
         const tencentClient = this.tencentProvider.getClient();
         if (!tencentClient) {
             dpLog.error('Tencent 翻译客户端未初始化');
@@ -130,6 +139,12 @@ export default class TranslateServiceImpl implements TranslateService {
     }
 
     private async processOpenAIBatch(tasks: Sentence[], allSentences: Sentence[]): Promise<void> {
+        const currentProvider = await this.settingService.getCurrentTranslationProvider();
+        if (currentProvider !== 'openai') {
+            dpLog.error('OpenAI 翻译服务未启用');
+            return;
+        }
+
         const model = this.aiProviderService.getModel();
         if (!model) {
             dpLog.error('OpenAI 模型未配置');
@@ -251,6 +266,12 @@ export default class TranslateServiceImpl implements TranslateService {
             return cacheRes;
         }
 
+        const currentProvider = await this.settingService.getCurrentDictionaryProvider();
+        if (currentProvider !== 'youdao') {
+            dpLog.log('有道词典服务未启用');
+            return null;
+        }
+
         const client = this.youDaoProvider.getClient();
         if (!client) {
             return null;
@@ -282,17 +303,73 @@ export default class TranslateServiceImpl implements TranslateService {
         }
 
         try {
-            const tencentClient = this.tencentProvider.getClient();
-            if (!tencentClient) {
+            const currentProvider = await this.settingService.getCurrentTranslationProvider();
+            if (!currentProvider) {
+                dpLog.log('没有启用的翻译服务');
                 return cache.getMapping();
             }
-            const transResult: TransHolder<string> = await tencentClient.batchTrans(retries);
-            await this.sentenceRecordBatch(transResult);
-            return cache.merge(transResult).getMapping();
+
+            if (currentProvider === 'tencent') {
+                const tencentClient = this.tencentProvider.getClient();
+                if (!tencentClient) {
+                    return cache.getMapping();
+                }
+                const transResult: TransHolder<string> = await tencentClient.batchTrans(retries);
+                await this.sentenceRecordBatch(transResult);
+                return cache.merge(transResult).getMapping();
+            } else if (currentProvider === 'openai') {
+                const transResult = await this.processOpenAIBatchLegacy(retries);
+                await this.sentenceRecordBatch(transResult);
+                return cache.merge(transResult).getMapping();
+            }
         } catch (e) {
             dpLog.error('旧版 transSentences 失败:', e);
             return cache.getMapping();
         }
+        return cache.getMapping();
+    }
+
+    private async processOpenAIBatchLegacy(sentences: string[]): Promise<TransHolder<string>> {
+        const result = new TransHolder<string>();
+        const model = this.aiProviderService.getModel();
+        if (!model) {
+            dpLog.error('OpenAI 模型未配置');
+            return result;
+        }
+
+        const schema = z.object({
+            translation: z.string().describe('The translated sentence in Simplified Chinese.')
+        });
+
+        const translationPromises = sentences.map(async (sentence) => {
+            try {
+                const prompt = `You are a professional translator. Translate the following English sentence to Simplified Chinese:\n\n"${sentence}"`;
+                const { partialObjectStream } = streamObject({ model, schema, prompt });
+
+                let finalTranslation = '';
+                for await (const partialObject of partialObjectStream) {
+                    if (partialObject.translation) {
+                        finalTranslation = partialObject.translation;
+                    }
+                }
+
+                if (finalTranslation) {
+                    return { sentence, translation: finalTranslation };
+                }
+            } catch (error) {
+                dpLog.error(`OpenAI 翻译句子失败 (sentence: ${sentence}):`, error);
+            }
+            return null;
+        });
+
+        const settledResults = await Promise.all(translationPromises);
+        settledResults.forEach(res => {
+            if (res) {
+                result.add(res.sentence, res.translation);
+            }
+        });
+
+        return result;
     }
 
     private async wordLoad(word: string): Promise<YdRes | undefined> {
