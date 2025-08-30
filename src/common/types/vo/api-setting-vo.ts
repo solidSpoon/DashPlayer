@@ -5,6 +5,7 @@ export type ApiSettingVO = {
         model: string;
         enableSentenceLearning: boolean;
         enableSubtitleTranslation: boolean;
+        enableDictionary: boolean;
     };
     tencent: {
         secretId: string;

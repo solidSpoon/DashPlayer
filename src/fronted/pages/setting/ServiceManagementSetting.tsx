@@ -44,6 +44,10 @@ const ServiceManagementSetting = () => {
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
     const tencentSubtitleEnabled = watch('tencent.enableSubtitleTranslation');
+    
+    // Watch for dictionary mutual exclusion
+    const openaiDictionaryEnabled = watch('openai.enableDictionary');
+    const youdaoDictionaryEnabled = watch('youdao.enableDictionary');
 
     // Custom change detection
     const hasChanges = React.useMemo(() => {
@@ -59,8 +63,9 @@ const ServiceManagementSetting = () => {
                     key: settings.openai.key || '',
                     endpoint: settings.openai.endpoint || 'https://api.openai.com',
                     model: settings.openai.model || 'gpt-4o-mini',
-                    enableSentenceLearning: settings.openai.enableSentenceLearning || false,
-                    enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || false,
+                    enableSentenceLearning: settings.openai.enableSentenceLearning || true,
+                    enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || true,
+                    enableDictionary: settings.openai.enableDictionary || true,
                 },
                 tencent: {
                     secretId: settings.tencent.secretId || '',
@@ -89,7 +94,36 @@ const ServiceManagementSetting = () => {
                 setValue('openai.enableSubtitleTranslation', false);
             }
         } else {
+            // Check if this would leave no subtitle translation enabled
+            const otherService = service === 'openai' ? 'tencent' : 'openai';
+            const otherEnabled = watch(`${otherService}.enableSubtitleTranslation`);
+            if (!otherEnabled) {
+                // Prevent disabling - at least one must be enabled
+                return;
+            }
             setValue(`${service}.enableSubtitleTranslation`, false);
+        }
+    };
+
+    // Handle mutual exclusion for dictionary
+    const handleDictionaryChange = (service: 'openai' | 'youdao', enabled: boolean) => {
+        if (enabled) {
+            if (service === 'openai') {
+                setValue('openai.enableDictionary', true);
+                setValue('youdao.enableDictionary', false);
+            } else {
+                setValue('youdao.enableDictionary', true);
+                setValue('openai.enableDictionary', false);
+            }
+        } else {
+            // Check if this would leave no dictionary enabled
+            const otherService = service === 'openai' ? 'youdao' : 'openai';
+            const otherEnabled = watch(`${otherService}.enableDictionary`);
+            if (!otherEnabled) {
+                // Prevent disabling - at least one must be enabled
+                return;
+            }
+            setValue(`${service}.enableDictionary`, false);
         }
     };
 
@@ -219,7 +253,10 @@ const ServiceManagementSetting = () => {
                                     <Checkbox
                                         id="openai-sentence-learning"
                                         checked={watch('openai.enableSentenceLearning')}
-                                        onCheckedChange={(checked) => setValue('openai.enableSentenceLearning', !!checked)}
+                                        onCheckedChange={(checked) => {
+                                            if (!checked) return; // 禁止取消整句学习
+                                            setValue('openai.enableSentenceLearning', true);
+                                        }}
                                     />
                                     <Label htmlFor="openai-sentence-learning" className="font-normal">
                                         整句学习
@@ -235,6 +272,19 @@ const ServiceManagementSetting = () => {
                                         字幕翻译
                                         {tencentSubtitleEnabled && (
                                             <span className="text-xs text-muted-foreground ml-2">(与腾讯云翻译互斥)</span>
+                                        )}
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="openai-dictionary"
+                                        checked={openaiDictionaryEnabled}
+                                        onCheckedChange={(checked) => handleDictionaryChange('openai', !!checked)}
+                                    />
+                                    <Label htmlFor="openai-dictionary" className="font-normal">
+                                        词典查询
+                                        {youdaoDictionaryEnabled && (
+                                            <span className="text-xs text-muted-foreground ml-2">(与有道词典互斥)</span>
                                         )}
                                     </Label>
                                 </div>
@@ -395,11 +445,14 @@ const ServiceManagementSetting = () => {
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="youdao-dictionary"
-                                    checked={watch('youdao.enableDictionary')}
-                                    onCheckedChange={(checked) => setValue('youdao.enableDictionary', !!checked)}
+                                    checked={youdaoDictionaryEnabled}
+                                    onCheckedChange={(checked) => handleDictionaryChange('youdao', !!checked)}
                                 />
                                 <Label htmlFor="youdao-dictionary" className="font-normal">
                                     词典查询
+                                    {openaiDictionaryEnabled && (
+                                        <span className="text-xs text-muted-foreground ml-2">(与OpenAI词典互斥)</span>
+                                    )}
                                 </Label>
                             </div>
                         </div>

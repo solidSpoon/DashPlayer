@@ -34,6 +34,7 @@ export default class SettingServiceImpl implements SettingService {
                 model: await this.get('model.gpt.default'),
                 enableSentenceLearning: await this.get('services.openai.enableSentenceLearning') === 'true',
                 enableSubtitleTranslation: await this.get('services.openai.enableSubtitleTranslation') === 'true',
+                enableDictionary: await this.get('services.openai.enableDictionary') === 'true',
             },
             tencent: {
                 secretId: await this.get('apiKeys.tencent.secretId'),
@@ -55,6 +56,7 @@ export default class SettingServiceImpl implements SettingService {
         await this.set('apiKeys.openAi.endpoint', settings.openai.endpoint);
         await this.set('model.gpt.default', settings.openai.model);
         await this.set('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
+        await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
         
         // Update Tencent settings
         await this.set('apiKeys.tencent.secretId', settings.tencent.secretId);
@@ -63,7 +65,6 @@ export default class SettingServiceImpl implements SettingService {
         // Update Youdao settings
         await this.set('apiKeys.youdao.secretId', settings.youdao.secretId);
         await this.set('apiKeys.youdao.secretKey', settings.youdao.secretKey);
-        await this.set('services.youdao.enableDictionary', settings.youdao.enableDictionary ? 'true' : 'false');
         
         // Handle mutual exclusion for subtitle translation
         if (settings.openai.enableSubtitleTranslation && settings.tencent.enableSubtitleTranslation) {
@@ -75,6 +76,17 @@ export default class SettingServiceImpl implements SettingService {
             // Set both as requested
             await this.set('services.openai.enableSubtitleTranslation', settings.openai.enableSubtitleTranslation ? 'true' : 'false');
             await this.set('services.tencent.enableSubtitleTranslation', settings.tencent.enableSubtitleTranslation ? 'true' : 'false');
+        }
+        
+        // Handle mutual exclusion for dictionary
+        if (settings.openai.enableDictionary && settings.youdao.enableDictionary) {
+            // Both enabled - default to openai
+            await this.set('services.openai.enableDictionary', 'true');
+            await this.set('services.youdao.enableDictionary', 'false');
+        } else {
+            // Set both as requested
+            await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
+            await this.set('services.youdao.enableDictionary', settings.youdao.enableDictionary ? 'true' : 'false');
         }
     }
     
@@ -92,9 +104,13 @@ export default class SettingServiceImpl implements SettingService {
         return null;
     }
     
-    public async getCurrentDictionaryProvider(): Promise<'youdao' | null> {
+    public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
+        const openaiEnabled = await this.get('services.openai.enableDictionary') === 'true';
         const youdaoEnabled = await this.get('services.youdao.enableDictionary') === 'true';
-        return youdaoEnabled ? 'youdao' : null;
+        
+        if (openaiEnabled) return 'openai';
+        if (youdaoEnabled) return 'youdao';
+        return null;
     }
     
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {

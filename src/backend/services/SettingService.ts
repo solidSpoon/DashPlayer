@@ -12,7 +12,7 @@ export default interface SettingService {
     // Service provider queries
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;
     getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
-    getCurrentDictionaryProvider(): Promise<'youdao' | null>;
+    getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null>;
     
     // Test service connections
     testOpenAi(): Promise<{ success: boolean, message: string }>;
