@@ -14,7 +14,7 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { p } from '@/common/utils/Util';
-import { YdRes } from '@/common/types/YdRes';
+import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import SystemService from '@/backend/services/SystemService';
 import AiProviderService from '@/backend/services/AiProviderService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
@@ -259,7 +259,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
     // --- 保留的旧方法 (兼容旧版或特定功能) ---
 
-    public async transWord(str: string): Promise<YdRes | null> {
+    public async transWord(str: string): Promise<YdRes | OpenAIDictionaryResult | null> {
         const cacheRes = await this.wordLoad(str);
         if (cacheRes) {
             dpLog.log('命中单词缓存:', cacheRes);
@@ -267,24 +267,84 @@ export default class TranslateServiceImpl implements TranslateService {
         }
 
         const currentProvider = await this.settingService.getCurrentDictionaryProvider();
-        if (currentProvider !== 'youdao') {
-            dpLog.log('有道词典服务未启用');
-            return null;
+        
+        if (currentProvider === 'youdao') {
+            const client = this.youDaoProvider.getClient();
+            if (!client) {
+                return null;
+            }
+
+            const onlineRes = await client.translate(str);
+            if (!onlineRes) {
+                return null;
+            }
+
+            const or = JSON.parse(onlineRes) as YdRes;
+            await this.wordRecord(str, or);
+            return or;
+        } else if (currentProvider === 'openai') {
+            return await this.translateWordWithOpenAI(str);
         }
 
-        const client = this.youDaoProvider.getClient();
-        if (!client) {
+        dpLog.log('没有启用的字典服务');
+        return null;
+    }
+
+    private async translateWordWithOpenAI(word: string): Promise<OpenAIDictionaryResult | null> {
+        try {
+            const model = this.aiProviderService.getModel();
+            if (!model) {
+                dpLog.error('OpenAI 模型未配置');
+                return null;
+            }
+
+            const schema = z.object({
+                word: z.string().describe('The input word'),
+                phonetic: z.string().optional().describe('International phonetic alphabet pronunciation'),
+                ukPhonetic: z.string().optional().describe('UK pronunciation in IPA'),
+                usPhonetic: z.string().optional().describe('US pronunciation in IPA'),
+                definitions: z.array(z.string()).describe('Array of definitions in Simplified Chinese'),
+                examples: z.array(z.string()).optional().describe('Array of example sentences in English'),
+                pronunciation: z.string().optional().describe('Pronunciation URL if available')
+            });
+
+            const prompt = `You are a professional English-Chinese dictionary. Provide comprehensive dictionary information for the word "${word}".
+
+            Please provide:
+            1. Phonetic transcription (IPA format if possible)
+            2. UK and US pronunciation if different
+            3. All common definitions in Simplified Chinese
+            4. Example sentences in English (2-3 sentences)
+
+            Format the response as a structured dictionary entry.`;
+
+            const { partialObjectStream } = streamObject({ model, schema, prompt });
+
+            let finalResult: OpenAIDictionaryResult | null = null;
+            for await (const partialObject of partialObjectStream) {
+                if (partialObject.word && partialObject.definitions && partialObject.definitions.length > 0) {
+                    finalResult = {
+                        word: partialObject.word,
+                        phonetic: partialObject.phonetic,
+                        ukPhonetic: partialObject.ukPhonetic,
+                        usPhonetic: partialObject.usPhonetic,
+                        definitions: (partialObject.definitions || []).filter((def): def is string => typeof def === 'string'),
+                        examples: partialObject.examples?.filter((ex): ex is string => typeof ex === 'string'),
+                        pronunciation: partialObject.pronunciation
+                    };
+                }
+            }
+
+            if (finalResult) {
+                await this.wordRecordOpenAI(word, finalResult);
+                return finalResult;
+            }
+
+            return null;
+        } catch (error) {
+            dpLog.error(`OpenAI 字典查询失败 (word: ${word}):`, error);
             return null;
         }
-
-        const onlineRes = await client.translate(str);
-        if (!onlineRes) {
-            return null;
-        }
-
-        const or = JSON.parse(onlineRes) as YdRes;
-        await this.wordRecord(str, or);
-        return or;
     }
 
     /**
@@ -372,7 +432,7 @@ export default class TranslateServiceImpl implements TranslateService {
         return result;
     }
 
-    private async wordLoad(word: string): Promise<YdRes | undefined> {
+    private async wordLoad(word: string): Promise<YdRes | OpenAIDictionaryResult | undefined> {
         const value: WordTranslate[] = await db
             .select()
             .from(wordTranslates)
@@ -386,6 +446,18 @@ export default class TranslateServiceImpl implements TranslateService {
     }
 
     private async wordRecord(word: string, translate: YdRes): Promise<void> {
+        const value = JSON.stringify(translate);
+        const wt: InsertWordTranslate = { word: p(word), translate: value };
+        await db
+            .insert(wordTranslates)
+            .values(wt)
+            .onConflictDoUpdate({
+                target: wordTranslates.word,
+                set: { translate: wt.translate, updated_at: TimeUtil.timeUtc() }
+            });
+    }
+
+    private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult): Promise<void> {
         const value = JSON.stringify(translate);
         const wt: InsertWordTranslate = { word: p(word), translate: value };
         await db

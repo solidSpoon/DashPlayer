@@ -21,3 +21,13 @@ export interface Basic {
     'us-speech': string;
     explains: string[];
 }
+
+export interface OpenAIDictionaryResult {
+    word: string;
+    phonetic?: string;
+    ukPhonetic?: string;
+    usPhonetic?: string;
+    definitions: string[];
+    examples?: string[];
+    pronunciation?: string;
+}

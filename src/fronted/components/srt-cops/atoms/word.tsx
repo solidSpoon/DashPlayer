@@ -3,12 +3,14 @@ import * as turf from '@turf/turf';
 import {Feature, Polygon} from '@turf/turf';
 import WordPop from './word-pop';
 import {playUrl, playWord} from '@/common/utils/AudioPlayer';
+import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import usePlayerController from '../../../hooks/usePlayerController';
 import useSWR from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
 import useCopyModeController from '../../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
+import Eb from '@/fronted/components/Eb';
 
 const api = window.electron;
 export interface WordParam {
@@ -44,7 +46,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const pause = usePlayerController((s) => s.pause);
     const [hovered, setHovered] = useState(false);
-    const {data: ydResp} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
+    const {data: ydResp, isLoading: isWordLoading} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
@@ -90,7 +92,16 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
             setCopyContent(word);
             return;
         }
-        const url = ydResp?.speakUrl;
+        
+        const isYoudaoFormat = (data: any): data is YdRes => {
+            return data && 'speakUrl' in data;
+        };
+
+        let url = '';
+        if (isYoudaoFormat(ydResp)) {
+            url = ydResp?.speakUrl || '';
+        }
+        
         console.log('url', url);
         if (StrUtil.isNotBlank(url)) {
             await playUrl(url);
@@ -115,13 +126,16 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                     }
                 }}
             >
-                {pop && hovered && !isCopyMode? (
-                    <WordPop
-                        word={word}
-                        translation={ydResp}
-                        ref={popperRef}
-                        hoverColor={alwaysDark ? "bg-neutral-600" : "bg-stone-100 dark:bg-neutral-600"}
-                    />
+                {pop && hovered && !isCopyMode ? (
+                    <Eb>
+                        <WordPop
+                            word={word}
+                            translation={ydResp}
+                            ref={popperRef}
+                            hoverColor={alwaysDark ? "bg-neutral-600" : "bg-stone-100 dark:bg-neutral-600"}
+                            isLoading={isWordLoading}
+                        />
+                    </Eb>
                 ) : (
                     <div
                         className={cn(

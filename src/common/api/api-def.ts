@@ -1,5 +1,5 @@
 import { DpTask } from '@/backend/db/tables/dpTask';
-import { YdRes } from '@/common/types/YdRes';
+import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { WindowState } from '@/common/types/Types';
@@ -90,7 +90,7 @@ interface SystemDef {
 
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
-    'ai-trans/word': { params: string, return: YdRes | null };
+    'ai-trans/word': { params: string, return: YdRes | OpenAIDictionaryResult | null };
     // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)
     'ai-trans/request-group-translation': {
         params: {

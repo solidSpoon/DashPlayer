@@ -1,7 +1,7 @@
-import { YdRes } from '@/common/types/YdRes';
+import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 
 export default interface TranslateService {
-    transWord(str: string): Promise<YdRes | null>;
+    transWord(str: string): Promise<YdRes | OpenAIDictionaryResult | null>;
     transSentences(sentences: string[]): Promise<Map<string, string>>;
 
     groupTranslate(params: {
