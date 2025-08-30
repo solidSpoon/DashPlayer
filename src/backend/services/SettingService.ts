@@ -13,4 +13,9 @@ export default interface SettingService {
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;
     getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
     getCurrentDictionaryProvider(): Promise<'youdao' | null>;
+    
+    // Test service connections
+    testOpenAi(): Promise<{ success: boolean, message: string }>;
+    testTencent(): Promise<{ success: boolean, message: string }>;
+    testYoudao(): Promise<{ success: boolean, message: string }>;
 }

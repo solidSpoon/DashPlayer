@@ -8,10 +8,11 @@ import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import Header from '@/fronted/components/setting/Header';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
+import { useToast } from '@/fronted/components/ui/use-toast';
 
 const api = window.electron;
 
@@ -22,6 +23,17 @@ const ServiceManagementSetting = () => {
     );
 
     const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
+    const { toast } = useToast();
+    
+    // Test states
+    const [testingOpenAi, setTestingOpenAi] = React.useState(false);
+    const [testingTencent, setTestingTencent] = React.useState(false);
+    const [testingYoudao, setTestingYoudao] = React.useState(false);
+    
+    // Test results
+    const [openAiTestResult, setOpenAiTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
+    const [tencentTestResult, setTencentTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
+    const [youdaoTestResult, setYoudaoTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
 
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
@@ -81,6 +93,43 @@ const ServiceManagementSetting = () => {
         }
     };
 
+    const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
+        const setTesting = {
+            'openai': setTestingOpenAi,
+            'tencent': setTestingTencent,
+            'youdao': setTestingYoudao
+        }[provider];
+        
+        const setResult = {
+            'openai': setOpenAiTestResult,
+            'tencent': setTencentTestResult,
+            'youdao': setYoudaoTestResult
+        }[provider];
+        
+        // 检查是否有未保存的更改
+        if (hasChanges) {
+            setResult({
+                success: false,
+                message: '请先保存配置后再测试'
+            });
+            return;
+        }
+        
+        setTesting(true);
+        setResult(null);
+        try {
+            const result = await api.call(`settings/test-${provider}` as 'settings/test-openai' | 'settings/test-tencent' | 'settings/test-youdao');
+            setResult(result);
+        } catch (error) {
+            setResult({
+                success: false,
+                message: `连接测试时发生错误: ${error}`
+            });
+        } finally {
+            setTesting(false);
+        }
+    };
+
     const onSubmit = async (data: ApiSettingVO) => {
         try {
             // Update OpenAI service
@@ -88,7 +137,7 @@ const ServiceManagementSetting = () => {
                 service: 'openai',
                 settings: data
             });
-ß
+
             // Update Tencent service
             await api.call('settings/update-service', {
                 service: 'tencent',
@@ -191,6 +240,36 @@ const ServiceManagementSetting = () => {
                                 </div>
                             </div>
                         </div>
+                        
+                        <Separator orientation="horizontal" />
+                        
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                {openAiTestResult && (
+                                    <>
+                                        {openAiTestResult.success ? (
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <XCircle className="h-4 w-4 text-red-500" />
+                                        )}
+                                        <span className={`text-sm ${openAiTestResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                                            {openAiTestResult.message}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => testProvider('openai')}
+                                disabled={testingOpenAi}
+                                className="flex items-center gap-2"
+                            >
+                                <TestTube className="h-4 w-4" />
+                                {testingOpenAi ? '测试中...' : '测试连接'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -244,6 +323,36 @@ const ServiceManagementSetting = () => {
                                 </Label>
                             </div>
                         </div>
+                        
+                        <Separator orientation="horizontal" />
+                        
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                {tencentTestResult && (
+                                    <>
+                                        {tencentTestResult.success ? (
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <XCircle className="h-4 w-4 text-red-500" />
+                                        )}
+                                        <span className={`text-sm ${tencentTestResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                                            {tencentTestResult.message}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => testProvider('tencent')}
+                                disabled={testingTencent}
+                                className="flex items-center gap-2"
+                            >
+                                <TestTube className="h-4 w-4" />
+                                {testingTencent ? '测试中...' : '测试连接'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -293,6 +402,36 @@ const ServiceManagementSetting = () => {
                                     词典查询
                                 </Label>
                             </div>
+                        </div>
+                        
+                        <Separator orientation="horizontal" />
+                        
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                {youdaoTestResult && (
+                                    <>
+                                        {youdaoTestResult.success ? (
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <XCircle className="h-4 w-4 text-red-500" />
+                                        )}
+                                        <span className={`text-sm ${youdaoTestResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                                            {youdaoTestResult.message}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => testProvider('youdao')}
+                                disabled={testingYoudao}
+                                className="flex items-center gap-2"
+                            >
+                                <TestTube className="h-4 w-4" />
+                                {testingYoudao ? '测试中...' : '测试连接'}
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>

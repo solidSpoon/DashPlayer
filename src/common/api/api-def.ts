@@ -142,6 +142,9 @@ interface StorageDef {
 interface SettingsDef {
     'settings/get-all-services': { params: void, return: ApiSettingVO };
     'settings/update-service': { params: { service: string, settings: ApiSettingVO }, return: void };
+    'settings/test-openai': { params: void, return: { success: boolean, message: string } };
+    'settings/test-tencent': { params: void, return: { success: boolean, message: string } };
+    'settings/test-youdao': { params: void, return: { success: boolean, message: string } };
 }
 
 interface SplitVideoDef {

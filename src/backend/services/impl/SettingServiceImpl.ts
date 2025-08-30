@@ -5,10 +5,16 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/services/SettingService';
 import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
+import { OpenAiService } from '@/backend/services/OpenAiService';
+import TencentProvider from '@/backend/services/impl/clients/TencentProvider';
+import YouDaoProvider from '@/backend/services/impl/clients/YouDaoProvider';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
+    @inject(TYPES.TencentClientProvider) private tencentProvider!: TencentProvider;
+    @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: YouDaoProvider;
     
     public async set(key: SettingKey, value: string): Promise<void> {
         if (storeSet(key, value)) {
@@ -89,5 +95,63 @@ export default class SettingServiceImpl implements SettingService {
     public async getCurrentDictionaryProvider(): Promise<'youdao' | null> {
         const youdaoEnabled = await this.get('services.youdao.enableDictionary') === 'true';
         return youdaoEnabled ? 'youdao' : null;
+    }
+    
+    public async testOpenAi(): Promise<{ success: boolean, message: string }> {
+        try {
+            const openAi = this.openAiService.getOpenAi();
+            // Test with a simple completion request
+            const completion = await openAi.chat.completions.create({
+                model: await this.get('model.gpt.default') || 'gpt-4o-mini',
+                messages: [{ role: 'user', content: 'Hello' }],
+                max_tokens: 5
+            });
+            
+            if (completion.choices && completion.choices.length > 0) {
+                return { success: true, message: 'OpenAI 配置测试成功' };
+            } else {
+                return { success: false, message: 'OpenAI 返回了空响应' };
+            }
+        } catch (error: any) {
+            return { success: false, message: `OpenAI 测试失败: ${error.message || error}` };
+        }
+    }
+    
+    public async testTencent(): Promise<{ success: boolean, message: string }> {
+        try {
+            const client = this.tencentProvider.getClient();
+            if (!client) {
+                return { success: false, message: '腾讯云配置不完整' };
+            }
+            
+            // Test with a simple translation request
+            const result = await client.batchTrans(['Hello']);
+            if (result && !result.isEmpty()) {
+                return { success: true, message: '腾讯云配置测试成功' };
+            } else {
+                return { success: false, message: '腾讯云返回了空响应' };
+            }
+        } catch (error: any) {
+            return { success: false, message: `腾讯云测试失败: ${error.message || error}` };
+        }
+    }
+    
+    public async testYoudao(): Promise<{ success: boolean, message: string }> {
+        try {
+            const client = this.youDaoProvider.getClient();
+            if (!client) {
+                return { success: false, message: '有道词典配置不完整' };
+            }
+            
+            // Test with a simple word query
+            const result = await client.translate('hello');
+            if (result) {
+                return { success: true, message: '有道词典配置测试成功' };
+            } else {
+                return { success: false, message: '有道词典返回了空响应' };
+            }
+        } catch (error: any) {
+            return { success: false, message: `有道词典测试失败: ${error.message || error}` };
+        }
     }
 }
