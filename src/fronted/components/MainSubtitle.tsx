@@ -15,17 +15,11 @@ export default function MainSubtitle() {
     // 在组件顶层获取当前句子的翻译
     const translationKey = sentence?.translationKey || '';
     const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
-    const translationStatus = useTranslation(state => state.translationStatus.get(translationKey) || 'untranslated');
-    // const translationStatus = sentence ? getTranslationStatus(translationKey) : 'untranslated';
-
-    console.log('sentence.translationKey:', translationKey);
-    console.log('newTranslation:', newTranslation);
     // 当前句子改变时，触发懒加载翻译
     useEffect(() => {
         console.log('sentence changed:', sentence);
         if (sentence && subtitle.length > 0) {
             // 使用 transGroup 字段判断是否需要加载翻译
-            console.log('sentence changed internal:', sentence);
             loadTranslationGroup(subtitle, sentence.index);
         }
     }, [sentence?.transGroup, sentence?.fileHash, sentence?.index, loadTranslationGroup]);
@@ -35,19 +29,9 @@ export default function MainSubtitle() {
             return [];
         }
 
-        // 优先使用新翻译，如果没有则使用原有的msTranslate
-        let translation = newTranslation || sentence.msTranslate;
-
-        // 根据翻译状态添加状态指示
-        if (translationStatus === 'translating') {
-            translation = translation + ' [翻译中...]';
-        } else if (translationStatus === 'untranslated' && !newTranslation) {
-            translation = sentence.msTranslate || '[未翻译]';
-        }
-
         const tempEle: Array<string> = [
             sentence.text,
-            translation,
+            newTranslation,
             sentence.textZH,
         ]
             .filter((item) => item !== undefined)

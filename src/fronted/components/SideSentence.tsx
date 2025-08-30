@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
 import { Sentence } from '@/common/types/SentenceC';
+import useTranslation from '@/fronted/hooks/useTranslation';
 
 interface SideSentenceNewParam {
     sentence: Sentence;
@@ -92,7 +93,9 @@ const AutoPausingIcon = () => {
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
         const playing = usePlayerController((state) => state.playing);
-        const s = [sentence.text, sentence.textZH, sentence.msTranslate].find(
+        const translationKey = sentence?.translationKey || '';
+        const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
+        const s = [sentence.text, sentence.textZH, newTranslation].find(
             (i) => i !== undefined && i !== ''
         );
         const fontSize = useSetting((state) =>

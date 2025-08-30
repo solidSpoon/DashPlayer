@@ -42,26 +42,6 @@ const createSubtitleSlice: StateCreator<
             srtTender.update(item);
         });
     },
-    mergeSubtitleTrans: (holder) => {
-        const subtitle = get().subtitle.map((s) => {
-            const trans = holder.get(s.text ?? '');
-            if (!trans) {
-                return s;
-            }
-            const ns = {...s};
-            ns.msTranslate = trans;
-            return ns;
-        });
-        set({ subtitle });
-        const srtTender = get().srtTender;
-        if (!srtTender)  {
-            console.error('srtTender is null');
-            return;
-        }
-        subtitle.forEach((item) => {
-            srtTender.update(item);
-        });
-    },
     getSubtitleAround: (index: number, num = 5) => {
         const min = Math.max(index - num, 0);
         const max = Math.min(index + num, get().subtitle.length - 1);

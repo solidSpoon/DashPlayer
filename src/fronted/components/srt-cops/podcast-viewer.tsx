@@ -6,6 +6,7 @@ import ViewerControlPanel from '@/fronted/components/subtitle-viewer/viewer-cont
 import { useShallow } from 'zustand/react/shallow';
 import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';
+import useTranslation from '@/fronted/hooks/useTranslation';
 
 const PodcastViewer = ({ className }: { className?: string }) => {
     const current: Sentence | undefined = usePlayerController((s) => s.currentSentence);
@@ -13,6 +14,9 @@ const PodcastViewer = ({ className }: { className?: string }) => {
     const currentIndex = current?.index ?? 0;
     const subtitleBefore: Sentence[] = subtitleAround.filter((s) => s.index < currentIndex).sort((a, b) => b.index - a.index);
     const subtitleAfter: Sentence[] = subtitleAround.filter((s) => s.index > currentIndex).sort((a, b) => a.index - b.index);
+
+    const translationKey = current?.translationKey || '';
+    const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
 
     const showCn = usePlayerController(s => s.showCn);
     const srtTender = usePlayerController(s => s.srtTender);
@@ -57,8 +61,8 @@ const PodcastViewer = ({ className }: { className?: string }) => {
                             adjusted={srtTender.adjusted(current) ?? false} clearAdjust={clearAdjust}
                             sentence={current}
                         />
-                        {!StrUtil.isBlank(current?.msTranslate) && showCn && <div className={cn('text-3xl text-center')}>
-                            {current?.msTranslate}
+                        {!StrUtil.isBlank(newTranslation) && showCn && <div className={cn('text-3xl text-center')}>
+                            {newTranslation}
                         </div>}
                         {!StrUtil.isBlank(current?.textZH) && showCn && <div className={cn('text-2xl text-center')}>
                             {current?.textZH}

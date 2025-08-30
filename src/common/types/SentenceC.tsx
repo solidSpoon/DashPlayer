@@ -28,12 +28,6 @@ export interface Sentence {
      */
     textZH: string;
 
-
-    /**
-     * 字幕机器翻译
-     */
-    msTranslate: string | null;
-
     key: string;
 
     /**

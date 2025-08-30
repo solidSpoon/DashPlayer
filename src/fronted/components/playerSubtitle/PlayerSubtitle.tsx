@@ -3,18 +3,22 @@ import React, { ReactElement } from 'react';
 import FullscreenTranslatableLine from '@/fronted/components/srt-cops/fullscreen-translatable-line';
 import PlayerNormalLine from '@/fronted/components/playerSubtitle/PlayerNormalLine';
 import StrUtil from '@/common/utils/str-util';
+import useTranslation from '@/fronted/hooks/useTranslation';
 
 const PlayerSubtitle = () => {
     const sentence = usePlayerController((state) => state.currentSentence);
     const clearAdjust = usePlayerController((state) => state.clearAdjust);
     const srtTender = usePlayerController((state) => state.srtTender);
+    
+    const translationKey = sentence?.translationKey || '';
+    const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
     const ele = (): ReactElement[] => {
         if (sentence === undefined) {
             return [];
         }
         const tempEle: Array<string> = [
             sentence.text,
-            sentence.msTranslate,
+            newTranslation,
             sentence.textZH
         ]
             .filter((item) => StrUtil.isNotBlank(item))

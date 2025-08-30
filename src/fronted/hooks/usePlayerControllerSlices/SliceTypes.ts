@@ -7,7 +7,6 @@ export interface SubtitleSlice {
     srtTender: SrtTender<Sentence> | null;
     setSubtitle: (subtitle: Sentence[]) => void;
     mergeSubtitle: (subtitle: Sentence[]) => void;
-    mergeSubtitleTrans: (holder: TransHolder<string>) => void;
     getSubtitleAround: (index: number, num?: number) => Sentence[];
 }
 

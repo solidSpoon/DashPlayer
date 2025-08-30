@@ -86,7 +86,6 @@ export class SubtitleServiceImpl implements SubtitleService {
             adjustedEnd: null,
             text: line.contentEn,
             textZH: line.contentZh,
-            msTranslate: null,
             key: `${hashKey}-${index}`,
             transGroup: 0,
             translationKey: '', // 先设为空，稍后生成
