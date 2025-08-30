@@ -144,6 +144,28 @@ export default class SystemServiceImpl implements SystemService {
                 duration: 3000
             });
             console.log('✅ Toast发送成功');
+
+            // 测试翻译功能 - 模拟翻译结果回传
+            console.log('🔤 测试翻译功能...');
+            
+            setTimeout(async () => {
+                await this.callRendererApi('translation/result', {
+                    key: 'test-translation-key-1',
+                    translation: '这是一个测试翻译结果'
+                });
+                console.log('✅ 翻译结果发送成功');
+            }, 1000);
+
+            setTimeout(async () => {
+                await this.callRendererApi('translation/batch-result', {
+                    translations: [
+                        { key: 'test-key-1', translation: '你好世界' },
+                        { key: 'test-key-2', translation: '这是第二个测试' },
+                        { key: 'test-key-3', translation: '批量翻译测试' }
+                    ]
+                });
+                console.log('✅ 批量翻译结果发送成功');
+            }, 2000);
             
         } catch (error) {
             console.error('❌ 反向API调用失败:', error);

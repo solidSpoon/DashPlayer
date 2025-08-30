@@ -151,4 +151,52 @@ export default class TranslateServiceImpl implements TranslateService {
             })(p(key), value);
         });
     }
+
+    // 新增：根据hash key获取翻译缓存
+    public async getTranslationByKey(key: string): Promise<string | null> {
+        try {
+            const values: SentenceTranslate[] = await db
+                .select()
+                .from(sentenceTranslates)
+                .where(eq(sentenceTranslates.sentence, p(key)))
+                .limit(1);
+
+            if (values.length === 0) {
+                return null;
+            }
+
+            const translate = values[0].translate;
+            return StrUtil.isBlank(translate) ? null : translate;
+        } catch (error) {
+            dpLog.error('获取翻译缓存失败:', error);
+            return null;
+        }
+    }
+
+    // 新增：保存翻译结果到缓存（现在sentence字段存储hash key）
+    public async saveTranslationByKey(key: string, translation: string): Promise<void> {
+        try {
+            await db
+                .insert(sentenceTranslates)
+                .values({
+                    sentence: p(key), // 现在存储的是hash key而不是句子文本
+                    translate: translation
+                })
+                .onConflictDoUpdate({
+                    target: sentenceTranslates.sentence,
+                    set: {
+                        translate: translation,
+                        updated_at: TimeUtil.timeUtc()
+                    }
+                });
+        } catch (error) {
+            dpLog.error('保存翻译缓存失败:', error);
+            throw error;
+        }
+    }
+
+    // 新增：获取腾讯客户端
+    public getTencentClient(): any {
+        return this.tencentProvider.getClient();
+    }
 }

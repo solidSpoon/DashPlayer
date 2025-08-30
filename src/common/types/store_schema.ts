@@ -28,6 +28,7 @@ export const SettingKeyObj = {
     'apiKeys.openAi.key': '',
     'apiKeys.openAi.endpoint': '',
     'apiKeys.openAi.stream': 'on',
+    'translation.engine': 'tencent',
     'model.gpt.default': 'gpt-4o-mini',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',

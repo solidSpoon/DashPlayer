@@ -94,7 +94,6 @@ const useSplit = create(
                     onFinish: () => {
                         useSplit.setState({ inputable: true });
                     },
-                    interval: 100
                 });
             }
         }))

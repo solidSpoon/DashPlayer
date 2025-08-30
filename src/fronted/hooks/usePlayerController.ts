@@ -194,22 +194,22 @@ useFile.subscribe(
             // console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
                 console.log('test error before');
-                const transHolder = TransHolder.from(
-                    // eslint-disable-next-line no-await-in-loop
-                    await api.call('ai-trans/batch-translate',
-                        userCanSee.map((s) => s.text ?? '')
-                    )
-                );
+                // const transHolder = TransHolder.from(
+                //     // eslint-disable-next-line no-await-in-loop
+                //     await api.call('ai-trans/batch-translate',
+                //         userCanSee.map((s) => s.text ?? '')
+                //     )
+                // );
                 console.log('test error after');
                 if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }
-                console.log('transHolder', transHolder);
-                if (!transHolder.isEmpty()) {
-                    usePlayerController
-                        .getState()
-                        .mergeSubtitleTrans(transHolder);
-                }
+                // console.log('transHolder', transHolder);
+                // if (!transHolder.isEmpty()) {
+                //     usePlayerController
+                //         .getState()
+                //         .mergeSubtitleTrans(transHolder);
+                // }
                 // 加载收藏
                 useFavouriteClip.getState().updateClipInfo(srtSubtitles.fileHash, userCanSee.map((s) => s.index));
             }

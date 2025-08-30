@@ -90,6 +90,18 @@ interface SystemDef {
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
     'ai-trans/word': { params: string, return: YdRes | null };
+    // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)
+    'ai-trans/request-group-translation': { 
+        params: { 
+            engine: 'tencent' | 'openai',
+            translations: Array<{ key: string, sentences: string[] }>
+        }, 
+        return: void 
+    };
+    // 测试腾讯翻译API
+    'ai-trans/test-tencent': { params: void, return: void };
+    // 测试新的翻译流程
+    'ai-trans/test-new-flow': { params: void, return: void };
 }
 
 interface WatchHistoryDef {

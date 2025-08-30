@@ -23,7 +23,7 @@ const useSystem = create(
 );
 
 export const syncStatus = () => {
-    api.call('system/info', null).then((sysInfo) => {
+    api.call('system/info').then((sysInfo) => {
         useSystem.setState({
             isWindows: sysInfo.isWindows,
             pathSeparator: sysInfo.pathSeparator,

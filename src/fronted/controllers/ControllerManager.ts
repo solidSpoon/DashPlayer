@@ -5,6 +5,7 @@
 
 import RendererController, { ControllerRegistry } from '@/fronted/interfaces/RendererController';
 import { UIController } from './UIController';
+import { TranslationController } from './TranslationController';
 
 class ControllerManager {
     private controllers: ControllerRegistry[] = [];
@@ -32,6 +33,7 @@ class ControllerManager {
         
         // 在这里添加所有Controller
         this.registerController(new UIController());
+        this.registerController(new TranslationController());
         
         console.log(`已注册 ${this.controllers.length} 个Controllers`);
     }

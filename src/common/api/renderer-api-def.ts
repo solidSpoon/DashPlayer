@@ -16,9 +16,16 @@ interface UIRendererDef {
     'ui/show-toast': { params: { message: string, duration?: number }, return: void };
 }
 
+// 翻译相关的前端API定义
+interface TranslationRendererDef {
+    'translation/result': { params: { key: string, translation: string }, return: void };
+    'translation/batch-result': { params: { translations: Array<{ key: string, translation: string }> }, return: void };
+}
+
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
-    & UIRendererDef;
+    & UIRendererDef
+    & TranslationRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;
