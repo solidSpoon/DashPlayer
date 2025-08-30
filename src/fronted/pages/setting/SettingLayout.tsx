@@ -14,9 +14,7 @@ import {buttonVariants} from "@/fronted/components/ui/button";
 import { Bot, Command, Compass, Database, Languages, Palette, Server, WholeWord } from 'lucide-react';
 
 export type SettingType =
-    | 'you-dao'
-    | 'tenant'
-    | 'open-ai'
+    | 'services'
     | 'shortcut'
     | 'storage'
     | 'update'
@@ -69,9 +67,7 @@ const Sidebar = () => {
         <div className="w-full h-full flex flex-col gap-2">
             {ele('快捷键', 'shortcut', <Command />)}
             {ele('外观', 'appearance', <Palette />)}
-            {ele('字幕翻译', 'tenant', <Languages />)}
-            {ele('查单词', 'you-dao', <WholeWord />)}
-            {ele('OpenAI', 'open-ai', <Bot />)}
+            {ele('AI 服务', 'services', <Bot />)}
             {ele('存储', 'storage', <Database />)}
             {ele('版本更新', 'update', <Compass />)}
         </div>

@@ -30,6 +30,11 @@ export const SettingKeyObj = {
     'apiKeys.openAi.stream': 'on',
     'translation.engine': 'tencent',
     'model.gpt.default': 'gpt-4o-mini',
+    // Service function enablement
+    'services.openai.enableSentenceLearning': 'false',
+    'services.openai.enableSubtitleTranslation': 'false',
+    'services.tencent.enableSubtitleTranslation': 'true',
+    'services.youdao.enableDictionary': 'true',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
     'storage.path': '',

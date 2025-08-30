@@ -9,17 +9,15 @@ import Layout from '@/fronted/pages/Layout';
 import About from '@/fronted/pages/About';
 import SettingLayout from '@/fronted/pages/setting/SettingLayout';
 import ShortcutSetting from '@/fronted/pages/setting/ShortcutSetting';
-import YouDaoSetting from '@/fronted/pages/setting/YouDaoSetting';
-import TenantSetting from '@/fronted/pages/setting/TenantSetting';
 import StorageSetting from '@/fronted/pages/setting/StorageSetting';
 import CheckUpdate from '@/fronted/pages/setting/CheckUpdate';
 import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
+import ServiceManagementSetting from '@/fronted/pages/setting/ServiceManagementSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
 import toast, { Toaster as HotToaster } from 'react-hot-toast';
 
 import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
-import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from '@/fronted/components/short-cut/GlobalShortCut';
 import DownloadVideo from '@/fronted/pages/DownloadVideo';
@@ -84,16 +82,8 @@ const App = () => {
                                         element={<Eb><ShortcutSetting /></Eb>}
                                     />
                                     <Route
-                                        path="you-dao"
-                                        element={<Eb><YouDaoSetting /></Eb>}
-                                    />
-                                    <Route
-                                        path="tenant"
-                                        element={<Eb><TenantSetting /></Eb>}
-                                    />
-                                    <Route
-                                        path="open-ai"
-                                        element={<Eb><OpenAiSetting /></Eb>}
+                                        path="services"
+                                        element={<Eb><ServiceManagementSetting /></Eb>}
                                     />
                                     <Route
                                         path="storage"

@@ -139,6 +139,22 @@ interface StorageDef {
     'storage/collection/paths': { params: void, return: string[] };
 }
 
+interface SettingsDef {
+    'settings/get-all-services': { params: void, return: ServiceSettings };
+    'settings/update-service': { params: { service: string, settings: Partial<ServiceConfig> }, return: void };
+}
+
+type ServiceSettings = {
+    openai: ServiceConfig;
+    tencent: ServiceConfig;
+    youdao: ServiceConfig;
+};
+
+type ServiceConfig = {
+    credentials: Record<string, string>;
+    enabledFeatures: Record<string, boolean>;
+};
+
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
     'split-video/split': {
@@ -193,6 +209,7 @@ export type ApiDefinitions = ApiDefinition
     & SplitVideoDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
+    & SettingsDef
     & DownloadVideoDef
     & ConvertDef
     & FavoriteClipsDef

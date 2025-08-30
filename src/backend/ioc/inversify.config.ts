@@ -59,6 +59,7 @@ import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
+import SettingsController from '@/backend/controllers/SettingsController';
 import { OpenAIServiceImpl } from '@/backend/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import AiProviderService from '@/backend/services/AiProviderService';
@@ -83,6 +84,7 @@ container.bind<Controller>(TYPES.Controller).to(StorageController).inSingletonSc
 container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
 // Services
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
