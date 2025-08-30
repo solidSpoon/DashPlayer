@@ -18,8 +18,8 @@ interface UIRendererDef {
 
 // 翻译相关的前端API定义
 interface TranslationRendererDef {
-    'translation/result': { params: { key: string, translation: string }, return: void };
-    'translation/batch-result': { params: { translations: Array<{ key: string, translation: string }> }, return: void };
+    'translation/result': { params: { key: string, translation: string, isComplete?: boolean }, return: void };
+    'translation/batch-result': { params: { translations: Array<{ key: string, translation: string, isComplete?: boolean }> }, return: void };
 }
 
 // 使用交叉类型合并所有前端API定义

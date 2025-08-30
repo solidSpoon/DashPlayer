@@ -94,7 +94,9 @@ interface AiTransDef {
     'ai-trans/request-group-translation': { 
         params: { 
             engine: 'tencent' | 'openai',
-            translations: Array<{ key: string, sentences: string[] }>
+            fileHash: string,
+            indices: number[],
+            useCache?: boolean
         }, 
         return: void 
     };

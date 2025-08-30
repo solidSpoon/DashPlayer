@@ -14,8 +14,8 @@ export class TranslationController extends BaseRendererController {
             'translation/result': async (params) => {
                 console.log('翻译结果:', params);
                 
-                const { key, translation } = params;
-                useTranslation.getState().updateTranslation(key, translation);
+                const { key, translation, isComplete = true } = params;
+                useTranslation.getState().updateTranslation(key, translation, isComplete);
             },
 
             // 批量翻译结果回调 (流式返回数组)

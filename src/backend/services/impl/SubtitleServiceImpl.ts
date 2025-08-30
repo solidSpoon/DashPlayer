@@ -13,7 +13,20 @@ import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimesta
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
+import hash from 'object-hash';
 
+// 生成翻译key的工具函数 - hash(附近三行)
+function generateTranslationKey(sentences: Sentence[], centerIndex: number): string {
+    const startIndex = Math.max(0, centerIndex - 1);
+    const endIndex = Math.min(sentences.length - 1, centerIndex + 1);
+
+    const contextTexts = [];
+    for (let i = startIndex; i <= endIndex; i++) {
+        contextTexts.push(sentences[i]?.text || '');
+    }
+
+    return hash(contextTexts.join('|'));
+}
 
 function groupSentence(
     subtitle: Sentence[],
@@ -76,10 +89,16 @@ export class SubtitleServiceImpl implements SubtitleService {
             msTranslate: null,
             key: `${hashKey}-${index}`,
             transGroup: 0,
+            translationKey: '', // 先设为空，稍后生成
             struct: processSentence(line.contentEn)
         }));
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
+        });
+        
+        // 生成每个句子的翻译key
+        subtitles.forEach((sentence, index) => {
+            sentence.translationKey = generateTranslationKey(subtitles, index);
         });
         const res = {
             fileHash: hashKey,

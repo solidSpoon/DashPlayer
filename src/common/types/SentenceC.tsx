@@ -41,5 +41,10 @@ export interface Sentence {
      */
     transGroup: number;
 
+    /**
+     * 翻译key - hash(附近三行文本)
+     */
+    translationKey: string;
+
     struct: SentenceStruct;
 }
