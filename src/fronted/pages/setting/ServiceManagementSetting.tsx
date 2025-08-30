@@ -1,5 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import useSWR from 'swr';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
@@ -10,97 +11,60 @@ import Separator from '@/fronted/components/Separtor';
 import { Bot, Languages, Book } from 'lucide-react';
 import Header from '@/fronted/components/setting/Header';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
+import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 
 const api = window.electron;
 
-type ServiceSettings = {
-    openai: ServiceConfig;
-    tencent: ServiceConfig;
-    youdao: ServiceConfig;
-};
-
-type ServiceConfig = {
-    credentials: Record<string, string>;
-    enabledFeatures: Record<string, boolean>;
-};
-
-type FormData = {
-    openai: {
-        key: string;
-        endpoint: string;
-        model: string;
-        enableSentenceLearning: boolean;
-        enableSubtitleTranslation: boolean;
-    };
-    tencent: {
-        secretId: string;
-        secretKey: string;
-        enableSubtitleTranslation: boolean;
-    };
-    youdao: {
-        secretId: string;
-        secretKey: string;
-        enableDictionary: boolean;
-    };
-};
-
 const ServiceManagementSetting = () => {
-    const { register, handleSubmit, watch, setValue, reset, formState: { isDirty, isSubmitting } } = useForm<FormData>({
-        defaultValues: {
-            openai: {
-                key: '',
-                endpoint: 'https://api.openai.com',
-                model: 'gpt-4o-mini',
-                enableSentenceLearning: false,
-                enableSubtitleTranslation: false,
-            },
-            tencent: {
-                secretId: '',
-                secretKey: '',
-                enableSubtitleTranslation: true,
-            },
-            youdao: {
-                secretId: '',
-                secretKey: '',
-                enableDictionary: true,
-            },
-        }
-    });
+    // Fetch settings with SWR
+    const { data: settings, mutate } = useSWR('settings/get-all-services', () =>
+        api.call('settings/get-all-services')
+    );
+
+    const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
+
+    // Store original values for change detection
+    const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
+
+    // Watch all form values for change detection
+    const currentValues = watch();
 
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
     const tencentSubtitleEnabled = watch('tencent.enableSubtitleTranslation');
 
-    // Load settings on mount
+    // Custom change detection
+    const hasChanges = React.useMemo(() => {
+        if (!originalValues) return false;
+        return JSON.stringify(currentValues) !== JSON.stringify(originalValues);
+    }, [currentValues, originalValues]);
+
+    // Initialize form when settings load
     React.useEffect(() => {
-        const loadSettings = async () => {
-            try {
-                const settings: ServiceSettings = await api.call('settings/get-all-services');
-                reset({
-                    openai: {
-                        key: settings.openai.credentials.key || '',
-                        endpoint: settings.openai.credentials.endpoint || 'https://api.openai.com',
-                        model: settings.openai.credentials.model || 'gpt-4o-mini',
-                        enableSentenceLearning: settings.openai.enabledFeatures.sentenceLearning || false,
-                        enableSubtitleTranslation: settings.openai.enabledFeatures.subtitleTranslation || false,
-                    },
-                    tencent: {
-                        secretId: settings.tencent.credentials.secretId || '',
-                        secretKey: settings.tencent.credentials.secretKey || '',
-                        enableSubtitleTranslation: settings.tencent.enabledFeatures.subtitleTranslation || false,
-                    },
-                    youdao: {
-                        secretId: settings.youdao.credentials.secretId || '',
-                        secretKey: settings.youdao.credentials.secretKey || '',
-                        enableDictionary: settings.youdao.enabledFeatures.dictionary || false,
-                    },
-                });
-            } catch (error) {
-                console.error('Failed to load settings:', error);
-            }
-        };
-        loadSettings();
-    }, [reset]);
+        if (settings) {
+            const formData: ApiSettingVO = {
+                openai: {
+                    key: settings.openai.key || '',
+                    endpoint: settings.openai.endpoint || 'https://api.openai.com',
+                    model: settings.openai.model || 'gpt-4o-mini',
+                    enableSentenceLearning: settings.openai.enableSentenceLearning || false,
+                    enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || false,
+                },
+                tencent: {
+                    secretId: settings.tencent.secretId || '',
+                    secretKey: settings.tencent.secretKey || '',
+                    enableSubtitleTranslation: settings.tencent.enableSubtitleTranslation || false,
+                },
+                youdao: {
+                    secretId: settings.youdao.secretId || '',
+                    secretKey: settings.youdao.secretKey || '',
+                    enableDictionary: settings.youdao.enableDictionary || false,
+                },
+            };
+            reset(formData, { keepDefaultValues: false });
+            setOriginalValues(formData);
+        }
+    }, [settings, reset]);
 
     // Handle mutual exclusion for subtitle translation
     const handleSubtitleTranslationChange = (service: 'openai' | 'tencent', enabled: boolean) => {
@@ -117,52 +81,29 @@ const ServiceManagementSetting = () => {
         }
     };
 
-    const onSubmit = async (data: FormData) => {
+    const onSubmit = async (data: ApiSettingVO) => {
         try {
             // Update OpenAI service
             await api.call('settings/update-service', {
                 service: 'openai',
-                settings: {
-                    credentials: {
-                        key: data.openai.key,
-                        endpoint: data.openai.endpoint,
-                        model: data.openai.model,
-                    },
-                    enabledFeatures: {
-                        sentenceLearning: data.openai.enableSentenceLearning,
-                        subtitleTranslation: data.openai.enableSubtitleTranslation,
-                    }
-                }
+                settings: data
             });
-
+ß
             // Update Tencent service
             await api.call('settings/update-service', {
                 service: 'tencent',
-                settings: {
-                    credentials: {
-                        secretId: data.tencent.secretId,
-                        secretKey: data.tencent.secretKey,
-                    },
-                    enabledFeatures: {
-                        subtitleTranslation: data.tencent.enableSubtitleTranslation,
-                    }
-                }
+                settings: data
             });
 
             // Update Youdao service
             await api.call('settings/update-service', {
                 service: 'youdao',
-                settings: {
-                    credentials: {
-                        secretId: data.youdao.secretId,
-                        secretKey: data.youdao.secretKey,
-                    },
-                    enabledFeatures: {
-                        dictionary: data.youdao.enableDictionary,
-                    }
-                }
+                settings: data
             });
 
+            // Refresh settings data and update original values
+            await mutate();
+            setOriginalValues(data);
             console.log('Settings updated successfully');
         } catch (error) {
             console.error('Failed to update settings:', error);
@@ -171,9 +112,9 @@ const ServiceManagementSetting = () => {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full flex flex-col gap-6">
-            <Header title="AI 服务配置" description="配置各项 AI 服务的密钥和功能启用状态" />
-            
-            <div className="flex flex-col gap-6">
+            <Header title="API 配置" description="配置各项 API 服务的密钥和功能启用状态" />
+
+            <div className="flex flex-col gap-6 h-0 flex-1 overflow-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
                 {/* OpenAI Service */}
                 <Card>
                     <CardHeader>
@@ -205,7 +146,7 @@ const ServiceManagementSetting = () => {
                                 />
                             </div>
                         </div>
-                        
+
                         <div className="space-y-2">
                             <Label htmlFor="openai-model">模型</Label>
                             <Select value={watch('openai.model')} onValueChange={(value) => setValue('openai.model', value)}>
@@ -221,7 +162,7 @@ const ServiceManagementSetting = () => {
                         </div>
 
                         <Separator orientation="horizontal" />
-                        
+
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">启用功能</Label>
                             <div className="space-y-2">
@@ -286,7 +227,7 @@ const ServiceManagementSetting = () => {
                         </div>
 
                         <Separator orientation="horizontal" />
-                        
+
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">启用功能</Label>
                             <div className="flex items-center space-x-2">
@@ -339,7 +280,7 @@ const ServiceManagementSetting = () => {
                         </div>
 
                         <Separator orientation="horizontal" />
-                        
+
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">启用功能</Label>
                             <div className="flex items-center space-x-2">
@@ -366,9 +307,9 @@ const ServiceManagementSetting = () => {
                 >
                     查看文档
                 </Button>
-                <Button 
-                    type="submit" 
-                    disabled={!isDirty || isSubmitting}
+                <Button
+                    type="submit"
+                    disabled={!hasChanges || isSubmitting}
                 >
                     {isSubmitting ? '保存中...' : '保存配置'}
                 </Button>

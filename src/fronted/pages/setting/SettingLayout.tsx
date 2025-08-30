@@ -67,7 +67,7 @@ const Sidebar = () => {
         <div className="w-full h-full flex flex-col gap-2">
             {ele('快捷键', 'shortcut', <Command />)}
             {ele('外观', 'appearance', <Palette />)}
-            {ele('AI 服务', 'services', <Bot />)}
+            {ele('API 配置', 'services', <Bot />)}
             {ele('存储', 'storage', <Database />)}
             {ele('版本更新', 'update', <Compass />)}
         </div>

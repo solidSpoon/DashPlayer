@@ -16,6 +16,7 @@ import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import { COOKIE } from '@/common/types/DlVideoType';
 import { CoreMessage } from 'ai';
+import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -91,14 +92,14 @@ interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
     'ai-trans/word': { params: string, return: YdRes | null };
     // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)
-    'ai-trans/request-group-translation': { 
-        params: { 
+    'ai-trans/request-group-translation': {
+        params: {
             engine: 'tencent' | 'openai',
             fileHash: string,
             indices: number[],
             useCache?: boolean
-        }, 
-        return: void 
+        },
+        return: void
     };
     // 测试腾讯翻译API
     'ai-trans/test-tencent': { params: void, return: void };
@@ -140,20 +141,9 @@ interface StorageDef {
 }
 
 interface SettingsDef {
-    'settings/get-all-services': { params: void, return: ServiceSettings };
-    'settings/update-service': { params: { service: string, settings: Partial<ServiceConfig> }, return: void };
+    'settings/get-all-services': { params: void, return: ApiSettingVO };
+    'settings/update-service': { params: { service: string, settings: ApiSettingVO }, return: void };
 }
-
-type ServiceSettings = {
-    openai: ServiceConfig;
-    tencent: ServiceConfig;
-    youdao: ServiceConfig;
-};
-
-type ServiceConfig = {
-    credentials: Record<string, string>;
-    enabledFeatures: Record<string, boolean>;
-};
 
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
