@@ -206,7 +206,7 @@ export default class TranslateServiceImpl implements TranslateService {
             const values: SentenceTranslate[] = await db
                 .select()
                 .from(sentenceTranslates)
-                .where(inArray(sentenceTranslates.sentence, keys.map(k => p(k))));
+                .where(inArray(sentenceTranslates.sentence, keys));
 
             values.forEach(v => {
                 if (v.sentence && !StrUtil.isBlank(v.translate)) {
@@ -224,7 +224,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const promises = Array.from(translations.entries()).map(([key, translation]) =>
             db.insert(sentenceTranslates)
-                .values({ sentence: p(key), translate: translation })
+                .values({ sentence: key, translate: translation })
                 .onConflictDoUpdate({
                     target: sentenceTranslates.sentence,
                     set: {
@@ -356,26 +356,5 @@ export default class TranslateServiceImpl implements TranslateService {
             promises.push(promise);
         }
         await Promise.all(promises);
-    }
-
-    public async testTencentTranslation(): Promise<void> {
-        dpLog.log('🧪 开始测试腾讯翻译API...');
-        try {
-            const testSentences = ['Hello world', 'How are you?', 'This is a test.'];
-            dpLog.log(`📝 测试句子: ${JSON.stringify(testSentences)}`);
-            const result = await this.transSentences(testSentences);
-            dpLog.log(`🌐 腾讯翻译结果:`, result);
-            if(result.size === testSentences.length) {
-                dpLog.log('✅ 腾讯翻译测试通过！');
-            } else {
-                dpLog.warn('⚠️ 腾讯翻译测试部分失败或未返回所有结果。');
-            }
-        } catch (error) {
-            dpLog.error('❌ 腾讯翻译测试失败:', error);
-        }
-    }
-
-    public getTencentClient(): TencentClient | null {
-        return this.tencentProvider.getClient();
     }
 }
