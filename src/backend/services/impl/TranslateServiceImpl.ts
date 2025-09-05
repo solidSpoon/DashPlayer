@@ -260,13 +260,18 @@ export default class TranslateServiceImpl implements TranslateService {
     // --- 保留的旧方法 (兼容旧版或特定功能) ---
 
     public async transWord(str: string): Promise<YdRes | OpenAIDictionaryResult | null> {
-        const cacheRes = await this.wordLoad(str);
-        if (cacheRes) {
-            dpLog.log('命中单词缓存:', cacheRes);
-            return cacheRes;
+        const currentProvider = await this.settingService.getCurrentDictionaryProvider();
+        
+        if (!currentProvider) {
+            dpLog.log('没有启用的字典服务');
+            return null;
         }
 
-        const currentProvider = await this.settingService.getCurrentDictionaryProvider();
+        const cacheRes = await this.wordLoad(str, currentProvider);
+        if (cacheRes) {
+            dpLog.log(`命中${currentProvider}单词缓存:`, cacheRes);
+            return cacheRes;
+        }
         
         if (currentProvider === 'youdao') {
             const client = this.youDaoProvider.getClient();
@@ -286,7 +291,6 @@ export default class TranslateServiceImpl implements TranslateService {
             return await this.translateWordWithOpenAI(str);
         }
 
-        dpLog.log('没有启用的字典服务');
         return null;
     }
 
@@ -432,11 +436,14 @@ export default class TranslateServiceImpl implements TranslateService {
         return result;
     }
 
-    private async wordLoad(word: string): Promise<YdRes | OpenAIDictionaryResult | undefined> {
+    private async wordLoad(word: string, provider: 'youdao' | 'openai'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
         const value: WordTranslate[] = await db
             .select()
             .from(wordTranslates)
-            .where(eq(wordTranslates.word, p(word)))
+            .where(and(
+                eq(wordTranslates.word, p(word)),
+                eq(wordTranslates.provider, provider)
+            ))
             .limit(1);
 
         if (value.length === 0) return undefined;
@@ -447,24 +454,24 @@ export default class TranslateServiceImpl implements TranslateService {
 
     private async wordRecord(word: string, translate: YdRes): Promise<void> {
         const value = JSON.stringify(translate);
-        const wt: InsertWordTranslate = { word: p(word), translate: value };
+        const wt: InsertWordTranslate = { word: p(word), provider: 'youdao', translate: value };
         await db
             .insert(wordTranslates)
             .values(wt)
             .onConflictDoUpdate({
-                target: wordTranslates.word,
+                target: [wordTranslates.word, wordTranslates.provider],
                 set: { translate: wt.translate, updated_at: TimeUtil.timeUtc() }
             });
     }
 
     private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult): Promise<void> {
         const value = JSON.stringify(translate);
-        const wt: InsertWordTranslate = { word: p(word), translate: value };
+        const wt: InsertWordTranslate = { word: p(word), provider: 'openai', translate: value };
         await db
             .insert(wordTranslates)
             .values(wt)
             .onConflictDoUpdate({
-                target: wordTranslates.word,
+                target: [wordTranslates.word, wordTranslates.provider],
                 set: { translate: wt.translate, updated_at: TimeUtil.timeUtc() }
             });
     }
