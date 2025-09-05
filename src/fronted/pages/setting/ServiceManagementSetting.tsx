@@ -65,7 +65,7 @@ const ServiceManagementSetting = () => {
                     model: settings.openai.model || 'gpt-4o-mini',
                     enableSentenceLearning: settings.openai.enableSentenceLearning || true,
                     enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || true,
-                    enableDictionary: settings.openai.enableDictionary || true,
+                    enableDictionary: settings.openai.enableDictionary ?? true,
                 },
                 tencent: {
                     secretId: settings.tencent.secretId || '',
@@ -75,7 +75,7 @@ const ServiceManagementSetting = () => {
                 youdao: {
                     secretId: settings.youdao.secretId || '',
                     secretKey: settings.youdao.secretKey || '',
-                    enableDictionary: settings.youdao.enableDictionary || false,
+                    enableDictionary: settings.youdao.enableDictionary ?? false,
                 },
             };
             reset(formData, { keepDefaultValues: false });
