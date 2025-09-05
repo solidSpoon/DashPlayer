@@ -97,7 +97,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
     };
 
     return (
-        <div className="w-80 h-96 bg-white rounded-xl shadow-lg overflow-hidden text-left">
+        <div className="w-80 h-96 bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl overflow-hidden text-left">
             {isLoading ? renderSkeleton() : renderContent()}
         </div>
     );

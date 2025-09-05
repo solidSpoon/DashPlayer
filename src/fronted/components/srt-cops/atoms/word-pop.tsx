@@ -94,16 +94,15 @@ const WordPop = React.forwardRef(
             });
 
             if (openaiDictionaryEnabled) {
-                return <OpenAIWordPop data={translation} isLoading={externalIsLoading || !translation} />;
+                return <OpenAIWordPop data={shouldShowOpenAI ? translation : null} isLoading={externalIsLoading} />;
             }
 
             return (
                 <div
                     className={cn(
-                        'select-text relative top-0 left-0 h-[500px] w-[500px] bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl scrollbar-none',
+                        'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none',
                         isLoading ? 'opacity-0' : 'opacity-100',
-                        'overflow-y-hidden flex flex-col items-start',
-                        translation?.webdict?.url && 'pt-4'
+                        shouldShowYoudao && translation?.webdict?.url && 'pt-4'
                     )}
                 >
                     {shouldShowYoudao && renderYoudaoContent(translation)}
