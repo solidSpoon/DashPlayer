@@ -15,11 +15,12 @@ export interface WordSubParam {
     translation: YdRes | OpenAIDictionaryResult | null | undefined;
     hoverColor: string;
     isLoading?: boolean;
+    onRefresh?: () => void;
 }
 
 const WordPop = React.forwardRef(
     (
-        { word, translation, hoverColor, isLoading: externalIsLoading }: WordSubParam,
+        { word, translation, hoverColor, isLoading: externalIsLoading, onRefresh }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
     ) => {
         console.log('popper', translation);
@@ -94,7 +95,7 @@ const WordPop = React.forwardRef(
             });
 
             if (openaiDictionaryEnabled) {
-                return <OpenAIWordPop data={shouldShowOpenAI ? translation : null} isLoading={externalIsLoading} />;
+                return <OpenAIWordPop data={shouldShowOpenAI ? translation : null} isLoading={externalIsLoading} onRefresh={onRefresh} />;
             }
 
             return (

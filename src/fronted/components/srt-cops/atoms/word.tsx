@@ -5,7 +5,7 @@ import WordPop from './word-pop';
 import {playUrl, playWord, getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import usePlayerController from '../../../hooks/usePlayerController';
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
 import useCopyModeController from '../../../hooks/useCopyModeController';
@@ -47,7 +47,20 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const pause = usePlayerController((s) => s.pause);
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
-    const {data: ydResp, isLoading: isWordLoading} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const {data: ydResp, isLoading: isWordLoading, mutate} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', { word, forceRefresh: false }));
+
+    console.log("isWordLoading", isWordLoading, ydResp);
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            // 强制重新请求，传递 forceRefresh: true 参数
+            const newData = await api.call('ai-trans/word', { word: original, forceRefresh: true });
+            mutate(['ai-trans/word', original], newData, false);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
@@ -93,9 +106,9 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
             setCopyContent(word);
             return;
         }
-        
+
         if (playLoading) return;
-        
+
         setPlayLoading(true);
         try {
             const isYoudaoFormat = (data: any): data is YdRes => {
@@ -106,7 +119,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
             if (isYoudaoFormat(ydResp)) {
                 url = ydResp?.speakUrl || '';
             }
-            
+
             console.log('url', url);
             if (StrUtil.isNotBlank(url)) {
                 await playUrl(url);
@@ -148,7 +161,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                             translation={ydResp}
                             ref={popperRef}
                             hoverColor={alwaysDark ? "bg-neutral-600" : "bg-stone-100 dark:bg-neutral-600"}
-                            isLoading={isWordLoading}
+                            isLoading={isWordLoading || isRefreshing}
+                            onRefresh={handleRefresh}
                         />
                     </Eb>
                 ) : (

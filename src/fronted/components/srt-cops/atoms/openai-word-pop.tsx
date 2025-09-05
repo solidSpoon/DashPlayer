@@ -1,21 +1,23 @@
 import React from 'react';
+import { RefreshCw } from 'lucide-react';
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Playable from '@/fronted/components/chat/Playable';
 
 interface OpenAIWordPopProps {
     data: OpenAIDictionaryResult | null | undefined;
     isLoading?: boolean;
+    onRefresh?: () => void;
 }
 
-const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }) => {
+const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, onRefresh }) => {
     const renderSkeleton = () => (
-        <div className="p-4 space-y-3">
+        <div className="p-4 h-full overflow-y-auto scrollbar-none space-y-3">
             {/* 单词标题骨架 */}
             <div className="border-b border-gray-200 pb-2">
                 <div className="h-6 bg-gray-200 rounded w-20 animate-pulse"></div>
                 <div className="h-4 bg-gray-200 rounded w-32 mt-1 animate-pulse"></div>
             </div>
-            
+
             {/* 释义骨架 */}
             <div>
                 <div className="h-4 bg-gray-200 rounded w-12 mb-2 animate-pulse"></div>
@@ -25,7 +27,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
                     <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
                 </div>
             </div>
-            
+
             {/* 例句骨架 */}
             <div>
                 <div className="h-4 bg-gray-200 rounded w-12 mb-2 animate-pulse"></div>
@@ -47,7 +49,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
         }
 
         return (
-            <div className="p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+            <div className="p-4 h-full overflow-y-auto scrollbar-none">
                 <div className="space-y-3">
                     {/* 单词标题 */}
                     <div className="border-b border-gray-200 pb-2">
@@ -81,8 +83,8 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
                             <h4 className="text-sm font-medium text-gray-600 mb-2">例句</h4>
                             <div className="space-y-2">
                                 {data.examples.map((example, index) => (
-                                    <div 
-                                        key={index} 
+                                    <div
+                                        key={index}
                                         className="text-xs text-gray-600 italic bg-gray-50 rounded p-2 select-text"
                                     >
                                         <Playable>{example}</Playable>
@@ -97,8 +99,22 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
     };
 
     return (
-        <div className="w-80 h-96 bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl overflow-hidden text-left">
-            {isLoading ? renderSkeleton() : renderContent()}
+        <div className="w-80 h-96 bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl overflow-hidden text-left relative">
+            {onRefresh && (
+                <button
+                    onClick={onRefresh}
+                    disabled={isLoading}
+                    className={`absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 shadow-sm transition-colors z-10 ${
+                        isLoading ? 'opacity-50' : ''
+                    }`}
+                    title="强制刷新"
+                >
+                    <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                </button>
+            )}
+            <div className="h-full overflow-hidden">
+                {isLoading ? renderSkeleton() : renderContent()}
+            </div>
         </div>
     );
 };

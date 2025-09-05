@@ -259,7 +259,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
     // --- 保留的旧方法 (兼容旧版或特定功能) ---
 
-    public async transWord(str: string): Promise<YdRes | OpenAIDictionaryResult | null> {
+    public async transWord(str: string, forceRefresh?: boolean): Promise<YdRes | OpenAIDictionaryResult | null> {
         const currentProvider = await this.settingService.getCurrentDictionaryProvider();
         
         if (!currentProvider) {
@@ -267,10 +267,15 @@ export default class TranslateServiceImpl implements TranslateService {
             return null;
         }
 
-        const cacheRes = await this.wordLoad(str, currentProvider);
-        if (cacheRes) {
-            dpLog.log(`命中${currentProvider}单词缓存:`, cacheRes);
-            return cacheRes;
+        // 如果不是强制刷新，先检查缓存
+        if (!forceRefresh) {
+            const cacheRes = await this.wordLoad(str, currentProvider);
+            if (cacheRes) {
+                dpLog.log(`命中${currentProvider}单词缓存:`, cacheRes);
+                return cacheRes;
+            }
+        } else {
+            dpLog.log(`强制刷新${currentProvider}单词:`, str);
         }
         
         if (currentProvider === 'youdao') {

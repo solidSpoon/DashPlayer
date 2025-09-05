@@ -4,7 +4,7 @@ import registerRoute from '@/common/api/register';
 
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types'; // 使用接口定义
-import { YdRes } from '@/common/types/YdRes';
+import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Controller from "@/backend/interfaces/controller";
 import TranslateService from "@/backend/services/AiTransServiceImpl";
 
@@ -23,8 +23,8 @@ export default class AiTransController implements Controller {
     /**
      * 单独的单词翻译（有道）
      */
-    public async youDaoTrans(str: string): Promise<YdRes | null> {
-        return this.translateService.transWord(str);
+    public async youDaoTrans(params: { word: string; forceRefresh?: boolean }): Promise<YdRes | OpenAIDictionaryResult | null> {
+        return this.translateService.transWord(params.word, params.forceRefresh);
     }
 
     /**
