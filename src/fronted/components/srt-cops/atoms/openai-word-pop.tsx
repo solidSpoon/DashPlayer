@@ -1,7 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
-import { cn } from "@/fronted/lib/utils";
+import Playable from '@/fronted/components/chat/Playable';
 
 interface OpenAIWordPopProps {
     data: OpenAIDictionaryResult | null | undefined;
@@ -48,13 +47,15 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
         }
 
         return (
-            <div className="p-4 overflow-y-auto max-h-96 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+            <div className="p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                 <div className="space-y-3">
                     {/* 单词标题 */}
                     <div className="border-b border-gray-200 pb-2">
-                        <h3 className="text-lg font-semibold text-gray-800">{data.word}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            <Playable>{data.word}</Playable>
+                        </h3>
                         {(data.phonetic || data.ukPhonetic || data.usPhonetic) && (
-                            <div className="text-sm text-gray-500 mt-1 space-x-3">
+                            <div className="text-sm text-gray-500 mt-1 space-x-3 select-text">
                                 {data.phonetic && <span>/{data.phonetic}/</span>}
                                 {data.ukPhonetic && <span>UK: /{data.ukPhonetic}/</span>}
                                 {data.usPhonetic && <span>US: /{data.usPhonetic}/</span>}
@@ -67,7 +68,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
                         <h4 className="text-sm font-medium text-gray-600 mb-2">释义</h4>
                         <div className="space-y-1">
                             {data.definitions.map((def, index) => (
-                                <div key={index} className="text-sm text-gray-700 pl-3 border-l-2 border-blue-100">
+                                <div key={index} className="text-sm text-gray-700 pl-3 border-l-2 border-blue-100 select-text">
                                     {def}
                                 </div>
                             ))}
@@ -82,9 +83,9 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
                                 {data.examples.map((example, index) => (
                                     <div 
                                         key={index} 
-                                        className="text-xs text-gray-600 italic bg-gray-50 rounded p-2"
+                                        className="text-xs text-gray-600 italic bg-gray-50 rounded p-2 select-text"
                                     >
-                                        {example}
+                                        <Playable>{example}</Playable>
                                     </div>
                                 ))}
                             </div>
@@ -96,7 +97,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false }
     };
 
     return (
-        <div className="w-80 max-h-96 bg-white rounded-xl shadow-lg overflow-hidden text-left">
+        <div className="w-80 h-96 bg-white rounded-xl shadow-lg overflow-hidden text-left">
             {isLoading ? renderSkeleton() : renderContent()}
         </div>
     );

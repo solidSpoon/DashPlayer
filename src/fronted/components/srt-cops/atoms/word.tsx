@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import * as turf from '@turf/turf';
 import {Feature, Polygon} from '@turf/turf';
 import WordPop from './word-pop';
-import {playUrl, playWord} from '@/common/utils/AudioPlayer';
+import {playUrl, playWord, getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import usePlayerController from '../../../hooks/usePlayerController';
 import useSWR from "swr";
@@ -46,6 +46,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const pause = usePlayerController((s) => s.pause);
     const [hovered, setHovered] = useState(false);
+    const [playLoading, setPlayLoading] = useState(false);
     const {data: ydResp, isLoading: isWordLoading} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', word));
     const eleRef = useRef<HTMLDivElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
@@ -93,20 +94,34 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
             return;
         }
         
-        const isYoudaoFormat = (data: any): data is YdRes => {
-            return data && 'speakUrl' in data;
-        };
-
-        let url = '';
-        if (isYoudaoFormat(ydResp)) {
-            url = ydResp?.speakUrl || '';
-        }
+        if (playLoading) return;
         
-        console.log('url', url);
-        if (StrUtil.isNotBlank(url)) {
-            await playUrl(url);
-        } else {
-            await playWord(word);
+        setPlayLoading(true);
+        try {
+            const isYoudaoFormat = (data: any): data is YdRes => {
+                return data && 'speakUrl' in data;
+            };
+
+            let url = '';
+            if (isYoudaoFormat(ydResp)) {
+                url = ydResp?.speakUrl || '';
+            }
+            
+            console.log('url', url);
+            if (StrUtil.isNotBlank(url)) {
+                await playUrl(url);
+            } else {
+                const ttsUrl = await getTtsUrl(word);
+                if (ttsUrl) {
+                    await playAudioUrl(ttsUrl);
+                } else {
+                    await playWord(word);
+                }
+            }
+        } catch (error) {
+            console.error('发音播放失败:', error);
+        } finally {
+            setPlayLoading(false);
         }
     };
 
@@ -139,7 +154,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                 ) : (
                     <div
                         className={cn(
-                            ' rounded select-none',
+                            'rounded select-none',
                             !show && ['text-transparent', Style.word_hover_bg],
                             alwaysDark ? 'hover:bg-neutral-600' : 'hover:bg-stone-100 dark:hover:bg-neutral-600'
                         )}
