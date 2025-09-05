@@ -52,8 +52,9 @@ const TranslatableLineCore = ({
             onClick={(e) => handleLineClick(e)}
         >
             {sentenceStruct?.blocks.map((block, blockIndex) => {
+                const blockId = `${textHash}:${blockIndex}`;
                 return (
-                    <div className={cn('flex items-end')}>
+                    <div key={blockId} className={cn('flex items-end')}>
                         {block.blockParts.map((part, partIndex) => {
                             const partId = `${textHash}:${blockIndex}:${partIndex}`;
                             if (part.isWord) {
