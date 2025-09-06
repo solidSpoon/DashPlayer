@@ -22,6 +22,22 @@ interface TranslationRendererDef {
     'translation/batch-result': { params: { translations: Array<{ key: string, translation: string, isComplete?: boolean }> }, return: void };
 }
 
+// 转录相关的前端API定义
+interface TranscriptRendererDef {
+    'transcript/batch-result': { 
+        params: { 
+            updates: Array<{ 
+                filePath: string; 
+                taskId: number | null; 
+                status?: string; 
+                progress?: number; 
+                result?: any;
+            }> 
+        }, 
+        return: void 
+    };
+}
+
 // Whisper相关的前端API定义
 interface WhisperRendererDef {
     'whisper/download-progress': { params: { progress: number }, return: void };
@@ -31,6 +47,7 @@ interface WhisperRendererDef {
 export type RendererApiDefinitions = RendererApiDefinition
     & UIRendererDef
     & TranslationRendererDef
+    & TranscriptRendererDef
     & WhisperRendererDef;
 
 // 定义前端API函数类型

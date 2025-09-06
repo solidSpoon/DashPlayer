@@ -107,6 +107,16 @@ export default class AiFuncController implements Controller {
         const taskId = await this.dpTaskService.create();
         console.log('taskId', taskId);
 
+        // 发送初始任务状态到前端
+        this.systemService.callRendererApi('transcript/batch-result', {
+            updates: [{
+                filePath,
+                taskId,
+                status: 'init',
+                progress: 0
+            }]
+        });
+
         // 检查转录服务设置
         const whisperEnabled = await this.settingService.get('whisper.enabled') === 'true';
         const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
@@ -116,6 +126,17 @@ export default class AiFuncController implements Controller {
         if (whisperEnabled && whisperTranscriptionEnabled && modelDownloaded) {
             // 使用 Whisper 进行转录（优先本地）
             console.log('Using Whisper for transcription');
+            
+            // 发送开始转录状态
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath,
+                    taskId,
+                    status: 'processing',
+                    progress: 10
+                }]
+            });
+
             this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
                 console.log('whisper transcript result:', r);
                 console.log('transcript result structure:', {
@@ -141,52 +162,122 @@ export default class AiFuncController implements Controller {
                         console.log('✅ SRT file saved successfully:', srtFileName);
                         console.log('SRT content preview:', srtContent.substring(0, 500) + '...');
                         
+                        // 发送完成状态到前端
+                        this.systemService.callRendererApi('transcript/batch-result', {
+                            updates: [{
+                                filePath,
+                                taskId,
+                                status: 'completed',
+                                progress: 100,
+                                result: { srtPath: srtFileName, segments: r.segments }
+                            }]
+                        });
+
                         // 更新任务状态 - 将结果序列化为 JSON 字符串
                         const resultJson = JSON.stringify({ srtPath: srtFileName, segments: r.segments });
-                        this.dpTaskService.process(taskId, { 
-                            progress: `转录完成，字幕文件已保存: ${path.basename(srtFileName)}`,
-                            result: resultJson
-                        });
                     } catch (saveError) {
                         console.error('❌ Failed to save SRT file:', saveError);
-                        // 将结果序列化为 JSON 字符串
-                      const resultJson = JSON.stringify({ segments: r.segments });
-                      this.dpTaskService.process(taskId, { 
-                            progress: `转录完成但保存字幕文件失败: ${saveError.message}`,
-                            result: resultJson
+                        
+                        // 发送错误状态到前端
+                        this.systemService.callRendererApi('transcript/batch-result', {
+                            updates: [{
+                                filePath,
+                                taskId,
+                                status: 'error',
+                                progress: 0,
+                                result: { error: saveError.message }
+                            }]
                         });
-                    }
+
+                                            }
                 } else {
                     console.log('❌ No segments found in transcription result');
                     console.log('Available keys:', Object.keys(r || {}));
-                    // 将结果序列化为 JSON 字符串
-                    const resultJson = JSON.stringify(r);
-                    this.dpTaskService.process(taskId, { 
-                        progress: '转录完成但没有生成有效的时间轴数据',
-                        result: resultJson
+                    
+                    // 发送无结果状态到前端
+                    this.systemService.callRendererApi('transcript/batch-result', {
+                        updates: [{
+                            filePath,
+                            taskId,
+                            status: 'no_segments',
+                            progress: 100,
+                            result: r
+                        }]
                     });
-                }
+
+                                    }
             }).catch(error => {
                 console.error('Parakeet transcription failed:', error);
-                this.dpTaskService.process(taskId, { 
-                    progress: `转录失败: ${error.message}`,
-                    status: 'failed' 
+                
+                // 发送失败状态到前端
+                this.systemService.callRendererApi('transcript/batch-result', {
+                    updates: [{
+                        filePath,
+                        taskId,
+                        status: 'failed',
+                        progress: 0,
+                        result: { error: error.message }
+                    }]
                 });
-            });
+
+                            });
         } else if (openaiTranscriptionEnabled) {
             // 使用 OpenAI Whisper 进行转录
             console.log('Using OpenAI Whisper for transcription');
+            
+            // 发送开始转录状态
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath,
+                    taskId,
+                    status: 'processing',
+                    progress: 10
+                }]
+            });
+
             this.whisperService.transcript(taskId, filePath).then(r => {
                 console.log('whisper transcript result:', r);
+                
+                // 发送完成状态到前端
+                this.systemService.callRendererApi('transcript/batch-result', {
+                    updates: [{
+                        filePath,
+                        taskId,
+                        status: 'completed',
+                        progress: 100,
+                        result: r
+                    }]
+                });
+            }).catch(error => {
+                console.error('OpenAI Whisper transcription failed:', error);
+                
+                // 发送失败状态到前端
+                this.systemService.callRendererApi('transcript/batch-result', {
+                    updates: [{
+                        filePath,
+                        taskId,
+                        status: 'failed',
+                        progress: 0,
+                        result: { error: error.message }
+                    }]
+                });
             });
         } else {
             // 没有启用的转录服务
             console.log('No transcription service enabled');
-            this.dpTaskService.process(taskId, { 
-                progress: '错误：未启用任何转录服务',
-                status: 'failed' 
+            
+            // 发送错误状态到前端
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath,
+                    taskId,
+                    status: 'no_service',
+                    progress: 0,
+                    result: { error: '未启用任何转录服务' }
+                }]
             });
-        }
+
+                    }
         return taskId;
     }
 
