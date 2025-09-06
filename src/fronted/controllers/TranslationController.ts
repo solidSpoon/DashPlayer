@@ -12,7 +12,7 @@ export class TranslationController extends BaseRendererController {
         this.batchRegisterApis({
             // 单个翻译结果回调
             'translation/result': async (params) => {
-                console.log('翻译结果:', params);
+                this.logger.debug('Translation result', { params });
                 
                 const { key, translation, isComplete = true } = params;
                 useTranslation.getState().updateTranslation(key, translation, isComplete);
@@ -20,7 +20,7 @@ export class TranslationController extends BaseRendererController {
 
             // 批量翻译结果回调 (流式返回数组)
             'translation/batch-result': async (params) => {
-                console.log('批量翻译结果:', params);
+                this.logger.debug('Batch translation result', { params });
                 
                 const { translations } = params;
                 useTranslation.getState().updateTranslations(translations);

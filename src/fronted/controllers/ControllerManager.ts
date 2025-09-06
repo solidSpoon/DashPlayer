@@ -7,9 +7,11 @@ import RendererController, { ControllerRegistry } from '@/fronted/interfaces/Ren
 import { UIController } from './UIController';
 import { TranslationController } from './TranslationController';
 import { TranscriptionController } from './TranscriptionController';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 class ControllerManager {
     private controllers: ControllerRegistry[] = [];
+    private logger = getRendererLogger('ControllerManager');
 
     /**
      * 注册单个Controller
@@ -23,35 +25,35 @@ class ControllerManager {
             unregister
         });
 
-        console.log(`Controller registered: ${controller.name}`);
+        this.logger.info('Controller registered', { name: controller.name });
     }
 
     /**
      * 注册所有Controller
      */
     registerAllControllers(): void {
-        console.log('注册所有前端Controllers...');
+        this.logger.info('Registering all frontend controllers');
         
         // 在这里添加所有Controller
         this.registerController(new UIController());
         this.registerController(new TranslationController());
         this.registerController(new TranscriptionController());
         
-        console.log(`已注册 ${this.controllers.length} 个Controllers`);
+        this.logger.info('Controllers registered', { count: this.controllers.length });
     }
 
     /**
      * 注销所有Controller
      */
     unregisterAllControllers(): void {
-        console.log('注销所有前端Controllers...');
+        this.logger.info('Unregistering all frontend controllers');
         
         this.controllers.forEach(({ name, unregister }) => {
             try {
                 unregister();
-                console.log(`Controller unregistered: ${name}`);
+                this.logger.info('Controller unregistered', { name });
             } catch (error) {
-                console.error(`Failed to unregister controller ${name}:`, error);
+                this.logger.error('Failed to unregister controller', { name, error: error instanceof Error ? error.message : String(error) });
             }
         });
 

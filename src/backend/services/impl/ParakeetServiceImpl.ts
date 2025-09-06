@@ -14,6 +14,7 @@ import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
 import * as os from 'os';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 const execAsync = promisify(exec);
 
@@ -231,6 +232,8 @@ export class ParakeetServiceImpl implements ParakeetService {
 
     // 防并发下载（同一进程内）
     private downloadingPromise: Promise<void> | null = null;
+
+    private logger = getMainLogger('ParakeetServiceImpl');
 
     // 动态获取路径方法
     private getModelRoot(): string {
@@ -453,7 +456,7 @@ export class ParakeetServiceImpl implements ParakeetService {
             this.taskService.process(0, {progress: '二进制文件安装完成'});
         } catch (e) {
             const error = e as Error;
-            console.error('Binary download failed:', error);
+            this.logger.error('Binary download failed', { error: error.message });
 
             if (error.message.includes('404')) {
                 throw new Error('下载预编译二进制失败：文件不存在 (404)。可能是网络问题或版本已更新，请稍后重试。');
@@ -516,39 +519,39 @@ export class ParakeetServiceImpl implements ParakeetService {
         // 检查二进制文件是否存在且有执行权限
         try {
             await fsPromises.access(binaryPath, fs.constants.F_OK | fs.constants.X_OK);
-            console.log('✅ Binary file exists and is executable:', binaryPath);
+            this.logger.info('Binary file exists and is executable', { binaryPath });
             
             // 检查文件大小
             const stats = await fsPromises.stat(binaryPath);
-            console.log('📁 Binary file size:', stats.size, 'bytes');
+            this.logger.info('Binary file size', { size: stats.size });
             
             // 在macOS上检查架构兼容性
             if (process.platform === 'darwin') {
-                console.log('🔍 Checking binary architecture on macOS...');
+                this.logger.debug('Checking binary architecture on macOS');
                 try {
                     const { stdout } = await execAsync(`file "${binaryPath}"`);
-                    console.log('📋 File type info:', stdout);
+                    this.logger.debug('File type info', { stdout });
                     
                     const { stdout: archOut } = await execAsync(`lipo -info "${binaryPath}"`);
-                    console.log('🏗️ Architecture info:', archOut);
+                    this.logger.debug('Architecture info', { archOut });
                     
                     // 检查当前系统架构
                     const currentArch = process.arch;
-                    console.log('💻 Current process arch:', currentArch);
+                    this.logger.debug('Current process arch', { currentArch });
                     
                     // 检查是否包含当前架构
                     if (archOut.includes(currentArch)) {
-                        console.log('✅ Binary supports current architecture');
+                        this.logger.debug('Binary supports current architecture');
                     } else {
-                        console.log('⚠️ Binary may not support current architecture');
+                        this.logger.warn('Binary may not support current architecture');
                     }
                 } catch (fileError) {
-                    console.log('⚠️ Could not check binary architecture:', fileError);
+                    this.logger.warn('Could not check binary architecture', { error: fileError instanceof Error ? fileError.message : String(fileError) });
                 }
             }
             
         } catch (error) {
-            console.error('❌ Binary file check failed:', error);
+            this.logger.error('Binary file check failed', { error: error instanceof Error ? error.message : String(error) });
             throw new Error(`whisper二进制文件不存在或无执行权限: ${binaryPath}. 错误: ${error}`);
         }
 
@@ -556,15 +559,15 @@ export class ParakeetServiceImpl implements ParakeetService {
         args.push('-t', String(threads));
 
         let stderrBuf = '';
-        console.log('🚀 Starting whisper.cpp:', binaryPath, args.join(' '));
+        this.logger.info('Starting whisper.cpp', { binaryPath, args: args.join(' ') });
         
         await new Promise<void>((resolve, reject) => {
-            console.log('🔧 Spawn options for', process.platform, process.arch);
+            this.logger.debug('Spawn options', { platform: process.platform, arch: process.arch });
             
             // 在macOS上尝试多种方法
             let child;
             if (process.platform === 'darwin') {
-                console.log('🔧 Trying different execution methods for macOS...');
+                this.logger.debug('Trying different execution methods for macOS');
                 
                 // 方法1: 直接spawn
                 try {
@@ -572,32 +575,32 @@ export class ParakeetServiceImpl implements ParakeetService {
                         stdio: ['ignore', 'pipe', 'pipe'] as const,
                         env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin' }
                     };
-                    console.log('🔧 Method 1: Direct spawn');
+                    this.logger.debug('Method 1: Direct spawn');
                     child = spawn(binaryPath, args, spawnOptions);
                 } catch (spawnError) {
-                    console.log('🔧 Method 1 failed, trying Method 2...');
+                    this.logger.debug('Method 1 failed, trying Method 2');
                     
                     // 方法2: 使用shell
                     try {
                         const shellArgs = [binaryPath, ...args].map(arg => arg.includes(' ') ? `"${arg}"` : arg).join(' ');
-                        console.log('🔧 Method 2: Shell execution');
+                        this.logger.debug('Method 2: Shell execution');
                         child = spawn('/bin/bash', ['-c', shellArgs], { 
                             stdio: ['ignore', 'pipe', 'pipe'] as const 
                         });
                     } catch (shellError) {
-                        console.log('🔧 Method 2 failed, trying Method 3...');
+                        this.logger.debug('Method 2 failed, trying Method 3');
                         
                         // 方法3: 使用绝对路径
                         try {
                             const absoluteBinary = path.resolve(binaryPath);
                             const absoluteArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
                             const shellArgs2 = [absoluteBinary, ...absoluteArgs].join(' ');
-                            console.log('🔧 Method 3: Absolute path shell execution');
+                            this.logger.debug('Method 3: Absolute path shell execution');
                             child = spawn('/bin/bash', ['-c', shellArgs2], { 
                                 stdio: ['ignore', 'pipe', 'pipe'] as const 
                             });
                         } catch (absError) {
-                            console.log('🔧 All methods failed');
+                            this.logger.error('All execution methods failed');
                             reject(absError);
                             return;
                         }
@@ -616,12 +619,12 @@ export class ParakeetServiceImpl implements ParakeetService {
             child.stderr.on('data', (d) => {
                 const line = d.toString();
                 stderrBuf += line;
-                console.log('🚀 whisper.cpp stderr:', line);
+                this.logger.debug('whisper.cpp stderr', { line });
             });
 
             child.on('error', (error) => {
-                console.error('🚀 whisper.cpp spawn error:', error);
-                console.error('🚀 Error details:', {
+                this.logger.error('whisper.cpp spawn error', { error: error.message });
+                this.logger.error('Error details', {
                     message: error.message,
                     code: error.code,
                     errno: error.errno,
@@ -631,7 +634,7 @@ export class ParakeetServiceImpl implements ParakeetService {
                 reject(error);
             });
             child.on('close', (code) => {
-                console.log('🚀 whisper.cpp exited with code:', code);
+                this.logger.info('whisper.cpp exited', { code });
                 if (code === 0) resolve();
                 else reject(new Error(`whisper.cpp 退出码：${code}${stderrBuf ? `，stderr: ${stderrBuf}` : ''}`));
             });

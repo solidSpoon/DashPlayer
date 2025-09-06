@@ -12,7 +12,7 @@ export class TranscriptionController extends BaseRendererController {
         this.batchRegisterApis({
             // 批量转录结果回调
             'transcript/batch-result': async (params) => {
-                console.log('批量转录结果:', params);
+                this.logger.debug('Batch transcription result', { params });
                 
                 const { updates } = params;
                 useTranscript.getState().updateTranscriptTasks(updates);

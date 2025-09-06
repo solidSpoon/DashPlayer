@@ -14,9 +14,12 @@ import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
 import fs from 'fs';
 import path from 'path';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 @injectable()
 export default class AiFuncController implements Controller {
+
+    private logger = getMainLogger('AiFuncController');
 
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
@@ -105,7 +108,7 @@ export default class AiFuncController implements Controller {
 
     public async transcript({ filePath }: { filePath: string }) {
         const taskId = await this.dpTaskService.create();
-        console.log('taskId', taskId);
+        this.logger.info('Transcription task started', { taskId });
 
         // 发送初始任务状态到前端
         this.systemService.callRendererApi('transcript/batch-result', {
@@ -125,7 +128,7 @@ export default class AiFuncController implements Controller {
 
         if (whisperEnabled && whisperTranscriptionEnabled && modelDownloaded) {
             // 使用 Whisper 进行转录（优先本地）
-            console.log('Using Whisper for transcription');
+            this.logger.info('Using Whisper for transcription');
             
             // 发送开始转录状态
             this.systemService.callRendererApi('transcript/batch-result', {
@@ -138,8 +141,8 @@ export default class AiFuncController implements Controller {
             });
 
             this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
-                console.log('whisper transcript result:', r);
-                console.log('transcript result structure:', {
+                this.logger.debug('Whisper transcript result', { result: r });
+                this.logger.debug('Transcript result structure', {
                     hasText: !!r?.text,
                     hasSegments: !!r?.segments,
                     hasWords: !!r?.words,
@@ -152,15 +155,15 @@ export default class AiFuncController implements Controller {
                 
                 // 生成 SRT 文件
                 if (r && r.segments && r.segments.length > 0) {
-                    console.log('Building SRT content from', r.segments.length, 'segments');
+                    this.logger.info('Building SRT content', { segments: r.segments.length });
                     const srtContent = this.buildSrtContent(r.segments);
                     const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
                     
-                    console.log('Attempting to save SRT file to:', srtFileName);
+                    this.logger.info('Saving SRT file', { fileName: srtFileName });
                     try {
                         fs.writeFileSync(srtFileName, srtContent, 'utf8');
-                        console.log('✅ SRT file saved successfully:', srtFileName);
-                        console.log('SRT content preview:', srtContent.substring(0, 500) + '...');
+                        this.logger.info('SRT file saved successfully', { fileName: srtFileName });
+                        this.logger.debug('SRT content preview', { preview: srtContent.substring(0, 500) + '...' });
                         
                         // 发送完成状态到前端
                         this.systemService.callRendererApi('transcript/batch-result', {
@@ -176,7 +179,7 @@ export default class AiFuncController implements Controller {
                         // 更新任务状态 - 将结果序列化为 JSON 字符串
                         const resultJson = JSON.stringify({ srtPath: srtFileName, segments: r.segments });
                     } catch (saveError) {
-                        console.error('❌ Failed to save SRT file:', saveError);
+                        this.logger.error('Failed to save SRT file', { error: saveError instanceof Error ? saveError.message : String(saveError) });
                         
                         // 发送错误状态到前端
                         this.systemService.callRendererApi('transcript/batch-result', {
@@ -191,8 +194,8 @@ export default class AiFuncController implements Controller {
 
                                             }
                 } else {
-                    console.log('❌ No segments found in transcription result');
-                    console.log('Available keys:', Object.keys(r || {}));
+                    this.logger.warn('No segments found in transcription result');
+                    this.logger.debug('Available keys in result', { keys: Object.keys(r || {}) });
                     
                     // 发送无结果状态到前端
                     this.systemService.callRendererApi('transcript/batch-result', {
@@ -207,7 +210,7 @@ export default class AiFuncController implements Controller {
 
                                     }
             }).catch(error => {
-                console.error('Parakeet transcription failed:', error);
+                this.logger.error('Parakeet transcription failed', { error: error instanceof Error ? error.message : String(error) });
                 
                 // 发送失败状态到前端
                 this.systemService.callRendererApi('transcript/batch-result', {
@@ -223,7 +226,7 @@ export default class AiFuncController implements Controller {
                             });
         } else if (openaiTranscriptionEnabled) {
             // 使用 OpenAI Whisper 进行转录
-            console.log('Using OpenAI Whisper for transcription');
+            this.logger.info('Using OpenAI Whisper for transcription');
             
             // 发送开始转录状态
             this.systemService.callRendererApi('transcript/batch-result', {
@@ -236,7 +239,7 @@ export default class AiFuncController implements Controller {
             });
 
             this.whisperService.transcript(taskId, filePath).then(r => {
-                console.log('whisper transcript result:', r);
+                this.logger.debug('Whisper transcript result', { result: r });
                 
                 // 发送完成状态到前端
                 this.systemService.callRendererApi('transcript/batch-result', {
@@ -249,7 +252,7 @@ export default class AiFuncController implements Controller {
                     }]
                 });
             }).catch(error => {
-                console.error('OpenAI Whisper transcription failed:', error);
+                this.logger.error('OpenAI Whisper transcription failed', { error: error instanceof Error ? error.message : String(error) });
                 
                 // 发送失败状态到前端
                 this.systemService.callRendererApi('transcript/batch-result', {
@@ -264,7 +267,7 @@ export default class AiFuncController implements Controller {
             });
         } else {
             // 没有启用的转录服务
-            console.log('No transcription service enabled');
+            this.logger.warn('No transcription service enabled');
             
             // 发送错误状态到前端
             this.systemService.callRendererApi('transcript/batch-result', {

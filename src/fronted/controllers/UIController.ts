@@ -10,7 +10,7 @@ export class UIController extends BaseRendererController {
     protected setupApis(): void {
         this.batchRegisterApis({
             'ui/show-notification': async (params) => {
-                console.log('显示通知:', params);
+                this.logger.debug('Show notification', { params });
 
                 // 使用浏览器原生通知API
                 if ('Notification' in window && Notification.permission === 'granted') {
@@ -25,12 +25,12 @@ export class UIController extends BaseRendererController {
             },
 
             'ui/show-confirm-dialog': async (params) => {
-                console.log('显示确认对话框:', params);
+                this.logger.debug('Show confirmation dialog', { params });
                 return true;
             },
 
             'ui/update-progress': async (params) => {
-                console.log('更新进度:', params);
+                this.logger.debug('Update progress', { params });
 
                 // 触发自定义事件，供其他组件监听
                 const event = new CustomEvent('progress-update', { detail: params });
@@ -38,7 +38,7 @@ export class UIController extends BaseRendererController {
             },
 
             'ui/show-toast': async (params) => {
-                console.log('显示Toast:', params);
+                this.logger.debug('Show toast', { params });
 
                 const event = new CustomEvent('show-toast', { detail: params });
                 window.dispatchEvent(event);

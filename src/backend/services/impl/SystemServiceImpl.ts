@@ -10,11 +10,13 @@ import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 import * as fs from 'fs/promises';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import { LocationType } from '@/backend/services/LocationService';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 @injectable()
 export default class SystemServiceImpl implements SystemService {
     public mainWindowRef: { current: BrowserWindow | null } = { current: null };
     public static MAIN_WINDOWS_REF : { current: BrowserWindow | null } = { current: null };
     private callIdCounter = 0;
+    private logger = getMainLogger('SystemServiceImpl');
 
     public mainWindow() {
         const current = this.mainWindowRef.current;
@@ -130,7 +132,7 @@ export default class SystemServiceImpl implements SystemService {
      * 测试反向API调用 - 显示通知
      */
     public async testRendererApiCall(): Promise<void> {
-        console.log('测试调用前端API...');
+        this.logger.info('Testing frontend API call');
         
         try {
             // 调用前端显示通知
@@ -139,24 +141,24 @@ export default class SystemServiceImpl implements SystemService {
                 message: '这是从后端SystemService发送的通知！',
                 type: 'info'
             });
-            console.log('✅ 通知发送成功');
+            this.logger.info('Notification sent successfully');
             
             // 调用前端显示Toast
             await this.callRendererApi('ui/show-toast', {
                 message: '反向API调用成功！',
                 duration: 3000
             });
-            console.log('✅ Toast发送成功');
+            this.logger.info('Toast sent successfully');
 
             // 测试翻译功能 - 模拟翻译结果回传
-            console.log('🔤 测试翻译功能...');
+            this.logger.info('Testing translation functionality');
             
             setTimeout(async () => {
                 await this.callRendererApi('translation/result', {
                     key: 'test-translation-key-1',
                     translation: '这是一个测试翻译结果'
                 });
-                console.log('✅ 翻译结果发送成功');
+                this.logger.info('Translation result sent successfully');
             }, 1000);
 
             setTimeout(async () => {
@@ -167,11 +169,11 @@ export default class SystemServiceImpl implements SystemService {
                         { key: 'test-key-3', translation: '批量翻译测试' }
                     ]
                 });
-                console.log('✅ 批量翻译结果发送成功');
+                this.logger.info('Batch translation result sent successfully');
             }, 2000);
             
         } catch (error) {
-            console.error('❌ 反向API调用失败:', error);
+            this.logger.error('Reverse API call failed', { error: error instanceof Error ? error.message : String(error) });
         }
     }
 
