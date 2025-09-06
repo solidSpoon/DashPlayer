@@ -5,6 +5,7 @@
 
 import RendererController, { ApiHandler } from '@/fronted/interfaces/RendererController';
 import { RendererApiMap } from '@/common/api/renderer-api-def';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 /**
  * 前端Controller抽象基类
@@ -14,6 +15,7 @@ export abstract class BaseRendererController implements RendererController {
 
     private registeredApis: Array<() => void> = [];
     private isRegistered = false;
+    protected logger = getRendererLogger(`Controller:${this.name}`);
 
     /**
      * 注册单个API处理方法
@@ -29,12 +31,12 @@ export abstract class BaseRendererController implements RendererController {
         // 包装处理器，添加错误处理和日志
         const wrappedHandler = async (params: any) => {
             try {
-                console.log(`[${this.name}] API called: ${path}`, params);
+                this.logger.info(`API called: ${path}`, { params });
                 const result = await (handler as any)(params);
-                console.log(`[${this.name}] API success: ${path}`, result);
+                this.logger.info(`API success: ${path}`, { result });
                 return result;
             } catch (error) {
-                console.error(`[${this.name}] API error: ${path}`, error);
+                this.logger.error(`API error: ${path}`, { error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
         };

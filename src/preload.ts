@@ -5,6 +5,7 @@ import {SettingKey} from './common/types/store_schema';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from "@/backend/db/tables/dpTask";
 import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
+import type { SimpleEvent } from '@/common/log/simple-types';
 
 export type Channels =
     | 'main-state'
@@ -86,6 +87,11 @@ const electronHandler = {
         return () => {
             unregisterFunctions.forEach(unregister => unregister());
         };
+    },
+
+    // 日志写入方法
+    dpLogger: {
+        write: (e: SimpleEvent) => ipcRenderer.send('dp-log/write', e),
     }
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);

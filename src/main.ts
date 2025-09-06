@@ -8,6 +8,9 @@ import * as base32 from 'hi-base32';
 import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import 'reflect-metadata';
 
+// 导入日志 IPC 监听
+import '@/backend/ipc/renderer-log';
+
 // 在应用启动前设置 DYLD_LIBRARY_PATH
 const setupSherpaOnnxEnvironment = () => {
     const platform = process.platform;
