@@ -189,6 +189,7 @@ const DownloadVideo = () => {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button
+                                            asChild
                                             disabled={dpTask?.status === DpTaskState.DONE || dpTask?.status === DpTaskState.CANCELLED}
                                             variant={'ghost'}
                                             size={'icon'}

@@ -110,7 +110,11 @@ const App = () => {
     );
 };
 
-const root = createRoot(document.body);
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+    throw new Error('Root element not found');
+}
+const root = createRoot(rootElement);
 root.render(<App />);
 syncStatus();
 api.onErrorMsg((error: Error) => {

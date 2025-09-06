@@ -132,7 +132,7 @@ const ControlBox = () => {
         return (
             <TooltipProvider>
                 <Tooltip>
-                    <TooltipTrigger asChild>
+                    <TooltipTrigger asChild={true}>
                         <div className="flex items-center space-x-2">
                             <Switch
                                 checked={checked}

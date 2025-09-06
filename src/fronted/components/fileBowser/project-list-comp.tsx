@@ -42,11 +42,13 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
                                 setBasePath('');
                             }}
                         >Recent</BreadcrumbLink>
-                        {StrUtil.isNotBlank(finalPath) && <>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbLink>{PathUtil.parse(finalPath).base}</BreadcrumbLink>
-                        </>}
                     </BreadcrumbItem>
+                    {StrUtil.isNotBlank(finalPath) && <>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink>{PathUtil.parse(finalPath).base}</BreadcrumbLink>
+                        </BreadcrumbItem>
+                    </>}
                 </BreadcrumbList>
             </Breadcrumb>
             <div className={cn('h-0 flex-1 overflow-y-auto scrollbar-none')}>
@@ -59,10 +61,10 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
                             setBasePath(item.basePath);
                         }
                     };
-                    return projEle(item, handleClick);
+                    return React.cloneElement(projEle(item, handleClick), { key: item.id });
                 })}
                 {StrUtil.isNotBlank(finalPath) && data?.map((item, idx) => {
-                    return videoEle(item);
+                    return React.cloneElement(videoEle(item), { key: item.id });
                 })}
             </div>
         </div>
