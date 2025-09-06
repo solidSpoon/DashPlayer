@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 
 import axios from 'axios';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 export interface YouDaoConfig {
     from: string;
@@ -70,7 +71,7 @@ class YouDaoClient {
         )}`;
         const result = await axios.get(url);
         if (result.data.errorCode !== '0') {
-            console.error(result.data);
+            getMainLogger('YouDaoClient').error('youdao api error', { response: result.data });
             return null;
         }
         return JSON.stringify(result.data);

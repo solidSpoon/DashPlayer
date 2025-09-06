@@ -8,6 +8,7 @@ import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { ClipTenderImpl, SrtTender } from '@/fronted/lib/SrtTender';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
 
@@ -124,13 +125,13 @@ useFavouriteClip.subscribe(
         useFavouriteClip.setState({
             srtTender: clipTender
         });
-        console.log('clipContent trans', clipContent);
+        getRendererLogger('useFavouriteClip').debug('clip content translation', { clipContent });
         const currentHolder = useFavouriteClip.getState().transMap;
         const param = clipContent
             .filter((s) => StrUtil.isNotBlank(s.contentEn))
             .filter((s) => !currentHolder.get(s.contentEn))
             .map((s) => s.contentEn);
-        console.log('clipContent trans', param);
+        getRendererLogger('useFavouriteClip').debug('clip content translation param', { param });
         const transHolder = TransHolder.from(
             await api.call('ai-trans/batch-translate',
                 param

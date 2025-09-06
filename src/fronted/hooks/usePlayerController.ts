@@ -24,6 +24,7 @@ import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import StrUtil from '@/common/utils/str-util';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
 const usePlayerController = create<
@@ -149,7 +150,7 @@ function filterUserCanSee(finishedGroup: Set<number>, subtitle: Sentence[]) {
         // eslint-disable-next-line no-continue
         return [];
     }
-    console.log('trans group', shouldTransGroup);
+    getRendererLogger('usePlayerController').debug('trans group', shouldTransGroup);
     const groupSubtitles = subtitle.filter((item) =>
         shouldTransGroup.includes(item.transGroup)
     );
@@ -193,14 +194,14 @@ useFile.subscribe(
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
             // console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
-                console.log('test error before');
+                getRendererLogger('usePlayerController').debug('test error before');
                 // const transHolder = TransHolder.from(
                 //     // eslint-disable-next-line no-await-in-loop
                 //     await api.call('ai-trans/batch-translate',
                 //         userCanSee.map((s) => s.text ?? '')
                 //     )
                 // );
-                console.log('test error after');
+                getRendererLogger('usePlayerController').debug('test error after');
                 if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }

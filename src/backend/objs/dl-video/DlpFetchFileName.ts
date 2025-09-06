@@ -6,6 +6,7 @@ import dpLog from '@/backend/ioc/logger';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { Cancelable } from '@/common/interfaces';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 export class DlpFetchFileName implements Cancelable {
     private onLog: (msg: string) => void = () => {
@@ -68,7 +69,7 @@ export class DlpFetchFileName implements Cancelable {
             });
 
             ytDlpProcess.stderr.on('data', (data: string) => {
-                console.error('Error:', data.toString());
+                getMainLogger('DlpFetchFileName').error('yt-dlp stderr', { error: data.toString() });
                 this.log(data.toString());
             });
 

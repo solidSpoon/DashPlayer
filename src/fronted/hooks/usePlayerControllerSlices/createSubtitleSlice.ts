@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand/esm';
 import { Sentence } from '@/common/types/SentenceC';
 import { InternalSlice, SubtitleSlice } from './SliceTypes';
 import { SrtTenderImpl } from '@/fronted/lib/SrtTender';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 function mergeArr(baseArr: Sentence[], diff: Sentence[]) {
     if (diff.length === 0) {
@@ -35,7 +36,7 @@ const createSubtitleSlice: StateCreator<
         set({ subtitle: newSubtitle });
         const srtTender = get().srtTender;
         if (!srtTender)  {
-            console.error('srtTender is null');
+            getRendererLogger('createSubtitleSlice').error('srtTender is null');
             return;
         }
         diff.forEach((item) => {

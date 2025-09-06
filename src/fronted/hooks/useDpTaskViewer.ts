@@ -4,6 +4,7 @@ import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { useEffect } from 'react';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { Nullable } from '@/common/types/Types';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const useDpTaskViewer = <T>(taskId: Nullable<number>): {
     task: DpTask | null,
@@ -32,7 +33,7 @@ const useDpTaskViewer = <T>(taskId: Nullable<number>): {
             // 在流式场景下，后端传来的数据可能暂时不完整，解析失败是可能的
             // 可以选择静默处理，或者只在非最终状态下静默
             if (task.status === DpTaskState.DONE) {
-                console.error(`Failed to parse final task result for task ID ${task.id}.`, e);
+                getRendererLogger('useDpTaskViewer').error('failed to parse final task result', { taskId: task.id, error: e });
             }
         }
     }

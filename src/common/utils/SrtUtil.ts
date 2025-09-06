@@ -3,6 +3,7 @@ import Util from '@/common/utils/Util';
 import { Sentence } from '@/common/types/SentenceC';
 import StrUtil from "@/common/utils/str-util";
 import {Nullable} from "@/common/types/Types";
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 // 使用 interface 并设为只读
 export interface SrtLine {
@@ -283,7 +284,7 @@ export default class SrtUtil {
                 contentLines
             };
         } catch (error: unknown) {
-            console.warn('Failed to parse SRT block:', getErrorMessage(error));
+            getMainLogger('SrtUtil').warn('failed to parse srt block', { error });
             return null;
         }
     }
@@ -324,7 +325,7 @@ export default class SrtUtil {
         try {
             return SrtUtil.parsedBlockToSrtLine(parsedBlock);
         } catch (error: unknown) {
-            console.warn('Failed to convert SRT block to SrtLine:', getErrorMessage(error));
+            getMainLogger('SrtUtil').warn('failed to convert srt block to srtline', { error });
             return null;
         }
     }

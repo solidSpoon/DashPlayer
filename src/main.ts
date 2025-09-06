@@ -10,6 +10,7 @@ import 'reflect-metadata';
 
 // 导入日志 IPC 监听
 import '@/backend/ipc/renderer-log';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 // 在应用启动前设置 DYLD_LIBRARY_PATH
 const setupSherpaOnnxEnvironment = () => {
@@ -21,9 +22,9 @@ const setupSherpaOnnxEnvironment = () => {
         const resolvedPath = path.resolve('/Users/spoon/projects/DashPlayer', libraryPath);
         
         process.env.DYLD_LIBRARY_PATH = `${resolvedPath}:${process.env.DYLD_LIBRARY_PATH || ''}`;
-        console.log(`🔧 Set DYLD_LIBRARY_PATH = ${resolvedPath}`);
-        console.log(`🔧 Path exists: ${fs.existsSync(resolvedPath)}`);
-        console.log(`🔧 Node file exists: ${fs.existsSync(path.join(resolvedPath, 'sherpa-onnx.node'))}`);
+        getMainLogger('main').info('set dyld library path', { path: resolvedPath });
+        getMainLogger('main').debug('sherpa onnx path exists', { exists: fs.existsSync(resolvedPath) });
+        getMainLogger('main').debug('sherpa onnx node file exists', { exists: fs.existsSync(path.join(resolvedPath, 'sherpa-onnx.node')) });
     }
 };
 
@@ -81,7 +82,7 @@ app.on('ready', async () => {
         try {
             return callback(decodeURIComponent(url));
         } catch (error) {
-            console.error(error);
+            getMainLogger('main').error('protocol decode error', { error });
             return callback('');
         }
     });

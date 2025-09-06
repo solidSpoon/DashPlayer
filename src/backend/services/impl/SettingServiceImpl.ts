@@ -8,6 +8,7 @@ import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import TencentProvider from '@/backend/services/impl/clients/TencentProvider';
 import YouDaoProvider from '@/backend/services/impl/clients/YouDaoProvider';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
@@ -15,6 +16,7 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: TencentProvider;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: YouDaoProvider;
+    private logger = getMainLogger('SettingServiceImpl');
     
     public async set(key: SettingKey, value: string): Promise<void> {
         if (storeSet(key, value)) {
@@ -136,6 +138,7 @@ export default class SettingServiceImpl implements SettingService {
     
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {
         try {
+            this.logger.info('testing openai connection');
             const openAi = this.openAiService.getOpenAi();
             // Test with a simple completion request
             const completion = await openAi.chat.completions.create({
@@ -145,49 +148,62 @@ export default class SettingServiceImpl implements SettingService {
             });
             
             if (completion.choices && completion.choices.length > 0) {
+                this.logger.info('openai test successful');
                 return { success: true, message: 'OpenAI 配置测试成功' };
             } else {
+                this.logger.warn('openai returned empty response');
                 return { success: false, message: 'OpenAI 返回了空响应' };
             }
         } catch (error: any) {
+            this.logger.error('openai test failed', { error: error.message || error });
             return { success: false, message: `OpenAI 测试失败: ${error.message || error}` };
         }
     }
     
     public async testTencent(): Promise<{ success: boolean, message: string }> {
         try {
+            this.logger.info('testing tencent connection');
             const client = this.tencentProvider.getClient();
             if (!client) {
+                this.logger.warn('tencent client not configured');
                 return { success: false, message: '腾讯云配置不完整' };
             }
             
             // Test with a simple translation request
             const result = await client.batchTrans(['Hello']);
             if (result && !result.isEmpty()) {
+                this.logger.info('tencent test successful');
                 return { success: true, message: '腾讯云配置测试成功' };
             } else {
+                this.logger.warn('tencent returned empty response');
                 return { success: false, message: '腾讯云返回了空响应' };
             }
         } catch (error: any) {
+            this.logger.error('tencent test failed', { error: error.message || error });
             return { success: false, message: `腾讯云测试失败: ${error.message || error}` };
         }
     }
     
     public async testYoudao(): Promise<{ success: boolean, message: string }> {
         try {
+            this.logger.info('testing youdao connection');
             const client = this.youDaoProvider.getClient();
             if (!client) {
+                this.logger.warn('youdao client not configured');
                 return { success: false, message: '有道词典配置不完整' };
             }
             
             // Test with a simple word query
             const result = await client.translate('hello');
             if (result) {
+                this.logger.info('youdao test successful');
                 return { success: true, message: '有道词典配置测试成功' };
             } else {
+                this.logger.warn('youdao returned empty response');
                 return { success: false, message: '有道词典返回了空响应' };
             }
         } catch (error: any) {
+            this.logger.error('youdao test failed', { error: error.message || error });
             return { success: false, message: `有道词典测试失败: ${error.message || error}` };
         }
     }

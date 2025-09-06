@@ -8,6 +8,7 @@ import LocationService from '@/backend/services/LocationService';
 import FileUtil from '@/backend/utils/FileUtil';
 import {ParakeetService} from '@/backend/services/ParakeetService';
 import SystemService from '@/backend/services/SystemService';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 @injectable()
 export default class StorageController implements Controller {
@@ -15,8 +16,10 @@ export default class StorageController implements Controller {
     @inject(TYPES.LocationService) private locationService!: LocationService;
     @inject(TYPES.ParakeetService) private parakeetService!: ParakeetService;
     @inject(TYPES.SystemService) private systemService!: SystemService;
+    private logger = getMainLogger('StorageController');
 
     public async storeSet({ key, value }: { key: SettingKey, value: string }): Promise<void> {
+        this.logger.debug('store setting', { key, value });
         await this.settingService.set(key, value);
     }
 
@@ -33,6 +36,7 @@ export default class StorageController implements Controller {
     }
 
     public async downloadWhisperModel(): Promise<void> {
+        this.logger.info('starting whisper model download');
         return this.parakeetService.downloadModel((progress: number) => {
             // Use SystemService to send progress to renderer
             this.systemService.callRendererApi('whisper/download-progress', { progress });

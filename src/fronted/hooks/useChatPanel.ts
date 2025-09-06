@@ -18,6 +18,7 @@ import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes'
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import StrUtil from '@/common/utils/str-util';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 const api = window.electron;
@@ -221,9 +222,9 @@ const useChatPanel = create(
             const tt = new HumanTopicMessage(get().topic, ct.text ?? '', phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitlePath ?? '';
-            console.log(url);
+            getRendererLogger('useChatPanel').debug('subtitle file url', { url });
             const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
-            console.log('text', text);
+            getRendererLogger('useChatPanel').debug('subtitle file content', { length: text.length });
             const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
                 no: ct.index,
                 srt: text
@@ -284,7 +285,7 @@ const useChatPanel = create(
             const history = await Promise.all(
                 get().messages.concat(requestMsg).map(e => e.toMsg())
             ).then(results => results.flat());
-            console.log('history', history);
+            getRendererLogger('useChatPanel').debug('chat history', { messageCount: history.length });
             const taskID = await registerDpTask(() => api.call('ai-func/chat', { msgs: history }));
             set({
                 messages: [
@@ -300,7 +301,7 @@ const useChatPanel = create(
         },
         ctxMenuOpened: () => {
             const internalContext = getInternalContext();
-            console.log('ctxMenuOpened', internalContext);
+            getRendererLogger('useChatPanel').debug('context menu opened', { context: internalContext });
             set({
                 context: internalContext
             });
@@ -425,7 +426,7 @@ export function getInternalContext(): string | null {
 
 
 const extractTopic = (t: Topic): string => {
-    console.log('extractTopic', t);
+    getRendererLogger('useChatPanel').debug('extract topic', { topic: t });
     if (t === 'offscreen') return 'offscreen';
     if (typeof t.content === 'string') return t.content;
     const content = t.content;
@@ -495,13 +496,13 @@ const runSentence = async (force = false) => {
     const ptId = state.tasks.phraseTask;
     const wr = await getDpTaskResult<AiAnalyseNewWordsRes>(typeof wtId === 'number' ? wtId : null);
     const pr = await getDpTaskResult<AiAnalyseNewPhrasesRes>(typeof ptId === 'number' ? ptId : null);
-    console.log('runSentence', wr, pr);
+    getRendererLogger('useChatPanel').debug('run sentence', { wordRegex: wr, phraseRegex: pr });
     if (!wr || !pr) return;
     const points = [
         ...(wr?.words ?? []).map(w => w.word),
         ...(pr?.phrases ?? []).map(p => p.phrase)
     ];
-    console.log('points', points);
+    getRendererLogger('useChatPanel').debug('extracted points', { count: points.length });
     const newLock = (typeof wtId === 'number' ? wtId : 0) + (typeof ptId === 'number' ? ptId : 0);
     if (runSentenceLock !== newLock || force) {
         runSentenceLock = newLock;

@@ -33,4 +33,3 @@ import './app';
 // 初始化前端Controllers
 import './fronted/init-controllers';
 
-console.log('👋 This message is being logged by "renderer.ts", included via Vite');

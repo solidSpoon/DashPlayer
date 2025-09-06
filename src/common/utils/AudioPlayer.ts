@@ -2,6 +2,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import { Nullable } from '@/common/types/Types';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const cache = new Map<string, string>();
 const api = window.electron;
@@ -23,7 +24,7 @@ export const playAudioUrl = async (audioUrl: Nullable<string>) => {
         return;
     }
     player?.pause();
-    console.log('playAudioUrl', audioUrl);
+    getRendererLogger('AudioPlayer').debug('play audio url', { audioUrl });
     player = new Audio(audioUrl);
     player.volume = 0.5;
     await player.play();
@@ -31,7 +32,7 @@ export const playAudioUrl = async (audioUrl: Nullable<string>) => {
 
 export const playUrl = async (outURl: string) => {
     const audioUrl = await getAudioUrl(outURl);
-    console.log('testcall', outURl);
+    getRendererLogger('AudioPlayer').debug('play url', { url: outURl });
     await playAudioUrl(audioUrl);
 };
 
@@ -62,7 +63,7 @@ export const getTtsUrl = async (str: string) => {
     }
     // audioUrl = await api.aiTts(str);
     audioUrl = await api.call('ai-func/tts', str);
-    console.log('testcall', audioUrl);
+    getRendererLogger('AudioPlayer').debug('tts result', { audioUrl });
     if (!StrUtil.isBlank(audioUrl)) {
         cache.set(str, audioUrl);
     }

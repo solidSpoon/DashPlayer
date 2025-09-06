@@ -6,6 +6,7 @@ import path from 'path';
 import OpenDialogOptions = Electron.OpenDialogOptions;
 import { Nullable } from '@/common/types/Types';
 import { VideoInfo } from '@/common/types/video-info';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 /**
  * 装饰器工厂，用于处理路径访问权限错误
@@ -44,7 +45,7 @@ function handlePathAccessError(): MethodDecorator {
                     try {
                         return await originalMethod.apply(this, args);
                     } catch (err) {
-                        console.error(`重新尝试访问路径失败: ${err}`);
+                        getMainLogger('FileUtil').error('retry path access failed', { error: err });
                         return null;
                     }
                 } else {
@@ -134,12 +135,12 @@ export default class FileUtil {
                             const stats = await fsPromises.stat(fullPath);
                             yield stats.size;
                         } catch (err) {
-                            console.error(`获取文件大小失败: ${fullPath}`, err);
+                            getMainLogger('FileUtil').error('get file size failed', { path: fullPath, error: err });
                         }
                     }
                 }
             } catch (err) {
-                console.error(`遍历目录失败: ${dir}`, err);
+                getMainLogger('FileUtil').error('traverse directory failed', { dir, error: err });
                 // 可以选择抛出错误或继续
             }
         }
@@ -156,7 +157,7 @@ export default class FileUtil {
             const totalSize = await getTotalSize(folder);
             return FileUtil.formatBytes(totalSize);
         } catch (error) {
-            console.error(`计算文件夹大小失败: ${error}`);
+            getMainLogger('FileUtil').error('calculate folder size failed', { error });
             return '错误';
         }
     }
@@ -182,15 +183,15 @@ export default class FileUtil {
                         const subEntries = await fsPromises.readdir(fullPath);
                         if (subEntries.length === 0) {
                             await fsPromises.rmdir(fullPath);
-                            console.log(`已移除空目录: ${fullPath}`);
+                            getMainLogger('FileUtil').debug('removed empty directory', { path: fullPath });
                         }
                     } catch (error) {
-                        console.error(`移除目录失败 ${fullPath}:`, error);
+                        getMainLogger('FileUtil').error('remove directory failed', { path: fullPath, error });
                     }
                 }
             }
         } catch (error) {
-            console.error(`清理目录失败 ${dir}:`, error);
+            getMainLogger('FileUtil').error('clean directory failed', { dir, error });
             throw error; // 重新抛出错误以便装饰器处理
         }
     }
@@ -204,7 +205,7 @@ export default class FileUtil {
             await fsPromises.access(filePath);
             await fsPromises.unlink(filePath);
         } catch (error) {
-            console.error(`文件不存在: ${filePath}`);
+            getMainLogger('FileUtil').error('file not found', { path: filePath });
             return;
         }
     }
@@ -218,7 +219,7 @@ export default class FileUtil {
             const stats = await fsPromises.stat(filePath);
             return stats.isFile();
         } catch (error) {
-            console.error(`获取文件信息失败: ${filePath}`);
+            getMainLogger('FileUtil').error('get file info failed', { path: filePath });
             return false;
         }
     }
@@ -232,7 +233,7 @@ export default class FileUtil {
             const stats = await fsPromises.stat(dirPath);
             return stats.isDirectory();
         } catch (error) {
-            console.error(`获取文件夹信息失败: ${dirPath}`);
+            getMainLogger('FileUtil').error('get folder info failed', { path: dirPath });
             return false;
         }
     }

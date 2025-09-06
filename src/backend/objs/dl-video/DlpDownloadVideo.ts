@@ -6,6 +6,7 @@ import dpLog from '@/backend/ioc/logger';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { Cancelable } from '@/common/interfaces';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 export class DlpDownloadVideo implements Cancelable {
     private onLog: (progress:number, msg: string) => void = () => {
@@ -77,7 +78,7 @@ export class DlpDownloadVideo implements Cancelable {
                 const progressMatch = data.match(/\[download\]\s+(\d+(\.\d+)?)%/);
                 if (progressMatch) {
                     percentProgress = parseFloat(progressMatch[1]);
-                    console.log(`Download progress: ${percentProgress}%`);
+                    getMainLogger('DlpDownloadVideo').debug('download progress', { progress: percentProgress });
                     this.progress = percentProgress;
                 }
                 this.log(data);
@@ -88,7 +89,7 @@ export class DlpDownloadVideo implements Cancelable {
             });
 
             ytDlpProcess.on('close', (code: number) => {
-                console.log(`yt-dlp process exited with code ${code}`);
+                getMainLogger('DlpDownloadVideo').info('yt-dlp process exited', { code });
                 if (code === 0) {
                     resolve();
                 } else {

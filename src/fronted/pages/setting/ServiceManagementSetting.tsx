@@ -13,10 +13,13 @@ import Header from '@/fronted/components/setting/Header';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
 
 const ServiceManagementSetting = () => {
+    const logger = getRendererLogger('ServiceManagementSetting');
+    
     // Fetch settings with SWR
     const { data: settings, mutate } = useSWR('settings/get-all-services', () =>
         api.call('settings/get-all-services')
@@ -112,7 +115,7 @@ const ServiceManagementSetting = () => {
                 const downloaded = await api.call('system-is-whisper-model-downloaded');
                 setWhisperModelDownloaded(downloaded);
             } catch (error) {
-                console.error('Failed to check Whisper model status:', error);
+                logger.error('failed to check whisper model status', { error });
             }
         };
         checkModelStatus();
@@ -122,7 +125,7 @@ const ServiceManagementSetting = () => {
     React.useEffect(() => {
         const unregister = api.registerRendererApis({
             'whisper/download-progress': (params: { progress: number }) => {
-                console.log('🔥 Received download progress:', params.progress);
+                logger.debug('whisper download progress', { progress: params.progress });
                 setDownloadProgress(params.progress);
             }
         });
@@ -134,12 +137,10 @@ const ServiceManagementSetting = () => {
 
     // Handle model download
     const downloadModel = async () => {
-        console.log('🔥 Download button clicked!');
-        console.log('🔥 Current whisperModelDownloaded:', whisperModelDownloaded);
-        console.log('🔥 Current downloading:', downloading);
+        logger.info('whisper download button clicked', { whisperModelDownloaded, downloading });
         
         if (downloading) {
-            console.log('🔥 Already downloading, ignoring click');
+            logger.warn('already downloading, ignoring click');
             return;
         }
         
@@ -154,15 +155,15 @@ const ServiceManagementSetting = () => {
         
         setDownloading(true);
         setDownloadProgress(0);
-        console.log('🔥 Starting model download...');
+        logger.info('starting whisper model download');
         
         try {
             const result = await api.call('whisper-download-model');
-            console.log('🔥 Download API call result:', result);
-            console.log('🔥 Download completed, checking model status...');
+            logger.info('whisper download api result', { result });
+            logger.info('whisper download completed, checking model status');
             
             const downloaded = await api.call('system-is-whisper-model-downloaded');
-            console.log('🔥 Model downloaded status:', downloaded);
+            logger.info('whisper model downloaded status', { downloaded });
             setWhisperModelDownloaded(downloaded);
             
             toast({
@@ -170,7 +171,7 @@ const ServiceManagementSetting = () => {
                 description: "Whisper 模型已成功下载并安装",
             });
         } catch (error) {
-            console.error('🔥 Download failed:', error);
+            logger.error('whisper download failed', { error });
             toast({
                 title: "模型下载失败",
                 description: `下载过程中发生错误: ${error}`,
@@ -320,9 +321,9 @@ const ServiceManagementSetting = () => {
             // Refresh settings data and update original values
             await mutate();
             setOriginalValues(data);
-            console.log('Settings updated successfully');
+            logger.info('settings updated successfully');
         } catch (error) {
-            console.error('Failed to update settings:', error);
+            logger.error('failed to update settings', { error });
         }
     };
 

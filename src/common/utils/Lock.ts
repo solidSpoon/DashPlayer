@@ -9,6 +9,8 @@ const LockConfig: Record<LOCK_KEY, { size: number }> = {
     whisper: {size: 10}
 };
 
+import { getMainLogger } from '@/backend/ioc/simple-logger';
+
 export default class Lock {
     private static locks: Map<LOCK_KEY, number> = new Map();
     private static waiters: Map<LOCK_KEY, (() => void)[]> = new Map();
@@ -19,7 +21,7 @@ export default class Lock {
         const maxLockCount = this.config[key]?.size || Infinity;
 
         if (currentLockCount >= maxLockCount) {
-            console.log('lock wait', key, currentLockCount, maxLockCount);
+            getMainLogger('Lock').debug('lock wait', { key, currentLockCount, maxLockCount });
             return new Promise(resolve => {
                 if (!this.waiters.has(key)) {
                     this.waiters.set(key, []);

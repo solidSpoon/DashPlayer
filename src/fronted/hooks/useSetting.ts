@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
 
@@ -38,15 +39,15 @@ const useSetting = create(
 
 for (const key in SettingKeyObj) {
     const k = key as SettingKey;
-    console.log('setting init', k);
+    getRendererLogger('useSetting').debug('setting init', { key: k });
     api.call('storage/get', k).then((value: string) => {
-        console.log('setting init', k, value);
+        getRendererLogger('useSetting').debug('setting init value', { key: k, value });
         useSetting.getState().setSetting(k, value);
     });
 }
 
 api.onStoreUpdate((key: SettingKey, value: string) => {
-    console.log('onStoreUpdate', key, value);
+    getRendererLogger('useSetting').debug('store update', { key, value });
     const oldValues = useSetting.getState().values.get(key);
     if (oldValues !== value) {
         useSetting.getState().setSetting(key, value);

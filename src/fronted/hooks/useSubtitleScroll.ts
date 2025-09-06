@@ -4,6 +4,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { Ele } from './useBoundary';
 import useLayout from './useLayout';
 import usePlayerController from './usePlayerController';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export type ScrollState =
     | 'USER_BROWSING'
@@ -181,10 +182,10 @@ const useSubtitleScroll = create(
                         clearTimeout(get().internal.scrollStatusTimer);
                     }
                     if (get().scrollState !== 'USER_BROWSING') {
-                        console.log('aaa scroll');
+                        getRendererLogger('useSubtitleScroll').debug('auto scroll triggered');
                         get().internal.scrollTopTimer = setTimeout(
                             ({ indx }) => {
-                                console.log('scroll to index', indx);
+                                getRendererLogger('useSubtitleScroll').debug('scroll to index', { index: indx });
                                 set({ scrollState: 'AUTO_SCROLLING' });
                                 get().internal.virtuoso?.scrollToIndex({
                                     behavior: 'smooth',

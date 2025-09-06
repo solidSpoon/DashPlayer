@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import hash from 'object-hash';
 import { Sentence } from '@/common/types/SentenceC';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
 
@@ -103,7 +104,7 @@ const useTranslation = create(
                 indices: untranslatedIndices,
                 useCache: true
             }).catch(error => {
-                console.error('[TRANS-HOOK] ❌ Group translation request failed:', error);
+                getRendererLogger('useTranslation').error('group translation request failed', { error });
             });
         },
 
@@ -115,7 +116,7 @@ const useTranslation = create(
                 indices,
                 useCache
             }).catch(error => {
-                console.error('[TRANS-HOOK] ❌ Retranslate request failed:', error);
+                getRendererLogger('useTranslation').error('retranslate request failed', { error });
             });
         },
 

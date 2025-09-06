@@ -24,7 +24,6 @@ const on = (channel: Channels, func: (...args: unknown[]) => void) => {
 };
 const electronHandler = {
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
-        console.log('onStoreUpdate');
         return on('store-update', func as never);
     },
     onErrorMsg: (func: (error: Error) => void) => {
@@ -34,7 +33,6 @@ const electronHandler = {
         return on('info-msg', func as never);
     },
     onTaskUpdate: (func: (task: DpTask) => void) => {
-        console.log('onTaskUpdate');
         return on('dp-task-update', func as never);
     },
     // 调用函数的方法
@@ -46,7 +44,7 @@ const electronHandler = {
         try {
             return await ipcRenderer.invoke(path, param);
         } catch (e) {
-            console.error(e);
+            // Error handling for renderer API registration
             return null;
         }
     },
