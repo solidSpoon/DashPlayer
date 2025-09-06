@@ -105,19 +105,30 @@ export default class AiFuncController implements Controller {
         const taskId = await this.dpTaskService.create();
         console.log('taskId', taskId);
 
-        // 检查是否启用 Parakeet 且模型已下载
+        // 检查转录服务设置
         const parakeetEnabled = await this.settingService.get('parakeet.enabled') === 'true';
+        const parakeetTranscriptionEnabled = await this.settingService.get('parakeet.enableTranscription') === 'true';
+        const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
         const modelDownloaded = await this.systemService.isParakeetModelDownloaded();
 
-        if (parakeetEnabled && modelDownloaded) {
-            // 使用 Parakeet 进行转录
+        if (parakeetEnabled && parakeetTranscriptionEnabled && modelDownloaded) {
+            // 使用 Parakeet 进行转录（优先本地）
+            console.log('Using Parakeet for transcription');
             this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
                 console.log('parakeet transcript result:', r);
             });
-        } else {
-            // 使用 Whisper 进行转录
+        } else if (openaiTranscriptionEnabled) {
+            // 使用 OpenAI Whisper 进行转录
+            console.log('Using OpenAI Whisper for transcription');
             this.whisperService.transcript(taskId, filePath).then(r => {
                 console.log('whisper transcript result:', r);
+            });
+        } else {
+            // 没有启用的转录服务
+            console.log('No transcription service enabled');
+            this.dpTaskService.process(taskId, { 
+                progress: '错误：未启用任何转录服务',
+                status: 'failed' 
             });
         }
         return taskId;
