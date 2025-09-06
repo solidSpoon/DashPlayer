@@ -19,7 +19,9 @@
         "node_modules/**",
         ".vite/**",
         "out/**",
-        "**/*.md"
+        "**/*.md",
+        "dist/**",
+        "build/**"
     ],
     "settings": {
         "import/resolver": {

@@ -1,16 +1,6 @@
 // src/fronted/log/simple-logger.ts
 import type { SimpleLevel } from '@/common/log/simple-types';
 
-declare global {
-  interface Window {
-    electron: {
-      dpLogger: {
-        write: (e: any) => void;
-      };
-    };
-  }
-}
-
 const levelOrder: Record<SimpleLevel, number> = {
   debug: 20, info: 30, warn: 40, error: 50,
 };

@@ -4,7 +4,7 @@ import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
 import {SettingKey} from './common/types/store_schema';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from "@/backend/db/tables/dpTask";
-import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
+import {RendererApiMap} from '@/common/api/renderer-api-def';
 import type { SimpleEvent } from '@/common/log/simple-types';
 
 export type Channels =
@@ -48,10 +48,10 @@ const electronHandler = {
             return null;
         }
     },
-    
+
     // 前端API注册方法
     registerRendererApi: function<K extends keyof RendererApiMap>(
-        path: K, 
+        path: K,
         handler: RendererApiMap[K]
     ): () => void {
         const listener = async (event: IpcRendererEvent, callId: string, params: any) => {
@@ -59,29 +59,29 @@ const electronHandler = {
                 const result = await (handler as any)(params);
                 ipcRenderer.send(`renderer-api-response-${callId}`, { success: true, result });
             } catch (error) {
-                ipcRenderer.send(`renderer-api-response-${callId}`, { 
-                    success: false, 
-                    error: error instanceof Error ? error.message : String(error) 
+                ipcRenderer.send(`renderer-api-response-${callId}`, {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
                 });
             }
         };
-        
+
         ipcRenderer.on(`renderer-api-call-${path}`, listener);
-        
+
         return () => {
             ipcRenderer.removeListener(`renderer-api-call-${path}`, listener);
         };
     },
-    
+
     // 批量注册前端API方法
     registerRendererApis: function(apis: Partial<RendererApiMap>): () => void {
         const unregisterFunctions: Array<() => void> = [];
-        
+
         for (const [path, handler] of Object.entries(apis) as Array<[keyof RendererApiMap, any]>) {
             const unregister = this.registerRendererApi(path, handler);
             unregisterFunctions.push(unregister);
         }
-        
+
         return () => {
             unregisterFunctions.forEach(unregister => unregister());
         };

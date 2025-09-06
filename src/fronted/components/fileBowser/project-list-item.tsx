@@ -1,9 +1,9 @@
 import useSWR from 'swr';
 import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
+import { SWR_KEY, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Button } from '@/fronted/components/ui/button';
-import { Film, ListVideo, Trash2, Music } from 'lucide-react'; // 添加 Music 图标导入
+import { Film, ListVideo, Trash2 } from 'lucide-react'; // 添加 Music 图标导入
 import TimeUtil from '@/common/utils/TimeUtil';
 import { Progress } from '@/fronted/components/ui/progress';
 import {
