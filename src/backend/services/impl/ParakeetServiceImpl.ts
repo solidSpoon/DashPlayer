@@ -1,174 +1,249 @@
-import { injectable, inject } from 'inversify';
-import { ParakeetService } from '@/backend/services/ParakeetService';
+import {injectable, inject} from 'inversify';
+import {ParakeetService} from '@/backend/services/ParakeetService';
 import SettingService from '@/backend/services/SettingService';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
-import { app } from 'electron';
 import axios from 'axios';
-import { createWriteStream } from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import sherpaOnnx from 'sherpa-onnx-node';
+import {createWriteStream} from 'fs';
+import {spawn, exec} from 'child_process';
+import {promisify} from 'util';
 import LocationUtil from '@/backend/utils/LocationUtil';
-import { LocationType } from '@/backend/services/LocationService';
+import {LocationType} from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
+import * as os from 'os';
 
 const execAsync = promisify(exec);
 
-class ParakeetEnvSetup {
-    static setupEnvironment(): void {
-        const platform = process.platform;
-        const arch = process.arch;
-        const isPnpm = this.isPnpmEnvironment();
-
-        let libraryPath;
-        if (platform === 'darwin') {
-            if (arch === 'x64') {
-                libraryPath = isPnpm
-                    ? 'node_modules/.pnpm/sherpa-onnx-node@*/node_modules/sherpa-onnx-darwin-x64'
-                    : 'node_modules/sherpa-onnx-darwin-x64';
-            } else if (arch === 'arm64') {
-                libraryPath = isPnpm
-                    ? 'node_modules/.pnpm/sherpa-onnx-node@*/node_modules/sherpa-onnx-darwin-arm64'
-                    : 'node_modules/sherpa-onnx-darwin-arm64';
-            }
-        } else if (platform === 'linux') {
-            if (arch === 'x64') {
-                libraryPath = isPnpm
-                    ? 'node_modules/.pnpm/sherpa-onnx-node@*/node_modules/sherpa-onnx-linux-x64'
-                    : 'node_modules/sherpa-onnx-linux-x64';
-            } else if (arch === 'arm64') {
-                libraryPath = isPnpm
-                    ? 'node_modules/.pnpm/sherpa-onnx-node@*/node_modules/sherpa-onnx-linux-arm64'
-                    : 'node_modules/sherpa-onnx-linux-arm64';
-            }
-        }
-
-        if (libraryPath) {
-            const envVar = platform === 'darwin' ? 'DYLD_LIBRARY_PATH' : 'LD_LIBRARY_PATH';
-            
-            // 直接使用绝对路径，不依赖相对路径解析
-            // 在开发环境中，项目路径是固定的
-            const projectRoot = '/Users/spoon/projects/DashPlayer';
-            const resolvedPath = path.resolve(projectRoot, libraryPath);
-            
-            process.env[envVar] = `${resolvedPath}:${process.env[envVar] || ''}`;
-            console.log(`Set ${envVar} = ${resolvedPath}`);
-            console.log(`Project root: ${projectRoot}`);
-            console.log(`Resolved path exists: ${fs.existsSync(resolvedPath)}`);
-            
-            // 验证路径
-            const testPath = path.resolve(resolvedPath, 'sherpa-onnx.node');
-            console.log(`Test path: ${testPath}`);
-            console.log(`Test path exists: ${fs.existsSync(testPath)}`);
-        }
-    }
-
-    private static isPnpmEnvironment(): boolean {
-        return fs.existsSync(path.join(process.cwd(), 'node_modules', '.pnpm'));
-    }
-}
-
 interface TranscriptionResult {
     text?: string;
-    segments?: Array<{
-        start: number;
-        end: number;
-        text: string;
-    }>;
-    words?: Array<{
-        word: string;
-        start: number;
-        end: number;
-    }>;
-    timestamps?: Array<{
-        token: string;
-        start: number;
-        end: number;
-    }>;
+    segments?: Array<{ start: number; end: number; text: string }>;
+    words?: Array<{ word: string; start: number; end: number }>;
+    timestamps?: Array<{ token: string; start: number; end: number }>;
 }
+// Whisper.cpp 配置
+const WHISPER_MODEL_FILE = 'ggml-base.bin';
+const WHISPER_MODEL_URL =
+    'https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true';
 
-class ParakeetSrtGenerator {
-    static generateSrt(result: TranscriptionResult, audioDuration: number): string {
-        let items = [];
+// 预编译二进制下载地址（使用 GitHub Releases v1.7.6）
+function getBinaryUrl(): string {
+    const platform = process.platform;
+    const arch = process.arch;
 
-        if (Array.isArray(result.segments) && result.segments.length > 0) {
-            items = result.segments.map(s => ({
-                text: s.text,
-                start: s.start,
-                end: s.end
-            }));
-        } else if (Array.isArray(result.words) && result.words.length > 0) {
-            items = result.words.map(w => ({
-                text: w.word,
-                start: w.start,
-                end: w.end
-            }));
-        } else if (Array.isArray(result.timestamps) && result.timestamps.length > 0) {
-            items = result.timestamps.map(t => ({
-                text: t.token,
-                start: t.start,
-                end: t.end
-            }));
+    if (platform === 'darwin') {
+        // macOS 使用 xcframework，但需要确保找到正确的可执行文件
+        return 'https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-v1.7.6-xcframework.zip';
+    } else if (platform === 'linux') {
+        if (arch === 'arm64') {
+            return 'https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-bin-arm64.zip';
         } else {
-            const text = result.text || '';
-            const end = Number.isFinite(audioDuration) ? audioDuration : Math.max(1, text.length * 0.3);
-            items = [{ text, start: 0, end }];
+            return 'https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-bin-x64.zip';
         }
-
-        const merged = this.mergeItems(items, {
-            maxChars: 40,
-            maxGap: 0.6
-        });
-
-        return this.buildSrtContent(merged);
+    } else if (platform === 'win32') {
+        if (arch === 'arm64') {
+            return 'https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-bin-Win32-arm64.zip';
+        } else {
+            return 'https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-bin-x64.zip';
+        }
     }
 
-    private static mergeItems(items: any[], options: { maxChars: number; maxGap: number }): any[] {
-        const merged = [];
-        for (const item of items) {
-            const last = merged[merged.length - 1];
-            if (last &&
-                item.start - last.end <= options.maxGap &&
-                (last.text + ' ' + item.text).length <= options.maxChars) {
-                last.text = `${last.text} ${item.text}`.trim();
-                last.end = Math.max(last.end, item.end);
-            } else {
-                merged.push({ ...item });
+    throw new Error(`Unsupported platform: ${platform} ${arch}`);
+}
+
+function isWindows() {
+    return process.platform === 'win32';
+}
+
+async function isExecutable(p: string) {
+    try {
+        if (isWindows()) {
+            // Windows 不区分可执行位，存在即可
+            await fsPromises.access(p, fs.constants.F_OK);
+            return true;
+        }
+        await fsPromises.access(p, fs.constants.X_OK);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// 解压压缩包文件（跨平台增强）
+async function extractArchive(archivePath: string, targetDir: string): Promise<void> {
+    if (archivePath.endsWith('.zip')) {
+        if (isWindows()) {
+            // 使用 PowerShell Expand-Archive
+            const cmd = `PowerShell -NoProfile -NonInteractive -Command "Expand-Archive -Force -LiteralPath '${archivePath.replace(/'/g, "''")}' -DestinationPath '${targetDir.replace(/'/g, "''")}'"`;
+            await execAsync(cmd);
+        } else {
+            await execAsync(`unzip -o "${archivePath}" -d "${targetDir}"`);
+        }
+    } else if (archivePath.endsWith('.tgz') || archivePath.endsWith('.tar.gz')) {
+        // Windows 新系统通常内置 bsdtar (tar)
+        await execAsync(`tar -xzf "${archivePath}" -C "${targetDir}"`);
+    } else {
+        throw new Error(`Unsupported archive format: ${archivePath}`);
+    }
+}
+
+// 在解压后的目录中查找 whisper 可执行文件（适配 v1.7.6 新格式）
+async function findWhisperBinary(searchDir: string): Promise<string> {
+    const candidates: string[] = [];
+    const preferredNames = new Set<string>([
+        'whisper',
+        'whisper.exe',
+        'main',
+        'main.exe',
+        'whisper-cli',
+        'whisper-cli.exe',
+    ]);
+
+    // 特殊处理 macOS xcframework 格式
+    if (process.platform === 'darwin') {
+        const xcframeworkPath = path.join(searchDir, 'whisper.xcframework');
+        if (await fileExists(xcframeworkPath)) {
+            // 在 xcframework 中查找可执行文件
+            const macosPath = path.join(xcframeworkPath, 'macos-arm64_x86_64');
+            if (await fileExists(macosPath)) {
+                const binPath = path.join(macosPath, 'whisper');
+                if (await fileExists(binPath)) {
+                    candidates.push(binPath);
+                }
             }
         }
-        return merged;
     }
 
-    private static buildSrtContent(items: any[]): string {
-        let srt = '';
-        items.forEach((item, index) => {
-            srt += `${index + 1}\n`;
-            srt += `${this.toSrtTime(item.start)} --> ${this.toSrtTime(item.end)}\n`;
-            srt += `${item.text}\n\n`;
-        });
-        return srt;
+    // 递归搜索所有文件
+    async function walk(dir: string) {
+        const entries = await fsPromises.readdir(dir, {withFileTypes: true});
+        for (const entry of entries) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                await walk(full);
+            } else if (entry.isFile()) {
+                const base = entry.name.toLowerCase();
+                if (preferredNames.has(base)) {
+                    candidates.push(full);
+                }
+            }
+        }
     }
 
-    private static toSrtTime(seconds: number): string {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        const ms = Math.round((seconds - Math.floor(seconds)) * 1000);
-        const pad = (n: number, width: number) => String(n).padStart(width, '0');
-        return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)},${pad(ms, 3)}`;
+    await walk(searchDir);
+
+    if (candidates.length === 0) {
+        throw new Error('whisper binary not found in extracted archive. Searched for: ' + Array.from(preferredNames).join(', '));
+    }
+
+    // 优先返回直接可执行的文件
+    for (const file of candidates) {
+        if (await isExecutable(file).catch(() => false)) {
+            return file;
+        }
+    }
+
+    // 如果没有可执行的，返回第一个候选
+    return candidates[0];
+}
+
+function binName() {
+    if (isWindows()) {
+        return 'whisper.exe';
+    } else if (process.platform === 'darwin') {
+        return 'whisper-cli';
+    } else {
+        return 'whisper';
     }
 }
 
+async function fileExists(p: string) {
+    try {
+        await fsPromises.access(p, fs.constants.F_OK);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// 简单 SRT 解析 -> segments
+function parseSrt(content: string): Array<{ start: number; end: number; text: string }> {
+    const lines = content.replace(/\r/g, '').split('\n');
+    const segments: Array<{ start: number; end: number; text: string }> = [];
+
+    function timeToSec(t: string) {
+        const [hh, mm, rest] = t.split(':');
+        const [ss, ms] = rest.split(',');
+        const h = parseInt(hh, 10);
+        const m = parseInt(mm, 10);
+        const s = parseInt(ss, 10);
+        const milli = parseInt(ms, 10);
+        if ([h, m, s, milli].some((x) => Number.isNaN(x))) return NaN;
+        return h * 3600 + m * 60 + s + milli / 1000;
+    }
+
+    let i = 0;
+    while (i < lines.length) {
+        if (!lines[i]?.trim()) {
+            i++;
+            continue;
+        }
+        const idxLine = lines[i++].trim();
+        if (!/^\d+$/.test(idxLine)) {
+            continue;
+        }
+
+        const timeLine = lines[i++] || '';
+        const m = timeLine.match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
+        if (!m) {
+            while (i < lines.length && lines[i]?.trim()) i++;
+            i++;
+            continue;
+        }
+        const start = timeToSec(m[1]);
+        const end = timeToSec(m[2]);
+        if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+            while (i < lines.length && lines[i]?.trim()) i++;
+            i++;
+            continue;
+        }
+
+        const textLines: string[] = [];
+        while (i < lines.length && lines[i]?.trim()) {
+            textLines.push(lines[i++]);
+        }
+        i++; // skip blank line
+
+        segments.push({
+            start,
+            end,
+            text: textLines.join('\n').trim(),
+        });
+    }
+    return segments;
+}
 
 @injectable()
 export class ParakeetServiceImpl implements ParakeetService {
-    private recognizer: any | null = null;
     private initialized = false;
-    private sherpaModule: typeof sherpaOnnx | null = null;
+
+    // 防并发下载（同一进程内）
+    private downloadingPromise: Promise<void> | null = null;
+
+    // 动态获取路径方法
+    private getModelRoot(): string {
+        return path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'whisper-asr');
+    }
+
+    private getModelPath(): string {
+        return path.join(this.getModelRoot(), WHISPER_MODEL_FILE);
+    }
+
+    private getBinaryPath(): string {
+        return path.join(this.getModelRoot(), binName());
+    }
 
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
@@ -176,661 +251,497 @@ export class ParakeetServiceImpl implements ParakeetService {
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService
     ) {}
 
-    /**
-     * 检查文件是否为标准 WAV 格式
-     */
-    private async isStandardWav(filePath: string): Promise<boolean> {
-        try {
-            const fd = await fsPromises.open(filePath, 'r');
-            const buffer = Buffer.alloc(12);
-            await fd.read(buffer, 0, 12, 0);
-            await fd.close();
-            
-            // 检查 RIFF 头
-            const riff = buffer.subarray(0, 4).toString('ascii');
-            const wave = buffer.subarray(8, 12).toString('ascii');
-            
-            console.log(`🔍 WAV header check: RIFF=${riff}, WAVE=${wave}`);
-            
-            return riff === 'RIFF' && wave === 'WAVE';
-        } catch (error) {
-            console.error('Failed to check WAV header:', error);
-            return false;
-        }
+    private async ensureDirs() {
+        await fsPromises.mkdir(this.getModelRoot(), {recursive: true});
     }
-    
-    /**
-     * 确保文件为标准 WAV 格式，如果不是则转换
-     */
+
+    // 将任意音频转为 16k 单声道 WAV（whisper.cpp 可直接读多格式，但转为标准更稳）
     private async ensureWavFormat(inputPath: string): Promise<string> {
-        console.log(`🔍 Checking audio format for: ${inputPath}`);
-        
-        // 检查是否为标准 WAV
-        if (await this.isStandardWav(inputPath)) {
-            console.log('✅ File is already in standard WAV format');
-            return inputPath;
-        }
-        
-        console.log('🔄 File is not standard WAV, converting...');
-        
-        // 创建临时文件
-        const tempDir = path.join(app.getPath('temp'), 'dashplayer');
-        await fsPromises.mkdir(tempDir, { recursive: true });
-        
-        const outputFileName = `converted_${Date.now()}.wav`;
-        const outputPath = path.join(tempDir, outputFileName);
-        
-        // 转换文件
-        await this.ffmpegService.convertToWav(inputPath, outputPath);
-        
-        console.log(`✅ Conversion completed: ${outputPath}`);
-        return outputPath;
+        const tempDir = LocationUtil.staticGetStoragePath(LocationType.TEMP);
+        await fsPromises.mkdir(tempDir, {recursive: true});
+        const out = path.join(tempDir, `converted_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
+        await this.ffmpegService.convertToWav(inputPath, out);
+        return out;
     }
 
-    /**
-     * 手动解析 WAV 文件数据
-     */
-    private decodeWavData(buffer: Buffer): { sampleRate: number; samples: Float32Array } {
-        // 更稳妥的写法，避免某些 Buffer 有偏移时读错
-        const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-        
-        // 检查 RIFF 头
-        const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
-        if (riff !== 'RIFF') {
-            throw new Error('Not a RIFF file');
+    async isModelDownloaded(): Promise<boolean> {
+        const modelOk = await fileExists(this.getModelPath());
+        const binOk = await fileExists(this.getBinaryPath());
+        // 进一步校验可执行权限（POSIX）
+        const execOk = binOk ? await isExecutable(this.getBinaryPath()) : false;
+        return modelOk && binOk && execOk;
+    }
+
+    async checkModelDownloaded(): Promise<boolean> {
+        return this.isModelDownloaded();
+    }
+
+    // 下载模型文件（带进度），同时确保可执行文件存在（若无则自动构建）
+    async downloadModel(progressCallback: (progress: number) => void): Promise<void> {
+        if (this.downloadingPromise) {
+            await this.downloadingPromise;
+            progressCallback(1);
+            return;
         }
-        
-        // 检查 WAVE 格式
-        const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
-        if (wave !== 'WAVE') {
-            throw new Error('Not a WAVE file');
-        }
-        
-        // 查找 fmt chunk
-        let fmtChunkPos = 12;
-        while (fmtChunkPos < buffer.length) {
-            const chunkId = String.fromCharCode(
-                view.getUint8(fmtChunkPos),
-                view.getUint8(fmtChunkPos + 1),
-                view.getUint8(fmtChunkPos + 2),
-                view.getUint8(fmtChunkPos + 3)
-            );
-            const chunkSize = view.getUint32(fmtChunkPos + 4, true);
-            
-            if (chunkId === 'fmt ') {
-                break;
+
+        const runner = (async () => {
+            if (await this.checkModelDownloaded()) {
+                progressCallback(1);
+                return;
             }
-            fmtChunkPos += 8 + chunkSize;
-        }
-        
-        // 解析 fmt chunk
-        const audioFormat = view.getUint16(fmtChunkPos + 8, true);
-        const numChannels = view.getUint16(fmtChunkPos + 10, true);
-        const sampleRate = view.getUint32(fmtChunkPos + 12, true);
-        const bitsPerSample = view.getUint16(fmtChunkPos + 22, true);
-        
-        console.log('🔍 WAV format details:', {
-            audioFormat,
-            numChannels,
-            sampleRate,
-            bitsPerSample
+
+            await this.ensureDirs();
+
+            const MODEL_WEIGHT = 0.95;
+
+            // 1) 模型
+            if (!(await fileExists(this.getModelPath()))) {
+                await this.downloadFile(WHISPER_MODEL_URL, this.getModelPath(), (p) => {
+                    progressCallback(Math.min(1, p * MODEL_WEIGHT));
+                });
+            } else {
+                progressCallback(MODEL_WEIGHT);
+            }
+
+            // 2) 二进制
+            if (!(await fileExists(this.getBinaryPath()))) {
+                this.taskService.process(0, {progress: '正在获取 whisper.cpp 可执行文件...'});
+                await this.downloadBinary();
+                try {
+                    await fsPromises.chmod(this.getBinaryPath(), 0o755);
+                } catch {
+                    //
+                }
+            }
+
+            progressCallback(1);
+            this.settingService.set('whisper.modelDownloaded', 'true');
+        })();
+
+        this.downloadingPromise = runner.finally(() => {
+            this.downloadingPromise = null;
         });
-        
-        // 查找 data chunk
-        let dataChunkPos = fmtChunkPos + 24;
-        while (dataChunkPos < buffer.length) {
-            const chunkId = String.fromCharCode(
-                view.getUint8(dataChunkPos),
-                view.getUint8(dataChunkPos + 1),
-                view.getUint8(dataChunkPos + 2),
-                view.getUint8(dataChunkPos + 3)
-            );
-            const chunkSize = view.getUint32(dataChunkPos + 4, true);
-            
-            if (chunkId === 'data') {
-                break;
-            }
-            dataChunkPos += 8 + chunkSize;
-        }
-        
-        const dataOffset = dataChunkPos + 8;
-        const dataBytes = view.getUint32(dataChunkPos + 4, true);
-        
-        // 读取 PCM 数据并转换为 Float32Array
-        const samples = new Float32Array(dataBytes / (bitsPerSample / 8));
-        
-        if (audioFormat === 1 && bitsPerSample === 16) {
-            // 16-bit PCM
-            for (let i = 0; i < samples.length; i++) {
-                const offset = dataOffset + i * 2;
-                const sample = view.getInt16(offset, true);
-                samples[i] = sample / 32768.0; // 转换为 [-1, 1] 范围
-            }
-        } else if (audioFormat === 1 && bitsPerSample === 8) {
-            // 8-bit PCM
-            for (let i = 0; i < samples.length; i++) {
-                const offset = dataOffset + i;
-                const sample = view.getUint8(offset);
-                samples[i] = (sample - 128) / 128.0; // 转换为 [-1, 1] 范围
-            }
-        } else {
-            throw new Error(`Unsupported audio format: ${audioFormat}, bits: ${bitsPerSample}`);
-        }
-        
-        return { sampleRate, samples };
+
+        await this.downloadingPromise;
     }
 
-    private async loadSherpaModule(): Promise<any> {
-        if (!this.sherpaModule) {
-            // 使用 require 而不是 import，确保正确加载所有导出
-            this.sherpaModule = require('sherpa-onnx-node');
+    // 通用流式下载（原子写入 + 简易重试，进度回调 0~1）
+    private async downloadFile(url: string, filePath: string, progressCallback: (progress: number) => void): Promise<void> {
+        const maxRetry = 2;
+        const dir = path.dirname(filePath);
+        await fsPromises.mkdir(dir, {recursive: true});
+
+        for (let attempt = 0; attempt <= maxRetry; attempt++) {
+            const tmpPath = `${filePath}.part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            let writer: fs.WriteStream | null = null;
+
+            try {
+                writer = createWriteStream(tmpPath);
+                const response = await axios({
+                    method: 'GET',
+                    url,
+                    responseType: 'stream',
+                    maxRedirects: 5,
+                    timeout: 600000, // 10分钟
+                    validateStatus: (s) => s >= 200 && s < 400,
+                });
+
+                const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+                let downloadedSize = 0;
+
+                response.data.on('data', (chunk: Buffer) => {
+                    downloadedSize += chunk.length;
+                    const p = totalSize > 0 ? downloadedSize / totalSize : 0;
+                    progressCallback(p);
+                    this.taskService.process(0, {progress: `模型/二进制下载中：${Math.round(p * 100)}%`});
+                });
+
+                const finishPromise = new Promise<void>((resolve, reject) => {
+                    writer!.on('finish', resolve);
+                    writer!.on('error', reject);
+                });
+
+                response.data.pipe(writer);
+                await finishPromise;
+
+                // 校验非空
+                const st = await fsPromises.stat(tmpPath);
+                if (!st.size) {
+                    throw new Error('下载文件为空：' + url);
+                }
+
+                // 原子替换
+                await fsPromises.rename(tmpPath, filePath);
+
+                // 下载成功后退出重试循环
+                return;
+            } catch (e) {
+                if (attempt >= maxRetry) {
+                    const error = e as Error;
+                    // 针对401错误提供更具体的建议
+                    if (error.message.includes('401') || error.message.includes('403')) {
+                        throw new Error('下载失败：访问被拒绝 (401/403)。可能是下载源需要认证或暂时不可用，请稍后重试或检查网络连接。');
+                    } else if (error.message.includes('404')) {
+                        throw new Error('下载失败：文件不存在 (404)。可能是下载链接已变更，请稍后重试。');
+                    } else if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT/i.test(error.message)) {
+                        throw new Error('下载失败：网络连接问题。请检查网络连接并稍后重试。');
+                    } else {
+                        throw e;
+                    }
+                }
+                // 清理临时文件，继续重试
+                try {
+                    if (writer) {
+                        writer.close();
+                    }
+                } catch {
+                    //
+                }
+                try {
+                    await fsPromises.rm(tmpPath, {force: true});
+                } catch {
+                    //
+                }
+                await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+            } finally {
+                // 最终保障：清理残留 .part
+                try {
+                    const files = await fsPromises.readdir(dir);
+                    await Promise.all(
+                        files
+                            .filter((f) => f.startsWith(path.basename(filePath) + '.part_'))
+                            .map((f) => fsPromises.rm(path.join(dir, f), {force: true}))
+                    );
+                } catch {
+                    //
+                }
+            }
         }
-        return this.sherpaModule;
+    }
+
+    // 下载预编译的 whisper.cpp 可执行文件
+    private async downloadBinary(): Promise<void> {
+        const tempRoot = LocationUtil.staticGetStoragePath(LocationType.TEMP);
+        const extractDir = path.join(tempRoot, 'whisper_extract_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+        const archivePath = path.join(tempRoot, 'whisper_binary_' + Date.now() + (isWindows() ? '.zip' : '.tgz'));
+
+        await fsPromises.mkdir(extractDir, {recursive: true});
+
+        try {
+            const binaryUrl = getBinaryUrl();
+            this.taskService.process(0, {progress: '正在下载 whisper.cpp 预编译二进制...'});
+
+            await this.downloadFile(binaryUrl, archivePath, (progress) => {
+                this.taskService.process(0, {progress: `二进制下载中：${Math.round(progress * 100)}%`});
+            });
+
+            this.taskService.process(0, {progress: '正在解压二进制文件...'});
+            await extractArchive(archivePath, extractDir);
+
+            this.taskService.process(0, {progress: '正在查找可执行文件...'});
+            const extractedBinary = await findWhisperBinary(extractDir);
+
+            this.taskService.process(0, {progress: '正在安装可执行文件...'});
+            await fsPromises.copyFile(extractedBinary, this.getBinaryPath());
+
+            try {
+                await fsPromises.chmod(this.getBinaryPath(), 0o755);
+            } catch {
+                //
+            }
+
+            this.taskService.process(0, {progress: '二进制文件安装完成'});
+        } catch (e) {
+            const error = e as Error;
+            console.error('Binary download failed:', error);
+
+            if (error.message.includes('404')) {
+                throw new Error('下载预编译二进制失败：文件不存在 (404)。可能是网络问题或版本已更新，请稍后重试。');
+            } else if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT/i.test(error.message)) {
+                throw new Error('下载预编译二进制失败：无法连接到服务器。请检查网络连接。');
+            } else {
+                throw new Error('下载预编译二进制失败：' + error.message);
+            }
+        } finally {
+            // 清理临时文件
+            try {
+                await fsPromises.rm(archivePath, {force: true});
+            } catch {
+                //
+            }
+            try {
+                await fsPromises.rm(extractDir, {recursive: true, force: true});
+            } catch {
+                //
+            }
+        }
     }
 
     async initialize(): Promise<void> {
         if (this.initialized) return;
+        await this.ensureDirs();
 
-        ParakeetEnvSetup.setupEnvironment();
-
-        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'models', 'parakeet-v2');
-        
-        // Parakeet v2 Transducer model files
-        const encoderPath = path.join(modelDir, 'encoder.int8.onnx');
-        const decoderPath = path.join(modelDir, 'decoder.int8.onnx');
-        const joinerPath = path.join(modelDir, 'joiner.int8.onnx');
-        const tokensFile = path.join(modelDir, 'tokens.txt');
-
-        // Check if all model files exist
-        if (!(await this.isModelDownloaded())) {
-            throw new Error(`Parakeet v2 model files not found in ${modelDir}`);
+        const ok = await this.isModelDownloaded();
+        if (!ok) {
+            throw new Error('whisper.cpp 模型或可执行文件不存在，请先调用 downloadModel() 下载');
         }
 
-        try {
-            // 先测试直接 require .node 文件
-            const nodePath = '/Users/spoon/projects/DashPlayer/node_modules/sherpa-onnx-darwin-arm64/sherpa-onnx.node';
-            console.log('🔍 Testing direct require of .node file:', nodePath);
-            
-            try {
-                // Note: We can't use dynamic require here due to TypeScript constraints
-                console.log('✅ Direct require successful!');
-            } catch (directError) {
-                console.error('❌ Direct require failed:', directError);
-            }
-
-            const sherpa = await this.loadSherpaModule();
-            console.log('🔍 Sherpa module loaded successfully:', Object.keys(sherpa));
-
-            // Check if all model files exist
-            console.log('🔍 Checking model files:');
-            console.log('🔍 Encoder path:', encoderPath, 'exists:', fs.existsSync(encoderPath));
-            console.log('🔍 Decoder path:', decoderPath, 'exists:', fs.existsSync(decoderPath));
-            console.log('🔍 Joiner path:', joinerPath, 'exists:', fs.existsSync(joinerPath));
-            console.log('🔍 Tokens file:', tokensFile, 'exists:', fs.existsSync(tokensFile));
-
-            // Configuration for Parakeet v2 Transducer model
-            const config = {
-                featConfig: {
-                    sampleRate: 16000,
-                    featureDim: 80,
-                },
-                modelConfig: {
-                    transducer: {
-                        encoder: encoderPath,
-                        decoder: decoderPath,
-                        joiner: joinerPath,
-                    },
-                    tokens: tokensFile,
-                    provider: 'cpu',
-                    numThreads: 4,
-                    debug: 1, // 打开 native 端调试
-                },
-                decodingConfig: {
-                    method: 'greedy_search',
-                    maxActivePaths: 4,
-                },
-            };
-
-            console.log('🔍 Creating OfflineRecognizer with config:', JSON.stringify(config, null, 2));
-            console.log('🔍 OfflineRecognizer constructor:', sherpa.OfflineRecognizer);
-            
-            this.recognizer = new sherpa.OfflineRecognizer(config);
-            this.initialized = true;
-            console.log('✅ Parakeet v2 (Transducer) service initialized successfully!');
-        } catch (error) {
-            console.error('❌ Failed to initialize Parakeet v2 service:', error);
-            throw new Error(`Failed to initialize Parakeet v2 service: ${(error as Error).message}`);
-        }
+        this.initialized = true;
     }
 
-    /**
-     * 处理单个音频块
-     */
-    private async processSingleChunk(wave: any, taskId: number): Promise<TranscriptionResult> {
-        console.log('🔍 Starting decode process...');
-        this.recognizer.decode(wave.stream);
-        console.log('🔍 Decode completed, getting result...');
+    // 运行 whisper.cpp CLI 进行转录，产出 SRT 文件
+    private async runWhisperCpp(inputWavPath: string, lang?: string): Promise<{ srtPath: string; base: string }> {
+        const tempDir = LocationUtil.staticGetStoragePath(LocationType.TEMP);
+        await fsPromises.mkdir(tempDir, {recursive: true});
+        const base = path.join(tempDir, `whisper_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+        const srtPath = `${base}.srt`;
 
-        const result = this.recognizer.getResult(wave.stream);
-        console.log('🔍 Raw result from recognizer:', result);
-        console.log('🔍 Result structure:', {
-            hasText: !!result?.text,
-            hasSegments: !!result?.segments,
-            text: result?.text?.substring(0, 100),
-            segmentsCount: result?.segments?.length
+        const args = [
+            '-m',
+            this.getModelPath(),
+            '-f',
+            inputWavPath,
+            '-osrt',
+            '-of',
+            base,
+            '-nt',
+        ];
+
+        if (lang && lang !== 'auto') {
+            args.push('-l', lang);
+        }
+
+        const binaryPath = this.getBinaryPath();
+        
+        // 检查二进制文件是否存在且有执行权限
+        try {
+            await fsPromises.access(binaryPath, fs.constants.F_OK | fs.constants.X_OK);
+            console.log('✅ Binary file exists and is executable:', binaryPath);
+            
+            // 检查文件大小
+            const stats = await fsPromises.stat(binaryPath);
+            console.log('📁 Binary file size:', stats.size, 'bytes');
+            
+            // 在macOS上检查架构兼容性
+            if (process.platform === 'darwin') {
+                console.log('🔍 Checking binary architecture on macOS...');
+                try {
+                    const { stdout } = await execAsync(`file "${binaryPath}"`);
+                    console.log('📋 File type info:', stdout);
+                    
+                    const { stdout: archOut } = await execAsync(`lipo -info "${binaryPath}"`);
+                    console.log('🏗️ Architecture info:', archOut);
+                    
+                    // 检查当前系统架构
+                    const currentArch = process.arch;
+                    console.log('💻 Current process arch:', currentArch);
+                    
+                    // 检查是否包含当前架构
+                    if (archOut.includes(currentArch)) {
+                        console.log('✅ Binary supports current architecture');
+                    } else {
+                        console.log('⚠️ Binary may not support current architecture');
+                    }
+                } catch (fileError) {
+                    console.log('⚠️ Could not check binary architecture:', fileError);
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Binary file check failed:', error);
+            throw new Error(`whisper二进制文件不存在或无执行权限: ${binaryPath}. 错误: ${error}`);
+        }
+
+        const threads = Math.max(1, Math.min(4, os.cpus()?.length || 2));
+        args.push('-t', String(threads));
+
+        let stderrBuf = '';
+        console.log('🚀 Starting whisper.cpp:', binaryPath, args.join(' '));
+        
+        await new Promise<void>((resolve, reject) => {
+            console.log('🔧 Spawn options for', process.platform, process.arch);
+            
+            // 在macOS上尝试多种方法
+            let child;
+            if (process.platform === 'darwin') {
+                console.log('🔧 Trying different execution methods for macOS...');
+                
+                // 方法1: 直接spawn
+                try {
+                    const spawnOptions = { 
+                        stdio: ['ignore', 'pipe', 'pipe'] as const,
+                        env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin' }
+                    };
+                    console.log('🔧 Method 1: Direct spawn');
+                    child = spawn(binaryPath, args, spawnOptions);
+                } catch (spawnError) {
+                    console.log('🔧 Method 1 failed, trying Method 2...');
+                    
+                    // 方法2: 使用shell
+                    try {
+                        const shellArgs = [binaryPath, ...args].map(arg => arg.includes(' ') ? `"${arg}"` : arg).join(' ');
+                        console.log('🔧 Method 2: Shell execution');
+                        child = spawn('/bin/bash', ['-c', shellArgs], { 
+                            stdio: ['ignore', 'pipe', 'pipe'] as const 
+                        });
+                    } catch (shellError) {
+                        console.log('🔧 Method 2 failed, trying Method 3...');
+                        
+                        // 方法3: 使用绝对路径
+                        try {
+                            const absoluteBinary = path.resolve(binaryPath);
+                            const absoluteArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
+                            const shellArgs2 = [absoluteBinary, ...absoluteArgs].join(' ');
+                            console.log('🔧 Method 3: Absolute path shell execution');
+                            child = spawn('/bin/bash', ['-c', shellArgs2], { 
+                                stdio: ['ignore', 'pipe', 'pipe'] as const 
+                            });
+                        } catch (absError) {
+                            console.log('🔧 All methods failed');
+                            reject(absError);
+                            return;
+                        }
+                    }
+                }
+            } else {
+                // 非macOS平台
+                const spawnOptions = { stdio: ['ignore', 'pipe', 'pipe'] as const };
+                child = spawn(binaryPath, args, spawnOptions);
+            }
+
+            child.stdout.on('data', () => {
+                // 需要的话可以解析 stdout
+            });
+
+            child.stderr.on('data', (d) => {
+                const line = d.toString();
+                stderrBuf += line;
+                console.log('🚀 whisper.cpp stderr:', line);
+            });
+
+            child.on('error', (error) => {
+                console.error('🚀 whisper.cpp spawn error:', error);
+                console.error('🚀 Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    errno: error.errno,
+                    path: error.path,
+                    spawnargs: error.spawnargs
+                });
+                reject(error);
+            });
+            child.on('close', (code) => {
+                console.log('🚀 whisper.cpp exited with code:', code);
+                if (code === 0) resolve();
+                else reject(new Error(`whisper.cpp 退出码：${code}${stderrBuf ? `，stderr: ${stderrBuf}` : ''}`));
+            });
         });
 
-        this.taskService.process(taskId, { progress: '转录完成' });
-
-        const finalResult = {
-            text: result.text || '',
-            segments: result.segments || [],
-            words: result.words || [],
-            timestamps: result.timestamps || []
-        };
-        
-        console.log('🔍 Final result to return:', finalResult);
-        return finalResult;
-    }
-
-    /**
-     * 分段处理长音频
-     */
-    private async processAudioInChunks(wave: { samples: Float32Array; sampleRate: number }, chunkSeconds: number, taskId: number): Promise<TranscriptionResult> {
-        const samplesPerChunk = wave.sampleRate * chunkSeconds;
-        const totalChunks = Math.ceil(wave.samples.length / samplesPerChunk);
-        
-        console.log(`🔍 Processing ${totalChunks} chunks of ${chunkSeconds}s each`);
-        
-        const allSegments: any[] = [];
-        const allWords: any[] = [];
-        const allTimestamps: any[] = [];
-        let fullText = '';
-        
-        for (let i = 0; i < totalChunks; i++) {
-            const start = i * samplesPerChunk;
-            const end = Math.min(start + samplesPerChunk, wave.samples.length);
-            
-            // 从原始缓冲区创建一个视图
-            const chunkSamplesView = wave.samples.subarray(start, end);
-            
-            // 关键修复：为每个块创建一个可用的内部副本
-            const chunkSamplesCopy = new Float32Array(chunkSamplesView.length);
-            chunkSamplesCopy.set(chunkSamplesView);
-            
-            const timeOffset = start / wave.sampleRate;
-            
-            console.log(`🔍 Processing chunk ${i + 1}/${totalChunks} (${timeOffset.toFixed(2)}s - ${(end / wave.sampleRate).toFixed(2)}s)`);
-            
-            // 更新进度
-            const progress = Math.floor((i / totalChunks) * 100);
-            this.taskService.process(taskId, { progress: `转录进度: ${progress}% (第 ${i + 1}/${totalChunks} 段)` });
-            
-            try {
-                const stream = this.recognizer.createStream();
-                // 使用块的副本，传递对象格式
-                stream.acceptWaveform({ samples: chunkSamplesCopy, sampleRate: wave.sampleRate });
-                this.recognizer.decode(stream);
-                const result = this.recognizer.getResult(stream);
-                
-                // 处理结果，添加时间偏移
-                if (result.segments) {
-                    result.segments.forEach((segment: any) => {
-                        allSegments.push({
-                            start: segment.start + timeOffset,
-                            end: segment.end + timeOffset,
-                            text: segment.text
-                        });
-                    });
-                }
-                
-                if (result.words) {
-                    result.words.forEach((word: any) => {
-                        allWords.push({
-                            word: word.word,
-                            start: word.start + timeOffset,
-                            end: word.end + timeOffset
-                        });
-                    });
-                }
-                
-                if (result.timestamps) {
-                    result.timestamps.forEach((timestamp: any) => {
-                        allTimestamps.push({
-                            token: timestamp.token,
-                            start: timestamp.start + timeOffset,
-                            end: timestamp.end + timeOffset
-                        });
-                    });
-                }
-                
-                if (result.text) {
-                    fullText += (fullText ? ' ' : '') + result.text;
-                }
-                
-                console.log(`✅ Chunk ${i + 1}/${totalChunks} completed: "${result.text?.substring(0, 50)}..."`);
-                
-            } catch (chunkError) {
-                console.error(`❌ Chunk ${i + 1}/${totalChunks} failed:`, chunkError);
-                // 继续处理下一段，不要因为一段失败而终止整个过程
-            }
+        if (!(await fileExists(srtPath))) {
+            throw new Error('whisper.cpp 未生成 SRT 文件');
         }
-        
-        const finalResult = {
-            text: fullText,
-            segments: allSegments,
-            words: allWords,
-            timestamps: allTimestamps
-        };
-        
-        console.log('🔍 All chunks processed. Final result:', {
-            textLength: finalResult.text.length,
-            segmentsCount: finalResult.segments.length,
-            wordsCount: finalResult.words.length
-        });
-        
-        this.taskService.process(taskId, { progress: '转录完成' });
-        return finalResult;
-    }
-
-    async isModelDownloaded(): Promise<boolean> {
-        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'models', 'parakeet-v2');
-        const encoderFile = path.join(modelDir, 'encoder.int8.onnx');
-        const decoderFile = path.join(modelDir, 'decoder.int8.onnx');
-        const joinerFile = path.join(modelDir, 'joiner.int8.onnx');
-        const tokensFile = path.join(modelDir, 'tokens.txt');
-
-        try {
-            return await fsPromises.access(encoderFile).then(() => true).catch(() => false) &&
-                   await fsPromises.access(decoderFile).then(() => true).catch(() => false) &&
-                   await fsPromises.access(joinerFile).then(() => true).catch(() => false) &&
-                   await fsPromises.access(tokensFile).then(() => true).catch(() => false);
-        } catch {
-            return false;
-        }
-    }
-
-    async downloadModel(progressCallback: (progress: number) => void): Promise<void> {
-        console.log('🔥 Starting Parakeet model download...');
-
-        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'models', 'parakeet-v2');
-        console.log('🔥 Model directory:', modelDir);
-
-        await fsPromises.mkdir(modelDir, { recursive: true });
-        console.log('🔥 Model directory created/verified');
-
-        const modelUrl = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2';
-        const tempPath = path.join(modelDir, 'download.tar.bz2');
-        console.log('🔥 Download URL:', modelUrl);
-        console.log('🔥 Temporary file path:', tempPath);
-
-        try {
-            await this.downloadFile(modelUrl, tempPath, progressCallback);
-
-            // Check if downloaded file exists and has size
-            const stats = await fsPromises.stat(tempPath);
-            console.log('🔥 Downloaded file size:', stats.size, 'bytes');
-
-            if (stats.size === 0) {
-                throw new Error('Downloaded file is empty');
-            }
-
-            await this.extractArchive(tempPath, modelDir);
-            await this.validateModelFiles(modelDir);
-            await fsPromises.unlink(tempPath);
-            console.log('🔥 Temporary file deleted');
-
-            const encoderPath = path.join(modelDir, 'encoder.int8.onnx');
-            console.log('🔥 Setting encoder path in settings:', encoderPath);
-
-            this.settingService.set('parakeet.modelPath', encoderPath);
-            this.settingService.set('parakeet.modelDownloaded', 'true');
-
-            console.log('🔥 Model download completed successfully');
-        } catch (error) {
-            console.error('🔥 Model download failed:', error);
-            throw error;
-        }
-    }
-
-    private async downloadFile(url: string, filePath: string, progressCallback: (progress: number) => void): Promise<void> {
-        console.log('🔥 Starting download from:', url);
-        console.log('🔥 Saving to:', filePath);
-
-        const writer = createWriteStream(filePath);
-
-        try {
-            const response = await axios({
-                method: 'GET',
-                url: url,
-                responseType: 'stream',
-                maxRedirects: 5,
-                timeout: 300000, // 5 minutes timeout
-            });
-
-            console.log('🔥 Response status:', response.status);
-            console.log('🔥 Content-Length:', response.headers['content-length']);
-
-            const totalSize = parseInt(response.headers['content-length'] || '0', 10);
-            let downloadedSize = 0;
-
-            response.data.on('data', (chunk: Buffer) => {
-                downloadedSize += chunk.length;
-                const progress = totalSize > 0 ? downloadedSize / totalSize : 0;
-                progressCallback(progress);
-                console.log('🔥 Download progress:', Math.round(progress * 100) + '%', downloadedSize, '/', totalSize);
-            });
-
-            response.data.on('end', () => {
-                console.log('🔥 Download completed');
-            });
-
-            response.data.pipe(writer);
-
-            await new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-
-            console.log('🔥 File saved successfully');
-
-        } catch (error) {
-            console.error('🔥 Download error:', error);
-            throw error;
-        }
-    }
-
-    private async extractArchive(archivePath: string, targetDir: string): Promise<void> {
-        console.log('🔥 Extracting archive:', archivePath, 'to:', targetDir);
-
-        // Create a temporary directory for extraction
-        const tempExtractDir = path.join(targetDir, 'temp_extract');
-        await fsPromises.mkdir(tempExtractDir, { recursive: true });
-
-        await execAsync(`tar -xjf "${archivePath}" -C "${tempExtractDir}"`);
-        console.log('🔥 Archive extraction completed');
-
-        // List the contents of the temp directory to see what was extracted
-        const { stdout } = await execAsync(`ls -la "${tempExtractDir}"`);
-        console.log('🔥 Temp directory contents after extraction:', stdout);
-
-        // Find the model and tokens files
-        const { stdout: findOutput } = await execAsync(`find "${tempExtractDir}" -name "*.onnx" -o -name "tokens.txt"`);
-        console.log('🔥 Found model files:', findOutput);
-
-        // Move the files to the target directory
-        const modelFiles = findOutput.trim().split('\n').filter(Boolean);
-        for (const file of modelFiles) {
-            const fileName = path.basename(file);
-            const targetPath = path.join(targetDir, fileName);
-            await execAsync(`mv "${file}" "${targetPath}"`);
-            console.log('🔥 Moved file to:', targetPath);
-        }
-
-        // Clean up temp directory
-        await fsPromises.rm(tempExtractDir, { recursive: true, force: true });
-        console.log('🔥 Cleaned up temp directory');
-
-        // Final check
-        const { stdout: finalContents } = await execAsync(`ls -la "${targetDir}"`);
-        console.log('🔥 Final directory contents:', finalContents);
-    }
-
-    private async validateModelFiles(modelDir: string): Promise<void> {
-        const encoderFile = path.join(modelDir, 'encoder.int8.onnx');
-        const decoderFile = path.join(modelDir, 'decoder.int8.onnx');
-        const joinerFile = path.join(modelDir, 'joiner.int8.onnx');
-        const tokensFile = path.join(modelDir, 'tokens.txt');
-
-        console.log('🔥 Validating Parakeet v2 (Transducer) model files...');
-        console.log('🔥 Looking for encoder file:', encoderFile);
-        console.log('🔥 Looking for decoder file:', decoderFile);
-        console.log('🔥 Looking for joiner file:', joinerFile);
-        console.log('🔥 Looking for tokens file:', tokensFile);
-
-        // Check if all required files exist
-        const encoderExists = await fsPromises.access(encoderFile).then(() => true).catch(() => false);
-        const decoderExists = await fsPromises.access(decoderFile).then(() => true).catch(() => false);
-        const joinerExists = await fsPromises.access(joinerFile).then(() => true).catch(() => false);
-        const tokensExists = await fsPromises.access(tokensFile).then(() => true).catch(() => false);
-
-        console.log('🔥 Encoder file exists:', encoderExists);
-        console.log('🔥 Decoder file exists:', decoderExists);
-        console.log('🔥 Joiner file exists:', joinerExists);
-        console.log('🔥 Tokens file exists:', tokensExists);
-
-        if (!encoderExists || !decoderExists || !joinerExists || !tokensExists) {
-            // List all files in the directory to help debug
-            const { stdout } = await execAsync(`find "${modelDir}" -type f`);
-            console.log('🔥 All files in model directory:', stdout);
-            throw new Error('Some Parakeet v2 model files are missing. Expected: encoder.int8.onnx, decoder.int8.onnx, joiner.int8.onnx, tokens.txt');
-        }
-
-        console.log('🔥 All Parakeet v2 model files validated successfully!');
+        return {srtPath, base};
     }
 
     async transcribeAudio(taskId: number, audioPath: string): Promise<TranscriptionResult> {
-        console.log(`🎙️ Starting transcription for: ${audioPath}`);
-        console.log(`🎙️ Task ID: ${taskId}`);
-        
+        this.taskService.process(taskId, {progress: '开始音频转录...'});
         if (!this.initialized) {
-            console.log('🎙️ Initializing Parakeet service...');
             await this.initialize();
-            console.log('🎙️ Parakeet service initialized');
         }
 
-        if (!this.recognizer || !this.sherpaModule) {
-            throw new Error('Parakeet service not properly initialized');
-        }
+        let processedAudioPath: string | null = null;
+        let srtPath: string | null = null;
+        let base: string | null = null;
 
         try {
-            // 更新任务状态
-            this.taskService.process(taskId, { progress: '开始音频转录...' });
-            console.log('🎙️ Task status updated');
+            this.taskService.process(taskId, {progress: '音频预处理（转换为 16k WAV）...'});
+            processedAudioPath = await this.ensureWavFormat(audioPath);
 
-            // 确保音频文件为标准 WAV 格式
-            const processedAudioPath = await this.ensureWavFormat(audioPath);
-            console.log(`🔍 Using processed audio file: ${processedAudioPath}`);
+            this.taskService.process(taskId, {progress: 'whisper.cpp 开始识别...'});
+            const result = await this.runWhisperCpp(processedAudioPath);
+            srtPath = result.srtPath;
+            base = result.base;
 
-            this.taskService.process(taskId, { progress: '音频预处理完成，开始识别...' });
+            this.taskService.process(taskId, {progress: '解析识别结果...'});
+            const srtContent = await fsPromises.readFile(srtPath, 'utf8');
+            const segments = parseSrt(srtContent);
 
-            console.log('🔍 Reading WAV file with custom decoder...');
-            
-            // 使用自定义 decodeWavData 解析 WAV 文件，避免外部缓冲区问题
-            const wavBuffer = await fsPromises.readFile(processedAudioPath);
-            const { sampleRate, samples } = this.decodeWavData(wavBuffer);
-            console.log('🔍 WAV file info:', {
-                sampleRate,
-                samplesLength: samples.length,
-                samplesType: typeof samples[0],
-                isFloat32Array: samples instanceof Float32Array
-            });
+            const text = segments.map((s) => s.text).join(' ').trim();
 
-            // 检查采样率是否匹配
-            if (sampleRate !== 16000) {
-                console.warn(`⚠️ Unexpected sampleRate=${sampleRate}, expected 16000. Consider resampling with ffmpeg.`);
+            this.taskService.process(taskId, {progress: '转录完成'});
+
+            return {
+                text,
+                segments,
+                words: [],
+                timestamps: [],
+            };
+        } catch (err) {
+            this.taskService.process(taskId, {progress: `转录失败: ${(err as Error).message}`});
+            throw err;
+        } finally {
+            // 清理临时文件
+            try {
+                if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
+            } catch {
+                //
             }
-
-            // 计算音频总时长
-            const totalDuration = samples.length / sampleRate;
-            console.log(`🔍 Audio duration: ${totalDuration.toFixed(2)} seconds (${(totalDuration / 60).toFixed(2)} minutes)`);
-            
-            // 判断是否需要分段处理
-            const chunkSeconds = 30; // 每段30秒
-            const shouldChunk = totalDuration > chunkSeconds;
-            
-            if (shouldChunk) {
-                console.log(`🔍 Long audio detected, processing in ${chunkSeconds}s chunks...`);
-                return await this.processAudioInChunks({ samples, sampleRate }, chunkSeconds, taskId);
-            } else {
-                console.log('🔍 Processing audio in single chunk...');
-                
-                // 保险起见再复制一份，确保底层为 JS 内部分配的 ArrayBuffer
-                const samplesCopy = new Float32Array(samples.length);
-                samplesCopy.set(samples);
-
-                const stream = this.recognizer.createStream();
-                console.log('🔍 Created stream, accepting waveform...');
-                stream.acceptWaveform({ samples: samplesCopy, sampleRate });
-                
-                console.log('🔍 Starting decode process...');
-                this.recognizer.decode(stream);
-                console.log('🔍 Decode completed, getting result...');
-
-                const result = this.recognizer.getResult(stream);
-                console.log('🔍 Raw result from recognizer:', result);
-                console.log('🔍 Result structure:', {
-                    hasText: !!result?.text,
-                    hasSegments: !!result?.segments,
-                    text: result?.text?.substring(0, 100),
-                    segmentsCount: result?.segments?.length
-                });
-
-                this.taskService.process(taskId, { progress: '转录完成' });
-
-                const finalResult = {
-                    text: result.text || '',
-                    segments: result.segments || [],
-                    words: result.words || [],
-                    timestamps: result.timestamps || []
-                };
-                
-                console.log('🔍 Final result to return:', finalResult);
-                return finalResult;
+            try {
+                if (srtPath) await fsPromises.rm(srtPath, {force: true});
+                if (base) {
+                    const candidates = ['.srt', '.txt', '.vtt', '.json'].map(ext => `${base}${ext}`);
+                    await Promise.all(candidates.map(f => fsPromises.rm(f, {force: true})));
+                }
+            } catch {
+                //
             }
-        } catch (error) {
-            console.error('Transcription failed:', error);
-            this.taskService.process(taskId, { progress: `转录失败: ${(error as Error).message}` });
-            throw new Error(`Transcription failed: ${(error as Error).message}`);
         }
     }
 
     async generateSrt(taskId: number, audioPath: string, outputPath: string): Promise<void> {
-        // 先转录获取结果
-        const result = await this.transcribeAudio(taskId, audioPath);
+        if (!this.initialized) {
+            await this.initialize();
+        }
 
-        // 使用与转录相同的处理后的音频文件路径
-        const processedAudioPath = await this.ensureWavFormat(audioPath);
-        
-        // 使用 decodeWavData 解析 WAV 文件，避免外部缓冲区问题
-        const wavBuffer = await fsPromises.readFile(processedAudioPath);
-        const { sampleRate, samples } = this.decodeWavData(wavBuffer);
-        const duration = samples.length / sampleRate;
+        this.taskService.process(taskId, {progress: '准备生成 SRT...'});
+        let processedAudioPath: string | null = null;
+        let srtPath: string | null = null;
+        let base: string | null = null;
 
-        this.taskService.process(taskId, { progress: '生成 SRT 字幕文件...' });
+        try {
+            processedAudioPath = await this.ensureWavFormat(audioPath);
 
-        const srtContent = ParakeetSrtGenerator.generateSrt(result, duration);
-        await fsPromises.writeFile(outputPath, srtContent, 'utf8');
+            const {srtPath: tempSrt, base: tempBase} = await this.runWhisperCpp(processedAudioPath);
+            srtPath = tempSrt;
+            base = tempBase;
 
-        this.taskService.process(taskId, { progress: '字幕生成完成' });
+            await fsPromises.copyFile(srtPath, outputPath);
+            this.taskService.process(taskId, {progress: '字幕生成完成'});
+        } catch (e) {
+            // 去除“伪回退”：之前的回退路径仍依赖 whisper.cpp，会重复失败
+            const msg = (e as Error)?.message || String(e);
+            this.taskService.process(taskId, {progress: `字幕生成失败：${msg}`});
+            throw e;
+        } finally {
+            try {
+                if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
+            } catch {
+                //
+            }
+            try {
+                if (srtPath) await fsPromises.rm(srtPath, {force: true});
+                if (base) {
+                    const candidates = ['.srt', '.txt', '.vtt', '.json'].map(ext => `${base}${ext}`);
+                    await Promise.all(candidates.map(f => fsPromises.rm(f, {force: true})));
+                }
+            } catch {
+                //
+            }
+        }
     }
 
     dispose(): void {
-        if (this.recognizer) {
-            this.recognizer = null;
-            this.initialized = false;
-        }
-        this.sherpaModule = null;
+        this.initialized = false;
     }
 }
 

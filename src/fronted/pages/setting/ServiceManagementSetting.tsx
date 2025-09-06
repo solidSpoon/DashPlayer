@@ -25,13 +25,13 @@ const ServiceManagementSetting = () => {
     const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
     const { toast } = useToast();
     
-    // Register hidden fields for Parakeet to ensure they're included in form data
-    register('parakeet.enabled');
-    register('parakeet.enableTranscription');
+    // Register hidden fields for Whisper to ensure they're included in form data
+    register('whisper.enabled');
+    register('whisper.enableTranscription');
     
-    // Parakeet settings - now part of main form
-    const parakeetEnabled = watch('parakeet.enabled');
-    const parakeetTranscriptionEnabled = watch('parakeet.enableTranscription');
+    // Whisper settings - now part of main form
+    const whisperEnabled = watch('whisper.enabled');
+    const whisperTranscriptionEnabled = watch('whisper.enableTranscription');
 
     // Test states
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
@@ -43,8 +43,8 @@ const ServiceManagementSetting = () => {
     const [tencentTestResult, setTencentTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
     const [youdaoTestResult, setYoudaoTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
 
-    // Parakeet states
-    const [parakeetModelDownloaded, setParakeetModelDownloaded] = React.useState(false);
+    // Whisper states
+    const [whisperModelDownloaded, setWhisperModelDownloaded] = React.useState(false);
     const [downloading, setDownloading] = React.useState(false);
     const [downloadProgress, setDownloadProgress] = React.useState(0);
 
@@ -95,9 +95,9 @@ const ServiceManagementSetting = () => {
                     secretKey: settings.youdao.secretKey || '',
                     enableDictionary: settings.youdao.enableDictionary ?? false,
                 },
-                parakeet: {
-                    enabled: (settings.parakeet && settings.parakeet.enabled) || false,
-                    enableTranscription: (settings.parakeet && settings.parakeet.enableTranscription) || false,
+                whisper: {
+                    enabled: (settings.whisper && settings.whisper.enabled) || false,
+                    enableTranscription: (settings.whisper && settings.whisper.enableTranscription) || false,
                 },
             };
             reset(formData, { keepDefaultValues: false });
@@ -105,14 +105,14 @@ const ServiceManagementSetting = () => {
         }
     }, [settings, reset]);
 
-    // Check Parakeet model status
+    // Check Whisper model status
     React.useEffect(() => {
         const checkModelStatus = async () => {
             try {
-                const downloaded = await api.call('system-is-parakeet-model-downloaded');
-                setParakeetModelDownloaded(downloaded);
+                const downloaded = await api.call('system-is-whisper-model-downloaded');
+                setWhisperModelDownloaded(downloaded);
             } catch (error) {
-                console.error('Failed to check Parakeet model status:', error);
+                console.error('Failed to check Whisper model status:', error);
             }
         };
         checkModelStatus();
@@ -121,7 +121,7 @@ const ServiceManagementSetting = () => {
     // Register renderer API for progress updates
     React.useEffect(() => {
         const unregister = api.registerRendererApis({
-            'parakeet/download-progress': (params: { progress: number }) => {
+            'whisper/download-progress': (params: { progress: number }) => {
                 console.log('🔥 Received download progress:', params.progress);
                 setDownloadProgress(params.progress);
             }
@@ -135,11 +135,20 @@ const ServiceManagementSetting = () => {
     // Handle model download
     const downloadModel = async () => {
         console.log('🔥 Download button clicked!');
-        console.log('🔥 Current parakeetModelDownloaded:', parakeetModelDownloaded);
+        console.log('🔥 Current whisperModelDownloaded:', whisperModelDownloaded);
         console.log('🔥 Current downloading:', downloading);
         
         if (downloading) {
             console.log('🔥 Already downloading, ignoring click');
+            return;
+        }
+        
+        // 双重检查：如果已经下载，直接提示用户
+        if (whisperModelDownloaded) {
+            toast({
+                title: "模型已存在",
+                description: "Whisper 模型已经下载完成，无需重复下载",
+            });
             return;
         }
         
@@ -148,17 +157,17 @@ const ServiceManagementSetting = () => {
         console.log('🔥 Starting model download...');
         
         try {
-            const result = await api.call('parakeet-download-model');
+            const result = await api.call('whisper-download-model');
             console.log('🔥 Download API call result:', result);
             console.log('🔥 Download completed, checking model status...');
             
-            const downloaded = await api.call('system-is-parakeet-model-downloaded');
+            const downloaded = await api.call('system-is-whisper-model-downloaded');
             console.log('🔥 Model downloaded status:', downloaded);
-            setParakeetModelDownloaded(downloaded);
+            setWhisperModelDownloaded(downloaded);
             
             toast({
                 title: "模型下载完成",
-                description: "Parakeet 模型已成功下载并安装",
+                description: "Whisper 模型已成功下载并安装",
             });
         } catch (error) {
             console.error('🔥 Download failed:', error);
@@ -217,20 +226,20 @@ const ServiceManagementSetting = () => {
     };
 
     // Handle mutual exclusion for transcription
-    const handleTranscriptionChange = (service: 'openai' | 'parakeet', enabled: boolean) => {
+    const handleTranscriptionChange = (service: 'openai' | 'whisper', enabled: boolean) => {
         if (enabled) {
             if (service === 'openai') {
                 setValue('openai.enableTranscription', true);
-                setValue('parakeet.enableTranscription', false);
+                setValue('whisper.enableTranscription', false);
             } else {
-                setValue('parakeet.enableTranscription', true);
+                setValue('whisper.enableTranscription', true);
                 setValue('openai.enableTranscription', false);
-                // Also enable parakeet service when transcription is enabled
-                setValue('parakeet.enabled', true);
+                // Also enable whisper service when transcription is enabled
+                setValue('whisper.enabled', true);
             }
         } else {
             // Check if this would leave no transcription enabled
-            const otherEnabled = service === 'openai' ? parakeetTranscriptionEnabled : openaiTranscriptionEnabled;
+            const otherEnabled = service === 'openai' ? whisperTranscriptionEnabled : openaiTranscriptionEnabled;
             if (!otherEnabled) {
                 // Prevent disabling - at least one must be enabled
                 return;
@@ -238,7 +247,7 @@ const ServiceManagementSetting = () => {
             if (service === 'openai') {
                 setValue('openai.enableTranscription', false);
             } else {
-                setValue('parakeet.enableTranscription', false);
+                setValue('whisper.enableTranscription', false);
             }
         }
     };
@@ -302,9 +311,9 @@ const ServiceManagementSetting = () => {
                 settings: data
             });
 
-            // Update Parakeet service
+            // Update Whisper service
             await api.call('settings/update-service', {
-                service: 'parakeet',
+                service: 'whisper',
                 settings: data
             });
 
@@ -420,8 +429,8 @@ const ServiceManagementSetting = () => {
                                     />
                                     <Label htmlFor="openai-transcription" className="font-normal">
                                         字幕转录
-                                        {parakeetEnabled && (
-                                            <span className="text-xs text-muted-foreground ml-2">(与 Parakeet 转录互斥)</span>
+                                        {whisperEnabled && (
+                                            <span className="text-xs text-muted-foreground ml-2">(与 Whisper 转录互斥)</span>
                                         )}
                                     </Label>
                                 </div>
@@ -626,12 +635,12 @@ const ServiceManagementSetting = () => {
                     </CardContent>
                 </Card>
 
-                {/* Parakeet Local Service */}
+                {/* Whisper Local Service */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Cpu className="h-5 w-5" />
-                            Parakeet 本地字幕识别
+                            Whisper 本地字幕识别
                         </CardTitle>
                         <CardDescription>
                             本地离线语音识别服务，无需网络连接即可生成字幕
@@ -641,7 +650,7 @@ const ServiceManagementSetting = () => {
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">模型状态</Label>
                             <div className="flex items-center gap-2">
-                                {parakeetModelDownloaded ? (
+                                {whisperModelDownloaded ? (
                                     <>
                                         <CheckCircle className="h-4 w-4 text-green-500" />
                                         <span className="text-sm text-green-600">模型已下载</span>
@@ -662,14 +671,14 @@ const ServiceManagementSetting = () => {
                             <div className="flex items-center gap-4">
                                 <Button
                                     type="button"
-                                    variant={parakeetModelDownloaded ? "outline" : "default"}
+                                    variant={whisperModelDownloaded ? "outline" : "default"}
                                     size="sm"
                                     onClick={downloadModel}
                                     disabled={downloading}
                                     className="flex items-center gap-2"
                                 >
                                     <Download className="h-4 w-4" />
-                                    {downloading ? '下载中...' : parakeetModelDownloaded ? '重新下载' : '下载模型'}
+                                    {downloading ? '下载中...' : whisperModelDownloaded ? '重新下载' : '下载模型'}
                                 </Button>
                                 {downloading && (
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -694,16 +703,16 @@ const ServiceManagementSetting = () => {
                             <Label className="text-sm font-medium">启用功能</Label>
                             <div className="flex items-center space-x-2">
                                 <Checkbox
-                                    id="parakeet-transcription"
-                                    checked={parakeetTranscriptionEnabled}
+                                    id="whisper-transcription"
+                                    checked={whisperTranscriptionEnabled}
                                     onCheckedChange={(checked) => {
-                                        handleTranscriptionChange('parakeet', !!checked);
+                                        handleTranscriptionChange('whisper', !!checked);
                                     }}
-                                    disabled={!parakeetModelDownloaded}
+                                    disabled={!whisperModelDownloaded}
                                 />
-                                <Label htmlFor="parakeet-transcription" className="font-normal">
+                                <Label htmlFor="whisper-transcription" className="font-normal">
                                     本地字幕转录
-                                    {!parakeetModelDownloaded && (
+                                    {!whisperModelDownloaded && (
                                         <span className="text-xs text-muted-foreground ml-2">(需要先下载模型)</span>
                                     )}
                                     {openaiTranscriptionEnabled && (
@@ -712,7 +721,7 @@ const ServiceManagementSetting = () => {
                                 </Label>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                启用后，转录功能将优先使用本地 Parakeet 引擎
+                                启用后，转录功能将优先使用本地 Whisper 引擎
                             </p>
                         </div>
 

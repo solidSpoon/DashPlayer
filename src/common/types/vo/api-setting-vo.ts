@@ -18,7 +18,7 @@ export type ApiSettingVO = {
         secretKey: string;
         enableDictionary: boolean;
     };
-    parakeet: {
+    whisper: {
         enabled: boolean;
         enableTranscription: boolean;
     };

@@ -16,10 +16,10 @@ export default class SettingsController implements Controller {
     public async updateApiSettings(params: { service: string, settings: ApiSettingVO }): Promise<void> {
         const { service, settings } = params;
         
-        if (service === 'parakeet') {
-            // Update only Parakeet settings, but still receive full ApiSettingVO
-            await this.settingService.set('parakeet.enabled', settings.parakeet.enabled ? 'true' : 'false');
-            await this.settingService.set('parakeet.enableTranscription', settings.parakeet.enableTranscription ? 'true' : 'false');
+        if (service === 'whisper') {
+            // Update only Whisper settings, but still receive full ApiSettingVO
+            await this.settingService.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
+            await this.settingService.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
         } else {
             // Update all settings (for backward compatibility)
             await this.settingService.updateApiSettings(settings);

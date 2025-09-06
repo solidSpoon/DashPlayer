@@ -108,16 +108,16 @@ export default class AiFuncController implements Controller {
         console.log('taskId', taskId);
 
         // 检查转录服务设置
-        const parakeetEnabled = await this.settingService.get('parakeet.enabled') === 'true';
-        const parakeetTranscriptionEnabled = await this.settingService.get('parakeet.enableTranscription') === 'true';
+        const whisperEnabled = await this.settingService.get('whisper.enabled') === 'true';
+        const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
         const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
         const modelDownloaded = await this.systemService.isParakeetModelDownloaded();
 
-        if (parakeetEnabled && parakeetTranscriptionEnabled && modelDownloaded) {
-            // 使用 Parakeet 进行转录（优先本地）
-            console.log('Using Parakeet for transcription');
+        if (whisperEnabled && whisperTranscriptionEnabled && modelDownloaded) {
+            // 使用 Whisper 进行转录（优先本地）
+            console.log('Using Whisper for transcription');
             this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
-                console.log('parakeet transcript result:', r);
+                console.log('whisper transcript result:', r);
                 console.log('transcript result structure:', {
                     hasText: !!r?.text,
                     hasSegments: !!r?.segments,

@@ -176,17 +176,13 @@ export default class SystemServiceImpl implements SystemService {
     }
 
     public async isParakeetModelDownloaded(): Promise<boolean> {
-        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'models', 'parakeet-v2');
-        const encoderFile = path.join(modelDir, 'encoder.int8.onnx');
-        const decoderFile = path.join(modelDir, 'decoder.int8.onnx');
-        const joinerFile = path.join(modelDir, 'joiner.int8.onnx');
-        const tokensFile = path.join(modelDir, 'tokens.txt');
+        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'whisper-asr');
+        const modelFile = path.join(modelDir, 'ggml-base.bin');
+        const binaryFile = path.join(modelDir, process.platform === 'win32' ? 'whisper.exe' : (process.platform === 'darwin' ? 'whisper-cli' : 'whisper'));
         
         try {
-            return await fs.access(encoderFile).then(() => true) &&
-                   await fs.access(decoderFile).then(() => true) &&
-                   await fs.access(joinerFile).then(() => true) &&
-                   await fs.access(tokensFile).then(() => true);
+            return await fs.access(modelFile).then(() => true) &&
+                   await fs.access(binaryFile).then(() => true);
         } catch {
             return false;
         }

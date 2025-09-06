@@ -47,9 +47,9 @@ export default class SettingServiceImpl implements SettingService {
                 secretKey: await this.get('apiKeys.youdao.secretKey'),
                 enableDictionary: await this.get('services.youdao.enableDictionary') === 'true',
             },
-            parakeet: {
-                enabled: await this.get('parakeet.enabled') === 'true',
-                enableTranscription: await this.get('parakeet.enableTranscription') === 'true',
+            whisper: {
+                enabled: await this.get('whisper.enabled') === 'true',
+                enableTranscription: await this.get('whisper.enableTranscription') === 'true',
             }
         };
         return settings;
@@ -95,19 +95,19 @@ export default class SettingServiceImpl implements SettingService {
             await this.set('services.youdao.enableDictionary', settings.youdao.enableDictionary ? 'true' : 'false');
         }
         
-        // Update Parakeet settings
-        await this.set('parakeet.enabled', settings.parakeet.enabled ? 'true' : 'false');
-        await this.set('parakeet.enableTranscription', settings.parakeet.enableTranscription ? 'true' : 'false');
+        // Update Whisper settings
+        await this.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
+        await this.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
         
         // Handle mutual exclusion for transcription
-        if (settings.openai.enableTranscription && settings.parakeet.enableTranscription) {
-            // Both enabled - default to parakeet as it's local and preferred
-            await this.set('parakeet.enableTranscription', 'true');
+        if (settings.openai.enableTranscription && settings.whisper.enableTranscription) {
+            // Both enabled - default to whisper as it's local and preferred
+            await this.set('whisper.enableTranscription', 'true');
             await this.set('services.openai.enableTranscription', 'false');
         } else {
             // Set both as requested
             await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
-            await this.set('parakeet.enableTranscription', settings.parakeet.enableTranscription ? 'true' : 'false');
+            await this.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
         }
     }
     

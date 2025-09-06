@@ -22,16 +22,16 @@ interface TranslationRendererDef {
     'translation/batch-result': { params: { translations: Array<{ key: string, translation: string, isComplete?: boolean }> }, return: void };
 }
 
-// Parakeet相关的前端API定义
-interface ParakeetRendererDef {
-    'parakeet/download-progress': { params: { progress: number }, return: void };
+// Whisper相关的前端API定义
+interface WhisperRendererDef {
+    'whisper/download-progress': { params: { progress: number }, return: void };
 }
 
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
     & UIRendererDef
     & TranslationRendererDef
-    & ParakeetRendererDef;
+    & WhisperRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;

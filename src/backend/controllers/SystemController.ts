@@ -114,7 +114,7 @@ export default class SystemController implements Controller {
         await this.systemService.testRendererApiCall();
     }
 
-    public async isParakeetModelDownloaded() {
+    public async isWhisperModelDownloaded() {
         return this.systemService.isParakeetModelDownloaded();
     }
 
@@ -132,6 +132,6 @@ export default class SystemController implements Controller {
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', (p) => this.appVersion());
         registerRoute('system/test-renderer-api', (_) => this.testRendererApi());
-        registerRoute('system-is-parakeet-model-downloaded', () => this.isParakeetModelDownloaded());
+        registerRoute('system-is-whisper-model-downloaded', () => this.isWhisperModelDownloaded());
     }
 }

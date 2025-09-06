@@ -32,10 +32,10 @@ export default class StorageController implements Controller {
         return this.locationService.listCollectionPaths();
     }
 
-    public async downloadParakeetModel(): Promise<void> {
+    public async downloadWhisperModel(): Promise<void> {
         return this.parakeetService.downloadModel((progress: number) => {
             // Use SystemService to send progress to renderer
-            this.systemService.callRendererApi('parakeet/download-progress', { progress });
+            this.systemService.callRendererApi('whisper/download-progress', { progress });
         });
     }
 
@@ -45,6 +45,6 @@ export default class StorageController implements Controller {
         registerRoute('storage/get', (p) => this.storeGet(p));
         registerRoute('storage/cache/size', (p) => this.queryCacheSize());
         registerRoute('storage/collection/paths', () => this.listCollectionPaths());
-        registerRoute('parakeet-download-model', () => this.downloadParakeetModel());
+        registerRoute('whisper-download-model', () => this.downloadWhisperModel());
     }
 }
