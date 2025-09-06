@@ -2,13 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {cn} from "@/fronted/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from '@/fronted/components/ui/popover';
 import { Button } from '@/fronted/components/ui/button';
-import { Label } from '@/fronted/components/ui/label';
 import { Input } from '@/fronted/components/ui/input';
 import { Checkbox } from '@/fronted/components/ui/checkbox';
-import usePlayerController from '@/fronted/hooks/usePlayerController';
 import { useShallow } from 'zustand/react/shallow';
 import useSetting from '@/fronted/hooks/useSetting';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export interface VolumeSliderProps {
     speed: number;
@@ -17,6 +16,7 @@ export interface VolumeSliderProps {
 }
 
 const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps) => {
+    const logger = getRendererLogger('SpeedSlider');
     const [open, setOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
@@ -133,8 +133,9 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                                 }
                             }}
                             onChange={(e) => {
-                                console.log('onChange', e.currentTarget.value);
-                                let s = parseFloat(parseFloat(e.currentTarget.value).toFixed(2));
+                                const inputValue = e.currentTarget.value;
+                                logger.debug('Speed slider input changed', { inputValue });
+                                let s = parseFloat(parseFloat(inputValue).toFixed(2));
                                 if (s > 20) {
                                     s = 20;
                                 }

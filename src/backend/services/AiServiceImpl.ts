@@ -1,5 +1,5 @@
 import analyzeWordsPrompt from '@/backend/services/prompts/analyze-word';
-import { z } from 'zod';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 import exampleSentences from '@/backend/services/prompts/example-sentence';
 import analyzePhrasesPrompt from './prompts/analyze-phrases';
 import synonymousSentence from '@/backend/services/prompts/synonymous-sentence';
@@ -16,6 +16,7 @@ import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/services/ChatService';
 import SrtUtil from "@/common/utils/SrtUtil";
 import { pipe } from 'lodash/fp';
+import {z} from "zod";
 
 export interface AiService {
     polish(taskId: number, sentence: string): Promise<void>;
@@ -48,6 +49,7 @@ export default class AiServiceImpl implements AiService {
 
     @inject(TYPES.ChatService)
     private chatService!: ChatService;
+    private logger = getMainLogger('AiServiceImpl');
 
     public async polish(taskId: number, sentence: string) {
         await this.chatService.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
@@ -94,7 +96,7 @@ export default class AiServiceImpl implements AiService {
         //去掉换行
         sentence = sentence.replaceAll(/\n/g, ' ');
         const promptStr = AiAnalyseGrammarsPrompt.promptFunc(sentence);
-        console.log('promptStr', promptStr);
+        this.logger.debug('grammar analysis prompt generated', { promptLength: promptStr.length });
         await this.chatService.run(taskId, AiAnalyseGrammarsPrompt.schema, promptStr);
     }
 

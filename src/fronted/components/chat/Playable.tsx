@@ -1,8 +1,8 @@
 import { cn } from '@/fronted/lib/utils';
-import { PiSpeakerSimpleHigh } from 'react-icons/pi';
 import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
 import { useState } from 'react';
 import { Loader, Volume2 } from 'lucide-react';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export interface PlayableProps {
     className?: string;
@@ -10,6 +10,7 @@ export interface PlayableProps {
 }
 
 const Playable = ({ className, children }: PlayableProps) => {
+    const logger = getRendererLogger('Playable');
     const [loading, setLoading] = useState(false);
     return (
         <span
@@ -18,10 +19,10 @@ const Playable = ({ className, children }: PlayableProps) => {
                 if (selectedText.length === 0) {
                     setLoading(true);
                     const str = children || '';
-                    console.log('ttsStr', str);
+                    logger.debug('Generating TTS for text', { text: str });
                     const ttsUrl = await getTtsUrl(str);
                     setLoading(false);
-                    console.log('ttsUrl', ttsUrl);
+                    logger.debug('TTS URL generated', { ttsUrl });
                     await playAudioUrl(ttsUrl);
                 }
             }}

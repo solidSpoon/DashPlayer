@@ -1,5 +1,8 @@
 import {mutate} from 'swr';
 import { ApiMap } from '@/common/api/api-def';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('swr-util');
 
 export const SWR_KEY = {
     PLAYER_P: 'PLAYER_P_SWR',
@@ -14,11 +17,11 @@ export const swrMutate = async (swrKey: string) => {
     await mutate(
         key => {
             if (typeof key === 'string') {
-                console.log('swrMutateStr', key);
+                logger.debug('SWR mutate string key', { key });
                 return key.startsWith(swrKey);
             }
             if (Array.isArray(key)) {
-                console.log('swrMutateArr', key);
+                logger.debug('SWR mutate array key', { key });
                 return key.length > 0 && key[0] === swrKey;
             }
         },

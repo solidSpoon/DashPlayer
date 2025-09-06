@@ -4,10 +4,12 @@
  */
 
 import { initRendererControllers } from './controllers/ControllerManager';
+import { getRendererLogger } from './log/simple-logger';
 
 // 在DOM加载完成后初始化Controllers
 function initializeRendererControllers() {
-    console.log('正在初始化前端Controllers...');
+    const logger = getRendererLogger('InitControllers');
+    logger.info('initializing frontend controllers...');
     
     try {
         const cleanup = initRendererControllers();
@@ -15,12 +17,11 @@ function initializeRendererControllers() {
         // 将清理函数挂载到window对象，方便调试
         (window as any).cleanupRendererControllers = cleanup;
         
-        console.log('✅ 前端Controllers初始化成功');
-        console.log('可以在控制台执行以下命令测试：');
-        console.log('await window.electron.call("system/test-renderer-api")');
+        logger.info('frontend controllers initialized successfully');
+        logger.debug('test command available: await window.electron.call("system/test-renderer-api")');
         
     } catch (error) {
-        console.error('❌ 前端Controllers初始化失败:', error);
+        logger.error('frontend controllers initialization failed', { error: error?.message || error });
     }
 }
 

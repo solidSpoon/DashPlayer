@@ -6,6 +6,9 @@ import useFavouriteClip, { PlayInfo } from '@/fronted/hooks/useFavouriteClip';
 import TagSelector from '@/fronted/components/TagSelector';
 import FavouriteMainSrt from '@/fronted/pages/favourite/FavouriteMainSrt';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('FavouritePlayer');
 
 const FavouritePlayer = () => {
 
@@ -17,7 +20,7 @@ const FavouritePlayer = () => {
     useEffect(() => {
         if (playInfo && playInfo !== lastSeekTime.current) {
             lastSeekTime.current = playInfo;
-            console.log('seek to', playInfo.time);
+            logger.debug('Seeking to time', { time: playInfo.time });
             const player = playerRef.current;
             if (player) {
                 player.seekTo(playInfo.time);
@@ -57,13 +60,13 @@ const FavouritePlayer = () => {
                             }}
                             onStart={async () => {
                                 //jump
-                                console.log('start');
+                                logger.debug('Player started');
                                 if (playInfo?.time) {
                                     playerRef.current?.seekTo(playInfo?.time);
                                 }
                             }}
                             onReady={() => {
-                                console.log('ready');
+                                logger.debug('Player ready');
                             }}
 
 

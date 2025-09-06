@@ -10,6 +10,9 @@ import useSettingForm from '@/fronted/hooks/useSettingForm';
 import Separator from '@/fronted/components/Separtor';
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('AppearanceSetting');
 
 const AppearanceSetting = () => {
     const { setting, setSetting, submit, eqServer } = useSettingForm([
@@ -18,7 +21,7 @@ const AppearanceSetting = () => {
     ]);
 
     const fontSizeToValue = (fontSize: string) => {
-        console.log('fonttt', fontSize);
+        logger.debug('Converting fontSize to display value', { fontSize });
         if (fontSize === 'fontSizeSmall') {
             return '小';
         }
@@ -32,7 +35,7 @@ const AppearanceSetting = () => {
     };
     const theme = setting('appearance.theme');
     const fontSize = setting('appearance.fontSize');
-    console.log('fontsize', fontSize);
+    logger.debug('Current fontSize setting', { fontSize });
     return (
         <form className="w-full h-full flex flex-col gap-5">
             <Header title="外观" description="设置主题与字号" />

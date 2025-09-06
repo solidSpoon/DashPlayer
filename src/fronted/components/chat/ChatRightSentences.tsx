@@ -6,6 +6,7 @@ import { ChevronsDown } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const SentencesPart = ({ tid }: { tid: number }) => {
     const { detail } = useDpTaskViewer<AiMakeExampleSentencesRes>(typeof tid === 'number' ? tid : null);
@@ -43,8 +44,9 @@ const ChatRightSentences = ({ className }: {
     className: string,
 }) => {
 
+    const logger = getRendererLogger('ChatRightSentences');
     const tids = useChatPanel(state => state.tasks.sentenceTask);
-    console.log('tids', tids);
+    logger.debug('Sentence task IDs loaded', { tids });
     const retry = useChatPanel(state => state.retry);
     return (
 

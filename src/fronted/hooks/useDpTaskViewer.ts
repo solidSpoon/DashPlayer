@@ -27,8 +27,7 @@ const useDpTaskViewer = <T>(taskId: Nullable<number>): {
 
     if (task.result) { // 不再检查 task.status === DpTaskState.DONE
         try {
-            // console.log('on task update parse', task.id);
-            detail = JSON.parse(task.result);
+                detail = JSON.parse(task.result);
         } catch (e) {
             // 在流式场景下，后端传来的数据可能暂时不完整，解析失败是可能的
             // 可以选择静默处理，或者只在非最终状态下静默

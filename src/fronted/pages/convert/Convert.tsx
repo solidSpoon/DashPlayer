@@ -9,6 +9,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/fronted/components/ui/button';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
 import Eb from '@/fronted/components/Eb';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('Convert');
 
 
 const api = window.electron;
@@ -99,7 +102,7 @@ const Convert = () => {
                                                 buttonVariant={'small'}
                                                 className={'bg-background drop-shadow'} file={file}
                                                 onSelected={() => {
-                                                    console.log('selected', file);
+                                                    logger.debug('File selected in convert folder', { file });
                                                 }}
                                                 onDeleted={() => {
                                                     deleteFolder(folder.folder, file);
@@ -117,7 +120,7 @@ const Convert = () => {
                             <ConvertItem
                                 className={'border'} file={file}
                                 onSelected={() => {
-                                    console.log('selected', file);
+                                    logger.debug('File selected in convert files', { file });
                                 }}
                                 onDeleted={() => {
                                     deleteFile(file);

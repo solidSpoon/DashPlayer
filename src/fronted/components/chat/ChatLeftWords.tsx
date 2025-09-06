@@ -8,15 +8,17 @@ import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const ChatLeftWords = ({ className }: {
     className: string,
 }) => {
+    const logger = getRendererLogger('ChatLeftWords');
     const tid = useChatPanel(state => state.tasks.vocabularyTask);
 
     const { detail } = useDpTaskViewer<AiAnalyseNewWordsRes>(typeof tid === 'number' ? tid : null);
     const retry = useChatPanel(state => state.retry);
-    console.log('detail', detail);
+    logger.debug('AI analysis detail loaded', { detail });
     return (
 
         <div className={cn('flex flex-col', className)}>

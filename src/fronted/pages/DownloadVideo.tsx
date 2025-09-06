@@ -26,8 +26,10 @@ import PathUtil from '@/common/utils/PathUtil';
 import { BsBrowserChrome, BsBrowserEdge, BsBrowserFirefox, BsBrowserSafari, BsIncognito } from 'react-icons/bs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { COOKIE, cookieType } from '@/common/types/DlVideoType';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
+const logger = getRendererLogger('DownloadVideo');
 
 function extracted(dpTask: Nullable<DpTask>): DlProgress {
     try {
@@ -41,7 +43,7 @@ const DownloadVideo = () => {
 
     const [taskId, setTaskId] = useLocalStorage<number | null>('download-video-task-id');
     const { task: dpTask } = useDpTaskViewer(taskId);
-    console.log('task', dpTask);
+    logger.debug('download task status', { dpTask });
     const [url, setUrl] = useLocalStorage('download-video-url', '');
     const [cookies, setCookies] = useLocalStorage<COOKIE>('download-video-cookies', 'no-cookie');
     const consoleRef = React.useRef<HTMLPreElement>(null);

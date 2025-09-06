@@ -11,6 +11,7 @@ import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButt
 import {Pause, Play} from "lucide-react";
 import { Button } from '@/fronted/components/ui/button';
 import TimeUtil from "@/common/utils/TimeUtil";
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export interface PlayerControlPannelProps {
     className?: string;
@@ -27,6 +28,7 @@ const PlayerControlPannel = ({
                                  onPlay,
                                  playing
                              }: PlayerControlPannelProps) => {
+    const logger = getRendererLogger('PlayerControlPannel');
     const {
         playTime,
         duration,
@@ -116,7 +118,7 @@ const PlayerControlPannel = ({
                         min={0}
                         value={[currentValue]}
                         onValueChange={(value) => {
-                            console.log('onValueChange', value);
+                            logger.debug('Time slider value changed', { value });
                             setCurrentValue(value[0]);
                             setSelecting(true);
                             onPause?.();

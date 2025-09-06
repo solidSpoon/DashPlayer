@@ -19,14 +19,16 @@ import usePlayerController from '@/fronted/hooks/usePlayerController';
 import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import toast from 'react-hot-toast';
 import { ModeSwitchToast } from '@/fronted/components/toasts/ModeSwitchToast';
 const api = window.electron;
+const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const PlayerWithControlsPage = () => {
     const { videoId } = useParams();
     const { data: video } = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
-    console.log('playerp', videoId, video);
+    logger.debug('player page loaded', { videoId, hasVideo: !!video });
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const chatTopic = useChatPanel(s => s.topic);
@@ -44,10 +46,10 @@ const PlayerWithControlsPage = () => {
             'true') === 'true';
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
-    console.log('referrer', referrer);
+    logger.debug('page referrer', { referrer });
     useEffect(() => {
         const runEffect = async () => {
-            console.log('effect video', video);
+            logger.debug('video effect triggered', { video });
             if (!video) {
                 return;
             }

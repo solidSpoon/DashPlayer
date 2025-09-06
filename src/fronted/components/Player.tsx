@@ -1,4 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useShallow } from 'zustand/react/shallow';
 import usePlayerController from '../hooks/usePlayerController';
 import useFile from '../hooks/useFile';
@@ -15,6 +16,7 @@ import ReactPlayer from 'react-player/file';
 import { useNavigate } from 'react-router-dom';
 
 const api = window.electron;
+const logger = getRendererLogger('Player');
 
 export default function Player({ className }: { className?: string }): ReactElement {
     const {
@@ -147,7 +149,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                             ctx.drawImage(bitmap, 0, 0, width, height);
                             bitmap.close(); // 如果有提供此方法，关闭 bitmap 释放内存
                         } catch (error) {
-                            console.error('Error drawing video frame:', error);
+                            logger.error('failed to draw video frame', { error: error?.message || error });
                         }
 
                         // 更新最后绘画时间
@@ -181,7 +183,7 @@ export default function Player({ className }: { className?: string }): ReactElem
         }
         const result = await api.call('watch-history/detail', videoId);
         const progress = result?.current_position ?? 0;
-        console.log('jumpToHistoryProgress', progress);
+        logger.debug('jumping to history progress', { progress });
         seekTo({ time: progress });
         lastFile = file;
     };
@@ -194,17 +196,17 @@ export default function Player({ className }: { className?: string }): ReactElem
         try {
             const nextVideo = await api.call('watch-history/get-next-video', videoId);
             if (nextVideo) {
-                console.log('Auto playing next video:', nextVideo.fileName);
+                logger.info('auto playing next video', { fileName: nextVideo.fileName });
                 navigate(`/player/${nextVideo.id}`);
             } else {
-                console.log('No next video found');
+                logger.debug('no next video found');
             }
         } catch (error) {
-            console.error('Failed to get next video:', error);
+            logger.error('failed to get next video', { error: error?.message || error });
         }
     };
 
-    console.log('videoPath', videoPath);
+    logger.debug('video path changed', { videoPath });
     const render = (): ReactElement => {
         if (StrUtil.isBlank(videoPath)) {
             return <div />;

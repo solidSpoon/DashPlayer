@@ -15,9 +15,11 @@ import {
 import UrlUtil from '@/common/utils/UrlUtil';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
-import FileUtil from '@/backend/utils/FileUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/components/fileBowser/music-card';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('ProjectListCard');
 
 const api = window.electron;
 
@@ -45,7 +47,13 @@ const ProjectListCard = ({
         }
     );
 
-    console.log('video', video);
+    logger.debug('Rendering video card', {
+        id: video.id,
+        fileName: video.fileName,
+        isFolder: video.isFolder,
+        currentPosition: video.current_position,
+        duration: video.duration
+    });
 
     const [hover, setHover] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState(false);
@@ -121,7 +129,7 @@ const ProjectListCard = ({
                                 variant="ghost"
                                 onClick={async (e) => {
                                     e.stopPropagation();
-                                    console.log('swrdelete', video.id);
+                                    logger.debug('Deleting video from watch history', { id: video.id });
                                     await api.call('watch-history/group-delete', video.id);
                                     await swrApiMutate('watch-history/list');
                                 }}

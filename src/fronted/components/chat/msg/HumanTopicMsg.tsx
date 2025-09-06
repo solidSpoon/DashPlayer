@@ -8,6 +8,9 @@ import { RefreshCcw } from 'lucide-react';
 import '../../../styles/topic.css';
 import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
 import {Nullable} from "@/common/types/Types";
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('HumanTopicMsg');
 
 const process = (original: string, parseRes: Nullable<AiPhraseGroupRes>): (string | AiPhraseGroupElement)[] => {
     if (((parseRes?.phraseGroups ?? []).length) === 0) return [original];
@@ -27,7 +30,7 @@ const process = (original: string, parseRes: Nullable<AiPhraseGroupRes>): (strin
         const index = lowerCaseText.indexOf(lowerCaseOriginal);
         const before = text.substring(0, index);
         const after = text.substring(index + group.original.length);
-        console.log('before', before, 'after', after);
+        logger.debug('phrase group processing', { before, after });
         if (before) res.push(before);
         res.push(group);
         text = after;
@@ -40,7 +43,6 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     const retry = useChatPanel(state => state.retry);
     const {detail:res} = useDpTaskViewer<AiPhraseGroupRes>(msg.phraseGroupTask);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
-    // console.log('HumanTopicMsg', dpTask);
     // const res = JSON.parse(dpTask?.result ?? '{}') as AiPhraseGroupRes;
     const mapColor = (tags: string[]): string => {
         //判空
@@ -65,7 +67,6 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     };
 
 
-    // console.log('HumanTopicMsg', res);
     const content = process(msg.content, res);
     return (
         <div

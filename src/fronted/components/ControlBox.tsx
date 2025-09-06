@@ -18,6 +18,7 @@ import { Captions, Eraser } from 'lucide-react';
 import Md from '@/fronted/components/chat/markdown';
 import { codeBlock } from 'common-tags';
 import useTranscript from '@/fronted/hooks/useTranscript';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';
 import { useLocalStorage } from '@uidotdev/usehooks';
@@ -26,6 +27,7 @@ import { DpTaskState } from '@/backend/db/tables/dpTask';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 
 const api = window.electron;
+const logger = getRendererLogger('ControlBox');
 
 const getShortcut = (key: SettingKey) => {
     return useSetting.getState().setting(key);
@@ -37,7 +39,7 @@ const Transcript = () => {
 
     const duration = new Date().getTime() - TimeUtil.isoToDate(task?.created_at).getTime();
     const inProgress = (task?.status ?? DpTaskState.DONE) === DpTaskState.IN_PROGRESS;
-    console.log('taskTranscript', task, duration, inProgress);
+    logger.debug('transcript task status', { task, duration, inProgress });
     return (
         <TooltipProvider>
             <Tooltip>

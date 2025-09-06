@@ -8,8 +8,10 @@ import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import { AiFuncPunctuationRes } from '@/common/types/aiRes/AiPunctuationResp';
 import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
 import StrUtil from '@/common/utils/str-util';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
+    const logger = getRendererLogger('AiWelcomeMsg');
     const { detail: polishTaskRes } = useDpTaskViewer<AiFuncPolishRes>(msg.polishTask);
     const { detail: punctuationTaskResp } = useDpTaskViewer<AiFuncPunctuationRes>(msg.punctuationTask);
     const { detail: transTaskResp } = useDpTaskViewer<AiFuncTranslateWithContextRes>(msg.translateTask);
@@ -18,8 +20,7 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
     const complete =
         !(punctuationTaskResp?.isComplete ?? true) && punctuationTaskResp?.completeVersion !== msg.originalTopic;
 
-    // console.log('AiWelcomeMsg', transTaskResp);
-    return (
+      return (
         <div className={cn('group relative flex items-start')}>
             {/* <Button variant={'ghost'} size={'icon'} onClick={()=>retry('welcome')} */}
             {/*         className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}> */}

@@ -12,6 +12,9 @@ import {
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('ProjectListComp');
 
 export interface ProjectListCompProps {
     projEle: (p: WatchHistoryVO, handleClick: () => void) => React.JSX.Element;
@@ -27,7 +30,7 @@ const api = window.electron;
 const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = '' }: ProjectListCompProps) => {
     const [basePath, setBasePath] = React.useState<string|null>(null);
     const finalPath = basePath ?? enterProj;
-    console.log('finalPath', finalPath);
+    logger.debug('Project list final path', { finalPath });
     const { data } = useSWR([apiPath('watch-history/list'), finalPath], ([p, bp]) => api.call('watch-history/list', bp));
     return (
         <div className={cn('flex flex-col gap-2', className)}>

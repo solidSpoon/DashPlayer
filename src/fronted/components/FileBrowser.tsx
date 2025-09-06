@@ -15,9 +15,11 @@ import { toast } from 'sonner';
 import useConvert from '@/fronted/hooks/useConvert';
 import PathUtil from '@/common/utils/PathUtil';
 import useSWR from 'swr';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 const api = window.electron;
+const logger = getRendererLogger('FileBrowser');
 const FileBrowser = () => {
     const navigate = useNavigate();
     const file = useFile(state => state.videoPath);
@@ -155,7 +157,7 @@ const FileBrowser = () => {
                             <ProjItem2 v={p}
                                        variant={variant}
                                        onClick={async () => {
-                                           console.log('click', p.id);
+                                           logger.debug('project clicked', { projectId: p.id });
                                            hc();
                                            if (!p.isFolder) {
                                                navigate(`/player/${p.id}`);

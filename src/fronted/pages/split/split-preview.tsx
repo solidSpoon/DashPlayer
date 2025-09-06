@@ -15,9 +15,17 @@ import FallBack from '@/fronted/components/FallBack';
 import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('SplitRow');
 
 const SplitRow = ({ line }: { line: TaskChapterParseResult }) => {
-    console.log('line', line);
+    logger.debug('Rendering split row', { 
+        timestampStart: line.timestampStart, 
+        timestampEnd: line.timestampEnd, 
+        title: line.title,
+        isValid: line.timestampValid 
+    });
     const valid = (TimeUtil.parseDuration(line.timestampEnd) - TimeUtil.parseDuration(line.timestampStart)) > 60;
     return (
         <TableRow>

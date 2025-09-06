@@ -15,8 +15,10 @@ import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBow
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
 import { toast } from 'sonner';
 import useConvert from '@/fronted/hooks/useConvert';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
+const logger = getRendererLogger('HomePage');
 const HomePage = () => {
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
@@ -36,7 +38,7 @@ const HomePage = () => {
         api.call('system/window-size/change', 'home').then();
         clear();
     }, [clear]);
-    console.log('vpsl', vps?.length, rest?.length, num);
+    logger.debug('video project statistics', { vpsCount: vps?.length, restCount: rest?.length, num });
     return (
         <div className="flex h-screen w-full flex-col text-foreground bg-muted/40">
             <header className="top-0 flex h-9 items-center">

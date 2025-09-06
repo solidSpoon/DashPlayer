@@ -10,9 +10,11 @@ import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
 import useCopyModeController from '../../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/Eb';
 
 const api = window.electron;
+const logger = getRendererLogger('Word');
 export interface WordParam {
     word: string;
     original: string;
@@ -50,13 +52,13 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const [isRefreshing, setIsRefreshing] = useState(false);
     const {data: ydResp, isLoading: isWordLoading, mutate} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', { word, forceRefresh: false }));
 
-    console.log("isWordLoading", isWordLoading, ydResp);
+    logger.debug('word loading status', { isWordLoading, hasYdResponse: !!ydResp });
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
             // 强制重新请求，传递 forceRefresh: true 参数
             const newData = await api.call('ai-trans/word', { word: original, forceRefresh: true });
-            mutate(['ai-trans/word', original], newData, false);
+            mutate(['ai-trans/word', original], newData);
         } finally {
             setIsRefreshing(false);
         }
@@ -120,7 +122,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                 url = ydResp?.speakUrl || '';
             }
 
-            console.log('url', url);
+            logger.debug('TTS URL generated', { url });
             if (StrUtil.isNotBlank(url)) {
                 await playUrl(url);
             } else {
@@ -132,7 +134,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                 }
             }
         } catch (error) {
-            console.error('发音播放失败:', error);
+            logger.error('failed to play pronunciation', { error: error?.message || error });
         } finally {
             setPlayLoading(false);
         }

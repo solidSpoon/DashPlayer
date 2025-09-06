@@ -9,6 +9,7 @@ import { Card } from '@/fronted/components/ui/card';
 import {Pause, Play} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
 import TimeUtil from "@/common/utils/TimeUtil";
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export interface PlayerControlPanelProps {
     className?: string;
@@ -18,6 +19,7 @@ export interface PlayerControlPanelProps {
 const ViewerControlPanel = ({
                                  className
                              }: PlayerControlPanelProps) => {
+    const logger = getRendererLogger('ViewerControlPanel');
     const {
         playTime,
         duration,
@@ -92,7 +94,7 @@ const ViewerControlPanel = ({
                         min={0}
                         value={[currentValue]}
                         onValueChange={(value) => {
-                            console.log('onValueChange   fff', value);
+                            logger.debug('Viewer time slider value changed', { value });
                             setCurrentValue(value[0]);
                             setSelecting(true);
                             onTimeChange?.({time: value[0]});

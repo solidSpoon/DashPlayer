@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { app } from 'electron';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 import { compareVersions } from 'compare-versions';
 import Release from "@/common/types/release";
+import {app} from "electron";
 
 let cache: Release[] = [];
 let cacheUpdateTime = 0;
@@ -15,12 +16,13 @@ export const checkUpdate = async (): Promise<Release[]> => {
 
     const currentVersion = app.getVersion();
 
+    const logger = getMainLogger('CheckUpdate');
     const result = await axios
         .get(
             'https://api.github.com/repos/solidSpoon/DashPlayer/releases'
         )
         .catch((err) => {
-            console.error(err);
+            logger.error('failed to fetch releases', { error: err.message });
             return null;
         });
 
@@ -37,7 +39,7 @@ export const checkUpdate = async (): Promise<Release[]> => {
         version: release.tag_name,
         content: release.body,
     }));
-    console.log('releases', releases);
+    logger.info('fetched releases from github', { count: releases.length });
     cache = releases
         .filter(release => compareVersions(release.version, `v${currentVersion}`) > 0)
         .sort((a, b) => compareVersions(b.version, a.version));

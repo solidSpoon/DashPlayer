@@ -1,3 +1,4 @@
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 import parseChapter from '@/common/utils/praser/chapter-parser';
 import path from 'path';
 import fs from 'fs';
@@ -20,6 +21,7 @@ class SplitVideoServiceImpl implements SplitVideoService {
 
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
+    private logger = getMainLogger('SplitVideoServiceImpl');
 
     public async previewSplit(str: string) {
         return parseChapter(str);
@@ -101,7 +103,7 @@ class SplitVideoServiceImpl implements SplitVideoService {
             outputFolder: folderName,
             outputFilePrefix: tempFilePrefix
         });
-        console.log('outputFiles', outputFiles);
+        this.logger.info('video split completed', { fileCount: outputFiles.length });
         const splitedVideos: string[] = [];
         // 重命名
         for (let i = 0; i < outputFiles.length; i++) {

@@ -1,11 +1,12 @@
 import { FolderVideos } from '@/common/types/tonvert-type';
-import fs from 'fs';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 import path from 'path';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
 import ConvertService from '@/backend/services/ConvertService';
+import fs from "fs";
 
 
 @injectable()
@@ -15,6 +16,7 @@ export default class ConvertServiceImpl implements ConvertService {
 
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
+    private logger = getMainLogger('ConvertServiceImpl');
 
     public async toMp4(taskId: number, file: string): Promise<void> {
         const mp4File = file.replace(path.extname(file), '.mp4');
@@ -44,7 +46,7 @@ export default class ConvertServiceImpl implements ConvertService {
                     onProgress
                 });
             } catch (e) {
-                console.error('转换失败', e);
+                this.logger.error('conversion failed', { error: e?.message || e });
                 this.dpTaskService.fail(taskId, {
                     progress: '转换失败',
                     result: JSON.stringify({
@@ -75,7 +77,7 @@ export default class ConvertServiceImpl implements ConvertService {
                     });
                 }
             } catch (e) {
-                console.error('提取字幕失败', e);
+                this.logger.error('subtitle extraction failed', { error: e?.message || e });
             }
         }
         this.dpTaskService.finish(taskId, {

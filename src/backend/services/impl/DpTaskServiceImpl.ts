@@ -1,3 +1,4 @@
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 import {eq, or} from 'drizzle-orm';
 import db from '@/backend/db/db';
 import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpTask';
@@ -16,6 +17,7 @@ import SystemService from "@/backend/services/SystemService";
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
     @inject(TYPES.SystemService) private systemService!: SystemService;
+    private logger = getMainLogger('DpTaskServiceImpl');
     private upQueue: Map<number, InsertDpTask> = new Map();
     private cancelQueue: Set<number> = new Set();
     private cache: LRUCache<number, InsertDpTask> = new LRUCache({
@@ -39,7 +41,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
     public async detail(id: number): Promise<DpTask | null> {
 
         if (this.cache.has(id)) {
-            console.log('temp task');
+            this.logger.debug('returning cached task', { taskId: id });
             return this.cache.get(id) as DpTask;
         }
 
@@ -136,11 +138,11 @@ export default class DpTaskServiceImpl implements DpTaskService {
 
     private updateTaskInfo(task: InsertDpTask, info: InsertDpTask) {
         if (info.progress !== undefined) {
-            dpLog.info(`task ${task.id} progress: ${info.progress}`);
+            this.logger.info('task progress updated', { taskId: task.id, progress: info.progress });
             task.progress = info.progress;
         }
         if (info.result !== undefined) {
-            dpLog.info(`task ${task.id} result: ${info.result}`);
+            this.logger.info('task result updated', { taskId: task.id, result: info.result });
             task.result = info.result;
         }
     }

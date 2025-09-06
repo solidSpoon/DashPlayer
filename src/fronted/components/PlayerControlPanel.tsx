@@ -11,6 +11,9 @@ import FullscreenButton from '@/fronted/components/playerSubtitle/FullscreenButt
 import { Pause, Play } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import TimeUtil from '@/common/utils/TimeUtil';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('PlayerControlPanel');
 
 export interface PlayerControlPanelProps {
     className?: string;
@@ -145,7 +148,7 @@ const PlayerControlPanel = ({
                             min={0}
                             value={[currentValue]}
                             onValueChange={(value) => {
-                                console.log('onValueChange', value);
+                                logger.debug('playback rate changed', { value });
                                 setCurrentValue(value[0]);
                                 setSelecting(true);
                                 onTimeChange?.(value[0]);

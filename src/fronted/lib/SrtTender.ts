@@ -1,6 +1,9 @@
 import { Sentence } from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
 import { ClipSrtLine } from '@/common/types/clipMeta';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('SrtTender');
 
 interface TenderLine<T> {
     index: number;
@@ -87,7 +90,7 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
                 end: 0
             };
         }
-        console.log('seek to internal', line.t1, line.origin)
+        logger.debug('Seek to internal', { t1: line.t1, origin: line.origin });
         return {
             start: line.t1,
             end: line.t2
@@ -160,7 +163,7 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
     private getByT(sentence: T): TenderLine<T> | null {
         const index = this.getKeyLineMapping().get(this.getOriginKey(sentence));
         if (index === undefined) {
-            console.error('can not find sentence', sentence, this.getOriginKey(sentence), this.getKeyLineMapping());
+            logger.error('Can not find sentence', { sentence, key: this.getOriginKey(sentence), mapping: this.getKeyLineMapping() });
             return null;
         }
         return this.lines[index];

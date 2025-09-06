@@ -3,8 +3,10 @@ import TranslatableLine from './srt-cops/translatable-line';
 import NormalLine from './NormalLine';
 import usePlayerController from '../hooks/usePlayerController';
 import useTranslation from '../hooks/useTranslation';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export default function MainSubtitle() {
+    const logger = getRendererLogger('MainSubtitle');
     const sentence = usePlayerController((state) => state.currentSentence);
     const subtitle = usePlayerController((state) => state.subtitle);
     const clearAdjust = usePlayerController((state) => state.clearAdjust);
@@ -17,7 +19,7 @@ export default function MainSubtitle() {
     const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
     // 当前句子改变时，触发懒加载翻译
     useEffect(() => {
-        console.log('sentence changed:', sentence);
+        logger.debug('sentence changed', { sentence: sentence?.text, index: sentence?.index });
         if (sentence && subtitle.length > 0) {
             // 使用 transGroup 字段判断是否需要加载翻译
             loadTranslationGroup(subtitle, sentence.index);

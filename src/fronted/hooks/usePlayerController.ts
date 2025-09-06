@@ -192,7 +192,6 @@ useFile.subscribe(
         const finishedGroup = new Set<number>();
         while (CURRENT_FILE === useFile.getState().subtitlePath) {
             const userCanSee = filterUserCanSee(finishedGroup, subtitle);
-            // console.log('userCanSee', userCanSee);
             if (userCanSee.length > 0) {
                 getRendererLogger('usePlayerController').debug('test error before');
                 // const transHolder = TransHolder.from(
@@ -205,7 +204,6 @@ useFile.subscribe(
                 if (CURRENT_FILE !== useFile.getState().subtitlePath) {
                     return;
                 }
-                // console.log('transHolder', transHolder);
                 // if (!transHolder.isEmpty()) {
                 //     usePlayerController
                 //         .getState()

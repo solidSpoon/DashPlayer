@@ -3,12 +3,12 @@ import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import React from 'react';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import useSWR from 'swr';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
 import Util from '@/common/utils/Util';
-import toast from 'react-hot-toast';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import useSWR from "swr";
 
 export interface TranscriptItemProps {
     file: string;
@@ -21,6 +21,7 @@ const api = window.electron;
 
 const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps) => {
     const [started, setStarted] = React.useState(false);
+    const logger = getRendererLogger('TranscriptItem');
     const { task } = useDpTaskViewer(taskId);
     const { data: fInfo } = useSWR(['system/path-info', file], ([_k, f]) => api.call('system/path-info', f), {
         fallbackData: {
@@ -29,14 +30,14 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
             extName: ''
         }
     });
-    console.log('taskk', task);
+    logger.debug('task status updated', { task });
 
     let msg = task?.progress ?? '未开始';
     if (task?.status === DpTaskState.DONE) {
         const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
         const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
         const duration = Math.floor((updatedAt - createdAt) / 1000);
-        console.log('duration', duration, TimeUtil.isoToDate(task.updated_at), TimeUtil.isoToDate(task.created_at));
+        logger.debug('task duration calculated', { duration, updatedAt: task.updated_at, createdAt: task.created_at });
         msg = `${task.progress} ${duration}s`;
     }
     return (

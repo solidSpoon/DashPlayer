@@ -10,6 +10,9 @@ import useFile from '@/fronted/hooks/useFile';
 import useLayout from '@/fronted/hooks/useLayout';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import StrUtil from '@/common/utils/str-util';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('PlayerSrtLayout');
 
 const PlayerSrtLayout = () => {
     const hasSubTitle = useFile((s) => StrUtil.isNotBlank(s.subtitlePath));
@@ -42,7 +45,7 @@ const PlayerSrtLayout = () => {
                         if (fullScreen) {
                             return;
                         }
-                        console.log('eeeeeeb', e);
+                        logger.debug('Outer panel resized', { size: e });
                         setSizeOa(e);
                     }}
                 >

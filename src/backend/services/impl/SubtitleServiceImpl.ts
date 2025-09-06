@@ -1,3 +1,4 @@
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 import nlp from 'compromise/one';
 import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
 import StrUtil from '@/common/utils/str-util';
@@ -51,7 +52,7 @@ function groupSentence(
         });
     });
 }
-
+const logger = getMainLogger('SubtitleServiceImpl');
 @injectable()
 export class SubtitleServiceImpl implements SubtitleService {
 
@@ -94,7 +95,7 @@ export class SubtitleServiceImpl implements SubtitleService {
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });
-        
+
         // 生成每个句子的翻译key
         subtitles.forEach((sentence, index) => {
             sentence.translationKey = generateTranslationKey(subtitles, index);
@@ -232,7 +233,7 @@ const processSentence = (sentence: string): SentenceStruct => {
     const blocks: SentenceBlockBySpace[] = [];
     let blockParts: SentenceBlockPart[] = [];
     for (const token of tokens) {
-        console.log(token.pos);
+        logger.debug('processing token position', { position: token.pos });
         const pw = holder.subTo(token.pos.start);
         if (pw.length > 0) {
             if (StrUtil.isBlank(pw)) {

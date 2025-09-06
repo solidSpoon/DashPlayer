@@ -13,6 +13,7 @@ import {
 import { Calendar } from '@/fronted/components/ui/calendar';
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const DatePickerWithRange = ({
                                  className,
@@ -23,9 +24,10 @@ const DatePickerWithRange = ({
     dateRange?: DateRange;
     onDateRangeChange?: (dateRange: DateRange) => void;
 }) => {
+    const logger = getRendererLogger('DatePickerWithRange');
     const dateEmpty: boolean = !dateRange || (!dateRange.from && !dateRange.to);
 
-    console.log('dateRange', dateRange);
+    logger.debug('Date range updated', { dateRange });
 
     const formatDateRange = (range: DateRange | undefined) => {
         if (!range) return { from: undefined, to: undefined };

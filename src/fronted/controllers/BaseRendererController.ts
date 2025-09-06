@@ -25,7 +25,7 @@ export abstract class BaseRendererController implements RendererController {
         handler: ApiHandler<K>
     ): void {
         if (this.isRegistered) {
-            console.warn(`Controller ${this.name}: API ${path} registered after controller initialization`);
+            this.logger.warn('API registered after controller initialization', { controller: this.name, path });
         }
 
         // 包装处理器，添加错误处理和日志
@@ -62,7 +62,7 @@ export abstract class BaseRendererController implements RendererController {
      */
     public registerApis(): () => void {
         if (this.isRegistered) {
-            console.warn(`Controller ${this.name} is already registered`);
+            this.logger.warn('controller already registered', { controller: this.name });
             return () => {
                 //
             };
@@ -71,7 +71,7 @@ export abstract class BaseRendererController implements RendererController {
         this.isRegistered = true;
         this.setupApis();
 
-        console.log(`Controller ${this.name} registered with ${this.registeredApis.length} APIs`);
+        this.logger.info('controller registered', { controller: this.name, apiCount: this.registeredApis.length });
 
         // 返回取消注册的函数
         return () => {
@@ -91,14 +91,14 @@ export abstract class BaseRendererController implements RendererController {
         this.registeredApis.forEach(unregister => unregister());
         this.registeredApis = [];
         this.isRegistered = false;
-        console.log(`Controller ${this.name} unregistered`);
+        this.logger.info('controller unregistered', { controller: this.name });
     }
 
     /**
      * 创建标准错误响应
      */
     protected createErrorResponse(message: string, error?: any) {
-        console.error(`[${this.name}] ${message}`, error);
+        this.logger.error(message, { error: error?.message || error });
         throw new Error(message);
     }
 

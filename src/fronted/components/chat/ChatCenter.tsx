@@ -20,11 +20,13 @@ import { AiCtxMenuExplainSelectMsg } from '@/fronted/components/chat/msg/AiCtxMe
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import { useShallow } from 'zustand/react/shallow';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
 import { Send } from 'lucide-react';
 import AiCtxMenuPolishMessage from "@/common/types/msg/AiCtxMenuPolishMessage";
 
 const ChatCenter = () => {
+    const logger = getRendererLogger('ChatCenter');
     const {messages, streamingMessage, sent, input, setInput} = useChatPanel(useShallow(s=> ({
         messages: s.messages,
         streamingMessage: s.streamingMessage,
@@ -97,11 +99,11 @@ const ChatCenter = () => {
         }
         const ts: DpTask[] = taskIds.map(taskId => s.tasks.get(taskId))
             .filter((task): task is DpTask => !!task && task !== 'init');
-        console.log('hasUnFinishedTask', ts);
+        logger.debug('checking unfinished tasks', { tasks: ts });
         return ts.some(task => task.status !== DpTaskState.DONE);
     }) ?? false;
 
-    console.log('hasUnFinishedTask', hasUnFinishedTask);
+    logger.debug('unfinished task status', { hasUnFinishedTask });
 
     // 发送消息的统一处理函数
     const handleSendMessage = async () => {

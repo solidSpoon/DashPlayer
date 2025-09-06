@@ -9,6 +9,9 @@ import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import {cn} from "@/fronted/lib/utils";
 import OpenAIWordPop from './openai-word-pop';
 import useSetting from '@/fronted/hooks/useSetting';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('WordPop');
 
 export interface WordSubParam {
     word: string;
@@ -23,7 +26,7 @@ const WordPop = React.forwardRef(
         { word, translation, hoverColor, isLoading: externalIsLoading, onRefresh }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
     ) => {
-        console.log('popper', translation);
+        logger.debug('WordPop translation data', { translation });
         
         const setting = useSetting((state) => state.setting);
         const openaiDictionaryEnabled = setting('services.openai.enableDictionary') === 'true';
@@ -86,7 +89,7 @@ const WordPop = React.forwardRef(
             const shouldShowYoudao = isYoudaoFormat(translation);
             const shouldShowOpenAI = isOpenAIFormat(translation);
             
-            console.log('WordPop Debug:', {
+            logger.debug('WordPop content type detection', {
                 translation,
                 shouldShowYoudao,
                 shouldShowOpenAI,

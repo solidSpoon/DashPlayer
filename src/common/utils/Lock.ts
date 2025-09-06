@@ -1,3 +1,5 @@
+import { getMainLogger } from '@/backend/ioc/simple-logger';
+
 export type LOCK_KEY =
     | 'ffmpeg'
     | 'ffprobe'
@@ -8,8 +10,6 @@ const LockConfig: Record<LOCK_KEY, { size: number }> = {
     ffprobe: {size: 5},
     whisper: {size: 10}
 };
-
-import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 export default class Lock {
     private static locks: Map<LOCK_KEY, number> = new Map();

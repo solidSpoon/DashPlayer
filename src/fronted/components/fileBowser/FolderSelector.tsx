@@ -4,6 +4,9 @@ import React from 'react';
 import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('FolderSelector');
 
 const api = window.electron;
 
@@ -26,7 +29,7 @@ export class FolderSelectAction {
     public static defaultAction2(onSelected: (vid: string, fp: string) => void) {
         return async (fp: string) => {
             const [id] = await api.call('watch-history/create', [fp]);
-            console.log('create id', id);
+            logger.debug('Created watch history', { id });
             onSelected(id, fp);
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrApiMutate('watch-history/list');
@@ -38,7 +41,7 @@ export class FolderSelectAction {
 const FolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
     const handleClick = async () => {
         const ps = await api.call('system/select-folder', {});
-        console.log('project', ps);
+        logger.debug('Selected folder projects', { projectCount: ps.length, firstProject: ps[0] });
         if (ps.length > 0) {
             onSelected?.(ps[0]);
         }

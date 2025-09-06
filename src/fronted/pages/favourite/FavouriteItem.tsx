@@ -6,10 +6,13 @@ import { Button } from '@/fronted/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { ClipMeta, OssBaseMeta, ClipSrtLine } from '@/common/types/clipMeta';
 import { ClipTenderImpl } from '@/fronted/lib/SrtTender';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('FavouriteItem');
 
 
 const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
-    console.log('fav item', item);
+    logger.debug('Rendering favourite item', { key: item.key, videoName: item.video_name });
     const playInfo = useFavouriteClip(state => state.playInfo);
     const setPlayInfo = useFavouriteClip(state => state.setPlayInfo);
     const currentTime = useFavouriteClip(state => state.currentTime);
@@ -17,7 +20,7 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
     const [currentLine, setCurrentLine] = React.useState<ClipSrtLine | null>(null);
 
     const tender = React.useMemo(() => {
-        console.log('tender', item.clip_content, item.key);
+        logger.debug('Creating clip tender', { key: item.key, contentLength: item.clip_content?.length });
         return new ClipTenderImpl(item.clip_content, item.key);
     }, [item.clip_content, item.key]);
 
@@ -62,7 +65,7 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
                                       timeUpdated: Date.now()
                                   });
                                   // setPlay(true);
-                                  console.log('setPlayInfo', contextLine.start);
+                                  logger.debug('Setting play info for line', { startTime: contextLine.start });
                               }}
                               className={cn('hover:underline',
                                   contextLine === currentLine && 'text-primary',
