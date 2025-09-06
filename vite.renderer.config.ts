@@ -16,13 +16,27 @@ export default defineConfig((env) => {
         base: './',
         build: {
             outDir: `.vite/renderer/${name}`,
+            rollupOptions: {
+                external: [
+                    'tiktoken',
+                    '@dqbd/tiktoken',
+                    '@dqbd/tiktoken/lite'
+                ],
+            },
         },
-        plugins: [pluginExposeRenderer(name),react()],
+        plugins: [pluginExposeRenderer(name), react()],
         resolve: {
             preserveSymlinks: true,
             alias: {
                 "@": path.resolve(__dirname, "./src"),
             },
+        },
+        optimizeDeps: {
+            exclude: [
+                'tiktoken',
+                '@dqbd/tiktoken',
+                '@dqbd/tiktoken/lite'
+            ],
         },
         clearScreen: false,
     } as UserConfig;

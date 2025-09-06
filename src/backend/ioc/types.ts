@@ -23,6 +23,7 @@ const TYPES = {
     WatchHistoryService: Symbol('WatchHistoryService'),
     OpenAiService: Symbol('OpenAiService'),
     ParakeetService: Symbol('ParakeetService'),
+    EchogardenService: Symbol('EchogardenService'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),

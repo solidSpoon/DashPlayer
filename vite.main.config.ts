@@ -17,9 +17,25 @@ export default defineConfig((env) => {
             },
             // https://github.com/electron/forge/issues/3398
             sourcemap: true,
+            target: 'node20',
             rollupOptions: {
-                external,
+                external: [
+                    ...external,
+                    'echogarden',
+                    'echogarden/dist/api/API.js',
+                    'echogarden/dist/audio/AudioUtilities.js',
+                    'echogarden/dist/utilities/Timeline.js',
+                    'echogarden/dist/utilities/PackageManager.js',
+                ],
+                output: {
+                    strict: false,
+                },
             },
+        },
+        optimizeDeps: {
+            exclude: [
+                'echogarden'
+            ],
         },
         plugins: [pluginHotRestart('restart')],
         define,

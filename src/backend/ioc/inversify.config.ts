@@ -65,6 +65,7 @@ import { OpenAiService } from '@/backend/services/OpenAiService';
 import AiProviderService from '@/backend/services/AiProviderService';
 import {ParakeetService} from '@/backend/services/ParakeetService';
 import ParakeetServiceImpl from '@/backend/services/impl/ParakeetServiceImpl';
+import { EchogardenServiceImpl } from '@/backend/services/impl/EchogardenServiceImpl';
 
 
 const container = new Container();
@@ -110,4 +111,5 @@ container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
 container.bind<ParakeetService>(TYPES.ParakeetService).to(ParakeetServiceImpl).inSingletonScope();
+container.bind<EchogardenService>(TYPES.EchogardenService).to(EchogardenServiceImpl).inSingletonScope();
 export default container;

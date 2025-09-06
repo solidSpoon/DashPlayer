@@ -14,7 +14,9 @@ import fs from 'node:fs/promises';
 
 const config: ForgeConfig = {
     packagerConfig: {
-        asar: true,
+        asar: {
+            unpack: '**/*.wasm',
+        },
         icon: './assets/icons/icon',
         extraResource: ['./drizzle', './lib', './scripts'],
         executableName: 'dash-player',
