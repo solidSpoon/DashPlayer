@@ -2,7 +2,6 @@
 import path from 'path';
 import fs from 'fs';
 import log from 'electron-log/main';
-import { app } from 'electron';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import { LocationType } from '@/backend/services/LocationService';
@@ -30,8 +29,20 @@ const levelOrder: Record<SimpleLevel, number> = {
   debug: 20, info: 30, warn: 40, error: 50,
 };
 
-// 全局开关：默认 info
-let CURRENT_LEVEL: SimpleLevel = (process.env.DP_LOG_LEVEL as SimpleLevel) || 'info';
+// 全局开关：默认 debug
+let CURRENT_LEVEL: SimpleLevel = (process.env.DP_LOG_LEVEL as SimpleLevel) || 'debug';
+
+// 启动时输出当前日志级别
+console.log('=== LOGGER INIT ===');
+console.log('DP_LOG_LEVEL env:', process.env.DP_LOG_LEVEL);
+console.log('CURRENT_LEVEL:', CURRENT_LEVEL);
+console.log('levelOrder debug:', levelOrder.debug);
+console.log('levelOrder info:', levelOrder.info);
+
+// 测试日志输出
+const testLogger = getMainLogger('logger-test');
+testLogger.debug('This is a test debug message from logger init');
+testLogger.info('This is a test info message from logger init');
 
 export function setLogLevel(lv: SimpleLevel) {
   CURRENT_LEVEL = lv;
@@ -47,7 +58,15 @@ function writeJsonl(e: SimpleEvent) {
 }
 
 function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) {
-  if (levelOrder[level] < levelOrder[CURRENT_LEVEL]) return;
+  const levelNum = levelOrder[level];
+  const currentNum = levelOrder[CURRENT_LEVEL];
+  
+  // 调试：输出日志过滤决策
+  if (msg.includes('=== LOGGER INIT') || msg.includes('SRT GENERATION') || msg.includes('DTW Word-level')) {
+    console.log(`LOG FILTER DEBUG: level=${level}(${levelNum}), current=${CURRENT_LEVEL}(${currentNum}), pass=${levelNum >= currentNum}`);
+  }
+  
+  if (levelNum < currentNum) return;
   writeJsonl({
     ts: new Date().toISOString(),
     level,

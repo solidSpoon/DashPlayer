@@ -90,7 +90,7 @@ export class EchogardenServiceImpl implements EchogardenService {
             // 在生产环境中，使用 app.asar.unpacked 下的 lib/whisper.cpp
             const { app } = await import('electron');
             const isPackaged = app.isPackaged;
-            
+
             let basePath: string;
             if (isPackaged) {
                 // 生产环境：app.asar.unpacked/lib/whisper.cpp
@@ -99,11 +99,11 @@ export class EchogardenServiceImpl implements EchogardenService {
                 // 开发环境：项目根目录下的 lib/whisper.cpp
                 basePath = path.join(process.cwd(), 'lib', 'whisper.cpp');
             }
-            
+
             // 根据平台和架构选择正确的二进制文件
             const platform = process.platform;
             const arch = process.arch;
-            
+
             let binaryPath: string;
             if (platform === 'darwin') {
                 // macOS
@@ -120,7 +120,7 @@ export class EchogardenServiceImpl implements EchogardenService {
             } else {
                 throw new Error(`Unsupported platform: ${platform} ${arch}`);
             }
-            
+
             const fs = await import('fs');
             if (fs.existsSync(binaryPath)) {
                 options.whisperCpp = options.whisperCpp || {};
@@ -198,22 +198,22 @@ export class EchogardenServiceImpl implements EchogardenService {
                     model: 'tiny.en',
                 }
             };
-            
+
             // Set the executable path for testing
             if (!testOptions.whisperCpp?.executablePath) {
                 const { app } = await import('electron');
                 const isPackaged = app.isPackaged;
-                
+
                 let basePath: string;
                 if (isPackaged) {
                     basePath = process.env.APP_PATH || path.join(app.getAppPath(), '..', '..', 'lib', 'whisper.cpp');
                 } else {
                     basePath = path.join(process.cwd(), 'lib', 'whisper.cpp');
                 }
-                
+
                 const platform = process.platform;
                 const arch = process.arch;
-                
+
                 let binaryPath: string;
                 if (platform === 'darwin') {
                     const archDir = arch === 'arm64' ? 'arm64' : 'x64';
@@ -227,7 +227,7 @@ export class EchogardenServiceImpl implements EchogardenService {
                 } else {
                     throw new Error(`Unsupported platform: ${platform} ${arch}`);
                 }
-                
+
                 const fs = await import('fs');
                 if (fs.existsSync(binaryPath)) {
                     testOptions.whisperCpp = testOptions.whisperCpp || {};
@@ -237,7 +237,7 @@ export class EchogardenServiceImpl implements EchogardenService {
                     console.warn(`Test whisper.cpp binary not found at: ${binaryPath}`);
                 }
             }
-            
+
             console.log(`Test check options:`, JSON.stringify(testOptions, null, 2));
             const result = await this.echogardenAPI.check(testOptions);
             console.log(`Engine check result:`, result);
@@ -270,15 +270,29 @@ export class EchogardenServiceImpl implements EchogardenService {
             throw new Error('language must be a string');
         }
 
+        // 数据预处理和验证
+        if (wordTimeline.length === 0) {
+            console.warn('wordTimeline is empty, returning empty array');
+            return [];
+        }
+
+        if (transcript.trim() === '') {
+            console.warn('transcript is empty, returning word timeline as sentences');
+            return wordTimeline.map(entry => ({
+                ...entry,
+                type: 'sentence'
+            }));
+        }
+
         console.log('wordToSentenceTimeline params:', {
             wordTimelineLength: wordTimeline.length,
             transcriptLength: transcript.length,
             language,
-            sampleWordTimeline: wordTimeline.slice(0, 3)
+            sampleWordTimeline: wordTimeline.slice(0, 2)
         });
 
         try {
-            const result = await this.timelineUtils.wordTimelineToSegmentSentenceTimeline(wordTimeline, {
+            const result =  this.timelineUtils.wordTimelineToSegmentSentenceTimeline(wordTimeline, {
                 language,
                 preservePunctuation: true
             });
@@ -286,12 +300,21 @@ export class EchogardenServiceImpl implements EchogardenService {
             return result;
         } catch (error) {
             console.error('wordToSentenceTimeline failed:', error);
-            throw error;
+
+            // 备选方案：直接返回词级别时间轴，标记为句子
+            console.log('Using fallback: returning word timeline as sentences');
+            return wordTimeline.map(entry => ({
+                ...entry,
+                type: 'sentence',
+                text: entry.word,  // 添加 text 字段，用于 SRT 生成
+                startTime: entry.start,  // 添加标准时间字段
+                endTime: entry.end
+            }));
         }
     }
 
     private getModelRoot(): string {
-        return LocationUtil.staticGetStoragePath(LocationType.Model) || 
+        return LocationUtil.staticGetStoragePath(LocationType.Model) ||
                path.join(require('electron').app.getPath('documents'), 'DashPlayer-dev', 'models');
     }
 }

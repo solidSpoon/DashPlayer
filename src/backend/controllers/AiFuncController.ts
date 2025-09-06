@@ -129,7 +129,7 @@ export default class AiFuncController implements Controller {
         if (whisperEnabled && whisperTranscriptionEnabled && modelDownloaded) {
             // 使用 Whisper 进行转录（优先本地）
             this.logger.info('Using Whisper for transcription');
-            
+
             // 发送开始转录状态
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
@@ -140,8 +140,8 @@ export default class AiFuncController implements Controller {
                 }]
             });
 
-            this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
-                this.logger.debug('Whisper transcript result', { result: r });
+            this.parakeetService.transcribeAudio(taskId, filePath).then(async r => {
+                // this.logger.debug('Whisper transcript result', { result: r });
                 this.logger.debug('Transcript result structure', {
                     hasText: !!r?.text,
                     hasSegments: !!r?.segments,
@@ -152,35 +152,78 @@ export default class AiFuncController implements Controller {
                     wordsLength: r?.words?.length,
                     timestampsLength: r?.timestamps?.length
                 });
-                
+
                 // 生成 SRT 文件
                 if (r && r.segments && r.segments.length > 0) {
-                    this.logger.info('Building SRT content', { segments: r.segments.length });
-                    const srtContent = this.buildSrtContent(r.segments);
+                    this.logger.info('Generating SRT file with optimized method', {
+                        segments: r.segments.length,
+                        segmentsPreview: r.segments.slice(0, 3),
+                        wordsCount: r.words?.length || 0
+                    });
+
                     const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
-                    
-                    this.logger.info('Saving SRT file', { fileName: srtFileName });
+
+                    this.logger.info('SRT file path details', {
+                        originalPath: filePath,
+                        srtFileName: srtFileName,
+                        directory: path.dirname(srtFileName),
+                        existsBefore: fs.existsSync(srtFileName)
+                    });
+
                     try {
-                        fs.writeFileSync(srtFileName, srtContent, 'utf8');
-                        this.logger.info('SRT file saved successfully', { fileName: srtFileName });
-                        this.logger.debug('SRT content preview', { preview: srtContent.substring(0, 500) + '...' });
-                        
-                        // 发送完成状态到前端
-                        this.systemService.callRendererApi('transcript/batch-result', {
-                            updates: [{
-                                filePath,
-                                taskId,
-                                status: 'completed',
-                                progress: 100,
-                                result: { srtPath: srtFileName, segments: r.segments }
-                            }]
+                        // 检查目录是否存在
+                        const outputDir = path.dirname(srtFileName);
+                        if (!fs.existsSync(outputDir)) {
+                            this.logger.info('Creating output directory', { directory: outputDir });
+                            fs.mkdirSync(outputDir, { recursive: true });
+                        }
+
+                        // 使用优化过的generateSrtFromResult方法（避免重新转录）
+                        this.logger.info('Calling generateSrtFromResult method...');
+                        await this.parakeetService.generateSrtFromResult(taskId, filePath, srtFileName, r);
+
+                        // 检查文件是否真的被创建了
+                        const existsAfter = fs.existsSync(srtFileName);
+                        const stats = existsAfter ? fs.statSync(srtFileName) : null;
+
+                        this.logger.info('SRT file generation result', {
+                            fileName: srtFileName,
+                            existsAfter,
+                            fileSize: stats?.size,
+                            fileCreated: existsAfter && stats?.size && stats.size > 0
                         });
 
-                        // 更新任务状态 - 将结果序列化为 JSON 字符串
-                        const resultJson = JSON.stringify({ srtPath: srtFileName, segments: r.segments });
+                        if (existsAfter && stats?.size && stats.size > 0) {
+                            // 读取SRT文件内容用于调试
+                            const srtContent = fs.readFileSync(srtFileName, 'utf8');
+                            this.logger.info('SRT file saved successfully', {
+                                fileName: srtFileName,
+                                fileSize: stats.size,
+                                contentLength: srtContent.length,
+                                firstFewLines: srtContent.split('\n').slice(0, 10)
+                            });
+
+                            // 发送完成状态到前端
+                            this.systemService.callRendererApi('transcript/batch-result', {
+                                updates: [{
+                                    filePath,
+                                    taskId,
+                                    status: 'completed',
+                                    progress: 100,
+                                    result: { srtPath: srtFileName, segments: r.segments }
+                                }]
+                            });
+                        } else {
+                            throw new Error(`SRT file was not created properly. Exists: ${existsAfter}, Size: ${stats?.size}`);
+                        }
+
                     } catch (saveError) {
-                        this.logger.error('Failed to save SRT file', { error: saveError instanceof Error ? saveError.message : String(saveError) });
-                        
+                        this.logger.error('Failed to save SRT file', {
+                            error: saveError instanceof Error ? saveError.message : String(saveError),
+                            stack: saveError instanceof Error ? saveError.stack : undefined,
+                            fileName: srtFileName
+                        });
+
                         // 发送错误状态到前端
                         this.systemService.callRendererApi('transcript/batch-result', {
                             updates: [{
@@ -188,15 +231,14 @@ export default class AiFuncController implements Controller {
                                 taskId,
                                 status: 'error',
                                 progress: 0,
-                                result: { error: saveError.message }
+                                result: { error: `SRT generation failed: ${saveError.message}` }
                             }]
                         });
-
-                                            }
+                    }
                 } else {
                     this.logger.warn('No segments found in transcription result');
                     this.logger.debug('Available keys in result', { keys: Object.keys(r || {}) });
-                    
+
                     // 发送无结果状态到前端
                     this.systemService.callRendererApi('transcript/batch-result', {
                         updates: [{
@@ -207,11 +249,10 @@ export default class AiFuncController implements Controller {
                             result: r
                         }]
                     });
-
-                                    }
+                }
             }).catch(error => {
                 this.logger.error('Parakeet transcription failed', { error: error instanceof Error ? error.message : String(error) });
-                
+
                 // 发送失败状态到前端
                 this.systemService.callRendererApi('transcript/batch-result', {
                     updates: [{
@@ -227,7 +268,7 @@ export default class AiFuncController implements Controller {
         } else if (openaiTranscriptionEnabled) {
             // 使用 OpenAI Whisper 进行转录
             this.logger.info('Using OpenAI Whisper for transcription');
-            
+
             // 发送开始转录状态
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
@@ -240,7 +281,7 @@ export default class AiFuncController implements Controller {
 
             this.whisperService.transcript(taskId, filePath).then(r => {
                 this.logger.debug('Whisper transcript result', { result: r });
-                
+
                 // 发送完成状态到前端
                 this.systemService.callRendererApi('transcript/batch-result', {
                     updates: [{
@@ -253,7 +294,7 @@ export default class AiFuncController implements Controller {
                 });
             }).catch(error => {
                 this.logger.error('OpenAI Whisper transcription failed', { error: error instanceof Error ? error.message : String(error) });
-                
+
                 // 发送失败状态到前端
                 this.systemService.callRendererApi('transcript/batch-result', {
                     updates: [{
@@ -268,7 +309,7 @@ export default class AiFuncController implements Controller {
         } else {
             // 没有启用的转录服务
             this.logger.warn('No transcription service enabled');
-            
+
             // 发送错误状态到前端
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
@@ -296,24 +337,6 @@ export default class AiFuncController implements Controller {
         return taskId;
     }
 
-    private buildSrtContent(items: Array<{start: number, end: number, text: string}>): string {
-        let srt = '';
-        items.forEach((item, index) => {
-            srt += `${index + 1}\n`;
-            srt += `${this.toSrtTime(item.start)} --> ${this.toSrtTime(item.end)}\n`;
-            srt += `${item.text}\n\n`;
-        });
-        return srt;
-    }
-
-    private toSrtTime(seconds: number): string {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        const ms = Math.round((seconds - Math.floor(seconds)) * 1000);
-        const pad = (n: number, width: number) => String(n).padStart(width, '0');
-        return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)},${pad(ms, 3)}`;
-    }
 
     registerRoutes(): void {
         registerRoute('ai-func/analyze-new-words', (p) => this.analyzeNewWords(p));

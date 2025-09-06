@@ -170,6 +170,7 @@ async function fileExists(p: string) {
     }
 }
 
+
 // 简单 SRT 解析 -> segments
 function parseSrt(content: string): Array<{ start: number; end: number; text: string }> {
     const lines = content.replace(/\r/g, '').split('\n');
@@ -673,9 +674,13 @@ export class ParakeetServiceImpl implements ParakeetService {
 
     async transcribeAudio(taskId: number, audioPath: string): Promise<TranscriptionResult> {
         this.taskService.process(taskId, {progress: '开始音频转录...'});
+        this.logger.info('TRANSCRIPTION METHOD CALLED', { taskId, audioPath }); // 确保能看到这个日志
+        
         if (!this.initialized) {
             await this.initialize();
         }
+
+        // 记录初始内存使用情况
 
         let processedAudioPath: string | null = null;
 
@@ -684,99 +689,156 @@ export class ParakeetServiceImpl implements ParakeetService {
             processedAudioPath = await this.ensureWavFormat(audioPath);
 
             this.taskService.process(taskId, {progress: 'Echogarden 开始识别...'});
+            this.logger.info('STARTING ECHOGARDEN RECOGNITION', { processedAudioPath });
 
-            // 使用Echogarden进行语音识别
-            const recognitionResult = await this.echogardenService.recognize(processedAudioPath, {
-                engine: 'whisper.cpp',
-                language: 'en',
-                whisperCpp: {
-                    model: 'base.en',
-                }
-            });
+            let recognitionResult: any;
+            try {
+                // 使用Echogarden进行语音识别，启用DTW生成词级时间戳
+                this.logger.debug('Calling echogardenService.recognize with DTW enabled...');
+                recognitionResult = await this.echogardenService.recognize(processedAudioPath, {
+                    engine: 'whisper.cpp',
+                    language: 'en',
+                    whisperCpp: {
+                        model: 'base.en',
+                        enableDTW: true,              // 启用DTW算法生成精确词级时间戳
+                        enableFlashAttention: false,   // 确保DTW不被禁用
+                        splitCount: 1,                 // 提高时间准确性
+                        threadCount: 4                  // 根据CPU核心数调整
+                    }
+                });
+                this.logger.info('ECHOGARDEN RECOGNITION COMPLETED', { 
+                    hasResult: !!recognitionResult,
+                    hasWordTimeline: !!(recognitionResult as any)?.wordTimeline,
+                    wordTimelineLength: (recognitionResult as any)?.wordTimeline?.length || 0
+                });
+
+            } catch (recognitionError) {
+                this.logger.error('ECHOGARDEN RECOGNITION FAILED', { 
+                    error: recognitionError instanceof Error ? recognitionError.message : String(recognitionError),
+                    stack: recognitionError instanceof Error ? recognitionError.stack : undefined
+                });
+                throw recognitionError;
+            }
 
             this.taskService.process(taskId, {progress: '处理识别结果...'});
 
+  
             let segments: Array<{ start: number; end: number; text: string }> = [];
             let words: Array<{ word: string; start: number; end: number }> = [];
 
-            // 检查recognitionResult的结构
-            console.log('Recognition result:', JSON.stringify(recognitionResult, null, 2));
+            // 检查recognitionResult的结构（使用项目logger）
+            this.logger.debug('Recognition result', {
+                hasWordTimeline: !!recognitionResult.wordTimeline,
+                wordTimelineLength: recognitionResult.wordTimeline?.length || 0,
+                hasTimeline: !!recognitionResult.timeline,
+                timelineLength: recognitionResult.timeline?.length || 0,
+                transcriptLength: recognitionResult.transcript?.length || 0,
+                language: recognitionResult.language
+            });
 
-            // 如果有时间轴数据，直接使用识别结果的时间轴
-            if (recognitionResult.timeline && recognitionResult.timeline.length > 0) {
-                this.taskService.process(taskId, {progress: '处理时间轴数据...'});
+            // 直接使用whisper.cpp + DTW生成的词级时间戳
+          this.taskService.process(taskId, {progress: '处理DTW词级时间戳...'});
 
-                console.log('Using recognition timeline directly');
-                console.log('Timeline length:', recognitionResult.timeline.length);
-                console.log('Sample timeline entries:', recognitionResult.timeline.slice(0, 3));
+          this.logger.debug('=== DEBUG: DTW Word-level Timeline Processing ===');
+          this.logger.debug('Recognition result keys:', Object.keys(recognitionResult).slice(0, 20)); // Limit to first 20 keys
+          this.logger.debug('WordTimeline exists:', !!recognitionResult.wordTimeline);
+          this.logger.debug('WordTimeline length:', recognitionResult.wordTimeline?.length || 0);
+          this.logger.debug('Timeline exists:', !!recognitionResult.timeline);
+          this.logger.debug('Transcript length:', recognitionResult.transcript?.length || 0);
 
-                try {
-                    // 将词级别时间轴转换为句子级别
-                    const sentenceTimeline = await this.echogardenService.wordToSentenceTimeline(
-                        recognitionResult.timeline,
-                        recognitionResult.transcript || '',
-                        'en'
-                    );
+          // 优先使用whisper.cpp + DTW直接生成的词级时间戳
+          if (recognitionResult.wordTimeline && recognitionResult.wordTimeline.length > 0) {
+              this.logger.debug('Using whisper.cpp DTW word timeline directly');
 
-                    // 转换为segments格式
-                    segments = sentenceTimeline.map(entry => ({
-                        start: entry.startTime,
-                        end: entry.endTime,
-                        text: entry.text
-                    }));
+              // 提取词级别时间轴
+              words = this.extractWordTimeline(recognitionResult.wordTimeline);
 
-                    // 提取词级别时间轴
-                    words = recognitionResult.timeline.map(entry => ({
-                        word: entry.text,
-                        start: entry.startTime,
-                        end: entry.endTime
-                    }));
-                } catch (error) {
-                    console.warn('Failed to convert word timeline to sentence timeline, using basic segmentation:', error);
-                    
-                    // 如果转换失败，使用基本的分段方法
-                    const words = recognitionResult.timeline.map(entry => ({
-                        word: entry.text,
-                        start: entry.startTime,
-                        end: entry.endTime
-                    }));
-                    
-                    // 简单的句子分段（每10个词一个句子）
-                    const sentenceSize = 10;
-                    segments = [];
-                    for (let i = 0; i < words.length; i += sentenceSize) {
-                        const sentenceWords = words.slice(i, i + sentenceSize);
-                        if (sentenceWords.length > 0) {
-                            segments.push({
-                                start: sentenceWords[0].start,
-                                end: sentenceWords[sentenceWords.length - 1].end,
-                                text: sentenceWords.map(w => w.word).join(' ')
-                            });
+              if (words.length > 0) {
+                  this.logger.debug('Successfully extracted word-level timeline');
+                  this.logger.debug('Words count:', words.length);
+                  this.logger.debug('Sample word:', words[0]);
+
+                  // 使用Echogarden的wordToSentenceTimeline进行智能分句
+                  this.taskService.process(taskId, {progress: '智能分句处理...'});
+
+                  try {
+                      this.logger.debug('Calling wordToSentenceTimeline...');
+                      const sentenceTimeline = await this.echogardenService.wordToSentenceTimeline(
+                          words,
+                          recognitionResult.transcript || words.map(w => w.word).join(' '),
+                          'en'
+                      );
+
+                      this.logger.debug('wordToSentenceTimeline returned:', {
+                          timelineLength: sentenceTimeline?.length || 0,
+                          firstEntry: sentenceTimeline?.[0],
+                          lastEntry: sentenceTimeline?.[sentenceTimeline?.length - 1]
+                      });
+
+                      segments = sentenceTimeline.map((entry: any) => ({
+                          start: entry.startTime || entry.start || 0,
+                          end: entry.endTime || entry.end || 0,
+                          text: entry.text || entry.sentence || ''
+                      })).filter(s => s.text && s.end > s.start);
+
+                      this.logger.debug('Word-to-sentence segmentation completed');
+                      this.logger.debug('Segments count:', segments.length);
+                      this.logger.debug('Segments before filter:', sentenceTimeline?.length || 0);
+                      this.logger.debug('Segments after filter:', segments.length);
+
+                      if (segments.length === 0) {
+                          this.logger.warn('No segments after filtering, checking sample entries:');
+                          for (let i = 0; i < Math.min(3, (sentenceTimeline || []).length); i++) {
+                              const entry = sentenceTimeline[i];
+                              this.logger.warn(`Entry ${i}:`, {
+                                  text: entry.text || entry.sentence,
+                                  start: entry.startTime || entry.start,
+                                  end: entry.endTime || entry.end,
+                                  hasText: !!(entry.text || entry.sentence),
+                                  validTime: !!(entry.endTime || entry.end) > !!(entry.startTime || entry.start)
+                              });
+                          }
+                      }
+
+                  } catch (sentenceError) {
+                      this.logger.warn('wordToSentenceTimeline failed, using local segmentation:', sentenceError);
+                      segments = this.createSegmentsFromWordTimeline(words);
+                  }
+
+              } else {
+                  throw new Error('Failed to extract valid words from wordTimeline');
+              }
+
+          } else {
+              throw new Error('No wordTimeline available - DTW-based word-level timestamps are required');
+          }
+
+            // 安全的文本拼接
+            let text: string;
+            try {
+                if (recognitionResult.transcript) {
+                    text = recognitionResult.transcript;
+                } else {
+                    // 分块拼接避免超大字符串
+                    const chunkSize = 100;
+                    let combinedText = '';
+                    for (let i = 0; i < segments.length; i += chunkSize) {
+                        const chunk = segments.slice(i, i + chunkSize);
+                        combinedText += chunk.map(s => s.text).join(' ') + ' ';
+                        if (combinedText.length > 1000000) { // 限制最大1MB
+                            this.logger.warn('Text concatenation exceeding 1MB, stopping early');
+                            break;
                         }
                     }
+                    text = combinedText.trim();
                 }
-            } else if (recognitionResult.transcript) {
-                // 如果没有时间轴，进行文本对齐
-                this.taskService.process(taskId, {progress: '进行文本对齐...'});
-
-                const alignmentResult = await this.echogardenService.align(
-                    processedAudioPath,
-                    recognitionResult.transcript,
-                    {
-                        engine: 'dtw',
-                        language: 'en',
-                    }
-                );
-
-                // 转换为segments格式
-                segments = alignmentResult.timeline.map(entry => ({
-                    start: entry.startTime,
-                    end: entry.endTime,
-                    text: entry.text
-                }));
+            } catch (error) {
+                this.logger.error('Error concatenating text:', error);
+                text = 'Text processing failed';
             }
 
-            const text = recognitionResult.transcript || segments.map((s) => s.text).join(' ').trim();
+            // 记录最终内存使用情况
+            this.logger.debug(`Segments count: ${segments.length}, Words count: ${words.length}, Text length: ${text.length}`);
 
             this.taskService.process(taskId, {progress: '转录完成'});
 
@@ -787,7 +849,13 @@ export class ParakeetServiceImpl implements ParakeetService {
                 timestamps: words.map(w => ({ token: w.word, start: w.start, end: w.end })),
             };
         } catch (err) {
-            this.taskService.process(taskId, {progress: `转录失败: ${(err as Error).message}`});
+            const error = err as Error;
+            this.logger.error('=== ERROR: Transcription failed ===');
+            this.logger.error('Error message:', error.message);
+            this.logger.error('Error stack:', error.stack);
+            this.logger.error('Error name:', error.name);
+
+            this.taskService.process(taskId, {progress: `转录失败: ${error.message}`});
             throw err;
         } finally {
             // 清理临时文件
@@ -800,46 +868,276 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
     async generateSrt(taskId: number, audioPath: string, outputPath: string): Promise<void> {
+        return this.generateSrtFromResult(taskId, audioPath, outputPath, null);
+    }
+
+    async generateSrtFromResult(taskId: number, audioPath: string, outputPath: string, transcriptionResult: any): Promise<void> {
         if (!this.initialized) {
             await this.initialize();
         }
 
+        this.logger.debug(`=== SRT GENERATION DEBUG ===`);
+        this.logger.debug(`Input audioPath: ${audioPath}`);
+        this.logger.debug(`Output outputPath: ${outputPath}`);
+        this.logger.debug(`Task ID: ${taskId}`);
+
         this.taskService.process(taskId, {progress: '准备生成 SRT...'});
-        let processedAudioPath: string | null = null;
-        let srtPath: string | null = null;
-        let base: string | null = null;
 
         try {
-            processedAudioPath = await this.ensureWavFormat(audioPath);
+            this.logger.debug('Step 1: Preparing SRT generation...');
+            // 使用提供的转录结果或重新转录
+            let result;
+            if (transcriptionResult) {
+                this.logger.debug('Using provided transcription result');
+                result = transcriptionResult;
+            } else {
+                this.logger.debug('No transcription result provided, transcribing audio...');
+                result = await this.transcribeAudio(taskId, audioPath);
+            }
 
-            const {srtPath: tempSrt, base: tempBase} = await this.runWhisperCpp(processedAudioPath);
-            srtPath = tempSrt;
-            base = tempBase;
+            this.logger.debug('Step 2: Transcription data ready');
+            this.logger.debug(`Segments count: ${result.segments?.length || 0}`);
+            this.logger.debug(`Words count: ${result.words?.length || 0}`);
+            this.logger.debug(`Has text: ${!!result.text}`);
 
-            await fsPromises.copyFile(srtPath, outputPath);
+            if (!result.segments || result.segments.length === 0) {
+                throw new Error('No segments available for SRT generation');
+            }
+
+            this.logger.debug('Step 3: Generating SRT content...');
+            // 生成SRT格式内容
+            const srtContent = this.segmentsToSrt(result.segments);
+
+            this.logger.debug(`Step 4: SRT content generated, length: ${srtContent.length}`);
+            this.logger.debug(`SRT preview: ${srtContent.substring(0, 200)}...`);
+
+            this.logger.debug('Step 5: Writing SRT file...');
+            // 使用专门的SRT写入方法（包含CRLF和BOM处理）
+            await this.writeSrtFile(outputPath, srtContent);
+
+            // 验证文件是否写入成功
+            const fileExists = await fsPromises.access(outputPath).then(() => true).catch(() => false);
+            const fileStats = fileExists ? await fsPromises.stat(outputPath) : null;
+
+            this.logger.debug('Step 6: SRT file write verification');
+            this.logger.debug(`File exists: ${fileExists}`);
+            this.logger.debug(`File size: ${fileStats?.size || 0}`);
+
+            if (!fileExists || !fileStats || fileStats.size === 0) {
+                throw new Error(`SRT file write failed. Exists: ${fileExists}, Size: ${fileStats?.size}`);
+            }
+
+            this.logger.debug('=== SRT GENERATION SUCCESS ===');
             this.taskService.process(taskId, {progress: '字幕生成完成'});
         } catch (e) {
-            // 去除“伪回退”：之前的回退路径仍依赖 whisper.cpp2，会重复失败
             const msg = (e as Error)?.message || String(e);
+            this.logger.error('=== SRT GENERATION FAILED ===');
+            this.logger.error('Error:', msg);
+            this.logger.error('Stack:', (e as Error)?.stack);
             this.taskService.process(taskId, {progress: `字幕生成失败：${msg}`});
             throw e;
-        } finally {
-            try {
-                if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
-            } catch {
-                //
-            }
-            try {
-                if (srtPath) await fsPromises.rm(srtPath, {force: true});
-                if (base) {
-                    const candidates = ['.srt', '.txt', '.vtt', '.json'].map(ext => `${base}${ext}`);
-                    await Promise.all(candidates.map(f => fsPromises.rm(f, {force: true})));
-                }
-            } catch {
-                //
-            }
         }
     }
+
+    // 新增：统一换行 + 可选 BOM
+    private toCRLF(input: string): string {
+        // 先把所有行结束统一成 \n，再转为 \r\n
+        return input.replace(/\r\n|\r|\n/g, '\n').replace(/\n/g, '\r\n');
+    }
+
+    private withBOM(input: string): string {
+        // 加 UTF-8 BOM
+        return '\ufeff' + input;
+    }
+
+    // 将segments转换为SRT格式
+    // 将segments转换为SRT格式
+    private segmentsToSrt(segments: Array<{ start: number; end: number; text: string }>): string {
+        const blocks = segments.map((segment, index) => {
+            const startTime = this.formatSrtTime(segment.start);
+            const endTime = this.formatSrtTime(segment.end);
+            const text = (segment.text || '').trim();
+            // 每个条目以 \r\n 结尾，条目之间留一个空行（即额外的 \r\n）
+            return `${index + 1}\r\n${startTime} --> ${endTime}\r\n${text}\r\n`;
+        });
+
+        // 用 \r\n 连接条目，确保条目间空行，并在末尾补一个 \r\n
+        const srt = blocks.join('\r\n') + '\r\n';
+        return srt;
+    }
+
+    // 在写文件前调用规范化与加 BOM（更通用稳妥）
+    private async writeSrtFile(outputPath: string, content: string) {
+        this.logger.debug(`=== SRT WRITE DEBUG ===`);
+        this.logger.debug(`Output path: ${outputPath}`);
+        this.logger.debug(`Input content length: ${content.length}`);
+        this.logger.debug(`Content preview: ${content.substring(0, 100)}...`);
+
+        const crlf = this.toCRLF(content);
+        this.logger.debug(`After CRLF conversion length: ${crlf.length}`);
+
+        // 去掉可能的多余空行，并确保条目之间只有一个空行
+        const normalized = crlf.replace(/\r\n\r\n\r\n+/g, '\r\n\r\n');
+        this.logger.debug(`After normalization length: ${normalized.length}`);
+
+        // 加 BOM（很多 Windows 播放器/编辑器更兼容）
+        const finalContent = this.withBOM(normalized);
+        this.logger.debug(`Final content with BOM length: ${finalContent.length}`);
+        this.logger.debug(`First 20 bytes: ${Array.from(finalContent.substring(0, 20)).map(b => b.charCodeAt(0).toString(16)).join(' ')}`);
+
+        try {
+            await fsPromises.writeFile(outputPath, finalContent, 'utf8');
+            this.logger.debug('SRT file write completed successfully');
+
+            // 验证写入的文件
+            const writtenContent = await fsPromises.readFile(outputPath, 'utf8');
+            this.logger.debug(`Verification - written file length: ${writtenContent.length}`);
+            this.logger.debug(`Verification - first 20 bytes: ${Array.from(writtenContent.substring(0, 20)).map(b => b.charCodeAt(0).toString(16)).join(' ')}`);
+
+        } catch (writeError) {
+            this.logger.error('SRT file write failed:', writeError);
+            throw writeError;
+        }
+
+        this.logger.debug(`=== SRT WRITE COMPLETE ===`);
+    }
+
+    // 格式化时间为SRT格式 (HH:MM:SS,mmm)
+    private formatSrtTime(seconds: number): string {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        const milliseconds = Math.floor((seconds % 1) * 1000);
+
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+    }
+
+    // 提取词级别时间轴
+    private extractWordTimeline(timeline: any[]): Array<{ word: string; start: number; end: number }> {
+        const words: Array<{ word: string; start: number; end: number }> = [];
+
+        if (!Array.isArray(timeline) || timeline.length === 0) {
+            return words;
+        }
+
+        for (const entry of timeline) {
+            try {
+                // 处理不同格式的时间轴条目
+                const word = entry.text || entry.word || entry.token || '';
+                const startTime = entry.startTime || entry.start || entry.begin || 0;
+                const endTime = entry.endTime || entry.end || entry.finish || startTime + 0.5;
+
+                if (word.trim() && typeof startTime === 'number' && typeof endTime === 'number') {
+                    words.push({
+                        word: word.trim(),
+                        start: Math.max(0, startTime),
+                        end: Math.max(startTime, endTime)
+                    });
+                }
+            } catch (error) {
+                this.logger.warn('Error processing timeline entry:', error, entry);
+            }
+        }
+
+        // 按开始时间排序
+        words.sort((a, b) => a.start - b.start);
+
+        // 验证时间轴的连续性
+        for (let i = 1; i < words.length; i++) {
+            if (words[i].start < words[i - 1].end) {
+                // 修复重叠的时间戳
+                words[i].start = words[i - 1].end;
+            }
+        }
+
+        return words;
+    }
+
+
+    // 基于词级别时间轴创建分段
+    private createSegmentsFromWordTimeline(words: Array<{ word: string; start: number; end: number }>): Array<{ start: number; end: number; text: string }> {
+        const segments: Array<{ start: number; end: number; text: string }> = [];
+
+        if (words.length === 0) return segments;
+
+        let currentSegment: { words: typeof words; start: number; end: number } = {
+            words: [],
+            start: words[0].start,
+            end: words[0].end
+        };
+
+        for (const word of words) {
+            currentSegment.words.push(word);
+            currentSegment.end = word.end;
+
+            // 分段条件检查
+            const shouldSplit = this.shouldSplitSegment(currentSegment.words, word);
+
+            if (shouldSplit) {
+                // 创建分段
+                const segmentText = currentSegment.words.map(w => w.word).join(' ').trim();
+                if (segmentText.length > 0) {
+                    segments.push({
+                        start: currentSegment.start,
+                        end: currentSegment.end,
+                        text: segmentText
+                    });
+                }
+
+                // 开始新分段
+                const nextIndex = words.indexOf(word) + 1;
+                if (nextIndex < words.length) {
+                    currentSegment = {
+                        words: [],
+                        start: words[nextIndex].start,
+                        end: words[nextIndex].end
+                    };
+                }
+            }
+        }
+
+        // 处理最后一个分段
+        if (currentSegment.words.length > 0) {
+            const segmentText = currentSegment.words.map(w => w.word).join(' ').trim();
+            if (segmentText.length > 0) {
+                segments.push({
+                    start: currentSegment.start,
+                    end: currentSegment.end,
+                    text: segmentText
+                });
+            }
+        }
+
+        return segments;
+    }
+
+    // 判断是否需要分段
+    private shouldSplitSegment(words: Array<{ word: string }>, currentWord: { word: string }): boolean {
+        const currentText = words.map(w => w.word).join(' ');
+
+        // 1. 基于时长（最大8秒）
+        if (words.length > 0) {
+            const duration = words[words.length - 1].end - words[0].start;
+            if (duration >= 8.0) return true;
+        }
+
+        // 2. 基于词数（最多15个词）
+        if (words.length >= 15) return true;
+
+        // 3. 基于字符数（最多100个字符）
+        if (currentText.length >= 100) return true;
+
+        // 4. 基于句子结束符号
+        const sentenceEnders = /[.!?。！？]+$/;
+        if (sentenceEnders.test(currentWord.word) && words.length >= 3) return true;
+
+        // 5. 基于子句符号
+        const clauseBreakers = /[,;，；]+$/;
+        if (clauseBreakers.test(currentWord.word) && words.length >= 8) return true;
+
+        return false;
+    }
+
 
     dispose(): void {
         this.initialized = false;
