@@ -36,7 +36,7 @@ const PlayingIcon = () => {
     return (
         <IconTip tip={'Playing'}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                  className="lucide lucide-circle-play">
                 <circle cx="12" cy="12" r="10" />
                 <polygon points="10 8 16 12 10 16 10 8" />
@@ -49,7 +49,7 @@ const RepeatPlayingIcon = () => {
     return (
         <IconTip tip={'Repeat Playing'}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                  className="lucide lucide-circle-percent">
                 <circle cx="12" cy="12" r="10" />
                 <path d="m15 9-6 6" />
@@ -65,7 +65,7 @@ const NormalPausingIcon = () => {
         <IconTip tip={'Pausing'}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-circle-pause">
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-pause">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="10" x2="10" y1="15" y2="9" />
                 <line x1="14" x2="14" y1="15" y2="9" />
@@ -79,8 +79,8 @@ const AutoPausingIcon = () => {
         <IconTip tip={'Auto Pausing'}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                  fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                 strokeLinejoin="round"
                  className="lucide lucide-octagon-pause">
                 <path d="M10 15V9" />
                 <path d="M14 15V9" />
