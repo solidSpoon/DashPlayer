@@ -112,7 +112,7 @@ console.log('whisper transcript result:', r);
 console.log('✅ SRT file saved successfully:', srtFileName);
 
 // ParakeetServiceImpl.ts
-console.log('🚀 Starting whisper.cpp:', binaryPath, args.join(' '));
+console.log('🚀 Starting whisper.cpp2:', binaryPath, args.join(' '));
 console.log('🔧 Spawn options for', process.platform, process.arch);
 console.log('📋 File type info:', stdout);
 console.log('✅ Binary supports current architecture');

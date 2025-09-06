@@ -260,7 +260,7 @@ export class ParakeetServiceImpl implements ParakeetService {
         await fsPromises.mkdir(this.getModelRoot(), {recursive: true});
     }
 
-    // 将任意音频转为 16k 单声道 WAV（whisper.cpp 可直接读多格式，但转为标准更稳）
+    // 将任意音频转为 16k 单声道 WAV（whisper.cpp2 可直接读多格式，但转为标准更稳）
     private async ensureWavFormat(inputPath: string): Promise<string> {
         const tempDir = LocationUtil.staticGetStoragePath(LocationType.TEMP);
         await fsPromises.mkdir(tempDir, {recursive: true});
@@ -289,7 +289,7 @@ export class ParakeetServiceImpl implements ParakeetService {
 
         try {
             return await this.echogardenService.check({
-                engine: 'whisperCpp',
+                engine: 'whisper.cpp',
                 whisperCpp: {
                     model: 'base.en',
                 }
@@ -329,7 +329,7 @@ export class ParakeetServiceImpl implements ParakeetService {
 
             // 2) 二进制
             if (!(await fileExists(this.getBinaryPath()))) {
-                this.taskService.process(0, {progress: '正在获取 whisper.cpp 可执行文件...'});
+                this.taskService.process(0, {progress: '正在获取 whisper.cpp2 可执行文件...'});
                 await this.downloadBinary();
                 try {
                     await fsPromises.chmod(this.getBinaryPath(), 0o755);
@@ -443,7 +443,7 @@ export class ParakeetServiceImpl implements ParakeetService {
         }
     }
 
-    // 下载预编译的 whisper.cpp 可执行文件
+    // 下载预编译的 whisper.cpp2 可执行文件
     private async downloadBinary(): Promise<void> {
         const tempRoot = LocationUtil.staticGetStoragePath(LocationType.TEMP);
         const extractDir = path.join(tempRoot, 'whisper_extract_' + Date.now() + '_' + Math.random().toString(36).slice(2));
@@ -453,7 +453,7 @@ export class ParakeetServiceImpl implements ParakeetService {
 
         try {
             const binaryUrl = getBinaryUrl();
-            this.taskService.process(0, {progress: '正在下载 whisper.cpp 预编译二进制...'});
+            this.taskService.process(0, {progress: '正在下载 whisper.cpp2 预编译二进制...'});
 
             await this.downloadFile(binaryUrl, archivePath, (progress) => {
                 this.taskService.process(0, {progress: `二进制下载中：${Math.round(progress * 100)}%`});
@@ -503,21 +503,21 @@ export class ParakeetServiceImpl implements ParakeetService {
 
     async initialize(): Promise<void> {
         if (this.initialized) return;
-        
+
         // 初始化Echogarden服务
         await this.echogardenService.initialize();
-        
+
         await this.ensureDirs();
 
         const ok = await this.isModelDownloaded();
         if (!ok) {
-            throw new Error('whisper.cpp 模型或可执行文件不存在，请先调用 downloadModel() 下载');
+            throw new Error('whisper.cpp2 模型或可执行文件不存在，请先调用 downloadModel() 下载');
         }
 
         this.initialized = true;
     }
 
-    // 运行 whisper.cpp CLI 进行转录，产出 SRT 文件
+    // 运行 whisper.cpp2 CLI 进行转录，产出 SRT 文件
     private async runWhisperCpp(inputWavPath: string, lang?: string): Promise<{ srtPath: string; base: string }> {
         const tempDir = LocationUtil.staticGetStoragePath(LocationType.TEMP);
         await fsPromises.mkdir(tempDir, {recursive: true});
@@ -540,30 +540,30 @@ export class ParakeetServiceImpl implements ParakeetService {
         }
 
         const binaryPath = this.getBinaryPath();
-        
+
         // 检查二进制文件是否存在且有执行权限
         try {
             await fsPromises.access(binaryPath, fs.constants.F_OK | fs.constants.X_OK);
             this.logger.info('Binary file exists and is executable', { binaryPath });
-            
+
             // 检查文件大小
             const stats = await fsPromises.stat(binaryPath);
             this.logger.info('Binary file size', { size: stats.size });
-            
+
             // 在macOS上检查架构兼容性
             if (process.platform === 'darwin') {
                 this.logger.debug('Checking binary architecture on macOS');
                 try {
                     const { stdout } = await execAsync(`file "${binaryPath}"`);
                     this.logger.debug('File type info', { stdout });
-                    
+
                     const { stdout: archOut } = await execAsync(`lipo -info "${binaryPath}"`);
                     this.logger.debug('Architecture info', { archOut });
-                    
+
                     // 检查当前系统架构
                     const currentArch = process.arch;
                     this.logger.debug('Current process arch', { currentArch });
-                    
+
                     // 检查是否包含当前架构
                     if (archOut.includes(currentArch)) {
                         this.logger.debug('Binary supports current architecture');
@@ -574,7 +574,7 @@ export class ParakeetServiceImpl implements ParakeetService {
                     this.logger.warn('Could not check binary architecture', { error: fileError instanceof Error ? fileError.message : String(fileError) });
                 }
             }
-            
+
         } catch (error) {
             this.logger.error('Binary file check failed', { error: error instanceof Error ? error.message : String(error) });
             throw new Error(`whisper二进制文件不存在或无执行权限: ${binaryPath}. 错误: ${error}`);
@@ -584,19 +584,19 @@ export class ParakeetServiceImpl implements ParakeetService {
         args.push('-t', String(threads));
 
         let stderrBuf = '';
-        this.logger.info('Starting whisper.cpp', { binaryPath, args: args.join(' ') });
-        
+        this.logger.info('Starting whisper.cpp2', { binaryPath, args: args.join(' ') });
+
         await new Promise<void>((resolve, reject) => {
             this.logger.debug('Spawn options', { platform: process.platform, arch: process.arch });
-            
+
             // 在macOS上尝试多种方法
             let child;
             if (process.platform === 'darwin') {
                 this.logger.debug('Trying different execution methods for macOS');
-                
+
                 // 方法1: 直接spawn
                 try {
-                    const spawnOptions = { 
+                    const spawnOptions = {
                         stdio: ['ignore', 'pipe', 'pipe'] as const,
                         env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin' }
                     };
@@ -604,25 +604,25 @@ export class ParakeetServiceImpl implements ParakeetService {
                     child = spawn(binaryPath, args, spawnOptions);
                 } catch (spawnError) {
                     this.logger.debug('Method 1 failed, trying Method 2');
-                    
+
                     // 方法2: 使用shell
                     try {
                         const shellArgs = [binaryPath, ...args].map(arg => arg.includes(' ') ? `"${arg}"` : arg).join(' ');
                         this.logger.debug('Method 2: Shell execution');
-                        child = spawn('/bin/bash', ['-c', shellArgs], { 
-                            stdio: ['ignore', 'pipe', 'pipe'] as const 
+                        child = spawn('/bin/bash', ['-c', shellArgs], {
+                            stdio: ['ignore', 'pipe', 'pipe'] as const
                         });
                     } catch (shellError) {
                         this.logger.debug('Method 2 failed, trying Method 3');
-                        
+
                         // 方法3: 使用绝对路径
                         try {
                             const absoluteBinary = path.resolve(binaryPath);
                             const absoluteArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
                             const shellArgs2 = [absoluteBinary, ...absoluteArgs].join(' ');
                             this.logger.debug('Method 3: Absolute path shell execution');
-                            child = spawn('/bin/bash', ['-c', shellArgs2], { 
-                                stdio: ['ignore', 'pipe', 'pipe'] as const 
+                            child = spawn('/bin/bash', ['-c', shellArgs2], {
+                                stdio: ['ignore', 'pipe', 'pipe'] as const
                             });
                         } catch (absError) {
                             this.logger.error('All execution methods failed');
@@ -644,11 +644,11 @@ export class ParakeetServiceImpl implements ParakeetService {
             child.stderr.on('data', (d) => {
                 const line = d.toString();
                 stderrBuf += line;
-                this.logger.debug('whisper.cpp stderr', { line });
+                this.logger.debug('whisper.cpp2 stderr', { line });
             });
 
             child.on('error', (error) => {
-                this.logger.error('whisper.cpp spawn error', { error: error.message });
+                this.logger.error('whisper.cpp2 spawn error', { error: error.message });
                 this.logger.error('Error details', {
                     message: error.message,
                     code: error.code,
@@ -659,14 +659,14 @@ export class ParakeetServiceImpl implements ParakeetService {
                 reject(error);
             });
             child.on('close', (code) => {
-                this.logger.info('whisper.cpp exited', { code });
+                this.logger.info('whisper.cpp2 exited', { code });
                 if (code === 0) resolve();
                 else reject(new Error(`whisper.cpp 退出码：${code}${stderrBuf ? `，stderr: ${stderrBuf}` : ''}`));
             });
         });
 
         if (!(await fileExists(srtPath))) {
-            throw new Error('whisper.cpp 未生成 SRT 文件');
+            throw new Error('whisper.cpp2 未生成 SRT 文件');
         }
         return {srtPath, base};
     }
@@ -684,10 +684,10 @@ export class ParakeetServiceImpl implements ParakeetService {
             processedAudioPath = await this.ensureWavFormat(audioPath);
 
             this.taskService.process(taskId, {progress: 'Echogarden 开始识别...'});
-            
+
             // 使用Echogarden进行语音识别
             const recognitionResult = await this.echogardenService.recognize(processedAudioPath, {
-                engine: 'whisperCpp',
+                engine: 'whisper.cpp',
                 language: 'en',
                 whisperCpp: {
                     model: 'base.en',
@@ -695,48 +695,70 @@ export class ParakeetServiceImpl implements ParakeetService {
             });
 
             this.taskService.process(taskId, {progress: '处理识别结果...'});
-            
+
             let segments: Array<{ start: number; end: number; text: string }> = [];
             let words: Array<{ word: string; start: number; end: number }> = [];
 
-            // 如果有时间轴数据，进行对齐处理
+            // 检查recognitionResult的结构
+            console.log('Recognition result:', JSON.stringify(recognitionResult, null, 2));
+
+            // 如果有时间轴数据，直接使用识别结果的时间轴
             if (recognitionResult.timeline && recognitionResult.timeline.length > 0) {
-                this.taskService.process(taskId, {progress: '进行时间轴对齐...'});
-                
-                // 使用DTW进行精细化对齐
-                const alignmentResult = await this.echogardenService.alignSegments(
-                    processedAudioPath,
-                    recognitionResult.timeline,
-                    {
-                        engine: 'dtw',
-                        language: 'en',
+                this.taskService.process(taskId, {progress: '处理时间轴数据...'});
+
+                console.log('Using recognition timeline directly');
+                console.log('Timeline length:', recognitionResult.timeline.length);
+                console.log('Sample timeline entries:', recognitionResult.timeline.slice(0, 3));
+
+                try {
+                    // 将词级别时间轴转换为句子级别
+                    const sentenceTimeline = await this.echogardenService.wordToSentenceTimeline(
+                        recognitionResult.timeline,
+                        recognitionResult.transcript || '',
+                        'en'
+                    );
+
+                    // 转换为segments格式
+                    segments = sentenceTimeline.map(entry => ({
+                        start: entry.startTime,
+                        end: entry.endTime,
+                        text: entry.text
+                    }));
+
+                    // 提取词级别时间轴
+                    words = recognitionResult.timeline.map(entry => ({
+                        word: entry.text,
+                        start: entry.startTime,
+                        end: entry.endTime
+                    }));
+                } catch (error) {
+                    console.warn('Failed to convert word timeline to sentence timeline, using basic segmentation:', error);
+                    
+                    // 如果转换失败，使用基本的分段方法
+                    const words = recognitionResult.timeline.map(entry => ({
+                        word: entry.text,
+                        start: entry.startTime,
+                        end: entry.endTime
+                    }));
+                    
+                    // 简单的句子分段（每10个词一个句子）
+                    const sentenceSize = 10;
+                    segments = [];
+                    for (let i = 0; i < words.length; i += sentenceSize) {
+                        const sentenceWords = words.slice(i, i + sentenceSize);
+                        if (sentenceWords.length > 0) {
+                            segments.push({
+                                start: sentenceWords[0].start,
+                                end: sentenceWords[sentenceWords.length - 1].end,
+                                text: sentenceWords.map(w => w.word).join(' ')
+                            });
+                        }
                     }
-                );
-
-                // 将词级别时间轴转换为句子级别
-                const sentenceTimeline = await this.echogardenService.wordToSentenceTimeline(
-                    alignmentResult.timeline,
-                    recognitionResult.transcript,
-                    'en'
-                );
-
-                // 转换为segments格式
-                segments = sentenceTimeline.map(entry => ({
-                    start: entry.startTime,
-                    end: entry.endTime,
-                    text: entry.text
-                }));
-
-                // 提取词级别时间轴
-                words = alignmentResult.timeline.map(entry => ({
-                    word: entry.text,
-                    start: entry.startTime,
-                    end: entry.endTime
-                }));
+                }
             } else if (recognitionResult.transcript) {
                 // 如果没有时间轴，进行文本对齐
                 this.taskService.process(taskId, {progress: '进行文本对齐...'});
-                
+
                 const alignmentResult = await this.echogardenService.align(
                     processedAudioPath,
                     recognitionResult.transcript,
@@ -797,7 +819,7 @@ export class ParakeetServiceImpl implements ParakeetService {
             await fsPromises.copyFile(srtPath, outputPath);
             this.taskService.process(taskId, {progress: '字幕生成完成'});
         } catch (e) {
-            // 去除“伪回退”：之前的回退路径仍依赖 whisper.cpp，会重复失败
+            // 去除“伪回退”：之前的回退路径仍依赖 whisper.cpp2，会重复失败
             const msg = (e as Error)?.message || String(e);
             this.taskService.process(taskId, {progress: `字幕生成失败：${msg}`});
             throw e;
