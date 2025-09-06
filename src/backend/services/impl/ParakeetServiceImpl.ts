@@ -2,6 +2,7 @@ import {injectable, inject} from 'inversify';
 import {ParakeetService} from '@/backend/services/ParakeetService';
 import SettingService from '@/backend/services/SettingService';
 import DpTaskService from '@/backend/services/DpTaskService';
+import EchogardenService from '@/backend/services/EchogardenService';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -251,7 +252,8 @@ export class ParakeetServiceImpl implements ParakeetService {
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
         @inject(TYPES.DpTaskService) private taskService: DpTaskService,
-        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService
+        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
+        @inject(TYPES.EchogardenService) private echogardenService: EchogardenService
     ) {}
 
     private async ensureDirs() {
@@ -277,6 +279,25 @@ export class ParakeetServiceImpl implements ParakeetService {
 
     async checkModelDownloaded(): Promise<boolean> {
         return this.isModelDownloaded();
+    }
+
+    // 检查模型是否可用
+    async checkModel(): Promise<{ success: boolean; log: string }> {
+        if (!this.initialized) {
+            await this.initialize();
+        }
+
+        try {
+            return await this.echogardenService.check({
+                engine: 'whisperCpp',
+                whisperCpp: {
+                    model: 'base.en',
+                }
+            });
+        } catch (error) {
+            this.logger.error('Model check failed', { error: error instanceof Error ? error.message : String(error) });
+            return { success: false, log: error instanceof Error ? error.message : String(error) };
+        }
     }
 
     // 下载模型文件（带进度），同时确保可执行文件存在（若无则自动构建）
@@ -482,6 +503,10 @@ export class ParakeetServiceImpl implements ParakeetService {
 
     async initialize(): Promise<void> {
         if (this.initialized) return;
+        
+        // 初始化Echogarden服务
+        await this.echogardenService.initialize();
+        
         await this.ensureDirs();
 
         const ok = await this.isModelDownloaded();
@@ -653,31 +678,91 @@ export class ParakeetServiceImpl implements ParakeetService {
         }
 
         let processedAudioPath: string | null = null;
-        let srtPath: string | null = null;
-        let base: string | null = null;
 
         try {
             this.taskService.process(taskId, {progress: '音频预处理（转换为 16k WAV）...'});
             processedAudioPath = await this.ensureWavFormat(audioPath);
 
-            this.taskService.process(taskId, {progress: 'whisper.cpp 开始识别...'});
-            const result = await this.runWhisperCpp(processedAudioPath);
-            srtPath = result.srtPath;
-            base = result.base;
+            this.taskService.process(taskId, {progress: 'Echogarden 开始识别...'});
+            
+            // 使用Echogarden进行语音识别
+            const recognitionResult = await this.echogardenService.recognize(processedAudioPath, {
+                engine: 'whisperCpp',
+                language: 'en',
+                whisperCpp: {
+                    model: 'base.en',
+                }
+            });
 
-            this.taskService.process(taskId, {progress: '解析识别结果...'});
-            const srtContent = await fsPromises.readFile(srtPath, 'utf8');
-            const segments = parseSrt(srtContent);
+            this.taskService.process(taskId, {progress: '处理识别结果...'});
+            
+            let segments: Array<{ start: number; end: number; text: string }> = [];
+            let words: Array<{ word: string; start: number; end: number }> = [];
 
-            const text = segments.map((s) => s.text).join(' ').trim();
+            // 如果有时间轴数据，进行对齐处理
+            if (recognitionResult.timeline && recognitionResult.timeline.length > 0) {
+                this.taskService.process(taskId, {progress: '进行时间轴对齐...'});
+                
+                // 使用DTW进行精细化对齐
+                const alignmentResult = await this.echogardenService.alignSegments(
+                    processedAudioPath,
+                    recognitionResult.timeline,
+                    {
+                        engine: 'dtw',
+                        language: 'en',
+                    }
+                );
+
+                // 将词级别时间轴转换为句子级别
+                const sentenceTimeline = await this.echogardenService.wordToSentenceTimeline(
+                    alignmentResult.timeline,
+                    recognitionResult.transcript,
+                    'en'
+                );
+
+                // 转换为segments格式
+                segments = sentenceTimeline.map(entry => ({
+                    start: entry.startTime,
+                    end: entry.endTime,
+                    text: entry.text
+                }));
+
+                // 提取词级别时间轴
+                words = alignmentResult.timeline.map(entry => ({
+                    word: entry.text,
+                    start: entry.startTime,
+                    end: entry.endTime
+                }));
+            } else if (recognitionResult.transcript) {
+                // 如果没有时间轴，进行文本对齐
+                this.taskService.process(taskId, {progress: '进行文本对齐...'});
+                
+                const alignmentResult = await this.echogardenService.align(
+                    processedAudioPath,
+                    recognitionResult.transcript,
+                    {
+                        engine: 'dtw',
+                        language: 'en',
+                    }
+                );
+
+                // 转换为segments格式
+                segments = alignmentResult.timeline.map(entry => ({
+                    start: entry.startTime,
+                    end: entry.endTime,
+                    text: entry.text
+                }));
+            }
+
+            const text = recognitionResult.transcript || segments.map((s) => s.text).join(' ').trim();
 
             this.taskService.process(taskId, {progress: '转录完成'});
 
             return {
                 text,
                 segments,
-                words: [],
-                timestamps: [],
+                words,
+                timestamps: words.map(w => ({ token: w.word, start: w.start, end: w.end })),
             };
         } catch (err) {
             this.taskService.process(taskId, {progress: `转录失败: ${(err as Error).message}`});
@@ -686,15 +771,6 @@ export class ParakeetServiceImpl implements ParakeetService {
             // 清理临时文件
             try {
                 if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
-            } catch {
-                //
-            }
-            try {
-                if (srtPath) await fsPromises.rm(srtPath, {force: true});
-                if (base) {
-                    const candidates = ['.srt', '.txt', '.vtt', '.json'].map(ext => `${base}${ext}`);
-                    await Promise.all(candidates.map(f => fsPromises.rm(f, {force: true})));
-                }
             } catch {
                 //
             }
