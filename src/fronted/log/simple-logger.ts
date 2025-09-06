@@ -5,7 +5,7 @@ const levelOrder: Record<SimpleLevel, number> = {
   debug: 20, info: 30, warn: 40, error: 50,
 };
 
-const CURRENT_LEVEL: SimpleLevel = (import.meta.env?.VITE_DP_LOG_LEVEL as SimpleLevel) || 'info';
+const CURRENT_LEVEL: SimpleLevel = (process.env?.VITE_DP_LOG_LEVEL as SimpleLevel) || 'info';
 
 function write(processName: 'renderer', moduleName: string, level: SimpleLevel, msg: string, data?: any) {
   // 控制台输出（便于开发定位）
