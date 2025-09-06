@@ -39,4 +39,9 @@ export default interface SystemService {
         path: K,
         params: RendererApiDefinitions[K]['params']
     ): Promise<RendererApiDefinitions[K]['return']>;
+
+    /**
+     * 检查 Parakeet 模型是否已下载
+     */
+    isParakeetModelDownloaded(): Promise<boolean>;
 }

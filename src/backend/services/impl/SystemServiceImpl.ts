@@ -1,12 +1,15 @@
 import { WindowState } from '@/common/types/Types';
 import { injectable, postConstruct } from 'inversify';
 import SystemService from '@/backend/services/SystemService';
-import { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, app } from 'electron';
 import PathUtil from '@/common/utils/PathUtil';
 import path from 'path';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import {DpTask} from "@/backend/db/tables/dpTask";
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
+import * as fs from 'fs/promises';
+import LocationUtil from '@/backend/utils/LocationUtil';
+import { LocationType } from '@/backend/services/LocationService';
 @injectable()
 export default class SystemServiceImpl implements SystemService {
     public mainWindowRef: { current: BrowserWindow | null } = { current: null };
@@ -169,6 +172,23 @@ export default class SystemServiceImpl implements SystemService {
             
         } catch (error) {
             console.error('❌ 反向API调用失败:', error);
+        }
+    }
+
+    public async isParakeetModelDownloaded(): Promise<boolean> {
+        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'models', 'parakeet-v2');
+        const encoderFile = path.join(modelDir, 'encoder.int8.onnx');
+        const decoderFile = path.join(modelDir, 'decoder.int8.onnx');
+        const joinerFile = path.join(modelDir, 'joiner.int8.onnx');
+        const tokensFile = path.join(modelDir, 'tokens.txt');
+        
+        try {
+            return await fs.access(encoderFile).then(() => true) &&
+                   await fs.access(decoderFile).then(() => true) &&
+                   await fs.access(joinerFile).then(() => true) &&
+                   await fs.access(tokensFile).then(() => true);
+        } catch {
+            return false;
         }
     }
 

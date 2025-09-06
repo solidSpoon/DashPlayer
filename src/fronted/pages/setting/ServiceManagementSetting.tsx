@@ -8,11 +8,12 @@ import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book, TestTube, CheckCircle, XCircle } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Download, Cpu, HardDrive } from 'lucide-react';
 import Header from '@/fronted/components/setting/Header';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
+import useSettingForm from '@/fronted/hooks/useSettingForm';
 
 const api = window.electron;
 
@@ -25,15 +26,26 @@ const ServiceManagementSetting = () => {
     const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
     const { toast } = useToast();
     
+    // Parakeet settings
+    const { setting: parakeetSetting, setSettingFunc: setParakeetSetting } = useSettingForm([
+        'parakeet.enabled',
+        'parakeet.enableTranscription'
+    ]);
+
     // Test states
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
     const [testingTencent, setTestingTencent] = React.useState(false);
     const [testingYoudao, setTestingYoudao] = React.useState(false);
-    
+
     // Test results
     const [openAiTestResult, setOpenAiTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
     const [tencentTestResult, setTencentTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
     const [youdaoTestResult, setYoudaoTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
+
+    // Parakeet states
+    const [parakeetModelDownloaded, setParakeetModelDownloaded] = React.useState(false);
+    const [downloading, setDownloading] = React.useState(false);
+    const [downloadProgress, setDownloadProgress] = React.useState(0);
 
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
@@ -44,10 +56,13 @@ const ServiceManagementSetting = () => {
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
     const tencentSubtitleEnabled = watch('tencent.enableSubtitleTranslation');
-    
+
     // Watch for dictionary mutual exclusion
     const openaiDictionaryEnabled = watch('openai.enableDictionary');
     const youdaoDictionaryEnabled = watch('youdao.enableDictionary');
+
+    // Watch for transcription mutual exclusion
+    const parakeetTranscriptionEnabled = parakeetSetting('parakeet.enableTranscription') === 'true';
 
     // Custom change detection
     const hasChanges = React.useMemo(() => {
@@ -82,6 +97,73 @@ const ServiceManagementSetting = () => {
             setOriginalValues(formData);
         }
     }, [settings, reset]);
+
+    // Check Parakeet model status
+    React.useEffect(() => {
+        const checkModelStatus = async () => {
+            try {
+                const downloaded = await api.call('system-is-parakeet-model-downloaded');
+                setParakeetModelDownloaded(downloaded);
+            } catch (error) {
+                console.error('Failed to check Parakeet model status:', error);
+            }
+        };
+        checkModelStatus();
+    }, []);
+
+    // Register renderer API for progress updates
+    React.useEffect(() => {
+        const unregister = api.registerRendererApi({
+            'parakeet/download-progress': (params: { progress: number }) => {
+                console.log('🔥 Received download progress:', params.progress);
+                setDownloadProgress(params.progress);
+            }
+        });
+        
+        return () => {
+            unregister();
+        };
+    }, []);
+
+    // Handle model download
+    const downloadModel = async () => {
+        console.log('🔥 Download button clicked!');
+        console.log('🔥 Current parakeetModelDownloaded:', parakeetModelDownloaded);
+        console.log('🔥 Current downloading:', downloading);
+        
+        if (downloading) {
+            console.log('🔥 Already downloading, ignoring click');
+            return;
+        }
+        
+        setDownloading(true);
+        setDownloadProgress(0);
+        console.log('🔥 Starting model download...');
+        
+        try {
+            const result = await api.call('parakeet-download-model');
+            console.log('🔥 Download API call result:', result);
+            console.log('🔥 Download completed, checking model status...');
+            
+            const downloaded = await api.call('system-is-parakeet-model-downloaded');
+            console.log('🔥 Model downloaded status:', downloaded);
+            setParakeetModelDownloaded(downloaded);
+            
+            toast({
+                title: "模型下载完成",
+                description: "Parakeet 模型已成功下载并安装",
+            });
+        } catch (error) {
+            console.error('🔥 Download failed:', error);
+            toast({
+                title: "模型下载失败",
+                description: `下载过程中发生错误: ${error}`,
+                variant: "destructive",
+            });
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     // Handle mutual exclusion for subtitle translation
     const handleSubtitleTranslationChange = (service: 'openai' | 'tencent', enabled: boolean) => {
@@ -127,19 +209,24 @@ const ServiceManagementSetting = () => {
         }
     };
 
+    // Handle Parakeet transcription enable/disable
+    const handleParakeetTranscriptionChange = (enabled: boolean) => {
+        setParakeetSetting('parakeet.enableTranscription')(enabled ? 'true' : 'false');
+    };
+
     const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
         const setTesting = {
             'openai': setTestingOpenAi,
             'tencent': setTestingTencent,
             'youdao': setTestingYoudao
         }[provider];
-        
+
         const setResult = {
             'openai': setOpenAiTestResult,
             'tencent': setTencentTestResult,
             'youdao': setYoudaoTestResult
         }[provider];
-        
+
         // 检查是否有未保存的更改
         if (hasChanges) {
             setResult({
@@ -148,7 +235,7 @@ const ServiceManagementSetting = () => {
             });
             return;
         }
-        
+
         setTesting(true);
         setResult(null);
         try {
@@ -174,6 +261,8 @@ const ServiceManagementSetting = () => {
 
             // Update Tencent service
             await api.call('settings/update-service', {
+
+
                 service: 'tencent',
                 settings: data
             });
@@ -195,7 +284,7 @@ const ServiceManagementSetting = () => {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full flex flex-col gap-6">
-            <Header title="API 配置" description="配置各项 API 服务的密钥和功能启用状态" />
+            <Header title="服务配置" description="配置 API 服务和本地服务的功能设置" />
 
             <div className="flex flex-col gap-6 h-0 flex-1 overflow-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
                 {/* OpenAI Service */}
@@ -270,9 +359,10 @@ const ServiceManagementSetting = () => {
                                     />
                                     <Label htmlFor="openai-subtitle-translation" className="font-normal">
                                         字幕翻译
-                                        {tencentSubtitleEnabled && (
-                                            <span className="text-xs text-muted-foreground ml-2">(与腾讯云翻译互斥)</span>
-                                        )}
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                            {tencentSubtitleEnabled && '(与腾讯云翻译互斥)'}
+                                            {parakeetTranscriptionEnabled && '(与 Parakeet 转录互斥)'}
+                                        </span>
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -290,9 +380,9 @@ const ServiceManagementSetting = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <Separator orientation="horizontal" />
-                        
+
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 {openAiTestResult && (
@@ -367,15 +457,16 @@ const ServiceManagementSetting = () => {
                                 />
                                 <Label htmlFor="tencent-subtitle-translation" className="font-normal">
                                     字幕翻译
-                                    {openaiSubtitleEnabled && (
-                                        <span className="text-xs text-muted-foreground ml-2">(与OpenAI翻译互斥)</span>
-                                    )}
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                        {openaiSubtitleEnabled && '(与OpenAI翻译互斥)'}
+                                        {parakeetTranscriptionEnabled && '(与 Parakeet 转录互斥)'}
+                                    </span>
                                 </Label>
                             </div>
                         </div>
-                        
+
                         <Separator orientation="horizontal" />
-                        
+
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 {tencentTestResult && (
@@ -456,9 +547,9 @@ const ServiceManagementSetting = () => {
                                 </Label>
                             </div>
                         </div>
-                        
+
                         <Separator orientation="horizontal" />
-                        
+
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 {youdaoTestResult && (
@@ -485,6 +576,115 @@ const ServiceManagementSetting = () => {
                                 <TestTube className="h-4 w-4" />
                                 {testingYoudao ? '测试中...' : '测试连接'}
                             </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Parakeet Local Service */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Cpu className="h-5 w-5" />
+                            Parakeet 本地字幕识别
+                        </CardTitle>
+                        <CardDescription>
+                            本地离线语音识别服务，无需网络连接即可生成字幕
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">模型状态</Label>
+                            <div className="flex items-center gap-2">
+                                {parakeetModelDownloaded ? (
+                                    <>
+                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        <span className="text-sm text-green-600">模型已下载</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <XCircle className="h-4 w-4 text-red-500" />
+                                        <span className="text-sm text-red-600">模型未下载</span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">模型管理</Label>
+                            <div className="flex items-center gap-4">
+                                <Button
+                                    type="button"
+                                    variant={parakeetModelDownloaded ? "outline" : "default"}
+                                    size="sm"
+                                    onClick={downloadModel}
+                                    disabled={downloading}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    {downloading ? '下载中...' : parakeetModelDownloaded ? '重新下载' : '下载模型'}
+                                </Button>
+                                {downloading && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <div className="w-24 bg-gray-200 rounded-full h-2">
+                                            <div 
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${downloadProgress * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <span>{Math.round(downloadProgress * 100)}%</span>
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                模型大小约 1.2GB，下载后支持本地离线语音识别
+                            </p>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">启用功能</Label>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="parakeet-transcription"
+                                    checked={parakeetSetting('parakeet.enabled') === 'true'}
+                                    onCheckedChange={(checked) => {
+                                        setParakeetSetting('parakeet.enabled')(checked ? 'true' : 'false');
+                                    }}
+                                    disabled={!parakeetModelDownloaded}
+                                />
+                                <Label htmlFor="parakeet-transcription" className="font-normal">
+                                    启用 Parakeet 本地字幕识别
+                                    {!parakeetModelDownloaded && (
+                                        <span className="text-xs text-muted-foreground ml-2">(需要先下载模型)</span>
+                                    )}
+                                </Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                启用后，转录功能将优先使用本地 Parakeet 引擎
+                            </p>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">功能说明</Label>
+                            <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2">
+                                    <HardDrive className="h-4 w-4" />
+                                    <span>本地运行，保护隐私</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Cpu className="h-4 w-4" />
+                                    <span>支持中英文语音识别</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Download className="h-4 w-4" />
+                                    <span>自动生成 SRT 字幕文件</span>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

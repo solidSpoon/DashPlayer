@@ -8,7 +8,10 @@ import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import WhisperService from '@/backend/services/WhisperService';
+import {ParakeetService} from '@/backend/services/ParakeetService';
+import SystemService from '@/backend/services/SystemService';
 import { CoreMessage } from 'ai';
+import SettingService from "@/backend/services/SettingService";
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -24,6 +27,15 @@ export default class AiFuncController implements Controller {
 
     @inject(TYPES.WhisperService)
     private whisperService!: WhisperService;
+
+    @inject(TYPES.ParakeetService)
+    private parakeetService!: ParakeetService;
+
+    @inject(TYPES.SystemService)
+    private systemService!: SystemService;
+
+    @inject(TYPES.SettingService)
+    private settingService!: SettingService;
 
     public async analyzeNewWords(sentence: string) {
         const taskId = await this.dpTaskService.create();
@@ -92,9 +104,22 @@ export default class AiFuncController implements Controller {
     public async transcript({ filePath }: { filePath: string }) {
         const taskId = await this.dpTaskService.create();
         console.log('taskId', taskId);
-        this.whisperService.transcript(taskId, filePath).then(r => {
-            console.log(r);
-        });
+
+        // 检查是否启用 Parakeet 且模型已下载
+        const parakeetEnabled = await this.settingService.get('parakeet.enabled') === 'true';
+        const modelDownloaded = await this.systemService.isParakeetModelDownloaded();
+
+        if (parakeetEnabled && modelDownloaded) {
+            // 使用 Parakeet 进行转录
+            this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
+                console.log('parakeet transcript result:', r);
+            });
+        } else {
+            // 使用 Whisper 进行转录
+            this.whisperService.transcript(taskId, filePath).then(r => {
+                console.log('whisper transcript result:', r);
+            });
+        }
         return taskId;
     }
 

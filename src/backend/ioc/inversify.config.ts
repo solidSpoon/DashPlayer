@@ -63,6 +63,8 @@ import SettingsController from '@/backend/controllers/SettingsController';
 import { OpenAIServiceImpl } from '@/backend/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import AiProviderService from '@/backend/services/AiProviderService';
+import {ParakeetService} from '@/backend/services/ParakeetService';
+import ParakeetServiceImpl from '@/backend/services/impl/ParakeetServiceImpl';
 
 
 const container = new Container();
@@ -107,4 +109,5 @@ container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingleto
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
+container.bind<ParakeetService>(TYPES.ParakeetService).to(ParakeetServiceImpl).inSingletonScope();
 export default container;

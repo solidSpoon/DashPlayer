@@ -114,6 +114,9 @@ export default class SystemController implements Controller {
         await this.systemService.testRendererApiCall();
     }
 
+    public async isParakeetModelDownloaded() {
+        return this.systemService.isParakeetModelDownloaded();
+    }
 
     public registerRoutes(): void {
         registerRoute('system/info', (_) => this.info());
@@ -129,5 +132,6 @@ export default class SystemController implements Controller {
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', (p) => this.appVersion());
         registerRoute('system/test-renderer-api', (_) => this.testRendererApi());
+        registerRoute('system-is-parakeet-model-downloaded', () => this.isParakeetModelDownloaded());
     }
 }

@@ -79,6 +79,21 @@ export class FfmpegCommands {
     }
 
     /**
+     * 构建 Parakeet 音频预处理命令 (16kHz, 单声道, 16-bit PCM WAV)
+     */
+    static buildParakeetAudio(inputFile: string, outputFile: string): ffmpeg.FfmpegCommand {
+        return ffmpeg(inputFile)
+            .outputOptions([
+                '-vn',                    // 禁用视频
+                '-ar', '16000',           // 采样率 16kHz
+                '-ac', '1',               // 单声道
+                '-c:a', 'pcm_s16le',      // 16-bit PCM
+                '-f', 'wav'               // WAV 格式
+            ])
+            .output(outputFile);
+    }
+
+    /**
      * 构建转 MP4 命令
      */
     static buildToMp4(inputFile: string, outputFile: string): ffmpeg.FfmpegCommand {
