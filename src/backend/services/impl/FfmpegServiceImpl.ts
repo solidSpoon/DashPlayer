@@ -228,6 +228,37 @@ export default class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
+     * 转换音频文件为 WAV 格式 (强制 16kHz, 单声道, 16-bit PCM)
+     */
+    @WaitLock('ffmpeg')
+    public async convertToWav(inputPath: string, outputPath: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            ffmpeg(inputPath)
+                .audioChannels(1)        // 强制单声道
+                .audioFrequency(16000)   // 强制采样率 16kHz
+                .audioCodec('pcm_s16le') // 强制 16-bit PCM (小端序)
+                .audioBitrate('128k')    // 音频比特率
+                .on('start', (commandLine) => {
+                    dpLog.log('Converting audio to WAV (16kHz, mono, 16-bit PCM):', commandLine);
+                })
+                .on('progress', (progress) => {
+                    if (progress.percent) {
+                        dpLog.log(`Audio conversion progress: ${Math.floor(progress.percent)}%`);
+                    }
+                })
+                .on('end', () => {
+                    dpLog.log('Audio conversion to WAV completed successfully');
+                    resolve();
+                })
+                .on('error', (error) => {
+                    dpLog.error('Audio conversion to WAV failed:', error);
+                    reject(this.processError(error));
+                })
+                .save(outputPath);
+        });
+    }
+
+    /**
      * 统一的 fluent-ffmpeg 执行方法
      */
     private async executeFluentCommand(

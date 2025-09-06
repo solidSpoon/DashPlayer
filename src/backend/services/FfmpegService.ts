@@ -90,5 +90,10 @@ export default interface FfmpegService {
      * Get video information
      */
     getVideoInfo(filePath: string): Promise<VideoInfo>;
+
+    /**
+     * Convert audio file to WAV format
+     */
+    convertToWav(inputPath: string, outputPath: string): Promise<void>;
 }
 

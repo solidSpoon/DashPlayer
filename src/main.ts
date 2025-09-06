@@ -1,11 +1,31 @@
 import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
+import * as fs from 'fs';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
 import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import 'reflect-metadata';
+
+// 在应用启动前设置 DYLD_LIBRARY_PATH
+const setupSherpaOnnxEnvironment = () => {
+    const platform = process.platform;
+    const arch = process.arch;
+    
+    if (platform === 'darwin' && arch === 'arm64') {
+        const libraryPath = 'node_modules/sherpa-onnx-darwin-arm64';
+        const resolvedPath = path.resolve('/Users/spoon/projects/DashPlayer', libraryPath);
+        
+        process.env.DYLD_LIBRARY_PATH = `${resolvedPath}:${process.env.DYLD_LIBRARY_PATH || ''}`;
+        console.log(`🔧 Set DYLD_LIBRARY_PATH = ${resolvedPath}`);
+        console.log(`🔧 Path exists: ${fs.existsSync(resolvedPath)}`);
+        console.log(`🔧 Node file exists: ${fs.existsSync(path.join(resolvedPath, 'sherpa-onnx.node'))}`);
+    }
+};
+
+// 立即执行环境变量设置
+setupSherpaOnnxEnvironment();
 const mainWindowRef = {
     current: null as BrowserWindow | null
 };

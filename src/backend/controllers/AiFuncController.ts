@@ -12,6 +12,8 @@ import {ParakeetService} from '@/backend/services/ParakeetService';
 import SystemService from '@/backend/services/SystemService';
 import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
+import fs from 'fs';
+import path from 'path';
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -116,6 +118,60 @@ export default class AiFuncController implements Controller {
             console.log('Using Parakeet for transcription');
             this.parakeetService.transcribeAudio(taskId, filePath).then(r => {
                 console.log('parakeet transcript result:', r);
+                console.log('transcript result structure:', {
+                    hasText: !!r?.text,
+                    hasSegments: !!r?.segments,
+                    hasWords: !!r?.words,
+                    hasTimestamps: !!r?.timestamps,
+                    textLength: r?.text?.length,
+                    segmentsLength: r?.segments?.length,
+                    wordsLength: r?.words?.length,
+                    timestampsLength: r?.timestamps?.length
+                });
+                
+                // 生成 SRT 文件
+                if (r && r.segments && r.segments.length > 0) {
+                    console.log('Building SRT content from', r.segments.length, 'segments');
+                    const srtContent = this.buildSrtContent(r.segments);
+                    const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
+                    
+                    console.log('Attempting to save SRT file to:', srtFileName);
+                    try {
+                        fs.writeFileSync(srtFileName, srtContent, 'utf8');
+                        console.log('✅ SRT file saved successfully:', srtFileName);
+                        console.log('SRT content preview:', srtContent.substring(0, 500) + '...');
+                        
+                        // 更新任务状态 - 将结果序列化为 JSON 字符串
+                        const resultJson = JSON.stringify({ srtPath: srtFileName, segments: r.segments });
+                        this.dpTaskService.process(taskId, { 
+                            progress: `转录完成，字幕文件已保存: ${path.basename(srtFileName)}`,
+                            result: resultJson
+                        });
+                    } catch (saveError) {
+                        console.error('❌ Failed to save SRT file:', saveError);
+                        // 将结果序列化为 JSON 字符串
+                      const resultJson = JSON.stringify({ segments: r.segments });
+                      this.dpTaskService.process(taskId, { 
+                            progress: `转录完成但保存字幕文件失败: ${saveError.message}`,
+                            result: resultJson
+                        });
+                    }
+                } else {
+                    console.log('❌ No segments found in transcription result');
+                    console.log('Available keys:', Object.keys(r || {}));
+                    // 将结果序列化为 JSON 字符串
+                    const resultJson = JSON.stringify(r);
+                    this.dpTaskService.process(taskId, { 
+                        progress: '转录完成但没有生成有效的时间轴数据',
+                        result: resultJson
+                    });
+                }
+            }).catch(error => {
+                console.error('Parakeet transcription failed:', error);
+                this.dpTaskService.process(taskId, { 
+                    progress: `转录失败: ${error.message}`,
+                    status: 'failed' 
+                });
             });
         } else if (openaiTranscriptionEnabled) {
             // 使用 OpenAI Whisper 进行转录
@@ -144,6 +200,25 @@ export default class AiFuncController implements Controller {
         const taskId = await this.dpTaskService.create();
         this.aiService.explainSelect(taskId, word).then();
         return taskId;
+    }
+
+    private buildSrtContent(items: Array<{start: number, end: number, text: string}>): string {
+        let srt = '';
+        items.forEach((item, index) => {
+            srt += `${index + 1}\n`;
+            srt += `${this.toSrtTime(item.start)} --> ${this.toSrtTime(item.end)}\n`;
+            srt += `${item.text}\n\n`;
+        });
+        return srt;
+    }
+
+    private toSrtTime(seconds: number): string {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        const ms = Math.round((seconds - Math.floor(seconds)) * 1000);
+        const pad = (n: number, width: number) => String(n).padStart(width, '0');
+        return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)},${pad(ms, 3)}`;
     }
 
     registerRoutes(): void {

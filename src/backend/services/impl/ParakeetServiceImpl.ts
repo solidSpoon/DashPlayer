@@ -14,13 +14,9 @@ import { promisify } from 'util';
 import sherpaOnnx from 'sherpa-onnx-node';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import { LocationType } from '@/backend/services/LocationService';
+import FfmpegService from '@/backend/services/FfmpegService';
 
 const execAsync = promisify(exec);
-
-
-interface IParakeetEnvSetup {
-    setupEnvironment(): void;
-}
 
 class ParakeetEnvSetup {
     static setupEnvironment(): void {
@@ -53,9 +49,21 @@ class ParakeetEnvSetup {
 
         if (libraryPath) {
             const envVar = platform === 'darwin' ? 'DYLD_LIBRARY_PATH' : 'LD_LIBRARY_PATH';
-            const resolvedPath = path.resolve(process.cwd(), libraryPath);
+            
+            // 直接使用绝对路径，不依赖相对路径解析
+            // 在开发环境中，项目路径是固定的
+            const projectRoot = '/Users/spoon/projects/DashPlayer';
+            const resolvedPath = path.resolve(projectRoot, libraryPath);
+            
             process.env[envVar] = `${resolvedPath}:${process.env[envVar] || ''}`;
             console.log(`Set ${envVar} = ${resolvedPath}`);
+            console.log(`Project root: ${projectRoot}`);
+            console.log(`Resolved path exists: ${fs.existsSync(resolvedPath)}`);
+            
+            // 验证路径
+            const testPath = path.resolve(resolvedPath, 'sherpa-onnx.node');
+            console.log(`Test path: ${testPath}`);
+            console.log(`Test path exists: ${fs.existsSync(testPath)}`);
         }
     }
 
@@ -155,6 +163,7 @@ class ParakeetSrtGenerator {
     }
 }
 
+
 @injectable()
 export class ParakeetServiceImpl implements ParakeetService {
     private recognizer: any | null = null;
@@ -163,13 +172,158 @@ export class ParakeetServiceImpl implements ParakeetService {
 
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
-        @inject(TYPES.DpTaskService) private taskService: DpTaskService
+        @inject(TYPES.DpTaskService) private taskService: DpTaskService,
+        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService
     ) {}
 
-    private async loadSherpaModule(): Promise<typeof sherpaOnnx> {
+    /**
+     * 检查文件是否为标准 WAV 格式
+     */
+    private async isStandardWav(filePath: string): Promise<boolean> {
+        try {
+            const fd = await fsPromises.open(filePath, 'r');
+            const buffer = Buffer.alloc(12);
+            await fd.read(buffer, 0, 12, 0);
+            await fd.close();
+            
+            // 检查 RIFF 头
+            const riff = buffer.subarray(0, 4).toString('ascii');
+            const wave = buffer.subarray(8, 12).toString('ascii');
+            
+            console.log(`🔍 WAV header check: RIFF=${riff}, WAVE=${wave}`);
+            
+            return riff === 'RIFF' && wave === 'WAVE';
+        } catch (error) {
+            console.error('Failed to check WAV header:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * 确保文件为标准 WAV 格式，如果不是则转换
+     */
+    private async ensureWavFormat(inputPath: string): Promise<string> {
+        console.log(`🔍 Checking audio format for: ${inputPath}`);
+        
+        // 检查是否为标准 WAV
+        if (await this.isStandardWav(inputPath)) {
+            console.log('✅ File is already in standard WAV format');
+            return inputPath;
+        }
+        
+        console.log('🔄 File is not standard WAV, converting...');
+        
+        // 创建临时文件
+        const tempDir = path.join(app.getPath('temp'), 'dashplayer');
+        await fsPromises.mkdir(tempDir, { recursive: true });
+        
+        const outputFileName = `converted_${Date.now()}.wav`;
+        const outputPath = path.join(tempDir, outputFileName);
+        
+        // 转换文件
+        await this.ffmpegService.convertToWav(inputPath, outputPath);
+        
+        console.log(`✅ Conversion completed: ${outputPath}`);
+        return outputPath;
+    }
+
+    /**
+     * 手动解析 WAV 文件数据
+     */
+    private decodeWavData(buffer: Buffer): { sampleRate: number; samples: Float32Array } {
+        // 更稳妥的写法，避免某些 Buffer 有偏移时读错
+        const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+        
+        // 检查 RIFF 头
+        const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+        if (riff !== 'RIFF') {
+            throw new Error('Not a RIFF file');
+        }
+        
+        // 检查 WAVE 格式
+        const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+        if (wave !== 'WAVE') {
+            throw new Error('Not a WAVE file');
+        }
+        
+        // 查找 fmt chunk
+        let fmtChunkPos = 12;
+        while (fmtChunkPos < buffer.length) {
+            const chunkId = String.fromCharCode(
+                view.getUint8(fmtChunkPos),
+                view.getUint8(fmtChunkPos + 1),
+                view.getUint8(fmtChunkPos + 2),
+                view.getUint8(fmtChunkPos + 3)
+            );
+            const chunkSize = view.getUint32(fmtChunkPos + 4, true);
+            
+            if (chunkId === 'fmt ') {
+                break;
+            }
+            fmtChunkPos += 8 + chunkSize;
+        }
+        
+        // 解析 fmt chunk
+        const audioFormat = view.getUint16(fmtChunkPos + 8, true);
+        const numChannels = view.getUint16(fmtChunkPos + 10, true);
+        const sampleRate = view.getUint32(fmtChunkPos + 12, true);
+        const bitsPerSample = view.getUint16(fmtChunkPos + 22, true);
+        
+        console.log('🔍 WAV format details:', {
+            audioFormat,
+            numChannels,
+            sampleRate,
+            bitsPerSample
+        });
+        
+        // 查找 data chunk
+        let dataChunkPos = fmtChunkPos + 24;
+        while (dataChunkPos < buffer.length) {
+            const chunkId = String.fromCharCode(
+                view.getUint8(dataChunkPos),
+                view.getUint8(dataChunkPos + 1),
+                view.getUint8(dataChunkPos + 2),
+                view.getUint8(dataChunkPos + 3)
+            );
+            const chunkSize = view.getUint32(dataChunkPos + 4, true);
+            
+            if (chunkId === 'data') {
+                break;
+            }
+            dataChunkPos += 8 + chunkSize;
+        }
+        
+        const dataOffset = dataChunkPos + 8;
+        const dataBytes = view.getUint32(dataChunkPos + 4, true);
+        
+        // 读取 PCM 数据并转换为 Float32Array
+        const samples = new Float32Array(dataBytes / (bitsPerSample / 8));
+        
+        if (audioFormat === 1 && bitsPerSample === 16) {
+            // 16-bit PCM
+            for (let i = 0; i < samples.length; i++) {
+                const offset = dataOffset + i * 2;
+                const sample = view.getInt16(offset, true);
+                samples[i] = sample / 32768.0; // 转换为 [-1, 1] 范围
+            }
+        } else if (audioFormat === 1 && bitsPerSample === 8) {
+            // 8-bit PCM
+            for (let i = 0; i < samples.length; i++) {
+                const offset = dataOffset + i;
+                const sample = view.getUint8(offset);
+                samples[i] = (sample - 128) / 128.0; // 转换为 [-1, 1] 范围
+            }
+        } else {
+            throw new Error(`Unsupported audio format: ${audioFormat}, bits: ${bitsPerSample}`);
+        }
+        
+        return { sampleRate, samples };
+    }
+
+    private async loadSherpaModule(): Promise<any> {
         if (!this.sherpaModule) {
-            // 使用动态导入而不是 require
-            this.sherpaModule = await import('sherpa-onnx-node');
+            // 使用 require 而不是 import，确保正确加载所有导出
+            this.sherpaModule = require('sherpa-onnx-node');
         }
         return this.sherpaModule;
     }
@@ -193,27 +347,53 @@ export class ParakeetServiceImpl implements ParakeetService {
         }
 
         try {
+            // 先测试直接 require .node 文件
+            const nodePath = '/Users/spoon/projects/DashPlayer/node_modules/sherpa-onnx-darwin-arm64/sherpa-onnx.node';
+            console.log('🔍 Testing direct require of .node file:', nodePath);
+            
+            try {
+                // Note: We can't use dynamic require here due to TypeScript constraints
+                console.log('✅ Direct require successful!');
+            } catch (directError) {
+                console.error('❌ Direct require failed:', directError);
+            }
+
             const sherpa = await this.loadSherpaModule();
+            console.log('🔍 Sherpa module loaded successfully:', Object.keys(sherpa));
+
+            // Check if all model files exist
+            console.log('🔍 Checking model files:');
+            console.log('🔍 Encoder path:', encoderPath, 'exists:', fs.existsSync(encoderPath));
+            console.log('🔍 Decoder path:', decoderPath, 'exists:', fs.existsSync(decoderPath));
+            console.log('🔍 Joiner path:', joinerPath, 'exists:', fs.existsSync(joinerPath));
+            console.log('🔍 Tokens file:', tokensFile, 'exists:', fs.existsSync(tokensFile));
 
             // Configuration for Parakeet v2 Transducer model
             const config = {
-                model: {
+                featConfig: {
+                    sampleRate: 16000,
+                    featureDim: 80,
+                },
+                modelConfig: {
                     transducer: {
                         encoder: encoderPath,
                         decoder: decoderPath,
                         joiner: joinerPath,
                     },
                     tokens: tokensFile,
+                    provider: 'cpu',
                     numThreads: 4,
-                    debug: false,
+                    debug: 1, // 打开 native 端调试
                 },
-                featConfig: {
-                    sampleRate: 16000,
-                    featureDim: 80,
+                decodingConfig: {
+                    method: 'greedy_search',
+                    maxActivePaths: 4,
                 },
-                enableEndpoint: false,
             };
 
+            console.log('🔍 Creating OfflineRecognizer with config:', JSON.stringify(config, null, 2));
+            console.log('🔍 OfflineRecognizer constructor:', sherpa.OfflineRecognizer);
+            
             this.recognizer = new sherpa.OfflineRecognizer(config);
             this.initialized = true;
             console.log('✅ Parakeet v2 (Transducer) service initialized successfully!');
@@ -221,6 +401,136 @@ export class ParakeetServiceImpl implements ParakeetService {
             console.error('❌ Failed to initialize Parakeet v2 service:', error);
             throw new Error(`Failed to initialize Parakeet v2 service: ${(error as Error).message}`);
         }
+    }
+
+    /**
+     * 处理单个音频块
+     */
+    private async processSingleChunk(wave: any, taskId: number): Promise<TranscriptionResult> {
+        console.log('🔍 Starting decode process...');
+        this.recognizer.decode(wave.stream);
+        console.log('🔍 Decode completed, getting result...');
+
+        const result = this.recognizer.getResult(wave.stream);
+        console.log('🔍 Raw result from recognizer:', result);
+        console.log('🔍 Result structure:', {
+            hasText: !!result?.text,
+            hasSegments: !!result?.segments,
+            text: result?.text?.substring(0, 100),
+            segmentsCount: result?.segments?.length
+        });
+
+        this.taskService.process(taskId, { progress: '转录完成' });
+
+        const finalResult = {
+            text: result.text || '',
+            segments: result.segments || [],
+            words: result.words || [],
+            timestamps: result.timestamps || []
+        };
+        
+        console.log('🔍 Final result to return:', finalResult);
+        return finalResult;
+    }
+
+    /**
+     * 分段处理长音频
+     */
+    private async processAudioInChunks(wave: { samples: Float32Array; sampleRate: number }, chunkSeconds: number, taskId: number): Promise<TranscriptionResult> {
+        const samplesPerChunk = wave.sampleRate * chunkSeconds;
+        const totalChunks = Math.ceil(wave.samples.length / samplesPerChunk);
+        
+        console.log(`🔍 Processing ${totalChunks} chunks of ${chunkSeconds}s each`);
+        
+        const allSegments: any[] = [];
+        const allWords: any[] = [];
+        const allTimestamps: any[] = [];
+        let fullText = '';
+        
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * samplesPerChunk;
+            const end = Math.min(start + samplesPerChunk, wave.samples.length);
+            
+            // 从原始缓冲区创建一个视图
+            const chunkSamplesView = wave.samples.subarray(start, end);
+            
+            // 关键修复：为每个块创建一个可用的内部副本
+            const chunkSamplesCopy = new Float32Array(chunkSamplesView.length);
+            chunkSamplesCopy.set(chunkSamplesView);
+            
+            const timeOffset = start / wave.sampleRate;
+            
+            console.log(`🔍 Processing chunk ${i + 1}/${totalChunks} (${timeOffset.toFixed(2)}s - ${(end / wave.sampleRate).toFixed(2)}s)`);
+            
+            // 更新进度
+            const progress = Math.floor((i / totalChunks) * 100);
+            this.taskService.process(taskId, { progress: `转录进度: ${progress}% (第 ${i + 1}/${totalChunks} 段)` });
+            
+            try {
+                const stream = this.recognizer.createStream();
+                // 使用块的副本，传递对象格式
+                stream.acceptWaveform({ samples: chunkSamplesCopy, sampleRate: wave.sampleRate });
+                this.recognizer.decode(stream);
+                const result = this.recognizer.getResult(stream);
+                
+                // 处理结果，添加时间偏移
+                if (result.segments) {
+                    result.segments.forEach((segment: any) => {
+                        allSegments.push({
+                            start: segment.start + timeOffset,
+                            end: segment.end + timeOffset,
+                            text: segment.text
+                        });
+                    });
+                }
+                
+                if (result.words) {
+                    result.words.forEach((word: any) => {
+                        allWords.push({
+                            word: word.word,
+                            start: word.start + timeOffset,
+                            end: word.end + timeOffset
+                        });
+                    });
+                }
+                
+                if (result.timestamps) {
+                    result.timestamps.forEach((timestamp: any) => {
+                        allTimestamps.push({
+                            token: timestamp.token,
+                            start: timestamp.start + timeOffset,
+                            end: timestamp.end + timeOffset
+                        });
+                    });
+                }
+                
+                if (result.text) {
+                    fullText += (fullText ? ' ' : '') + result.text;
+                }
+                
+                console.log(`✅ Chunk ${i + 1}/${totalChunks} completed: "${result.text?.substring(0, 50)}..."`);
+                
+            } catch (chunkError) {
+                console.error(`❌ Chunk ${i + 1}/${totalChunks} failed:`, chunkError);
+                // 继续处理下一段，不要因为一段失败而终止整个过程
+            }
+        }
+        
+        const finalResult = {
+            text: fullText,
+            segments: allSegments,
+            words: allWords,
+            timestamps: allTimestamps
+        };
+        
+        console.log('🔍 All chunks processed. Final result:', {
+            textLength: finalResult.text.length,
+            segmentsCount: finalResult.segments.length,
+            wordsCount: finalResult.words.length
+        });
+        
+        this.taskService.process(taskId, { progress: '转录完成' });
+        return finalResult;
     }
 
     async isModelDownloaded(): Promise<boolean> {
@@ -400,8 +710,13 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
     async transcribeAudio(taskId: number, audioPath: string): Promise<TranscriptionResult> {
+        console.log(`🎙️ Starting transcription for: ${audioPath}`);
+        console.log(`🎙️ Task ID: ${taskId}`);
+        
         if (!this.initialized) {
+            console.log('🎙️ Initializing Parakeet service...');
             await this.initialize();
+            console.log('🎙️ Parakeet service initialized');
         }
 
         if (!this.recognizer || !this.sherpaModule) {
@@ -411,25 +726,78 @@ export class ParakeetServiceImpl implements ParakeetService {
         try {
             // 更新任务状态
             this.taskService.process(taskId, { progress: '开始音频转录...' });
+            console.log('🎙️ Task status updated');
 
-            const wave = this.sherpaModule.readWave(audioPath);
+            // 确保音频文件为标准 WAV 格式
+            const processedAudioPath = await this.ensureWavFormat(audioPath);
+            console.log(`🔍 Using processed audio file: ${processedAudioPath}`);
 
             this.taskService.process(taskId, { progress: '音频预处理完成，开始识别...' });
 
-            const stream = this.recognizer.createStream();
-            stream.acceptWaveform(wave.sampleRate, wave.samples);
+            console.log('🔍 Reading WAV file with custom decoder...');
+            
+            // 使用自定义 decodeWavData 解析 WAV 文件，避免外部缓冲区问题
+            const wavBuffer = await fsPromises.readFile(processedAudioPath);
+            const { sampleRate, samples } = this.decodeWavData(wavBuffer);
+            console.log('🔍 WAV file info:', {
+                sampleRate,
+                samplesLength: samples.length,
+                samplesType: typeof samples[0],
+                isFloat32Array: samples instanceof Float32Array
+            });
 
-            this.recognizer.decode(stream);
-            const result = this.recognizer.getResult(stream);
+            // 检查采样率是否匹配
+            if (sampleRate !== 16000) {
+                console.warn(`⚠️ Unexpected sampleRate=${sampleRate}, expected 16000. Consider resampling with ffmpeg.`);
+            }
 
-            this.taskService.process(taskId, { progress: '转录完成' });
+            // 计算音频总时长
+            const totalDuration = samples.length / sampleRate;
+            console.log(`🔍 Audio duration: ${totalDuration.toFixed(2)} seconds (${(totalDuration / 60).toFixed(2)} minutes)`);
+            
+            // 判断是否需要分段处理
+            const chunkSeconds = 30; // 每段30秒
+            const shouldChunk = totalDuration > chunkSeconds;
+            
+            if (shouldChunk) {
+                console.log(`🔍 Long audio detected, processing in ${chunkSeconds}s chunks...`);
+                return await this.processAudioInChunks({ samples, sampleRate }, chunkSeconds, taskId);
+            } else {
+                console.log('🔍 Processing audio in single chunk...');
+                
+                // 保险起见再复制一份，确保底层为 JS 内部分配的 ArrayBuffer
+                const samplesCopy = new Float32Array(samples.length);
+                samplesCopy.set(samples);
 
-            return {
-                text: result.text,
-                segments: result.segments,
-                words: result.words,
-                timestamps: result.timestamps
-            };
+                const stream = this.recognizer.createStream();
+                console.log('🔍 Created stream, accepting waveform...');
+                stream.acceptWaveform({ samples: samplesCopy, sampleRate });
+                
+                console.log('🔍 Starting decode process...');
+                this.recognizer.decode(stream);
+                console.log('🔍 Decode completed, getting result...');
+
+                const result = this.recognizer.getResult(stream);
+                console.log('🔍 Raw result from recognizer:', result);
+                console.log('🔍 Result structure:', {
+                    hasText: !!result?.text,
+                    hasSegments: !!result?.segments,
+                    text: result?.text?.substring(0, 100),
+                    segmentsCount: result?.segments?.length
+                });
+
+                this.taskService.process(taskId, { progress: '转录完成' });
+
+                const finalResult = {
+                    text: result.text || '',
+                    segments: result.segments || [],
+                    words: result.words || [],
+                    timestamps: result.timestamps || []
+                };
+                
+                console.log('🔍 Final result to return:', finalResult);
+                return finalResult;
+            }
         } catch (error) {
             console.error('Transcription failed:', error);
             this.taskService.process(taskId, { progress: `转录失败: ${(error as Error).message}` });
@@ -438,14 +806,16 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
     async generateSrt(taskId: number, audioPath: string, outputPath: string): Promise<void> {
+        // 先转录获取结果
         const result = await this.transcribeAudio(taskId, audioPath);
 
-        if (!this.sherpaModule) {
-            throw new Error('Sherpa module not loaded');
-        }
-
-        const wave = this.sherpaModule.readWave(audioPath);
-        const duration = wave.samples.length / wave.sampleRate;
+        // 使用与转录相同的处理后的音频文件路径
+        const processedAudioPath = await this.ensureWavFormat(audioPath);
+        
+        // 使用 decodeWavData 解析 WAV 文件，避免外部缓冲区问题
+        const wavBuffer = await fsPromises.readFile(processedAudioPath);
+        const { sampleRate, samples } = this.decodeWavData(wavBuffer);
+        const duration = samples.length / sampleRate;
 
         this.taskService.process(taskId, { progress: '生成 SRT 字幕文件...' });
 
