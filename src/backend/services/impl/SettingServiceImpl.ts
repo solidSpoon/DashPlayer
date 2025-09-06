@@ -35,6 +35,7 @@ export default class SettingServiceImpl implements SettingService {
                 enableSentenceLearning: await this.get('services.openai.enableSentenceLearning') === 'true',
                 enableSubtitleTranslation: await this.get('services.openai.enableSubtitleTranslation') === 'true',
                 enableDictionary: await this.get('services.openai.enableDictionary') === 'true',
+                enableTranscription: await this.get('services.openai.enableTranscription') === 'true',
             },
             tencent: {
                 secretId: await this.get('apiKeys.tencent.secretId'),
@@ -45,6 +46,10 @@ export default class SettingServiceImpl implements SettingService {
                 secretId: await this.get('apiKeys.youdao.secretId'),
                 secretKey: await this.get('apiKeys.youdao.secretKey'),
                 enableDictionary: await this.get('services.youdao.enableDictionary') === 'true',
+            },
+            parakeet: {
+                enabled: await this.get('parakeet.enabled') === 'true',
+                enableTranscription: await this.get('parakeet.enableTranscription') === 'true',
             }
         };
         return settings;
@@ -57,6 +62,7 @@ export default class SettingServiceImpl implements SettingService {
         await this.set('model.gpt.default', settings.openai.model);
         await this.set('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
         await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
+        await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
         
         // Update Tencent settings
         await this.set('apiKeys.tencent.secretId', settings.tencent.secretId);
@@ -87,6 +93,21 @@ export default class SettingServiceImpl implements SettingService {
             // Set both as requested
             await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
             await this.set('services.youdao.enableDictionary', settings.youdao.enableDictionary ? 'true' : 'false');
+        }
+        
+        // Update Parakeet settings
+        await this.set('parakeet.enabled', settings.parakeet.enabled ? 'true' : 'false');
+        await this.set('parakeet.enableTranscription', settings.parakeet.enableTranscription ? 'true' : 'false');
+        
+        // Handle mutual exclusion for transcription
+        if (settings.openai.enableTranscription && settings.parakeet.enableTranscription) {
+            // Both enabled - default to parakeet as it's local and preferred
+            await this.set('parakeet.enableTranscription', 'true');
+            await this.set('services.openai.enableTranscription', 'false');
+        } else {
+            // Set both as requested
+            await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
+            await this.set('parakeet.enableTranscription', settings.parakeet.enableTranscription ? 'true' : 'false');
         }
     }
     

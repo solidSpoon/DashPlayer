@@ -34,6 +34,7 @@ export const SettingKeyObj = {
     'services.openai.enableSentenceLearning': 'true',
     'services.openai.enableSubtitleTranslation': 'true',
     'services.openai.enableDictionary': 'true',
+    'services.openai.enableTranscription': 'true',
     'services.tencent.enableSubtitleTranslation': 'false',
     'services.youdao.enableDictionary': 'false',
     'parakeet.enabled': 'false',

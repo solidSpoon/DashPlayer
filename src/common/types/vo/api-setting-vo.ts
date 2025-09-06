@@ -6,6 +6,7 @@ export type ApiSettingVO = {
         enableSentenceLearning: boolean;
         enableSubtitleTranslation: boolean;
         enableDictionary: boolean;
+        enableTranscription: boolean;
     };
     tencent: {
         secretId: string;
@@ -16,5 +17,9 @@ export type ApiSettingVO = {
         secretId: string;
         secretKey: string;
         enableDictionary: boolean;
+    };
+    parakeet: {
+        enabled: boolean;
+        enableTranscription: boolean;
     };
 };

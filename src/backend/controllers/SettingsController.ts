@@ -14,7 +14,16 @@ export default class SettingsController implements Controller {
     }
 
     public async updateApiSettings(params: { service: string, settings: ApiSettingVO }): Promise<void> {
-        return this.settingService.updateApiSettings(params.settings);
+        const { service, settings } = params;
+        
+        if (service === 'parakeet') {
+            // Update only Parakeet settings, but still receive full ApiSettingVO
+            await this.settingService.set('parakeet.enabled', settings.parakeet.enabled ? 'true' : 'false');
+            await this.settingService.set('parakeet.enableTranscription', settings.parakeet.enableTranscription ? 'true' : 'false');
+        } else {
+            // Update all settings (for backward compatibility)
+            await this.settingService.updateApiSettings(settings);
+        }
     }
 
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {

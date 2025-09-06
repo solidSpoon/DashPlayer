@@ -13,7 +13,6 @@ import Header from '@/fronted/components/setting/Header';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
-import useSettingForm from '@/fronted/hooks/useSettingForm';
 
 const api = window.electron;
 
@@ -26,11 +25,13 @@ const ServiceManagementSetting = () => {
     const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
     const { toast } = useToast();
     
-    // Parakeet settings
-    const { setting: parakeetSetting, setSettingFunc: setParakeetSetting } = useSettingForm([
-        'parakeet.enabled',
-        'parakeet.enableTranscription'
-    ]);
+    // Register hidden fields for Parakeet to ensure they're included in form data
+    register('parakeet.enabled');
+    register('parakeet.enableTranscription');
+    
+    // Parakeet settings - now part of main form
+    const parakeetEnabled = watch('parakeet.enabled');
+    const parakeetTranscriptionEnabled = watch('parakeet.enableTranscription');
 
     // Test states
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
@@ -62,8 +63,9 @@ const ServiceManagementSetting = () => {
     const youdaoDictionaryEnabled = watch('youdao.enableDictionary');
 
     // Watch for transcription mutual exclusion
-    const parakeetTranscriptionEnabled = parakeetSetting('parakeet.enableTranscription') === 'true';
+    const openaiTranscriptionEnabled = watch('openai.enableTranscription');
 
+  
     // Custom change detection
     const hasChanges = React.useMemo(() => {
         if (!originalValues) return false;
@@ -81,6 +83,7 @@ const ServiceManagementSetting = () => {
                     enableSentenceLearning: settings.openai.enableSentenceLearning || true,
                     enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || true,
                     enableDictionary: settings.openai.enableDictionary ?? true,
+                    enableTranscription: settings.openai.enableTranscription ?? true,
                 },
                 tencent: {
                     secretId: settings.tencent.secretId || '',
@@ -91,6 +94,10 @@ const ServiceManagementSetting = () => {
                     secretId: settings.youdao.secretId || '',
                     secretKey: settings.youdao.secretKey || '',
                     enableDictionary: settings.youdao.enableDictionary ?? false,
+                },
+                parakeet: {
+                    enabled: (settings.parakeet && settings.parakeet.enabled) || false,
+                    enableTranscription: (settings.parakeet && settings.parakeet.enableTranscription) || false,
                 },
             };
             reset(formData, { keepDefaultValues: false });
@@ -113,7 +120,7 @@ const ServiceManagementSetting = () => {
 
     // Register renderer API for progress updates
     React.useEffect(() => {
-        const unregister = api.registerRendererApi({
+        const unregister = api.registerRendererApis({
             'parakeet/download-progress': (params: { progress: number }) => {
                 console.log('🔥 Received download progress:', params.progress);
                 setDownloadProgress(params.progress);
@@ -209,11 +216,34 @@ const ServiceManagementSetting = () => {
         }
     };
 
-    // Handle Parakeet transcription enable/disable
-    const handleParakeetTranscriptionChange = (enabled: boolean) => {
-        setParakeetSetting('parakeet.enableTranscription')(enabled ? 'true' : 'false');
+    // Handle mutual exclusion for transcription
+    const handleTranscriptionChange = (service: 'openai' | 'parakeet', enabled: boolean) => {
+        if (enabled) {
+            if (service === 'openai') {
+                setValue('openai.enableTranscription', true);
+                setValue('parakeet.enableTranscription', false);
+            } else {
+                setValue('parakeet.enableTranscription', true);
+                setValue('openai.enableTranscription', false);
+                // Also enable parakeet service when transcription is enabled
+                setValue('parakeet.enabled', true);
+            }
+        } else {
+            // Check if this would leave no transcription enabled
+            const otherEnabled = service === 'openai' ? parakeetTranscriptionEnabled : openaiTranscriptionEnabled;
+            if (!otherEnabled) {
+                // Prevent disabling - at least one must be enabled
+                return;
+            }
+            if (service === 'openai') {
+                setValue('openai.enableTranscription', false);
+            } else {
+                setValue('parakeet.enableTranscription', false);
+            }
+        }
     };
 
+  
     const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
         const setTesting = {
             'openai': setTestingOpenAi,
@@ -253,6 +283,7 @@ const ServiceManagementSetting = () => {
 
     const onSubmit = async (data: ApiSettingVO) => {
         try {
+                        
             // Update OpenAI service
             await api.call('settings/update-service', {
                 service: 'openai',
@@ -261,8 +292,6 @@ const ServiceManagementSetting = () => {
 
             // Update Tencent service
             await api.call('settings/update-service', {
-
-
                 service: 'tencent',
                 settings: data
             });
@@ -270,6 +299,12 @@ const ServiceManagementSetting = () => {
             // Update Youdao service
             await api.call('settings/update-service', {
                 service: 'youdao',
+                settings: data
+            });
+
+            // Update Parakeet service
+            await api.call('settings/update-service', {
+                service: 'parakeet',
                 settings: data
             });
 
@@ -359,10 +394,9 @@ const ServiceManagementSetting = () => {
                                     />
                                     <Label htmlFor="openai-subtitle-translation" className="font-normal">
                                         字幕翻译
-                                        <span className="text-xs text-muted-foreground ml-2">
-                                            {tencentSubtitleEnabled && '(与腾讯云翻译互斥)'}
-                                            {parakeetTranscriptionEnabled && '(与 Parakeet 转录互斥)'}
-                                        </span>
+                                        {tencentSubtitleEnabled && (
+                                            <span className="text-xs text-muted-foreground ml-2">(与腾讯云翻译互斥)</span>
+                                        )}
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -375,6 +409,19 @@ const ServiceManagementSetting = () => {
                                         词典查询
                                         {youdaoDictionaryEnabled && (
                                             <span className="text-xs text-muted-foreground ml-2">(与有道词典互斥)</span>
+                                        )}
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="openai-transcription"
+                                        checked={openaiTranscriptionEnabled}
+                                        onCheckedChange={(checked) => handleTranscriptionChange('openai', !!checked)}
+                                    />
+                                    <Label htmlFor="openai-transcription" className="font-normal">
+                                        字幕转录
+                                        {parakeetEnabled && (
+                                            <span className="text-xs text-muted-foreground ml-2">(与 Parakeet 转录互斥)</span>
                                         )}
                                     </Label>
                                 </div>
@@ -457,10 +504,9 @@ const ServiceManagementSetting = () => {
                                 />
                                 <Label htmlFor="tencent-subtitle-translation" className="font-normal">
                                     字幕翻译
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                        {openaiSubtitleEnabled && '(与OpenAI翻译互斥)'}
-                                        {parakeetTranscriptionEnabled && '(与 Parakeet 转录互斥)'}
-                                    </span>
+                                    {openaiSubtitleEnabled && (
+                                        <span className="text-xs text-muted-foreground ml-2">(与OpenAI翻译互斥)</span>
+                                    )}
                                 </Label>
                             </div>
                         </div>
@@ -649,16 +695,19 @@ const ServiceManagementSetting = () => {
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="parakeet-transcription"
-                                    checked={parakeetSetting('parakeet.enabled') === 'true'}
+                                    checked={parakeetTranscriptionEnabled}
                                     onCheckedChange={(checked) => {
-                                        setParakeetSetting('parakeet.enabled')(checked ? 'true' : 'false');
+                                        handleTranscriptionChange('parakeet', !!checked);
                                     }}
                                     disabled={!parakeetModelDownloaded}
                                 />
                                 <Label htmlFor="parakeet-transcription" className="font-normal">
-                                    启用 Parakeet 本地字幕识别
+                                    本地字幕转录
                                     {!parakeetModelDownloaded && (
                                         <span className="text-xs text-muted-foreground ml-2">(需要先下载模型)</span>
+                                    )}
+                                    {openaiTranscriptionEnabled && (
+                                        <span className="text-xs text-muted-foreground ml-2">(与 OpenAI 转录互斥)</span>
                                     )}
                                 </Label>
                             </div>
