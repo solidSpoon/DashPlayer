@@ -13,7 +13,8 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import {getMainLogger} from '@/backend/ioc/simple-logger';
 import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
-import {storeGet} from "@/backend/store"; // 若路径不同请按工程实际调整
+import {storeGet} from "@/backend/store";
+import {VADEngine, VADOptions} from "echogarden"; // 若路径不同请按工程实际调整
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -106,10 +107,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             // 强制启用 VAD 时间线物理切段；若 VAD 结果为空，自动回退为定长切段，避免产出空白 SRT
             this.sendProgress(taskId, filePath, 'processing', 10, { message: '基于 VAD 时间线切段音频...' });
 
-            const vadOptions = {
+            const vadOptions: VADOptions = {
+                // 显式断言为 VADEngine，避免 TS 将字面量拓宽为 string
                 engine: 'silero',
                 activityThreshold: 0.4, // 降低阈值以提高检测灵敏度
-                silero: { frameDuration: 90, provider: 'cpu' }
+                silero: { frameDuration: 90, provider: 'cpu' as const }
             };
 
             const result = await Echogarden.detectVoiceActivity(processedAudioPath, vadOptions);
@@ -139,10 +141,10 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             let isVadMode = ranges.length > 0;
 
             if (isVadMode) {
-                this.sendProgress(taskId, filePath, 'processing', 10, { 
-                    message: `VAD 检测到 ${ranges.length} 个语音片段，正在切分音频...` 
+                this.sendProgress(taskId, filePath, 'processing', 10, {
+                    message: `VAD 检测到 ${ranges.length} 个语音片段，正在切分音频...`
                 });
-                
+
                 segmentFiles = await this.ffmpegService.splitAudioByTimeline({
                     inputFile: processedAudioPath,
                     ranges,
@@ -159,8 +161,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
             if (!isVadMode) {
                 // 回退：定长 60s 切段
-                this.sendProgress(taskId, filePath, 'processing', 10, { 
-                    message: `VAD 未检测到语音片段（共 ${ranges.length} 段），回退为 60s 定长切段...` 
+                this.sendProgress(taskId, filePath, 'processing', 10, {
+                    message: `VAD 未检测到语音片段（共 ${ranges.length} 段），回退为 60s 定长切段...`
                 });
                 segmentFiles = await this.ffmpegService.splitToAudio({
                     taskId,
@@ -243,7 +245,17 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             }
 
             const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
-            const srtContent = this.segmentsToSrt(fineSegments);
+            // 全局时间微调：字幕整体提前一点点（单位：秒，负值表示提前）
+            const SHIFT_SECONDS = -0.2;
+            const shiftedSegments = fineSegments
+                .map(s => ({
+                    start: Math.max(0, s.start + SHIFT_SECONDS),
+                    end: Math.max(0, s.end + SHIFT_SECONDS),
+                    text: s.text
+                }))
+                .filter(s => s.end > s.start);
+
+            const srtContent = this.segmentsToSrt(shiftedSegments);
             fs.writeFileSync(srtFileName, srtContent);
 
             this.sendProgress(taskId, filePath, 'completed', 100, { srtPath: srtFileName });
