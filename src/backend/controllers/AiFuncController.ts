@@ -141,7 +141,7 @@ export default class AiFuncController implements Controller {
             this.logger.info('Using local transcription service');
         } else if (openaiTranscriptionEnabled) {
             // 使用云转录服务
-            transcriptionService = this.cloudTranscriptionService;
+            transcriptionService = this.localTranscriptionService;
             serviceName = 'Cloud';
             this.logger.info('Using cloud transcription service');
         } else {

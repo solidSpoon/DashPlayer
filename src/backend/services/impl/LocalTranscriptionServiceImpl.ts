@@ -14,7 +14,7 @@ import {getMainLogger} from '@/backend/ioc/simple-logger';
 import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
 import {storeGet} from "@/backend/store";
-import {VADEngine, VADOptions} from "echogarden"; // 若路径不同请按工程实际调整
+import {VADOptions} from "echogarden";
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -61,6 +61,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             this.sendProgress(taskId, filePath, 'processing', 5, { message: '开始音频转录...' });
 
             // 音频预处理（转 16kHz MONO WAV）
+            if (this.cancelRequested) throw new Error('Transcription cancelled by user');
             this.sendProgress(taskId, filePath, 'processing', 5, { message: '音频预处理（转换为 16k WAV）...' });
             processedAudioPath = await this.ensureWavFormat(filePath);
 
@@ -70,10 +71,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             // 自动语言检测（使用 Whisper ONNX，带 VAD 裁剪）
             this.sendProgress(taskId, filePath, 'processing', 7, { message: '自动检测语音语言...' });
 
+            if (this.cancelRequested) throw new Error('Transcription cancelled by user');
             const langDetect = await Echogarden.detectSpeechLanguage(processedAudioPath, {
                 engine: 'whisper',
-                defaultLanguage: 'en',
-                fallbackThresholdProbability: 0.05,
                 crop: true,
                 vad: {
                     engine: 'silero',
@@ -82,12 +82,18 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 }
             });
 
-            const detectedLanguage = langDetect.detectedLanguage || 'en';
+            const detectedLanguage = (langDetect as any).detectedLanguage || (langDetect as any).language || 'en';
             this.sendProgress(taskId, filePath, 'processing', 9, { message: `检测到语言：${detectedLanguage}` });
 
             // 引擎选择（按配置，不做兜底）
             const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
             const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
+
+            this.logger.info('Transcription config', {
+                whisperTranscriptionEnabled,
+                openaiTranscriptionEnabled,
+            })
+
             const ak = storeGet('apiKeys.openAi.key');
             const ep = storeGet('apiKeys.openAi.endpoint');
 
@@ -100,12 +106,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             });
 
             // 临时目录
-            const folderName = objectHash(filePath);
+            // 包含 taskId，避免同一文件并发任务相互覆盖
+            const folderName = objectHash(`${filePath}::${taskId}`);
             tempFolder = path.join(LocationUtil.staticGetStoragePath(LocationType.TEMP), 'parakeet', folderName);
             await fsPromises.mkdir(tempFolder, {recursive: true});
 
             // 强制启用 VAD 时间线物理切段；若 VAD 结果为空，自动回退为定长切段，避免产出空白 SRT
             this.sendProgress(taskId, filePath, 'processing', 10, { message: '基于 VAD 时间线切段音频...' });
+
+            if (this.cancelRequested) throw new Error('Transcription cancelled by user');
 
             const vadOptions: VADOptions = {
                 // 显式断言为 VADEngine，避免 TS 将字面量拓宽为 string
@@ -192,7 +201,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 const segmentFile = segmentFiles[i];
                 const segmentDuration = await this.ffmpegService.duration(segmentFile);
 
-                const progress = 30 + ((i / segmentFiles.length) * 0.6); // 30-90%
+                // 让进度从 30% 平滑推进到 90%
+                const progress = 30 + ((i + 1) / segmentFiles.length) * 60; // 30 -> 90
                 this.sendProgress(taskId, filePath, 'processing', Math.floor(progress), { message: `转录段落 ${i + 1}/${segmentFiles.length}...` });
 
                 // 偏移采用原始音频绝对起止时间（VAD 模式），回退模式则为累积时间（已在 ranges 构造）
@@ -256,7 +266,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 .filter(s => s.end > s.start);
 
             const srtContent = this.segmentsToSrt(shiftedSegments);
-            fs.writeFileSync(srtFileName, srtContent);
+            await fsPromises.writeFile(srtFileName, srtContent);
 
             this.sendProgress(taskId, filePath, 'completed', 100, { srtPath: srtFileName });
 
@@ -304,6 +314,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const { language, whisperTranscriptionEnabled, openaiTranscriptionEnabled, openaiApiKey, openaiEndpoint } = opts;
 
         if (openaiTranscriptionEnabled && openaiApiKey) {
+            this.logger.info('Using OpenAI Cloud transcription', { language, endpoint: openaiEndpoint ? 'custom' : 'default' });
             return {
                 engine: 'openai-cloud',
                 language,
@@ -313,7 +324,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     crop: true,
                     vad: {
                         engine: 'silero',
-                        activityThreshold: 0.5,
+                        activityThreshold: 0.4,
                         silero: { frameDuration: 90, provider: 'cpu' }
                     },
                     openAICloud: {
@@ -376,7 +387,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     crop: true,
                     vad: {
                         engine: 'silero',
-                        activityThreshold: 0.5,
+                        activityThreshold: 0.4,
                         silero: { frameDuration: 90, provider: 'cpu' }
                     },
                     whisperCpp: whisperCppOptions
@@ -405,14 +416,22 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const Echogarden = await import('echogarden');
             const result = await Echogarden.recognize(segmentPath, recognitionConfig.options);
 
-            const words = (result.wordTimeline || []).map((entry: any) => ({
-                word: entry.text || '',
-                start: (entry.startTime || 0) + timeOffset,
-                end: (entry.endTime || 0) + timeOffset
-            }));
+            // 兼容不同版本/模型返回字段：wordTimeline | words | wordTimestamps
+            const rawWords =
+                (result as any).wordTimeline && Array.isArray((result as any).wordTimeline) ? (result as any).wordTimeline :
+                (result as any).words && Array.isArray((result as any).words) ? (result as any).words :
+                (result as any).wordTimestamps && Array.isArray((result as any).wordTimestamps) ? (result as any).wordTimestamps :
+                [];
+            const words = rawWords.map((entry: any) => {
+                const text = entry.text ?? entry.word ?? '';
+                const start = (entry.startTime ?? entry.start ?? 0) + timeOffset;
+                const end = (entry.endTime ?? entry.end ?? 0) + timeOffset;
+                return { word: text, start, end };
+            });
 
             return {
-                text: result.transcript || '',
+                // 兼容 transcript | text
+                text: (result as any).transcript || (result as any).text || '',
                 words
             };
         } catch (error) {
