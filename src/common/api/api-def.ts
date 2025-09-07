@@ -25,6 +25,7 @@ interface ApiDefinition {
 // 定义额外的接口
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string };
+    'ai-func/tts-local': { params: string, return: string };
     'ai-func/phrase-group': { params: string, return: number };
     'ai-func/polish': { params: string, return: number };
     'ai-func/format-split': { params: string, return: number };

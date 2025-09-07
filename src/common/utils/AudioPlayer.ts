@@ -61,9 +61,21 @@ export const getTtsUrl = async (str: string) => {
     if (audioUrl) {
         return audioUrl;
     }
-    // audioUrl = await api.aiTts(str);
+    // 优先使用本地 TTS
+    try {
+        audioUrl = await api.call('ai-func/tts-local', str);
+        getRendererLogger('AudioPlayer').debug('local tts result', { audioUrl });
+        if (!StrUtil.isBlank(audioUrl)) {
+            cache.set(str, audioUrl);
+            return audioUrl;
+        }
+    } catch (error) {
+        getRendererLogger('AudioPlayer').warn('local tts failed, fallback to cloud tts', { error });
+    }
+    
+    // 如果本地 TTS 失败，使用云端 TTS
     audioUrl = await api.call('ai-func/tts', str);
-    getRendererLogger('AudioPlayer').debug('tts result', { audioUrl });
+    getRendererLogger('AudioPlayer').debug('cloud tts result', { audioUrl });
     if (!StrUtil.isBlank(audioUrl)) {
         cache.set(str, audioUrl);
     }

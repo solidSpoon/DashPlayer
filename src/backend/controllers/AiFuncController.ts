@@ -106,6 +106,10 @@ export default class AiFuncController implements Controller {
         return UrlUtil.dp(await TtsService.tts(string));
     }
 
+    public async ttsLocal(string: string) {
+        return UrlUtil.dp(await TtsService.ttsLocal(string));
+    }
+
     public async chat({ msgs }: { msgs: CoreMessage[] }): Promise<number> {
         const taskId = await this.dpTaskService.create();
         this.chatService.chat(taskId, msgs).then();
@@ -183,7 +187,9 @@ export default class AiFuncController implements Controller {
                 return true;
             }
 
-            this.logger.warn('Failed to cancel transcription task', { filePath });
+            // 返回 false 表示任务不存在（不在本地转录服务中，也不在云转录服务中）
+            // 前端收到 false 后会更新任务状态为已取消
+            this.logger.warn('Transcription task does not exist', { filePath });
             return false;
         } catch (error) {
             this.logger.error('Error cancelling transcription task', { filePath, error });
@@ -215,6 +221,7 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/format-split', (p) => this.formatSplit(p));
         registerRoute('ai-func/phrase-group', (p) => this.phraseGroup(p));
         registerRoute('ai-func/tts', (p) => this.tts(p));
+        registerRoute('ai-func/tts-local', (p) => this.ttsLocal(p));
         registerRoute('ai-func/chat', (p) => this.chat(p));
         registerRoute('ai-func/transcript', (p) => this.transcript(p));
         registerRoute('ai-func/cancel-transcription', (p) => this.cancelTranscription(p));

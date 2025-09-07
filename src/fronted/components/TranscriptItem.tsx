@@ -85,7 +85,13 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
             if (success) {
                 logger.info('Transcription cancelled successfully', { file });
             } else {
-                logger.warn('Failed to cancel transcription', { file });
+                // 返回 false 表示任务不存在，此时前端更新任务状态为已取消
+                logger.warn('Failed to cancel transcription - task does not exist, updating status to cancelled', { file });
+                useTranscript.getState().updateTranscriptTasks([{
+                    filePath: file,
+                    status: DpTaskState.CANCELLED,
+                    result: { message: '转录任务已取消' }
+                }]);
             }
         } catch (error) {
             logger.error('Error cancelling transcription', { file, error });

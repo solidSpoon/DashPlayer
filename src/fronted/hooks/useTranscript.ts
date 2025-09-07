@@ -21,8 +21,8 @@ export type UseTranscriptState = {
 export type UseTranscriptAction = {
     onAddToQueue(p: string): void;
     onDelFromQueue(p: string): void;
-    onTranscript(p: string): Promise<number>;
-    updateTranscriptTasks: (updates: Array<{ filePath: string; taskId: number | null; status?: string; result?: any }>) => void;
+    onTranscript(p: string): Promise<void>;
+    updateTranscriptTasks: (updates: Array<{ filePath: string; status?: string; result?: any }>) => void;
 };
 
 
@@ -73,7 +73,7 @@ const useTranscript = create(
                     const newFiles = [...state.files];
                     
                     updates.forEach((update) => {
-                        const { filePath, taskId, status, result } = update;
+                        const { filePath, status, result } = update;
                         const existingIndex = newFiles.findIndex((f) => f.file === filePath);
                         
                         if (existingIndex >= 0) {
