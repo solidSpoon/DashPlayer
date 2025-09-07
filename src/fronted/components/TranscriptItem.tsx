@@ -6,8 +6,7 @@ import { DpTaskState } from '@/backend/db/tables/dpTask';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import Util from '@/common/utils/Util';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
+import useTranscript from '@/fronted/hooks/useTranscript';
 import useSWR from "swr";
 
 export interface TranscriptItemProps {
@@ -23,7 +22,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
     const [started, setStarted] = React.useState(false);
     const [cancelling, setCancelling] = React.useState(false);
     const logger = getRendererLogger('TranscriptItem');
-    const { task } = useDpTaskViewer(taskId);
+    const files = useTranscript((state) => state.files);
     const { data: fInfo } = useSWR(['system/path-info', file], ([_k, f]) => api.call('system/path-info', f), {
         fallbackData: {
             baseName: '',
@@ -31,15 +30,53 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
             extName: ''
         }
     });
+    
+    // 从 useTranscript store 获取任务信息
+    const task = files.find(f => f.file === file);
     logger.debug('task status updated', { task });
+    
+    // 同步任务状态
+    React.useEffect(() => {
+        if (task && task.status) {
+            const status = task.status as DpTaskState;
+            if (status === DpTaskState.DONE || status === DpTaskState.CANCELLED || status === DpTaskState.FAILED) {
+                setStarted(false);
+            }
+        }
+    }, [task]);
 
-    let msg = task?.progress ?? '未开始';
-    if (task?.status === DpTaskState.DONE) {
-        const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
-        const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
-        const duration = Math.floor((updatedAt - createdAt) / 1000);
-        logger.debug('task duration calculated', { duration, updatedAt: task.updated_at, createdAt: task.created_at });
-        msg = `${task.progress} ${duration}s`;
+    let msg = '未开始';
+    if (task && task.status) {
+        const status = task.status as DpTaskState;
+        switch (status) {
+            case DpTaskState.INIT:
+                msg = '初始化中...';
+                break;
+            case DpTaskState.IN_PROGRESS:
+                const progressText = typeof task.progress === 'number' ? `${task.progress}%` : (task.progress || '处理中...');
+                msg = progressText;
+                break;
+            case DpTaskState.DONE: {
+                if (task.updated_at && task.created_at) {
+                    const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
+                    const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
+                    const duration = Math.floor((updatedAt - createdAt) / 1000);
+                    logger.debug('task duration calculated', { duration, updatedAt: task.updated_at, createdAt: task.created_at });
+                    msg = `完成 ${duration}s`;
+                } else {
+                    msg = '完成';
+                }
+                break;
+            }
+            case DpTaskState.CANCELLED:
+                msg = '已取消';
+                break;
+            case DpTaskState.FAILED:
+                msg = '失败';
+                break;
+            default:
+                msg = task.progress || '未知状态';
+        }
     }
 
     // 取消转录任务
@@ -81,11 +118,12 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                         onStart();
                         setStarted(true);
                     }}
-                    disabled={Util.cmpTaskState(task, [DpTaskState.IN_PROGRESS]) || (started && task === null)}
+                    disabled={!task || (task.status as DpTaskState) === DpTaskState.IN_PROGRESS || (task.status as DpTaskState) === DpTaskState.INIT || (started && !task)}
                     size={'sm'} className={'mx-auto'}>转录</Button>
                 <Button
                     onClick={() => {
-                        if (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none'])) {
+                        const status = task?.status as DpTaskState;
+                        if (!task || !status || status === DpTaskState.DONE || status === DpTaskState.CANCELLED || status === DpTaskState.FAILED) {
                             onDelete();
                         } else {
                             handleCancelTranscription();
@@ -95,7 +133,14 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                     size={'sm'} className={'mx-auto'}
                     disabled={cancelling}>
                     {cancelling ? '取消中...' : 
-                     (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none']) ? '删除' : '取消')}
+                     (() => {
+                         const status = task?.status as DpTaskState;
+                         if (!task || !status || status === DpTaskState.DONE || status === DpTaskState.CANCELLED || status === DpTaskState.FAILED) {
+                             return '删除';
+                         } else {
+                             return '取消';
+                         }
+                     })()}
                 </Button>
             </TableCell>
         </TableRow>

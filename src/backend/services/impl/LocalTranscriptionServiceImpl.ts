@@ -15,6 +15,7 @@ import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
 import {storeGet} from "@/backend/store";
 import {VADOptions} from "echogarden";
+import {DpTaskState} from "@/backend/db/tables/dpTask";
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -57,19 +58,19 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         let tempFolder: string | null = null;
 
         try {
-            this.sendProgress(taskId, filePath, 'init', 0);
-            this.sendProgress(taskId, filePath, 'processing', 5, { message: '开始音频转录...' });
+            this.sendProgress(taskId, filePath, DpTaskState.INIT, 0);
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 5, { message: '开始音频转录...' });
 
             // 音频预处理（转 16kHz MONO WAV）
             if (this.cancelRequested) throw new Error('Transcription cancelled by user');
-            this.sendProgress(taskId, filePath, 'processing', 5, { message: '音频预处理（转换为 16k WAV）...' });
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 5, { message: '音频预处理（转换为 16k WAV）...' });
             processedAudioPath = await this.ensureWavFormat(filePath);
 
             // 动态导入 Echogarden（避免 wasm 打包问题）
             const Echogarden = await import('echogarden');
 
             // 自动语言检测（使用 Whisper ONNX，带 VAD 裁剪）
-            this.sendProgress(taskId, filePath, 'processing', 7, { message: '自动检测语音语言...' });
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 7, { message: '自动检测语音语言...' });
 
             if (this.cancelRequested) throw new Error('Transcription cancelled by user');
             const langDetect = await Echogarden.detectSpeechLanguage(processedAudioPath, {
@@ -83,7 +84,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             });
 
             const detectedLanguage = (langDetect as any).detectedLanguage || (langDetect as any).language || 'en';
-            this.sendProgress(taskId, filePath, 'processing', 9, { message: `检测到语言：${detectedLanguage}` });
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 9, { message: `检测到语言：${detectedLanguage}` });
 
             // 引擎选择（按配置，不做兜底）
             const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
@@ -112,7 +113,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             await fsPromises.mkdir(tempFolder, {recursive: true});
 
             // 强制启用 VAD 时间线物理切段；若 VAD 结果为空，自动回退为定长切段，避免产出空白 SRT
-            this.sendProgress(taskId, filePath, 'processing', 10, { message: '基于 VAD 时间线切段音频...' });
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 10, { message: '基于 VAD 时间线切段音频...' });
 
             if (this.cancelRequested) throw new Error('Transcription cancelled by user');
 
@@ -150,7 +151,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             let isVadMode = ranges.length > 0;
 
             if (isVadMode) {
-                this.sendProgress(taskId, filePath, 'processing', 10, {
+                this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 10, {
                     message: `VAD 检测到 ${ranges.length} 个语音片段，正在切分音频...`
                 });
 
@@ -170,7 +171,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
             if (!isVadMode) {
                 // 回退：定长 60s 切段
-                this.sendProgress(taskId, filePath, 'processing', 10, {
+                this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 10, {
                     message: `VAD 未检测到语音片段（共 ${ranges.length} 段），回退为 60s 定长切段...`
                 });
                 segmentFiles = await this.ffmpegService.splitToAudio({
@@ -190,7 +191,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             }
 
             // 分段转录
-            this.sendProgress(taskId, filePath, 'processing', 30, { message: `开始分段转录（共 ${segmentFiles.length} 段）...` });
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 30, { message: `开始分段转录（共 ${segmentFiles.length} 段）...` });
 
             const transcribedSegments: Array<{ start: number; end: number; text: string }> = [];
             const allWords: Array<{ word: string; start: number; end: number }> = [];
@@ -203,7 +204,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
                 // 让进度从 30% 平滑推进到 90%
                 const progress = 30 + ((i + 1) / segmentFiles.length) * 60; // 30 -> 90
-                this.sendProgress(taskId, filePath, 'processing', Math.floor(progress), { message: `转录段落 ${i + 1}/${segmentFiles.length}...` });
+                this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, Math.floor(progress), { message: `转录段落 ${i + 1}/${segmentFiles.length}...` });
 
                 // 偏移采用原始音频绝对起止时间（VAD 模式），回退模式则为累积时间（已在 ranges 构造）
                 const offset = ranges[i]?.start ?? 0;
@@ -236,7 +237,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             }
 
             // 合并结果并生成SRT
-            this.sendProgress(taskId, filePath, 'processing', 95, { message: '合并转录结果...' });
+            this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 95, { message: '合并转录结果...' });
 
             let fineSegments: Array<{ start: number; end: number; text: string }> = [];
 
@@ -268,13 +269,13 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const srtContent = this.segmentsToSrt(shiftedSegments);
             await fsPromises.writeFile(srtFileName, srtContent);
 
-            this.sendProgress(taskId, filePath, 'completed', 100, { srtPath: srtFileName });
+            this.sendProgress(taskId, filePath, DpTaskState.DONE, 100, { srtPath: srtFileName });
 
         } catch (error) {
             if (this.cancelRequested) {
-                this.sendProgress(taskId, filePath, 'cancelled', 0, { message: '转录任务已取消' });
+                this.sendProgress(taskId, filePath, DpTaskState.CANCELLED, 0, { message: '转录任务已取消' });
             } else {
-                this.sendProgress(taskId, filePath, 'failed', 0, { error: error instanceof Error ? error.message : String(error) });
+                this.sendProgress(taskId, filePath, DpTaskState.FAILED, 0, { error: error instanceof Error ? error.message : String(error) });
             }
             throw error;
         } finally {

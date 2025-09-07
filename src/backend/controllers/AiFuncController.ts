@@ -14,6 +14,7 @@ import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -120,7 +121,7 @@ export default class AiFuncController implements Controller {
             updates: [{
                 filePath,
                 taskId,
-                status: 'init',
+                status: DpTaskState.INIT,
                 progress: 0
             }]
         });
@@ -151,7 +152,7 @@ export default class AiFuncController implements Controller {
                 updates: [{
                     filePath,
                     taskId,
-                    status: 'no_service',
+                    status: DpTaskState.FAILED,
                     progress: 0,
                     result: { error: '未启用任何转录服务' }
                 }]

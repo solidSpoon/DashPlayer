@@ -2,12 +2,18 @@ import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { DpTaskState } from '@/backend/db/tables/dpTask';
 
 const api = window.electron;
 
 export interface TranscriptTask {
     file: string;
     taskId: number | null;
+    status?: DpTaskState | string;
+    progress?: number | string;
+    result?: any;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export type UseTranscriptState = {
@@ -61,30 +67,51 @@ const useTranscript = create(
                 set((state) => {
                     const newFiles = [...state.files];
                     
-                    updates.forEach(async (update) => {
+                    updates.forEach((update) => {
                         const { filePath, taskId, status, progress, result } = update;
                         const existingIndex = newFiles.findIndex((f) => f.file === filePath);
                         
                         if (existingIndex >= 0) {
                             // 更新现有任务
-                            if (taskId !== undefined) {
-                                newFiles[existingIndex] = { ...newFiles[existingIndex], taskId };
-                            }
+                            const existingTask = newFiles[existingIndex];
+                            newFiles[existingIndex] = {
+                                ...existingTask,
+                                taskId: taskId ?? existingTask.taskId,
+                                status: status ?? existingTask.status,
+                                progress: progress ?? existingTask.progress,
+                                result: result ?? existingTask.result,
+                                updated_at: new Date().toISOString()
+                            };
                         } else if (taskId !== null) {
                             // 添加新任务
-                            newFiles.push({ file: filePath, taskId });
+                            newFiles.push({ 
+                                file: filePath, 
+                                taskId, 
+                                status, 
+                                progress, 
+                                result,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString()
+                            });
                         }
                         
                         // 处理转录完成逻辑
-                        if (status === 'completed' && result?.srtPath) {
-                            await api.call('watch-history/attach-srt', {
-                                videoPath: filePath,
-                                srtPath: 'same'
-                            });
-                            await swrMutate(SWR_KEY.PLAYER_P);
-                            toast('Transcript done', {
-                                icon: '🚀'
-                            });
+                        if (status === 'done' && result?.srtPath) {
+                            // 使用 setTimeout 避免在 set 回调中执行异步操作
+                            setTimeout(async () => {
+                                try {
+                                    await api.call('watch-history/attach-srt', {
+                                        videoPath: filePath,
+                                        srtPath: 'same'
+                                    });
+                                    await swrMutate(SWR_KEY.PLAYER_P);
+                                    toast('Transcript done', {
+                                        icon: '🚀'
+                                    });
+                                } catch (error) {
+                                    console.error('Failed to attach SRT:', error);
+                                }
+                            }, 0);
                         }
                     });
                     
