@@ -12,9 +12,8 @@ import {ParakeetService} from '@/backend/services/ParakeetService';
 import SystemService from '@/backend/services/SystemService';
 import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
-import fs from 'fs';
-import path from 'path';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { TranscriptionService } from '@/backend/services/TranscriptionService';
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -41,6 +40,12 @@ export default class AiFuncController implements Controller {
 
     @inject(TYPES.SettingService)
     private settingService!: SettingService;
+
+    @inject(TYPES.CloudTranscriptionService)
+    private cloudTranscriptionService!: TranscriptionService;
+
+    @inject(TYPES.LocalTranscriptionService)
+    private localTranscriptionService!: TranscriptionService;
 
     public async analyzeNewWords(sentence: string) {
         const taskId = await this.dpTaskService.create();
@@ -107,7 +112,7 @@ export default class AiFuncController implements Controller {
     }
 
     public async transcript({ filePath }: { filePath: string }) {
-        const taskId = await this.dpTaskService.create();
+        const taskId = Date.now(); // 使用时间戳作为taskId
         this.logger.info('Transcription task started', { taskId });
 
         // 发送初始任务状态到前端
@@ -126,191 +131,22 @@ export default class AiFuncController implements Controller {
         const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
         const modelDownloaded = await this.systemService.isParakeetModelDownloaded();
 
+        let transcriptionService: TranscriptionService;
+        let serviceName = '';
+
         if (whisperEnabled && whisperTranscriptionEnabled && modelDownloaded) {
-            // 使用 Whisper 进行转录（优先本地）
-            this.logger.info('Using Whisper for transcription');
-
-            // 发送开始转录状态
-            this.systemService.callRendererApi('transcript/batch-result', {
-                updates: [{
-                    filePath,
-                    taskId,
-                    status: 'processing',
-                    progress: 10
-                }]
-            });
-
-            this.parakeetService.transcribeAudio(taskId, filePath, filePath).then(async r => {
-                // this.logger.debug('Whisper transcript result', { result: r });
-                this.logger.debug('Transcript result structure', {
-                    hasText: !!r?.text,
-                    hasSegments: !!r?.segments,
-                    hasWords: !!r?.words,
-                    hasTimestamps: !!r?.timestamps,
-                    textLength: r?.text?.length,
-                    segmentsLength: r?.segments?.length,
-                    wordsLength: r?.words?.length,
-                    timestampsLength: r?.timestamps?.length
-                });
-
-                // 生成 SRT 文件
-                if (r && r.segments && r.segments.length > 0) {
-                    this.logger.info('Generating SRT file with optimized method', {
-                        segments: r.segments.length,
-                        segmentsPreview: r.segments.slice(0, 3),
-                        wordsCount: r.words?.length || 0
-                    });
-
-                    const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
-
-                    this.logger.info('SRT file path details', {
-                        originalPath: filePath,
-                        srtFileName: srtFileName,
-                        directory: path.dirname(srtFileName),
-                        existsBefore: fs.existsSync(srtFileName)
-                    });
-
-                    try {
-                        // 检查目录是否存在
-                        const outputDir = path.dirname(srtFileName);
-                        if (!fs.existsSync(outputDir)) {
-                            this.logger.info('Creating output directory', { directory: outputDir });
-                            fs.mkdirSync(outputDir, { recursive: true });
-                        }
-
-                        // 使用优化过的generateSrtFromResult方法（避免重新转录）
-                        this.logger.info('Calling generateSrtFromResult method...');
-                        await this.parakeetService.generateSrtFromResult(taskId, filePath, srtFileName, r);
-
-                        // 检查文件是否真的被创建了
-                        const existsAfter = fs.existsSync(srtFileName);
-                        const stats = existsAfter ? fs.statSync(srtFileName) : null;
-
-                        this.logger.info('SRT file generation result', {
-                            fileName: srtFileName,
-                            existsAfter,
-                            fileSize: stats?.size,
-                            fileCreated: existsAfter && stats?.size && stats.size > 0
-                        });
-
-                        if (existsAfter && stats?.size && stats.size > 0) {
-                            // 读取SRT文件内容用于调试
-                            const srtContent = fs.readFileSync(srtFileName, 'utf8');
-                            this.logger.info('SRT file saved successfully', {
-                                fileName: srtFileName,
-                                fileSize: stats.size,
-                                contentLength: srtContent.length,
-                                firstFewLines: srtContent.split('\n').slice(0, 10)
-                            });
-
-                            // 发送完成状态到前端
-                            this.systemService.callRendererApi('transcript/batch-result', {
-                                updates: [{
-                                    filePath,
-                                    taskId,
-                                    status: 'completed',
-                                    progress: 100,
-                                    result: { srtPath: srtFileName, segments: r.segments }
-                                }]
-                            });
-                        } else {
-                            throw new Error(`SRT file was not created properly. Exists: ${existsAfter}, Size: ${stats?.size}`);
-                        }
-
-                    } catch (saveError) {
-                        this.logger.error('Failed to save SRT file', {
-                            error: saveError instanceof Error ? saveError.message : String(saveError),
-                            stack: saveError instanceof Error ? saveError.stack : undefined,
-                            fileName: srtFileName
-                        });
-
-                        // 发送错误状态到前端
-                        this.systemService.callRendererApi('transcript/batch-result', {
-                            updates: [{
-                                filePath,
-                                taskId,
-                                status: 'error',
-                                progress: 0,
-                                result: { error: `SRT generation failed: ${saveError.message}` }
-                            }]
-                        });
-                    }
-                } else {
-                    this.logger.warn('No segments found in transcription result');
-                    this.logger.debug('Available keys in result', { keys: Object.keys(r || {}) });
-
-                    // 发送无结果状态到前端
-                    this.systemService.callRendererApi('transcript/batch-result', {
-                        updates: [{
-                            filePath,
-                            taskId,
-                            status: 'no_segments',
-                            progress: 100,
-                            result: r
-                        }]
-                    });
-                }
-            }).catch(error => {
-                this.logger.error('Parakeet transcription failed', { error: error instanceof Error ? error.message : String(error) });
-
-                // 发送失败状态到前端
-                this.systemService.callRendererApi('transcript/batch-result', {
-                    updates: [{
-                        filePath,
-                        taskId,
-                        status: 'failed',
-                        progress: 0,
-                        result: { error: error.message }
-                    }]
-                });
-
-                            });
+            // 使用本地转录服务
+            transcriptionService = this.localTranscriptionService;
+            serviceName = 'Local';
+            this.logger.info('Using local transcription service');
         } else if (openaiTranscriptionEnabled) {
-            // 使用 OpenAI Whisper 进行转录
-            this.logger.info('Using OpenAI Whisper for transcription');
-
-            // 发送开始转录状态
-            this.systemService.callRendererApi('transcript/batch-result', {
-                updates: [{
-                    filePath,
-                    taskId,
-                    status: 'processing',
-                    progress: 10
-                }]
-            });
-
-            this.whisperService.transcript(taskId, filePath).then(r => {
-                this.logger.debug('Whisper transcript result', { result: r });
-
-                // 发送完成状态到前端
-                this.systemService.callRendererApi('transcript/batch-result', {
-                    updates: [{
-                        filePath,
-                        taskId,
-                        status: 'completed',
-                        progress: 100,
-                        result: r
-                    }]
-                });
-            }).catch(error => {
-                this.logger.error('OpenAI Whisper transcription failed', { error: error instanceof Error ? error.message : String(error) });
-
-                // 发送失败状态到前端
-                this.systemService.callRendererApi('transcript/batch-result', {
-                    updates: [{
-                        filePath,
-                        taskId,
-                        status: 'failed',
-                        progress: 0,
-                        result: { error: error.message }
-                    }]
-                });
-            });
+            // 使用云转录服务
+            transcriptionService = this.cloudTranscriptionService;
+            serviceName = 'Cloud';
+            this.logger.info('Using cloud transcription service');
         } else {
             // 没有启用的转录服务
             this.logger.warn('No transcription service enabled');
-
-            // 发送错误状态到前端
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
                     filePath,
@@ -320,50 +156,44 @@ export default class AiFuncController implements Controller {
                     result: { error: '未启用任何转录服务' }
                 }]
             });
+            return taskId;
+        }
 
-                    }
+        // 开始转录
+        transcriptionService.transcribe(taskId, filePath).catch(error => {
+            this.logger.error(`${serviceName} transcription failed`, { error: error instanceof Error ? error.message : String(error) });
+        });
+
         return taskId;
     }
 
     // 取消转录任务
     public async cancelTranscription({ taskId }: { taskId: number }): Promise<boolean> {
         this.logger.info('Cancelling transcription task', { taskId });
-        
+
         try {
-            const success = this.parakeetService.cancelTranscription(taskId);
-            
-            if (success) {
-                this.logger.info('Transcription task cancelled successfully', { taskId });
-                
-                // 通知前端任务已取消
-                this.systemService.callRendererApi('transcript/batch-result', {
-                    updates: [{
-                        taskId,
-                        status: 'cancelled',
-                        progress: 0,
-                        result: { message: '转录任务已取消' }
-                    }]
-                });
-            } else {
-                this.logger.warn('Failed to cancel transcription task', { taskId });
+            // 尝试取消本地转录
+            const localSuccess = this.localTranscriptionService.cancel(taskId);
+            if (localSuccess) {
+                this.logger.info('Local transcription task cancelled successfully', { taskId });
+                return true;
             }
-            
-            return success;
+
+            // 尝试取消云转录
+            const cloudSuccess = this.cloudTranscriptionService.cancel(taskId);
+            if (cloudSuccess) {
+                this.logger.info('Cloud transcription task cancelled successfully', { taskId });
+                return true;
+            }
+
+            this.logger.warn('Failed to cancel transcription task', { taskId });
+            return false;
         } catch (error) {
             this.logger.error('Error cancelling transcription task', { taskId, error });
             return false;
         }
     }
 
-    // 获取转录任务状态
-    public async getTranscriptionStatus({ taskId }: { taskId: number }): Promise<any> {
-        return this.parakeetService.getTaskStatus(taskId);
-    }
-
-    // 获取所有活跃的转录任务
-    public async getActiveTranscriptionTasks(): Promise<any[]> {
-        return this.parakeetService.getActiveTasks();
-    }
 
     public async explainSelectWithContext({ sentence, selectedWord }: { sentence: string, selectedWord: string }) {
         const taskId = await this.dpTaskService.create();
@@ -391,8 +221,6 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/chat', (p) => this.chat(p));
         registerRoute('ai-func/transcript', (p) => this.transcript(p));
         registerRoute('ai-func/cancel-transcription', (p) => this.cancelTranscription(p));
-        registerRoute('ai-func/get-transcription-status', (p) => this.getTranscriptionStatus(p));
-        registerRoute('ai-func/get-active-transcription-tasks', (p) => this.getActiveTranscriptionTasks(p));
         registerRoute('ai-func/explain-select-with-context', (p) => this.explainSelectWithContext(p));
         registerRoute('ai-func/explain-select', (p) => this.explainSelect(p));
         registerRoute('ai-func/translate-with-context', (p) => this.translateWithContext(p));

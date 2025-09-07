@@ -130,7 +130,7 @@ export class ParakeetServiceImpl implements ParakeetService {
     async transcribeAudio(taskId: number, audioPath: string, filePath?: string): Promise<TranscriptionResult> {
         // 清除之前的取消标记
         this.cancelFlags.delete(taskId);
-        
+
         // 发送开始状态
         this.systemService.callRendererApi('transcript/batch-result', {
             updates: [{
@@ -454,10 +454,6 @@ export class ParakeetServiceImpl implements ParakeetService {
             this.logger.error('Segment transcription failed', error);
             throw error;
         }
-    }
-
-    async generateSrt(taskId: number, audioPath: string, outputPath: string): Promise<void> {
-        return this.generateSrtFromResult(taskId, audioPath, outputPath, null);
     }
 
     async generateSrtFromResult(taskId: number, audioPath: string, outputPath: string, transcriptionResult: any): Promise<void> {
