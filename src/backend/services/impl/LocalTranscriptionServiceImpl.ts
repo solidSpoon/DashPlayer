@@ -19,8 +19,18 @@ import {DpTaskState} from "@/backend/db/tables/dpTask";
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
-    private currentTaskId: number | null = null;
-    private cancelRequested = false;
+    // 正在执行的任务 ID
+    private activeTaskId: number | null = null;
+
+    // 被请求取消的任务集合（按 ID 管理）
+    private cancelled = new Set<number>();
+
+    // 队列：一次只处理一个任务
+    private processing = false;
+    private queue: Array<{ taskId: number; filePath: string }> = [];
+
+    // 记录每个任务的 Promise 控制器，便于在取消/失败时回调
+    private deferred = new Map<number, { resolve: () => void; reject: (e: any) => void }>();
 
     private logger = getMainLogger('LocalTranscriptionService');
 
@@ -50,29 +60,77 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
     }
 
+    // 队列入口：仅排队任务对象，不再排队"方法"
     public async transcribe(taskId: number, filePath: string): Promise<void> {
-        this.currentTaskId = taskId;
-        this.cancelRequested = false;
+        return new Promise<void>((resolve, reject) => {
+            // 为该任务保存回调
+            this.deferred.set(taskId, { resolve, reject });
+
+            // 将任务加入队列
+            this.queue.push({ taskId, filePath });
+
+            // 如果当前已在处理任务，则提示排队
+            if (this.processing || this.activeTaskId !== null || this.queue.length > 1) {
+                this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 0, {
+                    message: '已加入队列，等待前一个文件转录完成...'
+                });
+            }
+
+            // 触发队列处理
+            this.pump().catch(err => this.logger.error('pump failed', { err }));
+        });
+    }
+
+    // 队列调度器：一次只处理一个任务
+    private async pump(): Promise<void> {
+        if (this.processing) return;
+
+        const next = this.queue.shift();
+        if (!next) return;
+
+        this.processing = true;
+        const { taskId, filePath } = next;
+
+        try {
+            await this.doTranscribe(taskId, filePath);
+            this.deferred.get(taskId)?.resolve();
+        } catch (e) {
+            this.deferred.get(taskId)?.reject(e);
+        } finally {
+            this.deferred.delete(taskId);
+            this.cancelled.delete(taskId); // 清理取消标记
+            this.processing = false;
+
+            // 继续下一个
+            await this.pump();
+        }
+    }
+
+    // doTranscribe：使用按 ID 的取消检查，去掉全局布尔
+    private async doTranscribe(taskId: number, filePath: string): Promise<void> {
+        this.activeTaskId = taskId;
 
         let processedAudioPath: string | null = null;
         let tempFolder: string | null = null;
 
         try {
+            // 开始
             this.sendProgress(taskId, filePath, DpTaskState.INIT, 0);
+            if (this.isCancelled(taskId)) throw new Error('Transcription cancelled by user');
+
             this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 5, { message: '开始音频转录...' });
 
-            // 音频预处理（转 16kHz MONO WAV）
-            if (this.cancelRequested) throw new Error('Transcription cancelled by user');
+            // 预处理
+            if (this.isCancelled(taskId)) throw new Error('Transcription cancelled by user');
             this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 5, { message: '音频预处理（转换为 16k WAV）...' });
             processedAudioPath = await this.ensureWavFormat(filePath);
 
             // 动态导入 Echogarden（避免 wasm 打包问题）
             const Echogarden = await import('echogarden');
 
-            // 自动语言检测（使用 Whisper ONNX，带 VAD 裁剪）
+            // 自动语言检测
+            if (this.isCancelled(taskId)) throw new Error('Transcription cancelled by user');
             this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 7, { message: '自动检测语音语言...' });
-
-            if (this.cancelRequested) throw new Error('Transcription cancelled by user');
             const langDetect = await Echogarden.detectSpeechLanguage(processedAudioPath, {
                 engine: 'whisper',
                 crop: true,
@@ -112,13 +170,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             tempFolder = path.join(LocationUtil.staticGetStoragePath(LocationType.TEMP), 'parakeet', folderName);
             await fsPromises.mkdir(tempFolder, {recursive: true});
 
-            // 强制启用 VAD 时间线物理切段；若 VAD 结果为空，自动回退为定长切段，避免产出空白 SRT
+            // VAD 切段
+            if (this.isCancelled(taskId)) throw new Error('Transcription cancelled by user');
             this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 10, { message: '基于 VAD 时间线切段音频...' });
 
-            if (this.cancelRequested) throw new Error('Transcription cancelled by user');
-
             const vadOptions: VADOptions = {
-                // 显式断言为 VADEngine，避免 TS 将字面量拓宽为 string
                 engine: 'silero',
                 activityThreshold: 0.4, // 降低阈值以提高检测灵敏度
                 silero: { frameDuration: 90, provider: 'cpu' as const }
@@ -197,7 +253,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const allWords: Array<{ word: string; start: number; end: number }> = [];
 
             for (let i = 0; i < segmentFiles.length; i++) {
-                if (this.cancelRequested) throw new Error('Transcription cancelled by user');
+                if (this.isCancelled(taskId)) throw new Error('Transcription cancelled by user');
 
                 const segmentFile = segmentFiles[i];
                 const segmentDuration = await this.ffmpegService.duration(segmentFile);
@@ -236,7 +292,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 }
             }
 
-            // 合并结果并生成SRT
+            // 合并结果并生成 SRT
+            if (this.isCancelled(taskId)) throw new Error('Transcription cancelled by user');
             this.sendProgress(taskId, filePath, DpTaskState.IN_PROGRESS, 95, { message: '合并转录结果...' });
 
             let fineSegments: Array<{ start: number; end: number; text: string }> = [];
@@ -272,18 +329,18 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             this.sendProgress(taskId, filePath, DpTaskState.DONE, 100, { srtPath: srtFileName });
 
         } catch (error) {
-            if (this.cancelRequested) {
+            if (this.isCancelled(taskId)) {
                 this.sendProgress(taskId, filePath, DpTaskState.CANCELLED, 0, { message: '转录任务已取消' });
             } else {
                 this.sendProgress(taskId, filePath, DpTaskState.FAILED, 0, { error: error instanceof Error ? error.message : String(error) });
             }
             throw error;
         } finally {
-            this.currentTaskId = null;
-            this.cancelRequested = false;
+            this.activeTaskId = null;
 
             // 清理临时文件
             try {
+                // processedAudioPath 可能为同一路径（已转 WAV），谨慎删除
                 if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
                 if (tempFolder) await fsPromises.rm(tempFolder, {recursive: true, force: true});
             } catch (cleanupError) {
@@ -292,12 +349,36 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         }
     }
 
+    // 取消逻辑：按 ID 取消，既可取消当前任务，也可取消排队中的任务
     public cancel(taskId: number): boolean {
-        if (this.currentTaskId === taskId) {
-            this.cancelRequested = true;
+        // 标记为已取消
+        this.cancelled.add(taskId);
+
+        // 如果在排队中，直接移出队列并回调
+        const idx = this.queue.findIndex(it => it.taskId === taskId);
+        if (idx >= 0) {
+            const item = this.queue.splice(idx, 1)[0];
+            try {
+                this.sendProgress(taskId, item.filePath, DpTaskState.CANCELLED, 0, { message: '转录任务已取消（尚未开始）' });
+            } catch {
+                //
+            }
+            this.deferred.get(taskId)?.reject(new Error('Transcription cancelled by user'));
+            this.deferred.delete(taskId);
+            this.cancelled.delete(taskId);
             return true;
         }
+
+        // 如果是当前任务，doTranscribe 会在检查点自行退出
+        if (this.activeTaskId === taskId) {
+            return true;
+        }
+
         return false;
+    }
+
+    private isCancelled(taskId: number): boolean {
+        return this.cancelled.has(taskId);
     }
 
     // 按配置构建识别参数（本地 whisper.cpp 或 OpenAI 云端）
@@ -420,9 +501,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             // 兼容不同版本/模型返回字段：wordTimeline | words | wordTimestamps
             const rawWords =
                 (result as any).wordTimeline && Array.isArray((result as any).wordTimeline) ? (result as any).wordTimeline :
-                (result as any).words && Array.isArray((result as any).words) ? (result as any).words :
-                (result as any).wordTimestamps && Array.isArray((result as any).wordTimestamps) ? (result as any).wordTimestamps :
-                [];
+                    (result as any).words && Array.isArray((result as any).words) ? (result as any).words :
+                        (result as any).wordTimestamps && Array.isArray((result as any).wordTimestamps) ? (result as any).wordTimestamps :
+                            [];
             const words = rawWords.map((entry: any) => {
                 const text = entry.text ?? entry.word ?? '';
                 const start = (entry.startTime ?? entry.start ?? 0) + timeOffset;
@@ -466,7 +547,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     end: isFinite(end) ? Math.max(0, end + padAfter) : NaN
                 };
             })
-            .filter(seg => Number.isFinite(seg.start) && Number.isFinite(seg.end) && seg.end > seg.start);
+                .filter(seg => Number.isFinite(seg.start) && Number.isFinite(seg.end) && seg.end > seg.start);
         };
 
         // 1) timeline 本身是数组
