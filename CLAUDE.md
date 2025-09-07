@@ -86,6 +86,23 @@ yarn make       # 构建应用
 - 布局状态: useLayout
 - 设置状态: useSetting
 
+### 日志系统
+**必须使用统一日志系统，禁止使用 console.log**
+
+#### 后端日志
+```typescript
+import { getMainLogger } from '@/backend/ioc/simple-logger';
+const logger = getMainLogger('module-name');
+logger.debug('message', { data });
+```
+
+#### 前端日志
+```typescript
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+const logger = getRendererLogger('module-name');
+logger.debug('message', { data });
+```
+
 ## API开发规范
 
 ### 重要提醒 ⚠️

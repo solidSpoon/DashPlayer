@@ -48,15 +48,6 @@ const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
         const cleanWord = str.toLowerCase().replace(/[^\w]/g, '');
         const isVocab = cleanWord && isVocabularyWord(cleanWord);
         
-        // 添加调试信息
-        if (isVocab) {
-            console.log('🎯 VOCABULARY WORD IN SIDEBAR:', { 
-                original: str, 
-                cleanWord, 
-                isVocab 
-            });
-        }
-        
         return (
             <span 
                 key={key}

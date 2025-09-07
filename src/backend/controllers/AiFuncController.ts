@@ -151,7 +151,7 @@ export default class AiFuncController implements Controller {
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
                     filePath,
-                    0,
+                    taskId: 0,
                     status: DpTaskState.FAILED,
                     result: { error: '未启用任何转录服务' }
                 }]

@@ -56,15 +56,6 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     // 检查是否是词汇单词
     const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
     const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
-    
-    // 调试信息
-    if (isVocabularyWord) {
-        console.log('🎯 VOCABULARY WORD IN ENGLISH SUBTITLE:', { 
-            original: word, 
-            cleanWord, 
-            isVocabularyWord 
-        });
-    }
     const {data: ydResp, isLoading: isWordLoading, mutate} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', { word, forceRefresh: false }));
 
     logger.debug('word loading status', { isWordLoading, hasYdResponse: !!ydResp });

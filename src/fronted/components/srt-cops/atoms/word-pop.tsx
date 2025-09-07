@@ -38,14 +38,6 @@ const WordPop = React.forwardRef(
         // 检查是否是词汇单词
         const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
         const isVocab = cleanWord && isVocabularyWord(cleanWord);
-        
-        if (isVocab) {
-            console.log('🎯 VOCABULARY WORD IN WORDPOP:', { 
-                original: word, 
-                cleanWord, 
-                isVocab 
-            });
-        }
 
         const { refs, floatingStyles, context } = useFloating({
             middleware: [

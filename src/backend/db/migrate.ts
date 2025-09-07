@@ -1,6 +1,7 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import db, { clearDB } from './db';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 const isDev = process.env.NODE_ENV === 'development';
 const config = {
@@ -13,15 +14,17 @@ const runMigrate = async () => {
     try {
         migrate(db, config);
     } catch (error) {
-        console.log('run migrate failed, clear db and retry');
+        const logger = getMainLogger('db-migrate');
+        logger.error('run migrate failed, clear db and retry', error);
         await clearDB();
         migrate(db, config);
     }
 }
 
-console.log('runMigrate', config);
-console.log('runMigrate', process.resourcesPath);
+const logger = getMainLogger('db-migrate');
+logger.debug('runMigrate config', config);
+logger.debug('runMigrate resourcesPath', process.resourcesPath);
 fs.readdirSync(config.migrationsFolder).forEach((file) => {
-    console.log('file', file);
+    logger.debug('migration file', file);
 });
 export default runMigrate;

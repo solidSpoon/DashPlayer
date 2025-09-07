@@ -33,11 +33,12 @@ const levelOrder: Record<SimpleLevel, number> = {
 let CURRENT_LEVEL: SimpleLevel = (process.env.DP_LOG_LEVEL as SimpleLevel) || 'debug';
 
 // 启动时输出当前日志级别
-console.log('=== LOGGER INIT ===');
-console.log('DP_LOG_LEVEL env:', process.env.DP_LOG_LEVEL);
-console.log('CURRENT_LEVEL:', CURRENT_LEVEL);
-console.log('levelOrder debug:', levelOrder.debug);
-console.log('levelOrder info:', levelOrder.info);
+const initLogger = getMainLogger('logger-init');
+initLogger.debug('=== LOGGER INIT ===');
+initLogger.debug('DP_LOG_LEVEL env:', process.env.DP_LOG_LEVEL);
+initLogger.debug('CURRENT_LEVEL:', CURRENT_LEVEL);
+initLogger.debug('levelOrder debug:', levelOrder.debug);
+initLogger.debug('levelOrder info:', levelOrder.info);
 
 // 测试日志输出
 const testLogger = getMainLogger('logger-test');
@@ -50,10 +51,27 @@ export function setLogLevel(lv: SimpleLevel) {
 
 function writeJsonl(e: SimpleEvent) {
   try {
-    log.log(JSON.stringify(e));
+    // 根据日志级别使用对应的方法
+    switch (e.level) {
+      case 'debug':
+        log.debug(JSON.stringify(e));
+        break;
+      case 'info':
+        log.info(JSON.stringify(e));
+        break;
+      case 'warn':
+        log.warn(JSON.stringify(e));
+        break;
+      case 'error':
+        log.error(JSON.stringify(e));
+        break;
+      default:
+        log.log(JSON.stringify(e));
+    }
   } catch (err) {
     // 兜底
-    console.error('writeJsonl failed', err);
+    const errorLogger = getMainLogger('logger-write');
+    errorLogger.error('writeJsonl failed', err);
   }
 }
 
@@ -63,7 +81,8 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) 
   
   // 调试：输出日志过滤决策
   if (msg.includes('=== LOGGER INIT') || msg.includes('SRT GENERATION') || msg.includes('DTW Word-level')) {
-    console.log(`LOG FILTER DEBUG: level=${level}(${levelNum}), current=${CURRENT_LEVEL}(${currentNum}), pass=${levelNum >= currentNum}`);
+    const debugLogger = getMainLogger('logger-debug');
+    debugLogger.debug(`LOG FILTER DEBUG: level=${level}(${levelNum}), current=${CURRENT_LEVEL}(${currentNum}), pass=${levelNum >= currentNum}`);
   }
   
   if (levelNum < currentNum) return;
@@ -100,7 +119,8 @@ export function pruneOldLogs(days = 14) {
       if (now - st.mtimeMs > keepMs) fs.unlinkSync(full);
     });
   } catch (e) {
-    console.error('pruneOldLogs error', e);
+    const errorLogger = getMainLogger('logger-prune');
+    errorLogger.error('pruneOldLogs error', e);
   }
 }
 
