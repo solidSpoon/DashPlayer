@@ -63,11 +63,11 @@ import SettingsController from '@/backend/controllers/SettingsController';
 import { OpenAIServiceImpl } from '@/backend/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import AiProviderService from '@/backend/services/AiProviderService';
-import {ParakeetService} from '@/backend/services/ParakeetService';
-import ParakeetServiceImpl from '@/backend/services/impl/ParakeetServiceImpl';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
 import { CloudTranscriptionServiceImpl } from '@/backend/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/services/impl/LocalTranscriptionServiceImpl';
+import {WordMatchService} from '@/backend/services/WordMatchService';
+import WordMatchServiceImpl from '@/backend/services/impl/WordMatchServiceImpl';
 
 
 const container = new Container();
@@ -112,7 +112,7 @@ container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingleto
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
-container.bind<ParakeetService>(TYPES.ParakeetService).to(ParakeetServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.CloudTranscriptionService).to(CloudTranscriptionServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
+container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 export default container;

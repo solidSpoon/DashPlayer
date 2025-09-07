@@ -12,6 +12,7 @@ import useCopyModeController from '../../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/Eb';
+import useVocabulary from '../../../hooks/useVocabulary';
 
 const api = window.electron;
 const logger = getRendererLogger('Word');
@@ -47,9 +48,23 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const pause = usePlayerController((s) => s.pause);
+    const vocabularyStore = useVocabulary();
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // 检查是否是词汇单词
+    const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+    const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
+    
+    // 调试信息
+    if (isVocabularyWord) {
+        console.log('🎯 VOCABULARY WORD IN ENGLISH SUBTITLE:', { 
+            original: word, 
+            cleanWord, 
+            isVocabularyWord 
+        });
+    }
     const {data: ydResp, isLoading: isWordLoading, mutate} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', { word, forceRefresh: false }));
 
     logger.debug('word loading status', { isWordLoading, hasYdResponse: !!ydResp });
@@ -172,7 +187,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                         className={cn(
                             'rounded select-none',
                             !show && ['text-transparent', Style.word_hover_bg],
-                            alwaysDark ? 'hover:bg-neutral-600' : 'hover:bg-stone-100 dark:hover:bg-neutral-600'
+                            alwaysDark ? 'hover:bg-neutral-600' : 'hover:bg-stone-100 dark:hover:bg-neutral-600',
+                            isVocabularyWord && '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
                         )}
                         onMouseLeave={() => {
                             setHovered(false);

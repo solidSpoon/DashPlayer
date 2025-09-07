@@ -10,6 +10,7 @@ import {cn} from "@/fronted/lib/utils";
 import OpenAIWordPop from './openai-word-pop';
 import useSetting from '@/fronted/hooks/useSetting';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import useVocabulary from '@/fronted/hooks/useVocabulary';
 
 const logger = getRendererLogger('WordPop');
 
@@ -31,6 +32,20 @@ const WordPop = React.forwardRef(
         const setting = useSetting((state) => state.setting);
         const openaiDictionaryEnabled = setting('services.openai.enableDictionary') === 'true';
         const youdaoDictionaryEnabled = setting('services.youdao.enableDictionary') === 'true';
+        const vocabularyStore = useVocabulary();
+        const isVocabularyWord = vocabularyStore.isVocabularyWord;
+        
+        // 检查是否是词汇单词
+        const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+        const isVocab = cleanWord && isVocabularyWord(cleanWord);
+        
+        if (isVocab) {
+            console.log('🎯 VOCABULARY WORD IN WORDPOP:', { 
+                original: word, 
+                cleanWord, 
+                isVocab 
+            });
+        }
 
         const { refs, floatingStyles, context } = useFloating({
             middleware: [
@@ -123,7 +138,11 @@ const WordPop = React.forwardRef(
             <>
                 <div
                     ref={refs.setReference}
-                    className={cn('rounded select-none z-50 focus:outline-none', hoverColor)}
+                    className={cn(
+                        'rounded select-none z-50 focus:outline-none', 
+                        hoverColor,
+                        isVocab && '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
+                    )}
                     role="button"
                     tabIndex={0}
                     {...getReferenceProps()}

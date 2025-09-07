@@ -37,12 +37,23 @@ interface TranscriptRendererDef {
     };
 }
 
+// 词汇匹配相关的前端API定义
+interface VocabularyRendererDef {
+    'vocabulary/match-result': { 
+        params: { 
+            vocabularyWords: string[]; // 未还原的复数等形态的单词数组
+        }, 
+        return: void 
+    };
+}
+
 
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
     & UIRendererDef
     & TranslationRendererDef
-    & TranscriptRendererDef;
+    & TranscriptRendererDef
+    & VocabularyRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;

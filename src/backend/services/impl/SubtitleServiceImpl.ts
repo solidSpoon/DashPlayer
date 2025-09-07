@@ -15,6 +15,8 @@ import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import hash from 'object-hash';
+import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService';
+import SystemService from '@/backend/services/SystemService';
 
 // 生成翻译key的工具函数 - hash(附近三行)
 function generateTranslationKey(sentences: Sentence[], centerIndex: number): string {
@@ -60,6 +62,10 @@ export class SubtitleServiceImpl implements SubtitleService {
     private srtTimeAdjustService!: SrtTimeAdjustService;
     @inject(TYPES.CacheService)
     private cacheService!: CacheService;
+    @inject(TYPES.WordMatchService)
+    private wordMatchService!: WordMatchService;
+    @inject(TYPES.SystemService)
+    private systemService!: SystemService;
 
     public async parseSrt(path: string): Promise<SrtSentence> {
         if (!fs.existsSync(path)) {
@@ -71,6 +77,10 @@ export class SubtitleServiceImpl implements SubtitleService {
         const cache = this.cacheService.get('cache:srt', hashKey);
         if (cache) {
             const adjustedSentence = await this.adjustTime(cache.sentences, hashKey);
+            // 异步调用单词匹配，不阻塞返回
+            this.processVocabularyMatching(cache.sentences).catch(error => {
+                logger.error('Error processing vocabulary matching from cache:', error);
+            });
             return {
                 fileHash: hashKey,
                 filePath: path,
@@ -107,10 +117,53 @@ export class SubtitleServiceImpl implements SubtitleService {
         };
         this.cacheService.set('cache:srt', hashKey, res);
         const adjustedSentence = await this.adjustTime(subtitles, hashKey);
+
+        // 异步调用单词匹配，不阻塞返回
+        this.processVocabularyMatching(adjustedSentence).catch(error => {
+            logger.error('Error processing vocabulary matching:', error);
+        });
+
         return {
             ...res,
             sentences: adjustedSentence
         };
+    }
+
+    private async processVocabularyMatching(sentences: Sentence[]): Promise<void> {
+        try {
+            // 检查sentences是否有效
+            if (!sentences || sentences.length === 0) {
+                logger.debug('No sentences to process for vocabulary matching');
+                return;
+            }
+
+            // 过滤掉空的文本
+            const validTexts = sentences
+                .map(s => s?.text)
+                .filter(text => text && typeof text === 'string' && text.trim().length > 0);
+
+            if (validTexts.length === 0) {
+                logger.debug('No valid texts to process for vocabulary matching');
+                return;
+            }
+
+            const allText = validTexts.join(' ');
+            const matchedWords = await this.wordMatchService.matchWordsInText(allText);
+
+            logger.debug('matched words', matchedWords);
+            if (matchedWords && matchedWords.length > 0) {
+                const vocabularyWords = matchedWords.map(mw => mw.original.toLowerCase());
+                if (vocabularyWords.length > 0) {
+                    await this.systemService.callRendererApi('vocabulary/match-result', { vocabularyWords });
+                    logger.info(`Vocabulary matching completed: ${vocabularyWords.length} words found`);
+                    logger.debug('Vocabulary words being sent to frontend:', { vocabularyWords });
+                }
+            } else {
+                logger.debug('No vocabulary words matched');
+            }
+        } catch (error) {
+            logger.error('Error in vocabulary matching:', error);
+        }
     }
 
 

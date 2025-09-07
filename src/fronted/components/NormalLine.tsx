@@ -2,6 +2,7 @@ import {ReactElement} from 'react';
 import usePlayerController from '../hooks/usePlayerController';
 import {cn} from "@/fronted/lib/utils";
 import useSetting from '../hooks/useSetting';
+import useVocabulary from '../hooks/useVocabulary';
 import Style, {FONT_SIZE} from '../styles/style';
 import hash from "object-hash";
 
@@ -21,6 +22,9 @@ export const SPLIT_REGEX =
 const NormalLine = ({text, order}: NormalLineParam) => {
     const show = usePlayerController((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
+    const vocabularyStore = useVocabulary();
+    const isVocabularyWord = vocabularyStore.isVocabularyWord;
+    
     if (text === undefined) {
         return <div/>;
     }
@@ -42,10 +46,14 @@ const NormalLine = ({text, order}: NormalLineParam) => {
         });
 
     const word = (str: string, key: string): ReactElement => {
+        const cleanWord = str.toLowerCase().replace(/[^\w]/g, '');
+        const isVocab = cleanWord && isVocabularyWord(cleanWord);
+        
         return (
             <span
                 className={cn(
-                    !show && ['text-transparent rounded', Style.word_hover_normal_line_bg]
+                    !show && ['text-transparent rounded', Style.word_hover_normal_line_bg],
+                    isVocab && 'font-bold text-yellow-600 dark:text-yellow-400 underline decoration-yellow-600 dark:decoration-yellow-400 decoration-1'
                 )}
                 key={key}
             >

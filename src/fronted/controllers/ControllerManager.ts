@@ -7,6 +7,7 @@ import RendererController, { ControllerRegistry } from '@/fronted/interfaces/Ren
 import { UIController } from './UIController';
 import { TranslationController } from './TranslationController';
 import { TranscriptionController } from './TranscriptionController';
+import { VocabularyController } from './VocabularyController';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 class ControllerManager {
@@ -38,6 +39,7 @@ class ControllerManager {
         this.registerController(new UIController());
         this.registerController(new TranslationController());
         this.registerController(new TranscriptionController());
+        this.registerController(new VocabularyController());
         
         this.logger.info('Controllers registered', { count: this.controllers.length });
     }

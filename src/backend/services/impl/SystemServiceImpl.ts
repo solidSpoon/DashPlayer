@@ -177,19 +177,7 @@ export default class SystemServiceImpl implements SystemService {
         }
     }
 
-    public async isParakeetModelDownloaded(): Promise<boolean> {
-        const modelDir = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'whisper-asr');
-        const modelFile = path.join(modelDir, 'ggml-base.bin');
-        const binaryFile = path.join(modelDir, process.platform === 'win32' ? 'whisper.exe' : (process.platform === 'darwin' ? 'whisper-cli' : 'whisper'));
-        
-        try {
-            return await fs.access(modelFile).then(() => true) &&
-                   await fs.access(binaryFile).then(() => true);
-        } catch {
-            return false;
-        }
-    }
-
+    
     @postConstruct()
     init() {
         PathUtil.SEPARATOR = path.sep;

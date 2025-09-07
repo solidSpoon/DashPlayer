@@ -2,6 +2,7 @@ import { ReactElement } from 'react';
 import {cn} from "@/fronted/lib/utils";
 import usePlayerController from "@/fronted/hooks/usePlayerController";
 import useSetting from "@/fronted/hooks/useSetting";
+import useVocabulary from "@/fronted/hooks/useVocabulary";
 import {FONT_SIZE} from "@/fronted/styles/style";
 import hash from "object-hash";
 
@@ -20,6 +21,9 @@ export const SPLIT_REGEX =
 const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
     const show = usePlayerController((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
+    const vocabularyStore = useVocabulary();
+    const isVocabularyWord = vocabularyStore.isVocabularyWord;
+    
     if (text === undefined || !show) {
         return <div />;
     }
@@ -41,7 +45,28 @@ const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
         });
 
     const word = (str: string, key: string): ReactElement => {
-        return <span key={key}>{str}</span>;
+        const cleanWord = str.toLowerCase().replace(/[^\w]/g, '');
+        const isVocab = cleanWord && isVocabularyWord(cleanWord);
+        
+        // 添加调试信息
+        if (isVocab) {
+            console.log('🎯 VOCABULARY WORD IN SIDEBAR:', { 
+                original: str, 
+                cleanWord, 
+                isVocab 
+            });
+        }
+        
+        return (
+            <span 
+                key={key}
+                className={cn(
+                    isVocab && '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
+                )}
+            >
+                {str}
+            </span>
+        );
     };
 
     const notWord = (str: string, key: string): ReactElement => {

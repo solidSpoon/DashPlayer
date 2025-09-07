@@ -22,10 +22,10 @@ const TYPES = {
     TranslateService: Symbol('TranslateService'),
     WatchHistoryService: Symbol('WatchHistoryService'),
     OpenAiService: Symbol('OpenAiService'),
-    ParakeetService: Symbol('ParakeetService'),
     CloudTranscriptionService: Symbol('CloudTranscriptionService'),
     LocalTranscriptionService: Symbol('LocalTranscriptionService'),
-      // Clients
+    WordMatchService: Symbol('WordMatchService'),
+    // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),

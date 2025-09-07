@@ -8,6 +8,7 @@ import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
 import { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/hooks/useTranslation';
+import useVocabulary from '../hooks/useVocabulary';
 
 interface SideSentenceNewParam {
     sentence: Sentence;
@@ -15,6 +16,16 @@ interface SideSentenceNewParam {
     isCurrent: boolean;
     isRepeat: boolean;
 }
+
+interface Part {
+    content: string;
+    isWord: boolean;
+    id: string;
+    isVocab?: boolean | "";
+}
+
+export const SPLIT_REGEX =
+    /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 
 const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) => {
     return (
@@ -111,13 +122,58 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 return state.showEn
             }
         });
+        const vocabularyStore = useVocabulary();
+        const isVocabularyWord = vocabularyStore.isVocabularyWord;
+        
         const icon = () => {
             if (playing) {
                 return isRepeat ? <RepeatPlayingIcon /> : <PlayingIcon />;
             } else {
                 return ap ? <AutoPausingIcon /> : <NormalPausingIcon />;
             }
+        };
 
+        // 分割文本为单词和非单词部分
+        const splitText = (text: string): Part[] => {
+            const isWord = (str: string): boolean => {
+                const noWordRegex = /[^A-Za-z0-9-\u4e00-\u9fa5]/;
+                return !noWordRegex.test(str);
+            };
+            
+            const textHash = Math.random().toString(36).substr(2, 9);
+            return text
+                .replace(/\s+/g, ' ')
+                .split(SPLIT_REGEX)
+                .filter((w) => w)
+                .map((w, index) => {
+                    const cleanWord = w.toLowerCase().replace(/[^\w]/g, '');
+                    return {
+                        content: w,
+                        isWord: isWord(w),
+                        id: `${textHash}:${index}`,
+                        isVocab: cleanWord && isVocabularyWord(cleanWord)
+                    };
+                });
+        };
+
+        // 渲染带高亮的文本
+        const renderHighlightedText = (text: string) => {
+            const parts = splitText(text);
+            return parts.map((part) => {
+                if (part.isVocab) {
+                    return (
+                        <span
+                            key={part.id}
+                            className={cn(
+                                '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
+                            )}
+                        >
+                            {part.content}
+                        </span>
+                    );
+                }
+                return <span key={part.id}>{part.content}</span>;
+            });
         };
 
         return (
@@ -130,7 +186,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     'hover:bg-stone-100 dark:hover:bg-neutral-600',
                     !show && 'transition-colors duration-500',
                     fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                    isFavourite && 'text-yellow-500 dark:text-yellow-300',
+                    isFavourite && 'text-yellow-500 dark:text-yellow-300'
                 )}
                 onClick={() => {
                     onClick(sentence);
@@ -164,7 +220,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     animate={{ opacity: hover || show ? 1 : 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    {s ?? ''}
+                    {renderHighlightedText(s ?? '')}
                 </motion.div>
             </div>
         );

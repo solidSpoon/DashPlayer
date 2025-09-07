@@ -8,7 +8,6 @@ import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import WhisperService from '@/backend/services/WhisperService';
-import {ParakeetService} from '@/backend/services/ParakeetService';
 import SystemService from '@/backend/services/SystemService';
 import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
@@ -33,8 +32,6 @@ export default class AiFuncController implements Controller {
     @inject(TYPES.WhisperService)
     private whisperService!: WhisperService;
 
-    @inject(TYPES.ParakeetService)
-    private parakeetService!: ParakeetService;
 
     @inject(TYPES.SystemService)
     private systemService!: SystemService;
@@ -133,7 +130,7 @@ export default class AiFuncController implements Controller {
         const whisperEnabled = await this.settingService.get('whisper.enabled') === 'true';
         const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
         const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
-        const modelDownloaded = await this.systemService.isParakeetModelDownloaded();
+        const modelDownloaded = false;
 
         let transcriptionService: TranscriptionService;
         let serviceName = '';
@@ -154,7 +151,7 @@ export default class AiFuncController implements Controller {
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
                     filePath,
-                    taskId,
+                    0,
                     status: DpTaskState.FAILED,
                     result: { error: '未启用任何转录服务' }
                 }]

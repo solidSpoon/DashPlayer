@@ -6,7 +6,6 @@ import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/services/SettingService';
 import LocationService from '@/backend/services/LocationService';
 import FileUtil from '@/backend/utils/FileUtil';
-import {ParakeetService} from '@/backend/services/ParakeetService';
 import SystemService from '@/backend/services/SystemService';
 import {getMainLogger} from '@/backend/ioc/simple-logger';
 
@@ -14,8 +13,7 @@ import {getMainLogger} from '@/backend/ioc/simple-logger';
 export default class StorageController implements Controller {
     @inject(TYPES.SettingService) private settingService!: SettingService;
     @inject(TYPES.LocationService) private locationService!: LocationService;
-    @inject(TYPES.ParakeetService) private parakeetService!: ParakeetService;
-    @inject(TYPES.SystemService) private systemService!: SystemService;
+        @inject(TYPES.SystemService) private systemService!: SystemService;
     private logger = getMainLogger('StorageController');
 
     public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
