@@ -11,14 +11,13 @@ import useSWR from "swr";
 
 export interface TranscriptItemProps {
     file: string;
-    taskId: number | null;
     onStart: () => void;
     onDelete: () => void;
 }
 
 const api = window.electron;
 
-const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps) => {
+const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
     const [started, setStarted] = React.useState(false);
     const [cancelling, setCancelling] = React.useState(false);
     const logger = getRendererLogger('TranscriptItem');
@@ -80,18 +79,16 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
 
     // 取消转录任务
     const handleCancelTranscription = async () => {
-        if (!taskId) return;
-        
         setCancelling(true);
         try {
-            const success = await api.call('ai-func/cancel-transcription', { taskId });
+            const success = await api.call('ai-func/cancel-transcription', { filePath: file });
             if (success) {
-                logger.info('Transcription cancelled successfully', { taskId });
+                logger.info('Transcription cancelled successfully', { file });
             } else {
-                logger.warn('Failed to cancel transcription', { taskId });
+                logger.warn('Failed to cancel transcription', { file });
             }
         } catch (error) {
-            logger.error('Error cancelling transcription', { taskId, error });
+            logger.error('Error cancelling transcription', { file, error });
         } finally {
             setCancelling(false);
         }

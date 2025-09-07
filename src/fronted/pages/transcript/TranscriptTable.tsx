@@ -33,7 +33,6 @@ const TranscriptTable = () => {
                     <TranscriptItem
                         key={f.file}
                         file={f.file}
-                        taskId={f.taskId}
                         onStart={() => {
                             onTranscript(f.file);
                         }}

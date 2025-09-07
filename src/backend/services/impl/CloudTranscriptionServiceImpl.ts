@@ -49,7 +49,7 @@ const EXPIRATION_THRESHOLD = 3 * 60 * 60 * 1000;
 
 @injectable()
 export class CloudTranscriptionServiceImpl implements TranscriptionService {
-    private currentTaskId: number | null = null;
+    private currentFilePath: string | null = null;
     private cancelRequested = false;
 
     @inject(TYPES.FfmpegService)
@@ -78,13 +78,13 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
         });
     }
 
-    public async transcribe(taskId: number, filePath: string): Promise<void> {
-        this.currentTaskId = taskId;
+    public async transcribe(filePath: string): Promise<void> {
+        this.currentFilePath = filePath;
         this.cancelRequested = false;
 
         try {
-            this.sendProgress(taskId, filePath, 'init', 0);
-            this.sendProgress(taskId, filePath, 'processing', 10);
+            this.sendProgress(0, filePath, 'init', 0);
+            this.sendProgress(0, filePath, 'processing', 10);
 
             // 分配用于储存中间产生的文件夹
             const folder = this.allocateFolder(filePath);
@@ -115,7 +115,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             const expired = Date.now() - context.updatedTime > EXPIRATION_THRESHOLD;
             if (context.state !== 'processed' || expired || videoChanged) {
                 // 重新转换并分割
-                await this.convertAndSplit(taskId, context, filePath);
+                await this.convertAndSplit(context, filePath);
                 context.videoInfo = newVideoInfo;
                 context.updatedTime = Date.now();
                 context.state = 'processed';
@@ -131,7 +131,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             // 获取尚未转录的 chunk
             const unfinishedChunks = context.chunks.filter(chunk => !chunk.response);
             if (unfinishedChunks.length === 0) {
-                this.sendProgress(taskId, filePath, 'completed', 100, { srtPath: filePath.replace(path.extname(filePath), '.srt') });
+                this.sendProgress(0, filePath, 'completed', 100, { srtPath: filePath.replace(path.extname(filePath), '.srt') });
                 context.state = 'done';
                 configTender.save(context);
                 return;
@@ -140,17 +140,17 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             // 使用共享计数器更新并行转录进度
             let completedCount = context.chunks.filter(chunk => chunk.response).length;
 
-            this.sendProgress(taskId, filePath, 'processing', Math.floor((completedCount / context.chunks.length) * 100 * 0.6) + 40);
+            this.sendProgress(0, filePath, 'processing', Math.floor((completedCount / context.chunks.length) * 100 * 0.6) + 40);
 
             try {
                 // 对所有分片并发执行转录
                 const results = await Promise.allSettled(context.chunks.map(async (chunk) => {
                     // 如果该 chunk 已经有结果，则跳过
                     if (chunk.response) return;
-                    await this.whisperThreeTimes(taskId, chunk, filePath);
+                    await this.whisperThreeTimes(chunk, filePath);
                     completedCount = context.chunks.filter(chunk => chunk.response).length;
                     const progress = Math.floor((completedCount / context.chunks.length) * 100 * 0.6) + 40;
-                    this.sendProgress(taskId, filePath, 'processing', progress);
+                    this.sendProgress(0, filePath, 'processing', progress);
                 }));
                 // 检查是否有错误
                 for (const result of results) {
@@ -165,30 +165,30 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
 
             // 整理结果，生成 SRT 文件
             const srtName = filePath.replace(path.extname(filePath), '.srt');
-            dpLog.info(`[CloudTranscriptionService] Task ID: ${taskId} - 生成 SRT 文件: ${srtName}`);
+            dpLog.info(`[CloudTranscriptionService] 生成 SRT 文件: ${srtName}`);
             fs.writeFileSync(srtName, toSrt(context.chunks));
 
             // 完成任务，并保存状态
             context.state = 'done';
             configTender.save(context);
-            this.sendProgress(taskId, filePath, 'completed', 100, { srtPath: srtName });
+            this.sendProgress(0, filePath, 'completed', 100, { srtPath: srtName });
         } catch (error) {
             dpLog.error(error);
             if (this.cancelRequested) {
-                this.sendProgress(taskId, filePath, 'cancelled', 0, { message: '转录任务已取消' });
+                this.sendProgress(0, filePath, 'cancelled', 0, { message: '转录任务已取消' });
             } else {
-                this.sendProgress(taskId, filePath, 'failed', 0, { error: error instanceof Error ? error.message : String(error) });
+                this.sendProgress(0, filePath, 'failed', 0, { error: error instanceof Error ? error.message : String(error) });
             }
             throw error;
         } finally {
-            this.currentTaskId = null;
+            this.currentFilePath = null;
             this.cancelRequested = false;
         }
         this.cleanExpiredFolders();
     }
 
-    public cancel(taskId: number): boolean {
-        if (this.currentTaskId === taskId) {
+    public cancel(filePath: string): boolean {
+        if (this.currentFilePath === filePath) {
             this.cancelRequested = true;
             return true;
         }
@@ -198,15 +198,15 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     /**
      * 针对单个 chunk 调用 Whisper API，最多尝试 3 次
      */
-    private async whisperThreeTimes(taskId: number, chunk: SplitChunk, filePath: string) {
+    private async whisperThreeTimes(chunk: SplitChunk, filePath: string) {
         let lastError: unknown = null;
         for (let attempt = 0; attempt < 3; attempt++) {
             try {
                 if (this.cancelRequested) {
                     throw new Error('Transcription cancelled by user');
                 }
-                dpLog.info(`[CloudTranscriptionService] Task ID: ${taskId} - Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
-                chunk.response = await this.whisper(taskId, chunk);
+                dpLog.info(`[CloudTranscriptionService] Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
+                chunk.response = await this.whisper(chunk);
                 return;
             } catch (err) {
                 if (err instanceof WhisperResponseFormatError) {
@@ -223,7 +223,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
      * 调用 Whisper API
      */
     @WaitLock('whisper')
-    private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
+    private async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
         const openAi = this.openAiService.getOpenAi();
         const req = OpenAiWhisperRequest.build(openAi, chunk.filePath);
         if (TypeGuards.isNull(req)) {
@@ -236,7 +236,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     /**
      * 删除指定目录下的所有文件，然后利用 ffmpeg 执行分割音频操作并生成 chunks
      */
-    private async convertAndSplit(taskId: number, context: WhisperContext, filePath: string): Promise<void> {
+    private async convertAndSplit(context: WhisperContext, filePath: string): Promise<void> {
         const filesInFolder = await FileUtil.listFiles(context.folder);
         for (const file of filesInFolder) {
             try {
@@ -247,12 +247,11 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
         }
         // 执行分割操作
         const files = await this.ffmpegService.splitToAudio({
-            taskId,
             inputFile: context.filePath,
             outputFolder: context.folder,
             segmentTime: 60,
             onProgress: (progress) => {
-                this.sendProgress(taskId, filePath, 'processing', Math.floor(progress * 0.4));
+                this.sendProgress(0, filePath, 'processing', Math.floor(progress * 0.4));
             }
         });
         const chunks: SplitChunk[] = [];

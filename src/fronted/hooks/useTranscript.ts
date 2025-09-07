@@ -8,7 +8,6 @@ const api = window.electron;
 
 export interface TranscriptTask {
     file: string;
-    taskId: number | null;
     status?: DpTaskState | string;
     result?: any;
     created_at?: string;
@@ -33,8 +32,7 @@ const useTranscript = create(
             files: [],
             onAddToQueue: async (p) => {
                 const video = {
-                    file: p,
-                    taskId: null
+                    file: p
                 } as TranscriptTask;
                 const currentFiles = get().files.map((f) => f.file);
                 if (!currentFiles.includes(video.file)) {
@@ -46,21 +44,29 @@ const useTranscript = create(
                 set({ files: newFiles });
             },
             onTranscript: async (file: string) => {
-                const taskId = await api.call('ai-func/transcript', { filePath: file });
-                // 如果没有就新增，有就更新
                 const currentFiles = get().files.map((f) => f.file);
+                const existingFile = get().files.find((f) => f.file === file);
+                const isProcessing = existingFile && 
+                    (existingFile.status === 'init' || existingFile.status === 'in_progress');
+                
+                if (isProcessing) {
+                    // 如果文件正在处理中，不重复添加
+                    return;
+                }
+                
+                await api.call('ai-func/transcript', { filePath: file });
+                // 如果没有就新增，有就更新状态
                 if (!currentFiles.includes(file)) {
-                    set({ files: [...get().files, { file, taskId }] });
+                    set({ files: [...get().files, { file, status: 'init' }] });
                 } else {
                     const newFiles = get().files.map((f) => {
                         if (f.file === file) {
-                            return { ...f, taskId };
+                            return { ...f, status: 'init' };
                         }
                         return f;
                     });
                     set({ files: newFiles });
                 }
-                return taskId;
             },
             updateTranscriptTasks: (updates) => {
                 set((state) => {
@@ -75,16 +81,14 @@ const useTranscript = create(
                             const existingTask = newFiles[existingIndex];
                             newFiles[existingIndex] = {
                                 ...existingTask,
-                                taskId: taskId ?? existingTask.taskId,
                                 status: status ?? existingTask.status,
                                 result: result ?? existingTask.result,
                                 updated_at: new Date().toISOString()
                             };
-                        } else if (taskId !== null) {
+                        } else if (filePath && filePath !== 'unknown') {
                             // 添加新任务
                             newFiles.push({ 
                                 file: filePath, 
-                                taskId, 
                                 status, 
                                 result,
                                 created_at: new Date().toISOString(),

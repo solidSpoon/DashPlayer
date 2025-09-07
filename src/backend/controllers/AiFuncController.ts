@@ -113,16 +113,15 @@ export default class AiFuncController implements Controller {
     }
 
     public async transcript({ filePath }: { filePath: string }) {
-        const taskId = Date.now(); // 使用时间戳作为taskId
-        this.logger.info('Transcription task started', { taskId });
+        this.logger.info('Transcription task started', { filePath });
 
         // 发送初始任务状态到前端
         this.systemService.callRendererApi('transcript/batch-result', {
             updates: [{
                 filePath,
-                taskId,
+                taskId: 0,
                 status: DpTaskState.INIT,
-                progress: 0
+                result: { message: '初始化...' }
             }]
         });
 
@@ -156,40 +155,38 @@ export default class AiFuncController implements Controller {
                     result: { error: '未启用任何转录服务' }
                 }]
             });
-            return taskId;
+            return;
         }
 
         // 开始转录
-        transcriptionService.transcribe(taskId, filePath).catch(error => {
+        transcriptionService.transcribe(filePath).catch(error => {
             this.logger.error(`${serviceName} transcription failed`, { error: error instanceof Error ? error.message : String(error) });
         });
-
-        return taskId;
     }
 
     // 取消转录任务
-    public async cancelTranscription({ taskId }: { taskId: number }): Promise<boolean> {
-        this.logger.info('Cancelling transcription task', { taskId });
+    public async cancelTranscription({ filePath }: { filePath: string }): Promise<boolean> {
+        this.logger.info('Cancelling transcription task', { filePath });
 
         try {
             // 尝试取消本地转录
-            const localSuccess = this.localTranscriptionService.cancel(taskId);
+            const localSuccess = this.localTranscriptionService.cancel(filePath);
             if (localSuccess) {
-                this.logger.info('Local transcription task cancelled successfully', { taskId });
+                this.logger.info('Local transcription task cancelled successfully', { filePath });
                 return true;
             }
 
             // 尝试取消云转录
-            const cloudSuccess = this.cloudTranscriptionService.cancel(taskId);
+            const cloudSuccess = this.cloudTranscriptionService.cancel(filePath);
             if (cloudSuccess) {
-                this.logger.info('Cloud transcription task cancelled successfully', { taskId });
+                this.logger.info('Cloud transcription task cancelled successfully', { filePath });
                 return true;
             }
 
-            this.logger.warn('Failed to cancel transcription task', { taskId });
+            this.logger.warn('Failed to cancel transcription task', { filePath });
             return false;
         } catch (error) {
-            this.logger.error('Error cancelling transcription task', { taskId, error });
+            this.logger.error('Error cancelling transcription task', { filePath, error });
             return false;
         }
     }

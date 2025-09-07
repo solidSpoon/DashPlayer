@@ -34,9 +34,8 @@ interface AiFuncDef {
     'ai-func/analyze-new-phrases': { params: string, return: number };
     'ai-func/analyze-new-words': { params: string, return: number };
     'ai-func/chat': { params: { msgs: CoreMessage[] }, return: number };
-    'ai-func/transcript': { params: { filePath: string }, return: number };
-    'ai-func/cancel-transcription': { params: { taskId: number }, return: boolean };
-    'ai-func/get-transcription-status': { params: { taskId: number }, return: any };
+    'ai-func/transcript': { params: { filePath: string }, return: void };
+    'ai-func/cancel-transcription': { params: { filePath: string }, return: boolean };
     'ai-func/get-active-transcription-tasks': { params: void, return: any[] };
     'ai-func/explain-select-with-context': { params: { sentence: string, selectedWord: string }, return: number };
     'ai-func/explain-select': { params: { word: string }, return: number };

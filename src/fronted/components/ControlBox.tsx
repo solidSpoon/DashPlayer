@@ -56,8 +56,7 @@ const Transcript = () => {
                             toast('已添加到转录队列', {
                                 icon: '👏'
                             });
-                            const taskId = await useTranscript.getState().onTranscript(srtPath);
-                            setTaskId(taskId);
+                            await useTranscript.getState().onTranscript(srtPath);
                         }}
                         variant={'ghost'}
                     >
