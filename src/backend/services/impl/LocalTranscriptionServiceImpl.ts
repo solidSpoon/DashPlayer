@@ -197,26 +197,31 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 basePath = path.join(process.cwd(), 'lib', 'whisper.cpp');
             }
 
-            const platform = process.platform;
-            const arch = process.arch;
+            const platform = process.platform; // 'darwin' | 'linux' | 'win32'
+            const arch = process.arch;         // 'arm64' | 'x64' | ...
+            const archDir = arch === 'arm64' ? 'arm64' : 'x64';
 
             let binaryPath: string;
             if (platform === 'darwin') {
-                if (arch === 'arm64') {
-                    binaryPath = path.join(basePath, 'macos', 'arm64', 'main');
-                } else {
-                    binaryPath = path.join(basePath, 'macos', 'x64', 'main');
-                }
+                binaryPath = path.join(basePath, archDir, 'darwin', 'main');
+            } else if (platform === 'linux') {
+                binaryPath = path.join(basePath, archDir, 'linux', 'main');
             } else if (platform === 'win32') {
-                binaryPath = path.join(basePath, 'windows', 'x64', 'Release', 'whisper.exe');
+                binaryPath = path.join(basePath, archDir, 'win32', 'main.exe');
             } else {
-                binaryPath = path.join(basePath, 'linux', 'x64', 'main');
+                throw new Error(`Unsupported platform: ${platform} ${arch}`);
             }
 
-            // 调用 echogarden 进行转录
+            // 添加二进制存在性检查
+            this.logger.debug('Resolve whisper.cpp binary', { basePath, platform, arch, binaryPath, exists: fs.existsSync(binaryPath) });
+            if (!fs.existsSync(binaryPath)) {
+                throw new Error(`whisper.cpp binary not found: ${binaryPath}`);
+            }
+
+            // 修正语言配置以匹配模型
             const result = await Echogarden.recognize(segmentPath, {
                 engine: 'whisper.cpp',
-                language: 'auto',
+                language: 'en',
                 whisperCpp: {
                     model: 'base.en',
                     executablePath: binaryPath,
