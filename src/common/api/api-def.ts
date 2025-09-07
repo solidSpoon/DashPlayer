@@ -86,8 +86,7 @@ interface SystemDef {
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
     'system/test-renderer-api': { params: void, return: void };
-    'system-is-whisper-model-downloaded': { params: void, return: boolean };
-}
+    }
 
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
@@ -138,8 +137,7 @@ interface StorageDef {
     'storage/get': { params: SettingKey, return: string };
     'storage/cache/size': { params: void, return: string };
     'storage/collection/paths': { params: void, return: string[] };
-    'whisper-download-model': { params: void, return: void };
-}
+    }
 
 interface SettingsDef {
     'settings/get-all-services': { params: void, return: ApiSettingVO };

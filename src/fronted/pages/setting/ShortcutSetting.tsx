@@ -68,10 +68,11 @@ const ShortCutRecorder = ({
                     onChange={(event) => setValue(event.target.value)}
                     placeholder={placeHolder} />
                 <DropdownMenu>
-                    <DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild>
                         <Button variant={'outline'} size={'icon'}>
                             <EllipsisVertical />
-                        </Button></DropdownMenuTrigger>
+                        </Button>
+                    </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem
                             onClick={() => {

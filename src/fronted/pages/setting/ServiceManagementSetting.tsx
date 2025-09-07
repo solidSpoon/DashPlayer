@@ -8,7 +8,7 @@ import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Download, Cpu, HardDrive } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive } from 'lucide-react';
 import Header from '@/fronted/components/setting/Header';
 import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
@@ -47,10 +47,7 @@ const ServiceManagementSetting = () => {
     const [youdaoTestResult, setYoudaoTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
 
     // Whisper states
-    const [whisperModelDownloaded, setWhisperModelDownloaded] = React.useState(false);
-    const [downloading, setDownloading] = React.useState(false);
-    const [downloadProgress, setDownloadProgress] = React.useState(0);
-
+  
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
 
@@ -108,80 +105,7 @@ const ServiceManagementSetting = () => {
         }
     }, [settings, reset]);
 
-    // Check Whisper model status
-    React.useEffect(() => {
-        const checkModelStatus = async () => {
-            try {
-                const downloaded = await api.call('system-is-whisper-model-downloaded');
-                setWhisperModelDownloaded(downloaded);
-            } catch (error) {
-                logger.error('failed to check whisper model status', { error });
-            }
-        };
-        checkModelStatus();
-    }, []);
-
-    // Register renderer API for progress updates
-    React.useEffect(() => {
-        const unregister = api.registerRendererApis({
-            'whisper/download-progress': (params: { progress: number }) => {
-                logger.debug('whisper download progress', { progress: params.progress });
-                setDownloadProgress(params.progress);
-            }
-        });
-        
-        return () => {
-            unregister();
-        };
-    }, []);
-
-    // Handle model download
-    const downloadModel = async () => {
-        logger.info('whisper download button clicked', { whisperModelDownloaded, downloading });
-        
-        if (downloading) {
-            logger.warn('already downloading, ignoring click');
-            return;
-        }
-        
-        // 双重检查：如果已经下载，直接提示用户
-        if (whisperModelDownloaded) {
-            toast({
-                title: "模型已存在",
-                description: "Whisper 模型已经下载完成，无需重复下载",
-            });
-            return;
-        }
-        
-        setDownloading(true);
-        setDownloadProgress(0);
-        logger.info('starting whisper model download');
-        
-        try {
-            const result = await api.call('whisper-download-model');
-            logger.info('whisper download api result', { result });
-            logger.info('whisper download completed, checking model status');
-            
-            const downloaded = await api.call('system-is-whisper-model-downloaded');
-            logger.info('whisper model downloaded status', { downloaded });
-            setWhisperModelDownloaded(downloaded);
-            
-            toast({
-                title: "模型下载完成",
-                description: "Whisper 模型已成功下载并安装",
-            });
-        } catch (error) {
-            logger.error('whisper download failed', { error });
-            toast({
-                title: "模型下载失败",
-                description: `下载过程中发生错误: ${error}`,
-                variant: "destructive",
-            });
-        } finally {
-            setDownloading(false);
-        }
-    };
-
+    
     // Handle mutual exclusion for subtitle translation
     const handleSubtitleTranslationChange = (service: 'openai' | 'tencent', enabled: boolean) => {
         if (enabled) {
@@ -648,56 +572,10 @@ const ServiceManagementSetting = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">模型状态</Label>
-                            <div className="flex items-center gap-2">
-                                {whisperModelDownloaded ? (
-                                    <>
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm text-green-600">模型已下载</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <XCircle className="h-4 w-4 text-red-500" />
-                                        <span className="text-sm text-red-600">模型未下载</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
+                        
                         <Separator orientation="horizontal" />
 
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">模型管理</Label>
-                            <div className="flex items-center gap-4">
-                                <Button
-                                    type="button"
-                                    variant={whisperModelDownloaded ? "outline" : "default"}
-                                    size="sm"
-                                    onClick={downloadModel}
-                                    disabled={downloading}
-                                    className="flex items-center gap-2"
-                                >
-                                    <Download className="h-4 w-4" />
-                                    {downloading ? '下载中...' : whisperModelDownloaded ? '重新下载' : '下载模型'}
-                                </Button>
-                                {downloading && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                                            <div 
-                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${downloadProgress * 100}%` }}
-                                            ></div>
-                                        </div>
-                                        <span>{Math.round(downloadProgress * 100)}%</span>
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                模型大小约 1.2GB，下载后支持本地离线语音识别
-                            </p>
-                        </div>
-
+  
                         <Separator orientation="horizontal" />
 
                         <div className="space-y-3">
@@ -709,13 +587,9 @@ const ServiceManagementSetting = () => {
                                     onCheckedChange={(checked) => {
                                         handleTranscriptionChange('whisper', !!checked);
                                     }}
-                                    disabled={!whisperModelDownloaded}
                                 />
                                 <Label htmlFor="whisper-transcription" className="font-normal">
                                     本地字幕转录
-                                    {!whisperModelDownloaded && (
-                                        <span className="text-xs text-muted-foreground ml-2">(需要先下载模型)</span>
-                                    )}
                                     {openaiTranscriptionEnabled && (
                                         <span className="text-xs text-muted-foreground ml-2">(与 OpenAI 转录互斥)</span>
                                     )}
@@ -740,7 +614,7 @@ const ServiceManagementSetting = () => {
                                     <span>支持中英文语音识别</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Download className="h-4 w-4" />
+                                    <HardDrive className="h-4 w-4" />
                                     <span>自动生成 SRT 字幕文件</span>
                                 </div>
                             </div>

@@ -38,17 +38,12 @@ interface TranscriptRendererDef {
     };
 }
 
-// Whisper相关的前端API定义
-interface WhisperRendererDef {
-    'whisper/download-progress': { params: { progress: number }, return: void };
-}
 
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
     & UIRendererDef
     & TranslationRendererDef
-    & TranscriptRendererDef
-    & WhisperRendererDef;
+    & TranscriptRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;

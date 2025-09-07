@@ -9,7 +9,7 @@ const Header = ({ title, description }: HeaderProps) => {
     return (
         <div>
             <h1 className='text-xl font-bold mb-2'>{title}</h1>
-            <text className='text-base text-gray-600'>{description}</text>
+            <p className='text-base text-gray-600'>{description}</p>
         </div>
     );
 };
