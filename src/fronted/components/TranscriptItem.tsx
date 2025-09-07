@@ -21,6 +21,7 @@ const api = window.electron;
 
 const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps) => {
     const [started, setStarted] = React.useState(false);
+    const [cancelling, setCancelling] = React.useState(false);
     const logger = getRendererLogger('TranscriptItem');
     const { task } = useDpTaskViewer(taskId);
     const { data: fInfo } = useSWR(['system/path-info', file], ([_k, f]) => api.call('system/path-info', f), {
@@ -40,6 +41,25 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
         logger.debug('task duration calculated', { duration, updatedAt: task.updated_at, createdAt: task.created_at });
         msg = `${task.progress} ${duration}s`;
     }
+
+    // 取消转录任务
+    const handleCancelTranscription = async () => {
+        if (!taskId) return;
+        
+        setCancelling(true);
+        try {
+            const success = await api.call('ai-func/cancel-transcription', { taskId });
+            if (success) {
+                logger.info('Transcription cancelled successfully', { taskId });
+            } else {
+                logger.warn('Failed to cancel transcription', { taskId });
+            }
+        } catch (error) {
+            logger.error('Error cancelling transcription', { taskId, error });
+        } finally {
+            setCancelling(false);
+        }
+    };
     return (
         <TableRow>
             <TableCell className="font-medium">
@@ -61,19 +81,21 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                         onStart();
                         setStarted(true);
                     }}
-                    disabled={Util.cmpTaskState(task, [DpTaskState.IN_PROGRESS] )|| (started && task === null)}
+                    disabled={Util.cmpTaskState(task, [DpTaskState.IN_PROGRESS]) || (started && task === null)}
                     size={'sm'} className={'mx-auto'}>转录</Button>
                 <Button
                     onClick={() => {
                         if (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none'])) {
                             onDelete();
                         } else {
-                            api.call('dp-task/cancel', taskId ?? undefined);
+                            handleCancelTranscription();
                         }
                     }}
                     variant={'secondary'}
-                    size={'sm'} className={'mx-auto'}>
-                    {Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none']) ? '删除' : '取消'}
+                    size={'sm'} className={'mx-auto'}
+                    disabled={cancelling}>
+                    {cancelling ? '取消中...' : 
+                     (Util.cmpTaskState(task, [DpTaskState.DONE, DpTaskState.CANCELLED, DpTaskState.FAILED, 'none']) ? '删除' : '取消')}
                 </Button>
             </TableCell>
         </TableRow>

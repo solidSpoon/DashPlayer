@@ -35,6 +35,9 @@ interface AiFuncDef {
     'ai-func/analyze-new-words': { params: string, return: number };
     'ai-func/chat': { params: { msgs: CoreMessage[] }, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: number };
+    'ai-func/cancel-transcription': { params: { taskId: number }, return: boolean };
+    'ai-func/get-transcription-status': { params: { taskId: number }, return: any };
+    'ai-func/get-active-transcription-tasks': { params: void, return: any[] };
     'ai-func/explain-select-with-context': { params: { sentence: string, selectedWord: string }, return: number };
     'ai-func/explain-select': { params: { word: string }, return: number };
     'ai-func/translate-with-context': { params: { sentence: string, context: string[] }, return: number };

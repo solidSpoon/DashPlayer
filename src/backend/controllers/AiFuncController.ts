@@ -140,7 +140,7 @@ export default class AiFuncController implements Controller {
                 }]
             });
 
-            this.parakeetService.transcribeAudio(taskId, filePath).then(async r => {
+            this.parakeetService.transcribeAudio(taskId, filePath, filePath).then(async r => {
                 // this.logger.debug('Whisper transcript result', { result: r });
                 this.logger.debug('Transcript result structure', {
                     hasText: !!r?.text,
@@ -325,6 +325,46 @@ export default class AiFuncController implements Controller {
         return taskId;
     }
 
+    // 取消转录任务
+    public async cancelTranscription({ taskId }: { taskId: number }): Promise<boolean> {
+        this.logger.info('Cancelling transcription task', { taskId });
+        
+        try {
+            const success = this.parakeetService.cancelTranscription(taskId);
+            
+            if (success) {
+                this.logger.info('Transcription task cancelled successfully', { taskId });
+                
+                // 通知前端任务已取消
+                this.systemService.callRendererApi('transcript/batch-result', {
+                    updates: [{
+                        taskId,
+                        status: 'cancelled',
+                        progress: 0,
+                        result: { message: '转录任务已取消' }
+                    }]
+                });
+            } else {
+                this.logger.warn('Failed to cancel transcription task', { taskId });
+            }
+            
+            return success;
+        } catch (error) {
+            this.logger.error('Error cancelling transcription task', { taskId, error });
+            return false;
+        }
+    }
+
+    // 获取转录任务状态
+    public async getTranscriptionStatus({ taskId }: { taskId: number }): Promise<any> {
+        return this.parakeetService.getTaskStatus(taskId);
+    }
+
+    // 获取所有活跃的转录任务
+    public async getActiveTranscriptionTasks(): Promise<any[]> {
+        return this.parakeetService.getActiveTasks();
+    }
+
     public async explainSelectWithContext({ sentence, selectedWord }: { sentence: string, selectedWord: string }) {
         const taskId = await this.dpTaskService.create();
         this.aiService.explainSelectWithContext(taskId, sentence, selectedWord).then();
@@ -350,6 +390,9 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/tts', (p) => this.tts(p));
         registerRoute('ai-func/chat', (p) => this.chat(p));
         registerRoute('ai-func/transcript', (p) => this.transcript(p));
+        registerRoute('ai-func/cancel-transcription', (p) => this.cancelTranscription(p));
+        registerRoute('ai-func/get-transcription-status', (p) => this.getTranscriptionStatus(p));
+        registerRoute('ai-func/get-active-transcription-tasks', (p) => this.getActiveTranscriptionTasks(p));
         registerRoute('ai-func/explain-select-with-context', (p) => this.explainSelectWithContext(p));
         registerRoute('ai-func/explain-select', (p) => this.explainSelect(p));
         registerRoute('ai-func/translate-with-context', (p) => this.translateWithContext(p));

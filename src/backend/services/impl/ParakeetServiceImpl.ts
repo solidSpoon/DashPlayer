@@ -2,6 +2,7 @@ import {injectable, inject} from 'inversify';
 import {ParakeetService} from '@/backend/services/ParakeetService';
 import SettingService from '@/backend/services/SettingService';
 import DpTaskService from '@/backend/services/DpTaskService';
+import SystemService from '@/backend/services/SystemService';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -9,7 +10,8 @@ import * as fsPromises from 'fs/promises';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import {getMainLogger} from '@/backend/ioc/simple-logger';
+import objectHash from 'object-hash';
 
 
 interface TranscriptionResult {
@@ -38,7 +40,6 @@ async function isExecutable(p: string) {
 }
 
 
-
 function binName() {
     if (isWindows()) {
         return 'whisper.exe';
@@ -59,10 +60,10 @@ async function fileExists(p: string) {
 }
 
 
-
 @injectable()
 export class ParakeetServiceImpl implements ParakeetService {
     private initialized = false;
+    private cancelFlags: Map<number, boolean> = new Map(); // 简单的取消标记
 
     private logger = getMainLogger('ParakeetServiceImpl');
 
@@ -82,8 +83,10 @@ export class ParakeetServiceImpl implements ParakeetService {
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
         @inject(TYPES.DpTaskService) private taskService: DpTaskService,
-        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService
-    ) {}
+        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
+        @inject(TYPES.SystemService) private systemService: SystemService
+    ) {
+    }
 
     private async ensureDirs() {
         await fsPromises.mkdir(this.getModelRoot(), {recursive: true});
@@ -107,8 +110,6 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
 
-    
-
     async initialize(): Promise<void> {
         if (this.initialized) return;
 
@@ -125,286 +126,333 @@ export class ParakeetServiceImpl implements ParakeetService {
         this.initialized = true;
     }
 
-    // 运行 whisper.cpp2 CLI 进行转录，产出 SRT 文件
-    async transcribeAudio(taskId: number, audioPath: string): Promise<TranscriptionResult> {
-        this.taskService.process(taskId, {progress: '开始音频转录...'});
-        this.logger.info('TRANSCRIPTION METHOD CALLED', { taskId, audioPath }); // 确保能看到这个日志
+    // 参考 OpenAI Whisper 的分段转录方法
+    async transcribeAudio(taskId: number, audioPath: string, filePath?: string): Promise<TranscriptionResult> {
+        // 清除之前的取消标记
+        this.cancelFlags.delete(taskId);
+        
+        // 发送开始状态
+        this.systemService.callRendererApi('transcript/batch-result', {
+            updates: [{
+                filePath: filePath || '',
+                taskId,
+                status: 'processing',
+                progress: 5,
+                result: { message: '开始音频转录...' }
+            }]
+        });
+
+        this.logger.info('TRANSCRIPTION METHOD CALLED', {taskId, audioPath});
 
         if (!this.initialized) {
             await this.initialize();
         }
 
-        // 记录初始内存使用情况
-
         let processedAudioPath: string | null = null;
+        let tempFolder: string | null = null;
 
         try {
-            this.taskService.process(taskId, {progress: '音频预处理（转换为 16k WAV）...'});
+            // 更新进度
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath: filePath || '',
+                    taskId,
+                    status: 'processing',
+                    progress: 5,
+                    result: { message: '音频预处理（转换为 16k WAV）...' }
+                }]
+            });
             processedAudioPath = await this.ensureWavFormat(audioPath);
 
-            this.taskService.process(taskId, {progress: 'Echogarden 开始识别...'});
-            this.logger.info('STARTING ECHOGARDEN RECOGNITION', { processedAudioPath });
+            // 创建临时文件夹（参考 WhisperService 的方式）
+            const folderName = objectHash(audioPath);
+            tempFolder = path.join(LocationUtil.staticGetStoragePath(LocationType.TEMP), 'parakeet', folderName);
+            await fsPromises.mkdir(tempFolder, {recursive: true});
 
-            let recognitionResult: any;
-            try {
-                // 使用Echogarden进行语音识别，启用DTW生成词级时间戳
-                this.logger.debug('Calling echogardenService.recognize with DTW enabled...');
-                const Echogarden = await import('echogarden');
-                
-                // 设置 whisper.cpp 可执行文件路径
-                const { app } = await import('electron');
-                const isPackaged = app.isPackaged;
-                
-                let basePath: string;
-                if (isPackaged) {
-                    basePath = process.env.APP_PATH || path.join(app.getAppPath(), '..', '..', 'lib', 'whisper.cpp');
-                } else {
-                    basePath = path.join(process.cwd(), 'lib', 'whisper.cpp');
+            // 更新进度
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath: filePath || '',
+                    taskId,
+                    status: 'processing',
+                    progress: 10,
+                    result: { message: '分割音频为小段落...' }
+                }]
+            });
+            this.logger.info('SPLITTING AUDIO INTO SEGMENTS', {tempFolder});
+
+            // 使用 ffmpegService.splitToAudio 分割音频（60秒一段，参考 OpenAI）
+            const segmentFiles = await this.ffmpegService.splitToAudio({
+                taskId,
+                inputFile: processedAudioPath,
+                outputFolder: tempFolder,
+                segmentTime: 60, // 60秒一段，与OpenAI相同
+                onProgress: (progress) => {
+                    const totalProgress = 10 + (progress * 0.2); // 10-30%
+                    this.systemService.callRendererApi('transcript/batch-result', {
+                        updates: [{
+                            filePath: filePath || '',
+                            taskId,
+                            status: 'processing',
+                            progress: Math.floor(totalProgress),
+                            result: { message: `分割音频 ${Math.floor(progress * 100)}%` }
+                        }]
+                    });
                 }
-                
-                const platform = process.platform;
-                const arch = process.arch;
-                
-                let binaryPath: string;
-                if (platform === 'darwin') {
-                    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
-                    binaryPath = path.join(basePath, archDir, 'darwin', 'main');
-                } else if (platform === 'linux') {
-                    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
-                    binaryPath = path.join(basePath, archDir, 'linux', 'main');
-                } else if (platform === 'win32') {
-                    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
-                    binaryPath = path.join(basePath, archDir, 'win32', 'main.exe');
-                } else {
-                    throw new Error(`Unsupported platform: ${platform} ${arch}`);
-                }
-                
-                const fs = await import('fs');
-                if (fs.existsSync(binaryPath)) {
-                    console.log(`Setting whisper.cpp executable path to: ${binaryPath}`);
-                } else {
-                    console.warn(`whisper.cpp binary not found at: ${binaryPath}`);
-                    console.warn(`Available binaries:`);
-                    try {
-                        const files = fs.readdirSync(basePath);
-                        console.warn(files);
-                    } catch (error) {
-                        console.warn(`Cannot read directory: ${basePath}`);
-                    }
-                }
-                
-                recognitionResult = await Echogarden.recognize(processedAudioPath, {
-                    engine: 'whisper.cpp',
-                    language: 'en',
-                    whisperCpp: {
-                        model: 'base.en',
-                        executablePath: binaryPath,
-                        enableDTW: true,              // 启用DTW算法生成精确词级时间戳
-                        enableFlashAttention: false,   // 确保DTW不被禁用
-                        splitCount: 1,                 // 提高时间准确性
-                        threadCount: 4                  // 根据CPU核心数调整
-                    }
-                });
-                this.logger.info('ECHOGARDEN RECOGNITION COMPLETED', {
-                    hasResult: !!recognitionResult,
-                    hasWordTimeline: !!(recognitionResult as any)?.wordTimeline,
-                    wordTimelineLength: (recognitionResult as any)?.wordTimeline?.length || 0
-                });
-
-            } catch (recognitionError) {
-                this.logger.error('ECHOGARDEN RECOGNITION FAILED', {
-                    error: recognitionError instanceof Error ? recognitionError.message : String(recognitionError),
-                    stack: recognitionError instanceof Error ? recognitionError.stack : undefined
-                });
-                throw recognitionError;
-            }
-
-            this.taskService.process(taskId, {progress: '处理识别结果...'});
-
-
-            let segments: Array<{ start: number; end: number; text: string }> = [];
-            let words: Array<{ word: string; start: number; end: number }> = [];
-
-            // 检查recognitionResult的结构（使用项目logger）
-            this.logger.debug('Recognition result', {
-                hasWordTimeline: !!recognitionResult.wordTimeline,
-                wordTimelineLength: recognitionResult.wordTimeline?.length || 0,
-                hasTimeline: !!recognitionResult.timeline,
-                timelineLength: recognitionResult.timeline?.length || 0,
-                transcriptLength: recognitionResult.transcript?.length || 0,
-                language: recognitionResult.language
             });
 
-            // 直接使用whisper.cpp + DTW生成的词级时间戳
-          this.taskService.process(taskId, {progress: '处理DTW词级时间戳...'});
+            this.logger.info('AUDIO SPLITTING COMPLETED', {segments: segmentFiles.length});
 
-          this.logger.debug('=== DEBUG: DTW Word-level Timeline Processing ===');
-          this.logger.debug('Recognition result keys:', Object.keys(recognitionResult).slice(0, 20)); // Limit to first 20 keys
-          this.logger.debug('WordTimeline exists:', !!recognitionResult.wordTimeline);
-          this.logger.debug('WordTimeline length:', recognitionResult.wordTimeline?.length || 0);
-          this.logger.debug('Timeline exists:', !!recognitionResult.timeline);
-          this.logger.debug('Transcript length:', recognitionResult.transcript?.length || 0);
+            // 2. 分段转录
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath: filePath || '',
+                    taskId,
+                    status: 'processing',
+                    progress: 30,
+                    result: { message: `开始分段转录（共 ${segmentFiles.length} 段）...` }
+                }]
+            });
 
-          // 优先使用whisper.cpp + DTW直接生成的词级时间戳
-          if (recognitionResult.wordTimeline && recognitionResult.wordTimeline.length > 0) {
-              this.logger.debug('Using whisper.cpp DTW word timeline directly');
+            const transcribedSegments: Array<{ start: number; end: number; text: string }> = [];
+            const allWords: Array<{ word: string; start: number; end: number }> = [];
 
-              // 提取词级别时间轴
-              words = this.extractWordTimeline(recognitionResult.wordTimeline);
+            let currentOffset = 0;
+            let completedCount = 0;
 
-              if (words.length > 0) {
-                  this.logger.debug('Successfully extracted word-level timeline');
-                  this.logger.debug('Words count:', words.length);
-                  this.logger.debug('Sample word:', words[0]);
-
-                  // 使用Echogarden的wordToSentenceTimeline进行智能分句
-                  this.taskService.process(taskId, {progress: '智能分句处理...'});
-
-                  try {
-                      this.logger.debug('Calling wordToSentenceTimeline...');
-                      const wordTimeline = words.map(word => ({
-                          type: 'word' as const,
-                          text: word.word,
-                          startTime: word.start,
-                          endTime: word.end,
-                          word: word.word
-                      }));
-
-                      const { wordTimelineToSegmentSentenceTimeline, addWordTextOffsetsToTimelineInPlace } =
-                        await import('echogarden/dist/utilities/Timeline.js');
-
-                      // 构造更稳妥的 fullText：
-                      // 1) 优先清洗 transcript，去掉可能重复且无空格连写的垃圾尾巴
-                      // 2) 或者用 token 重建文本，尽量避免在标点前插空格
-                      const buildTextFromTokens = (tokens: Array<{ word: string }>) => {
-                        const noSpaceBefore = /^[,.;:!?%)\]"}]$/;
-                        const noSpaceAfter = /^[({\["]$/;
-                        let out = '';
-                        for (let i = 0; i < tokens.length; i++) {
-                          const t = tokens[i].word || '';
-                          if (!t) continue;
-                          const prev = tokens[i - 1]?.word || '';
-                          const needSpace =
-                            i > 0 &&
-                            !noSpaceBefore.test(t) &&
-                            !noSpaceAfter.test(prev);
-                          out += (needSpace ? ' ' : '') + t;
-                        }
-                        return out.trim();
-                      };
-
-                      // 先尝试用 transcript，但做一次清洗
-                      let fullText = (recognitionResult.transcript || '').trim();
-                      // 去掉明显的"连写重复"的后缀（简单启发式：找到第一次完整段落后的面的无空格长串，截断）
-                      // 如果业务上能确定 transcript 质量不稳定，建议直接用 tokens 重建
-                      if (!fullText || fullText.length < 10 || /[a-z]{20,}/i.test(fullText.replace(/\s+/g, ''))) {
-                        fullText = buildTextFromTokens(words);
-                      }
-
-                      addWordTextOffsetsToTimelineInPlace(wordTimeline, fullText);
-
-                      // 执行分段
-                      const sentenceTimeline = await wordTimelineToSegmentSentenceTimeline(
-                        wordTimeline,
-                        fullText,
-                        'en'
-                      );
-
-                      // 优先拿"句子级"timeline
-                      const sentenceEntries =
-                        (sentenceTimeline as any).sentenceTimeline ??
-                        ((sentenceTimeline as any).segmentTimeline || [])
-                          .flatMap((seg: any) => (seg.timeline || []).filter((x: any) => x.type === 'sentence'));
-
-                      this.logger.debug('wordToSentenceTimeline returned:', {
-                        timelineLength: (sentenceEntries || []).length,
-                        firstEntry: sentenceEntries?.[0],
-                        lastEntry: sentenceEntries?.[sentenceEntries.length - 1],
-                      });
-
-                      // 将 sentence 条目映射为最终 segments（必要时从其 word 子节点推导时间）
-                      const mapped = (sentenceEntries || []).map((entry: any) => {
-                        const s = entry.startTime ?? entry.start ?? (entry.timeline?.[0]?.startTime ?? entry.timeline?.[0]?.start ?? 0);
-                        const e = entry.endTime ?? entry.end ?? (entry.timeline?.[entry.timeline.length - 1]?.endTime ?? entry.timeline?.[entry.timeline.length - 1]?.end ?? s);
-                        const t = (entry.text || entry.sentence || (entry.timeline ? entry.timeline.map((w: any) => w.text).join(' ') : '') || '').trim();
-                        return { start: s, end: e, text: t };
-                      }).filter((s: any) => s.text && Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start);
-
-                      this.logger.debug('Word-to-sentence segmentation completed');
-                      this.logger.debug('Segments (sentences) count:', mapped.length);
-
-                      // 如果句子级还是太少，则回退到本地分段策略
-                      if (mapped.length <= 1) {
-                        this.logger.warn('Sentence-level segmentation too few, fallback to local word-based segmentation');
-                        segments = this.createSegmentsFromWordTimeline(words);
-                      } else {
-                        segments = mapped;
-                      }
-
-                  } catch (sentenceError) {
-                      this.logger.warn('wordToSentenceTimeline failed, using local segmentation:', sentenceError);
-                      segments = this.createSegmentsFromWordTimeline(words);
-                  }
-
-              } else {
-                  throw new Error('Failed to extract valid words from wordTimeline');
-              }
-
-          } else {
-              throw new Error('No wordTimeline available - DTW-based word-level timestamps are required');
-          }
-
-            // 安全的文本拼接
-            let text: string;
-            try {
-                if (recognitionResult.transcript) {
-                    text = recognitionResult.transcript;
-                } else {
-                    // 分块拼接避免超大字符串
-                    const chunkSize = 100;
-                    let combinedText = '';
-                    for (let i = 0; i < segments.length; i += chunkSize) {
-                        const chunk = segments.slice(i, i + chunkSize);
-                        combinedText += chunk.map(s => s.text).join(' ') + ' ';
-                        if (combinedText.length > 1000000) { // 限制最大1MB
-                            this.logger.warn('Text concatenation exceeding 1MB, stopping early');
-                            break;
-                        }
-                    }
-                    text = combinedText.trim();
+            for (let i = 0; i < segmentFiles.length; i++) {
+                // 检查是否取消
+                if (this.cancelFlags.get(taskId)) {
+                    this.systemService.callRendererApi('transcript/batch-result', {
+                        updates: [{
+                            filePath: filePath || '',
+                            taskId,
+                            status: 'cancelled',
+                            progress: 0,
+                            result: { message: '转录任务已取消' }
+                        }]
+                    });
+                    throw new Error('Transcription cancelled by user');
                 }
-            } catch (error) {
-                this.logger.error('Error concatenating text:', error);
-                text = 'Text processing failed';
+
+                const segmentFile = segmentFiles[i];
+                const segmentDuration = await this.ffmpegService.duration(segmentFile);
+
+                const progress = 30 + ((completedCount / segmentFiles.length) * 0.6); // 30-90%
+
+                this.systemService.callRendererApi('transcript/batch-result', {
+                    updates: [{
+                        filePath: filePath || '',
+                        taskId,
+                        status: 'processing',
+                        progress: Math.floor(progress),
+                        result: { message: `转录段落 ${i + 1}/${segmentFiles.length}...` }
+                    }]
+                });
+
+                try {
+                    const segmentResult = await this.transcribeSegment(
+                        segmentFile,
+                        currentOffset,
+                        segmentDuration
+                    );
+
+                    if (segmentResult.text && segmentResult.words.length > 0) {
+                        transcribedSegments.push({
+                            start: currentOffset,
+                            end: currentOffset + segmentDuration,
+                            text: segmentResult.text
+                        });
+                        allWords.push(...segmentResult.words);
+
+                        this.logger.debug(`Segment ${i + 1} transcribed`, {
+                            offset: currentOffset,
+                            duration: segmentDuration,
+                            words: segmentResult.words.length,
+                            text: segmentResult.text.substring(0, 50) + '...'
+                        });
+                    }
+
+                    completedCount++;
+
+                } catch (segmentError) {
+                    this.logger.warn(`Failed to transcribe segment ${i + 1}`, segmentError);
+                    // 继续处理下一个段落
+                } finally {
+                    currentOffset += segmentDuration;
+                }
             }
 
-            // 记录最终内存使用情况
-            this.logger.debug(`Segments count: ${segments.length}, Words count: ${words.length}, Text length: ${text.length}`);
+            // 3. 合并结果（保留粗段 transcribedSegments 仅用于调试/统计）
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath: filePath || '',
+                    taskId,
+                    status: 'processing',
+                    progress: 95,
+                    result: { message: '合并转录结果...' }
+                }]
+            });
 
-            this.taskService.process(taskId, {progress: '转录完成'});
+            // 用"词级时间轴"生成"细分句级/短句级"的字幕段
+            // 注意：allWords 的时间已经在 transcribeSegment 里加了 timeOffset，是全局绝对时间
+            const fineSegments = this.createSegmentsFromWordTimeline(allWords);
+
+            // 组合文本，建议用细分段的文本拼接，而不是 60s 粗段
+            const combinedText = fineSegments
+                .map(s => s.text)
+                .filter(t => t.trim().length > 0)
+                .join(' ');
+
+            this.logger.info('SEGMENTED TRANSCRIPTION COMPLETED', {
+                segments: fineSegments.length,          // ← 用细分段数量
+                totalWords: allWords.length,
+                textLength: combinedText.length
+            });
+
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath: filePath || '',
+                    taskId,
+                    status: 'completed',
+                    progress: 100,
+                    result: { message: '转录完成' }
+                }]
+            });
 
             return {
-                text,
-                segments,
-                words,
-                timestamps: words.map(w => ({ token: w.word, start: w.start, end: w.end })),
+                text: combinedText,
+                segments: fineSegments,                  // ← 用细分段生成 SRT
+                words: allWords,
+                timestamps: allWords.map(w => ({ token: w.word, start: w.start, end: w.end })),
             };
+
         } catch (err) {
             const error = err as Error;
+
+            if (error.message === 'Transcription cancelled by user') {
+                // 取消是正常情况，不需要特殊处理
+            } else {
+                this.systemService.callRendererApi('transcript/batch-result', {
+                    updates: [{
+                        filePath: filePath || '',
+                        taskId,
+                        status: 'failed',
+                        progress: 0,
+                        result: { message: `转录失败: ${error.message}` }
+                    }]
+                });
+            }
+
             this.logger.error('=== ERROR: Transcription failed ===');
             this.logger.error('Error message:', error.message);
             this.logger.error('Error stack:', error.stack);
             this.logger.error('Error name:', error.name);
 
-            this.taskService.process(taskId, {progress: `转录失败: ${error.message}`});
             throw err;
         } finally {
             // 清理临时文件
             try {
                 if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
-            } catch {
-                //
+                // 清理临时文件夹
+                if (tempFolder) {
+                    await fsPromises.rm(tempFolder, {recursive: true, force: true});
+                }
+            } catch (error) {
+                this.logger.warn('Failed to cleanup temporary files', {error});
             }
+        }
+    }
+
+    // 转录单个段落（简化版本）
+    private async transcribeSegment(
+        segmentPath: string,
+        timeOffset: number,
+        duration: number
+    ): Promise<{
+        text: string;
+        words: Array<{ word: string; start: number; end: number }>;
+    }> {
+        this.logger.debug('Transcribing segment', {
+            timeOffset,
+            duration,
+            segmentPath
+        });
+
+        try {
+            const Echogarden = await import('echogarden');
+
+            // 设置 whisper.cpp 可执行文件路径
+            const {app} = await import('electron');
+            const isPackaged = app.isPackaged;
+
+            let basePath: string;
+            if (isPackaged) {
+                basePath = process.env.APP_PATH || path.join(app.getAppPath(), '..', '..', 'lib', 'whisper.cpp');
+            } else {
+                basePath = path.join(process.cwd(), 'lib', 'whisper.cpp');
+            }
+
+            const platform = process.platform;
+            const arch = process.arch;
+
+            let binaryPath: string;
+            if (platform === 'darwin') {
+                const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+                binaryPath = path.join(basePath, archDir, 'darwin', 'main');
+            } else if (platform === 'linux') {
+                const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+                binaryPath = path.join(basePath, archDir, 'linux', 'main');
+            } else if (platform === 'win32') {
+                const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+                binaryPath = path.join(basePath, archDir, 'win32', 'main.exe');
+            } else {
+                throw new Error(`Unsupported platform: ${platform} ${arch}`);
+            }
+
+            const result = await Echogarden.recognize(segmentPath, {
+                engine: 'whisper.cpp',
+                language: 'en',
+                whisperCpp: {
+                    model: 'base.en',
+                    executablePath: binaryPath,
+                    enableDTW: true,
+                    enableFlashAttention: false,
+                    splitCount: 1,
+                    threadCount: 4
+                }
+            });
+
+            // 提取词级时间戳并应用时间偏移
+            const words: Array<{ word: string; start: number; end: number }> = [];
+
+            if (result.wordTimeline && result.wordTimeline.length > 0) {
+                for (const entry of result.wordTimeline) {
+                    const word = entry.text || ''; // 只使用 text 属性
+                    const startTime = (entry.startTime || 0) + timeOffset;
+                    const endTime = (entry.endTime || startTime + 0.5) + timeOffset;
+
+                    if (word.trim()) {
+                        words.push({
+                            word: word.trim(),
+                            start: Math.max(0, startTime),
+                            end: Math.max(startTime, endTime)
+                        });
+                    }
+                }
+            }
+
+            // 生成分段文本
+            const text = words.map(w => w.word).join(' ');
+
+            return {
+                text,
+                words
+            };
+
+        } catch (error) {
+            this.logger.error('Segment transcription failed', error);
+            throw error;
         }
     }
 
@@ -576,7 +624,7 @@ export class ParakeetServiceImpl implements ParakeetService {
                     });
                 }
             } catch (error) {
-                this.logger.warn('Error processing timeline entry:', { error, entry });
+                this.logger.warn('Error processing timeline entry:', {error, entry});
             }
         }
 
@@ -596,7 +644,11 @@ export class ParakeetServiceImpl implements ParakeetService {
 
 
     // 基于词级别时间轴创建分段
-    private createSegmentsFromWordTimeline(words: Array<{ word: string; start: number; end: number }>): Array<{ start: number; end: number; text: string }> {
+    private createSegmentsFromWordTimeline(words: Array<{ word: string; start: number; end: number }>): Array<{
+        start: number;
+        end: number;
+        text: string
+    }> {
         const segments: Array<{ start: number; end: number; text: string }> = [];
 
         if (words.length === 0) return segments;
@@ -653,7 +705,9 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
     // 判断是否需要分段
-    private shouldSplitSegment(words: Array<{ word: string; start: number; end: number }>, currentWord: { word: string }): boolean {
+    private shouldSplitSegment(words: Array<{ word: string; start: number; end: number }>, currentWord: {
+        word: string
+    }): boolean {
         const currentText = words.map(w => w.word).join(' ');
 
         // 1. 基于时长（最大8秒）
@@ -680,8 +734,32 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
 
+    // 取消转录任务
+    cancelTranscription(taskId: number): boolean {
+        if (this.cancelFlags.has(taskId)) {
+            return false; // 已经取消了
+        }
+        this.cancelFlags.set(taskId, true);
+        this.logger.info('Cancel requested for task', { taskId });
+        return true;
+    }
+
+    // 获取任务状态
+    getTaskStatus(taskId: number): any {
+        return {
+            cancelled: this.cancelFlags.get(taskId) || false
+        };
+    }
+
+    // 获取所有活跃任务
+    getActiveTasks(): any[] {
+        // 简化实现，返回空数组
+        return [];
+    }
+
     dispose(): void {
         this.initialized = false;
+        this.cancelFlags.clear();
     }
 }
 
