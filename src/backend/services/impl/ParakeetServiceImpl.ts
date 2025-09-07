@@ -2,19 +2,17 @@ import {injectable, inject} from 'inversify';
 import {ParakeetService} from '@/backend/services/ParakeetService';
 import SettingService from '@/backend/services/SettingService';
 import DpTaskService from '@/backend/services/DpTaskService';
-import EchogardenService from '@/backend/services/EchogardenService';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import axios from 'axios';
 import {createWriteStream} from 'fs';
-import {spawn, exec} from 'child_process';
+import {exec} from 'child_process';
 import {promisify} from 'util';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
-import * as os from 'os';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 const execAsync = promisify(exec);
@@ -253,8 +251,7 @@ export class ParakeetServiceImpl implements ParakeetService {
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
         @inject(TYPES.DpTaskService) private taskService: DpTaskService,
-        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
-        @inject(TYPES.EchogardenService) private echogardenService: EchogardenService
+        @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService
     ) {}
 
     private async ensureDirs() {
@@ -278,28 +275,6 @@ export class ParakeetServiceImpl implements ParakeetService {
         return modelOk && binOk && execOk;
     }
 
-    async checkModelDownloaded(): Promise<boolean> {
-        return this.isModelDownloaded();
-    }
-
-    // 检查模型是否可用
-    async checkModel(): Promise<{ success: boolean; log: string }> {
-        if (!this.initialized) {
-            await this.initialize();
-        }
-
-        try {
-            return await this.echogardenService.check({
-                engine: 'whisper.cpp',
-                whisperCpp: {
-                    model: 'base.en',
-                }
-            });
-        } catch (error) {
-            this.logger.error('Model check failed', { error: error instanceof Error ? error.message : String(error) });
-            return { success: false, log: error instanceof Error ? error.message : String(error) };
-        }
-    }
 
     // 下载模型文件（带进度），同时确保可执行文件存在（若无则自动构建）
     async downloadModel(progressCallback: (progress: number) => void): Promise<void> {
@@ -310,7 +285,7 @@ export class ParakeetServiceImpl implements ParakeetService {
         }
 
         const runner = (async () => {
-            if (await this.checkModelDownloaded()) {
+            if (await this.isModelDownloaded()) {
                 progressCallback(1);
                 return;
             }
@@ -506,7 +481,7 @@ export class ParakeetServiceImpl implements ParakeetService {
         if (this.initialized) return;
 
         // 初始化Echogarden服务
-        await this.echogardenService.initialize();
+        // echogarden 库不需要显式初始化
 
         await this.ensureDirs();
 
@@ -519,163 +494,10 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
     // 运行 whisper.cpp2 CLI 进行转录，产出 SRT 文件
-    private async runWhisperCpp(inputWavPath: string, lang?: string): Promise<{ srtPath: string; base: string }> {
-        const tempDir = LocationUtil.staticGetStoragePath(LocationType.TEMP);
-        await fsPromises.mkdir(tempDir, {recursive: true});
-        const base = path.join(tempDir, `whisper_${Date.now()}_${Math.random().toString(36).slice(2)}`);
-        const srtPath = `${base}.srt`;
-
-        const args = [
-            '-m',
-            this.getModelPath(),
-            '-f',
-            inputWavPath,
-            '-osrt',
-            '-of',
-            base,
-            '-nt',
-        ];
-
-        if (lang && lang !== 'auto') {
-            args.push('-l', lang);
-        }
-
-        const binaryPath = this.getBinaryPath();
-
-        // 检查二进制文件是否存在且有执行权限
-        try {
-            await fsPromises.access(binaryPath, fs.constants.F_OK | fs.constants.X_OK);
-            this.logger.info('Binary file exists and is executable', { binaryPath });
-
-            // 检查文件大小
-            const stats = await fsPromises.stat(binaryPath);
-            this.logger.info('Binary file size', { size: stats.size });
-
-            // 在macOS上检查架构兼容性
-            if (process.platform === 'darwin') {
-                this.logger.debug('Checking binary architecture on macOS');
-                try {
-                    const { stdout } = await execAsync(`file "${binaryPath}"`);
-                    this.logger.debug('File type info', { stdout });
-
-                    const { stdout: archOut } = await execAsync(`lipo -info "${binaryPath}"`);
-                    this.logger.debug('Architecture info', { archOut });
-
-                    // 检查当前系统架构
-                    const currentArch = process.arch;
-                    this.logger.debug('Current process arch', { currentArch });
-
-                    // 检查是否包含当前架构
-                    if (archOut.includes(currentArch)) {
-                        this.logger.debug('Binary supports current architecture');
-                    } else {
-                        this.logger.warn('Binary may not support current architecture');
-                    }
-                } catch (fileError) {
-                    this.logger.warn('Could not check binary architecture', { error: fileError instanceof Error ? fileError.message : String(fileError) });
-                }
-            }
-
-        } catch (error) {
-            this.logger.error('Binary file check failed', { error: error instanceof Error ? error.message : String(error) });
-            throw new Error(`whisper二进制文件不存在或无执行权限: ${binaryPath}. 错误: ${error}`);
-        }
-
-        const threads = Math.max(1, Math.min(4, os.cpus()?.length || 2));
-        args.push('-t', String(threads));
-
-        let stderrBuf = '';
-        this.logger.info('Starting whisper.cpp2', { binaryPath, args: args.join(' ') });
-
-        await new Promise<void>((resolve, reject) => {
-            this.logger.debug('Spawn options', { platform: process.platform, arch: process.arch });
-
-            // 在macOS上尝试多种方法
-            let child;
-            if (process.platform === 'darwin') {
-                this.logger.debug('Trying different execution methods for macOS');
-
-                // 方法1: 直接spawn
-                try {
-                    const spawnOptions = {
-                        stdio: ['ignore', 'pipe', 'pipe'] as const,
-                        env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin' }
-                    };
-                    this.logger.debug('Method 1: Direct spawn');
-                    child = spawn(binaryPath, args, spawnOptions);
-                } catch (spawnError) {
-                    this.logger.debug('Method 1 failed, trying Method 2');
-
-                    // 方法2: 使用shell
-                    try {
-                        const shellArgs = [binaryPath, ...args].map(arg => arg.includes(' ') ? `"${arg}"` : arg).join(' ');
-                        this.logger.debug('Method 2: Shell execution');
-                        child = spawn('/bin/bash', ['-c', shellArgs], {
-                            stdio: ['ignore', 'pipe', 'pipe'] as const
-                        });
-                    } catch (shellError) {
-                        this.logger.debug('Method 2 failed, trying Method 3');
-
-                        // 方法3: 使用绝对路径
-                        try {
-                            const absoluteBinary = path.resolve(binaryPath);
-                            const absoluteArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
-                            const shellArgs2 = [absoluteBinary, ...absoluteArgs].join(' ');
-                            this.logger.debug('Method 3: Absolute path shell execution');
-                            child = spawn('/bin/bash', ['-c', shellArgs2], {
-                                stdio: ['ignore', 'pipe', 'pipe'] as const
-                            });
-                        } catch (absError) {
-                            this.logger.error('All execution methods failed');
-                            reject(absError);
-                            return;
-                        }
-                    }
-                }
-            } else {
-                // 非macOS平台
-                const spawnOptions = { stdio: ['ignore', 'pipe', 'pipe'] as const };
-                child = spawn(binaryPath, args, spawnOptions);
-            }
-
-            child.stdout.on('data', () => {
-                // 需要的话可以解析 stdout
-            });
-
-            child.stderr.on('data', (d) => {
-                const line = d.toString();
-                stderrBuf += line;
-                this.logger.debug('whisper.cpp2 stderr', { line });
-            });
-
-            child.on('error', (error) => {
-                this.logger.error('whisper.cpp2 spawn error', { error: error.message });
-                this.logger.error('Error details', {
-                    message: error.message,
-                    code: error.code,
-                    errno: error.errno,
-                    path: error.path,
-                    spawnargs: error.spawnargs
-                });
-                reject(error);
-            });
-            child.on('close', (code) => {
-                this.logger.info('whisper.cpp2 exited', { code });
-                if (code === 0) resolve();
-                else reject(new Error(`whisper.cpp 退出码：${code}${stderrBuf ? `，stderr: ${stderrBuf}` : ''}`));
-            });
-        });
-
-        if (!(await fileExists(srtPath))) {
-            throw new Error('whisper.cpp2 未生成 SRT 文件');
-        }
-        return {srtPath, base};
-    }
-
     async transcribeAudio(taskId: number, audioPath: string): Promise<TranscriptionResult> {
         this.taskService.process(taskId, {progress: '开始音频转录...'});
         this.logger.info('TRANSCRIPTION METHOD CALLED', { taskId, audioPath }); // 确保能看到这个日志
-        
+
         if (!this.initialized) {
             await this.initialize();
         }
@@ -695,25 +517,70 @@ export class ParakeetServiceImpl implements ParakeetService {
             try {
                 // 使用Echogarden进行语音识别，启用DTW生成词级时间戳
                 this.logger.debug('Calling echogardenService.recognize with DTW enabled...');
-                recognitionResult = await this.echogardenService.recognize(processedAudioPath, {
+                const Echogarden = await import('echogarden');
+                
+                // 设置 whisper.cpp 可执行文件路径
+                const { app } = await import('electron');
+                const isPackaged = app.isPackaged;
+                
+                let basePath: string;
+                if (isPackaged) {
+                    basePath = process.env.APP_PATH || path.join(app.getAppPath(), '..', '..', 'lib', 'whisper.cpp');
+                } else {
+                    basePath = path.join(process.cwd(), 'lib', 'whisper.cpp');
+                }
+                
+                const platform = process.platform;
+                const arch = process.arch;
+                
+                let binaryPath: string;
+                if (platform === 'darwin') {
+                    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+                    binaryPath = path.join(basePath, archDir, 'darwin', 'main');
+                } else if (platform === 'linux') {
+                    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+                    binaryPath = path.join(basePath, archDir, 'linux', 'main');
+                } else if (platform === 'win32') {
+                    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+                    binaryPath = path.join(basePath, archDir, 'win32', 'main.exe');
+                } else {
+                    throw new Error(`Unsupported platform: ${platform} ${arch}`);
+                }
+                
+                const fs = await import('fs');
+                if (fs.existsSync(binaryPath)) {
+                    console.log(`Setting whisper.cpp executable path to: ${binaryPath}`);
+                } else {
+                    console.warn(`whisper.cpp binary not found at: ${binaryPath}`);
+                    console.warn(`Available binaries:`);
+                    try {
+                        const files = fs.readdirSync(basePath);
+                        console.warn(files);
+                    } catch (error) {
+                        console.warn(`Cannot read directory: ${basePath}`);
+                    }
+                }
+                
+                recognitionResult = await Echogarden.recognize(processedAudioPath, {
                     engine: 'whisper.cpp',
                     language: 'en',
                     whisperCpp: {
                         model: 'base.en',
+                        executablePath: binaryPath,
                         enableDTW: true,              // 启用DTW算法生成精确词级时间戳
                         enableFlashAttention: false,   // 确保DTW不被禁用
                         splitCount: 1,                 // 提高时间准确性
                         threadCount: 4                  // 根据CPU核心数调整
                     }
                 });
-                this.logger.info('ECHOGARDEN RECOGNITION COMPLETED', { 
+                this.logger.info('ECHOGARDEN RECOGNITION COMPLETED', {
                     hasResult: !!recognitionResult,
                     hasWordTimeline: !!(recognitionResult as any)?.wordTimeline,
                     wordTimelineLength: (recognitionResult as any)?.wordTimeline?.length || 0
                 });
 
             } catch (recognitionError) {
-                this.logger.error('ECHOGARDEN RECOGNITION FAILED', { 
+                this.logger.error('ECHOGARDEN RECOGNITION FAILED', {
                     error: recognitionError instanceof Error ? recognitionError.message : String(recognitionError),
                     stack: recognitionError instanceof Error ? recognitionError.stack : undefined
                 });
@@ -722,7 +589,7 @@ export class ParakeetServiceImpl implements ParakeetService {
 
             this.taskService.process(taskId, {progress: '处理识别结果...'});
 
-  
+
             let segments: Array<{ start: number; end: number; text: string }> = [];
             let words: Array<{ word: string; start: number; end: number }> = [];
 
@@ -763,41 +630,83 @@ export class ParakeetServiceImpl implements ParakeetService {
 
                   try {
                       this.logger.debug('Calling wordToSentenceTimeline...');
-                      const sentenceTimeline = await this.echogardenService.wordToSentenceTimeline(
-                          words,
-                          recognitionResult.transcript || words.map(w => w.word).join(' '),
-                          'en'
+                      const wordTimeline = words.map(word => ({
+                          type: 'word' as const,
+                          text: word.word,
+                          startTime: word.start,
+                          endTime: word.end,
+                          word: word.word
+                      }));
+
+                      const { wordTimelineToSegmentSentenceTimeline, addWordTextOffsetsToTimelineInPlace } =
+                        await import('echogarden/dist/utilities/Timeline.js');
+
+                      // 构造更稳妥的 fullText：
+                      // 1) 优先清洗 transcript，去掉可能重复且无空格连写的垃圾尾巴
+                      // 2) 或者用 token 重建文本，尽量避免在标点前插空格
+                      const buildTextFromTokens = (tokens: Array<{ word: string }>) => {
+                        const noSpaceBefore = /^[,.;:!?%)\]"}]$/;
+                        const noSpaceAfter = /^[({\["]$/;
+                        let out = '';
+                        for (let i = 0; i < tokens.length; i++) {
+                          const t = tokens[i].word || '';
+                          if (!t) continue;
+                          const prev = tokens[i - 1]?.word || '';
+                          const needSpace =
+                            i > 0 &&
+                            !noSpaceBefore.test(t) &&
+                            !noSpaceAfter.test(prev);
+                          out += (needSpace ? ' ' : '') + t;
+                        }
+                        return out.trim();
+                      };
+
+                      // 先尝试用 transcript，但做一次清洗
+                      let fullText = (recognitionResult.transcript || '').trim();
+                      // 去掉明显的"连写重复"的后缀（简单启发式：找到第一次完整段落后的面的无空格长串，截断）
+                      // 如果业务上能确定 transcript 质量不稳定，建议直接用 tokens 重建
+                      if (!fullText || fullText.length < 10 || /[a-z]{20,}/i.test(fullText.replace(/\s+/g, ''))) {
+                        fullText = buildTextFromTokens(words);
+                      }
+
+                      addWordTextOffsetsToTimelineInPlace(wordTimeline, fullText);
+
+                      // 执行分段
+                      const sentenceTimeline = await wordTimelineToSegmentSentenceTimeline(
+                        wordTimeline,
+                        fullText,
+                        'en'
                       );
 
+                      // 优先拿"句子级"timeline
+                      const sentenceEntries =
+                        (sentenceTimeline as any).sentenceTimeline ??
+                        ((sentenceTimeline as any).segmentTimeline || [])
+                          .flatMap((seg: any) => (seg.timeline || []).filter((x: any) => x.type === 'sentence'));
+
                       this.logger.debug('wordToSentenceTimeline returned:', {
-                          timelineLength: sentenceTimeline?.length || 0,
-                          firstEntry: sentenceTimeline?.[0],
-                          lastEntry: sentenceTimeline?.[sentenceTimeline?.length - 1]
+                        timelineLength: (sentenceEntries || []).length,
+                        firstEntry: sentenceEntries?.[0],
+                        lastEntry: sentenceEntries?.[sentenceEntries.length - 1],
                       });
 
-                      segments = sentenceTimeline.map((entry: any) => ({
-                          start: entry.startTime || entry.start || 0,
-                          end: entry.endTime || entry.end || 0,
-                          text: entry.text || entry.sentence || ''
-                      })).filter(s => s.text && s.end > s.start);
+                      // 将 sentence 条目映射为最终 segments（必要时从其 word 子节点推导时间）
+                      const mapped = (sentenceEntries || []).map((entry: any) => {
+                        const s = entry.startTime ?? entry.start ?? (entry.timeline?.[0]?.startTime ?? entry.timeline?.[0]?.start ?? 0);
+                        const e = entry.endTime ?? entry.end ?? (entry.timeline?.[entry.timeline.length - 1]?.endTime ?? entry.timeline?.[entry.timeline.length - 1]?.end ?? s);
+                        const t = (entry.text || entry.sentence || (entry.timeline ? entry.timeline.map((w: any) => w.text).join(' ') : '') || '').trim();
+                        return { start: s, end: e, text: t };
+                      }).filter((s: any) => s.text && Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start);
 
                       this.logger.debug('Word-to-sentence segmentation completed');
-                      this.logger.debug('Segments count:', segments.length);
-                      this.logger.debug('Segments before filter:', sentenceTimeline?.length || 0);
-                      this.logger.debug('Segments after filter:', segments.length);
+                      this.logger.debug('Segments (sentences) count:', mapped.length);
 
-                      if (segments.length === 0) {
-                          this.logger.warn('No segments after filtering, checking sample entries:');
-                          for (let i = 0; i < Math.min(3, (sentenceTimeline || []).length); i++) {
-                              const entry = sentenceTimeline[i];
-                              this.logger.warn(`Entry ${i}:`, {
-                                  text: entry.text || entry.sentence,
-                                  start: entry.startTime || entry.start,
-                                  end: entry.endTime || entry.end,
-                                  hasText: !!(entry.text || entry.sentence),
-                                  validTime: !!(entry.endTime || entry.end) > !!(entry.startTime || entry.start)
-                              });
-                          }
+                      // 如果句子级还是太少，则回退到本地分段策略
+                      if (mapped.length <= 1) {
+                        this.logger.warn('Sentence-level segmentation too few, fallback to local word-based segmentation');
+                        segments = this.createSegmentsFromWordTimeline(words);
+                      } else {
+                        segments = mapped;
                       }
 
                   } catch (sentenceError) {
@@ -1035,7 +944,7 @@ export class ParakeetServiceImpl implements ParakeetService {
                     });
                 }
             } catch (error) {
-                this.logger.warn('Error processing timeline entry:', error, entry);
+                this.logger.warn('Error processing timeline entry:', { error, entry });
             }
         }
 
@@ -1112,7 +1021,7 @@ export class ParakeetServiceImpl implements ParakeetService {
     }
 
     // 判断是否需要分段
-    private shouldSplitSegment(words: Array<{ word: string }>, currentWord: { word: string }): boolean {
+    private shouldSplitSegment(words: Array<{ word: string; start: number; end: number }>, currentWord: { word: string }): boolean {
         const currentText = words.map(w => w.word).join(' ');
 
         // 1. 基于时长（最大8秒）
