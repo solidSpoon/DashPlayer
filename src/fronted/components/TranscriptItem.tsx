@@ -53,8 +53,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                 msg = '初始化中...';
                 break;
             case DpTaskState.IN_PROGRESS:
-                const progressText = typeof task.progress === 'number' ? `${task.progress}%` : (task.progress || '处理中...');
-                msg = progressText;
+                msg = task.result?.message || '处理中...';
                 break;
             case DpTaskState.DONE: {
                 if (task.updated_at && task.created_at) {
@@ -75,7 +74,7 @@ const TranscriptItem = ({ file, taskId, onStart, onDelete }: TranscriptItemProps
                 msg = '失败';
                 break;
             default:
-                msg = task.progress || '未知状态';
+                msg = task.result?.message || '未知状态';
         }
     }
 

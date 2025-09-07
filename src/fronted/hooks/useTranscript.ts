@@ -10,7 +10,6 @@ export interface TranscriptTask {
     file: string;
     taskId: number | null;
     status?: DpTaskState | string;
-    progress?: number | string;
     result?: any;
     created_at?: string;
     updated_at?: string;
@@ -24,7 +23,7 @@ export type UseTranscriptAction = {
     onAddToQueue(p: string): void;
     onDelFromQueue(p: string): void;
     onTranscript(p: string): Promise<number>;
-    updateTranscriptTasks: (updates: Array<{ filePath: string; taskId: number | null; status?: string; progress?: number; result?: any }>) => void;
+    updateTranscriptTasks: (updates: Array<{ filePath: string; taskId: number | null; status?: string; result?: any }>) => void;
 };
 
 
@@ -68,7 +67,7 @@ const useTranscript = create(
                     const newFiles = [...state.files];
                     
                     updates.forEach((update) => {
-                        const { filePath, taskId, status, progress, result } = update;
+                        const { filePath, taskId, status, result } = update;
                         const existingIndex = newFiles.findIndex((f) => f.file === filePath);
                         
                         if (existingIndex >= 0) {
@@ -78,7 +77,6 @@ const useTranscript = create(
                                 ...existingTask,
                                 taskId: taskId ?? existingTask.taskId,
                                 status: status ?? existingTask.status,
-                                progress: progress ?? existingTask.progress,
                                 result: result ?? existingTask.result,
                                 updated_at: new Date().toISOString()
                             };
@@ -88,7 +86,6 @@ const useTranscript = create(
                                 file: filePath, 
                                 taskId, 
                                 status, 
-                                progress, 
                                 result,
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString()

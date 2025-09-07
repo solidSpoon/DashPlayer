@@ -49,13 +49,18 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     }
 
     private sendProgress(taskId: number, filePath: string, status: string, progress: number, result?: any) {
+        // 将进度信息合并到 message 字段中
+        const finalResult = result || {};
+        if (progress !== undefined && progress !== null) {
+            finalResult.message = `[${progress}%] ${finalResult.message || ''}`.trim();
+        }
+        
         this.systemService.callRendererApi('transcript/batch-result', {
             updates: [{
                 filePath,
                 taskId,
                 status,
-                progress,
-                result
+                result: finalResult
             }]
         });
     }
@@ -374,6 +379,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             return true;
         }
 
+        // 任务不存在，清理取消标记并返回 false
+        this.cancelled.delete(taskId);
         return false;
     }
 

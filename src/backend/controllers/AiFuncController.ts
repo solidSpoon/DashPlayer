@@ -153,7 +153,6 @@ export default class AiFuncController implements Controller {
                     filePath,
                     taskId,
                     status: DpTaskState.FAILED,
-                    progress: 0,
                     result: { error: '未启用任何转录服务' }
                 }]
             });

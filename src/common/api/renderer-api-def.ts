@@ -30,7 +30,6 @@ interface TranscriptRendererDef {
                 filePath: string; 
                 taskId: number | null; 
                 status?: string; 
-                progress?: number; 
                 result?: any;
             }> 
         }, 

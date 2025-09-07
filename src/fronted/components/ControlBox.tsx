@@ -62,7 +62,7 @@ const Transcript = () => {
                         variant={'ghost'}
                     >
                         <Captions className="mr-2 h-4 w-4" />
-                        {inProgress ? task?.progress ?? '转录中' : '生成字幕'
+                        {inProgress ? task?.result?.message ?? '转录中' : '生成字幕'
                         }
                     </Button>
                 </TooltipTrigger>
