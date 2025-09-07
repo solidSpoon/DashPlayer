@@ -95,5 +95,20 @@ export default interface FfmpegService {
      * Convert audio file to WAV format
      */
     convertToWav(inputPath: string, outputPath: string): Promise<void>;
+
+    /**
+     * NEW: Trim audio by time range (re-encode to mp3 for compatibility)
+     */
+    trimAudio(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
+
+    /**
+     * NEW: Split audio by VAD timeline ranges
+     */
+    splitAudioByTimeline(args: {
+        inputFile: string,
+        ranges: Array<{ start: number, end: number }>,
+        outputFolder: string,
+        outputFilePrefix?: string
+    }): Promise<string[]>;
 }
 

@@ -328,6 +328,62 @@ export default class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
+     * NEW: 裁剪音频（按时间，转码为 mp3 以保证兼容）
+     */
+    @WaitLock('ffmpeg')
+    public async trimAudio(
+        inputPath: string,
+        startTime: number,
+        endTime: number,
+        outputPath: string
+    ): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const duration = Math.max(endTime - startTime, 0);
+            if (duration <= 0) return resolve();
+
+            ffmpeg(inputPath)
+                .setStartTime(startTime)
+                .duration(duration)
+                .audioCodec('libmp3lame')
+                .audioBitrate('192k')
+                .on('start', (cmd) => dpLog.log('Trim audio start:', cmd))
+                .on('end', () => resolve())
+                .on('error', (error) => {
+                    dpLog.error('Trim audio failed:', error);
+                    reject(this.processError(error));
+                })
+                .save(outputPath);
+        });
+    }
+
+    /**
+     * NEW: 基于时间线批量切段音频
+     */
+    @WaitLock('ffmpeg')
+    public async splitAudioByTimeline(args: {
+        inputFile: string,
+        ranges: Array<{ start: number, end: number }>,
+        outputFolder: string,
+        outputFilePrefix?: string
+    }): Promise<string[]> {
+        const { inputFile, ranges } = args;
+        const prefix = args.outputFilePrefix ?? 'segment_';
+
+        if (!fs.existsSync(args.outputFolder)) {
+            await fs.promises.mkdir(args.outputFolder, { recursive: true });
+        }
+
+        const outputs: string[] = [];
+        for (let i = 0; i < ranges.length; i++) {
+            const { start, end } = ranges[i];
+            const out = path.join(args.outputFolder, `${prefix}${String(i + 1).padStart(3, '0')}.mp3`);
+            await this.trimAudio(inputFile, start, end, out);
+            outputs.push(out);
+        }
+        return outputs;
+    }
+
+    /**
      * 获取输出文件列表
      */
     private async getOutputFiles(outputFolder: string, prefix: string, ext?: string): Promise<string[]> {
