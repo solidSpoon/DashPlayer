@@ -76,7 +76,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 crop: true,
                 vad: {
                     engine: 'silero',
-                    activityThreshold: 0.5, // 保持与之前一致
+                    activityThreshold: 0.4, // 降低阈值以提高检测灵敏度
                     silero: { frameDuration: 90, provider: 'cpu' }
                 }
             });
@@ -106,24 +106,43 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             // 强制启用 VAD 时间线物理切段；若 VAD 结果为空，自动回退为定长切段，避免产出空白 SRT
             this.sendProgress(taskId, filePath, 'processing', 10, { message: '基于 VAD 时间线切段音频...' });
 
-            const { timeline } = await Echogarden.detectVoiceActivity(processedAudioPath, {
+            const vadOptions = {
                 engine: 'silero',
-                activityThreshold: 0.5, // 与上面一致
+                activityThreshold: 0.4, // 降低阈值以提高检测灵敏度
                 silero: { frameDuration: 90, provider: 'cpu' }
+            };
+
+            const result = await Echogarden.detectVoiceActivity(processedAudioPath, vadOptions);
+            const timeline = (result as any)?.timeline ?? result; // 兼容部分版本直接返回 timeline
+
+            // 基础调试：观察顶层key和 segments/ranges 情况
+            this.logger.debug('VAD timeline shape', {
+                keys: timeline ? Object.keys(timeline) : null,
+                type: Array.isArray(timeline) ? 'array' : typeof timeline,
+                preview: Array.isArray(timeline) ? timeline.slice(0, 3) : (timeline?.segments || timeline?.ranges || []).slice?.(0, 3)
             });
 
-            // 构建切段范围（合并、限长、适度 padding）
-            let ranges = this.buildVadRanges(timeline, {
+            // 使用新的归一化方法构建切段范围
+            let ranges = this.normalizeVadSegments(timeline, {
                 mergeGapSeconds: 0.4,
                 maxSegmentSeconds: 60,
                 padBefore: 0.10,
                 padAfter: 0.20
             });
 
+            this.logger.debug('VAD result analysis', {
+                detectedRanges: ranges.length,
+                totalDuration: ranges.reduce((acc, r) => acc + (r.end - r.start), 0)
+            });
+
             let segmentFiles: string[] = [];
             let isVadMode = ranges.length > 0;
 
             if (isVadMode) {
+                this.sendProgress(taskId, filePath, 'processing', 10, { 
+                    message: `VAD 检测到 ${ranges.length} 个语音片段，正在切分音频...` 
+                });
+                
                 segmentFiles = await this.ffmpegService.splitAudioByTimeline({
                     inputFile: processedAudioPath,
                     ranges,
@@ -133,14 +152,16 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
                 // 容错：若切段后没有文件（极端情况），回退到定长切段
                 if (segmentFiles.length === 0) {
-                    this.logger.warn('VAD produced no segments; fallback to fixed-size splitting');
+                    this.logger.warn('VAD produced ranges but no physical segments; fallback to fixed-size splitting');
                     isVadMode = false;
                 }
             }
 
             if (!isVadMode) {
                 // 回退：定长 60s 切段
-                this.sendProgress(taskId, filePath, 'processing', 10, { message: 'VAD 未检测到语音片段，回退为 60s 定长切段...' });
+                this.sendProgress(taskId, filePath, 'processing', 10, { 
+                    message: `VAD 未检测到语音片段（共 ${ranges.length} 段），回退为 60s 定长切段...` 
+                });
                 segmentFiles = await this.ffmpegService.splitToAudio({
                     taskId,
                     inputFile: processedAudioPath,
@@ -389,10 +410,108 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     }
 
     /*
+     * 归一化 VAD 时间线数据，兼容不同 Echogarden 版本的返回结构
+     * 支持多种字段名和结构格式，避免因解析失败导致空结果
+     */
+    private normalizeVadSegments(
+        timeline: any,
+        opts: { mergeGapSeconds: number; maxSegmentSeconds: number; padBefore?: number; padAfter?: number }
+    ): Array<{ start: number; end: number }> {
+        if (!timeline) return [];
+
+        const padBefore = Math.max(0, opts.padBefore ?? 0);
+        const padAfter = Math.max(0, opts.padAfter ?? 0);
+
+        const tryArray = (arr: any[]): Array<{ start: number; end: number }> => {
+            return arr.map((s: any) => {
+                // 兼容多种字段名
+                const startRaw = s.start ?? s.startTime ?? s[0];
+                const endRaw = s.end ?? s.endTime ?? s[1];
+                const start = Number(startRaw);
+                const end = Number(endRaw);
+                return {
+                    start: isFinite(start) ? Math.max(0, start - padBefore) : NaN,
+                    end: isFinite(end) ? Math.max(0, end + padAfter) : NaN
+                };
+            })
+            .filter(seg => Number.isFinite(seg.start) && Number.isFinite(seg.end) && seg.end > seg.start);
+        };
+
+        // 1) timeline 本身是数组
+        let segments: Array<{ start: number; end: number }> = [];
+        if (Array.isArray(timeline)) {
+            segments = tryArray(timeline);
+        } else if (timeline && typeof timeline === 'object') {
+            // 2) 常见容器键
+            const candidates = [
+                timeline.segments,
+                timeline.ranges,
+                timeline.speechSegments,
+                timeline.voiceSegments
+            ].filter(Boolean) as any[];
+
+            for (const c of candidates) {
+                if (Array.isArray(c) && c.length > 0) {
+                    segments = tryArray(c);
+                    if (segments.length > 0) break;
+                }
+            }
+
+            // 3) 极端情况：timeline.activity 帧级布尔序列（转换成段）
+            if (segments.length === 0 && Array.isArray((timeline as any).activity)) {
+                const activity = (timeline as any).activity as Array<{ time: number; isSpeech: boolean }>;
+                let curStart: number | null = null;
+                for (const a of activity) {
+                    if (a.isSpeech && curStart == null) curStart = a.time;
+                    if (!a.isSpeech && curStart != null) {
+                        segments.push({ start: Math.max(0, curStart - padBefore), end: Math.max(0, a.time + padAfter) });
+                        curStart = null;
+                    }
+                }
+                if (curStart != null) {
+                    const last = activity[activity.length - 1]?.time ?? curStart;
+                    segments.push({ start: Math.max(0, curStart - padBefore), end: Math.max(0, last + padAfter) });
+                }
+            }
+        }
+
+        if (segments.length === 0) return [];
+
+        // 合并近邻 + 限制最大时长
+        segments.sort((a, b) => a.start - b.start);
+
+        const merged: Array<{ start: number; end: number }> = [];
+        let cur = { ...segments[0] };
+        const flush = (start: number, end: number) => {
+            let s = start;
+            while (end - s > opts.maxSegmentSeconds) {
+                merged.push({ start: s, end: s + opts.maxSegmentSeconds });
+                s += opts.maxSegmentSeconds;
+            }
+            if (end > s) merged.push({ start: s, end });
+        };
+
+        for (let i = 1; i < segments.length; i++) {
+            const seg = segments[i];
+            const gap = seg.start - cur.end;
+            if (gap <= opts.mergeGapSeconds && (seg.end - cur.start) <= opts.maxSegmentSeconds) {
+                cur.end = Math.max(cur.end, seg.end);
+            } else {
+                flush(cur.start, cur.end);
+                cur = { ...seg };
+            }
+        }
+        flush(cur.start, cur.end);
+
+        return merged;
+    }
+
+    /*
      * 从 VAD 时间线构建物理切段范围：
      * - 合并间隔 <= mergeGapSeconds 的邻近段
      * - 限制单段最大时长 maxSegmentSeconds
      * - 对每段增加左右 padding（避免切段丢字）
+     * @deprecated 使用 normalizeVadSegments 替代
      */
     private buildVadRanges(
         timeline: any,
