@@ -192,6 +192,21 @@ interface TagDef {
     'tag/search': { params: string, return: Tag[] };
 }
 
+interface VocabularyDef {
+    'vocabulary/get-all': { 
+        params: { search?: string; page?: number; pageSize?: number }, 
+        return: { success: boolean; data?: any[]; error?: string } 
+    };
+    'vocabulary/export-template': { 
+        params: void, 
+        return: { success: boolean; data?: string; error?: string } 
+    };
+    'vocabulary/import': { 
+        params: { filePath: string }, 
+        return: { success: boolean; message?: string; error?: string } 
+    };
+}
+
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
@@ -208,7 +223,8 @@ export type ApiDefinitions = ApiDefinition
     & DownloadVideoDef
     & ConvertDef
     & FavoriteClipsDef
-    & TagDef;
+    & TagDef
+    & VocabularyDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

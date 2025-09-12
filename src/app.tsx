@@ -24,6 +24,7 @@ import DownloadVideo from '@/fronted/pages/DownloadVideo';
 import Convert from '@/fronted/pages/convert/Convert';
 import Eb from '@/fronted/components/Eb';
 import Favorite from '@/fronted/pages/favourite/Favorite';
+import VocabularyManagement from '@/fronted/pages/vocabulary/VocabularyManagement';
 import {startListeningToDpTasks} from "@/fronted/hooks/useDpTaskCenter";
 
 const api = window.electron;
@@ -67,6 +68,10 @@ const App = () => {
                                 <Route
                                     path="convert"
                                     element={<Eb key="convert"><Convert /></Eb>}
+                                />
+                                <Route
+                                    path="vocabulary"
+                                    element={<Eb key="vocabulary"><VocabularyManagement /></Eb>}
                                 />
                                 <Route path="about" element={<Eb key="about"><About /></Eb>} />
                                 <Route

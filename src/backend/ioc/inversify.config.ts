@@ -68,6 +68,7 @@ import { CloudTranscriptionServiceImpl } from '@/backend/services/impl/CloudTran
 import { LocalTranscriptionServiceImpl } from '@/backend/services/impl/LocalTranscriptionServiceImpl';
 import {WordMatchService} from '@/backend/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/services/impl/WordMatchServiceImpl';
+import VocabularyApiController from '@/backend/controllers/VocabularyApiController';
 
 
 const container = new Container();
@@ -90,6 +91,7 @@ container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonSco
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(VocabularyApiController).inSingletonScope();
 // Services
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();

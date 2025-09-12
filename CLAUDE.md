@@ -1,136 +1,275 @@
-# DashPlayer 项目基本情况
+# CLAUDE.md
+
+此文件为 Claude Code (claude.ai/code) 在此仓库中工作时提供指导。
 
 ## 项目概述
-DashPlayer 是一款专为英语学习打造的视频播放器，采用 Electron + React + TypeScript 技术栈开发。
 
-## 技术架构
+DashPlayer 是一个专为英语学习设计的视频播放器，基于 Electron、React 和 TypeScript 构建。它具有双语字幕、AI 字幕生成、单词查询和针对语言学习优化的播放控制等功能。
 
-### 前端技术栈
-- **框架**: React 18 + TypeScript
-- **状态管理**: Zustand
-- **UI组件**: Radix UI + Tailwind CSS + Lucide React
-- **路由**: React Router DOM
-- **视频播放**: React Player
-- **数据请求**: SWR
-- **构建工具**: Vite + Electron Forge
+## 开发命令
 
-### 后端技术栈
-- **运行时**: Electron (Node.js)
-- **数据库**: SQLite + Drizzle ORM
-- **依赖注入**: Inversify
-- **AI集成**: OpenAI SDK
-- **媒体处理**: FFmpeg
+### 核心开发
+- `yarn run download` - 运行前下载必需的依赖/脚本
+- `yarn run start` - 启动开发环境（运行 download + electron-forge start）
+- `yarn run package` - 打包应用程序用于分发
+- `yarn run make` - 构建不同平台的可分发包
 
-## 项目结构
-
-### 主要目录
-```
-src/
-├── backend/           # 后端代码 (Electron Main Process)
-│   ├── controllers/   # API控制器
-│   ├── services/      # 业务逻辑服务
-│   ├── db/           # 数据库相关
-│   └── utils/        # 工具函数
-├── fronted/          # 前端代码 (Electron Renderer Process)
-│   ├── components/   # React组件
-│   ├── hooks/        # 自定义Hooks
-│   ├── pages/        # 页面组件
-│   └── lib/          # 前端工具库
-└── common/           # 前后端共享代码
-    ├── api/          # API定义
-    ├── types/        # 类型定义
-    └── utils/        # 通用工具
-```
-
-### 关键组件
-- **Player.tsx**: 视频播放器主组件
-- **PlayerControlPanel.tsx**: 播放控制面板
-- **ControlBox.tsx**: Player Controls控制区域
-- **FileBrowser.tsx**: Video Explorer文件浏览器
-- **usePlayerController**: 播放器状态管理Hook
-- **useFile**: 文件状态管理Hook
-
-## 核心功能
-1. **视频播放**: 支持多种格式的视频播放
-2. **字幕处理**: SRT字幕解析、显示和时间调整
-3. **AI辅助**: 字幕翻译、语法分析、词汇解释
-4. **播放历史**: 记录观看进度和历史
-5. **文件管理**: 文件/文件夹模式播放列表
-6. **快捷键**: 丰富的键盘快捷键支持
-7. **主题**: 支持明暗主题切换
-
-## 开发相关
-
-### 常用命令
-```bash
-yarn start      # 启动开发环境
-yarn lint       # 代码检查
-yarn test       # 运行测试
-yarn make       # 构建应用
-```
+### 测试与质量
+- `yarn run test` - 使用 Vitest 运行测试
+- `yarn run test:run` - 运行一次测试
+- `yarn run test:watch` - 监听模式运行测试
+- `yarn run test:coverage` - 运行测试覆盖率报告
+- `yarn run test:ui` - 使用 Vitest UI 运行测试
+- `yarn run lint` - 运行 ESLint 代码质量检查
 
 ### 数据库
-- 使用 Drizzle ORM 管理 SQLite 数据库
-- 主要表: watchHistory, videoClip, tag, words 等
-- 支持数据库迁移
+- 项目使用 Drizzle ORM 和 SQLite。数据库迁移在 `drizzle/` 目录
+- 架构定义在 `src/backend/db/tables/`
 
-### API架构
-- 基于 Electron IPC 的前后端通信
-- 控制器-服务模式的后端架构
-- 统一的 API 注册和调用机制
+## 架构概述
 
-### 状态管理
-- Zustand store 分片管理
-- 播放器状态: usePlayerController
-- 文件状态: useFile
-- 布局状态: useLayout
-- 设置状态: useSetting
+### Electron 架构
+- **主进程**: `src/main.ts` - 处理窗口创建、协议注册和应用生命周期
+- **渲染进程**: `src/app.tsx` - React 应用，包含路由和 UI 组件
+- **预加载脚本**: `src/preload.ts` - 主进程和渲染进程之间的桥梁
+- **IPC 通信**: `src/backend/` 中的后端服务与 IPC 处理器
 
-### 日志系统
-**必须使用统一日志系统，禁止使用 console.log**
+### 目录结构
 
-#### 后端日志
+#### 前端 (`src/fronted/`)
+- **组件**: 可重用的 UI 组件在 `components/ui/`（shadcn/ui 组件）
+- **页面**: 应用页面如 `HomePage`、`PlayerWithControlsPage`、设置页面
+- **钩子**: 用于状态管理和 API 调用的自定义 React 钩子
+- **样式**: Tailwind CSS 配置和自定义样式
+
+#### 后端 (`src/backend/`)
+- **服务**: 核心业务逻辑实现 (`services/impl/`)
+- **数据库**: SQLite 数据库设置、迁移和表定义 (`db/`)
+- **对象**: 业务对象和 API 客户端 (`objs/`) - YouDao、腾讯、OpenAI 客户端
+- **IPC**: 进程间通信处理器 (`ipc/`)
+- **调度器**: 主 IPC 请求调度器 (`dispatcher.ts`)
+
+#### 公共 (`src/common/`)
+- 应用程序中使用的共享工具和常量
+
+### 关键依赖和技术
+
+#### 核心技术栈
+- **Electron 29.2.0** - 桌面应用框架
+- **React 18.2.0** - 带 TypeScript 的 UI 库
+- **Vite** - 构建工具和开发服务器
+- **Tailwind CSS** - 使用 shadcn/ui 组件的样式
+
+#### AI 和语言处理
+- **OpenAI API** - 用于字幕生成和学习功能
+- **Sherpa ONNX** - 本地语音识别（需要平台特定库）
+- **Echogarden** - 语音处理工具
+- **Compromise.js** - 自然语言处理
+
+#### 数据库和状态
+- **Better SQLite3** - 数据库引擎
+- **Drizzle ORM** - 带 TypeScript 支持的数据库 ORM
+- **Zustand** - 客户端状态管理
+- **React Hook Form** - 带 Zod 验证的表单处理
+
+#### 视频和媒体
+- **React Player** - 视频播放组件
+- **FFmpeg** - 视频处理（包含静态二进制文件）
+- **FFprobe** - 媒体分析
+
+#### UI 组件
+- **Radix UI** - 无头 UI 组件（通过 shadcn/ui）
+- **Lucide React** - 图标库
+- **Framer Motion** - 动画
+
+### 核心功能实现
+
+#### 字幕系统
+- 支持 SRT 字幕文件
+- 通过 OpenAI Whisper 实现 AI 字幕生成
+- 使用腾讯云 API 的机器翻译
+- 使用 YouDao API 的逐词翻译
+
+#### 播放控制
+- 为语言学习定制的自定义键盘快捷键
+- 蓝牙游戏手柄支持远程控制
+- 句子级导航和重复
+- 可调节的字幕时间
+
+#### 文件管理
+- 自定义文件协议（`dp://`）用于安全文件访问
+- 视频下载功能
+- 长视频分割功能
+- 用于存储用户数据和偏好的 SQLite 数据库
+
+### 环境设置要求
+
+#### 开发环境
+- Node.js（package.json 中指定的版本）
+- Yarn 包管理器
+- 用于语音识别的平台特定 Sherpa ONNX 库
+
+#### API 配置
+应用程序需要配置几个外部 API：
+- **YouDao API** - 用于单词翻译和词典查询
+- **腾讯云 API** - 用于字幕翻译
+- **OpenAI API** - 用于字幕生成和 AI 驱动的学习功能
+
+### 数据库架构
+应用程序使用 SQLite，主要包含以下领域：
+- 用户设置和偏好
+- 视频播放历史和进度
+- 字幕数据和翻译
+- 下载任务和处理状态
+
+### 构建配置
+- **Electron Forge** - 应用程序打包和分发
+- **多个 Vite 配置** - 主进程、预加载和渲染进程的单独配置
+- **平台特定构建** - 支持 Windows、macOS 和 Linux
+
+### 测试
+- **Vitest** - 带 React Testing Library 的测试运行器
+- **JSDOM** - 测试的 DOM 环境
+- 可用覆盖率报告
+
+## API 接口架构
+
+### 概述
+DashPlayer 通过 `src/preload.ts` 中暴露的 `window.electron` 使用双向 IPC 架构。前端通过 `api.call()` 调用后端，后端通过 `SystemService.callRendererApi()` 调用前端。
+
+### 核心组件
+
+#### 1. API 定义文件
+- **`src/common/api/api-def.ts`** - 后端 API 定义（前端调用后端）
+- **`src/common/api/renderer-api-def.ts`** - 渲染器 API 定义（后端调用前端）
+- **`src/preload.ts`** - 主进程和渲染进程之间的桥梁
+
+#### 2. 通信模式
+
+**前端 → 后端（请求/响应）**
 ```typescript
-import { getMainLogger } from '@/backend/ioc/simple-logger';
-const logger = getMainLogger('module-name');
-logger.debug('message', { data });
+// 项目通用模式：const api = window.electron
+const api = window.electron;
+
+// 前端调用后端 API
+const result = await api.call('ai-trans/word', { word: 'hello' });
+
+// 带错误处理的安全调用
+const result = await api.safeCall('ai-trans/word', { word: 'hello' });
 ```
 
-#### 前端日志
+**后端 → 前端（通知/回调）**
 ```typescript
-import { getRendererLogger } from '@/fronted/log/simple-logger';
-const logger = getRendererLogger('module-name');
-logger.debug('message', { data });
+// 后端向前端发送通知
+await this.systemService.callRendererApi('translation/batch-result', {
+    translations: [{ key: 'text1', translation: '翻译结果' }]
+});
 ```
 
-## API开发规范
+### API 实现模式
 
-### 重要提醒 ⚠️
-**修改API时必须在以下文件中更新类型定义：**
-- `src/common/api/api-def.ts` - API类型定义文件
-- 所有新增的API都必须在对应的interface中定义参数和返回值类型
-
-### API定义结构
+#### 后端 API 注册
 ```typescript
-interface WatchHistoryDef {
-    'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };
-    // 其他API定义...
+// 在后端控制器中
+import registerRoute from '@/common/api/register';
+
+// 注册单个 API - 通过 ipcMain.handle 自动注册
+registerRoute('ai-trans/word', async (params) => {
+    return await translationService.translateWord(params.word);
+});
+```
+
+#### 前端 API 注册
+```typescript
+// 在前端控制器中（BaseRendererController）
+protected setupApis(): void {
+    this.batchRegisterApis({
+        'translation/result': async (params) => {
+            // 处理来自后端的翻译结果
+            updateTranslationUI(params);
+        }
+    });
+}
+
+// 注册使用预加载脚本
+const unregister = window.electron.registerRendererApi(path, handler);
+```
+
+### 类型安全
+
+#### 带有 TypeScript 接口的 API 定义
+```typescript
+// 后端 API 定义
+interface AiTransDef {
+    'ai-trans/word': { 
+        params: { word: string; forceRefresh?: boolean }, 
+        return: YdRes | null 
+    };
+}
+
+// 前端 API 定义
+interface TranslationRendererDef {
+    'translation/result': { 
+        params: { key: string, translation: string }, 
+        return: void 
+    };
 }
 ```
 
-### API开发流程
-1. 在 `api-def.ts` 中定义API类型
-2. 在对应的Controller中实现方法
-3. 在Service接口中添加方法定义
-4. 在ServiceImpl中实现具体逻辑
-5. 在Controller的registerRoutes中注册路由
+#### 生成的 API 类型
+```typescript
+// 完整的类型安全 API 映射
+export type ApiMap = {
+    [K in keyof ApiDefinitions]: ApiFunction<
+        ApiDefinitions[K]['params'], 
+        Promise<ApiDefinitions[K]['return']>
+    >
+}
+```
 
-## 当前开发任务
-✅ 已完成：实现自动播放下一个视频功能，在文件夹模式下视频播放结束后自动播放下一个视频。
+### 关键 API 类别
 
-## 注意事项
-- 项目使用 TypeScript 严格模式
-- 遵循 React Hooks 最佳实践
-- 后端使用依赖注入模式
-- 前端组件采用 shadcn/ui 设计规范
-- **API开发必须先在 `api-def.ts` 中定义类型**
+#### 后端 API（前端调用）
+- **系统 API** - 文件操作、窗口管理、系统信息
+- **AI 翻译** - 单词翻译、批量字幕翻译
+- **AI 功能** - TTS、短语分析、语法分析
+- **观看历史** - 视频进度、历史管理
+- **设置** - API 配置、服务管理
+- **视频处理** - 下载、转换、分割视频
+- **收藏/剪辑** - 管理学习剪辑和标签
+
+#### 前端 API（后端调用）
+- **UI 更新** - 显示通知、进度更新、提示
+- **翻译结果** - 实时翻译回调
+- **转录更新** - AI 字幕生成进度
+- **词汇匹配** - 单词识别结果
+
+### 实际使用示例
+
+#### 翻译流程
+1. 前端使用字幕索引调用 `ai-trans/request-group-translation`
+2. 后端通过腾讯/OpenAI API 异步处理翻译
+3. 后端调用 `translation/batch-result` 将结果发送回前端
+4. 前端用翻译的字幕更新 UI
+
+#### 转录流程
+1. 前端调用 `ai-func/transcript` 启动 AI 字幕生成
+2. 后端使用 Whisper/Sherpa ONNX 处理音频
+3. 后端调用 `transcript/batch-result` 发送进度更新
+4. 前端显示实时转录进度
+
+### 核心优势
+
+- **类型安全**: 所有 API 调用的完整 TypeScript 类型
+- **双向**: 支持请求/响应和发布/订阅模式
+- **批量处理**: 翻译和更新的高效批量操作
+- **错误处理**: 集中错误处理和日志记录
+- **可扩展**: 通过扩展接口定义轻松添加新 API
+
+## 开发注意事项
+
+- 项目使用路径别名（`@/` 表示 src 目录）
+- 自定义文件协议处理用于安全本地文件访问
+- Sherpa ONNX 需要平台特定的库路径（在 main.ts 中配置）
+- 应用程序包含针对语言学习优化的广泛键盘快捷键
+- 蓝牙控制器支持学习期间免提操作
