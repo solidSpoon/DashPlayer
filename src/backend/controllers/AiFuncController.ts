@@ -130,7 +130,7 @@ export default class AiFuncController implements Controller {
         const whisperEnabled = await this.settingService.get('whisper.enabled') === 'true';
         const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
         const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
-        const modelDownloaded = false;
+        const modelDownloaded = true;
 
         let transcriptionService: TranscriptionService;
         let serviceName = '';
