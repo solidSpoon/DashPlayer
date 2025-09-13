@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import ReactPlayer from 'react-player';
+import React, { useEffect, useMemo, useState } from 'react';
 import UrlUtil from '@/common/utils/UrlUtil';
 import SubtitleList from './SubtitleList';
-import { VideoClip, useClipTender } from '@/fronted/hooks/useClipTender';
+import { VideoClip } from '@/fronted/hooks/useClipTender';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
+import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
+import { Button } from '@/fronted/components/ui/button';
+import { RotateCcw, SkipBack, SkipForward, Play, Pause } from 'lucide-react';
 
 type Props = {
   clip: VideoClip | null;
@@ -25,76 +29,146 @@ export default function VideoPlayerPane({
   onEnded,
   forcePlayKey,
 }: Props) {
-  const playerRef = useRef<ReactPlayer>(null);
-  const { tender, centerIndex, pickIndexByTime } = useClipTender(clip);
-  const [ready, setReady] = useState(false);
-  const [playing, setPlaying] = useState(true);
+  // 使用新的播放器状态管理
+  const {
+    src,
+    playing,
+    currentSentence,
+    sentences,
+    duration,
+    autoPause,
+    singleRepeat,
+    volume,
+    muted,
+    playbackRate,
 
-  // 当clip或forcePlayKey发生变化时，确保播放状态为true
+    // 播放控制
+    play,
+    pause,
+    togglePlay,
+    seekTo,
+    setVolume,
+    setMuted,
+    setPlaybackRate,
+
+    // 模式控制
+    setAutoPause,
+    setSingleRepeat,
+
+    // 字幕相关
+    setSource,
+    loadSubtitles,
+    clearSubtitles,
+    mapCurrentRange,
+    getExactPlayTime,
+
+    // 高级API
+    prevSentence,
+    nextSentence,
+    repeatCurrent,
+
+    // 只读选择器（用于边界检测）
+    isAtFirstSentence,
+    isAtLastSentence
+  } = usePlayerV2();
+
+  const [ready, setReady] = useState(false);
+
+  // 当clip或forcePlayKey发生变化时，加载新的视频和字幕
   useEffect(() => {
     if (clip) {
-      setPlaying(true);
+      const videoUrl = clip.videoPath ? UrlUtil.file(clip.videoPath) : '';
+      setSource(videoUrl);
+
+      // 转换字幕格式
+      const sentences = convertClipSrtLinesToSentences(clip.clipContent, clip.videoPath, clip.key);
+      loadSubtitles(sentences);
+
+      // 播放指定的句子
+      if (lineIdx >= 0 && lineIdx < sentences.length) {
+        const targetSentence = sentences[lineIdx];
+        const range = { start: targetSentence.start, end: targetSentence.end };
+        seekTo({ time: range.start });
+      }
+
+      play();
+    } else {
+      setSource(null);
+      clearSubtitles();
     }
   }, [clip, forcePlayKey]);
 
-  const videoUrl = useMemo(() => {
-    if (!clip) return '';
-    // OSS 类型：videoPath 已经是完整路径，直接使用
-    // Local 类型：videoPath 是原视频路径，直接使用
-    return clip.videoPath ? UrlUtil.file(clip.videoPath) : '';
-  }, [clip]);
+  // 当外部 lineIdx 变化时，同步到播放器
+  useEffect(() => {
+    if (clip && lineIdx >= 0 && sentences.length > 0) {
+      const targetSentence = sentences[lineIdx];
+      if (targetSentence && currentSentence?.index !== targetSentence.index) {
+        const range = { start: targetSentence.start, end: targetSentence.end };
+        seekTo({ time: range.start });
+      }
+    }
+  }, [lineIdx, sentences]);
+
+  // 监听当前句子的变化，同步到外部
+  useEffect(() => {
+    if (currentSentence && sentences.length > 0) {
+      const currentIndex = sentences.findIndex(s =>
+        s.index === currentSentence.index && s.fileHash === currentSentence.fileHash
+      );
+      if (currentIndex !== lineIdx && currentIndex >= 0) {
+        onLineIdxChange(currentIndex);
+      }
+    }
+  }, [currentSentence, sentences]);
+
+  // 视频播放结束处理
+  const handlePlayerEnded = () => {
+    onEnded();
+  };
+
+  // 播放器就绪处理
+  const handlePlayerReady = () => {
+    setReady(true);
+  };
 
   // 播放/暂停控制
   const handlePlayPause = () => {
-    setPlaying(!playing);
+    togglePlay();
   };
 
-  // 重复当前句子
-  const handleRepeatSentence = () => {
-    if (!clip || lineIdx < 0) return;
-    const line = clip.clipContent[lineIdx];
-    if (!line) return;
-
-    // 回到当前句子的开头重新播放
-    playerRef.current?.seekTo(line.start, 'seconds');
-    setPlaying(true);
-  };
-
-  // 当clip或forcePlayKey发生变化时，确保播放状态为true
-  useEffect(() => {
-    if (clip) {
-      setPlaying(true);
+  // 使用新播放器的高级API，处理边界情况
+  const handlePrevSentence = () => {
+    if (isAtFirstSentence()) {
+      // 第一句再上一句：跳到上个视频
+      onPrevSentence();
+    } else {
+      // 否则使用播放器内部逻辑
+      prevSentence();
     }
-  }, [clip, forcePlayKey]);
-
-  // 当前目标句发生变化 -> seek 到该句开头
-  useEffect(() => {
-    if (!clip || !ready || lineIdx < 0) return;
-    const line = clip.clipContent[lineIdx];
-    if (!line) return;
-
-    // 检查是否是因为用户主动切换（非正常播放触发）
-    const currentTime = playerRef.current?.getCurrentTime() || 0;
-    const target = line.start || 0;
-
-    // 如果时间差很小（0.5秒内），说明是正常播放，不需要 seek
-    if (Math.abs(currentTime - target) < 0.5) return;
-
-    // 只有在时间差较大时才进行 seek
-    playerRef.current?.seekTo(target, 'seconds');
-  }, [clip?.key, lineIdx, ready]);
-
-  // 进度回调 -> 更新高亮
-  const onProgress = (progress: { playedSeconds: number }) => {
-    if (!clip) return;
-
-    // 后端已经处理好时间，直接使用
-    const idx = pickIndexByTime(progress.playedSeconds);
-    if (idx !== lineIdx) onLineIdxChange(idx);
   };
 
-  // 同一视频重复点击时，父组件会把 lineIdx 重置为 centerIndex，这里只要响应上面的 effect 即可
-  const initialIndex = lineIdx >= 0 ? lineIdx : centerIndex;
+  const handleNextSentence = () => {
+    if (isAtLastSentence()) {
+      // 最后一句再下一句：跳到下个视频
+      onNextSentence();
+    } else {
+      // 否则使用播放器内部逻辑
+      nextSentence();
+    }
+  };
+
+  const handleRepeatSentence = () => {
+    repeatCurrent({ loop: true });
+  };
+
+  const handleSeekToCurrentStart = () => {
+    repeatCurrent({ loop: false });
+  };
+
+  // 计算当前活跃的句子索引
+  const initialIndex = currentSentence && sentences.length > 0
+    ? sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash)
+    : lineIdx >= 0 ? lineIdx : 0;
 
   if (!clip) {
     // 空白骨架屏幕
@@ -138,34 +212,114 @@ export default function VideoPlayerPane({
         <div>
           <AspectRatio ratio={16 / 9}>
             <div className="w-full rounded-lg overflow-hidden">
-              <ReactPlayer
-                ref={playerRef}
-                url={videoUrl}
+              <PlayerEngineV2
                 width="100%"
                 height="100%"
-                playing={playing}
-                controls={true}
-                onReady={() => setReady(true)}
-                onProgress={onProgress}
-                onEnded={onEnded}
+                onReady={handlePlayerReady}
+                onEnded={handlePlayerEnded}
               />
             </div>
           </AspectRatio>
+
+          {/* 新增播放控制按钮 */}
+          <div className="flex items-center justify-between mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePlayPause}
+              >
+                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrevSentence}
+              >
+                <SkipBack className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextSentence}
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRepeatSentence}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={autoPause ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAutoPause(!autoPause)}
+                >
+                  自动暂停 {autoPause ? '✓' : ''}
+                </Button>
+
+                <Button
+                  variant={singleRepeat ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSingleRepeat(!singleRepeat)}
+                >
+                  单句循环 {singleRepeat ? '✓' : ''}
+                </Button>
+              </div>
+
+              <div className="text-gray-600 dark:text-gray-400">
+                {getExactPlayTime().toFixed(1)}s / {duration.toFixed(1)}s
+              </div>
+            </div>
+          </div>
         </div>
 
-        <SubtitleList
-          lines={clip.clipContent ?? []}
-          activeIndex={initialIndex}
-          onPickLine={(idx) => onLineIdxChange(idx)}
-        />
+        <div>
+          <SubtitleList
+            lines={clip.clipContent ?? []}
+            activeIndex={initialIndex}
+            onPickLine={(idx) => {
+              // 如果点击的是当前激活的句子，重新播放
+              if (idx === initialIndex) {
+                repeatCurrent({ loop: false });
+              } else {
+                onLineIdxChange(idx);
+              }
+            }}
+          />
+
+          {/* 新功能提示 */}
+          {sentences.length > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="text-sm text-blue-800 dark:text-blue-200">
+                <div className="font-medium mb-1">💡 新功能提示</div>
+                <ul className="space-y-1 text-xs">
+                  <li>• 增强的播放控制：优化的自动暂停和单句循环模式</li>
+                  <li>• 更精确的时间同步：改进的字幕播放同步机制</li>
+                  <li>• 更好的状态管理：统一的播放器状态控制</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 快捷键组件 */}
       <VideoPlayerShortcut
         onPlayPause={handlePlayPause}
-        onPrevSentence={onPrevSentence}
-        onNextSentence={onNextSentence}
+        onPrevSentence={handlePrevSentence}
+        onNextSentence={handleNextSentence}
         onRepeatSentence={handleRepeatSentence}
+        onSeekToCurrentStart={handleSeekToCurrentStart}
       />
     </div>
   );

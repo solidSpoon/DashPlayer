@@ -7,6 +7,7 @@ type Props = {
     onPrevSentence: () => void;
     onNextSentence: () => void;
     onRepeatSentence: () => void;
+    onSeekToCurrentStart: () => void;
 };
 
 const VideoPlayerShortcut: React.FC<Props> = ({
@@ -14,6 +15,7 @@ const VideoPlayerShortcut: React.FC<Props> = ({
     onPrevSentence,
     onNextSentence,
     onRepeatSentence,
+    onSeekToCurrentStart,
 }) => {
     const setting = useSetting((s) => s.setting);
 
@@ -54,11 +56,11 @@ const VideoPlayerShortcut: React.FC<Props> = ({
         onPlayPause();
     }, [onPlayPause]);
 
-    // 下方向键重复当前句（特殊处理）
+    // 下方向键跳到当前句开头（特殊处理）
     useHotkeys('down', (e) => {
         e.preventDefault();
-        onRepeatSentence();
-    }, [onRepeatSentence]);
+        onSeekToCurrentStart();
+    }, [onSeekToCurrentStart]);
 
     // 返回空fragment，不渲染任何UI
     return <></>;
