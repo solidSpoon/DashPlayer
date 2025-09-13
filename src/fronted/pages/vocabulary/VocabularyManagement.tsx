@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
-import { Search, Play , Info } from 'lucide-react';
+import { Search, Play, Info, Upload, Download } from 'lucide-react';
 import useSetting from '@/fronted/hooks/useSetting';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
@@ -48,18 +48,18 @@ const VocabularyManagement = () => {
     const [videoClips, setVideoClips] = useState<VideoClipWithPlayer[]>([]);
     const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
     const [playingClip, setPlayingClip] = useState<VideoClipWithPlayer | null>(null);
-    const playerRef = React.useRef<ReactPlayer>(null);
+    const playerRef = useRef<ReactPlayer>(null);
     const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const theme = useSetting((s) => s.values.get('appearance.theme'));
 
-    // 从视频学习接口获取真实视频数据
+    // 根据选中的单词从视频学习接口获取真实视频数据
     const { data: learningClips = [], mutate: mutateLearningClips } = useSWR(
-        selectedWord ?
-            `${apiPath('video-learning/search')}-${selectedWord.word}` :
-            apiPath('video-learning/search'),
+        selectedWord
+            ? `${apiPath('video-learning/search')}-${selectedWord.word}`
+            : apiPath('video-learning/search'),
         async () => {
             if (selectedWord) {
-                // 根据选中的单词搜索
                 return await window.electron.call('video-learning/search', {
                     keyword: '',
                     keywordRange: 'clip',
@@ -67,7 +67,6 @@ const VocabularyManagement = () => {
                     matchedWord: selectedWord.word
                 });
             } else {
-                // 显示所有学习片段
                 return await window.electron.call('video-learning/search', {
                     keyword: '',
                     keywordRange: 'clip',
@@ -75,9 +74,7 @@ const VocabularyManagement = () => {
                 });
             }
         },
-        {
-            fallbackData: []
-        }
+        { fallbackData: [] }
     );
 
     const filteredWords = useMemo(() => {
@@ -89,7 +86,7 @@ const VocabularyManagement = () => {
 
         if (!searchTerm) return displayWords;
         const term = searchTerm.toLowerCase();
-        return displayWords.filter(word =>
+        return displayWords.filter((word) =>
             word.word.toLowerCase().includes(term) ||
             word.translate?.toLowerCase().includes(term) ||
             word.stem?.toLowerCase().includes(term)
@@ -102,11 +99,9 @@ const VocabularyManagement = () => {
             const result = await window.electron.call('vocabulary/get-all', {});
             if (result.success) {
                 const wordData = result.data || [];
-                console.log('获取到的单词数据:', wordData.length, '个单词');
-
-                // 为每个单词获取视频数量
+                // 为每个单词获取视频数量（注意：此处较耗时，后续可优化为后端聚合）
                 const wordsWithVideoCount = await Promise.all(
-                    wordData.map(async (word) => {
+                    wordData.map(async (word: WordItem) => {
                         try {
                             const videoResult = await window.electron.call('video-learning/search', {
                                 keyword: '',
@@ -116,24 +111,24 @@ const VocabularyManagement = () => {
                             });
                             return {
                                 ...word,
-                                videoCount: (videoResult.success && Array.isArray(videoResult.data)) ? videoResult.data.length : 0
+                                videoCount:
+                                    videoResult.success && Array.isArray(videoResult.data)
+                                        ? videoResult.data.length
+                                        : 0
                             };
                         } catch (error) {
                             console.error(`获取单词 ${word.word} 的视频数量失败:`, error);
-                            return {
-                                ...word,
-                                videoCount: 0
-                            };
+                            return { ...word, videoCount: 0 };
                         }
                     })
                 );
 
                 // 按视频数量排序，有视频的放前面
                 const sortedWords = wordsWithVideoCount.sort((a, b) => {
-                    if (a.videoCount! > 0 && b.videoCount === 0) return -1;
-                    if (a.videoCount === 0 && b.videoCount! > 0) return 1;
-                    if (a.videoCount! > b.videoCount!) return -1;
-                    if (a.videoCount! < b.videoCount!) return 1;
+                    if ((a.videoCount || 0) > 0 && (b.videoCount || 0) === 0) return -1;
+                    if ((a.videoCount || 0) === 0 && (b.videoCount || 0) > 0) return 1;
+                    if ((a.videoCount || 0) > (b.videoCount || 0)) return -1;
+                    if ((a.videoCount || 0) < (b.videoCount || 0)) return 1;
                     return 0;
                 });
 
@@ -146,45 +141,48 @@ const VocabularyManagement = () => {
         }
     }, []);
 
-    const handleWordClick = useCallback((word: WordItem) => {
-        setSelectedWord(word);
-        // 触发重新搜索，数据会通过 SWR 自动更新
-        mutateLearningClips();
-        setPlayingVideoId(null);
-        setPlayingClip(null);
-    }, [mutateLearningClips]);
+    const handleWordClick = useCallback(
+        (word: WordItem) => {
+            setSelectedWord(word);
+            // 触发重新搜索，数据会通过 SWR 自动更新
+            mutateLearningClips();
+            setPlayingVideoId(null);
+            setPlayingClip(null);
+        },
+        [mutateLearningClips]
+    );
 
-    const handleVideoPlay = useCallback((clipId: string) => {
-        const clip = videoClips.find(c => c.key === clipId);
-        if (clip) {
-            setVideoClips(prev => prev.map(c => ({
-                ...c,
-                isPlaying: c.key === clipId
-            })));
-            setPlayingVideoId(clipId);
-            setPlayingClip(clip);
-        }
-    }, [videoClips]);
+    const handleVideoPlay = useCallback(
+        (clipId: string) => {
+            const clip = videoClips.find((c) => c.key === clipId);
+            if (clip) {
+                setVideoClips((prev) =>
+                    prev.map((c) => ({
+                        ...c,
+                        isPlaying: c.key === clipId
+                    }))
+                );
+                setPlayingVideoId(clipId);
+                setPlayingClip(clip);
+            }
+        },
+        [videoClips]
+    );
 
     const exportTemplate = useCallback(async () => {
         try {
-            console.log('开始导出模板...');
             const result = await window.electron.call('vocabulary/export-template', {});
-            console.log('导出结果:', result);
-
             if (result.success) {
-                console.log('开始处理base64数据，长度:', result.data?.length);
-                // 将base64转换为ArrayBuffer
+                // base64 -> ArrayBuffer
                 const binaryString = atob(result.data);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
-
-                console.log('转换完成，字节数:', bytes.length);
-
-                // 创建下载链接
-                const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                // 下载
+                const blob = new Blob([bytes], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -194,14 +192,10 @@ const VocabularyManagement = () => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                console.log('下载链接已创建');
-
-                // 显示成功提示
                 setTimeout(() => {
                     alert('模板已成功导出到下载文件夹');
                 }, 100);
             } else {
-                console.error('导出失败:', result.error);
                 alert(`导出失败：${result.error}`);
             }
         } catch (error) {
@@ -210,102 +204,127 @@ const VocabularyManagement = () => {
         }
     }, []);
 
-    const importWords = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const importWords = useCallback(
+        async (event: React.ChangeEvent<HTMLInputElement>) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
 
-        setLoading(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
+            setLoading(true);
+            try {
+                const result = await window.electron.call('vocabulary/import', {
+                    filePath: (file as any).path // Electron 环境
+                });
 
-            const result = await window.electron.call('vocabulary/import', {
-                filePath: file.path
-            });
-
-            if (result.success) {
-                await fetchWords(); // 重新加载单词列表
+                if (result.success) {
+                    await fetchWords(); // 重新加载单词列表
+                    alert('导入成功');
+                } else {
+                    alert(`导入失败：${result.error || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error('导入单词失败:', error);
+                alert('导入失败，请重试');
+            } finally {
+                setLoading(false);
+                // 重置文件输入
+                event.target.value = '';
             }
-        } catch (error) {
-            console.error('导入单词失败:', error);
-        } finally {
-            setLoading(false);
-            // 重置文件输入
-            event.target.value = '';
-        }
-    }, [fetchWords]);
+        },
+        [fetchWords]
+    );
+
+    const handleImportClick = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
 
     useEffect(() => {
         fetchWords();
     }, [fetchWords]);
 
-    // 为处理中的视频生成缩略图
-    const generateThumbnailsForLocalClips = useCallback(async (clips: VideoClipWithPlayer[]) => {
-        const localClips = clips.filter(clip => clip.sourceType === 'local');
-        if (localClips.length === 0) return;
+    // URL 规范化，确保能在 <img> 中显示
+    const toDisplayUrl = (raw?: string): string => {
+        if (!raw) return '';
+        if (raw.startsWith('file://') || raw.startsWith('data:') || raw.startsWith('http://') || raw.startsWith('https://')) {
+            return raw;
+        }
+        // 普通本地路径转为 file://
+        return UrlUtil.file(raw);
+    };
 
-        // 只为还没有缩略图的视频生成
-        const clipsWithoutThumbnails = localClips.filter(clip => !thumbnailUrls[clip.key]);
-        if (clipsWithoutThumbnails.length === 0) return;
+    // 生成缩略图（本地）
+    const generateThumbnailsForLocalClips = useCallback(
+        async (clips: VideoClipWithPlayer[]) => {
+            const localClips = clips.filter((clip) => clip.sourceType === 'local');
+            if (localClips.length === 0) return;
 
-        const newThumbnailUrls: Record<string, string> = {};
+            const clipsWithoutThumbnails = localClips.filter((clip) => !thumbnailUrls[clip.key]);
+            if (clipsWithoutThumbnails.length === 0) return;
 
-        for (const clip of clipsWithoutThumbnails) {
-            try {
-                const startTime = getStartTime(clip);
-                const thumbnailUrl = await api.call('split-video/thumbnail', {
-                    filePath: clip.videoPath,
-                    time: startTime
-                });
-                newThumbnailUrls[clip.key] = thumbnailUrl;
-            } catch (error) {
-                console.error('Failed to generate thumbnail for local clip:', error);
+            const newThumbnailUrls: Record<string, string> = {};
+
+            for (const clip of clipsWithoutThumbnails) {
+                try {
+                    const startTime = getStartTime(clip);
+                    const thumbnailPathOrUrl = await api.call('split-video/thumbnail', {
+                        filePath: clip.videoPath,
+                        time: startTime
+                    });
+                    newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
+                } catch (error) {
+                    console.error('Failed to generate thumbnail for local clip:', error);
+                }
             }
-        }
 
-        if (Object.keys(newThumbnailUrls).length > 0) {
-            setThumbnailUrls(prev => ({ ...prev, ...newThumbnailUrls }));
-        }
-    }, [thumbnailUrls]);
-
-    // 为OSS类型的视频获取缩略图（通过统一接口）
-    const generateThumbnailsForOssClips = useCallback(async (clips: VideoClipWithPlayer[]) => {
-        const ossClips = clips.filter(clip => clip.sourceType === 'oss');
-        if (ossClips.length === 0) return;
-        // 只为还没有缩略图的视频生成
-        const clipsWithoutThumbnails = ossClips.filter(clip => !thumbnailUrls[clip.key]);
-        if (clipsWithoutThumbnails.length === 0) return;
-        const newThumbnailUrls: Record<string, string> = {};
-
-        for (const clip of clipsWithoutThumbnails) {
-            try {
-                // 对于OSS类型，使用videoName作为视频路径生成缩略图
-                const startTime = getStartTime(clip);
-                const thumbnailUrl = await api.call('split-video/thumbnail', {
-                    filePath: clip.videoName,
-                    time: startTime
-                });
-                newThumbnailUrls[clip.key] = thumbnailUrl;
-            } catch (error) {
-                console.error('Failed to generate thumbnail for OSS clip:', error);
+            if (Object.keys(newThumbnailUrls).length > 0) {
+                setThumbnailUrls((prev) => ({ ...prev, ...newThumbnailUrls }));
             }
-        }
-        if (Object.keys(newThumbnailUrls).length > 0) {
-            setThumbnailUrls(prev => ({ ...prev, ...newThumbnailUrls }));
-        }
-    }, [thumbnailUrls]);
+        },
+        [thumbnailUrls]
+    );
+
+    // 生成缩略图（OSS）
+    const generateThumbnailsForOssClips = useCallback(
+        async (clips: VideoClipWithPlayer[]) => {
+            const ossClips = clips.filter((clip) => clip.sourceType === 'oss');
+            if (ossClips.length === 0) return;
+
+            const clipsWithoutThumbnails = ossClips.filter((clip) => !thumbnailUrls[clip.key]);
+            if (clipsWithoutThumbnails.length === 0) return;
+
+            const newThumbnailUrls: Record<string, string> = {};
+
+            for (const clip of clipsWithoutThumbnails) {
+                try {
+                    const startTime = getStartTime(clip);
+                    // 尝试用 videoPath（如果后端已返回局部路径），否则回退用 videoName（可能是本地原始路径）
+                    const candidatePath = clip.videoPath || clip.videoName;
+                    const thumbnailPathOrUrl = await api.call('split-video/thumbnail', {
+                        filePath: candidatePath,
+                        time: startTime
+                    });
+                    newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
+                } catch (error) {
+                    console.error('Failed to generate thumbnail for OSS clip:', error);
+                }
+            }
+
+            if (Object.keys(newThumbnailUrls).length > 0) {
+                setThumbnailUrls((prev) => ({ ...prev, ...newThumbnailUrls }));
+            }
+        },
+        [thumbnailUrls]
+    );
 
     // 监听学习片段数据变化
     useEffect(() => {
-        const clipsData = learningClips?.success ? learningClips.data : [];
+        const clipsData = (learningClips as any)?.success ? (learningClips as any).data : [];
         if (!Array.isArray(clipsData)) return;
 
-        const clips = clipsData.slice(0, 20) // 限制显示前20个片段
-            .map(clip => ({
-                ...clip,
-                isPlaying: false,
-                currentTime: clip.clipContent[0]?.start || 0
-            }));
+        const clips: VideoClipWithPlayer[] = clipsData.slice(0, 20).map((clip: VideoClipWithPlayer) => ({
+            ...clip,
+            isPlaying: false,
+            currentTime: clip.clipContent?.[0]?.start || 0
+        }));
         setVideoClips(clips);
 
         // 为本地和OSS视频生成缩略图
@@ -314,38 +333,22 @@ const VocabularyManagement = () => {
     }, [learningClips, generateThumbnailsForLocalClips, generateThumbnailsForOssClips]);
 
     // Helper functions
-    const getVideoUrl = (clip: VideoClipWithPlayer): string => {
-        return clip.sourceType === 'local'
-            ? UrlUtil.file(clip.videoPath)
-            : UrlUtil.file(clip.videoName); // OSS类型使用videoName作为文件路径
-    };
-
     const getStartTime = (clip: VideoClipWithPlayer): number => {
-        const mainClip = clip.clipContent.find(c => c.isClip) || clip.clipContent[0];
+        const mainClip = clip.clipContent.find((c) => c.isClip) || clip.clipContent[0];
         return mainClip?.start || 0;
     };
 
-    const getThumbnailUrl = async (clip: VideoClipWithPlayer): Promise<string> => {
-        if (clip.sourceType === 'local') {
-            return thumbnailUrls[clip.key] ? UrlUtil.file(thumbnailUrls[clip.key]) : '';
-        } else {
-            // OSS类型：使用统一接口获取缩略图
-            try {
-                const startTime = getStartTime(clip);
-                // 对于OSS类型，我们需要从clip content中获取实际的视频路径
-                // 这里暂时返回空字符串，后续可以实现OSS缩略图获取逻辑
-                return '';
-            } catch (error) {
-                console.error('Failed to get OSS thumbnail:', error);
-                return '';
-            }
-        }
+    const getVideoUrl = (clip: VideoClipWithPlayer): string => {
+        // local: 使用原视频绝对路径
+        // oss: 优先使用 videoPath（如果后端返回本地路径），否则退回 videoName
+        const raw = clip.sourceType === 'local' ? clip.videoPath : clip.videoPath || clip.videoName;
+        return toDisplayUrl(raw);
     };
 
+    // 使用同步方式从状态中读取缩略图（修复 OSS 情况下不显示的问题）
     const getThumbnailUrlSync = (clip: VideoClipWithPlayer): string => {
-        return clip.sourceType === 'local'
-            ? (thumbnailUrls[clip.key] ? UrlUtil.file(thumbnailUrls[clip.key]) : '')
-            : ''; // OSS类型暂时返回空，等待异步获取
+        const raw = thumbnailUrls[clip.key];
+        return toDisplayUrl(raw);
     };
 
     return (
@@ -384,8 +387,28 @@ const VocabularyManagement = () => {
                             />
                         </div>
 
+                        {/* Excel 导入导出按钮 */}
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="gap-1" onClick={exportTemplate}>
+                                <Download className="w-4 h-4" />
+                                导出模板
+                            </Button>
+                            <Button variant="outline" size="sm" className="gap-1" onClick={handleImportClick}>
+                                <Upload className="w-4 h-4" />
+                                导入 Excel
+                            </Button>
+                            {/* 隐藏的文件选择 */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                className="hidden"
+                                onChange={importWords}
+                            />
+                        </div>
+
                         <Button
-                            variant={selectedWord ? "default" : "outline"}
+                            variant={selectedWord ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setSelectedWord(null)}
                             className="w-full"
@@ -411,32 +434,32 @@ const VocabularyManagement = () => {
                                 {filteredWords.slice(0, 80).map((word) => (
                                     <div
                                         key={word.id}
-                                        className={`
-                                            p-2 rounded cursor-pointer transition-all text-sm leading-tight
-                                            ${selectedWord?.id === word.id
+                                        className={`p-2 rounded cursor-pointer transition-all text-sm leading-tight ${
+                                            selectedWord?.id === word.id
                                                 ? 'bg-blue-500 text-white shadow-sm'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                                            }
-                                        `}
+                                        }`}
                                         onClick={() => handleWordClick(word)}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div className="font-medium">
-                                                {word.word}
-                                            </div>
-                                            {word.videoCount && word.videoCount > 0 && (
-                                                <div className={`
-                                                    text-xs px-2 py-0.5 rounded-full
-                                                    ${selectedWord?.id === word.id
-                                                        ? 'bg-blue-400 text-white'
-                                                        : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                                    }
-                                                `}>
+                                            <div className="font-medium">{word.word}</div>
+                                            {!!word.videoCount && word.videoCount > 0 && (
+                                                <div
+                                                    className={`text-xs px-2 py-0.5 rounded-full ${
+                                                        selectedWord?.id === word.id
+                                                            ? 'bg-blue-400 text-white'
+                                                            : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                    }`}
+                                                >
                                                     {word.videoCount}个视频
                                                 </div>
                                             )}
                                         </div>
-                                        <div className={`text-xs truncate ${selectedWord?.id === word.id ? 'text-blue-100' : 'text-gray-500'}`}>
+                                        <div
+                                            className={`text-xs truncate ${
+                                                selectedWord?.id === word.id ? 'text-blue-100' : 'text-gray-500'
+                                            }`}
+                                        >
                                             {word.translate || '暂无释义'}
                                         </div>
                                     </div>
@@ -452,43 +475,29 @@ const VocabularyManagement = () => {
 
                     <div className="p-3 border-t text-xs text-gray-500 text-center">
                         共 {words.length} 个单词
-                        {searchTerm && (
-                            <div className="text-blue-600">
-                                搜索到 {filteredWords.length} 个
-                            </div>
-                        )}
-                        {words.length > 1000 && !searchTerm && (
-                            <div className="text-orange-600">
-                                显示前80个
-                            </div>
-                        )}
+                        {searchTerm && <div className="text-blue-600">搜索到 {filteredWords.length} 个</div>}
+                        {words.length > 1000 && !searchTerm && <div className="text-orange-600">显示前80个</div>}
                     </div>
                 </div>
 
                 {/* 右侧：视频流 */}
                 <div className="flex-1 flex flex-col">
-
                     {/* 视频流内容 */}
                     <div className="flex-1 overflow-auto p-4">
                         {videoClips.length === 0 ? (
                             <div className="flex items-center justify-center h-64 text-gray-500">
                                 <div className="text-center">
                                     <Play className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                                    <p className="text-lg mb-2">
-                                        {selectedWord ? '暂无相关视频' : '暂无视频片段'}
-                                    </p>
+                                    <p className="text-lg mb-2">{selectedWord ? '暂无相关视频' : '暂无视频片段'}</p>
                                     <p className="text-sm">
-                                        {selectedWord
-                                            ? '该单词暂无相关视频片段'
-                                            : '请先添加一些视频片段到收藏'
-                                        }
+                                        {selectedWord ? '该单词暂无相关视频片段' : '请先添加一些视频片段到收藏'}
                                     </p>
                                 </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                                 {videoClips.map((clip) => {
-                                    const mainClip = clip.clipContent.find(c => c.isClip) || clip.clipContent[0];
+                                    const mainClip = clip.clipContent.find((c) => c.isClip) || clip.clipContent[0];
                                     const subtitle = `${mainClip?.contentEn || ''} ${mainClip?.contentZh || ''}`.trim();
                                     const videoTitle = clip.videoName.split('/').pop() || 'Unknown Video';
                                     const thumbnailUrl = getThumbnailUrlSync(clip);
@@ -496,31 +505,27 @@ const VocabularyManagement = () => {
                                     return (
                                         <div
                                             key={clip.key}
-                                            className={`
-                                                border rounded-lg overflow-hidden cursor-pointer transition-all group
-                                                ${clip.key === playingVideoId
+                                            className={`border rounded-lg overflow-hidden cursor-pointer transition-all group ${
+                                                clip.key === playingVideoId
                                                     ? 'border-blue-500 ring-2 ring-blue-200'
                                                     : clip.sourceType === 'local'
                                                         ? 'border-yellow-300 dark:border-yellow-600 hover:shadow-lg'
                                                         : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'
-                                                }
-                                            `}
+                                            }`}
                                             onClick={() => handleVideoPlay(clip.key)}
                                         >
                                             {/* 视频预览图 */}
                                             <div className="relative bg-gray-100 aspect-[16/7] flex items-center justify-center">
                                                 {thumbnailUrl ? (
-                                                    <img
-                                                        src={thumbnailUrl}
-                                                        alt={videoTitle}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                    <img src={thumbnailUrl} alt={videoTitle} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className={`w-full h-full flex items-center justify-center ${
-                                                        clip.sourceType === 'local'
-                                                            ? 'bg-gradient-to-br from-yellow-500 to-orange-600'
-                                                            : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                                                    }`}>
+                                                    <div
+                                                        className={`w-full h-full flex items-center justify-center ${
+                                                            clip.sourceType === 'local'
+                                                                ? 'bg-gradient-to-br from-yellow-500 to-orange-600'
+                                                                : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                                                        }`}
+                                                    >
                                                         <Play className="w-8 h-8 text-white/80" />
                                                     </div>
                                                 )}
@@ -552,10 +557,19 @@ const VocabularyManagement = () => {
                                                             </TooltipTrigger>
                                                             <TooltipContent className="max-w-xs">
                                                                 <div className="space-y-1">
-                                                                    <div><strong>状态:</strong> {clip.sourceType === 'local' ? '处理中' : '已完成'}</div>
-                                                                    <div><strong>视频名称:</strong> {clip.videoName.split('/').pop() || 'Unknown Video'}</div>
-                                                                    <div><strong>时间范围:</strong> {formatTime(mainClip?.start || 0)} - {formatTime(mainClip?.end || 0)}</div>
-                                                                    <div><strong>创建时间:</strong> {new Date(clip.createdAt).toLocaleString()}</div>
+                                                                    <div>
+                                                                        <strong>状态:</strong> {clip.sourceType === 'local' ? '处理中' : '已完成'}
+                                                                    </div>
+                                                                    <div>
+                                                                        <strong>视频名称:</strong> {clip.videoName.split('/').pop() || 'Unknown Video'}
+                                                                    </div>
+                                                                    <div>
+                                                                        <strong>时间范围:</strong> {formatTime(mainClip?.start || 0)} -{' '}
+                                                                        {formatTime(mainClip?.end || 0)}
+                                                                    </div>
+                                                                    <div>
+                                                                        <strong>创建时间:</strong> {new Date(clip.createdAt).toLocaleString()}
+                                                                    </div>
                                                                 </div>
                                                             </TooltipContent>
                                                         </Tooltip>
@@ -565,9 +579,7 @@ const VocabularyManagement = () => {
 
                                             {/* 视频信息 */}
                                             <div className="p-2 bg-white dark:bg-gray-800">
-                                                <p className="text-xs text-gray-600 line-clamp-2">
-                                                    {subtitle}
-                                                </p>
+                                                <p className="text-xs text-gray-600 line-clamp-2">{subtitle}</p>
                                             </div>
                                         </div>
                                     );
@@ -576,12 +588,10 @@ const VocabularyManagement = () => {
                         )}
                     </div>
 
-
                     {/* 视频播放器 */}
                     {playingClip ? (
                         <div className="border-t bg-white dark:bg-gray-800">
                             <div className="p-6">
-
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                                     {/* 视频播放器 */}
                                     <div>
@@ -595,42 +605,37 @@ const VocabularyManagement = () => {
                                                     controls={true}
                                                     playing={true}
                                                     onStart={() => {
-                                                        // 如果是本地视频，跳转到指定时间
+                                                        // 如果是本地视频（原视频），跳转到指定时间
                                                         if (playingClip.sourceType === 'local') {
                                                             const startTime = getStartTime(playingClip);
                                                             playerRef.current?.seekTo(startTime);
                                                         }
                                                     }}
                                                     onEnded={() => {
-                                                        // 保持播放器状态，循环播放
+                                                        // 结束后可根据需求处理
                                                     }}
                                                 />
                                             </div>
                                         </AspectRatio>
                                     </div>
 
+                                    {/* 字幕 */}
                                     <div className="overflow-auto max-h-64">
                                         <div className="space-y-2">
                                             {playingClip.clipContent?.map((line, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`
-                                                        p-2 rounded text-sm
-                                                        ${line.isClip
+                                                    className={`p-2 rounded text-sm ${
+                                                        line.isClip
                                                             ? 'bg-blue-100 dark:bg-blue-900/30 border-l-2 border-blue-500'
                                                             : 'bg-gray-50 dark:bg-gray-800'
-                                                        }
-                                                    `}
+                                                    }`}
                                                 >
                                                     <div className="text-xs text-gray-500 mb-1">
                                                         {formatTime(line.start)} - {formatTime(line.end)}
                                                     </div>
-                                                    <div className="text-gray-900 dark:text-gray-100">
-                                                        {line.contentEn}
-                                                    </div>
-                                                    <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                                                        {line.contentZh}
-                                                    </div>
+                                                    <div className="text-gray-900 dark:text-gray-100">{line.contentEn}</div>
+                                                    <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">{line.contentZh}</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -687,4 +692,3 @@ const formatTime = (seconds: number): string => {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
-
