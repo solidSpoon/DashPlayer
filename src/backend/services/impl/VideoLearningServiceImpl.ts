@@ -307,21 +307,35 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private convertToVideoLearningClipVO(
         clip: OssBaseMeta & ClipMeta & { sourceType: 'oss' | 'local' }
     ): VideoLearningClipVO {
+        // 正在处理中：返回原视频路径，时间需要加上偏移量
+        // 已处理完成：返回OSS片段路径，时间是相对片段的
+        const videoPath = clip.sourceType === 'local' ? clip.video_name :
+                        (clip.baseDir && clip.clip_file ? `${clip.baseDir}/${clip.clip_file}` : clip.video_name);
+
+        // 后端直接返回处理好的时间，前端不用计算
+        const processedClipContent = (clip.clip_content ?? []).map(item => ({
+            index: item.index,
+            start: clip.sourceType === 'local' ? (this.getClipBeginAt(clip) + item.start) : item.start,
+            end: clip.sourceType === 'local' ? (this.getClipBeginAt(clip) + item.end) : item.end,
+            contentEn: item.contentEn,
+            contentZh: item.contentZh,
+            isClip: item.isClip
+        }));
+
         return {
             key: clip.key,
             sourceType: clip.sourceType,
             videoName: clip.video_name,
-            videoPath: clip.sourceType === 'local' ? clip.clip_file : '',
+            videoPath: videoPath,
             createdAt: clip.created_at,
-            clipContent: (clip.clip_content ?? []).map(item => ({
-                index: item.index,
-                start: item.start,
-                end: item.end,
-                contentEn: item.contentEn,
-                contentZh: item.contentZh,
-                isClip: item.isClip
-            }))
+            clipContent: processedClipContent
         };
+    }
+
+    private getClipBeginAt(clip: OssBaseMeta & ClipMeta): number {
+        // 从 clip_content 中获取第一个句子的 start 时间，作为原视频的起始时间
+        const firstLine = clip.clip_content?.[0];
+        return firstLine?.start || 0;
     }
 
     public async search({
