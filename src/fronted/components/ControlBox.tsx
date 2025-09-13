@@ -14,7 +14,7 @@ import { SettingKey } from '@/common/types/store_schema';
 import useSWR from 'swr';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { Button } from '@/fronted/components/ui/button';
-import { Captions, Eraser } from 'lucide-react';
+import { Captions, Eraser, Scissors } from 'lucide-react';
 import Md from '@/fronted/components/chat/markdown';
 import { codeBlock } from 'common-tags';
 import useTranscript from '@/fronted/hooks/useTranscript';
@@ -275,6 +275,63 @@ const ControlBox = () => {
                     </Tooltip>
                 </TooltipProvider>
                 <Transcript />
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                className={'justify-start'}
+                                onClick={async () => {
+                                    const videoPath = useFile.getState().videoPath;
+                                    const srtHash = useFile.getState().srtHash;
+                                    
+                                    if (!videoPath || !srtHash) {
+                                        toast.error('请先加载视频和字幕');
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        toast('开始自动裁切视频片段...', {
+                                            icon: '✂️'
+                                        });
+                                        
+                                        await api.call('video-learning/auto-clip', {
+                                            videoPath,
+                                            srtKey: srtHash
+                                        });
+                                            
+                                        toast('自动裁切任务已添加到队列', {
+                                            icon: '👏'
+                                        });
+                                    } catch (error) {
+                                        logger.error('自动裁切失败:', error);
+                                        toast.error('自动裁切失败，请重试');
+                                    }
+                                }}
+                                variant={'ghost'}
+                            >
+                                <Scissors className="mr-2 h-4 w-4" />自动裁切学习片段
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="p-8 pb-6 rounded-md shadow-lg text-gray-800">
+                            <Md>
+                                {codeBlock`
+                                #### 自动裁切学习片段
+                                _根据单词表自动生成视频学习片段_
+
+                                此功能会：
+                                1. 读取当前视频的字幕内容
+                                2. 匹配单词表中的单词
+                                3. 自动裁切包含目标单词的视频片段
+                                4. 保存到视频学习库中
+
+                                适用于：
+                                - 快速创建单词相关的学习材料
+                                - 批量生成学习视频片段
+                                `}
+                            </Md>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </CardContent>
         </Card>
     );

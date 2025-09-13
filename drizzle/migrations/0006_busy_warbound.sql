@@ -1,0 +1,1 @@
+DROP TABLE `dp_video_learning_tag_relation`;

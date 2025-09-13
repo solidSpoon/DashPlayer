@@ -1,6 +1,8 @@
 const TYPES = {
     ClipOssService: Symbol('ClipOssService'),
+    VideoLearningOssService: Symbol('VideoLearningOssService'),
     FavouriteClips: Symbol('FavouriteClips'),
+    VideoLearningService: Symbol('VideoLearningService'),
     Controller: Symbol('Controller'),
     WatchProject: Symbol('WatchProject'),
     DlVideo: Symbol('DlVideo'),

@@ -207,6 +207,57 @@ interface VocabularyDef {
     };
 }
 
+interface VideoLearningDef {
+    'video-learning/auto-clip': { 
+        params: { videoPath: string; srtKey: string }, 
+        return: { success: boolean } 
+    };
+    'video-learning/cancel-add': { 
+        params: { srtKey: string; indexInSrt: number }, 
+        return: { success: boolean } 
+    };
+    'video-learning/delete': { 
+        params: { key: string }, 
+        return: { success: boolean } 
+    };
+    'video-learning/exists': { 
+        params: { srtKey: string; linesInSrt: number[] }, 
+        return: { success: boolean; data: Map<number, boolean> } 
+    };
+    'video-learning/search': { 
+        params: ClipQuery & { matchedWord?: string }, 
+        return: { success: boolean; data: (OssBaseMeta & ClipMeta)[] } 
+    };
+    'video-learning/search-by-words': { 
+        params: { words: string[] }, 
+        return: { success: boolean; data: (OssBaseMeta & ClipMeta)[] } 
+    };
+    'video-learning/query-tags': { 
+        params: { key: string }, 
+        return: { success: boolean; data: Tag[] } 
+    };
+    'video-learning/add-tag': { 
+        params: { key: string; tagId: number }, 
+        return: { success: boolean } 
+    };
+    'video-learning/delete-tag': { 
+        params: { key: string; tagId: number }, 
+        return: { success: boolean } 
+    };
+    'video-learning/rename-tag': { 
+        params: { tagId: number; newName: string }, 
+        return: { success: boolean } 
+    };
+    'video-learning/task-info': { 
+        params: void, 
+        return: { success: boolean; data: number } 
+    };
+    'video-learning/sync-from-oss': { 
+        params: void, 
+        return: { success: boolean } 
+    };
+}
+
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
@@ -224,7 +275,8 @@ export type ApiDefinitions = ApiDefinition
     & ConvertDef
     & FavoriteClipsDef
     & TagDef
-    & VocabularyDef;
+    & VocabularyDef
+    & VideoLearningDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

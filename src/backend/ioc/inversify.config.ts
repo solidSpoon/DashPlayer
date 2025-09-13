@@ -28,6 +28,10 @@ import FavouriteClipsServiceImpl from '@/backend/services/impl/FavouriteClipsSer
 import CacheService from '@/backend/services/CacheService';
 import { ClipOssService } from '@/backend/services/OssService';
 import ClipOssServiceImpl from '@/backend/services/impl/ClipOssServiceImpl';
+import VideoLearningOssServiceImpl from '@/backend/services/impl/VideoLearningOssServiceImpl';
+import { VideoLearningService } from '@/backend/services/VideoLearningService';
+import VideoLearningServiceImpl from '@/backend/services/impl/VideoLearningServiceImpl';
+import VideoLearningApiController from '@/backend/controllers/VideoLearningApiController';
 import LocationServiceImpl from '@/backend/services/impl/LocationServiceImpl';
 import LocationService from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
@@ -92,9 +96,12 @@ container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyApiController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
+container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
+container.bind<VideoLearningService>(TYPES.VideoLearningService).to(VideoLearningServiceImpl).inSingletonScope();
 container.bind<DlVideoService>(TYPES.DlVideo).to(DlVideoServiceImpl).inSingletonScope();
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
