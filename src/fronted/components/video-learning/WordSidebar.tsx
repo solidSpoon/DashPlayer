@@ -106,7 +106,7 @@ export default function WordSidebar({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto p-3 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="flex items-center gap-2">

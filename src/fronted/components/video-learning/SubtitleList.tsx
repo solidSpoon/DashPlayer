@@ -19,7 +19,7 @@ export default function SubtitleList({ lines, activeIndex, onPickLine }: Props) 
   }, [activeIndex]);
 
   return (
-    <div ref={containerRef} className="overflow-auto max-h-64">
+    <div ref={containerRef} className="overflow-auto max-h-64 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
       <div className="space-y-2">
         {lines.map((line, idx) => (
           <div

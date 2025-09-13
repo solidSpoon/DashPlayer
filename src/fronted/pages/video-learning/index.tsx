@@ -26,6 +26,7 @@ export default function VideoLearningPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
+  const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
 
   const { data: learningClips = [], mutate: mutateLearningClips } = useSWR(
     selectedWord
@@ -256,12 +257,15 @@ export default function VideoLearningPage() {
         </div>
 
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
             <ClipGrid
               clips={clips}
               playingKey={playingKey}
               thumbnails={thumbnailUrls}
-              onClickClip={(idx) => playlist.onClipClick(idx)}
+              onClickClip={(idx) => {
+                playlist.onClipClick(idx);
+                setForcePlayKey(prev => prev + 1); // 触发强制播放
+              }}
             />
           </div>
 
@@ -272,6 +276,7 @@ export default function VideoLearningPage() {
             onPrevSentence={playlist.prevSentence}
             onNextSentence={playlist.nextSentence}
             onEnded={playlist.onEnded}
+            forcePlayKey={forcePlayKey}
           />
         </div>
       </div>

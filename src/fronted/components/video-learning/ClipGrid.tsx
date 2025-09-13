@@ -74,7 +74,7 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
                   className={`w-full h-full flex items-center justify-center ${
                     clip.sourceType === 'local'
                       ? 'bg-gradient-to-br from-yellow-500 to-orange-600'
-                      : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                      : 'bg-gradient-to-br from-gray-400 to-gray-600'
                   }`}
                 >
                   <Play className="w-8 h-8 text-white/80" />
