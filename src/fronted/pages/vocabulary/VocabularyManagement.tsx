@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
-import { Search, Play } from 'lucide-react';
+import { Search, Play , Info } from 'lucide-react';
 import useSetting from '@/fronted/hooks/useSetting';
-import { Badge } from '@/fronted/components/ui/badge';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import ReactPlayer from 'react-player';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
-import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 
 interface WordItem {
@@ -23,62 +21,57 @@ interface WordItem {
     videoCount?: number;
 }
 
-interface VideoClip {
+interface VideoClipWithPlayer {
     key: string;
-    video_name: string;
-    created_at: number;
-    clip_content: ClipSrtLine[];
-    clip_file: string;
-    thumbnail_file: string;
-    tags: string[];
-    baseDir: string;
-    version: number;
-}
-
-interface ClipSrtLine {
-    index: number;
-    start: number;
-    end: number;
-    contentEn: string;
-    contentZh: string;
-    isClip: boolean;
-}
-
-interface VideoClipWithPlayer extends VideoClip {
+    sourceType: 'oss' | 'local';
+    videoName: string;
+    videoPath: string;
+    createdAt: number;
+    clipContent: Array<{
+        index: number;
+        start: number;
+        end: number;
+        contentEn: string;
+        contentZh: string;
+        isClip: boolean;
+    }>;
     isPlaying?: boolean;
     currentTime?: number;
 }
 
 const VocabularyManagement = () => {
+    const api = window.electron;
     const [searchTerm, setSearchTerm] = useState('');
     const [words, setWords] = useState<WordItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedWord, setSelectedWord] = useState<WordItem | null>(null);
     const [videoClips, setVideoClips] = useState<VideoClipWithPlayer[]>([]);
     const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
-    const [playingClip, setPlayingClip] = useState<VideoClip | null>(null);
+    const [playingClip, setPlayingClip] = useState<VideoClipWithPlayer | null>(null);
+    const playerRef = React.useRef<ReactPlayer>(null);
+    const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
     const theme = useSetting((s) => s.values.get('appearance.theme'));
 
     // 从视频学习接口获取真实视频数据
     const { data: learningClips = [], mutate: mutateLearningClips } = useSWR(
         selectedWord ?
-            `${apiPath('video-learning/search-by-words')}-${selectedWord.word}` :
+            `${apiPath('video-learning/search')}-${selectedWord.word}` :
             apiPath('video-learning/search'),
         async () => {
             if (selectedWord) {
                 // 根据选中的单词搜索
-                return await window.electron.call('video-learning/search-by-words', {
-                    words: [selectedWord.word]
+                return await window.electron.call('video-learning/search', {
+                    keyword: '',
+                    keywordRange: 'clip',
+                    date: { from: undefined, to: undefined },
+                    matchedWord: selectedWord.word
                 });
             } else {
                 // 显示所有学习片段
                 return await window.electron.call('video-learning/search', {
                     keyword: '',
                     keywordRange: 'clip',
-                    tags: [],
-                    tagsRelation: 'and',
-                    date: { from: undefined, to: undefined },
-                    includeNoTag: false
+                    date: { from: undefined, to: undefined }
                 });
             }
         },
@@ -115,8 +108,11 @@ const VocabularyManagement = () => {
                 const wordsWithVideoCount = await Promise.all(
                     wordData.map(async (word) => {
                         try {
-                            const videoResult = await window.electron.call('video-learning/search-by-words', {
-                                words: [word.word]
+                            const videoResult = await window.electron.call('video-learning/search', {
+                                keyword: '',
+                                keywordRange: 'clip',
+                                date: { from: undefined, to: undefined },
+                                matchedWord: word.word
                             });
                             return {
                                 ...word,
@@ -169,13 +165,6 @@ const VocabularyManagement = () => {
             setPlayingClip(clip);
         }
     }, [videoClips]);
-
-    const handleCloseVideoPanel = useCallback(() => {
-        setSelectedWord(null);
-        setVideoClips([]);
-        setPlayingVideoId(null);
-        setPlayingClip(null);
-    }, []);
 
     const exportTemplate = useCallback(async () => {
         try {
@@ -250,26 +239,131 @@ const VocabularyManagement = () => {
         fetchWords();
     }, [fetchWords]);
 
+    // 为处理中的视频生成缩略图
+    const generateThumbnailsForLocalClips = useCallback(async (clips: VideoClipWithPlayer[]) => {
+        const localClips = clips.filter(clip => clip.sourceType === 'local');
+        if (localClips.length === 0) return;
+
+        // 只为还没有缩略图的视频生成
+        const clipsWithoutThumbnails = localClips.filter(clip => !thumbnailUrls[clip.key]);
+        if (clipsWithoutThumbnails.length === 0) return;
+
+        const newThumbnailUrls: Record<string, string> = {};
+
+        for (const clip of clipsWithoutThumbnails) {
+            try {
+                const startTime = getStartTime(clip);
+                const thumbnailUrl = await api.call('split-video/thumbnail', {
+                    filePath: clip.videoPath,
+                    time: startTime
+                });
+                newThumbnailUrls[clip.key] = thumbnailUrl;
+            } catch (error) {
+                console.error('Failed to generate thumbnail for local clip:', error);
+            }
+        }
+
+        if (Object.keys(newThumbnailUrls).length > 0) {
+            setThumbnailUrls(prev => ({ ...prev, ...newThumbnailUrls }));
+        }
+    }, [thumbnailUrls]);
+
+    // 为OSS类型的视频获取缩略图（通过统一接口）
+    const generateThumbnailsForOssClips = useCallback(async (clips: VideoClipWithPlayer[]) => {
+        const ossClips = clips.filter(clip => clip.sourceType === 'oss');
+        if (ossClips.length === 0) return;
+        // 只为还没有缩略图的视频生成
+        const clipsWithoutThumbnails = ossClips.filter(clip => !thumbnailUrls[clip.key]);
+        if (clipsWithoutThumbnails.length === 0) return;
+        const newThumbnailUrls: Record<string, string> = {};
+
+        for (const clip of clipsWithoutThumbnails) {
+            try {
+                // 对于OSS类型，使用videoName作为视频路径生成缩略图
+                const startTime = getStartTime(clip);
+                const thumbnailUrl = await api.call('split-video/thumbnail', {
+                    filePath: clip.videoName,
+                    time: startTime
+                });
+                newThumbnailUrls[clip.key] = thumbnailUrl;
+            } catch (error) {
+                console.error('Failed to generate thumbnail for OSS clip:', error);
+            }
+        }
+        if (Object.keys(newThumbnailUrls).length > 0) {
+            setThumbnailUrls(prev => ({ ...prev, ...newThumbnailUrls }));
+        }
+    }, [thumbnailUrls]);
+
     // 监听学习片段数据变化
     useEffect(() => {
         const clipsData = learningClips?.success ? learningClips.data : [];
-        const clips = (Array.isArray(clipsData) ? clipsData : []).slice(0, 20) // 限制显示前20个片段
+        if (!Array.isArray(clipsData)) return;
+
+        const clips = clipsData.slice(0, 20) // 限制显示前20个片段
             .map(clip => ({
                 ...clip,
                 isPlaying: false,
-                currentTime: clip.clip_content[0]?.start || 0
+                currentTime: clip.clipContent[0]?.start || 0
             }));
         setVideoClips(clips);
-    }, [learningClips]);
+
+        // 为本地和OSS视频生成缩略图
+        generateThumbnailsForLocalClips(clips);
+        generateThumbnailsForOssClips(clips);
+    }, [learningClips, generateThumbnailsForLocalClips, generateThumbnailsForOssClips]);
+
+    // Helper functions
+    const getVideoUrl = (clip: VideoClipWithPlayer): string => {
+        return clip.sourceType === 'local'
+            ? UrlUtil.file(clip.videoPath)
+            : UrlUtil.file(clip.videoName); // OSS类型使用videoName作为文件路径
+    };
+
+    const getStartTime = (clip: VideoClipWithPlayer): number => {
+        const mainClip = clip.clipContent.find(c => c.isClip) || clip.clipContent[0];
+        return mainClip?.start || 0;
+    };
+
+    const getThumbnailUrl = async (clip: VideoClipWithPlayer): Promise<string> => {
+        if (clip.sourceType === 'local') {
+            return thumbnailUrls[clip.key] ? UrlUtil.file(thumbnailUrls[clip.key]) : '';
+        } else {
+            // OSS类型：使用统一接口获取缩略图
+            try {
+                const startTime = getStartTime(clip);
+                // 对于OSS类型，我们需要从clip content中获取实际的视频路径
+                // 这里暂时返回空字符串，后续可以实现OSS缩略图获取逻辑
+                return '';
+            } catch (error) {
+                console.error('Failed to get OSS thumbnail:', error);
+                return '';
+            }
+        }
+    };
+
+    const getThumbnailUrlSync = (clip: VideoClipWithPlayer): string => {
+        return clip.sourceType === 'local'
+            ? (thumbnailUrls[clip.key] ? UrlUtil.file(thumbnailUrls[clip.key]) : '')
+            : ''; // OSS类型暂时返回空，等待异步获取
+    };
 
     return (
         <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
             {/* 顶部操作区域 */}
             <div className="p-6 bg-white dark:bg-gray-800 border-b">
                 <div className="container mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Play className="w-6 h-6" />
-                        <h1 className="text-2xl font-bold">视频学习</h1>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Play className="w-6 h-6" />
+                            <h1 className="text-2xl font-bold">视频学习</h1>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-yellow-600 rounded"></div>
+                                <span>处理中（播放原视频）</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -394,10 +488,10 @@ const VocabularyManagement = () => {
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                                 {videoClips.map((clip) => {
-                                    const mainClip = clip.clip_content.find(c => c.isClip) || clip.clip_content[0];
+                                    const mainClip = clip.clipContent.find(c => c.isClip) || clip.clipContent[0];
                                     const subtitle = `${mainClip?.contentEn || ''} ${mainClip?.contentZh || ''}`.trim();
-                                    const videoTitle = clip.video_name.split('/').pop() || 'Unknown Video';
-                                    const thumbnailUrl = clip.baseDir ? UrlUtil.dp(clip.baseDir, clip.thumbnail_file) : '';
+                                    const videoTitle = clip.videoName.split('/').pop() || 'Unknown Video';
+                                    const thumbnailUrl = getThumbnailUrlSync(clip);
 
                                     return (
                                         <div
@@ -406,7 +500,9 @@ const VocabularyManagement = () => {
                                                 border rounded-lg overflow-hidden cursor-pointer transition-all group
                                                 ${clip.key === playingVideoId
                                                     ? 'border-blue-500 ring-2 ring-blue-200'
-                                                    : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'
+                                                    : clip.sourceType === 'local'
+                                                        ? 'border-yellow-300 dark:border-yellow-600 hover:shadow-lg'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'
                                                 }
                                             `}
                                             onClick={() => handleVideoPlay(clip.key)}
@@ -420,13 +516,31 @@ const VocabularyManagement = () => {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                                    <div className={`w-full h-full flex items-center justify-center ${
+                                                        clip.sourceType === 'local'
+                                                            ? 'bg-gradient-to-br from-yellow-500 to-orange-600'
+                                                            : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                                                    }`}>
                                                         <Play className="w-8 h-8 text-white/80" />
                                                     </div>
                                                 )}
                                                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                                     <Play className="w-8 h-8 text-white" />
                                                 </div>
+
+                                                {/* 状态标识 */}
+                                                {clip.isPlaying && (
+                                                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                                                        播放中
+                                                    </div>
+                                                )}
+                                                {clip.sourceType === 'local' && !clip.isPlaying && (
+                                                    <div className="absolute top-2 left-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                                                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                                        处理中
+                                                    </div>
+                                                )}
+
                                                 {/* hover提示 */}
                                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <TooltipProvider>
@@ -438,19 +552,15 @@ const VocabularyManagement = () => {
                                                             </TooltipTrigger>
                                                             <TooltipContent className="max-w-xs">
                                                                 <div className="space-y-1">
-                                                                    <div><strong>视频名称:</strong> {clip.video_name.split('/').pop() || 'Unknown Video'}</div>
+                                                                    <div><strong>状态:</strong> {clip.sourceType === 'local' ? '处理中' : '已完成'}</div>
+                                                                    <div><strong>视频名称:</strong> {clip.videoName.split('/').pop() || 'Unknown Video'}</div>
                                                                     <div><strong>时间范围:</strong> {formatTime(mainClip?.start || 0)} - {formatTime(mainClip?.end || 0)}</div>
-                                                                    <div><strong>创建时间:</strong> {new Date(clip.created_at).toLocaleString()}</div>
+                                                                    <div><strong>创建时间:</strong> {new Date(clip.createdAt).toLocaleString()}</div>
                                                                 </div>
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
                                                 </div>
-                                                {clip.isPlaying && (
-                                                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                                                        播放中
-                                                    </div>
-                                                )}
                                             </div>
 
                                             {/* 视频信息 */}
@@ -466,7 +576,7 @@ const VocabularyManagement = () => {
                         )}
                     </div>
 
-  
+
                     {/* 视频播放器 */}
                     {playingClip ? (
                         <div className="border-t bg-white dark:bg-gray-800">
@@ -478,11 +588,19 @@ const VocabularyManagement = () => {
                                         <AspectRatio ratio={16 / 9}>
                                             <div className="w-full rounded-lg overflow-hidden">
                                                 <ReactPlayer
-                                                    url={UrlUtil.file(playingClip.baseDir, playingClip.clip_file)}
+                                                    ref={playerRef}
+                                                    url={getVideoUrl(playingClip)}
                                                     width="100%"
                                                     height="100%"
                                                     controls={true}
                                                     playing={true}
+                                                    onStart={() => {
+                                                        // 如果是本地视频，跳转到指定时间
+                                                        if (playingClip.sourceType === 'local') {
+                                                            const startTime = getStartTime(playingClip);
+                                                            playerRef.current?.seekTo(startTime);
+                                                        }
+                                                    }}
                                                     onEnded={() => {
                                                         // 保持播放器状态，循环播放
                                                     }}
@@ -493,7 +611,7 @@ const VocabularyManagement = () => {
 
                                     <div className="overflow-auto max-h-64">
                                         <div className="space-y-2">
-                                            {playingClip.clip_content.map((line, index) => (
+                                            {playingClip.clipContent?.map((line, index) => (
                                                 <div
                                                     key={index}
                                                     className={`
@@ -569,3 +687,4 @@ const formatTime = (seconds: number): string => {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
+

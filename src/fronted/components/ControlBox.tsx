@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import toast from 'react-hot-toast';
 import { cn } from '@/fronted/lib/utils';
@@ -20,6 +20,7 @@ import { codeBlock } from 'common-tags';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useFile from '@/fronted/hooks/useFile';
+import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import StrUtil from '@/common/utils/str-util';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -71,6 +72,149 @@ const Transcript = () => {
                                 #### 生成字幕
                                 使用人工智能为当前视频生成字幕，保存在视频文件夹中，完成时自动加载。
                                 `}
+                    </Md>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+};
+
+type ClipStatus = 'pending' | 'in_progress' | 'completed';
+
+interface ClipStatusState extends VideoLearningClipStatusVO {
+    message?: string;
+}
+
+const AutoClipButton = () => {
+    const [clipStatus, setClipStatus] = useState<ClipStatusState>({ status: 'completed' });
+    const videoPath = useFile.getState().videoPath;
+    const srtHash = useFile.getState().srtHash;
+
+    // 监听来自后端的状态更新
+    useEffect(() => {
+        const unregister = window.electron.registerRendererApi(
+            'video-learning/clip-status-update',
+            (params: {
+                videoPath: string;
+                srtKey: string;
+                status: ClipStatus;
+                pendingCount?: number;
+                inProgressCount?: number;
+                completedCount?: number;
+                message?: string;
+            }) => {
+                if (params.videoPath === videoPath && params.srtKey === srtHash) {
+                    setClipStatus({
+                        status: params.status,
+                        pendingCount: params.pendingCount,
+                        inProgressCount: params.inProgressCount,
+                        completedCount: params.completedCount,
+                        message: params.message
+                    });
+                }
+            }
+        );
+
+        return () => {
+            unregister();
+        };
+    }, [videoPath, srtHash]);
+
+    // 当视频或字幕变化时，检测状态
+    useEffect(() => {
+        if (videoPath && srtHash) {
+            detectClipStatus();
+        }
+    }, [videoPath, srtHash]);
+
+    const detectClipStatus = async () => {
+        if (!videoPath || !srtHash) return;
+        
+        try {
+            const result = await api.call('video-learning/detect-clip-status', {
+                videoPath,
+                srtKey: srtHash
+            });
+            if (result.data) {
+                setClipStatus(result.data);
+            }
+        } catch (error) {
+            logger.error('检测裁切状态失败:', error);
+        }
+    };
+
+    const handleAutoClip = async () => {
+        if (!videoPath || !srtHash) {
+            toast.error('请先加载视频和字幕');
+            return;
+        }
+        
+        try {
+            toast('开始自动裁切视频片段...', {
+                icon: '✂️'
+            });
+            
+            await api.call('video-learning/auto-clip', {
+                videoPath,
+                srtKey: srtHash
+            });
+        } catch (error) {
+            logger.error('自动裁切失败:', error);
+            toast.error('自动裁切失败，请重试');
+        }
+    };
+
+    const getButtonText = () => {
+        if (!clipStatus?.status) {
+            return '自动裁切学习片段';
+        }
+        
+        switch (clipStatus.status) {
+            case 'pending':
+                return `自动裁切 (${clipStatus.pendingCount || 0})`;
+            case 'in_progress':
+                return `裁切中 (${clipStatus.inProgressCount || 0})`;
+            case 'completed':
+                return clipStatus.completedCount ? `已完成 (${clipStatus.completedCount})` : '自动裁切学习片段';
+            default:
+                return '自动裁切学习片段';
+        }
+    };
+
+    const isDisabled = clipStatus?.status === 'in_progress';
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        disabled={isDisabled}
+                        className={'justify-start'}
+                        onClick={handleAutoClip}
+                        variant={'ghost'}
+                    >
+                        <Scissors className="mr-2 h-4 w-4" />
+                        {getButtonText()}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent className="p-8 pb-6 rounded-md shadow-lg text-gray-800">
+                    <Md>
+                        {codeBlock`
+                        #### 自动裁切学习片段
+                        _根据单词表自动生成视频学习片段_
+
+                        当前状态：${clipStatus.message || '等待检测...'}
+
+                        此功能会：
+                        1. 读取当前视频的字幕内容
+                        2. 匹配单词表中的单词
+                        3. 自动裁切包含目标单词的视频片段
+                        4. 保存到视频学习库中
+
+                        适用于：
+                        - 快速创建单词相关的学习材料
+                        - 批量生成学习视频片段
+                        `}
                     </Md>
                 </TooltipContent>
             </Tooltip>
@@ -275,63 +419,7 @@ const ControlBox = () => {
                     </Tooltip>
                 </TooltipProvider>
                 <Transcript />
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                className={'justify-start'}
-                                onClick={async () => {
-                                    const videoPath = useFile.getState().videoPath;
-                                    const srtHash = useFile.getState().srtHash;
-                                    
-                                    if (!videoPath || !srtHash) {
-                                        toast.error('请先加载视频和字幕');
-                                        return;
-                                    }
-                                    
-                                    try {
-                                        toast('开始自动裁切视频片段...', {
-                                            icon: '✂️'
-                                        });
-                                        
-                                        await api.call('video-learning/auto-clip', {
-                                            videoPath,
-                                            srtKey: srtHash
-                                        });
-                                            
-                                        toast('自动裁切任务已添加到队列', {
-                                            icon: '👏'
-                                        });
-                                    } catch (error) {
-                                        logger.error('自动裁切失败:', error);
-                                        toast.error('自动裁切失败，请重试');
-                                    }
-                                }}
-                                variant={'ghost'}
-                            >
-                                <Scissors className="mr-2 h-4 w-4" />自动裁切学习片段
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="p-8 pb-6 rounded-md shadow-lg text-gray-800">
-                            <Md>
-                                {codeBlock`
-                                #### 自动裁切学习片段
-                                _根据单词表自动生成视频学习片段_
-
-                                此功能会：
-                                1. 读取当前视频的字幕内容
-                                2. 匹配单词表中的单词
-                                3. 自动裁切包含目标单词的视频片段
-                                4. 保存到视频学习库中
-
-                                适用于：
-                                - 快速创建单词相关的学习材料
-                                - 批量生成学习视频片段
-                                `}
-                            </Md>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <AutoClipButton />
             </CardContent>
         </Card>
     );

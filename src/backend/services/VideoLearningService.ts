@@ -1,12 +1,11 @@
 import { ClipQuery } from '@/common/api/dto';
-import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import { VideoLearningClipVO } from '@/common/types/vo/VideoLearningClipVO';
+import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 
 /**
  * VideoLearningService
  */
 export interface VideoLearningService {
-
-    taskInfo(): number;
 
     /**
      * 自动根据单词表裁切视频片段
@@ -31,32 +30,27 @@ export interface VideoLearningService {
      */
     deleteLearningClip(key: string): Promise<void>;
 
-    
+
     /**
      * 搜索学习片段
      * @param query - 查询参数
-     * @returns Promise<(OssBaseMeta & ClipMeta)[]>
+     * @returns Promise<VideoLearningClipVO[]>
      */
-    search(query: ClipQuery & { matchedWord?: string }): Promise<(OssBaseMeta & ClipMeta)[]>;
+    search(query: ClipQuery & { matchedWord?: string }): Promise<VideoLearningClipVO[]>;
 
-    /**
-     * 检查片段是否存在
-     * @param srtKey - 字幕文件键
-     * @param linesInSrt - 字幕索引数组
-     * @returns Promise<Map<number, boolean>>
-     */
-    exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>>;
-
-    /**
-     * 根据单词搜索学习片段
-     * @param words - 单词数组
-     * @returns Promise<(OssBaseMeta & ClipMeta)[]>
-     */
-    searchByWords(words: string[]): Promise<(OssBaseMeta & ClipMeta)[]>;
-
+    
+    
     /**
      * 从 OSS 同步数据
      * @returns Promise<void>
      */
     syncFromOss(): Promise<void>;
+
+    /**
+     * 检测视频裁切状态
+     * @param videoPath - 视频文件路径
+     * @param srtKey - 字幕文件键
+     * @returns Promise<{status: 'pending' | 'in_progress' | 'completed', pendingCount?: number, inProgressCount?: number, completedCount?: number}>
+     */
+    detectClipStatus(videoPath: string, srtKey: string): Promise<VideoLearningClipStatusVO>;
 }

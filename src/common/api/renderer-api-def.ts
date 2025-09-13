@@ -47,13 +47,30 @@ interface VocabularyRendererDef {
     };
 }
 
+// 视频学习裁切状态更新的前端API定义
+interface VideoLearningRendererDef {
+    'video-learning/clip-status-update': { 
+        params: { 
+            videoPath: string;
+            srtKey: string;
+            status: 'pending' | 'in_progress' | 'completed';
+            pendingCount?: number;
+            inProgressCount?: number;
+            completedCount?: number;
+            message?: string;
+        }, 
+        return: void 
+    };
+}
+
 
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
     & UIRendererDef
     & TranslationRendererDef
     & TranscriptRendererDef
-    & VocabularyRendererDef;
+    & VocabularyRendererDef
+    & VideoLearningRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;

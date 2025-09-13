@@ -1,8 +1,7 @@
-import {FC, memo} from 'react'
+import React, {FC, memo} from 'react'
 import ReactMarkdown, {Options} from 'react-markdown'
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import React from 'react'
 export const MemoizedReactMarkdown: FC<Options> = memo(
     ReactMarkdown,
     (prevProps, nextProps) =>

@@ -1,21 +1,23 @@
-import { DpTask } from '@/backend/db/tables/dpTask';
-import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import { ChapterParseResult } from '@/common/types/chapter-result';
-import { SrtSentence } from '@/common/types/SentenceC';
-import { WindowState } from '@/common/types/Types';
+import {DpTask} from '@/backend/db/tables/dpTask';
+import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
+import {ChapterParseResult} from '@/common/types/chapter-result';
+import {SrtSentence} from '@/common/types/SentenceC';
+import {WindowState} from '@/common/types/Types';
 import {
     InsertSubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import { SettingKey } from '@/common/types/store_schema';
+import {SettingKey} from '@/common/types/store_schema';
 import Release from '@/common/types/release';
-import { FolderVideos } from '@/common/types/tonvert-type';
+import {FolderVideos} from '@/common/types/tonvert-type';
 
-import { Tag } from '@/backend/db/tables/tag';
-import { ClipQuery } from '@/common/api/dto';
-import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import {Tag} from '@/backend/db/tables/tag';
+import {ClipQuery} from '@/common/api/dto';
+import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
-import { COOKIE } from '@/common/types/DlVideoType';
-import { CoreMessage } from 'ai';
+import {VideoLearningClipVO} from '@/common/types/vo/VideoLearningClipVO';
+import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
+import {COOKIE} from '@/common/types/DlVideoType';
+import {CoreMessage} from 'ai';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 
 interface ApiDefinition {
@@ -89,11 +91,14 @@ interface SystemDef {
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
     'system/test-renderer-api': { params: void, return: void };
-    }
+}
 
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
-    'ai-trans/word': { params: { word: string; forceRefresh?: boolean }, return: YdRes | OpenAIDictionaryResult | null };
+    'ai-trans/word': {
+        params: { word: string; forceRefresh?: boolean },
+        return: YdRes | OpenAIDictionaryResult | null
+    };
     // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)
     'ai-trans/request-group-translation': {
         params: {
@@ -140,7 +145,7 @@ interface StorageDef {
     'storage/get': { params: SettingKey, return: string };
     'storage/cache/size': { params: void, return: string };
     'storage/collection/paths': { params: void, return: string[] };
-    }
+}
 
 interface SettingsDef {
     'settings/get-all-services': { params: void, return: ApiSettingVO };
@@ -193,68 +198,44 @@ interface TagDef {
 }
 
 interface VocabularyDef {
-    'vocabulary/get-all': { 
-        params: { search?: string; page?: number; pageSize?: number }, 
-        return: { success: boolean; data?: any[]; error?: string } 
+    'vocabulary/get-all': {
+        params: { search?: string; page?: number; pageSize?: number },
+        return: { success: boolean; data?: any[]; error?: string }
     };
-    'vocabulary/export-template': { 
-        params: void, 
-        return: { success: boolean; data?: string; error?: string } 
+    'vocabulary/export-template': {
+        params: void,
+        return: { success: boolean; data?: string; error?: string }
     };
-    'vocabulary/import': { 
-        params: { filePath: string }, 
-        return: { success: boolean; message?: string; error?: string } 
+    'vocabulary/import': {
+        params: { filePath: string },
+        return: { success: boolean; message?: string; error?: string }
     };
 }
 
 interface VideoLearningDef {
-    'video-learning/auto-clip': { 
-        params: { videoPath: string; srtKey: string }, 
-        return: { success: boolean } 
+    'video-learning/detect-clip-status': {
+        params: { videoPath: string; srtKey: string },
+        return: VideoLearningClipStatusVO
     };
-    'video-learning/cancel-add': { 
-        params: { srtKey: string; indexInSrt: number }, 
-        return: { success: boolean } 
+    'video-learning/auto-clip': {
+        params: { videoPath: string; srtKey: string },
+        return: { success: boolean }
     };
-    'video-learning/delete': { 
-        params: { key: string }, 
-        return: { success: boolean } 
+    'video-learning/cancel-add': {
+        params: { srtKey: string; indexInSrt: number },
+        return: { success: boolean }
     };
-    'video-learning/exists': { 
-        params: { srtKey: string; linesInSrt: number[] }, 
-        return: { success: boolean; data: Map<number, boolean> } 
+    'video-learning/delete': {
+        params: { key: string },
+        return: { success: boolean }
     };
-    'video-learning/search': { 
-        params: ClipQuery & { matchedWord?: string }, 
-        return: { success: boolean; data: (OssBaseMeta & ClipMeta)[] } 
+    'video-learning/search': {
+        params: ClipQuery & { matchedWord?: string },
+        return: { success: boolean; data: VideoLearningClipVO[] }
     };
-    'video-learning/search-by-words': { 
-        params: { words: string[] }, 
-        return: { success: boolean; data: (OssBaseMeta & ClipMeta)[] } 
-    };
-    'video-learning/query-tags': { 
-        params: { key: string }, 
-        return: { success: boolean; data: Tag[] } 
-    };
-    'video-learning/add-tag': { 
-        params: { key: string; tagId: number }, 
-        return: { success: boolean } 
-    };
-    'video-learning/delete-tag': { 
-        params: { key: string; tagId: number }, 
-        return: { success: boolean } 
-    };
-    'video-learning/rename-tag': { 
-        params: { tagId: number; newName: string }, 
-        return: { success: boolean } 
-    };
-    'video-learning/task-info': { 
-        params: void, 
-        return: { success: boolean; data: number } 
-    };
-    'video-learning/sync-from-oss': { 
-        params: void, 
-        return: { success: boolean } 
+    'video-learning/sync-from-oss': {
+        params: void,
+        return: { success: boolean }
     };
 }
 
