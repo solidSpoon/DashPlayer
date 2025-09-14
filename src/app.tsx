@@ -22,8 +22,8 @@ import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from '@/fronted/components/short-cut/GlobalShortCut';
 import DownloadVideo from '@/fronted/pages/DownloadVideo';
 import Convert from '@/fronted/pages/convert/Convert';
-import Eb from '@/fronted/components/Eb';
-import Favorite from '@/fronted/pages/favourite/Favorite';
+import Eb from '@/fronted/components/common/Eb';
+import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
 import {startListeningToDpTasks} from "@/fronted/hooks/useDpTaskCenter";
 

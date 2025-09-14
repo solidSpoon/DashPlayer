@@ -4,7 +4,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import React, { useEffect } from 'react';
 import useFavouriteClip, { PlayInfo } from '@/fronted/hooks/useFavouriteClip';
 import TagSelector from '@/fronted/components/TagSelector';
-import FavouriteMainSrt from '@/fronted/pages/favourite/FavouriteMainSrt';
+import FavouriteMainSrt from './FavouriteMainSrt';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

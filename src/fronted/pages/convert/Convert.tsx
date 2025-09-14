@@ -8,7 +8,7 @@ import useConvert from '@/fronted/hooks/useConvert';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/fronted/components/ui/button';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
-import Eb from '@/fronted/components/Eb';
+import Eb from '@/fronted/components/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('Convert');

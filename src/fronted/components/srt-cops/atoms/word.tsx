@@ -11,7 +11,7 @@ import {cn} from "@/fronted/lib/utils";
 import useCopyModeController from '../../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import Eb from '@/fronted/components/Eb';
+import Eb from '@/fronted/components/common/Eb';
 import useVocabulary from '../../../hooks/useVocabulary';
 
 const api = window.electron;
@@ -52,7 +52,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // 检查是否是词汇单词
     const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
     const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
