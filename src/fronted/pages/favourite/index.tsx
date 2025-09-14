@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Separator from '@/fronted/components/Separtor';
 import useSWR from 'swr';
@@ -13,6 +13,7 @@ import { DateRange } from 'react-day-picker';
 import { Tag } from '@/backend/db/tables/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso } from 'react-virtuoso';
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 
 const api = window.electron;
 
@@ -48,6 +49,7 @@ const Loader = () => {
 
 
 const Favorite = () => {
+    const virtuosoRef = useRef<any>(null);
     const [keyword, setKeyword] = useState('');
     const [tagRelation, setTagRelation] = useState<'and' | 'or'>('and');
     const [tags, setTags] = useState<Tag[]>([]);
@@ -68,6 +70,22 @@ const Favorite = () => {
         fallbackData: []
     });
 
+    const playInfo = useFavouriteClip((state) => state.playInfo);
+
+    // 当当前播放的视频变化时，自动滚动到该视频位置
+    useEffect(() => {
+        if (playInfo && data.length > 0) {
+            const currentIndex = data.findIndex((item: any) => item.key === playInfo.video.key);
+            if (currentIndex !== -1 && virtuosoRef.current) {
+                // 滚动到当前视频，确保它在视图中可见
+                virtuosoRef.current.scrollToIndex({
+                    index: currentIndex,
+                    behavior: 'smooth',
+                    align: 'center'
+                });
+            }
+        }
+    }, [playInfo, data]);
 
     return (
         <div
@@ -108,7 +126,7 @@ const Favorite = () => {
                  }}
             >
                 <Virtuoso
-
+                    ref={virtuosoRef}
                     className={cn('max-w-3xl scrollbar-none')}
                     data={data}
                     itemContent={(_index, item) => <FavouriteItem item={item} />}

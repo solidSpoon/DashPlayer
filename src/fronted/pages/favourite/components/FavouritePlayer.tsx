@@ -1,26 +1,35 @@
+import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import useSWR from 'swr';
+import { apiPath } from '@/fronted/lib/swr-util';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
-import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
-import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import TagSelector from '@/fronted/components/TagSelector';
 import FavouriteMainSrt from './FavouriteMainSrt';
 import VideoPlayerShortcut from '@/fronted/components/video-learning/VideoPlayerShortcut';
 import { Button } from '@/fronted/components/ui/button';
-import { Play, Pause, RotateCcw, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
-import { Slider } from '@/fronted/components/ui/slider';
+import { Play, Pause, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
+const api = window.electron;
 const logger = getRendererLogger('FavouritePlayer');
 
 const FavouritePlayer = () => {
   const [ready, setReady] = useState(false);
   const bootOnceRef = useRef(false);
-  const loadedKeyRef = useRef<string | null>(null); // 当前已加载的视频 key
+  const loadedKeyRef = useRef<string | null>(null);
 
   const playInfo = useFavouriteClip((state) => state.playInfo);
+  const setPlayInfo = useFavouriteClip((state) => state.setPlayInfo);
+
+  const { data: allVideos = [] } = useSWR(
+    apiPath('favorite-clips/search'),
+    () => api.call('favorite-clips/search', {})
+  );
 
   const {
     playing,
@@ -31,7 +40,6 @@ const FavouritePlayer = () => {
     muted,
     playbackRate,
 
-    // 播放控制
     play,
     togglePlay,
     seekTo,
@@ -39,31 +47,25 @@ const FavouritePlayer = () => {
     setMuted,
     setPlaybackRate,
 
-    // 模式控制
     setAutoPause,
     setSingleRepeat,
 
-    // 字幕/源
     setSource,
     loadSubtitles,
     clearSubtitles,
     getExactPlayTime,
 
-    // 高级API
-    prevSentence,
-    nextSentence,
     repeatCurrent,
     gotoSentenceIndex,
+    prevSentence,
+    nextSentence,
 
-    // 只读选择器
     isAtFirstSentence,
     isAtLastSentence,
 
-    // 用于 index 检查
     sentences
   } = usePlayerV2();
 
-  // playInfo 变化：仅在切换视频时重新加载；同视频则就地 seek
   useEffect(() => {
     if (!playInfo) {
       setSource(null);
@@ -75,13 +77,11 @@ const FavouritePlayer = () => {
     }
 
     const { video, time, sentenceIndex } = playInfo;
-    const videoUrl =
-      video?.baseDir && video?.clip_file ? UrlUtil.file(video.baseDir, video.clip_file) : '';
+    const videoUrl = video?.baseDir && video?.clip_file ? UrlUtil.file(video.baseDir, video.clip_file) : '';
     const videoKey = video.key;
     const isSameClip = loadedKeyRef.current === videoKey;
 
     if (!isSameClip) {
-      // 切换视频：重载源与字幕
       setSource(videoUrl);
 
       if (video.clip_content) {
@@ -93,9 +93,7 @@ const FavouritePlayer = () => {
       bootOnceRef.current = false;
       logger.debug('Loaded new clip', { key: videoKey });
     } else {
-      // 同一视频：ready 后就地 seek（重复点击重复 seek，由于 playInfo.timeUpdated 每次变化）
       if (ready) {
-        // 使用当前 sentences 而不是依赖项中的 sentences
         const currentSentences = usePlayerV2.getState().sentences;
         if (typeof sentenceIndex === 'number' && currentSentences[sentenceIndex]) {
           gotoSentenceIndex(sentenceIndex);
@@ -118,14 +116,69 @@ const FavouritePlayer = () => {
     play
   ]);
 
-  // 播放器就绪：执行首次跳转
+  const goToPreviousVideo = useCallback(() => {
+    if (!playInfo || allVideos.length === 0) return;
+
+    const currentIndex = allVideos.findIndex(video => video.key === playInfo.video.key);
+    const previousIndex = currentIndex > 0 ? currentIndex - 1 : allVideos.length - 1;
+    const previousVideo = allVideos[previousIndex];
+
+    const mainSentenceIndex = previousVideo.clip_content?.findIndex(line => line.isClip) ?? 0;
+
+    setPlayInfo({
+      video: previousVideo,
+      time: previousVideo.clip_content?.[mainSentenceIndex]?.start ?? 0,
+      timeUpdated: Date.now(),
+      sentenceIndex: mainSentenceIndex
+    });
+    logger.debug('Go to previous video', { videoKey: previousVideo.key, sentenceIndex: mainSentenceIndex });
+  }, [playInfo, allVideos, setPlayInfo]);
+
+  const goToNextVideo = useCallback(() => {
+    if (!playInfo || allVideos.length === 0) return;
+
+    const currentIndex = allVideos.findIndex(video => video.key === playInfo.video.key);
+    const nextIndex = currentIndex < allVideos.length - 1 ? currentIndex + 1 : 0;
+    const nextVideo = allVideos[nextIndex];
+
+    const mainSentenceIndex = nextVideo.clip_content?.findIndex(line => line.isClip) ?? 0;
+
+    setPlayInfo({
+      video: nextVideo,
+      time: nextVideo.clip_content?.[mainSentenceIndex]?.start ?? 0,
+      timeUpdated: Date.now(),
+      sentenceIndex: mainSentenceIndex
+    });
+    logger.debug('Go to next video', { videoKey: nextVideo.key, sentenceIndex: mainSentenceIndex });
+  }, [playInfo, allVideos, setPlayInfo]);
+
+  // 句子导航处理边界情况
+  const handlePrevSentence = useCallback(() => {
+    if (isAtFirstSentence()) {
+      // 第一句再上一句：跳到上个视频
+      goToPreviousVideo();
+    } else {
+      // 否则使用播放器内部逻辑
+      prevSentence();
+    }
+  }, [isAtFirstSentence, goToPreviousVideo, prevSentence]);
+
+  const handleNextSentence = useCallback(() => {
+    if (isAtLastSentence()) {
+      // 最后一句再下一句：跳到下个视频
+      goToNextVideo();
+    } else {
+      // 否则使用播放器内部逻辑
+      nextSentence();
+    }
+  }, [isAtLastSentence, goToNextVideo, nextSentence]);
+
   const handlePlayerReady = useCallback(() => {
     setReady(true);
 
     if (!bootOnceRef.current && playInfo) {
       bootOnceRef.current = true;
 
-      // 使用当前 sentences 而不是依赖项中的 sentences
       const currentSentences = usePlayerV2.getState().sentences;
       if (typeof playInfo.sentenceIndex === 'number' && currentSentences[playInfo.sentenceIndex]) {
         gotoSentenceIndex(playInfo.sentenceIndex);
@@ -167,85 +220,79 @@ const FavouritePlayer = () => {
         </div>
       </AspectRatio>
 
-      {/* 播放控制栏 */}
-      <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-        <Button variant="outline" size="icon" onClick={togglePlay} disabled={!ready}>
-          {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-        </Button>
+      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" onClick={togglePlay} disabled={!ready}>
+                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {playing ? '暂停' : '播放'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        <Button variant="outline" size="icon" onClick={() => prevSentence()} disabled={!ready || isAtFirstSentence()}>
-          <SkipBack className="w-4 h-4" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" onClick={goToPreviousVideo} disabled={!ready || allVideos.length === 0}>
+                <SkipBack className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              上一个视频
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        <Button variant="outline" size="icon" onClick={() => nextSentence()} disabled={!ready || isAtLastSentence()}>
-          <SkipForward className="w-4 h-4" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" onClick={goToNextVideo} disabled={!ready || allVideos.length === 0}>
+                <SkipForward className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              下一个视频
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        <Button variant="outline" size="icon" onClick={() => repeatCurrent({ loop: false })} disabled={!ready}>
-          <RotateCcw className="w-4 h-4" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" onClick={() => repeatCurrent({ loop: false })} disabled={!ready}>
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              重复当前句
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        {/* 进度条（仅显示） */}
         <div className="flex-1 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground w-12 text-right">{formatTime(currentTime)}</span>
+          <span className="text-xs text-muted-foreground w-10 text-right">{formatTime(currentTime)}</span>
           <div className="flex-1 relative">
-            <div className="absolute inset-0 bg-muted rounded-full h-2" />
+            <div className="absolute inset-0 bg-muted rounded-full h-1.5" />
             <div
-              className="absolute inset-y-0 left-0 bg-primary rounded-full h-2 transition-all duration-100"
+              className="absolute inset-y-0 left-0 bg-primary rounded-full h-1.5 transition-all duration-100"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="text-xs text-muted-foreground w-12">{formatTime(duration)}</span>
+          <span className="text-xs text-muted-foreground w-10">{formatTime(duration)}</span>
         </div>
-
-        {/* 音量控制 */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setMuted(!muted)} disabled={!ready}>
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </Button>
-          <Slider
-            value={[muted ? 0 : volume]}
-            onValueChange={([value]) => setVolume(value)}
-            max={1}
-            min={0}
-            step={0.1}
-            className="w-20"
-            disabled={!ready}
-          />
-        </div>
-
-        {/* 播放速度 */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{playbackRate.toFixed(1)}x</span>
-          <Slider
-            value={[playbackRate]}
-            onValueChange={([value]) => setPlaybackRate(value)}
-            max={2}
-            min={0.5}
-            step={0.1}
-            className="w-20"
-            disabled={!ready}
-          />
-        </div>
-
-        {/* 模式控制 */}
-        <Button variant={autoPause ? 'default' : 'outline'} size="sm" onClick={() => setAutoPause(!autoPause)} disabled={!ready}>
-          自动暂停
-        </Button>
-
-        <Button variant={singleRepeat ? 'default' : 'outline'} size="sm" onClick={() => setSingleRepeat(!singleRepeat)} disabled={!ready}>
-          单句重复
-        </Button>
       </div>
 
       <TagSelector />
       <FavouriteMainSrt />
 
-      {/* 快捷键 */}
       <VideoPlayerShortcut
         onPlayPause={togglePlay}
-        onPrevSentence={() => prevSentence()}
-        onNextSentence={() => nextSentence()}
+        onPrevSentence={handlePrevSentence}
+        onNextSentence={handleNextSentence}
         onRepeatSentence={() => repeatCurrent({ loop: false })}
         onSeekToCurrentStart={() => repeatCurrent({ loop: false })}
         onChangeSingleRepeat={() => setSingleRepeat(!singleRepeat)}
