@@ -6,10 +6,8 @@ import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
 import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
-import { shallow } from 'zustand/shallow';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 
-// 字幕列表进度条组件：只订阅 exactPlayTime 和 duration
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   lines,
   activeIndex,
@@ -31,11 +29,6 @@ const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   onToggleAutoPause: () => void;
   onToggleSingleRepeat: () => void;
 }) {
-  const currentTime = usePlayerV2((s) => s.internal.exactPlayTime);
-  const duration = usePlayerV2((s) => s.duration);
-
-  console.log('SubtitleListWithProgress render:', { currentTime, duration, timestamp: Date.now() });
-
   return (
     <SubtitleList
       lines={lines}
@@ -43,8 +36,6 @@ const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
       playing={playing}
       autoPause={autoPause}
       singleRepeat={singleRepeat}
-      currentTime={currentTime}
-      duration={duration}
       onPickLine={onPickLine}
       onTogglePlay={onTogglePlay}
       onToggleAutoPause={onToggleAutoPause}

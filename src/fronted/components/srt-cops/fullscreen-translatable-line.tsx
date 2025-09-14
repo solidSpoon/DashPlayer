@@ -66,7 +66,7 @@ const FullscreenTranslatableLine = ({
                         </Tooltip>
                     </TooltipProvider>
                 )}
-                <TranslatableLineWrapper sentence={sentence} show={show} hoverDark />
+                <TranslatableLineWrapper sentence={sentence} adjusted={adjusted} clearAdjust={clearAdjust} />
 
                 {adjusted && (
                     <div className={cn('w-10 h-full flex-shrink-0 py-2.5')}>

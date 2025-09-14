@@ -1,6 +1,5 @@
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { Sentence } from '@/common/types/SentenceC';
-import UrlUtil from '@/common/utils/UrlUtil';
 
 /**
  * 将 ClipSrtLine 转换为 Sentence 格式，以便在 usePlayerV2 中使用

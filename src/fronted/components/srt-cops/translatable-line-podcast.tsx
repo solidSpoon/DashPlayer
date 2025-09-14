@@ -49,7 +49,7 @@ const TranslatableLinePodcast = ({
                     </TooltipProvider>
                 )}
             </div>
-            <TranslatableLineWrapper sentence={sentence} show />
+            <TranslatableLineWrapper sentence={sentence} adjusted={adjusted} clearAdjust={clearAdjust} />
             <div className={cn('w-10 h-full')} />
         </div>
     );

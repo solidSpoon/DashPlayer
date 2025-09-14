@@ -11,7 +11,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
 
     async getAllWords(params: GetAllWordsParams = {}): Promise<GetAllWordsResult> {
         try {
-            let query = db
+            const wordsResult = db
                 .select({
                     id: words.id,
                     word: words.word,
@@ -21,27 +21,17 @@ export default class VocabularyServiceImpl implements VocabularyService {
                     created_at: words.created_at,
                     updated_at: words.updated_at
                 })
-                .from(words);
-
-            // 添加搜索条件
-            if (params.search) {
-                const searchTerm = `%${params.search}%`;
-                query = query.where(
-                    or(
-                        like(words.word, searchTerm),
-                        like(words.translate, searchTerm),
-                        like(words.stem, searchTerm)
-                    )
-                );
-            }
-
-            // 添加分页
-            if (params.page && params.pageSize) {
-                const offset = (params.page - 1) * params.pageSize;
-                query = query.limit(params.pageSize).offset(offset);
-            }
-
-            const wordsResult = await query;
+                .from(words)
+                .where(
+                    params.search
+                        ? or(
+                            like(words.word, `%${params.search}%`),
+                            like(words.translate, `%${params.search}%`),
+                            like(words.stem, `%${params.search}%`)
+                        )
+                        : undefined
+                )
+                .all();
 
             return {
                 success: true,
@@ -140,13 +130,13 @@ export default class VocabularyServiceImpl implements VocabularyService {
                 const now = new Date().toISOString();
 
                 // 检查是否已存在
-                const existingWords = await db
-                    .select()
+                const existingWord = db
+                    .select({id: words.id})
                     .from(words)
                     .where(eq(words.word, wordText))
-                    .limit(1);
+                    .get();
 
-                if (existingWords.length > 0) {
+                if (existingWord) {
                     // 更新现有记录
                     await db
                         .update(words)

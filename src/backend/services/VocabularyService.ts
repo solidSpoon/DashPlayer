@@ -2,8 +2,6 @@ import { words } from '@/backend/db/tables/words';
 
 export interface GetAllWordsParams {
     search?: string;
-    page?: number;
-    pageSize?: number;
 }
 
 export interface GetAllWordsResult {

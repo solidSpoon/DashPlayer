@@ -1,10 +1,10 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router-dom';
-import useLayout, { cpW } from '@/fronted/hooks/useLayout';
-import { cn } from '@/fronted/lib/utils';
+import {AnimatePresence, motion} from 'framer-motion';
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {useLocation, useParams, useSearchParams} from 'react-router-dom';
+import useLayout, {cpW} from '@/fronted/hooks/useLayout';
+import {cn} from '@/fronted/lib/utils';
 import FileBrowser from '@/fronted/components/FileBrowser';
-import ControlBox from '@/fronted/components/pp-control-box/ControlBox';
+import {ControlBox} from '@/fronted/components/pp-control-box';
 import ControlButton from '@/fronted/components/ControlButton';
 import useFile from '@/fronted/hooks/useFile';
 import PlayerShortCut from '@/fronted/components/short-cut/PlayerShortCut';
@@ -13,22 +13,23 @@ import Chat from '@/fronted/components/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
 import PlayerSrtLayout from '@/fronted/components/PlayerSrtLayout';
-import { SWR_KEY } from '@/fronted/lib/swr-util';
+import {SWR_KEY} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
 import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
+import {getRendererLogger} from '@/fronted/log/simple-logger';
 import toast from 'react-hot-toast';
-import { ModeSwitchToast } from '@/fronted/components/toasts/ModeSwitchToast';
+import {ModeSwitchToast} from '@/fronted/components/toasts/ModeSwitchToast';
+
 const api = window.electron;
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const PlayerWithControlsPage = () => {
-    const { videoId } = useParams();
-    const { data: video } = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
-    logger.debug('player page loaded', { videoId, hasVideo: !!video });
+    const {videoId} = useParams();
+    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
+    logger.debug('player page loaded', {videoId, hasVideo: !!video});
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const chatTopic = useChatPanel(s => s.topic);
@@ -46,14 +47,14 @@ const PlayerWithControlsPage = () => {
             'true') === 'true';
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
-    logger.debug('page referrer', { referrer });
+    logger.debug('page referrer', {referrer});
     useEffect(() => {
         const runEffect = async () => {
-            logger.debug('video effect triggered', { video });
+            logger.debug('video effect triggered', {video});
             if (!video) {
                 return;
             }
-            useFile.setState({ videoId: video.id });
+            useFile.setState({videoId: video.id});
             const vp = useFile.getState().videoPath;
             const sp = useFile.getState().subtitlePath;
             const videoPath = PathUtil.join(video.basePath, video.fileName);
@@ -71,7 +72,7 @@ const PlayerWithControlsPage = () => {
             if (subtitlePath && sp !== video.srtFile) {
                 useFile.getState().updateFile(subtitlePath);
             }
-            if(MediaUtil.isAudio(video.fileName)) {
+            if (MediaUtil.isAudio(video.fileName)) {
                 const currentMode = useLayout.getState().podcastMode;
                 if (!currentMode) {
                     useLayout.getState().setPodcastMode(true);
@@ -119,10 +120,10 @@ const PlayerWithControlsPage = () => {
         runEffect();
     }, [video]);
     useEffect(() => {
-        setSearchParams({ sideBarAnimation: 'true' });
+        setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
-    const [pos, setPos] = useState({ x: 0, y: 0, scale: 1 });
+    const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
     useLayoutEffect(() => {
         const updatePos = () => {
             if (posRef.current === null) {
@@ -173,17 +174,17 @@ const PlayerWithControlsPage = () => {
                             className={cn(
                                 'col-start-1 col-end-2 row-start-1 row-end-3'
                             )}
-                            initial={{ x: -1000 }}
+                            initial={{x: -1000}}
                             animate={{
                                 x: 0
                             }}
-                            exit={{ x: -1000 }}
+                            exit={{x: -1000}}
                             transition={{
                                 type: 'tween',
                                 duration: sideBarAnimation ? 0 : 0
                             }}
                         >
-                            <SideBar compact={!w('xl')} />
+                            <SideBar compact={!w('xl')}/>
                         </motion.div>
                         <motion.div
                             className={cn(
@@ -191,17 +192,17 @@ const PlayerWithControlsPage = () => {
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
-                            initial={{ x: 1000 }}
+                            initial={{x: 1000}}
                             animate={{
                                 x: 0
                             }}
-                            exit={{ x: 1000 }}
+                            exit={{x: 1000}}
                             transition={{
                                 type: 'tween',
                                 duration: 0.2
                             }}
                         >
-                            <FileBrowser />
+                            <FileBrowser/>
                         </motion.div>
 
                         <motion.div
@@ -210,18 +211,18 @@ const PlayerWithControlsPage = () => {
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
-                            initial={{ y: -1000 }}
+                            initial={{y: -1000}}
                             animate={{
                                 y: 0,
                                 x: 0
                             }}
-                            exit={{ y: -1000 }}
+                            exit={{y: -1000}}
                             transition={{
                                 type: 'tween',
                                 duration: 0.2
                             }}
                         >
-                            <ControlBox />
+                            <ControlBox/>
                         </motion.div>
                     </>
                 )}
@@ -231,7 +232,7 @@ const PlayerWithControlsPage = () => {
                         gridArea: '2 / 2 / 2 / 3'
                     }}
                 >
-                    <div className="w-full h-full" ref={posRef} />
+                    <div className="w-full h-full" ref={posRef}/>
                 </div>
                 <div
                     className={cn(
@@ -247,16 +248,16 @@ const PlayerWithControlsPage = () => {
                         transformOrigin: 'top left'
                     }}
                 >
-                    <PlayerSrtLayout />
+                    <PlayerSrtLayout/>
                 </div>
                 {chatTopic === 'offscreen' && (
                     <>
-                        <ControlButton />
-                        <PlayerShortCut />
+                        <ControlButton/>
+                        <PlayerShortCut/>
                     </>
                 )}
                 <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <Chat />}
+                    {chatTopic !== 'offscreen' && <Chat/>}
                 </AnimatePresence>
 
             </div>

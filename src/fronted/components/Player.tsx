@@ -149,7 +149,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                             ctx.drawImage(bitmap, 0, 0, width, height);
                             bitmap.close(); // 如果有提供此方法，关闭 bitmap 释放内存
                         } catch (error) {
-                            logger.error('failed to draw video frame', { error: error?.message || error });
+                            logger.error('failed to draw video frame', { error: error instanceof Error ? error.message : String(error) });
                         }
 
                         // 更新最后绘画时间
@@ -202,7 +202,7 @@ export default function Player({ className }: { className?: string }): ReactElem
                 logger.debug('no next video found');
             }
         } catch (error) {
-            logger.error('failed to get next video', { error: error?.message || error });
+            logger.error('failed to get next video', { error: error instanceof Error ? error.message : String(error) });
         }
     };
 

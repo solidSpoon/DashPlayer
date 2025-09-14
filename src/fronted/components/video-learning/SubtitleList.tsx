@@ -8,8 +8,6 @@ type Props = {
   playing?: boolean;
   autoPause?: boolean;
   singleRepeat?: boolean;
-  currentTime?: number;
-  duration?: number;
   onPickLine?: (idx: number) => void;
   onTogglePlay?: () => void;
   onToggleAutoPause?: () => void;
@@ -22,8 +20,6 @@ export default function SubtitleList({
   playing = false,
   autoPause = false,
   singleRepeat = false,
-  currentTime = 0,
-  duration = 0,
   onPickLine,
   onTogglePlay,
   onToggleAutoPause,
@@ -142,10 +138,4 @@ export default function SubtitleList({
       </div>
     </div>
   );
-}
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
