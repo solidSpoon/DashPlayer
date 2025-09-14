@@ -72,7 +72,9 @@ import { CloudTranscriptionServiceImpl } from '@/backend/services/impl/CloudTran
 import { LocalTranscriptionServiceImpl } from '@/backend/services/impl/LocalTranscriptionServiceImpl';
 import {WordMatchService} from '@/backend/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/services/impl/WordMatchServiceImpl';
-import VocabularyApiController from '@/backend/controllers/VocabularyApiController';
+import VocabularyController from '@/backend/controllers/VocabularyController';
+import VocabularyService from '@/backend/services/VocabularyService';
+import VocabularyServiceImpl from '@/backend/services/impl/VocabularyServiceImpl';
 
 
 const container = new Container();
@@ -95,7 +97,7 @@ container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonSco
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
-container.bind<Controller>(TYPES.Controller).to(VocabularyApiController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
@@ -124,4 +126,5 @@ container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingl
 container.bind<TranscriptionService>(TYPES.CloudTranscriptionService).to(CloudTranscriptionServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
+container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();
 export default container;

@@ -27,6 +27,7 @@ const TYPES = {
     CloudTranscriptionService: Symbol('CloudTranscriptionService'),
     LocalTranscriptionService: Symbol('LocalTranscriptionService'),
     WordMatchService: Symbol('WordMatchService'),
+    VocabularyService: Symbol('VocabularyService'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
