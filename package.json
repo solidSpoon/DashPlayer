@@ -145,7 +145,7 @@
         "react-router-dom": "^6.21.0",
         "react-split": "^2.0.14",
         "react-syntax-highlighter": "^15.5.0",
-        "react-virtuoso": "^4.7.8",
+        "react-virtuoso": "^4.14.0",
         "reflect-metadata": "^0.2.2",
         "remark-gfm": "^4.0.0",
         "remark-math": "^6.0.0",

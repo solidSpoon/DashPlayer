@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Input } from '@/fronted/components/ui/input';
 import { Button } from '@/fronted/components/ui/button';
 import { Search, Upload, Download } from 'lucide-react';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
 interface WordItem {
   id: number;
@@ -38,12 +39,12 @@ export default function WordSidebar({
   onImportWords,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  const filteredWords = React.useMemo(() => {
-    let displayWords = words;
-    if (!searchTerm) return displayWords;
+  const filteredWords = useMemo(() => {
+    if (!searchTerm) return words;
     const term = searchTerm.toLowerCase();
-    return displayWords.filter((word) =>
+    return words.filter((word) =>
       word.word.toLowerCase().includes(term) ||
       word.translate?.toLowerCase().includes(term) ||
       word.stem?.toLowerCase().includes(term)
@@ -62,8 +63,30 @@ export default function WordSidebar({
     }
   };
 
+  // 搜索变化后回到顶部
+  React.useEffect(() => {
+    virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start', behavior: 'auto' });
+  }, [searchTerm]);
+
+  // 自定义 Scroller, 保留滚动条样式
+  const Scroller = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+    (props, ref) => (
+      <div
+        ref={ref}
+        {...props}
+        className={[
+          'h-full',
+          'scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600',
+          props.className || ''
+        ].join(' ')}
+      />
+    )
+  );
+  Scroller.displayName = 'SidebarScroller';
+
   return (
     <div className="h-full flex flex-col border-r">
+      {/* 顶部工具栏 */}
       <div className="p-4 border-b space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -101,7 +124,8 @@ export default function WordSidebar({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto p-3 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
+      {/* 列表区域：使用虚拟列表，占满剩余高度 */}
+      <div className="flex-1 min-h-0 p-3 pt-2">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="flex items-center gap-2">
@@ -114,44 +138,48 @@ export default function WordSidebar({
             {searchTerm ? '未找到匹配的单词' : '暂无生词记录'}
           </div>
         ) : (
-          <div className="space-y-1">
-            {filteredWords.map((word) => (
-              <div
-                key={word.id}
-                className={`p-2 rounded cursor-pointer transition-all text-sm leading-tight ${
-                  selectedWord?.id === word.id
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => onWordClick(word)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">{word.word}</div>
-                  {!!word.videoCount && word.videoCount > 0 && (
-                    <div
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        selectedWord?.id === word.id
-                          ? 'bg-blue-400 text-white'
-                          : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                      }`}
-                    >
-                      {word.videoCount}个视频
-                    </div>
-                  )}
-                </div>
+          <Virtuoso
+            ref={virtuosoRef}
+            style={{ height: '100%' }}
+            data={filteredWords}
+            overscan={200}
+            components={{ Scroller }}
+            itemContent={(index, word) => {
+              const active = selectedWord?.id === word.id;
+              return (
                 <div
-                  className={`text-xs truncate ${
-                    selectedWord?.id === word.id ? 'text-blue-100' : 'text-gray-500'
-                  }`}
+                  className={[
+                    'p-2 rounded cursor-pointer transition-all text-sm leading-tight mb-1',
+                    active ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
+                  ].join(' ')}
+                  onClick={() => onWordClick(word)}
                 >
-                  {word.translate || '暂无释义'}
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{word.word}</div>
+                    {!!word.videoCount && word.videoCount > 0 && (
+                      <div
+                        className={[
+                          'text-xs px-2 py-0.5 rounded-full',
+                          active
+                            ? 'bg-blue-400 text-white'
+                            : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+                        ].join(' ')}
+                      >
+                        {word.videoCount}个视频
+                      </div>
+                    )}
+                  </div>
+                  <div className={['text-xs truncate', active ? 'text-blue-100' : 'text-gray-500'].join(' ')}>
+                    {word.translate || '暂无释义'}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              );
+            }}
+          />
         )}
       </div>
 
+      {/* 底部统计 */}
       <div className="p-3 border-t text-xs text-gray-500 text-center">
         共 {words.length} 个单词
         {searchTerm && <div className="text-blue-600">搜索到 {filteredWords.length} 个</div>}

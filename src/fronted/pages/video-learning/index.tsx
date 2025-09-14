@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { Play } from 'lucide-react';
 import useSWR from 'swr';
@@ -26,6 +26,7 @@ export default function VideoLearningPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
+  const inFlightThumbsRef = useRef<Set<string>>(new Set());
 
   // 播放状态管理
   const [currentClipIndex, setCurrentClipIndex] = useState(-1);
@@ -218,37 +219,49 @@ export default function VideoLearningPage() {
     }
   }, [fetchWords]);
 
-  // 生成缩略图
-  const generateThumbnails = useCallback(async (clips: VideoClip[]) => {
-    const clipsWithoutThumbnails = clips.filter((clip) => !thumbnailUrls[clip.key]);
-    if (clipsWithoutThumbnails.length === 0) return;
+  // 仅生成可视区域缩略图（防抖）
+  const ensureThumbnails = useCallback(async (visibleIndices: number[] = []) => {
+    if (!visibleIndices.length) return;
 
-    const newThumbnailUrls: Record<string, string> = {};
+    const clipsToProcess = visibleIndices
+      .map((idx) => clips[idx])
+      .filter((clip) => clip && !thumbnailUrls[clip.key] && !inFlightThumbsRef.current.has(clip.key));
 
-    for (const clip of clipsWithoutThumbnails) {
-      try {
-        // OSS 类型：如果存在 baseDir 和 clipFile，尝试从 OSS 生成缩略图
-        // Local 类型：使用原视频路径
-        const startTime = clip.clipContent.find((c) => c.isClip)?.start || 0;
-        const thumbnailPathOrUrl = await window.electron.call('split-video/thumbnail', {
-          filePath: clip.videoPath,
-          time: startTime
-        });
-        newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
-      } catch (error) {
-        console.error('Failed to generate thumbnail for clip:', error);
+    if (clipsToProcess.length === 0) return;
+
+    clipsToProcess.forEach((clip) => inFlightThumbsRef.current.add(clip.key));
+
+    try {
+      const newThumbnailUrls: Record<string, string> = {};
+      const tasks = clipsToProcess.map(async (clip) => {
+        try {
+          const startTime = clip.clipContent.find((c) => c.isClip)?.start || 0;
+          const thumbnailPathOrUrl = await window.electron.call('split-video/thumbnail', {
+            filePath: clip.videoPath,
+            time: startTime
+          });
+          newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
+        } catch (error) {
+          console.error('Failed to generate thumbnail for clip:', error);
+        } finally {
+          inFlightThumbsRef.current.delete(clip.key);
+        }
+      });
+
+      await Promise.all(tasks);
+
+      if (Object.keys(newThumbnailUrls).length > 0) {
+        setThumbnailUrls((prev) => ({ ...prev, ...newThumbnailUrls }));
       }
+    } catch (error) {
+      console.error('Failed to generate thumbnails:', error);
     }
+  }, [clips, thumbnailUrls]);
 
-    if (Object.keys(newThumbnailUrls).length > 0) {
-      setThumbnailUrls((prev) => ({ ...prev, ...newThumbnailUrls }));
-    }
-  }, [thumbnailUrls]);
-
-  // 监听学习片段数据变化
-  useEffect(() => {
-    generateThumbnails(clips);
-  }, [clips, generateThumbnails]);
+  // 监听学习片段数据变化 - 现在使用按需加载，注释掉全量生成
+  // useEffect(() => {
+  //   generateThumbnails(clips);
+  // }, [clips, generateThumbnails]);
 
   // 初始化：有列表则默认播放第一个视频的中间句
   useEffect(() => {
@@ -311,7 +324,7 @@ export default function VideoLearningPage() {
         </div>
 
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
+          <div className="flex-1 min-h-0 p-4">
             <ClipGrid
               clips={clips}
               playingKey={playingKey}
@@ -319,6 +332,7 @@ export default function VideoLearningPage() {
               onClickClip={(idx) => {
                 playClip(idx);
               }}
+              ensureThumbnails={ensureThumbnails}
             />
           </div>
 
