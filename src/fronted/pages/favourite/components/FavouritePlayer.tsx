@@ -1,4 +1,6 @@
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
+import { playerV2Actions } from '@/fronted/playerV2/PlayerV2Actions';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { shallow } from 'zustand/shallow';
 import useSWR from 'swr';
@@ -21,8 +23,8 @@ const logger = getRendererLogger('FavouritePlayer');
 
 // 进度条子组件：只订阅 currentTime 和 duration，其他部分不受影响
 const FavouriteProgress = memo(function FavouriteProgress() {
-  const currentTime = usePlayerV2((s) => s.internal.exactPlayTime);
-  const duration = usePlayerV2((s) => s.duration);
+  const currentTime = usePlayerV2State((s) => s.internal.exactPlayTime);
+  const duration = usePlayerV2State((s) => s.duration);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -72,50 +74,19 @@ const FavouritePlayer = () => {
   );
 
   // 低频状态：数值/布尔，变化不频繁
-  const playing = usePlayerV2((s) => s.playing);
-  const autoPause = usePlayerV2((s) => s.autoPause);
-  const singleRepeat = usePlayerV2((s) => s.singleRepeat);
-
-  // 方法集合：引用稳定，用 shallow 保证对象级比较
-  const {
-    play,
-    togglePlay,
-    seekTo,
-    setAutoPause,
-    setSingleRepeat,
-    setSource,
-    loadSubtitles,
-    clearSubtitles,
-    repeatCurrent,
-    gotoSentenceIndex,
-    prevSentence,
-    nextSentence,
-    isAtFirstSentence,
-    isAtLastSentence,
-  } = usePlayerV2(
+  const { playing, autoPause, singleRepeat } = usePlayerV2State(
     (s) => ({
-      play: s.play,
-      togglePlay: s.togglePlay,
-      seekTo: s.seekTo,
-      setAutoPause: s.setAutoPause,
-      setSingleRepeat: s.setSingleRepeat,
-      setSource: s.setSource,
-      loadSubtitles: s.loadSubtitles,
-      clearSubtitles: s.clearSubtitles,
-      repeatCurrent: s.repeatCurrent,
-      gotoSentenceIndex: s.gotoSentenceIndex,
-      prevSentence: s.prevSentence,
-      nextSentence: s.nextSentence,
-      isAtFirstSentence: s.isAtFirstSentence,
-      isAtLastSentence: s.isAtLastSentence,
+      playing: s.playing,
+      autoPause: s.autoPause,
+      singleRepeat: s.singleRepeat
     }),
     shallow
   );
 
   useEffect(() => {
     if (!playInfo) {
-      setSource(null);
-      clearSubtitles();
+      playerV2Actions.setSource(null);
+      playerV2Actions.clearSubtitles();
       loadedKeyRef.current = null;
       setReady(false);
       bootOnceRef.current = false;
@@ -128,11 +99,11 @@ const FavouritePlayer = () => {
     const isSameClip = loadedKeyRef.current === videoKey;
 
     if (!isSameClip) {
-      setSource(videoUrl);
+      playerV2Actions.setSource(videoUrl);
 
       if (video.clip_content) {
         const sentencesConv = convertClipSrtLinesToSentences(video.clip_content, videoKey, videoKey);
-        loadSubtitles(sentencesConv);
+        playerV2Actions.loadSubtitles(sentencesConv);
       }
       loadedKeyRef.current = videoKey;
       setReady(false);
@@ -142,24 +113,18 @@ const FavouritePlayer = () => {
       if (ready) {
         const currentSentences = usePlayerV2.getState().sentences;
         if (typeof sentenceIndex === 'number' && currentSentences[sentenceIndex]) {
-          gotoSentenceIndex(sentenceIndex);
+          playerV2Actions.gotoSentenceIndex(sentenceIndex);
           logger.debug('Seek within same clip by index', { index: sentenceIndex });
         } else {
-          seekTo({ time });
+          playerV2Actions.seekTo({ time });
           logger.debug('Seek within same clip by time', { time });
         }
-        play();
+        playerV2Actions.play();
       }
     }
   }, [
     playInfo,
-    ready,
-    setSource,
-    clearSubtitles,
-    loadSubtitles,
-    gotoSentenceIndex,
-    seekTo,
-    play
+    ready
   ]);
 
   const goToPreviousVideo = useCallback(() => {
@@ -200,24 +165,24 @@ const FavouritePlayer = () => {
 
   // 句子导航处理边界情况
   const handlePrevSentence = useCallback(() => {
-    if (isAtFirstSentence()) {
+    if (playerV2Actions.isAtFirstSentence()) {
       // 第一句再上一句：跳到上个视频
       goToPreviousVideo();
     } else {
       // 否则使用播放器内部逻辑
-      prevSentence();
+      playerV2Actions.prevSentence();
     }
-  }, [isAtFirstSentence, goToPreviousVideo, prevSentence]);
+  }, [goToPreviousVideo]);
 
   const handleNextSentence = useCallback(() => {
-    if (isAtLastSentence()) {
+    if (playerV2Actions.isAtLastSentence()) {
       // 最后一句再下一句：跳到下个视频
       goToNextVideo();
     } else {
       // 否则使用播放器内部逻辑
-      nextSentence();
+      playerV2Actions.nextSentence();
     }
-  }, [isAtLastSentence, goToNextVideo, nextSentence]);
+  }, [goToNextVideo]);
 
   const handlePlayerReady = useCallback(() => {
     setReady(true);
@@ -227,15 +192,15 @@ const FavouritePlayer = () => {
 
       const currentSentences = usePlayerV2.getState().sentences;
       if (typeof playInfo.sentenceIndex === 'number' && currentSentences[playInfo.sentenceIndex]) {
-        gotoSentenceIndex(playInfo.sentenceIndex);
+        playerV2Actions.gotoSentenceIndex(playInfo.sentenceIndex);
         logger.debug('Initial seek to sentence index', { index: playInfo.sentenceIndex });
       } else {
-        seekTo({ time: playInfo.time });
+        playerV2Actions.seekTo({ time: playInfo.time });
         logger.debug('Initial seek to time', { time: playInfo.time });
       }
-      play();
+      playerV2Actions.play();
     }
-  }, [playInfo, gotoSentenceIndex, seekTo, play]);
+  }, [playInfo]);
 
   const handlePlayerEnded = useCallback(() => {
     logger.debug('Player ended');
@@ -267,7 +232,7 @@ const FavouritePlayer = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={togglePlay} disabled={!ready}>
+              <Button variant="outline" size="icon" onClick={() => playerV2Actions.togglePlay()} disabled={!ready}>
                 {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               </Button>
             </TooltipTrigger>
@@ -306,7 +271,7 @@ const FavouritePlayer = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={() => repeatCurrent({ loop: false })} disabled={!ready}>
+              <Button variant="outline" size="icon" onClick={() => playerV2Actions.repeatCurrent({ loop: false })} disabled={!ready}>
                 <RotateCcw className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -323,13 +288,13 @@ const FavouritePlayer = () => {
       <FavouriteMainSrt />
 
       <VideoPlayerShortcut
-        onPlayPause={togglePlay}
+        onPlayPause={() => playerV2Actions.togglePlay()}
         onPrevSentence={handlePrevSentence}
         onNextSentence={handleNextSentence}
-        onRepeatSentence={() => repeatCurrent({ loop: false })}
-        onSeekToCurrentStart={() => repeatCurrent({ loop: false })}
-        onChangeSingleRepeat={() => setSingleRepeat(!singleRepeat)}
-        onChangeAutoPause={() => setAutoPause(!autoPause)}
+        onRepeatSentence={() => playerV2Actions.repeatCurrent({ loop: false })}
+        onSeekToCurrentStart={() => playerV2Actions.repeatCurrent({ loop: false })}
+        onChangeSingleRepeat={() => playerV2Actions.setSingleRepeat(!singleRepeat)}
+        onChangeAutoPause={() => playerV2Actions.setAutoPause(!autoPause)}
       />
     </div>
   );

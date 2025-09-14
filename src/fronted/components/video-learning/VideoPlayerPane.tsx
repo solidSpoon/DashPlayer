@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import UrlUtil from '@/common/utils/UrlUtil';
 import SubtitleList from './SubtitleList';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
@@ -6,7 +6,52 @@ import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
 import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { shallow } from 'zustand/shallow';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
+
+// 字幕列表进度条组件：只订阅 exactPlayTime 和 duration
+const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
+  lines,
+  activeIndex,
+  playing,
+  autoPause,
+  singleRepeat,
+  onPickLine,
+  onTogglePlay,
+  onToggleAutoPause,
+  onToggleSingleRepeat
+}: {
+  lines: any[];
+  activeIndex: number;
+  playing: boolean;
+  autoPause: boolean;
+  singleRepeat: boolean;
+  onPickLine: (idx: number) => void;
+  onTogglePlay: () => void;
+  onToggleAutoPause: () => void;
+  onToggleSingleRepeat: () => void;
+}) {
+  const currentTime = usePlayerV2((s) => s.internal.exactPlayTime);
+  const duration = usePlayerV2((s) => s.duration);
+
+  console.log('SubtitleListWithProgress render:', { currentTime, duration, timestamp: Date.now() });
+
+  return (
+    <SubtitleList
+      lines={lines}
+      activeIndex={activeIndex}
+      playing={playing}
+      autoPause={autoPause}
+      singleRepeat={singleRepeat}
+      currentTime={currentTime}
+      duration={duration}
+      onPickLine={onPickLine}
+      onTogglePlay={onTogglePlay}
+      onToggleAutoPause={onToggleAutoPause}
+      onToggleSingleRepeat={onToggleSingleRepeat}
+    />
+  );
+});
 
 type Props = {
   clip: VideoClip | null;
@@ -27,37 +72,43 @@ export default function VideoPlayerPane({
   onEnded,
   forcePlayKey,
 }: Props) {
-  // 使用新的播放器状态管理
-  const {
+  // 使用新的播放器状态管理 - 精确订阅避免频繁重渲染
+  const playing = usePlayerV2((s) => s.playing);
+  const currentSentence = usePlayerV2((s) => s.currentSentence);
+  const sentences = usePlayerV2((s) => s.sentences);
+  const duration = usePlayerV2((s) => s.duration);
+  const autoPause = usePlayerV2((s) => s.autoPause);
+  const singleRepeat = usePlayerV2((s) => s.singleRepeat);
+
+  console.log('VideoPlayerPane render:', {
+    clipKey: clip?.key,
     playing,
-    currentSentence,
-    sentences,
-    duration,
-    autoPause,
-    singleRepeat,
-    // 播放控制
-    play,
-    togglePlay,
-    seekToTarget,
-    // 模式控制
-    setAutoPause,
-    setSingleRepeat,
+    sentenceKey: currentSentence ? `${currentSentence.fileHash}-${currentSentence.index}` : null,
+    timestamp: Date.now()
+  });
 
-    // 字幕相关
-    setSource,
-    loadSubtitles,
-    clearSubtitles,
-    getExactPlayTime,
+  // 播放控制方法
+  const play = usePlayerV2((s) => s.play);
+  const togglePlay = usePlayerV2((s) => s.togglePlay);
+  const seekToTarget = usePlayerV2((s) => s.seekToTarget);
 
-    // 高级API
-    prevSentence,
-    nextSentence,
-    repeatCurrent,
+  // 模式控制方法
+  const setAutoPause = usePlayerV2((s) => s.setAutoPause);
+  const setSingleRepeat = usePlayerV2((s) => s.setSingleRepeat);
 
-    // 只读选择器（用于边界检测）
-    isAtFirstSentence,
-    isAtLastSentence
-  } = usePlayerV2();
+  // 字幕相关方法
+  const setSource = usePlayerV2((s) => s.setSource);
+  const loadSubtitles = usePlayerV2((s) => s.loadSubtitles);
+  const clearSubtitles = usePlayerV2((s) => s.clearSubtitles);
+
+  // 高级API
+  const prevSentence = usePlayerV2((s) => s.prevSentence);
+  const nextSentence = usePlayerV2((s) => s.nextSentence);
+  const repeatCurrent = usePlayerV2((s) => s.repeatCurrent);
+
+  // 只读选择器（用于边界检测）
+  const isAtFirstSentence = usePlayerV2((s) => s.isAtFirstSentence);
+  const isAtLastSentence = usePlayerV2((s) => s.isAtLastSentence);
 
   // 当clip或forcePlayKey发生变化时，加载新的视频和字幕
   useEffect(() => {
@@ -187,14 +238,12 @@ export default function VideoPlayerPane({
         </div>
 
         <div>
-          <SubtitleList
+          <SubtitleListWithProgress
             lines={clip.clipContent ?? []}
             activeIndex={initialIndex}
             playing={playing}
             autoPause={autoPause}
             singleRepeat={singleRepeat}
-            currentTime={getExactPlayTime()}
-            duration={duration}
             onPickLine={(idx) => {
               // 如果点击的是当前激活的句子，重新播放
               if (idx === initialIndex) {
