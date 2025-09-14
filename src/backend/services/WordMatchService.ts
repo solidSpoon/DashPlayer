@@ -2,6 +2,7 @@ import { Word } from '@/backend/db/tables/words';
 
 export interface WordMatchService {
     matchWordsInText(text: string): Promise<MatchedWord[]>;
+    matchWordsInTexts(texts: string[]): Promise<MatchedWord[][]>;
     getVocabularyWords(): Promise<Word[]>;
 }
 

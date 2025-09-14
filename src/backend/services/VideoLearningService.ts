@@ -1,6 +1,6 @@
 import { ClipQuery } from '@/common/api/dto';
 import { VideoLearningClipVO } from '@/common/types/vo/VideoLearningClipVO';
-import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import {VideoLearningClipStatusVO} from "@/common/types/vo/VideoLearningClipStatusVO";
 
 /**
  * VideoLearningService
@@ -38,8 +38,8 @@ export interface VideoLearningService {
      */
     search(query: ClipQuery & { matchedWord?: string }): Promise<VideoLearningClipVO[]>;
 
-    
-    
+
+
     /**
      * 从 OSS 同步数据
      * @returns Promise<void>

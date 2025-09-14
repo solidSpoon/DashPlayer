@@ -8,19 +8,30 @@ import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService
 export default class WordMatchServiceImpl implements WordMatchService {
 
     async matchWordsInText(text: string): Promise<MatchedWord[]> {
+        const results = await this.matchWordsInTexts([text]);
+        return results[0] || [];
+    }
+
+    async matchWordsInTexts(texts: string[]): Promise<MatchedWord[][]> {
+        if (!Array.isArray(texts) || texts.length === 0) {
+            return [];
+        }
+
+        const vocabularyWords = await this.getVocabularyWords();
+        if (!vocabularyWords || vocabularyWords.length === 0) {
+            return texts.map(() => []);
+        }
+
+        const vocabIndex = this.buildVocabIndex(vocabularyWords);
+
+        return texts.map(text => this.matchSingleText(text, vocabularyWords, vocabIndex));
+    }
+
+    private matchSingleText(text: string, vocabularyWords: Word[], vocabIndex: Map<string, Word>): MatchedWord[] {
         // 检查输入文本
         if (!text || typeof text !== 'string' || text.trim().length === 0) {
             return [];
         }
-
-        // 获取数据库中的所有单词
-        const vocabularyWords = await this.getVocabularyWords();
-        if (!vocabularyWords || vocabularyWords.length === 0) {
-            return [];
-        }
-
-        // 预构建词库索引，提高匹配效率
-        const vocabIndex = this.buildVocabIndex(vocabularyWords);
 
         const matchedWords: MatchedWord[] = [];
 
@@ -28,7 +39,7 @@ export default class WordMatchServiceImpl implements WordMatchService {
             // 使用compromise.js解析文本，提取单词
             const doc = nlp(text);
             if (!doc || !doc.terms) {
-                return this.fallbackWordMatch(text, vocabularyWords);
+                return this.fallbackWordMatch(text, vocabularyWords, vocabIndex);
             }
 
             // 获取所有terms
@@ -36,7 +47,7 @@ export default class WordMatchServiceImpl implements WordMatchService {
             const termList = terms.out('array');
 
             if (!termList || termList.length === 0) {
-                return this.fallbackWordMatch(text, vocabularyWords);
+                return this.fallbackWordMatch(text, vocabularyWords, vocabIndex);
             }
 
             // 去重处理
@@ -75,7 +86,7 @@ export default class WordMatchServiceImpl implements WordMatchService {
             }
         } catch (error) {
             // 如果compromise.js处理失败，尝试简单的单词匹配
-            return this.fallbackWordMatch(text, vocabularyWords);
+            return this.fallbackWordMatch(text, vocabularyWords, vocabIndex);
         }
 
         return matchedWords;
@@ -165,7 +176,7 @@ export default class WordMatchServiceImpl implements WordMatchService {
     }
 
     // 备用的简单单词匹配方法
-    private fallbackWordMatch(text: string, vocabularyWords: Word[]): MatchedWord[] {
+    private fallbackWordMatch(text: string, vocabularyWords: Word[], vocabIndex: Map<string, Word>): MatchedWord[] {
         const matchedWords: MatchedWord[] = [];
 
         // 构建简单的词库索引
@@ -187,7 +198,7 @@ export default class WordMatchServiceImpl implements WordMatchService {
             processed.add(cleanWord);
 
             if (vocabSet.has(cleanWord)) {
-                const matchedWord = vocabularyWords.find(w => w.word.toLowerCase() === cleanWord);
+                const matchedWord = this.findMatchingWordInIndex(cleanWord, cleanWord, cleanWord, vocabIndex);
                 if (matchedWord) {
                     matchedWords.push({
                         original: word,
