@@ -3,7 +3,6 @@ import { Button } from '@/fronted/components/ui/button';
 import { Play } from 'lucide-react';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
-import { usePlaylist } from '@/fronted/hooks/usePlaylist';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
 import ClipGrid from '@/fronted/components/video-learning/ClipGrid';
 import VideoPlayerPane from '@/fronted/components/video-learning/VideoPlayerPane';
@@ -27,6 +26,10 @@ export default function VideoLearningPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
+
+  // 播放状态管理
+  const [currentClipIndex, setCurrentClipIndex] = useState(-1);
+  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
 
   const { data: learningClips = [], mutate: mutateLearningClips } = useSWR(
     selectedWord
@@ -56,8 +59,59 @@ export default function VideoLearningPage() {
     return Array.isArray(list) ? list : [];
   }, [learningClips]);
 
-  const playlist = usePlaylist(clips);
-  const playingKey = playlist.currentClip?.key;
+  const currentClip = useMemo(() => {
+    return currentClipIndex >= 0 ? clips[currentClipIndex] : null;
+  }, [clips, currentClipIndex]);
+
+  const playingKey = currentClip?.key;
+
+  // 播放控制函数
+  const findMainSentenceIndex = useCallback((clip: VideoClip) => {
+    const centerIdx = clip.clipContent.findIndex((l) => l.isClip);
+    return centerIdx >= 0 ? centerIdx : Math.floor((clip.clipContent.length || 1) / 2);
+  }, []);
+
+  const playClip = useCallback((index: number) => {
+    const clip = clips[index];
+    if (!clip) return;
+    const lineIndex = findMainSentenceIndex(clip);
+    setCurrentClipIndex(index);
+    setCurrentLineIndex(lineIndex);
+    setForcePlayKey(prev => prev + 1);
+  }, [clips, findMainSentenceIndex]);
+
+  const goToLine = useCallback((lineIdx: number) => {
+    if (!currentClip) return;
+    const safe = Math.max(0, Math.min(lineIdx, currentClip.clipContent.length - 1));
+    setCurrentLineIndex(safe);
+  }, [currentClip]);
+
+  const nextSentence = useCallback(() => {
+    const clip = currentClip;
+    if (!clip) return;
+    if (currentLineIndex < clip.clipContent.length - 1) {
+      goToLine(currentLineIndex + 1);
+    } else if (currentClipIndex < clips.length - 1) {
+      // 跨视频：下一个视频的主要句
+      playClip(currentClipIndex + 1);
+    }
+  }, [currentClip, currentLineIndex, currentClipIndex, clips.length, goToLine, playClip]);
+
+  const prevSentence = useCallback(() => {
+    const clip = currentClip;
+    if (!clip) return;
+    if (currentLineIndex > 0) {
+      goToLine(currentLineIndex - 1);
+    } else if (currentClipIndex > 0) {
+      // 跨视频：上一个视频的主要句
+      playClip(currentClipIndex - 1);
+    }
+  }, [currentClip, currentLineIndex, currentClipIndex, goToLine, playClip]);
+
+  const onEnded = useCallback(() => {
+    // 视频自然播完，行为等价"下一句"
+    nextSentence();
+  }, [nextSentence]);
 
   // 获取单词列表
   const fetchWords = useCallback(async () => {
@@ -198,10 +252,10 @@ export default function VideoLearningPage() {
 
   // 初始化：有列表则默认播放第一个视频的中间句
   useEffect(() => {
-    if (clips.length && (playlist.state.clipIdx < 0)) {
-      playlist.playCenterOf(0);
+    if (clips.length && currentClipIndex < 0) {
+      playClip(0);
     }
-  }, [clips, playlist.state.clipIdx, playlist]);
+  }, [clips, currentClipIndex, playClip]);
 
   // 初始化加载单词
   useEffect(() => {
@@ -263,19 +317,18 @@ export default function VideoLearningPage() {
               playingKey={playingKey}
               thumbnails={thumbnailUrls}
               onClickClip={(idx) => {
-                playlist.onClipClick(idx);
-                setForcePlayKey(prev => prev + 1); // 触发强制播放
+                playClip(idx);
               }}
             />
           </div>
 
           <VideoPlayerPane
-            clip={playlist.currentClip}
-            lineIdx={playlist.state.lineIdx}
-            onLineIdxChange={(idx) => playlist.goToLine(idx)}
-            onPrevSentence={playlist.prevSentence}
-            onNextSentence={playlist.nextSentence}
-            onEnded={playlist.onEnded}
+            clip={currentClip}
+            lineIdx={currentLineIndex}
+            onLineIdxChange={goToLine}
+            onPrevSentence={prevSentence}
+            onNextSentence={nextSentence}
+            onEnded={onEnded}
             forcePlayKey={forcePlayKey}
           />
         </div>

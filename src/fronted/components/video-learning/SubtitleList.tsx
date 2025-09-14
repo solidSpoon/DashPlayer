@@ -50,7 +50,9 @@ export default function SubtitleList({
             className={`p-2 rounded text-sm cursor-pointer ${
               idx === activeIndex
                 ? 'bg-blue-100 dark:bg-blue-900/30 border-l-2 border-blue-500'
-                : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : line.isClip
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                  : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             <div className="flex items-start justify-between">
@@ -60,65 +62,80 @@ export default function SubtitleList({
               </div>
 
               {/* 当前行的状态图标 */}
-              {idx === activeIndex && (
-                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                  {/* 播放/暂停按钮 */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTogglePlay?.();
-                    }}
-                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title={playing ? "暂停" : "播放"}
-                  >
-                    {playing ? (
-                      <Pause className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                    ) : (
-                      <Play className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                    )}
-                  </button>
+              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                {idx === activeIndex ? (
+                  <>
+                    {/* 播放/暂停按钮 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePlay?.();
+                      }}
+                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      title={playing ? "暂停" : "播放"}
+                    >
+                      {playing ? (
+                        <Pause className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                      ) : (
+                        <Play className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </button>
 
-                  {/* 自动暂停状态 */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleAutoPause?.();
-                    }}
-                    className={`p-1 rounded transition-colors ${
-                      autoPause
-                        ? 'bg-blue-100 dark:bg-blue-800'
-                        : 'hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                    title={autoPause ? "关闭自动暂停" : "开启自动暂停"}
-                  >
-                    <CirclePause className={`w-3 h-3 ${
-                      autoPause
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`} />
-                  </button>
+                    {/* 自动暂停状态 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleAutoPause?.();
+                      }}
+                      className={`p-1 rounded transition-colors ${
+                        autoPause
+                          ? 'bg-blue-100 dark:bg-blue-800'
+                          : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      title={autoPause ? "关闭自动暂停" : "开启自动暂停"}
+                    >
+                      <CirclePause className={`w-3 h-3 ${
+                        autoPause
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`} />
+                    </button>
 
-                  {/* 单句循环状态 */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleSingleRepeat?.();
-                    }}
-                    className={`p-1 rounded transition-colors ${
-                      singleRepeat
-                        ? 'bg-green-100 dark:bg-green-800'
-                        : 'hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                    title={singleRepeat ? "关闭单句循环" : "开启单句循环"}
-                  >
-                    <Repeat className={`w-3 h-3 ${
-                      singleRepeat
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-gray-400 dark:text-gray-500'
-                    }`} />
-                  </button>
-                </div>
-              )}
+                    {/* 单句循环状态 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSingleRepeat?.();
+                      }}
+                      className={`p-1 rounded transition-colors ${
+                        singleRepeat
+                          ? 'bg-green-100 dark:bg-green-800'
+                          : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      title={singleRepeat ? "关闭单句循环" : "开启单句循环"}
+                    >
+                      <Repeat className={`w-3 h-3 ${
+                        singleRepeat
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`} />
+                    </button>
+                  </>
+                ) : (
+                  // 非当前行：隐藏的按钮保持布局稳定
+                  <div className="flex items-center gap-1 opacity-0">
+                    <button className="p-1 w-6 h-6">
+                      <Play className="w-3 h-3" />
+                    </button>
+                    <button className="p-1 w-6 h-6">
+                      <CirclePause className="w-3 h-3" />
+                    </button>
+                    <button className="p-1 w-6 h-6">
+                      <Repeat className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ))}

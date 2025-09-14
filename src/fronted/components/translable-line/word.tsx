@@ -170,7 +170,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                     console.log('mouse over word, setting hovered to true');
                     setHovered(true);
                     pauseOld();
-                    // pause();
+                    pause();
                 }}
                 onClick={(e) => {
                     handleWordClick(e);
