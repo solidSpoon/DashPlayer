@@ -11,6 +11,7 @@ import OpenAIWordPop from './openai-word-pop';
 import useSetting from '@/fronted/hooks/useSetting';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useVocabulary from '@/fronted/hooks/useVocabulary';
+import { useTransLineTheme } from './translatable-theme';
 
 const logger = getRendererLogger('WordPop');
 
@@ -20,15 +21,21 @@ export interface WordSubParam {
     hoverColor: string;
     isLoading?: boolean;
     onRefresh?: () => void;
+    classNames?: {
+        container?: string;        // youdao 容器覆盖
+        openaiContainer?: string;  // openai 容器覆盖
+        refreshButton?: string;    // 刷新按钮覆盖
+    };
 }
 
 const WordPop = React.forwardRef(
     (
-        { word, translation, hoverColor, isLoading: externalIsLoading, onRefresh }: WordSubParam,
+        { word, translation, hoverColor, isLoading: externalIsLoading, onRefresh, classNames }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
     ) => {
         logger.debug('WordPop translation data', { translation });
-        
+
+        const theme = useTransLineTheme();
         const setting = useSetting((state) => state.setting);
         const openaiDictionaryEnabled = setting('services.openai.enableDictionary') === 'true';
         const youdaoDictionaryEnabled = setting('services.youdao.enableDictionary') === 'true';
@@ -105,23 +112,27 @@ const WordPop = React.forwardRef(
             });
 
             if (openaiDictionaryEnabled) {
-                return <OpenAIWordPop data={shouldShowOpenAI ? translation : null} isLoading={externalIsLoading} onRefresh={onRefresh} />;
+                return (
+                    <OpenAIWordPop
+                        className={cn(theme.pop.openaiContainer, classNames?.openaiContainer)}
+                        data={shouldShowOpenAI ? translation : null}
+                        isLoading={externalIsLoading}
+                        onRefresh={onRefresh}
+                    />
+                );
             }
 
             return (
                 <div
                     className={cn(
-                        'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl px-4 scrollbar-none',
+                        theme.pop.container,
+                        classNames?.container,
                         isLoading ? 'opacity-0' : 'opacity-100',
-                        shouldShowYoudao && translation?.webdict?.url && 'pt-4'
+                        shouldShowYoudao && (translation as any)?.webdict?.url && 'pt-4'
                     )}
                 >
-                    {shouldShowYoudao && renderYoudaoContent(translation)}
-                    {!shouldShowYoudao && (
-                        <div className="p-4 text-gray-500">
-                            无可用的字典信息
-                        </div>
-                    )}
+                    {shouldShowYoudao && renderYoudaoContent(translation as YdRes)}
+                    {!shouldShowYoudao && <div className="p-4 text-gray-500">无可用的字典信息</div>}
                 </div>
             );
         };
@@ -131,9 +142,9 @@ const WordPop = React.forwardRef(
                 <div
                     ref={refs.setReference}
                     className={cn(
-                        'rounded select-none z-50 focus:outline-none', 
+                        'rounded select-none z-50 focus:outline-none',
                         hoverColor,
-                        isVocab && '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
+                        isVocab && theme.word.vocabHighlightClass
                     )}
                     role="button"
                     tabIndex={0}

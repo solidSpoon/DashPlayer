@@ -10,19 +10,27 @@ import { Sentence } from '@/common/types/SentenceC';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
 import { Bookmark } from 'lucide-react';
-import TranslatableLineCore from '@/fronted/components/srt-cops/atoms/translatable-line-core';
+import TranslatableLineCore from '@/fronted/components/translable-line/translatable-line-core';
+import { TransLineThemeProvider, DeepPartial, TransLineTheme, useTransLineTheme } from '@/fronted/components/translable-line/translatable-theme';
 
 interface TranslatableSubtitleLineParam {
     sentence: Sentence;
     adjusted: boolean;
     clearAdjust: () => void;
+    themeOverride?: DeepPartial<TransLineTheme>; // 新增：主题覆盖
+    classNames?: {
+        container?: string; // 外层容器 className
+        core?: string;      // 传给 Core 的 root class
+    };
 }
 
-const TranslatableLine = ({
-                              sentence,
-                              adjusted,
-                              clearAdjust
-                          }: TranslatableSubtitleLineParam) => {
+const Inner = ({
+  sentence,
+  adjusted,
+  clearAdjust,
+  classNames
+}: Omit<TranslatableSubtitleLineParam, 'themeOverride'>) => {
+    const theme = useTransLineTheme();
     const text = sentence.text;
     const fontSize = useSetting((state) =>
         state.values.get('appearance.fontSize')
@@ -41,44 +49,48 @@ const TranslatableLine = ({
                 setHovered(false);
             }}
             className={cn(
-                'flex justify-between items-start rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50',
-                'bg-stone-200 dark:bg-neutral-700',
-                'text-stone-700 dark:text-neutral-100',
-                'shadow-stone-100 dark:shadow-neutral-600',
+                theme.container,
                 FONT_SIZE['ms1-large'],
                 fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
-                fontSize === 'fontSizeMedium' &&
-                FONT_SIZE['ms1-medium'],
-                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large']
+                fontSize === 'fontSizeMedium' && FONT_SIZE['ms1-medium'],
+                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large'],
+                classNames?.container
             )}
         >
-            <div className={cn('w-10 m-2.5 h-10 flex-shrink-0')}>
+            <div className={cn(theme.leftIcon)}>
                 {adjusted && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button
-                                    onClick={clearAdjust}
-                                    variant={'ghost'} size={'icon'}
-                                    className={cn('[&_svg]:size-7')}
-                                >
+                                <Button onClick={clearAdjust} variant={'ghost'} size={'icon'} className={cn('[&_svg]:size-7')}>
                                     <AiOutlineFieldTime className={cn('fill-black')} />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                                点击重置当前句子时间戳
-                            </TooltipContent>
+                            <TooltipContent>点击重置当前句子时间戳</TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                 )}
             </div>
-            <TranslatableLineCore sentence={sentence} show={show || hovered} />
-            <div className={cn('w-10 h-full flex items-end justify-center pb-2 flex-shrink-0')}>
-                {isFavourite && (
-                    <Bookmark className={cn('w-5 h-5  text-yellow-500 dark:text-yellow-600')} />
-                )}
+
+            <TranslatableLineCore
+                sentence={sentence}
+                show={show || hovered}
+                className={classNames?.core}
+            />
+
+            <div className={cn(theme.rightIcon)}>
+                {isFavourite && <Bookmark className={cn('w-5 h-5 text-yellow-500 dark:text-yellow-600')} />}
             </div>
         </div>
+    );
+};
+
+const TranslatableLine = (props: TranslatableSubtitleLineParam) => {
+    const { themeOverride, ...rest } = props;
+    return (
+        <TransLineThemeProvider value={themeOverride}>
+            <Inner {...rest} />
+        </TransLineThemeProvider>
     );
 };
 

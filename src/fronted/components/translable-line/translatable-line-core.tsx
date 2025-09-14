@@ -1,23 +1,33 @@
 import React, { useState } from 'react';
 import Word from './word';
-import useSetting from '../../../hooks/useSetting';
+import useSetting from '../../hooks/useSetting';
 import { cn } from '@/fronted/lib/utils';
-import { FONT_SIZE } from '../../../styles/style';
+import { FONT_SIZE } from '../../styles/style';
 import { Sentence } from '@/common/types/SentenceC';
 import hash from 'object-hash';
-import useCopyModeController from '../../../hooks/useCopyModeController';
+import useCopyModeController from '../../hooks/useCopyModeController';
+import { useTransLineTheme } from './translatable-theme';
 
 interface TranslatableSubtitleLineCoreParam {
     sentence: Sentence;
     show: boolean;
     hoverDark?: boolean;
+    className?: string; // 新增：root class
+    wordClassNames?: {
+        word?: string;
+        hover?: string;
+        vocab?: string;
+    }; // 新增：Word 的 classNames
 }
 
 const TranslatableLineCore = ({
                                   sentence,
                                   show,
-                                  hoverDark
+                                  hoverDark,
+                                  className,
+                                  wordClassNames
                               }: TranslatableSubtitleLineCoreParam) => {
+    const theme = useTransLineTheme();
     const text = sentence.text;
     const sentenceStruct = sentence.struct;
     const fontSize = useSetting((state) =>
@@ -43,11 +53,12 @@ const TranslatableLineCore = ({
     ) : (
         <div
             className={cn(
-                'flex flex-wrap justify-center items-end  px-10 pt-2.5 pb-2.5 gap-x-2 gap-y-1',
+                theme.core.root,
                 FONT_SIZE['ms1-large'],
                 fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
                 fontSize === 'fontSizeMedium' && FONT_SIZE['ms1-medium'],
-                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large']
+                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large'],
+                className
             )}
             onClick={(e) => handleLineClick(e)}
         >
@@ -69,6 +80,7 @@ const TranslatableLineCore = ({
                                         }
                                         show={show}
                                         alwaysDark={hoverDark}
+                                        classNames={wordClassNames}
                                     />
                                 );
                             }

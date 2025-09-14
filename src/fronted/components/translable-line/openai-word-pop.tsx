@@ -2,14 +2,16 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Playable from '@/fronted/components/chat/Playable';
+import { cn } from '@/fronted/lib/utils';
 
 interface OpenAIWordPopProps {
     data: OpenAIDictionaryResult | null | undefined;
     isLoading?: boolean;
     onRefresh?: () => void;
+    className?: string; // 新增：容器 class 覆盖
 }
 
-const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, onRefresh }) => {
+const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, onRefresh, className }) => {
     const renderSkeleton = () => (
         <div className="p-4 h-full overflow-y-auto scrollbar-none space-y-3">
             {/* 单词标题骨架 */}
@@ -99,14 +101,15 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
     };
 
     return (
-        <div className="w-80 h-96 bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl overflow-hidden text-left relative">
+        <div className={cn('w-80 h-96 bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl overflow-hidden text-left relative', className)}>
             {onRefresh && (
                 <button
                     onClick={onRefresh}
                     disabled={isLoading}
-                    className={`absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 shadow-sm transition-colors z-10 ${
-                        isLoading ? 'opacity-50' : ''
-                    }`}
+                    className={cn(
+                        'absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 shadow-sm transition-colors z-10',
+                        isLoading && 'opacity-50'
+                    )}
                     title="强制刷新"
                 >
                     <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />

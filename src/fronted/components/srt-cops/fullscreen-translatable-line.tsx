@@ -8,7 +8,7 @@ import { cn } from '@/fronted/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
 import { Sentence } from '@/common/types/SentenceC';
-import TranslatableLineCore from '@/fronted/components/srt-cops/atoms/translatable-line-core';
+import TranslatableLineCore from '@/fronted/components/translable-line/translatable-line-core';
 import { Bookmark } from 'lucide-react';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';

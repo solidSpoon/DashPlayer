@@ -4,15 +4,16 @@ import {Feature, Polygon} from '@turf/turf';
 import WordPop from './word-pop';
 import {playUrl, playWord, getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import usePlayerController from '../../../hooks/usePlayerController';
+import usePlayerController from '../../hooks/usePlayerController';
 import useSWR, { mutate } from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
-import useCopyModeController from '../../../hooks/useCopyModeController';
+import useCopyModeController from '../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/common/Eb';
-import useVocabulary from '../../../hooks/useVocabulary';
+import useVocabulary from '../../hooks/useVocabulary';
+import { useTransLineTheme } from './translatable-theme';
 
 const api = window.electron;
 const logger = getRendererLogger('Word');
@@ -23,6 +24,11 @@ export interface WordParam {
     requestPop: () => void;
     show: boolean;
     alwaysDark?: boolean;
+    classNames?: {
+        word?: string;    // 单词文本容器（非弹层）
+        hover?: string;   // 覆盖 hover 背景
+        vocab?: string;   // 覆盖词汇高亮
+    };
 }
 
 /**
@@ -44,7 +50,7 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) => {
+const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
     const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
     const pause = usePlayerController((s) => s.pause);
@@ -53,9 +59,14 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    const theme = useTransLineTheme();
+
     // 检查是否是词汇单词
     const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
     const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
+
+    const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
+    const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
     const {data: ydResp, isLoading: isWordLoading, mutate} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', { word, forceRefresh: false }));
 
     logger.debug('word loading status', { isWordLoading, hasYdResponse: !!ydResp });
@@ -64,7 +75,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
         try {
             // 强制重新请求，传递 forceRefresh: true 参数
             const newData = await api.call('ai-trans/word', { word: original, forceRefresh: true });
-            mutate(['ai-trans/word', original], newData);
+            mutate(newData, { revalidate: false });
         } finally {
             setIsRefreshing(false);
         }
@@ -140,7 +151,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                 }
             }
         } catch (error) {
-            logger.error('failed to play pronunciation', { error: error?.message || error });
+            logger.error('failed to play pronunciation', { error: error instanceof Error ? error.message : error });
         } finally {
             setPlayLoading(false);
         }
@@ -168,7 +179,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                             word={word}
                             translation={ydResp}
                             ref={popperRef}
-                            hoverColor={alwaysDark ? "bg-neutral-600" : "bg-stone-100 dark:bg-neutral-600"}
+                            hoverColor={alwaysDark ? "bg-neutral-600" : theme.word.popReferenceBgClass}
                             isLoading={isWordLoading || isRefreshing}
                             onRefresh={handleRefresh}
                         />
@@ -178,8 +189,9 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark}: WordParam) =>
                         className={cn(
                             'rounded select-none',
                             !show && ['text-transparent', Style.word_hover_bg],
-                            alwaysDark ? 'hover:bg-neutral-600' : 'hover:bg-stone-100 dark:hover:bg-neutral-600',
-                            isVocabularyWord && '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
+                            hoverBg,
+                            vocabCls,
+                            classNames?.word
                         )}
                         onMouseLeave={() => {
                             setHovered(false);
