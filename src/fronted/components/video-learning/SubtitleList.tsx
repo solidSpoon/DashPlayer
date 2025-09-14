@@ -35,7 +35,7 @@ export default function SubtitleList({
   useEffect(() => {
     const el = itemRefs.current[activeIndex];
     if (el && containerRef.current) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
   }, [activeIndex]);
 

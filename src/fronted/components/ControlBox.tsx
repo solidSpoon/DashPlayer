@@ -24,8 +24,6 @@ import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipSt
 import StrUtil from '@/common/utils/str-util';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 
 const api = window.electron;
 const logger = getRendererLogger('ControlBox');
@@ -35,18 +33,46 @@ const getShortcut = (key: SettingKey) => {
 };
 
 const Transcript = () => {
-    const [taskId, setTaskId] = useLocalStorage<null | number>('control-box-transcript-task-id', null);
-    const { task } = useDpTaskViewer(taskId);
+    const videoPath = useFile.getState().videoPath;
+    const { files } = useTranscript(useShallow(s => ({ files: s.files })));
 
-    const duration = new Date().getTime() - TimeUtil.isoToDate(task?.created_at).getTime();
-    const inProgress = (task?.status ?? DpTaskState.DONE) === DpTaskState.IN_PROGRESS;
-    logger.debug('transcript task status', { task, duration, inProgress });
+    // 检查当前视频是否有进行中的转录任务
+    const currentVideoTask = files.find(f => f.file === videoPath);
+    const isInProgress = currentVideoTask?.status === 'in_progress' || currentVideoTask?.status === 'init';
+
+    // 获取状态显示文本
+    const getStatusText = () => {
+        if (!currentVideoTask || !currentVideoTask.status) {
+            return '生成字幕';
+        }
+
+        switch (currentVideoTask.status) {
+            case 'init':
+                return '初始化中...';
+            case 'in_progress':
+                const message = currentVideoTask.result?.message || '转录中...';
+                // 如果消息太长，显示省略号
+                return message.length > 10 ? message.substring(0, 10) + '...' : message;
+            case 'done':
+                return '生成字幕';
+            default:
+                return '生成字幕';
+        }
+    };
+
+    logger.debug('transcript task status', {
+        videoPath,
+        currentVideoTask,
+        isInProgress,
+        statusText: getStatusText()
+    });
+
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button
-                        disabled={inProgress}
+                        disabled={isInProgress}
                         className={'justify-start'}
                         onClick={async () => {
                             const srtPath = useFile.getState().videoPath;
@@ -62,8 +88,7 @@ const Transcript = () => {
                         variant={'ghost'}
                     >
                         <Captions className="mr-2 h-4 w-4" />
-                        {inProgress ? task?.result?.message ?? '转录中' : '生成字幕'
-                        }
+                        {getStatusText()}
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
@@ -150,7 +175,7 @@ const AutoClipButton = () => {
         }
         
         try {
-            toast('开始自动裁切视频片段...', {
+            toast('开始裁切生词视频...', {
                 icon: '✂️'
             });
             
@@ -159,61 +184,80 @@ const AutoClipButton = () => {
                 srtKey: srtHash
             });
         } catch (error) {
-            logger.error('自动裁切失败:', error);
-            toast.error('自动裁切失败，请重试');
+            logger.error('生词视频裁切失败:', error);
+            toast.error('生词视频裁切失败，请重试');
         }
     };
 
     const getButtonText = () => {
         if (!clipStatus?.status) {
-            return '自动裁切学习片段';
+            return '裁切生词视频';
         }
-        
+
         switch (clipStatus.status) {
             case 'pending':
-                return `自动裁切 (${clipStatus.pendingCount || 0})`;
+                return `裁切生词 (${clipStatus.pendingCount || 0})`;
             case 'in_progress':
                 return `裁切中 (${clipStatus.inProgressCount || 0})`;
             case 'completed':
-                return clipStatus.completedCount ? `已完成 (${clipStatus.completedCount})` : '自动裁切学习片段';
+                return '裁切生词视频'; // 完成时显示默认文案
             default:
-                return '自动裁切学习片段';
+                return '裁切生词视频';
         }
     };
 
-    const isDisabled = clipStatus?.status === 'in_progress';
+    const isDisabled = clipStatus?.status === 'in_progress' || clipStatus?.status === 'completed';
+
+    // 获取禁用原因提示
+    const getDisabledReason = () => {
+        if (!isDisabled) return '';
+
+        switch (clipStatus?.status) {
+            case 'in_progress':
+                return '正在裁切生词视频中，请等待完成';
+            case 'completed':
+                return '生词视频裁切已完成，无需重复操作';
+            default:
+                return '';
+        }
+    };
+
+    const disabledReason = getDisabledReason();
 
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button
-                        disabled={isDisabled}
-                        className={'justify-start'}
-                        onClick={handleAutoClip}
-                        variant={'ghost'}
-                    >
-                        <Scissors className="mr-2 h-4 w-4" />
-                        {getButtonText()}
-                    </Button>
+                    <div className="w-full">
+                        <Button
+                            disabled={isDisabled}
+                            className={'justify-start w-full'}
+                            onClick={handleAutoClip}
+                            variant={'ghost'}
+                        >
+                            <Scissors className="mr-2 h-4 w-4" />
+                            {getButtonText()}
+                        </Button>
+                    </div>
                 </TooltipTrigger>
                 <TooltipContent className="p-8 pb-6 rounded-md shadow-lg text-gray-800">
                     <Md>
                         {codeBlock`
-                        #### 自动裁切学习片段
-                        _根据单词表自动生成视频学习片段_
+                        #### 裁切生词视频
+                        _根据生词表自动裁切包含生词的视频片段_
 
                         当前状态：${clipStatus.message || '等待检测...'}
+                        ${disabledReason ? `\n**注意：${disabledReason}**` : ''}
 
                         此功能会：
                         1. 读取当前视频的字幕内容
-                        2. 匹配单词表中的单词
-                        3. 自动裁切包含目标单词的视频片段
+                        2. 匹配生词表中的生词
+                        3. 自动裁切包含生词的视频片段
                         4. 保存到视频学习库中
 
                         适用于：
-                        - 快速创建单词相关的学习材料
-                        - 批量生成学习视频片段
+                        - 快速创建生词相关的学习视频
+                        - 批量生成生词学习片段
                         `}
                     </Md>
                 </TooltipContent>
