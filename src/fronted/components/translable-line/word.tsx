@@ -14,6 +14,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/common/Eb';
 import useVocabulary from '../../hooks/useVocabulary';
 import { useTransLineTheme } from './translatable-theme';
+import {usePlayerV2} from "@/fronted/hooks/usePlayerV2";
 
 const api = window.electron;
 const logger = getRendererLogger('Word');
@@ -53,7 +54,8 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
 const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
     const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
-    const pause = usePlayerController((s) => s.pause);
+    const pauseOld = usePlayerController((s) => s.pause);
+    const pause = usePlayerV2((s) => s.pause);
     const vocabularyStore = useVocabulary();
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
@@ -98,6 +100,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             const b = turf.booleanPointInPolygon(point, hull!);
             clearTimeout(timeout);
             if (!b) {
+                console.log('mouse moved out of hull, setting hovered to false');
                 setHovered(false);
                 return;
             }
@@ -109,6 +112,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             }, 50);
         };
         if (hovered) {
+            console.log('adding mousemove listener, hovered:', hovered);
             document.addEventListener('mousemove', mouseEvent);
         } else {
             resquested.current = false;
@@ -163,8 +167,10 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 ref={eleRef}
                 className="rounded select-none"
                 onMouseOver={() => {
+                    console.log('mouse over word, setting hovered to true');
                     setHovered(true);
-                    pause();
+                    pauseOld();
+                    // pause();
                 }}
                 onClick={(e) => {
                     handleWordClick(e);

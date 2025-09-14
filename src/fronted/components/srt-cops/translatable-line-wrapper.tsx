@@ -87,4 +87,4 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
   );
 };
 
-export default TranslatableLine;
+export default TranslatableLineWrapper;
