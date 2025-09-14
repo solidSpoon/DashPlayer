@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
 import { Sentence } from '@/common/types/SentenceC';
-import TranslatableLineCore from '@/fronted/components/translable-line/translatable-line-core';
+import TranslatableLineWrapper from "@/fronted/components/srt-cops/translatable-line-wrapper";
 
 interface TranslatableLinePodcastParam {
     sentence: Sentence;
@@ -49,7 +49,7 @@ const TranslatableLinePodcast = ({
                     </TooltipProvider>
                 )}
             </div>
-            <TranslatableLineCore sentence={sentence} show />
+            <TranslatableLineWrapper sentence={sentence} show />
             <div className={cn('w-10 h-full')} />
         </div>
     );

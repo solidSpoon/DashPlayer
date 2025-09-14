@@ -20,7 +20,7 @@ interface TranslatableSubtitleLineCoreParam {
     }; // 新增：Word 的 classNames
 }
 
-const TranslatableLineCore = ({
+const TranslatableLine = ({
                                   sentence,
                                   show,
                                   hoverDark,
@@ -62,44 +62,39 @@ const TranslatableLineCore = ({
             )}
             onClick={(e) => handleLineClick(e)}
         >
-            {sentenceStruct?.blocks.map((block, blockIndex) => {
-                const blockId = `${textHash}:${blockIndex}`;
-                return (
-                    <div key={blockId} className={cn('flex items-end')}>
-                        {block.blockParts.map((part, partIndex) => {
-                            const partId = `${textHash}:${blockIndex}:${partIndex}`;
-                            if (part.isWord) {
-                                return (
-                                    <Word
-                                        key={partId}
-                                        word={part.content}
-                                        original={part.implicit}
-                                        pop={popELe === partId}
-                                        requestPop={() =>
-                                            handleRequestPop(partId)
-                                        }
-                                        show={show}
-                                        alwaysDark={hoverDark}
-                                        classNames={wordClassNames}
-                                    />
-                                );
+            {text.split(/(\s+|[.,!?;:"()])/).filter(Boolean).map((part, partIndex) => {
+                const partId = `${textHash}:${partIndex}`;
+                const isWord = /^[a-zA-Z]+$/.test(part);
+
+                if (isWord) {
+                    return (
+                        <Word
+                            key={partId}
+                            word={part}
+                            original={part}
+                            pop={popELe === partId}
+                            requestPop={() =>
+                                handleRequestPop(partId)
                             }
-                            return <div
-                                className={`select-none ${show ? '' : 'text-transparent'}`}
-                                key={partId}
-                            >
-                                {part.content}
-                            </div>;
-                        })}
-                    </div>
-                );
-            }) || []}
+                            show={show}
+                            alwaysDark={hoverDark}
+                            classNames={wordClassNames}
+                        />
+                    );
+                }
+                return <div
+                    className={`select-none ${show ? '' : 'text-transparent'}`}
+                    key={partId}
+                >
+                    {part}
+                </div>;
+            })}
         </div>
     );
 };
 
-export default TranslatableLineCore;
+export default TranslatableLine;
 
-TranslatableLineCore.defaultProps = {
+TranslatableLine.defaultProps = {
     hoverDark: false
 };

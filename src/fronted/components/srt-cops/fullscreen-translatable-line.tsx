@@ -8,10 +8,10 @@ import { cn } from '@/fronted/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
 import { Sentence } from '@/common/types/SentenceC';
-import TranslatableLineCore from '@/fronted/components/translable-line/translatable-line-core';
 import { Bookmark } from 'lucide-react';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
+import TranslatableLineWrapper from "@/fronted/components/srt-cops/translatable-line-wrapper";
 
 interface PlayerTranslatableSubtitleLineParam {
     sentence: Sentence;
@@ -66,7 +66,7 @@ const FullscreenTranslatableLine = ({
                         </Tooltip>
                     </TooltipProvider>
                 )}
-                <TranslatableLineCore sentence={sentence} show={show} hoverDark />
+                <TranslatableLineWrapper sentence={sentence} show={show} hoverDark />
 
                 {adjusted && (
                     <div className={cn('w-10 h-full flex-shrink-0 py-2.5')}>
