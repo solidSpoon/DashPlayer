@@ -41,11 +41,6 @@ export default function WordSidebar({
 
   const filteredWords = React.useMemo(() => {
     let displayWords = words;
-    // 限制显示1000个单词用于原型探索
-    if (displayWords.length > 1000) {
-      displayWords = displayWords.slice(0, 1000);
-    }
-
     if (!searchTerm) return displayWords;
     const term = searchTerm.toLowerCase();
     return displayWords.filter((word) =>
@@ -120,7 +115,7 @@ export default function WordSidebar({
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredWords.slice(0, 80).map((word) => (
+            {filteredWords.map((word) => (
               <div
                 key={word.id}
                 className={`p-2 rounded cursor-pointer transition-all text-sm leading-tight ${
@@ -153,11 +148,6 @@ export default function WordSidebar({
                 </div>
               </div>
             ))}
-            {filteredWords.length > 80 && (
-              <div className="text-center text-xs text-gray-500 py-1">
-                还有 {filteredWords.length - 80} 个...
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -165,7 +155,7 @@ export default function WordSidebar({
       <div className="p-3 border-t text-xs text-gray-500 text-center">
         共 {words.length} 个单词
         {searchTerm && <div className="text-blue-600">搜索到 {filteredWords.length} 个</div>}
-        {words.length > 1000 && !searchTerm && <div className="text-orange-600">显示前80个</div>}
+        {words.length > 1000 && !searchTerm && <div className="text-orange-600">显示所有单词</div>}
       </div>
     </div>
   );

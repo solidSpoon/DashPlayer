@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import  useSetting from '@/fronted/hooks/useSetting';
+import useSetting from '@/fronted/hooks/useSetting';
 
 type Props = {
     onPlayPause: () => void;
@@ -8,6 +8,8 @@ type Props = {
     onNextSentence: () => void;
     onRepeatSentence: () => void;
     onSeekToCurrentStart: () => void;
+    onChangeSingleRepeat: () => void;
+    onChangeAutoPause: () => void;
 };
 
 const VideoPlayerShortcut: React.FC<Props> = ({
@@ -16,6 +18,8 @@ const VideoPlayerShortcut: React.FC<Props> = ({
     onNextSentence,
     onRepeatSentence,
     onSeekToCurrentStart,
+    onChangeSingleRepeat,
+    onChangeAutoPause,
 }) => {
     const setting = useSetting((s) => s.setting);
 
@@ -24,43 +28,66 @@ const VideoPlayerShortcut: React.FC<Props> = ({
         .split(',')
         .map((k) => k.replaceAll(' ', ''))
         .filter((k) => k !== '')
+        // remove left right up down space
         .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down' && k !== 'space');
 
-    // 播放/暂停
-    useHotkeys(process(setting('shortcut.playPause')), (e) => {
-        e.preventDefault();
-        onPlayPause();
-    }, [onPlayPause]);
-
-    // 上一句
+    // 基础方向键导航（与主播放器保持一致）
     useHotkeys('left', (e) => {
         e.preventDefault();
         onPrevSentence();
     }, [onPrevSentence]);
 
-    // 下一句
     useHotkeys('right', (e) => {
         e.preventDefault();
         onNextSentence();
     }, [onNextSentence]);
 
-    // 空格键播放/暂停（特殊处理）
+    useHotkeys('down', (e) => {
+        e.preventDefault();
+        onRepeatSentence();
+    }, [onRepeatSentence]);
+
+    // 空格和上方向键播放/暂停（与主播放器保持一致）
     useHotkeys('space', (e) => {
         e.preventDefault();
         onPlayPause();
     }, [onPlayPause]);
 
-    // 上方向键暂停（特殊处理）
     useHotkeys('up', (e) => {
         e.preventDefault();
         onPlayPause();
     }, [onPlayPause]);
 
-    // 下方向键跳到当前句开头（特殊处理）
-    useHotkeys('down', (e) => {
+    // 自定义快捷键配置（从设置中读取）
+    useHotkeys(process(setting('shortcut.previousSentence')), (e) => {
         e.preventDefault();
-        onSeekToCurrentStart();
-    }, [onSeekToCurrentStart]);
+        onPrevSentence();
+    }, [onPrevSentence]);
+
+    useHotkeys(process(setting('shortcut.nextSentence')), (e) => {
+        e.preventDefault();
+        onNextSentence();
+    }, [onNextSentence]);
+
+    useHotkeys(process(setting('shortcut.repeatSentence')), (e) => {
+        e.preventDefault();
+        onRepeatSentence();
+    }, [onRepeatSentence]);
+
+    useHotkeys(process(setting('shortcut.playPause')), (e) => {
+        e.preventDefault();
+        onPlayPause();
+    }, [onPlayPause]);
+
+    useHotkeys(process(setting('shortcut.repeatSingleSentence')), (e) => {
+        e.preventDefault();
+        onChangeSingleRepeat();
+    }, [onChangeSingleRepeat]);
+
+    useHotkeys(process(setting('shortcut.autoPause')), (e) => {
+        e.preventDefault();
+        onChangeAutoPause();
+    }, [onChangeAutoPause]);
 
     // 返回空fragment，不渲染任何UI
     return <></>;

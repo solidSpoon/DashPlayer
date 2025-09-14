@@ -235,8 +235,10 @@ export default function VideoPlayerPane({
         onPlayPause={togglePlay}
         onPrevSentence={handlePrevSentence}
         onNextSentence={handleNextSentence}
-        onRepeatSentence={() => repeatCurrent({ loop: true })}
+        onRepeatSentence={() => repeatCurrent({ loop: false })}
         onSeekToCurrentStart={() => repeatCurrent({ loop: false })}
+        onChangeSingleRepeat={() => setSingleRepeat(!singleRepeat)}
+        onChangeAutoPause={() => setAutoPause(!autoPause)}
       />
     </div>
   );

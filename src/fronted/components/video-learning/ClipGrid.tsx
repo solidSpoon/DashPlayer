@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Play, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
@@ -12,6 +12,9 @@ type Props = {
 };
 
 export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playingElementRef = useRef<HTMLDivElement>(null);
+
   const getThumbnailUrlSync = (clip: VideoClip): string => {
     const raw = thumbnails?.[clip.key];
     if (!raw) return '';
@@ -21,6 +24,17 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
     // 普通本地路径转为 file://
     return UrlUtil.file(raw);
   };
+
+  // 滚动到当前播放的视频
+  useEffect(() => {
+    if (playingKey && playingElementRef.current && containerRef.current) {
+      playingElementRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      });
+    }
+  }, [playingKey]);
 
   const getStartTime = (clip: VideoClip): number => {
     const mainClip = clip.clipContent.find((c) => c.isClip) || clip.clipContent[0];
@@ -46,18 +60,20 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {clips.map((clip, idx) => {
         const title = clip.videoName.split('/').pop() || 'Unknown';
         const thumb = getThumbnailUrlSync(clip);
         const mainClip = clip.clipContent.find((c) => c.isClip) || clip.clipContent[0];
         const subtitle = `${mainClip?.contentEn || ''} ${mainClip?.contentZh || ''}`.trim();
+        const isPlaying = clip.key === playingKey;
 
         return (
           <div
+            ref={isPlaying ? playingElementRef : null}
             key={clip.key}
             className={`border rounded-lg overflow-hidden cursor-pointer transition-all group ${
-              clip.key === playingKey
+              isPlaying
                 ? 'border-blue-500 ring-2 ring-blue-200'
                 : clip.sourceType === 'local'
                   ? 'border-yellow-300 dark:border-yellow-600 hover:shadow-lg'
@@ -85,12 +101,12 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
               </div>
 
               {/* 状态标识 */}
-              {clip.key === playingKey && (
+              {isPlaying && (
                 <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
                   播放中
                 </div>
               )}
-              {clip.sourceType === 'local' && clip.key !== playingKey && (
+              {clip.sourceType === 'local' && !isPlaying && (
                 <div className="absolute top-2 left-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                   处理中

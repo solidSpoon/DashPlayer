@@ -53,7 +53,7 @@ export default function VideoLearningPage() {
 
   const clips: VideoClip[] = useMemo(() => {
     const list = learningClips?.success ? learningClips.data : [];
-    return Array.isArray(list) ? list.slice(0, 20) : [];
+    return Array.isArray(list) ? list : [];
   }, [learningClips]);
 
   const playlist = usePlaylist(clips);
