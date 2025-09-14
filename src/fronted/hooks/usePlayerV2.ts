@@ -296,7 +296,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
           internal: { ...prev.internal, tailPreview: null }
         }));
         if (singleRepeat) {
-          state.seekToTarget({ time: tailPreview.returnStart, target: currentSentence });
+          state.seekToTarget({ time: tailPreview.returnStart, target: currentSentence ?? undefined });
         } else if (autoPause) {
           state.pause();
           state.onPlaySeek(tailPreview.returnStart);
@@ -443,7 +443,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     play: () => {
       const { onPlaySeekTime } = get().internal;
       if (onPlaySeekTime !== null) {
-        get().seekToTarget({ time: onPlaySeekTime, target: get().currentSentence });
+        get().seekToTarget({ time: onPlaySeekTime, target: get().currentSentence ?? undefined });
       } else {
         set({ playing: true });
       }

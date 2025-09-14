@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
-import Button from '../Button'
+import {Button} from "@/fronted/components/ui/button";
 
 describe('Button Component', () => {
   it('renders with title', () => {
@@ -11,7 +11,7 @@ describe('Button Component', () => {
   it('calls onClick when clicked', () => {
     const mockOnClick = vi.fn()
     render(<Button title="Click me" onClick={mockOnClick} />)
-    
+
     fireEvent.click(screen.getByText('Click me'))
     expect(mockOnClick).toHaveBeenCalledOnce()
   })
@@ -23,7 +23,7 @@ describe('Button Component', () => {
         <TestIcon />
       </Button>
     )
-    
+
     expect(screen.getByTestId('test-icon')).toBeInTheDocument()
     expect(screen.getByText('With Icon')).toBeInTheDocument()
   })
@@ -38,27 +38,27 @@ describe('Button Component', () => {
     // Test that clicking triggers the onClick function
     const mockOnClick = vi.fn()
     render(<Button title="Click Test" onClick={mockOnClick} />)
-    
+
     const button = screen.getByText('Click Test').parentElement?.parentElement
     if (button) {
       fireEvent.click(button)
     }
-    
+
     expect(mockOnClick).toHaveBeenCalledOnce()
   })
 
   it('handles multiple rapid clicks', () => {
     const mockOnClick = vi.fn()
     render(<Button title="Rapid Click" onClick={mockOnClick} />)
-    
+
     const button = screen.getByText('Rapid Click').parentElement?.parentElement
-    
+
     if (button) {
       fireEvent.click(button)
       fireEvent.click(button)
       fireEvent.click(button)
     }
-    
+
     expect(mockOnClick).toHaveBeenCalledTimes(3)
   })
 })

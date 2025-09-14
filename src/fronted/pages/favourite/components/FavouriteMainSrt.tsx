@@ -1,28 +1,23 @@
 import React from 'react';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+
 const FavouriteMainSrt = () => {
-    const currentTime = useFavouriteClip(state => state.currentTime);
-    const playInfo = useFavouriteClip(state => state.playInfo);
-    const srtTender = useFavouriteClip(state => state.srtTender);
-    const transMap = useFavouriteClip(state => state.transMap);
-    if (!playInfo || !srtTender) {
-        return <> </>;
-    }
-    const line = srtTender.getByTime(currentTime);
+  const playInfo = useFavouriteClip((state) => state.playInfo);
+  const transMap = useFavouriteClip((state) => state.transMap);
 
-    return (
-        <div className={'w-full flex flex-col py-2 gap-2 select-text'}>
-            <div className="flex justify-center text-2xl text-center">
-                {line.contentEn}
-            </div>
-            <div className="flex justify-center text-center">
-                {transMap.get(line.contentEn)}
-            </div>
-            <div className="flex justify-center text-center">
-                {line.contentZh}
-            </div>
-        </div>
+  const currentSentence = usePlayerV2((state) => state.currentSentence);
 
-    );
+  if (!playInfo || !currentSentence) {
+    return <></>;
+  }
+
+  return (
+    <div className={'w-full flex flex-col py-2 gap-2 select-text'}>
+      <div className="flex justify-center text-2xl text-center">{currentSentence.text}</div>
+      <div className="flex justify-center text-center">{transMap.get(currentSentence.text)}</div>
+      <div className="flex justify-center text-center">{currentSentence.textZH}</div>
+    </div>
+  );
 };
 export default FavouriteMainSrt;
