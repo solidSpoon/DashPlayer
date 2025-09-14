@@ -18,7 +18,7 @@ import { inject, injectable, postConstruct } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import dpLog from '@/backend/ioc/logger';
 
-import { ClipQuery } from '@/common/api/dto';
+import { ClipQuery, SimpleClipQuery } from '@/common/api/dto';
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import CacheService from '@/backend/services/CacheService';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
@@ -339,28 +339,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return firstLine?.start || 0;
     }
 
-    public async search({
-                            keyword,
-                            keywordRange,
-                            date,
-                            matchedWord
-                        }: ClipQuery & { matchedWord?: string }): Promise<VideoLearningClipVO[]> {
+    public async search({word}: SimpleClipQuery): Promise<VideoLearningClipVO[]> {
         const conditions: any[] = [];
 
-        if (StrUtil.isNotBlank(keyword)) {
-            if (keywordRange === 'context') {
-                conditions.push(like(videoLearningClip.srt_context, `%${keyword}%`));
-            } else {
-                conditions.push(like(videoLearningClip.srt_clip, `%${keyword}%`));
-            }
-        }
-
-        if (matchedWord && StrUtil.isNotBlank(matchedWord)) {
+        if (word && StrUtil.isNotBlank(word)) {
             // 通过关联表查询匹配的单词
             const clipKeysWithWord = await db
                 .select({ clip_key: videoLearningClipWord.clip_key })
                 .from(videoLearningClipWord)
-                .where(eq(videoLearningClipWord.word, matchedWord.toLowerCase()));
+                .where(eq(videoLearningClipWord.word, word.toLowerCase()));
 
             const clipKeys = clipKeysWithWord.map(item => item.clip_key);
 
@@ -370,13 +357,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 // 强制无结果
                 conditions.push(sql`1=0`);
             }
-        }
-
-        if (date?.from) {
-            conditions.push(gte(videoLearningClip.created_at, TimeUtil.dateToUtc(date.from)));
-        }
-        if (date?.to) {
-            conditions.push(lte(videoLearningClip.created_at, TimeUtil.dateToUtc(date.to)));
         }
 
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

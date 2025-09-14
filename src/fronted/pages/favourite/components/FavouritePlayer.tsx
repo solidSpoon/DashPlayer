@@ -70,7 +70,7 @@ const FavouritePlayer = () => {
 
   const { data: allVideos = [] } = useSWR(
     apiPath('favorite-clips/search'),
-    () => api.call('favorite-clips/search', {})
+    () => api.call('favorite-clips/search')
   );
 
   // 低频状态：数值/布尔，变化不频繁

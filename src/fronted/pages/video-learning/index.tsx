@@ -31,27 +31,22 @@ export default function VideoLearningPage() {
   const [currentClipIndex, setCurrentClipIndex] = useState(-1);
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
 
-  const { data: learningClips = [], mutate: mutateLearningClips } = useSWR(
+  const { data: learningClips = { success: true, data: [] }, mutate: mutateLearningClips } = useSWR(
     selectedWord
       ? `${apiPath('video-learning/search')}-${selectedWord.word}`
       : apiPath('video-learning/search'),
     async () => {
       if (selectedWord) {
         return await window.electron.call('video-learning/search', {
-          keyword: '',
-          keywordRange: 'clip',
-          date: { from: undefined, to: undefined },
-          matchedWord: selectedWord.word
+          word: selectedWord.word
         });
       } else {
         return await window.electron.call('video-learning/search', {
-          keyword: '',
-          keywordRange: 'clip',
-          date: { from: undefined, to: undefined }
+          word: ''
         });
       }
     },
-    { fallbackData: [] }
+    { fallbackData: { success: true, data: [] } }
   );
 
   const clips: VideoClip[] = useMemo(() => {
@@ -125,10 +120,7 @@ export default function VideoLearningPage() {
           wordData.map(async (word: WordItem) => {
             try {
               const videoResult = await window.electron.call('video-learning/search', {
-                keyword: '',
-                keywordRange: 'clip',
-                date: { from: undefined, to: undefined },
-                matchedWord: word.word
+                word: word.word
               });
               return {
                 ...word,
@@ -165,27 +157,19 @@ export default function VideoLearningPage() {
   // 导出模板
   const exportTemplate = useCallback(async () => {
     try {
-      const result = await window.electron.call('vocabulary/export-template', {});
+      const result = await window.electron.call('vocabulary/export-template');
       if (result.success) {
-        const binaryString = atob(result.data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const url = URL.createObjectURL(blob);
+        // 直接使用 data URL 下载，避免手动 base64 解码
+        const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.data}`;
         const a = document.createElement('a');
-        a.href = url;
+        a.href = dataUrl;
         a.download = '单词管理模板.xlsx';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
 
         setTimeout(() => {
-          alert('模板已成功导出到下载文件夹');
+          alert('模板已成功下载');
         }, 100);
       } else {
         alert(`导出失败：${result.error}`);
@@ -272,7 +256,7 @@ export default function VideoLearningPage() {
   // 初始化加载单词
   useEffect(() => {
     fetchWords();
-  }, [fetchWords]);
+  }, []); // 只在组件挂载时执行一次
 
   // 处理单词点击
   const handleWordClick = useCallback((word: WordItem) => {

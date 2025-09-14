@@ -4,7 +4,7 @@ import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import useLayout, { cpW } from '@/fronted/hooks/useLayout';
 import { cn } from '@/fronted/lib/utils';
 import FileBrowser from '@/fronted/components/FileBrowser';
-import ControlBox from '@/fronted/components/ControlBox';
+import ControlBox from '@/fronted/components/pp-control-box/ControlBox';
 import ControlButton from '@/fronted/components/ControlButton';
 import useFile from '@/fronted/hooks/useFile';
 import PlayerShortCut from '@/fronted/components/short-cut/PlayerShortCut';

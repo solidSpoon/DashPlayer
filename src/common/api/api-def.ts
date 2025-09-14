@@ -11,7 +11,7 @@ import Release from '@/common/types/release';
 import {FolderVideos} from '@/common/types/tonvert-type';
 
 import {Tag} from '@/backend/db/tables/tag';
-import {ClipQuery} from '@/common/api/dto';
+import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
 import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipVO} from '@/common/types/vo/VideoLearningClipVO';
@@ -230,7 +230,7 @@ interface VideoLearningDef {
         return: { success: boolean }
     };
     'video-learning/search': {
-        params: ClipQuery & { matchedWord?: string },
+        params: SimpleClipQuery,
         return: { success: boolean; data: VideoLearningClipVO[] }
     };
     'video-learning/sync-from-oss': {

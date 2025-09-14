@@ -9,3 +9,7 @@ export type ClipQuery = {
     includeNoTag: boolean;
 }
 
+export type SimpleClipQuery = {
+    word: string;
+}
+
