@@ -28,6 +28,13 @@ const TranslatableLine = ({
                                   wordClassNames
                               }: TranslatableSubtitleLineCoreParam) => {
     const theme = useTransLineTheme();
+
+    console.log('TranslatableLine render:', {
+        sentenceKey: sentence ? `${sentence.fileHash}-${sentence.index}` : null,
+        wordClassNames,
+        timestamp: Date.now()
+    });
+
     const text = sentence.text;
     const sentenceStruct = sentence.struct;
     const fontSize = useSetting((state) =>

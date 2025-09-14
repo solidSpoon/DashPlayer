@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player/file';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { shallow } from 'zustand/shallow';
 
 export interface PlayerEngineV2Props {
   progressInterval?: number;
@@ -37,7 +38,7 @@ const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
     setDuration: s.setDuration,
     updateExactPlayTime: s.updateExactPlayTime,
     play: s.play
-  }));
+  }), shallow);
 
   const playerRef = useRef<ReactPlayer>(null);
   const lastSeekRef = useRef<{ time: number }>({ time: -1 });

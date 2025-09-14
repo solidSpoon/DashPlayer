@@ -1,8 +1,9 @@
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { shallow } from 'zustand/shallow';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
 import TagSelector from '@/fronted/components/TagSelector';
@@ -18,6 +19,40 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 const api = window.electron;
 const logger = getRendererLogger('FavouritePlayer');
 
+// 进度条子组件：只订阅 currentTime 和 duration，其他部分不受影响
+const FavouriteProgress = memo(function FavouriteProgress() {
+  const currentTime = usePlayerV2((s) => s.internal.exactPlayTime);
+  const duration = usePlayerV2((s) => s.duration);
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  console.log('FavouriteProgress render:', { currentTime, duration, progress: progress.toFixed(1), timestamp: Date.now() });
+
+  return (
+    <div className="flex-1 flex items-center gap-2">
+      <span className="text-xs text-muted-foreground w-10 text-right">
+        {formatTime(currentTime)}
+      </span>
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 bg-muted rounded-full h-1.5" />
+        <div
+          className="absolute inset-y-0 left-0 bg-primary rounded-full h-1.5 transition-all duration-100"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground w-10">
+        {formatTime(duration)}
+      </span>
+    </div>
+  );
+});
+
 const FavouritePlayer = () => {
   const [ready, setReady] = useState(false);
   const bootOnceRef = useRef(false);
@@ -26,45 +61,56 @@ const FavouritePlayer = () => {
   const playInfo = useFavouriteClip((state) => state.playInfo);
   const setPlayInfo = useFavouriteClip((state) => state.setPlayInfo);
 
+  console.log('FavouritePlayer render:', {
+    playInfoKey: playInfo?.video?.key,
+    timestamp: Date.now()
+  });
+
   const { data: allVideos = [] } = useSWR(
     apiPath('favorite-clips/search'),
     () => api.call('favorite-clips/search', {})
   );
 
-  const {
-    playing,
-    duration,
-    autoPause,
-    singleRepeat,
-    volume,
-    muted,
-    playbackRate,
+  // 低频状态：数值/布尔，变化不频繁
+  const playing = usePlayerV2((s) => s.playing);
+  const autoPause = usePlayerV2((s) => s.autoPause);
+  const singleRepeat = usePlayerV2((s) => s.singleRepeat);
 
+  // 方法集合：引用稳定，用 shallow 保证对象级比较
+  const {
     play,
     togglePlay,
     seekTo,
-    setVolume,
-    setMuted,
-    setPlaybackRate,
-
     setAutoPause,
     setSingleRepeat,
-
     setSource,
     loadSubtitles,
     clearSubtitles,
-    getExactPlayTime,
-
     repeatCurrent,
     gotoSentenceIndex,
     prevSentence,
     nextSentence,
-
     isAtFirstSentence,
     isAtLastSentence,
-
-    sentences
-  } = usePlayerV2();
+  } = usePlayerV2(
+    (s) => ({
+      play: s.play,
+      togglePlay: s.togglePlay,
+      seekTo: s.seekTo,
+      setAutoPause: s.setAutoPause,
+      setSingleRepeat: s.setSingleRepeat,
+      setSource: s.setSource,
+      loadSubtitles: s.loadSubtitles,
+      clearSubtitles: s.clearSubtitles,
+      repeatCurrent: s.repeatCurrent,
+      gotoSentenceIndex: s.gotoSentenceIndex,
+      prevSentence: s.prevSentence,
+      nextSentence: s.nextSentence,
+      isAtFirstSentence: s.isAtFirstSentence,
+      isAtLastSentence: s.isAtLastSentence,
+    }),
+    shallow
+  );
 
   useEffect(() => {
     if (!playInfo) {
@@ -201,9 +247,6 @@ const FavouritePlayer = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const currentTime = getExactPlayTime();
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
   if (!playInfo) {
     return (
       <div className="w-full flex flex-col gap-4 p-6">
@@ -273,17 +316,7 @@ const FavouritePlayer = () => {
           </Tooltip>
         </TooltipProvider>
 
-        <div className="flex-1 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground w-10 text-right">{formatTime(currentTime)}</span>
-          <div className="flex-1 relative">
-            <div className="absolute inset-0 bg-muted rounded-full h-1.5" />
-            <div
-              className="absolute inset-y-0 left-0 bg-primary rounded-full h-1.5 transition-all duration-100"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <span className="text-xs text-muted-foreground w-10">{formatTime(duration)}</span>
-        </div>
+        <FavouriteProgress />
       </div>
 
       <TagSelector />

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import UrlUtil from '@/common/utils/UrlUtil';
 import SubtitleList from './SubtitleList';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
@@ -7,7 +7,6 @@ import VideoPlayerShortcut from './VideoPlayerShortcut';
 import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
-import { RotateCcw, Repeat, CirclePause } from 'lucide-react';
 
 type Props = {
   clip: VideoClip | null;
@@ -30,26 +29,16 @@ export default function VideoPlayerPane({
 }: Props) {
   // 使用新的播放器状态管理
   const {
-    src,
     playing,
     currentSentence,
     sentences,
     duration,
     autoPause,
     singleRepeat,
-    volume,
-    muted,
-    playbackRate,
-
     // 播放控制
     play,
     togglePlay,
-    seekTo,
     seekToTarget,
-    setVolume,
-    setMuted,
-    setPlaybackRate,
-
     // 模式控制
     setAutoPause,
     setSingleRepeat,
@@ -58,7 +47,6 @@ export default function VideoPlayerPane({
     setSource,
     loadSubtitles,
     clearSubtitles,
-    mapCurrentRange,
     getExactPlayTime,
 
     // 高级API
@@ -70,8 +58,6 @@ export default function VideoPlayerPane({
     isAtFirstSentence,
     isAtLastSentence
   } = usePlayerV2();
-
-  const [ready, setReady] = useState(false);
 
   // 当clip或forcePlayKey发生变化时，加载新的视频和字幕
   useEffect(() => {
@@ -121,11 +107,6 @@ export default function VideoPlayerPane({
   // 视频播放结束处理
   const handlePlayerEnded = () => {
     onEnded();
-  };
-
-  // 播放器就绪处理
-  const handlePlayerReady = () => {
-    setReady(true);
   };
 
   // 句子导航处理边界情况
@@ -199,7 +180,6 @@ export default function VideoPlayerPane({
               <PlayerEngineV2
                 width="100%"
                 height="100%"
-                onReady={handlePlayerReady}
                 onEnded={handlePlayerEnded}
               />
             </div>
