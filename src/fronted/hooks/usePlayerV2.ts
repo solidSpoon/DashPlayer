@@ -2,6 +2,12 @@
 import { create } from 'zustand';
 import { Sentence } from '@/common/types/SentenceC';
 import { SrtTender, SrtTenderImpl } from '@/fronted/lib/SrtTender';
+import StrUtil from '@/common/utils/str-util';
+import useFile from '@/fronted/hooks/useFile';
+import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
+import useSetting from '@/fronted/hooks/useSetting';
+
+const api = window.electron;
 
 export type SeekAction = { time: number } | ((prev: { time: number }) => { time: number });
 type Range = { start: number; end: number };
@@ -97,6 +103,7 @@ interface PlayerState {
   setMuted: (muted: boolean) => void;
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
+  cyclePlaybackRate: () => void;
 
   // 模式控制
   setAutoPause: (v: boolean) => void;
@@ -126,6 +133,7 @@ interface PlayerState {
   gotoSentenceIndex: (index: number) => void;
   gotoSentence: (s: Sentence) => void;
   repeatCurrent: (options?: { loop?: boolean }) => void;
+  clearAdjust: () => Promise<void>;
   seekToCurrentStart: () => void;
   seekToCurrentEnd: (epsilon?: number) => void;
 
@@ -496,6 +504,21 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     setMuted: (muted) => set({ muted }),
     setVolume: (volume) => set({ volume }),
     setPlaybackRate: (rate) => set({ playbackRate: rate }),
+    cyclePlaybackRate: () => {
+      const stack = useSetting.getState().setting('userSelect.playbackRateStack')
+        .split(',')
+        .map((v) => parseFloat(v))
+        .filter((v) => !Number.isNaN(v));
+      if (stack.length === 0) {
+        return;
+      }
+      set((prev) => {
+        const current = prev.playbackRate;
+        const currentIdx = stack.indexOf(current) === -1 ? 0 : stack.indexOf(current);
+        const nextIdx = (currentIdx + 1) % stack.length;
+        return { playbackRate: stack[nextIdx] };
+      });
+    },
 
     // 模式控制
     setAutoPause: (v) => set({ autoPause: v }),
@@ -650,6 +673,31 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
       }
     },
 
+    clearAdjust: async () => {
+      const state = get();
+      const focus = state.currentSentence;
+      const srtTender = state.srtTender;
+      if (!focus || !srtTender) {
+        return;
+      }
+
+      const resetSentence = srtTender.clearAdjust(focus);
+      patchSentenceInStore(resetSentence);
+      set({ currentSentence: resetSentence });
+      state.repeatCurrent({ loop: false });
+
+      const { subtitlePath } = useFile.getState();
+      if (StrUtil.isBlank(subtitlePath)) {
+        return;
+      }
+
+      try {
+        await api.call('subtitle-timestamp/delete/by-key', resetSentence.key);
+      } catch {
+        // ignore backend errors; frontend state already restored
+      }
+    },
+
     // 高级 API —— 跳到当前句首
     seekToCurrentStart: () => {
       clearTailPreview();
@@ -683,6 +731,28 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
 
       const updated = srtTender.adjustBegin(focus, safeDelta);
       patchSentenceInStore(updated);
+
+      state.repeatCurrent({ loop: false });
+
+      const { subtitlePath } = useFile.getState();
+      if (StrUtil.isBlank(subtitlePath)) {
+        return;
+      }
+
+      const diff = srtTender.timeDiff(updated).start;
+      const diffStr = diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+      usePlayerToaster.getState().setNotification({ type: 'info', text: `start: ${diffStr} s` });
+
+      const { start: start2, end: end2 } = srtTender.mapSeekTime(updated);
+      void api.call('subtitle-timestamp/update', {
+        key: updated.key,
+        subtitle_path: subtitlePath,
+        subtitle_hash: useFile.getState().srtHash,
+        start_at: start2,
+        end_at: end2
+      }).catch(() => {
+        // ignore backend errors; notification already shown
+      });
     },
 
     // 高级 API —— 调整结束时间（尾部预览 + 立即锁定高亮）
@@ -694,6 +764,26 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
 
       const updated = srtTender.adjustEnd(focus, deltaSeconds);
       patchSentenceInStore(updated);
+
+      state.repeatCurrent({ loop: false });
+
+      const { subtitlePath } = useFile.getState();
+      if (!StrUtil.isBlank(subtitlePath)) {
+        const diff = srtTender.timeDiff(updated).end;
+        const diffStr = diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+        usePlayerToaster.getState().setNotification({ type: 'info', text: `end: ${diffStr} s` });
+
+        const { start: start2, end: end2 } = srtTender.mapSeekTime(updated);
+        void api.call('subtitle-timestamp/update', {
+          key: updated.key,
+          subtitle_path: subtitlePath,
+          subtitle_hash: useFile.getState().srtHash,
+          start_at: start2,
+          end_at: end2
+        }).catch(() => {
+          // ignore backend errors; notification already shown
+        });
+      }
 
       const { start, end } = srtTender.mapSeekTime(updated);
       const previewMs = options?.previewMs ?? 1000;

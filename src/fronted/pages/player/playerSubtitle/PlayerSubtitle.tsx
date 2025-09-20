@@ -1,37 +1,44 @@
-import usePlayerController from '@/fronted/hooks/usePlayerController';
 import React, { ReactElement } from 'react';
+
+import { playerV2Actions } from '@/fronted/components/player-components';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
+import { useMemo } from 'react';
 import FullscreenTranslatableLine from '@/fronted/pages/player/pa-srt-cops/fullscreen-translatable-line';
 import PlayerNormalLine from '@/fronted/pages/player/playerSubtitle/PlayerNormalLine';
 import StrUtil from '@/common/utils/str-util';
 import useTranslation from '@/fronted/hooks/useTranslation';
 
 const PlayerSubtitle = () => {
-    const sentence = usePlayerController((state) => state.currentSentence);
-    const clearAdjust = usePlayerController((state) => state.clearAdjust);
-    const srtTender = usePlayerController((state) => state.srtTender);
+    const sentence = usePlayerV2State((state) => state.currentSentence);
+    const srtTender = usePlayerV2State((state) => state.srtTender);
+    const adjusted = useMemo(() => (sentence && srtTender ? (srtTender.adjusted(sentence) ?? false) : false), [sentence, srtTender]);
 
     const translationKey = sentence?.translationKey || '';
-    const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
-    const ele = (): ReactElement[] => {
-        if (sentence === undefined) {
+    const newTranslation = useTranslation((state) => state.translations.get(translationKey)) || '';
+
+    const renderLines = (): ReactElement[] => {
+        if (!sentence) {
             return [];
         }
-        const tempEle: Array<string> = [
+        const candidates: Array<string> = [
             sentence.text,
             newTranslation,
             sentence.textZH
         ]
             .filter((item) => StrUtil.isNotBlank(item))
             .map((item) => item ?? '');
-        return tempEle.map((item, index) => {
+
+        return candidates.map((item, index) => {
             if (index === 0) {
                 return (
-                    <FullscreenTranslatableLine
-                        adjusted={srtTender?.adjusted(sentence) ?? false}
-                        clearAdjust={clearAdjust}
-                        key={`first-${sentence.key}`}
-                        sentence={sentence}
-                    />
+                        <FullscreenTranslatableLine
+                            adjusted={adjusted}
+                            clearAdjust={() => {
+                                void playerV2Actions.clearAdjust();
+                            }}
+                            key={`first-${sentence.key}`}
+                            sentence={sentence}
+                        />
                 );
             }
             if (index === 1) {
@@ -54,21 +61,18 @@ const PlayerSubtitle = () => {
         });
     };
 
-    const render = () => {
-        if (sentence === undefined) {
-            return <div className="w-full h-full" />;
-        }
-        return (
-            <div
-                key={`trans-sub:${sentence?.key}`}
-                className="flex flex-col w-full text-center text-textColor justify-center items-center gap-2"
-            >
-                {ele()}
-            </div>
-        );
-    };
+    if (!sentence) {
+        return <div className="w-full h-full" />;
+    }
 
-    return render();
+    return (
+        <div
+            key={`trans-sub:${sentence.key}`}
+            className="flex flex-col w-full text-center text-textColor justify-center items-center gap-2"
+        >
+            {renderLines()}
+        </div>
+    );
 };
 
 export default PlayerSubtitle;

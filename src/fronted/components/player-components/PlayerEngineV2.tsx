@@ -9,6 +9,8 @@ export interface PlayerEngineV2Props {
   height?: string | number;
   onReady?: () => void;
   onEnded?: () => void;
+  onProvideVideoElement?: (video: HTMLVideoElement | null) => void;
+  className?: string;
 }
 
 const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
@@ -16,7 +18,9 @@ const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
   width = 0,
   height = 0,
   onReady,
-  onEnded
+  onEnded,
+  onProvideVideoElement,
+  className
 }) => {
   const {
     src,
@@ -84,6 +88,14 @@ const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
     };
   }, [seekTime, play]);
 
+  useEffect(() => {
+    return () => {
+      if (onProvideVideoElement) {
+        onProvideVideoElement(null);
+      }
+    };
+  }, [onProvideVideoElement]);
+
   return (
     <ReactPlayer
       ref={playerRef}
@@ -98,13 +110,20 @@ const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
       controls={false}
       tabIndex={-1}
       config={{ attributes: { controlsList: 'nofullscreen' } }}
+      className={className}
       onProgress={(p) => {
         if (typeof p.playedSeconds === 'number') {
           updateExactPlayTime(p.playedSeconds);
         }
       }}
       onDuration={(d) => setDuration(d)}
-      onReady={onReady}
+      onReady={() => {
+        if (onProvideVideoElement) {
+          const internal = playerRef.current?.getInternalPlayer() as HTMLVideoElement | null;
+          onProvideVideoElement(internal ?? null);
+        }
+        onReady?.();
+      }}
       onEnded={onEnded}
     />
   );

@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso } from 'react-virtuoso';
-import { useShallow } from 'zustand/react/shallow';
+import { shallow } from 'zustand/shallow';
 import { twJoin } from 'tailwind-merge';
 import { MdOutlineVerticalAlignCenter } from 'react-icons/md';
 import { AnimatePresence, motion } from 'framer-motion';
 import SideSentence from '@/fronted/pages/player/pa-player/SideSentence';
-import usePlayerController from '../hooks/usePlayerController';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
+import { playerV2Actions } from '@/fronted/components/player-components';
 import useLayout from '../hooks/useLayout';
 import {cn} from "@/fronted/lib/utils";
 import useSubtitleScroll from '../hooks/useSubtitleScroll';
@@ -16,15 +17,11 @@ import {Button} from "@/fronted/components/ui/button";
 export default function Subtitle() {
     const [mouseOver, setMouseOver] = useState(false);
     const showSideBar = useLayout((state) => state.showSideBar);
-    const { currentSentence, subtitle, jump, singleRepeat } =
-        usePlayerController(
-            useShallow((state) => ({
-                singleRepeat: state.singleRepeat,
-                currentSentence: state.currentSentence,
-                subtitle: state.subtitle,
-                jump: state.jump,
-            }))
-        );
+    const { currentSentence, subtitle, singleRepeat } = usePlayerV2State((s) => ({
+        currentSentence: s.currentSentence,
+        subtitle: s.sentences,
+        singleRepeat: s.singleRepeat
+    }), shallow);
     const { setBoundaryRef } = useBoundary();
 
     const scrollerRef = useRef<HTMLElement | Window | null>(null);
@@ -120,12 +117,12 @@ export default function Subtitle() {
                         updateVisibleRange([startIndex, endIndex]);
                     }}
                     itemContent={(_index, item) => {
-                        const isCurrent = item === currentSentence;
+                        const isCurrent = !!currentSentence && item.index === currentSentence.index && item.fileHash === currentSentence.fileHash;
                         return (
                             <SideSentence
                                 sentence={item}
                                 onClick={(sentence) => {
-                                    jump(sentence);
+                                    playerV2Actions.gotoSentence(sentence);
                                     if (scrollState === 'USER_BROWSING') {
                                         delaySetNormal();
                                     }

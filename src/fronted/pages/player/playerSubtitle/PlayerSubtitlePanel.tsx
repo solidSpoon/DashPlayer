@@ -1,42 +1,23 @@
-import {cn} from "@/fronted/lib/utils";
-import PlayerSubtitle from "@/fronted/pages/player/playerSubtitle/PlayerSubtitle";
-import PlayerSubtitleControlPanel from "@/fronted/pages/player/playerSubtitle/PlayerSubtitleControlPannel";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
-import {useShallow} from "zustand/react/shallow";
-
+import { cn } from '@/fronted/lib/utils';
+import PlayerSubtitle from '@/fronted/pages/player/playerSubtitle/PlayerSubtitle';
+import PlayerSubtitleControlPanel from '@/fronted/pages/player/playerSubtitle/PlayerSubtitleControlPannel';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
+import { playerV2Actions } from '@/fronted/components/player-components';
 
 const PlayerSubtitlePanel = () => {
-    const {
-        playing,
-        play,
-        pause,
-        seekTo
+    const playing = usePlayerV2State((state) => state.playing);
 
-    } = usePlayerController(
-        useShallow((state) => ({
-            playing: state.playing,
-            play: state.play,
-            pause: state.pause,
-            seekTo: state.seekTo,
-        }))
-    );
     return (
         <div className={cn('w-full h-full absolute top-0 left-0 z-10 flex flex-col justify-end items-center')}>
-            <PlayerSubtitle/>
+            <PlayerSubtitle />
             <PlayerSubtitleControlPanel
-                onTimeChange={(time) => {
-                    seekTo({time});
-                }}
-                onPause={() => {
-                    pause();
-                }}
-                onPlay={() => {
-                    play();
-                }}
+                onTimeChange={(time) => playerV2Actions.seekTo({ time })}
+                onPause={() => playerV2Actions.pause()}
+                onPlay={() => playerV2Actions.play()}
                 playing={playing}
             />
         </div>
-    )
-}
+    );
+};
 
 export default PlayerSubtitlePanel;

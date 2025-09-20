@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { Ele } from './useBoundary';
 import useLayout from './useLayout';
-import usePlayerController from './usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 export type ScrollState =
@@ -240,7 +240,7 @@ const scrollTask = () => {
     ) {
         return;
     }
-    const index = usePlayerController.getState().currentSentence?.index ?? 0;
+    const index = usePlayerV2.getState().currentSentence?.index ?? 0;
     const { visibleRange } = useSubtitleScroll.getState();
     if (index < visibleRange[0] || index > visibleRange[1]) {
         useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });

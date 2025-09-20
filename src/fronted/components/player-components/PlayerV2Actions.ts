@@ -32,6 +32,7 @@ export class PlayerV2Actions {
   setMuted(muted: boolean) { this.s.setMuted(muted); }
   setVolume(volume: number) { this.s.setVolume(volume); }
   setPlaybackRate(rate: number) { this.s.setPlaybackRate(rate); }
+  cyclePlaybackRate() { this.s.cyclePlaybackRate(); }
 
   // 模式
   setAutoPause(v: boolean) { this.s.setAutoPause(v); }
@@ -72,6 +73,7 @@ export class PlayerV2Actions {
   gotoSentenceIndex(index: number) { this.s.gotoSentenceIndex(index); }
   gotoSentence(s: Sentence) { this.s.gotoSentence(s); }
   repeatCurrent(options?: { loop?: boolean }) { this.s.repeatCurrent(options); }
+  clearAdjust() { return this.s.clearAdjust(); }
   seekToCurrentStart() { this.s.seekToCurrentStart(); }
   seekToCurrentEnd(epsilon?: number) { this.s.seekToCurrentEnd(epsilon); }
 

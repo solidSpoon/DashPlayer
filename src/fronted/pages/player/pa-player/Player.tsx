@@ -1,285 +1,148 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { useShallow } from 'zustand/react/shallow';
-import usePlayerController from '../../../hooks/usePlayerController';
-import useFile from '../../../hooks/useFile';
-import PlayerControlPanel from './PlayerControlPanel';
-import { SeekAction } from '../../../hooks/usePlayerControllerSlices/SliceTypes';
-import PlayerSubtitlePanel from '@/fronted/pages/player/playerSubtitle/PlayerSubtitlePanel';
-import useLayout from '@/fronted/hooks/useLayout';
-import PlaySpeedToaster from '@/fronted/pages/player/PlaySpeedToaster';
-import { cn } from '@/fronted/lib/utils';
-import PlayerToaster from '@/fronted/pages/player/PlayerToaster';
-import UrlUtil from '@/common/utils/UrlUtil';
-import StrUtil from '@/common/utils/str-util';
-import ReactPlayer from 'react-player/file';
-import { useNavigate } from 'react-router-dom';
+import { shallow } from 'zustand/shallow';
 
-const api = window.electron;
+import { PlayerEngineV2, playerV2Actions } from '@/fronted/components/player-components';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+import useLayout from '@/fronted/hooks/useLayout';
+import PlayerControlPanel from './PlayerControlPanel';
+import PlayerSubtitlePanel from '@/fronted/pages/player/playerSubtitle/PlayerSubtitlePanel';
+import PlaySpeedToaster from '@/fronted/pages/player/PlaySpeedToaster';
+import PlayerToaster from '@/fronted/pages/player/PlayerToaster';
+import { cn } from '@/fronted/lib/utils';
+
 const logger = getRendererLogger('Player');
 
-export default function Player({ className }: { className?: string }): ReactElement {
+type PlayerProps = {
+    className?: string;
+    onReady?: () => void;
+    onEnded?: () => void;
+};
+
+export default function Player({ className, onReady, onEnded }: PlayerProps): ReactElement {
     const {
         playing,
-        muted,
-        volume,
-        play,
-        pause,
-        seekTime,
-        updateExactPlayTime,
-        setDuration,
-        seekTo,
         playbackRate,
-        autoPlayNext
-    } = usePlayerController(
-        useShallow((state) => ({
+        hasSource
+    } = usePlayerV2State(
+        (state) => ({
             playing: state.playing,
-            muted: state.muted,
-            volume: state.volume,
-            play: state.play,
-            pause: state.pause,
-            seekTime: state.seekTime,
-            updateExactPlayTime: state.updateExactPlayTime,
-            setDuration: state.setDuration,
-            seekTo: state.seekTo,
             playbackRate: state.playbackRate,
-            autoPlayNext: state.autoPlayNext
-        }))
+            hasSource: !!state.src
+        }),
+        shallow
     );
-    const videoPath = useFile((s) => s.videoPath);
-    const videoId = useFile((s) => s.videoId);
-    const loadedVideo = useFile((s) => s.loadedVideo);
-    const videoLoaded = useFile((s) => s.videoLoaded);
-    const playerRef = useRef<ReactPlayer>(null);
+
     const playerRefBackground = useRef<HTMLCanvasElement>(null);
-    const navigate = useNavigate();
-    let lastFile: string | undefined;
+    const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
     const fullScreen = useLayout((s) => s.fullScreen);
-
-    const lastSeekTime = useRef<SeekAction>({ time: 0 });
-    const lastSeekTimestamp = useRef<number>(0);
-
-    const [showControlPanel, setShowControlPanel] = useState<boolean>(false);
-
     const podcastMode = useLayout((s) => s.podcastMode);
 
-    const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [videoReady, setVideoReady] = useState(false);
 
     useEffect(() => {
-        if (lastSeekTime.current !== seekTime) {
-            const now = Date.now();
-            const timeSinceLastSeek = now - lastSeekTimestamp.current;
-
-            // 如果距离上次 seek 小于 200ms，设置延时
-            if (seekTimeoutRef.current) {
-                clearTimeout(seekTimeoutRef.current);
-            }
-            const performSeek = (time: number) => {
-                if (playerRef.current !== null) {
-                    playerRef.current.seekTo(time, 'seconds');
-                    play();
-                }
-            };
-            seekTimeoutRef.current = setTimeout(() => {
-                performSeek(seekTime.time);
-                lastSeekTime.current = seekTime;
-                lastSeekTimestamp.current = Date.now();
-                seekTimeoutRef.current = null;
-            }, Math.max(0, 200 - timeSinceLastSeek));
-        }
-
-        return () => {
-            if (seekTimeoutRef.current) {
-                clearTimeout(seekTimeoutRef.current);
-            }
-        };
-    }, [play, seekTime]);
+        setVideoReady(false);
+    }, [hasSource]);
 
     useEffect(() => {
-        if (podcastMode) {
-            return;
+        if (!videoReady || podcastMode) {
+            return undefined;
         }
         let animationFrameId: number | undefined;
-        let lastDrawTime = Date.now(); // 用来限制绘制的帧率
-        const fps = 25; // 把这个调整成需要的帧率
-
-        // 绘制频率的间隔（毫秒）
+        let lastDrawTime = Date.now();
+        const fps = 25;
         const drawInterval = 1000 / fps;
 
         const syncVideos = async () => {
             const now = Date.now();
-            const timeSinceLastDraw = now - lastDrawTime;
-
-            if (timeSinceLastDraw >= drawInterval) {
-                const mainVideo = playerRef?.current?.getInternalPlayer() as HTMLVideoElement;
-                const backgroundCanvas = playerRefBackground?.current;
-
-                if (
-                    mainVideo &&
-                    backgroundCanvas &&
-                    mainVideo.readyState >= 2
-                ) {
-                    // 确保视频已经有数据
+            if (now - lastDrawTime >= drawInterval) {
+                const mainVideo = videoElementRef.current;
+                const backgroundCanvas = playerRefBackground.current;
+                if (mainVideo && backgroundCanvas && mainVideo.readyState >= 2) {
                     const ctx = backgroundCanvas.getContext('2d');
-
                     if (ctx) {
-                        const { width, height } =
-                            backgroundCanvas.getBoundingClientRect();
+                        const { width, height } = backgroundCanvas.getBoundingClientRect();
                         const ratio = window.devicePixelRatio || 1;
-
-                        // 调整目标分辨率的系数，例如变为 1/2
                         const resolutionFactor = 0.1;
                         const scaledWidth = width * ratio * resolutionFactor;
                         const scaledHeight = height * ratio * resolutionFactor;
 
-                        // 设置画布的实际尺寸，即物理尺寸和分辨率
                         backgroundCanvas.width = scaledWidth;
                         backgroundCanvas.height = scaledHeight;
 
-                        // 调整画布绘制尺寸与元素的显示尺寸
-                        ctx.scale(
-                            ratio * resolutionFactor,
-                            ratio * resolutionFactor
-                        );
-
+                        ctx.save();
+                        ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        ctx.clearRect(0, 0, scaledWidth, scaledHeight);
                         try {
-                            // 使用 createImageBitmap 改进性能
                             const bitmap = await createImageBitmap(mainVideo);
-                            ctx.drawImage(bitmap, 0, 0, width, height);
-                            bitmap.close(); // 如果有提供此方法，关闭 bitmap 释放内存
+                            ctx.drawImage(bitmap, 0, 0, scaledWidth, scaledHeight);
+                            bitmap.close();
                         } catch (error) {
                             logger.error('failed to draw video frame', { error: error instanceof Error ? error.message : String(error) });
                         }
+                        ctx.restore();
 
-                        // 更新最后绘画时间
                         lastDrawTime = now;
                     }
                 }
             }
-
-            // 在下一帧中重新调用 syncVideos
             animationFrameId = requestAnimationFrame(syncVideos);
         };
 
-        if (videoLoaded) {
-            syncVideos().then();
-        }
-
-        // 清理操作
+        syncVideos().then();
         return () => {
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [videoLoaded, playerRef, playerRefBackground, podcastMode]);
+    }, [videoReady, podcastMode]);
 
-    const jumpToHistoryProgress = async (file: string) => {
-        if (file === lastFile) {
-            return;
-        }
-        if (videoId === null) {
-            return;
-        }
-        const result = await api.call('watch-history/detail', videoId);
-        const progress = result?.current_position ?? 0;
-        logger.debug('jumping to history progress', { progress });
-        seekTo({ time: progress });
-        lastFile = file;
-    };
+    if (!hasSource) {
+        return <div />;
+    }
 
-    const handleAutoPlayNext = async () => {
-        if (!autoPlayNext || !videoId) {
-            return;
-        }
-
-        try {
-            const nextVideo = await api.call('watch-history/get-next-video', videoId);
-            if (nextVideo) {
-                logger.info('auto playing next video', { fileName: nextVideo.fileName });
-                navigate(`/player/${nextVideo.id}`);
-            } else {
-                logger.debug('no next video found');
-            }
-        } catch (error) {
-            logger.error('failed to get next video', { error: error instanceof Error ? error.message : String(error) });
-        }
-    };
-
-    logger.debug('video path changed', { videoPath });
-    const render = (): ReactElement => {
-        if (StrUtil.isBlank(videoPath)) {
-            return <div />;
-        }
-        return (
-            <div
-                className={cn('w-full h-full overflow-hidden', className)}
-                onMouseLeave={() => setShowControlPanel(false)}
-            >
-                <div className="w-full h-full relative overflow-hidden">
-                    <canvas
-                        className="w-full h-full"
-                        ref={playerRefBackground}
-                        style={{
-                            filter: 'blur(100px)',
-                            // transform: 'scale(1.1)',
-                            objectFit: 'cover'
-                        }}
-                    />
-                    <ReactPlayer
-                        volume={volume}
-                        playbackRate={playbackRate}
+    return (
+        <div className={cn('w-full h-full overflow-hidden', className)}>
+            <div className="w-full h-full relative overflow-hidden">
+                <canvas
+                    className="w-full h-full"
+                    ref={playerRefBackground}
+                    style={{
+                        filter: 'blur(100px)',
+                        objectFit: 'cover'
+                    }}
+                />
+                <PlayerEngineV2
+                    width="100%"
+                    height="100%"
+                    className="w-full h-full absolute top-0 left-0"
+                    onReady={() => {
+                        setVideoReady(true);
+                        onReady?.();
+                    }}
+                    onEnded={() => {
+                        onEnded?.();
+                    }}
+                    onProvideVideoElement={(video) => {
+                        videoElementRef.current = video;
+                    }}
+                />
+                {!fullScreen && (
+                    <PlayerControlPanel
+                        onTimeChange={(time) => playerV2Actions.seekTo({ time })}
+                        className="absolute bottom-0 left-0 z-20"
+                        onPause={() => playerV2Actions.pause()}
+                        onPlay={() => playerV2Actions.play()}
                         playing={playing}
-                        ref={playerRef}
-                        className="w-full h-full absolute top-0 left-0"
-                        url={UrlUtil.file(videoPath)}
-                        muted={muted}
-                        autoPlay={true}
-                        controls={false}
-                        width="100%"
-                        height="100%"
-                        progressInterval={50}
-                        // 将视频元素从键盘导航顺序中移除
-                        tabIndex={-1}
-                        config={{
-                            attributes: {
-                                controlsList: 'nofullscreen'
-                            }
-                        }}
-                        onProgress={(progress) => {
-                            updateExactPlayTime(progress.playedSeconds);
-                        }}
-                        onDuration={(d) => setDuration(d)}
-                        onStart={async () => {
-                            await jumpToHistoryProgress(videoPath);
-                            loadedVideo(videoPath);
-                        }}
-                        onEnded={handleAutoPlayNext}
                     />
-                    {!fullScreen && (!showControlPanel && (
-                        <PlayerControlPanel
-                            onTimeChange={(time) => {
-                                seekTo({ time });
-                            }}
-                            className="absolute bottom-0 left-0"
-                            onPause={() => {
-                                pause();
-                            }}
-                            onPlay={() => {
-                                play();
-                            }}
-                            playing={playing}
-                        />
-                    ))}
-                    {fullScreen && <PlayerSubtitlePanel />}
-                    <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
-                    <PlayerToaster className="absolute top-3 left-3" />
-                </div>
+                )}
+                {fullScreen && <PlayerSubtitlePanel />}
+                <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
+                <PlayerToaster className="absolute top-3 left-3" />
             </div>
-        );
-    };
-
-    return render();
+        </div>
+    );
 }
 
 Player.defaultProps = {

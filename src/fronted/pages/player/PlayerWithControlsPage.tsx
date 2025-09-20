@@ -16,6 +16,7 @@ import PlayerSrtLayout from '@/fronted/pages/player/pa-player/PlayerSrtLayout';
 import {SWR_KEY} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
 import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { playerV2Actions } from '@/fronted/components/player-components';
 import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
@@ -60,7 +61,7 @@ const PlayerWithControlsPage = () => {
             const videoPath = PathUtil.join(video.basePath, video.fileName);
             if (videoPath && vp !== videoPath) {
                 useFile.getState().updateFile(videoPath);
-                usePlayerController.getState().play();
+                playerV2Actions.play();
             }
 
             let subtitlePath = video.srtFile;

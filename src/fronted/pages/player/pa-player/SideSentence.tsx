@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import useSetting from '../../../hooks/useSetting';
 import usePlayerController from '../../../hooks/usePlayerController';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { cn } from '@/fronted/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -103,7 +104,7 @@ const AutoPausingIcon = () => {
 
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
-        const playing = usePlayerController((state) => state.playing);
+        const playing = usePlayerV2State((state) => state.playing);
         const translationKey = sentence?.translationKey || '';
         const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
         const s = [sentence.text, sentence.textZH, newTranslation].find(
@@ -112,7 +113,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         const fontSize = useSetting((state) =>
             state.values.get('appearance.fontSize')
         );
-        const ap = usePlayerController.getState().internal.onPlaySeekTime !== null;
+        const ap = usePlayerV2State((state) => state.internal.onPlaySeekTime !== null);
         const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
         const [hover, setHover] = React.useState(false);
         const show = usePlayerController(state => {

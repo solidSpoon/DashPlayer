@@ -11,6 +11,8 @@ import useLayout from '@/fronted/hooks/useLayout';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { usePlayerV2Bridge } from '@/fronted/hooks/usePlayerV2Bridge';
+import { useNavigate } from 'react-router-dom';
 
 const logger = getRendererLogger('PlayerSrtLayout');
 
@@ -23,6 +25,8 @@ const PlayerSrtLayout = () => {
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
+    const navigate = useNavigate();
+    const { handlePlayerReady, handleAutoPlayNext } = usePlayerV2Bridge(navigate);
     return (
         <div
             className={cn(
@@ -62,7 +66,11 @@ const PlayerSrtLayout = () => {
                         >
                             <div
                                 className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
-                                <Player className={cn('row-start-1 row-end-2 col-start-1 col-end-2')} />
+                                <Player
+                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}
+                                    onReady={handlePlayerReady}
+                                    onEnded={handleAutoPlayNext}
+                                />
                                 {podcastMode && <PodcastViewer
                                     className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
                                 />}

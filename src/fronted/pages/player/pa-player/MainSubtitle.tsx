@@ -1,16 +1,18 @@
 import React, { ReactElement, useEffect } from 'react';
 import TranslatableLine from '@/fronted/pages/player/pa-srt-cops/translatable-line-wrapper';
 import NormalLine from './NormalLine';
-import usePlayerController from '../../../hooks/usePlayerController';
 import useTranslation from '../../../hooks/useTranslation';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
+import { useMemo } from 'react';
+import { playerV2Actions } from '@/fronted/components/player-components';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
-    const sentence = usePlayerController((state) => state.currentSentence);
-    const subtitle = usePlayerController((state) => state.subtitle);
-    const clearAdjust = usePlayerController((state) => state.clearAdjust);
-    const srtTender = usePlayerController((state) => state.srtTender);
+    const sentence = usePlayerV2State((s) => s.currentSentence);
+    const subtitle = usePlayerV2State((s) => s.sentences);
+    const srtTender = usePlayerV2State((s) => s.srtTender);
+    const adjusted = useMemo(() => (sentence && srtTender ? (srtTender.adjusted(sentence) ?? false) : false), [sentence, srtTender]);
 
     const loadTranslationGroup = useTranslation(state => state.loadTranslationGroup);
 
@@ -27,7 +29,7 @@ export default function MainSubtitle() {
     }, [sentence?.transGroup, sentence?.fileHash, sentence?.index, loadTranslationGroup]);
 
     const ele = (): ReactElement[] => {
-        if (sentence === undefined) {
+        if (!sentence) {
             return [];
         }
 
@@ -43,8 +45,8 @@ export default function MainSubtitle() {
             if (index === 0) {
                 return (
                     <TranslatableLine
-                        adjusted={srtTender?.adjusted(sentence) ?? false}
-                        clearAdjust={clearAdjust}
+                        adjusted={adjusted}
+                        clearAdjust={() => { void playerV2Actions.clearAdjust(); }}
                         key={`first-${sentence.key}`}
                         sentence={sentence}
                     />
@@ -71,7 +73,7 @@ export default function MainSubtitle() {
     };
 
     const render = () => {
-        if (sentence === undefined) {
+        if (!sentence) {
             return <div className="w-full h-full" />;
         }
         return (

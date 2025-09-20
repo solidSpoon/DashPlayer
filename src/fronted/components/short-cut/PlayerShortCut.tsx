@@ -1,54 +1,36 @@
 import { useShallow } from 'zustand/react/shallow';
+import { useHotkeys } from 'react-hotkeys-hook';
+
 import useSetting from '../../hooks/useSetting';
-import usePlayerController from '../../hooks/usePlayerController';
 import useSubtitleScroll from '../../hooks/useSubtitleScroll';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import { useHotkeys } from 'react-hotkeys-hook';
 import useCopyModeController from '../../hooks/useCopyModeController';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { playerV2Actions } from '@/fronted/components/player-components';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import usePlayerController from '../../hooks/usePlayerController';
 
 const process = (values: string) => values
     .split(',')
     .map((k) => k.replaceAll(' ', ''))
     .filter((k) => k !== '')
-    // remove left right up down space
-    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down' && k !== 'space')
+    .filter((k) => k !== 'left' && k !== 'right' && k !== 'up' && k !== 'down' && k !== 'space');
+
 export default function PlayerShortCut() {
     const {
-        space,
         changeShowEn,
         changeShowCn,
         changeShowEnCn,
-        changeShowWordLevel,
-        changeSingleRepeat,
-        prev,
-        next,
-        repeat,
-        adjustStart,
-        adjustEnd,
-        clearAdjust,
-        nextRate,
-        pause,
-        changeAutoPause
+        changeShowWordLevel
     } = usePlayerController(
         useShallow((s) => ({
-            space: s.space,
             changeShowEn: s.changeShowEn,
             changeShowCn: s.changeShowCn,
             changeShowEnCn: s.changeShowEnCn,
-            changeShowWordLevel: s.changeShowWordLevel,
-            changeSingleRepeat: s.changeSingleRepeat,
-            prev: s.prev,
-            next: s.next,
-            repeat: s.repeat,
-            adjustStart: s.adjustStart,
-            adjustEnd: s.adjustEnd,
-            clearAdjust: s.clearAdjust,
-            nextRate: s.nextRate,
-            pause: s.pause,
-            changeAutoPause:s.changeAutoPause
+            changeShowWordLevel: s.changeShowWordLevel
         }))
     );
+
     const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
         onUserFinishScrolling: s.onUserFinishScrolling,
         scrollState: s.scrollState
@@ -60,78 +42,90 @@ export default function PlayerShortCut() {
     })));
 
     const { enterCopyMode, exitCopyMode, isCopyMode } = useCopyModeController();
+    const setSingleRepeat = usePlayerV2((s) => s.setSingleRepeat);
+    const setAutoPause = usePlayerV2((s) => s.setAutoPause);
+    const singleRepeat = usePlayerV2((s) => s.singleRepeat);
+    const autoPause = usePlayerV2((s) => s.autoPause);
+
+    const toggleSingleRepeat = () => {
+        setSingleRepeat(!singleRepeat);
+    };
+    const toggleAutoPause = () => {
+        setAutoPause(!autoPause);
+    };
 
     useHotkeys('left', () => {
-        prev();
+        playerV2Actions.prevSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
     useHotkeys('right', () => {
-        next();
+        playerV2Actions.nextSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
     useHotkeys('down', (e) => {
         e.preventDefault();
-        repeat();
+        playerV2Actions.repeatCurrent({ loop: false });
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
     useHotkeys('space', (e) => {
         e.preventDefault();
-        space();
+        playerV2Actions.togglePlay();
     });
     useHotkeys('up', (e) => {
         e.preventDefault();
-        space();
+        playerV2Actions.togglePlay();
     });
     useHotkeys(process(setting('shortcut.previousSentence')), () => {
-        prev();
+        playerV2Actions.prevSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
     useHotkeys(process(setting('shortcut.nextSentence')), () => {
-        next();
+        playerV2Actions.nextSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
     useHotkeys(process(setting('shortcut.repeatSentence')), () => {
-        repeat();
+        playerV2Actions.repeatCurrent({ loop: false });
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     });
-    useHotkeys(process(setting('shortcut.playPause')), space);
-    useHotkeys(process(setting('shortcut.repeatSingleSentence')), ()=>changeSingleRepeat());
-    useHotkeys(process(setting('shortcut.autoPause')), ()=>changeAutoPause());
+    useHotkeys(process(setting('shortcut.playPause')), playerV2Actions.togglePlay.bind(playerV2Actions));
+    useHotkeys(process(setting('shortcut.repeatSingleSentence')), toggleSingleRepeat);
+    useHotkeys(process(setting('shortcut.autoPause')), toggleAutoPause);
     useHotkeys(process(setting('shortcut.toggleEnglishDisplay')), changeShowEn);
     useHotkeys(process(setting('shortcut.toggleChineseDisplay')), changeShowCn);
     useHotkeys(process(setting('shortcut.toggleBilingualDisplay')), changeShowEnCn);
     useHotkeys(process(setting('shortcut.adjustBeginMinus')), () => {
-        adjustStart(-0.2);
+        playerV2Actions.adjustCurrentBegin(-0.2);
     });
     useHotkeys(process(setting('shortcut.adjustBeginPlus')), () => {
-        adjustStart(0.2);
+        playerV2Actions.adjustCurrentBegin(0.2);
     });
     useHotkeys(process(setting('shortcut.adjustEndMinus')), () => {
-        adjustEnd(-0.2);
+        playerV2Actions.adjustCurrentEnd(-0.2);
     });
     useHotkeys(process(setting('shortcut.adjustEndPlus')), () => {
-        adjustEnd(0.2);
+        playerV2Actions.adjustCurrentEnd(0.2);
     });
-    useHotkeys(process(setting('shortcut.clearAdjust')), clearAdjust);
+    useHotkeys(process(setting('shortcut.clearAdjust')), () => {
+        void playerV2Actions.clearAdjust();
+    });
     useHotkeys(process(setting('shortcut.toggleWordLevelDisplay')), changeShowWordLevel);
-    useHotkeys(process(setting('shortcut.nextPlaybackRate')), nextRate);
+    useHotkeys(process(setting('shortcut.nextPlaybackRate')), playerV2Actions.cyclePlaybackRate.bind(playerV2Actions));
     useHotkeys(process(setting('shortcut.aiChat')), () => {
-        pause();
+        playerV2Actions.pause();
         createFromCurrent();
     });
-
 
     useHotkeys(process(setting('shortcut.toggleCopyMode')), (ke, he) => {
         if (ke.type === 'keydown' && !isCopyMode) {
