@@ -247,6 +247,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
         }
         // 执行分割操作
         const files = await this.ffmpegService.splitToAudio({
+            taskId: 0,
             inputFile: context.filePath,
             outputFolder: context.folder,
             segmentTime: 60,

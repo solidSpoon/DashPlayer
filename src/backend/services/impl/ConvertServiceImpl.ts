@@ -46,7 +46,8 @@ export default class ConvertServiceImpl implements ConvertService {
                     onProgress
                 });
             } catch (e) {
-                this.logger.error('conversion failed', { error: e?.message || e });
+                const message = e instanceof Error ? e.message : String(e);
+                this.logger.error('conversion failed', { error: message });
                 this.dpTaskService.fail(taskId, {
                     progress: '转换失败',
                     result: JSON.stringify({
@@ -77,7 +78,8 @@ export default class ConvertServiceImpl implements ConvertService {
                     });
                 }
             } catch (e) {
-                this.logger.error('subtitle extraction failed', { error: e?.message || e });
+                const message = e instanceof Error ? e.message : String(e);
+                this.logger.error('subtitle extraction failed', { error: message });
             }
         }
         this.dpTaskService.finish(taskId, {

@@ -132,13 +132,12 @@ export default class FfmpegServiceImpl implements FfmpegService {
      */
     @WaitLock('ffmpeg')
     public async splitToAudio({
-                                  taskId,
                                   inputFile,
                                   outputFolder,
                                   segmentTime,
                                   onProgress
                               }: {
-        taskId: number,
+        taskId?: number,
         inputFile: string,
         outputFolder: string,
         segmentTime: number,

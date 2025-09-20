@@ -133,8 +133,9 @@ export default class WordMatchServiceImpl implements WordMatchService {
             }
 
             if (doc.has('#Adjective')) {
-                const positive = doc.adjectives().toPositive().out('text');
-                if (positive && positive.length > 0) {
+                const adjectives = (doc as any).adjectives?.();
+                const positive = adjectives?.toPositive?.().out?.('text');
+                if (typeof positive === 'string' && positive.length > 0) {
                     return positive.toLowerCase();
                 }
             }

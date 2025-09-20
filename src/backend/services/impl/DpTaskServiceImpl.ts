@@ -22,7 +22,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
     private cancelQueue: Set<number> = new Set();
     private cache: LRUCache<number, InsertDpTask> = new LRUCache({
         maxSize: 2000,
-        sizeCalculation: (value, key) => {
+        sizeCalculation: (_value: InsertDpTask, _key: number) => {
             return 1;
         }
     });

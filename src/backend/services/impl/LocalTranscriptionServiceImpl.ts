@@ -124,7 +124,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private async doTranscribe(filePath: string): Promise<void> {
         this.activeFilePath = filePath;
 
-        let processedAudioPath: string | null = null;
+        let processedAudioPath = '';
         let tempFolder: string | null = null;
 
         try {
@@ -245,6 +245,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     message: `VAD 未检测到语音片段（共 ${ranges.length} 段），回退为 60s 定长切段...`
                 });
                 segmentFiles = await this.ffmpegService.splitToAudio({
+                    taskId: 0,
                     inputFile: processedAudioPath,
                     outputFolder: tempFolder,
                     segmentTime: 60
