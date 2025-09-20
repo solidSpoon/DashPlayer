@@ -6,12 +6,13 @@
     },
     "extends": [
         "eslint:recommended",
-        "plugin:@typescript-eslint/eslint-recommended",
         "plugin:@typescript-eslint/recommended",
         "plugin:import/recommended",
         "plugin:import/electron",
         "plugin:import/typescript",
-        "react-app"
+        "plugin:react/recommended",
+        "plugin:react-hooks/recommended",
+        "plugin:jsx-a11y/recommended"
     ],
     "parser": "@typescript-eslint/parser",
     "ignorePatterns": [
@@ -33,6 +34,9 @@
                 "map": [["@", "./src"]],
                 "extensions": [".js", ".jsx", ".ts", ".tsx"]
             }
+        },
+        "react": {
+            "version": "detect"
         }
     }
 }
