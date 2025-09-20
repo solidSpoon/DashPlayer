@@ -1,5 +1,7 @@
 import { cn } from '@/fronted/lib/utils';
-import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { playerV2Actions } from '@/fronted/components/player-components';
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLinePodcast from '@/fronted/pages/player/pa-srt-cops/translatable-line-podcast';
 import ViewerControlPanel from '@/fronted/pages/player/subtitle-viewer/viewer-control-panel';
@@ -9,8 +11,15 @@ import FuncUtil from '@/common/utils/func-util';
 import useTranslation from '@/fronted/hooks/useTranslation';
 
 const PodcastViewer = ({ className }: { className?: string }) => {
-    const current: Sentence | undefined = usePlayerController((s) => s.currentSentence);
-    const subtitleAround: Sentence[] = usePlayerController.getState().getSubtitleAround(current?.index ?? 0);
+    const current: Sentence | null = usePlayerV2((s) => s.currentSentence);
+    const sentences = usePlayerV2((s) => s.sentences);
+    const subtitleAround: Sentence[] = (() => {
+        if (!current) return [];
+        const idx = sentences.findIndex((x) => x.index === current.index && x.fileHash === current.fileHash);
+        const left = Math.max(0, idx - 5);
+        const right = Math.min(sentences.length - 1, idx + 5);
+        return sentences.slice(left, right + 1);
+    })();
     const currentIndex = current?.index ?? 0;
     const subtitleBefore: Sentence[] = subtitleAround.filter((s) => s.index < currentIndex).sort((a, b) => b.index - a.index);
     const subtitleAfter: Sentence[] = subtitleAround.filter((s) => s.index > currentIndex).sort((a, b) => a.index - b.index);
@@ -18,11 +27,9 @@ const PodcastViewer = ({ className }: { className?: string }) => {
     const translationKey = current?.translationKey || '';
     const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
 
-    const showCn = usePlayerController(s => s.showCn);
-    const srtTender = usePlayerController(s => s.srtTender);
-    const { clearAdjust } = usePlayerController(useShallow(s => ({
-        clearAdjust: s.clearAdjust
-    })));
+    const showCn = usePlayerUi(s => s.showCn);
+    const srtTender = usePlayerV2(s => s.srtTender);
+    const clearAdjust = () => { void playerV2Actions.clearAdjust(); };
     if (!current || !srtTender) {
         return <div className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)} />;
     }

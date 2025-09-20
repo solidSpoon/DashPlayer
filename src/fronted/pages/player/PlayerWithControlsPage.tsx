@@ -15,7 +15,7 @@ import useSWR from 'swr';
 import PlayerSrtLayout from '@/fronted/pages/player/pa-player/PlayerSrtLayout';
 import {SWR_KEY} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
-import usePlayerController from '@/fronted/hooks/usePlayerController';
+// removed old controller usage; player v2 actions used instead
 import { playerV2Actions } from '@/fronted/components/player-components';
 import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';

@@ -4,7 +4,7 @@ import {Feature, Polygon} from '@turf/turf';
 import WordPop from './word-pop';
 import {playUrl, playWord, getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import usePlayerController from '../../hooks/usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import useSWR, { mutate } from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
@@ -54,7 +54,6 @@ export const getBox = (ele: HTMLDivElement): Feature<Polygon> => {
 const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
     const setCopyContent = useCopyModeController((s)=>s.setCopyContent);
     const isCopyMode = useCopyModeController((s)=>s.isCopyMode);
-    const pauseOld = usePlayerController((s) => s.pause);
     const pause = usePlayerV2((s) => s.pause);
     const vocabularyStore = useVocabulary();
     const [hovered, setHovered] = useState(false);

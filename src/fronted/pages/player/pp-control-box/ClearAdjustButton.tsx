@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
 import TooltippedButton from '@/fronted/components/common/TooltippedButton';
 import { Eraser } from 'lucide-react';
-import { sentenceClearAllAdjust } from '@/fronted/hooks/usePlayerControllerSlices/createSentenceSlice';
+import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 
 const getShortcut = (key: string) => useSetting.getState().setting(key as any);
@@ -21,8 +21,17 @@ export default function ClearAdjustButton() {
   `;
 
   const handleClick = async () => {
+    const api = window.electron;
+    const fileHash = useFile.getState().srtHash;
+    if (!fileHash) return;
+    await api.call('subtitle-timestamp/delete/by-file-hash', fileHash);
+    // 触发字幕重载
+    const path = useFile.getState().subtitlePath;
+    useFile.setState({ subtitlePath: null });
+    setTimeout(() => {
+      if (path) useFile.setState({ subtitlePath: path });
+    }, 0);
     toast('清除了', { icon: '👏' });
-    await sentenceClearAllAdjust();
   };
 
   return (

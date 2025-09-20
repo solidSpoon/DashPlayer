@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { Button } from '@/fronted/components/ui/button';
 
 import { Sentence } from '@/common/types/SentenceC';
-import usePlayerController from '@/fronted/hooks/usePlayerController';
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import useSetting from '@/fronted/hooks/useSetting';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
@@ -31,7 +31,7 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
 }) => {
   const text = sentence.text;
   const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
-  const show = usePlayerController((state) => state.showEn);
+  const show = usePlayerUi((state) => state.showEn);
   const [hovered, setHovered] = useState(false);
 
   const isFavourite = useFavouriteClip(

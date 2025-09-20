@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from '../VolumeSlider';
-import usePlayerController from '../../../hooks/usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import {cn} from "@/fronted/lib/utils";
 import SpeedSlider from '../speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
@@ -20,39 +20,20 @@ const ViewerControlPanel = ({
                                  className
                              }: PlayerControlPanelProps) => {
     const logger = getRendererLogger('ViewerControlPanel');
-    const {
-        playTime,
-        duration,
-        volume,
-        setVolume,
-        playbackRate,
-        setPlaybackRate,
-        muted,
-        setMuted,
-        onPlay,
-        onPause,
-        playing,
-        onTimeChange,
-        changeAutoPause,
-        changeSingleRepeat
-    } = usePlayerController(
-        useShallow((s) => ({
-            playTime: s.playTime,
-            duration: s.duration,
-            volume: s.volume,
-            setVolume: s.setVolume,
-            playbackRate: s.playbackRate,
-            setPlaybackRate: s.setPlaybackRate,
-            setMuted: s.setMuted,
-            muted: s.muted,
-            onPlay: s.play,
-            onPause: s.pause,
-            playing: s.playing,
-            onTimeChange: s.seekTo,
-            changeAutoPause: s.changeAutoPause,
-            changeSingleRepeat: s.changeSingleRepeat
-        }))
-    );
+    const playTime = usePlayerV2((s) => s.internal.exactPlayTime);
+    const duration = usePlayerV2((s) => s.duration);
+    const volume = usePlayerV2((s) => s.volume);
+    const setVolume = usePlayerV2((s) => s.setVolume);
+    const playbackRate = usePlayerV2((s) => s.playbackRate);
+    const setPlaybackRate = usePlayerV2((s) => s.setPlaybackRate);
+    const muted = usePlayerV2((s) => s.muted);
+    const setMuted = usePlayerV2((s) => s.setMuted);
+    const onPlay = usePlayerV2((s) => s.play);
+    const onPause = usePlayerV2((s) => s.pause);
+    const playing = usePlayerV2((s) => s.playing);
+    const seekTo = usePlayerV2((s) => s.seekTo);
+    const setAutoPause = usePlayerV2((s) => s.setAutoPause);
+    const setSingleRepeat = usePlayerV2((s) => s.setSingleRepeat);
     const [mouseOver, setMouseOver] = useState<boolean>(false);
     const [currentValue, setCurrentValue] = useState(0);
     const currentValueUpdateTime = useRef<number>(0);
@@ -97,9 +78,9 @@ const ViewerControlPanel = ({
                             logger.debug('Viewer time slider value changed', { value });
                             setCurrentValue(value[0]);
                             setSelecting(true);
-                            onTimeChange?.({time: value[0]});
-                            changeAutoPause(false);
-                            changeSingleRepeat(false);
+                            seekTo({ time: value[0] });
+                            setAutoPause(false);
+                            setSingleRepeat(false);
                         }}
                         onValueCommit={(value) => {
                             currentValueUpdateTime.current = Date.now();

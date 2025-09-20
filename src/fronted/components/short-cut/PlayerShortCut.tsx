@@ -8,7 +8,7 @@ import useCopyModeController from '../../hooks/useCopyModeController';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { playerV2Actions } from '@/fronted/components/player-components';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
-import usePlayerController from '../../hooks/usePlayerController';
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 
 const process = (values: string) => values
     .split(',')
@@ -22,7 +22,7 @@ export default function PlayerShortCut() {
         changeShowCn,
         changeShowEnCn,
         changeShowWordLevel
-    } = usePlayerController(
+    } = usePlayerUi(
         useShallow((s) => ({
             changeShowEn: s.changeShowEn,
             changeShowCn: s.changeShowCn,

@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import useSetting from '../../../hooks/useSetting';
-import usePlayerController from '../../../hooks/usePlayerController';
+// removed old player controller usage
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { cn } from '@/fronted/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
@@ -116,13 +117,8 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         const ap = usePlayerV2State((state) => state.internal.onPlaySeekTime !== null);
         const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
         const [hover, setHover] = React.useState(false);
-        const show = usePlayerController(state => {
-            if (!state.syncSide) {
-                return true;
-            } else {
-                return state.showEn
-            }
-        });
+        const { showEn, syncSide } = usePlayerUi((s) => ({ showEn: s.showEn, syncSide: s.syncSide }));
+        const show = !syncSide ? true : showEn;
         const vocabularyStore = useVocabulary();
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
 

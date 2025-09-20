@@ -1,7 +1,7 @@
 import React from 'react';
 import { AiOutlineFieldTime } from 'react-icons/ai';
 import useSetting from '@/fronted/hooks/useSetting';
-import usePlayerController from '@/fronted/hooks/usePlayerController';
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { p } from '@/common/utils/Util';
 import { FONT_SIZE } from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';
@@ -27,7 +27,7 @@ const FullscreenTranslatableLine = ({
     const fontSize = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
-    const show = usePlayerController((state) => state.showEn);
+    const show = usePlayerUi((state) => state.showEn);
     const text = sentence.text;
     const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
 

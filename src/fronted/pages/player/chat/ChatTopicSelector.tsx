@@ -1,4 +1,4 @@
-import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent } from '@/fronted/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
@@ -8,9 +8,15 @@ const ChatTopicSelector = ({ className }: {
     className: string,
 }) => {
 
-    const currentSentence = usePlayerController(state => state.currentSentence);
-
-    const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence?.index??0, 5);
+    const currentSentence = usePlayerV2(state => state.currentSentence);
+    const sentences = usePlayerV2(state => state.sentences);
+    const subtitles = (() => {
+        if (!currentSentence) return [] as typeof sentences;
+        const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
+        const left = Math.max(0, idx - 5);
+        const right = Math.min(sentences.length - 1, idx + 5);
+        return sentences.slice(left, right + 1);
+    })();
 
     const [mouseOver, setMouseOver] = useState(false);
 

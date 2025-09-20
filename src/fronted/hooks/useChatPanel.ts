@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { engEqual, p } from '@/common/utils/Util';
-import usePlayerController from '@/fronted/hooks/usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
@@ -182,8 +182,15 @@ const useChatPanel = create(
             const phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', text));
             const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
             const topic = { content: text };
-            const currentSentence = usePlayerController.getState().currentSentence;
-            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence?.index ?? 0, 5);
+            const currentSentence = usePlayerV2.getState().currentSentence;
+            const sentences = usePlayerV2.getState().sentences;
+            const subtitles = (() => {
+                if (!currentSentence) return [] as typeof sentences;
+                const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
+                const left = Math.max(0, idx - 5);
+                const right = Math.min(sentences.length - 1, idx + 5);
+                return sentences.slice(left, right + 1);
+            })();
             const context: string[] = subtitles
                 .filter(TypeGuards.isNotNull)
                 .map(e => e.text ?? '');
@@ -215,7 +222,7 @@ const useChatPanel = create(
         },
         createFromCurrent: async () => {
             undoRedo.add(copy(get()));
-            const ct = usePlayerController.getState().currentSentence;
+            const ct = usePlayerV2.getState().currentSentence;
             if (!ct) return;
             const synTask = await registerDpTask(() => api.call('ai-func/polish', ct.text ?? ''));
             const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text ?? '');
@@ -241,9 +248,15 @@ const useChatPanel = create(
                     }
                 }
             };
-            const currentSentence = usePlayerController.getState().currentSentence;
+            const currentSentence = usePlayerV2.getState().currentSentence;
             if (!currentSentence) return;
-            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+            const sentences = usePlayerV2.getState().sentences;
+            const subtitles = (() => {
+                const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
+                const left = Math.max(0, idx - 5);
+                const right = Math.min(sentences.length - 1, idx + 5);
+                return sentences.slice(left, right + 1);
+            })();
             const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
                 sentence: currentSentence.text,
                 context: subtitles.map(e => e.text)
@@ -368,7 +381,7 @@ const useChatPanel = create(
             }
             if (type === 'welcome') {
                 const msg = get().messages[1].copy() as AiWelcomeMessage;
-                const ct = usePlayerController.getState().currentSentence;
+                const ct = usePlayerV2.getState().currentSentence;
                 if (!ct) return;
                 const polishTask = await registerDpTask(() => api.call('ai-func/polish', msg.originalTopic));
                 const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
@@ -430,7 +443,7 @@ const extractTopic = (t: Topic): string => {
     if (t === 'offscreen') return 'offscreen';
     if (typeof t.content === 'string') return t.content;
     const content = t.content;
-    const subtitle = usePlayerController.getState().subtitle;
+    const subtitle = usePlayerV2.getState().sentences;
     const length = subtitle?.length ?? 0;
     if (length === 0 || content.start.sIndex > length || content.end.sIndex > length) {
         return 'extractTopic failed';

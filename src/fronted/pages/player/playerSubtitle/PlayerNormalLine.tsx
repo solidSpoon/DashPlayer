@@ -1,6 +1,6 @@
 import { ReactElement } from 'react';
 import {cn} from "@/fronted/lib/utils";
-import usePlayerController from "@/fronted/hooks/usePlayerController";
+import usePlayerUi from "@/fronted/hooks/usePlayerUi";
 import useSetting from "@/fronted/hooks/useSetting";
 import useVocabulary from "@/fronted/hooks/useVocabulary";
 import {FONT_SIZE} from "@/fronted/styles/style";
@@ -19,7 +19,7 @@ interface Part {
 export const SPLIT_REGEX =
     /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
-    const show = usePlayerController((state) => state.showCn);
+    const show = usePlayerUi((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
     const vocabularyStore = useVocabulary();
     const isVocabularyWord = vocabularyStore.isVocabularyWord;

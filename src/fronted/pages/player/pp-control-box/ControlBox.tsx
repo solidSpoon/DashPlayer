@@ -4,7 +4,8 @@ import useSWR from 'swr';
 import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
-import usePlayerController from '../../../hooks/usePlayerController';
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import useLayout from '../../../hooks/useLayout';
 import useSetting from '@/fronted/hooks/useSetting';
 import { SettingKey } from '@/common/types/store_schema';
@@ -19,37 +20,23 @@ const getShortcut = (key: SettingKey) => {
 };
 
 export default function ControlBox() {
-  const {
-    showEn,
-    showCn,
-    syncSide,
-    singleRepeat,
-    changeShowEn,
-    changeShowCn,
-    changeSyncSide,
-    changeSingleRepeat,
-    autoPause,
-    changeAutoPause,
-    autoPlayNext,
-    changeAutoPlayNext
-  } = usePlayerController(
+  const { showEn, showCn, syncSide, changeShowEn, changeShowCn, changeSyncSide } = usePlayerUi(
     useShallow((s) => ({
       showEn: s.showEn,
       showCn: s.showCn,
       syncSide: s.syncSide,
-      showWordLevel: s.showWordLevel,
       changeShowEn: s.changeShowEn,
       changeShowCn: s.changeShowCn,
       changeSyncSide: s.changeSyncSide,
-      changeShowWordLevel: s.changeShowWordLevel,
-      singleRepeat: s.singleRepeat,
-      changeSingleRepeat: s.changeSingleRepeat,
-      autoPause: s.autoPause,
-      changeAutoPause: s.changeAutoPause,
-      autoPlayNext: s.autoPlayNext,
-      changeAutoPlayNext: s.changeAutoPlayNext
     }))
   );
+
+  const singleRepeat = usePlayerV2((s) => s.singleRepeat);
+  const setSingleRepeat = usePlayerV2((s) => s.setSingleRepeat);
+  const autoPause = usePlayerV2((s) => s.autoPause);
+  const setAutoPause = usePlayerV2((s) => s.setAutoPause);
+  const autoPlayNext = usePlayerV2((s) => s.autoPlayNext);
+  const setAutoPlayNext = usePlayerV2((s) => s.setAutoPlayNext);
 
   const setSetting = useSetting((s) => s.setSetting);
   const setting = useSetting((s) => s.setting);
@@ -104,21 +91,21 @@ export default function ControlBox() {
           id="singleRepeat"
           label="单句循环"
           checked={singleRepeat}
-          onCheckedChange={() => changeSingleRepeat()}
+          onCheckedChange={() => setSingleRepeat(!singleRepeat)}
           tooltipMd={`快捷键为 ${getShortcut('shortcut.repeatSentence')}`}
         />
         <SettingToggle
           id="autoPause"
           label="自动暂停"
           checked={autoPause}
-          onCheckedChange={() => changeAutoPause()}
+          onCheckedChange={() => setAutoPause(!autoPause)}
           tooltipMd={`当前句子结束自动暂停 快捷键为 ${getShortcut('shortcut.autoPause')}`}
         />
         <SettingToggle
           id="autoPlayNext"
           label="自动播放下一个"
           checked={autoPlayNext}
-          onCheckedChange={() => changeAutoPlayNext()}
+          onCheckedChange={() => setAutoPlayNext(!autoPlayNext)}
           tooltipMd="文件夹模式下视频结束后自动播放下一个视频"
         />
         <SettingToggle

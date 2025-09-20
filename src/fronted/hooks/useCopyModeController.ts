@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import usePlayerToaster from './usePlayerToaster';
-import usePlayerController from './usePlayerController';
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 
 export type UseCopyModeState = {
     isCopyMode: boolean,
@@ -15,7 +15,7 @@ export type UseCopyModeActions = {
 };
 
 const Toaster = usePlayerToaster.getState();
-const { pause } = usePlayerController.getState();
+const { pause } = usePlayerV2.getState();
 
 
 const useCopyModeController = create<UseCopyModeState & UseCopyModeActions>(
