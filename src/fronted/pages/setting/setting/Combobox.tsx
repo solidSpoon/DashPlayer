@@ -20,13 +20,12 @@ import {
 } from "@/fronted/components/ui/popover"
 
 export interface ComboboxDemoProps {
-    className?: string
     options: { value: string; label: string }[],
     value: string
     onSelect: (value: string) => void
 }
 
-export default function Combobox({ options, value, onSelect, className = '' }: ComboboxDemoProps) {
+export default function Combobox({ options, value, onSelect }: ComboboxDemoProps) {
     const [open, setOpen] = React.useState(false)
 
     return (

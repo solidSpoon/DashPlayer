@@ -28,7 +28,7 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta>
     getBasePath(): string {
         return this.locationService.getBaseClipPath();
     }
-    parseMetadata(metadata: any): (OssBaseMeta & ClipMeta) | null {
+    parseMetadata(metadata: unknown): (OssBaseMeta & ClipMeta) | null {
         const version = metadata?.version;
         if (!version) {
             return null;
@@ -42,7 +42,7 @@ export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta>
         return null;
     }
 
-    verifyNewMetadata(metadata: any): boolean {
+    verifyNewMetadata(metadata: unknown): boolean {
         if (this.getVersion() !== metadata?.version) {
             return false;
         }

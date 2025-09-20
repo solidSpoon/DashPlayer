@@ -1,3 +1,4 @@
+import React from 'react';
 import useSetting from '../../hooks/useSetting';
 import {useHotkeys} from "react-hotkeys-hook";
 

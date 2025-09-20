@@ -148,11 +148,19 @@ export default function WordSidebar({
               const active = selectedWord?.id === word.id;
               return (
                 <div
+                  role="button"
+                  tabIndex={0}
                   className={[
                     'p-2 rounded cursor-pointer transition-all text-sm leading-tight mb-1',
                     active ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
                   ].join(' ')}
                   onClick={() => onWordClick(word)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onWordClick(word);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{word.word}</div>

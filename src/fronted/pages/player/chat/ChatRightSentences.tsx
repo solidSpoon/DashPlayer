@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/pages/player/chat/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';

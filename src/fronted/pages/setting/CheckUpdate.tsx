@@ -1,3 +1,4 @@
+import React from 'react';
 import Header from '@/fronted/pages/setting/setting/Header';
 import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
 import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';

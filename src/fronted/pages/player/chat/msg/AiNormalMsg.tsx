@@ -1,3 +1,4 @@
+import React from 'react';
 import {cn} from "@/fronted/lib/utils";
 import {IconOpenAI} from "@/fronted/pages/player/chat/icons";
 import Md from '@/fronted/pages/player/chat/markdown';

@@ -23,14 +23,14 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
     /**
      * 验证元数据是否符合最新版本
      */
-    abstract verifyNewMetadata(metadata: any): boolean;
+    abstract verifyNewMetadata(metadata: unknown): boolean;
 
     /**
      * 解析元数据为最新版本
      * @param metadata
      * @returns null if metadata is invalid
      */
-    abstract parseMetadata(metadata: any): OssBaseMeta & T | null;
+    abstract parseMetadata(metadata: unknown): OssBaseMeta & T | null;
 
     public async putFile(key: string, fileName: string, sourcePath: string) {
         const clipDir = path.join(this.getBasePath(), key);

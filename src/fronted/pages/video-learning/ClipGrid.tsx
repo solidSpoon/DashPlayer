@@ -49,11 +49,7 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
     }
   }, [playingIndex, ensureThumbnails]);
 
-  const getStartTime = (clip: VideoClip): number => {
-    const mainClip = clip.clipContent.find((c) => c.isClip) || clip.clipContent[0];
-    return mainClip?.start || 0;
-  };
-
+  
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -125,6 +121,8 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
           return (
             <div
               key={clip.key}
+              role="button"
+              tabIndex={0}
               className={`border rounded-lg overflow-hidden cursor-pointer transition-all group ${
                 isPlaying
                   ? 'border-blue-500 ring-2 ring-blue-200'
@@ -133,6 +131,12 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
                     : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'
               }`}
               onClick={() => onClickClip(idx)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onClickClip(idx);
+                }
+              }}
             >
               {/* 视频预览图 */}
               <div className="relative bg-gray-100 aspect-[16/7] flex items-center justify-center">

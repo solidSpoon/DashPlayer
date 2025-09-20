@@ -1,10 +1,9 @@
-import React, { ReactElement, useEffect } from 'react';
+import React, { ReactElement, useEffect , useMemo } from 'react';
 import TranslatableLine from '@/fronted/pages/player/pa-srt-cops/translatable-line-wrapper';
 import NormalLine from './NormalLine';
 import useTranslation from '../../../hooks/useTranslation';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
-import { useMemo } from 'react';
 import { playerV2Actions } from '@/fronted/components/player-components';
 
 export default function MainSubtitle() {

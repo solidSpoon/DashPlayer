@@ -1,3 +1,4 @@
+import React from 'react';
 import {IconUser} from "@/fronted/pages/player/chat/icons";
 import Md from "@/fronted/pages/player/chat/markdown";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";

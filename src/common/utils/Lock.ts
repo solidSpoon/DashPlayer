@@ -57,9 +57,9 @@ export default class Lock {
 
 // 装饰器
 export function WaitLock(key: LOCK_KEY) {
-    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    return function(target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
         const originalMethod = descriptor.value;
-        descriptor.value = function(...args: any[]) {
+        descriptor.value = function(...args: unknown[]) {
             return Lock.sync(key, () => originalMethod.apply(this, args));
         };
         return descriptor;

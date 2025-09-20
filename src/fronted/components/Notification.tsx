@@ -1,3 +1,4 @@
+import React from 'react';
 import usePlayerToaster from '../hooks/usePlayerToaster';
 
 const Notification = () => {

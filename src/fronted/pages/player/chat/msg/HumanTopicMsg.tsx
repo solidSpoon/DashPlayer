@@ -1,3 +1,4 @@
+import React from 'react';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import { AiPhraseGroupElement, AiPhraseGroupRes } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { cn } from '@/fronted/lib/utils';

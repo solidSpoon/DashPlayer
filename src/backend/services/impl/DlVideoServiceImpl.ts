@@ -74,7 +74,7 @@ export default class DlVideoServiceImpl implements DlVideoService {
             });
             await dlpDownloadVideo.run();
             this.dpTaskService.registerTask(taskId, dlpDownloadVideo);
-        } catch (error: any) {
+        } catch (error: unknown) {
             progress.appendStdOut(`Error: ${error.message || error}`);
             this.dpTaskService.fail(taskId, {
                 progress: '下载失败',
