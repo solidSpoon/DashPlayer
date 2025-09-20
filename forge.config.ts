@@ -19,7 +19,7 @@ const config: ForgeConfig = {
         },
         icon: './assets/icons/icon',
         extraResource: ['./drizzle', './lib', './scripts'],
-        executableName: 'dash-player',
+        executableName: 'dash-pa-player',
         name: 'DashPlayer',
     },
     rebuildConfig: {},
@@ -36,25 +36,25 @@ const config: ForgeConfig = {
         }),
         new MakerRpm({
             options: {
-                name: 'dash-player',
+                name: 'dash-pa-player',
                 productName: 'DashPlayer',
                 icon: './assets/icons/icon.png',
             },
         }),
         new MakerDeb({
             options: {
-                name: 'dash-player',
+                name: 'dash-pa-player',
                 productName: 'DashPlayer',
                 icon: './assets/icons/icon.png',
             },
         }),
         new MakerWix({
             name: 'DashPlayer',
-            description: 'A video player for English learning',
+            description: 'A video pa-player for English learning',
             manufacturer: 'solidSpoon',
             version: packageJson.version,
             icon: './assets/icons/icon.ico',
-            exe: 'dash-player.exe',
+            exe: 'dash-pa-player.exe',
             ui: {
                 chooseDirectory: true,
             },

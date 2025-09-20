@@ -3,7 +3,7 @@
  * 提供通用的API注册和错误处理功能
  */
 
-import RendererController, { ApiHandler } from '@/fronted/interfaces/RendererController';
+import RendererController, { ApiHandler } from '@/fronted/controllers/interfaces/RendererController';
 import { RendererApiMap } from '@/common/api/renderer-api-def';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

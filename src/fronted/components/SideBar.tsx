@@ -65,7 +65,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                 {item(
                     'Player',
                     `/player/${videoId}?sideBarAnimation=false`,
-                    'player',
+                    'pa-player',
                     <Video />
                 )}
                 {item(

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import Md from '@/fronted/components/chat/markdown';
+import Md from '@/fronted/pages/player/chat/markdown';
 
 interface WithMarkdownTooltipProps {
   children: React.ReactElement;

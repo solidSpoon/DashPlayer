@@ -1,6 +1,6 @@
-import ItemWrapper from '@/fronted/components/setting/ItemWrapper';
-import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
-import Header from '@/fronted/components/setting/Header';
+import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
+import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
+import Header from '@/fronted/pages/setting/setting/Header';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import Separator from '@/fronted/components/Separtor';
 import { Button } from '@/fronted/components/ui/button';

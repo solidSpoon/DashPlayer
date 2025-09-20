@@ -3,7 +3,7 @@
  * 集中管理所有前端Controller的注册和生命周期
  */
 
-import RendererController, { ControllerRegistry } from '@/fronted/interfaces/RendererController';
+import RendererController, { ControllerRegistry } from '@/fronted/controllers/interfaces/RendererController';
 import { UIController } from './UIController';
 import { TranslationController } from './TranslationController';
 import { TranscriptionController } from './TranscriptionController';
@@ -19,7 +19,7 @@ class ControllerManager {
      */
     registerController(controller: RendererController): void {
         const unregister = controller.registerApis();
-        
+
         this.controllers.push({
             name: controller.name,
             controller,
@@ -34,13 +34,13 @@ class ControllerManager {
      */
     registerAllControllers(): void {
         this.logger.info('Registering all frontend controllers');
-        
+
         // 在这里添加所有Controller
         this.registerController(new UIController());
         this.registerController(new TranslationController());
         this.registerController(new TranscriptionController());
         this.registerController(new VocabularyController());
-        
+
         this.logger.info('Controllers registered', { count: this.controllers.length });
     }
 
@@ -49,7 +49,7 @@ class ControllerManager {
      */
     unregisterAllControllers(): void {
         this.logger.info('Unregistering all frontend controllers');
-        
+
         this.controllers.forEach(({ name, unregister }) => {
             try {
                 unregister();
@@ -79,7 +79,7 @@ export const controllerManager = new ControllerManager();
  */
 export function initRendererControllers(): () => void {
     controllerManager.registerAllControllers();
-    
+
     // 返回清理函数
     return () => {
         controllerManager.unregisterAllControllers();

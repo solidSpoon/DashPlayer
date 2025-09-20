@@ -1,3 +1,3 @@
-import PlayerWithControlsPage from './PlayerWithControlsPage';
+import PlayerWithControlsPage from './player/PlayerWithControlsPage';
 
 export { PlayerWithControlsPage };

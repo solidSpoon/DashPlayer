@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import Separator from '@/fronted/components/Separtor';
 import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive } from 'lucide-react';
-import Header from '@/fronted/components/setting/Header';
-import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
+import Header from '@/fronted/pages/setting/setting/Header';
+import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -19,7 +19,7 @@ const api = window.electron;
 
 const ServiceManagementSetting = () => {
     const logger = getRendererLogger('ServiceManagementSetting');
-    
+
     // Fetch settings with SWR
     const { data: settings, mutate } = useSWR('settings/get-all-services', () =>
         api.call('settings/get-all-services')
@@ -27,11 +27,11 @@ const ServiceManagementSetting = () => {
 
     const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
     const { toast } = useToast();
-    
+
     // Register hidden fields for Whisper to ensure they're included in form data
     register('whisper.enabled');
     register('whisper.enableTranscription');
-    
+
     // Whisper settings - now part of main form
     const whisperEnabled = watch('whisper.enabled');
     const whisperTranscriptionEnabled = watch('whisper.enableTranscription');
@@ -47,7 +47,7 @@ const ServiceManagementSetting = () => {
     const [youdaoTestResult, setYoudaoTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
 
     // Whisper states
-  
+
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
 
@@ -65,7 +65,7 @@ const ServiceManagementSetting = () => {
     // Watch for transcription mutual exclusion
     const openaiTranscriptionEnabled = watch('openai.enableTranscription');
 
-  
+
     // Custom change detection
     const hasChanges = React.useMemo(() => {
         if (!originalValues) return false;
@@ -105,7 +105,7 @@ const ServiceManagementSetting = () => {
         }
     }, [settings, reset]);
 
-    
+
     // Handle mutual exclusion for subtitle translation
     const handleSubtitleTranslationChange = (service: 'openai' | 'tencent', enabled: boolean) => {
         if (enabled) {
@@ -177,7 +177,7 @@ const ServiceManagementSetting = () => {
         }
     };
 
-  
+
     const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
         const setTesting = {
             'openai': setTestingOpenAi,
@@ -217,7 +217,7 @@ const ServiceManagementSetting = () => {
 
     const onSubmit = async (data: ApiSettingVO) => {
         try {
-                        
+
             // Update OpenAI service
             await api.call('settings/update-service', {
                 service: 'openai',
@@ -572,10 +572,10 @@ const ServiceManagementSetting = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        
+
                         <Separator orientation="horizontal" />
 
-  
+
                         <Separator orientation="horizontal" />
 
                         <div className="space-y-3">

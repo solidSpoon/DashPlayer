@@ -3,9 +3,9 @@ import { Play } from 'lucide-react';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
-import ClipGrid from '@/fronted/components/video-learning/ClipGrid';
-import VideoPlayerPane from '@/fronted/components/video-learning/VideoPlayerPane';
-import WordSidebar from '@/fronted/components/video-learning/WordSidebar';
+import ClipGrid from '@/fronted/pages/video-learning/ClipGrid';
+import VideoPlayerPane from '@/fronted/pages/video-learning/VideoPlayerPane';
+import WordSidebar from '@/fronted/pages/video-learning/WordSidebar';
 
 interface WordItem {
   id: number;

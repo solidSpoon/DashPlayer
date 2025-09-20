@@ -4,7 +4,7 @@ import {
     Header,
     SliderInput,
     Title,
-} from '@/fronted/components/setting';
+} from '@/fronted/pages/setting/setting';
 import ThemePreview from '@/fronted/components/ThemePreview';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import Separator from '@/fronted/components/Separtor';

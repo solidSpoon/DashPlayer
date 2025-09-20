@@ -1,7 +1,7 @@
-import SettingInput from '@/fronted/components/setting/SettingInput';
-import ItemWrapper from '@/fronted/components/setting/ItemWrapper';
-import FooterWrapper from '@/fronted/components/setting/FooterWrapper';
-import Header from '@/fronted/components/setting/Header';
+import SettingInput from '@/fronted/pages/setting/setting/SettingInput';
+import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
+import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
+import Header from '@/fronted/pages/setting/setting/Header';
 import useSettingForm from '@/fronted/hooks/useSettingForm';
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
@@ -37,7 +37,7 @@ const TenantSetting = () => {
     return (
         <form className="w-full h-full flex flex-col gap-4">
             <Header title="字幕翻译" description="配置翻译引擎和相关密钥" />
-            
+
             <ItemWrapper>
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">

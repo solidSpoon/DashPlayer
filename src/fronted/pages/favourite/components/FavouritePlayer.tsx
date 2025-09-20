@@ -10,7 +10,7 @@ import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import { PlayerEngineV2 } from '@/fronted/components/player-components';
 import TagSelector from '@/fronted/components/TagSelector';
 import FavouriteMainSrt from './FavouriteMainSrt';
-import VideoPlayerShortcut from '@/fronted/components/video-learning/VideoPlayerShortcut';
+import VideoPlayerShortcut from '@/fronted/pages/video-learning/VideoPlayerShortcut';
 import { Button } from '@/fronted/components/ui/button';
 import { Play, Pause, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';

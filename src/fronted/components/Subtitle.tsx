@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { twJoin } from 'tailwind-merge';
 import { MdOutlineVerticalAlignCenter } from 'react-icons/md';
 import { AnimatePresence, motion } from 'framer-motion';
-import SideSentence from './SideSentence';
+import SideSentence from '@/fronted/pages/player/pa-player/SideSentence';
 import usePlayerController from '../hooks/usePlayerController';
 import useLayout from '../hooks/useLayout';
 import {cn} from "@/fronted/lib/utils";
