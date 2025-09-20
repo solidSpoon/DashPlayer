@@ -323,7 +323,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     if (playing && singleRepeat) {
       const { start, end } = state.getLoopRange();
       if (effectiveTime > end) {
-        state.seekToTarget({ time: start, target: currentSentence });
+        state.seekToTarget({ time: start, target: currentSentence ?? undefined });
       }
       return;
     }

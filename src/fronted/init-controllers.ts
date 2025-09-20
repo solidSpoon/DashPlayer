@@ -21,7 +21,7 @@ function initializeRendererControllers() {
         logger.debug('test command available: await window.electron.call("system/test-renderer-api")');
         
     } catch (error) {
-        logger.error('frontend controllers initialization failed', { error: error?.message || error });
+        logger.error('frontend controllers initialization failed', { error: error instanceof Error ? error.message : String(error) });
     }
 }
 

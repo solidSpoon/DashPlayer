@@ -30,7 +30,7 @@ export default class AiCtxMenuExplainSelectWithContextMessage implements CustomM
         const aiResp = codeBlock`
         好的，我来解释一下这句话中的"${this.selected}"。
 
-        "${this.selected}"的意思是${resp?.word?.meaningZh ?? '' + resp?.word?.meaningEn ?? ''}。
+        "${this.selected}"的意思是${(resp?.word?.meaningZh ?? '') + (resp?.word?.meaningEn ?? '')}。
         在这句话中，"${this.selected}"的意思是${resp?.word.meaningInSentence}。
         `;
         return [{

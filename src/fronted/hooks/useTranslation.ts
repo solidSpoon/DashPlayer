@@ -11,6 +11,8 @@ export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
 
 // 翻译状态
 export interface TranslationState {
+    // 翻译引擎
+    engine: 'tencent' | 'openai';
 
     // 翻译缓存 - key为translationKey，value为翻译结果
     translations: Map<string, string>;
@@ -51,6 +53,9 @@ export interface TranslationActions {
 
     // 清除翻译缓存
     clearTranslations: () => void;
+
+    // 设置翻译引擎
+    setEngine: (engine: 'tencent' | 'openai') => void;
 }
 
 // 创建翻译Store
@@ -164,6 +169,11 @@ const useTranslation = create(
                 translations: new Map(),
                 translationStatus: new Map()
             });
+        },
+
+        // 设置翻译引擎
+        setEngine: (engine: 'tencent' | 'openai') => {
+            set({ engine });
         }
     }))
 );

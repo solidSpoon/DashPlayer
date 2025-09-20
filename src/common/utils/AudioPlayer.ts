@@ -42,8 +42,8 @@ export const playWord = async (word: string) => {
         await playAudioUrl(blobUrl);
         return;
     }
-    const trans = await api.call('ai-trans/word', word);
-    const outUrl = trans?.speakUrl;
+    const trans = await api.call('ai-trans/word', { word });
+    const outUrl = trans && 'speakUrl' in trans ? trans.speakUrl : null;
     if (StrUtil.isBlank(outUrl)) {
         return;
     }

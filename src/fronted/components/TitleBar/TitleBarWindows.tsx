@@ -59,7 +59,7 @@ const TitleBarWindows = ({maximizable, className}: TitleBarWindowsProps) => {
                 <button
                     onClick={async () => {
                         if (maximizable ?? true) {
-                            const windowState = await api.call('system/window-size', null);
+                            const windowState = await api.call('system/window-size');
                             if (windowState === 'maximized' || windowState === 'fullscreen') {
                                 await api.call('system/window-size/change', 'normal')
                             } else {
@@ -70,7 +70,7 @@ const TitleBarWindows = ({maximizable, className}: TitleBarWindowsProps) => {
                     }}
                     onContextMenu={async (e) => {
                         e.preventDefault();
-                        const windowState = await api.call('system/window-size', null);
+                        const windowState = await api.call('system/window-size');
                         if (windowState === 'fullscreen') {
                             // await api.call('')
                             await api.call('system/window-size/change', 'normal')

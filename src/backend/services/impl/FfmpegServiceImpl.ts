@@ -132,6 +132,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
      */
     @WaitLock('ffmpeg')
     public async splitToAudio({
+                                  taskId,
                                   inputFile,
                                   outputFolder,
                                   segmentTime,
@@ -146,7 +147,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
         const command = FfmpegCommands.buildSplitToAudio(inputFile, segmentTime, outputFormat);
         await this.executeFluentCommand(command, {
-            taskId,
+            taskId: taskId,
             onProgress: onProgress ? onProgress : undefined
         });
         return await this.getOutputFiles(outputFolder, 'output_', '.mp3');

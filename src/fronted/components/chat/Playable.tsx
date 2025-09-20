@@ -15,7 +15,7 @@ const Playable = ({ className, children }: PlayableProps) => {
     return (
         <span
             onMouseUp={async (e) => {
-                const selectedText = window.getSelection().toString();
+                const selectedText = window.getSelection()?.toString() || '';
                 if (selectedText.length === 0) {
                     setLoading(true);
                     const str = children || '';

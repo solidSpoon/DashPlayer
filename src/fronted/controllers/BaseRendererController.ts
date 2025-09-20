@@ -15,7 +15,7 @@ export abstract class BaseRendererController implements RendererController {
 
     private registeredApis: Array<() => void> = [];
     private isRegistered = false;
-    protected logger = getRendererLogger(`Controller:${this.name}`);
+    protected logger!: ReturnType<typeof getRendererLogger>;
 
     /**
      * 注册单个API处理方法
@@ -61,6 +61,9 @@ export abstract class BaseRendererController implements RendererController {
      * 实现基础接口方法
      */
     public registerApis(): () => void {
+        if (!this.logger) {
+            this.logger = getRendererLogger(`Controller:${this.name}`);
+        }
         if (this.isRegistered) {
             this.logger.warn('controller already registered', { controller: this.name });
             return () => {
