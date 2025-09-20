@@ -4,7 +4,6 @@ import {Feature, Polygon} from '@turf/turf';
 import WordPop from './word-pop';
 import {playUrl, playWord, getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import useSWR, { mutate } from "swr";
 import Style from "@/fronted/styles/style";
 import {cn} from "@/fronted/lib/utils";
@@ -168,7 +167,6 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 onMouseOver={() => {
                     console.log('mouse over word, setting hovered to true');
                     setHovered(true);
-                    pauseOld();
                     pause();
                 }}
                 onClick={(e) => {
