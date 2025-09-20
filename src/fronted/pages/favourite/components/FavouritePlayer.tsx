@@ -1,13 +1,13 @@
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
-import { playerV2Actions } from '@/fronted/playerV2/PlayerV2Actions';
+import { playerV2Actions } from '@/fronted/components/player-components';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { shallow } from 'zustand/shallow';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
-import PlayerEngineV2 from '@/fronted/components/PlayerEngineV2';
+import { PlayerEngineV2 } from '@/fronted/components/player-components';
 import TagSelector from '@/fronted/components/TagSelector';
 import FavouriteMainSrt from './FavouriteMainSrt';
 import VideoPlayerShortcut from '@/fronted/components/video-learning/VideoPlayerShortcut';
