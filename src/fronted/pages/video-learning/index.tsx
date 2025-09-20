@@ -114,29 +114,27 @@ export default function VideoLearningPage() {
     try {
       const result = await window.electron.call('vocabulary/get-all', {});
       if (result.success) {
-        const wordData = result.data || [];
-        // 为每个单词获取视频数量
-        const wordsWithVideoCount = await Promise.all(
-          wordData.map(async (word: WordItem) => {
-            try {
-              const videoResult = await window.electron.call('video-learning/search', {
-                word: word.word
-              });
-              return {
-                ...word,
-                videoCount:
-                  videoResult.success && Array.isArray(videoResult.data)
-                    ? videoResult.data.length
-                    : 0
-              };
-            } catch (error) {
-              console.error(`获取单词 ${word.word} 的视频数量失败:`, error);
-              return { ...word, videoCount: 0 };
-            }
-          })
-        );
+        const wordData: WordItem[] = result.data || [];
 
-        // 按视频数量排序，有视频的放前面
+        let clipCounts: Record<string, number> = {};
+        try {
+          const countResult = await window.electron.call('video-learning/clip-counts', undefined);
+          if (countResult?.success && countResult.data) {
+            clipCounts = countResult.data as Record<string, number>;
+          }
+        } catch (error) {
+          console.error('获取视频片段数量失败:', error);
+        }
+
+        const wordsWithVideoCount = wordData.map((word) => {
+          const lowerWord = word.word?.toLowerCase?.() ?? word.word;
+          const videoCount = clipCounts[lowerWord] ?? 0;
+          return {
+            ...word,
+            videoCount
+          };
+        });
+
         const sortedWords = wordsWithVideoCount.sort((a, b) => {
           if ((a.videoCount || 0) > 0 && (b.videoCount || 0) === 0) return -1;
           if ((a.videoCount || 0) === 0 && (b.videoCount || 0) > 0) return 1;
@@ -256,19 +254,20 @@ export default function VideoLearningPage() {
   // 初始化加载单词
   useEffect(() => {
     fetchWords();
-  }, []); // 只在组件挂载时执行一次
+    return () => {
+      setSelectedWord(null);
+    };
+  }, [fetchWords]);
 
   // 处理单词点击
   const handleWordClick = useCallback((word: WordItem) => {
     setSelectedWord(word);
-    mutateLearningClips();
-  }, [mutateLearningClips]);
+  }, []);
 
   // 处理清除选择
   const handleClearSelection = useCallback(() => {
     setSelectedWord(null);
-    mutateLearningClips();
-  }, [mutateLearningClips]);
+  }, []);
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">

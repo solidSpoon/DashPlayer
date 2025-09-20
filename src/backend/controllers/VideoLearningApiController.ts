@@ -19,14 +19,14 @@ export default class VideoLearningApiController implements Controller {
 
     private registerApis() {
         registerRoute('video-learning/detect-clip-status', async (params) => {
-            const { videoPath, srtKey } = params;
-            const result = await this.videoLearningService.detectClipStatus(videoPath, srtKey);
+            const { videoPath, srtKey, srtPath } = params;
+            const result = await this.videoLearningService.detectClipStatus(videoPath, srtKey, srtPath);
             return result;
         });
 
         registerRoute('video-learning/auto-clip', async (params) => {
-            const { videoPath, srtKey } = params;
-            await this.videoLearningService.autoClip(videoPath, srtKey);
+            const { videoPath, srtKey, srtPath } = params;
+            await this.videoLearningService.autoClip(videoPath, srtKey, srtPath);
             return { success: true };
         });
 
@@ -52,6 +52,11 @@ export default class VideoLearningApiController implements Controller {
         registerRoute('video-learning/sync-from-oss', async () => {
             await this.videoLearningService.syncFromOss();
             return { success: true };
+        });
+
+        registerRoute('video-learning/clip-counts', async () => {
+            const data = await this.videoLearningService.countClipsGroupedByWord();
+            return { success: true, data };
         });
 
             }

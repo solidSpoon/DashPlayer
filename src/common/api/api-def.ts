@@ -214,11 +214,11 @@ interface VocabularyDef {
 
 interface VideoLearningDef {
     'video-learning/detect-clip-status': {
-        params: { videoPath: string; srtKey: string },
+        params: { videoPath: string; srtKey: string; srtPath?: string },
         return: VideoLearningClipStatusVO
     };
     'video-learning/auto-clip': {
-        params: { videoPath: string; srtKey: string },
+        params: { videoPath: string; srtKey: string; srtPath?: string },
         return: { success: boolean }
     };
     'video-learning/cancel-add': {
@@ -236,6 +236,10 @@ interface VideoLearningDef {
     'video-learning/sync-from-oss': {
         params: void,
         return: { success: boolean }
+    };
+    'video-learning/clip-counts': {
+        params: void,
+        return: { success: boolean; data: Record<string, number> }
     };
 }
 

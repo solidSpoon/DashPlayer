@@ -49,17 +49,18 @@ interface VocabularyRendererDef {
 
 // 视频学习裁切状态更新的前端API定义
 interface VideoLearningRendererDef {
-    'video-learning/clip-status-update': { 
-        params: { 
+    'video-learning/clip-status-update': {
+        params: {
             videoPath: string;
             srtKey: string;
-            status: 'pending' | 'in_progress' | 'completed';
+            status: 'pending' | 'in_progress' | 'completed' | 'analyzing';
             pendingCount?: number;
             inProgressCount?: number;
             completedCount?: number;
             message?: string;
-        }, 
-        return: void 
+            analyzingProgress?: number;
+        },
+        return: void
     };
 }
 

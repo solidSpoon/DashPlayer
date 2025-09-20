@@ -13,7 +13,7 @@ export interface VideoLearningService {
      * @param srtKey - 字幕文件键
      * @returns Promise<void>
      */
-    autoClip(videoPath: string, srtKey: string): Promise<void>;
+    autoClip(videoPath: string, srtKey: string, srtPath?: string): Promise<void>;
 
     /**
      * 取消添加学习片段
@@ -47,10 +47,15 @@ export interface VideoLearningService {
     syncFromOss(): Promise<void>;
 
     /**
+     * 统计每个单词对应的视频片段数量
+     */
+    countClipsGroupedByWord(): Promise<Record<string, number>>;
+
+    /**
      * 检测视频裁切状态
      * @param videoPath - 视频文件路径
      * @param srtKey - 字幕文件键
      * @returns Promise<{status: 'pending' | 'in_progress' | 'completed', pendingCount?: number, inProgressCount?: number, completedCount?: number}>
      */
-    detectClipStatus(videoPath: string, srtKey: string): Promise<VideoLearningClipStatusVO>;
+    detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO>;
 }

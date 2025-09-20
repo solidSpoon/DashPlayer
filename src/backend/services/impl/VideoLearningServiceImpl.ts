@@ -25,15 +25,15 @@ import LocationService, { LocationType } from '@/backend/services/LocationServic
 import { ClipOssService } from '@/backend/services/OssService';
 import FfmpegService from '@/backend/services/FfmpegService';
 import SystemService from '@/backend/services/SystemService';
+import SubtitleService from '@/backend/services/SubtitleService';
 
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 import { VideoLearningClipVO } from '@/common/types/vo/VideoLearningClipVO';
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
-import { WordMatchService } from '@/backend/services/WordMatchService';
+import { WordMatchService, MatchedWord } from '@/backend/services/WordMatchService';
+import { SrtSentence } from '@/common/types/SentenceC';
 
-type SrtCache = {
-    sentences: any[];
-};
+type SrtCache = SrtSentence;
 
 type LearningClipTask = {
     videoPath: string;
@@ -42,6 +42,13 @@ type LearningClipTask = {
     matchedWords: string[];
     clipKey: string;
     operation: 'add' | 'cancel';
+    srtPath?: string;
+};
+
+type ClipCandidate = {
+    indexInSrt: number;
+    clipKey: string;
+    matchedWords: string[];
 };
 
 @injectable()
@@ -64,64 +71,118 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     @inject(TYPES.WordMatchService)
     private wordMatchService!: WordMatchService;
 
+    @inject(TYPES.SubtitleService)
+    private subtitleService!: SubtitleService;
+
     /**
      * key: clipKey = hash(clip srt context)
      */
     private taskQueue: Map<string, LearningClipTask> = new Map();
 
+    // todo 改用 cacheService 存储, 无需过期时间，我会在其他业务逻辑中主动清理
+    private clipAnalysisCache: Map<string, { generatedAt: number; candidates: ClipCandidate[] }> = new Map();
+    private clipAnalysisPromises: Map<string, Promise<ClipCandidate[]>> = new Map();
+    private clipAnalysisProgress: Map<string, number> = new Map();
+    private clipAnalysisExecution: Promise<void> = Promise.resolve();
+
+    // todo 改用 cacheService 存储, 无需过期时间，我会在其他业务逻辑中主动清理
+    private readonly clipAnalysisCacheTtl = 2 * 60 * 1000; // 2 minutes
+
     private getSrtFromCache(srtKey: string): SrtCache | null {
         return (this.cacheService.get('cache:srt', srtKey) as SrtCache) ?? null;
     }
 
-    public async autoClip(videoPath: string, srtKey: string): Promise<void> {
-        const srt = this.getSrtFromCache(srtKey);
+    public async autoClip(videoPath: string, srtKey: string, srtPath?: string): Promise<void> {
+        const srt = await this.ensureSrtCached(srtKey, srtPath);
         if (!srt) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
 
-        // 预处理所有行，使用批量词匹配
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-        const contents = srtLines.map((line) => (line?.contentEn || '').toLowerCase());
-        const matchResults = await this.wordMatchService.matchWordsInTexts(contents);
+        const resolvedSrtPath = srt.filePath || srtPath || undefined;
 
-        let addedCountForThisSrt = 0;
+        const analysisKey = this.mapAnalysisKey(videoPath, srtKey);
+        const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath });
 
-        for (let i = 0; i < srtLines.length; i++) {
-            const matches = (matchResults[i] || []) as any[];
-            const matchedWords = Array.from(
-                new Set(
-                    matches
-                        .map(m => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
-                        .filter(Boolean)
-                )
-            );
-
-            if (matchedWords.length > 0) {
-                const clipKey = this.mapToClipKey(srtKey, i);
-                this.taskQueue.set(clipKey, {
-                    videoPath,
-                    srtKey,
-                    indexInSrt: i,
-                    matchedWords,
-                    clipKey,
-                    operation: 'add'
-                });
-                addedCountForThisSrt++;
-            }
+        if (candidates.length === 0) {
+            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
+            return;
         }
 
-        await this.notifyClipStatus(videoPath, srtKey, 'in_progress', 0, addedCountForThisSrt, 0);
+        const candidateKeys = candidates.map((candidate) => candidate.clipKey);
+
+        const existingRows = candidateKeys.length > 0
+            ? await db
+                .select({ key: videoLearningClip.key })
+                .from(videoLearningClip)
+                .where(inArray(videoLearningClip.key, candidateKeys))
+            : [];
+
+        const existingKeySet = new Set(existingRows.map((row) => row.key));
+        const queueSnapshot = Array.from(this.taskQueue.values()).filter(
+            (task) => task.operation === 'add' && task.srtKey === srtKey,
+        );
+        const queuedKeySet = new Set(queueSnapshot.map((task) => task.clipKey));
+
+        let completedCount = 0;
+
+        for (const candidate of candidates) {
+            if (existingKeySet.has(candidate.clipKey)) {
+                completedCount++;
+                continue;
+            }
+
+            if (queuedKeySet.has(candidate.clipKey)) {
+                continue;
+            }
+
+            const existingTask = this.taskQueue.get(candidate.clipKey);
+            if (existingTask && existingTask.operation === 'add') {
+                continue;
+            }
+
+            this.taskQueue.set(candidate.clipKey, {
+                videoPath,
+                srtKey,
+                indexInSrt: candidate.indexInSrt,
+                matchedWords: candidate.matchedWords,
+                clipKey: candidate.clipKey,
+                operation: 'add',
+                srtPath: resolvedSrtPath,
+            });
+        }
+
+        // 清理旧的分析缓存，确保下一次分析使用最新结果
+        this.clipAnalysisCache.delete(analysisKey);
+
+        const inProgressCount = Array.from(this.taskQueue.values()).filter(
+            (task) => task.operation === 'add' && task.srtKey === srtKey,
+        ).length;
+
+        const status: 'in_progress' | 'completed' = inProgressCount > 0 ? 'in_progress' : 'completed';
+
+        await this.notifyClipStatus(
+            videoPath,
+            srtKey,
+            status,
+            0,
+            inProgressCount || undefined,
+            completedCount || undefined,
+            status === 'completed' ? 100 : undefined,
+        );
     }
 
     public async cancelAddLearningClip(srtKey: string, indexInSrt: number): Promise<void> {
         const clipKey = this.mapToClipKey(srtKey, indexInSrt);
+        const existingTask = this.taskQueue.get(clipKey);
+        const cachedSrt = this.getSrtFromCache(srtKey);
         this.taskQueue.set(clipKey, {
             videoPath: '',
             srtKey,
             indexInSrt,
             matchedWords: [],
             clipKey,
-            operation: 'cancel'
+            operation: 'cancel',
+            srtPath: existingTask?.srtPath ?? cachedSrt?.filePath,
         });
     }
 
@@ -134,6 +195,41 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
         const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
         return hash(contentSrtStr);
+    }
+
+    private mapAnalysisKey(videoPath: string, srtKey: string): string {
+        return `${videoPath}::${srtKey}`;
+    }
+
+    private mapToClipKeyFromLines(srtLines: SrtLine[], indexInSrt: number): string {
+        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
+        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
+        return hash(contentSrtStr);
+    }
+
+    private async ensureSrtCached(srtKey: string, srtPath?: string): Promise<SrtCache | null> {
+        let srt = this.getSrtFromCache(srtKey);
+        if (srt) {
+            return srt;
+        }
+
+        if (!srtPath) {
+            return null;
+        }
+
+        try {
+            await this.subtitleService.parseSrt(srtPath);
+        } catch (error) {
+            dpLog.error('[VideoLearningServiceImpl] failed to parse srt for cache', {
+                srtKey,
+                srtPath,
+                error
+            });
+            return null;
+        }
+
+        srt = this.getSrtFromCache(srtKey);
+        return srt;
     }
 
     /**
@@ -217,7 +313,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     private async taskAddOperation(task: LearningClipTask): Promise<void> {
-        const srt = this.getSrtFromCache(task.srtKey);
+        const srt = await this.ensureSrtCached(task.srtKey, task.srtPath);
         if (!srt) return;
 
         const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt, task.matchedWords);
@@ -251,7 +347,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     public async taskCancelOperation(task: LearningClipTask): Promise<void> {
-        const srt = this.getSrtFromCache(task.srtKey);
+        const srt = await this.ensureSrtCached(task.srtKey, task.srtPath);
         if (!srt) return;
         const key = this.mapToMetaKey(srt, task.indexInSrt);
         await this.deleteLearningClip(key);
@@ -270,6 +366,112 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
         const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
         return hash(contentSrtStr);
+    }
+
+    private async collectClipCandidates(
+        videoPath: string,
+        srtKey: string,
+        options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string }
+    ): Promise<ClipCandidate[]> {
+        const analysisKey = this.mapAnalysisKey(videoPath, srtKey);
+        const now = Date.now();
+
+        const cached = this.clipAnalysisCache.get(analysisKey);
+        if (cached && now - cached.generatedAt <= this.clipAnalysisCacheTtl) {
+            return cached.candidates;
+        }
+
+        const existingPromise = this.clipAnalysisPromises.get(analysisKey);
+        if (existingPromise) {
+            return existingPromise;
+        }
+
+        const compute = async (): Promise<ClipCandidate[]> => {
+            const srt = await this.ensureSrtCached(srtKey, options?.srtPath);
+            if (!srt) {
+                throw new Error(ErrorConstants.CACHE_NOT_FOUND);
+            }
+
+            const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
+            const contents = srtLines.map((line) => (line?.contentEn || '').toLowerCase());
+
+            if (contents.length === 0) {
+                return [];
+            }
+
+            const CHUNK_SIZE = 50;
+            const matchResults: MatchedWord[][] = [];
+
+            if (options?.onProgress) {
+                this.clipAnalysisProgress.set(analysisKey, 0);
+            }
+
+            for (let i = 0; i < contents.length; i += CHUNK_SIZE) {
+                const chunk = contents.slice(i, i + CHUNK_SIZE);
+                const chunkResults = await this.wordMatchService.matchWordsInTexts(chunk);
+                matchResults.push(...chunkResults);
+
+                const progress = Math.min(99, Math.round(((i + chunk.length) / contents.length) * 100));
+                if (options?.onProgress) {
+                    this.clipAnalysisProgress.set(analysisKey, progress);
+                    await options.onProgress(progress);
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+
+            const candidates: ClipCandidate[] = [];
+
+            for (let i = 0; i < srtLines.length; i++) {
+                const matches = matchResults[i] || [];
+                if (!matches || matches.length === 0) {
+                    continue;
+                }
+
+                const matchedWords = Array.from(
+                    new Set(
+                        matches
+                            .map((m) => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
+                            .filter(Boolean)
+                    )
+                );
+
+                if (matchedWords.length === 0) {
+                    continue;
+                }
+
+                const clipKey = this.mapToClipKeyFromLines(srtLines, i);
+                candidates.push({
+                    indexInSrt: i,
+                    clipKey,
+                    matchedWords,
+                });
+            }
+
+            if (options?.onProgress) {
+                this.clipAnalysisProgress.set(analysisKey, 100);
+                await options.onProgress(100);
+            }
+
+            return candidates;
+        };
+
+        const scheduled = this.clipAnalysisExecution.then(compute);
+        this.clipAnalysisExecution = scheduled.then(
+            () => undefined,
+            () => undefined
+        );
+
+        this.clipAnalysisPromises.set(analysisKey, scheduled);
+
+        try {
+            const candidates = await scheduled;
+            this.clipAnalysisCache.set(analysisKey, { generatedAt: Date.now(), candidates });
+            return candidates;
+        } finally {
+            this.clipAnalysisPromises.delete(analysisKey);
+            this.clipAnalysisProgress.delete(analysisKey);
+        }
     }
 
     private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number, matchedWords: string[]): ClipMeta {
@@ -495,6 +697,22 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         }
     }
 
+    public async countClipsGroupedByWord(): Promise<Record<string, number>> {
+        const rows = await db
+            .select({
+                word: videoLearningClipWord.word,
+                count: sql<number>`count(*)`
+            })
+            .from(videoLearningClipWord)
+            .groupBy(videoLearningClipWord.word);
+
+        const result: Record<string, number> = {};
+        for (const row of rows) {
+            result[row.word] = Number(row.count) || 0;
+        }
+        return result;
+    }
+
     @postConstruct()
     public postConstruct() {
         const loop = async () => {
@@ -510,89 +728,103 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         loop().catch((e) => dpLog.error(e));
     }
 
-    public async detectClipStatus(videoPath: string, srtKey: string): Promise<VideoLearningClipStatusVO> {
-        const srt = this.getSrtFromCache(srtKey);
+    public async detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO> {
+        const srt = await this.ensureSrtCached(srtKey, srtPath);
         if (!srt) {
+            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
             return { status: 'completed' };
         }
 
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-        const contents = srtLines.map((line) => (line?.contentEn || '').toLowerCase());
+        const resolvedSrtPath = srt.filePath || srtPath || undefined;
 
-        // 1. 批量算法匹配
-        const matchResults = await this.wordMatchService.matchWordsInTexts(contents);
+        await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, 0);
 
-        // 2. 收集所有匹配到的行的 clipKey
-        const matchedKeys: string[] = [];
-        for (let i = 0; i < matchResults.length; i++) {
-            const words = matchResults[i] || [];
-            if (words.length > 0) {
-                matchedKeys.push(this.mapToClipKey(srtKey, i));
-            }
-        }
+        let candidates: ClipCandidate[] = [];
 
-        if (matchedKeys.length === 0) {
-            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0);
+        try {
+            candidates = await this.collectClipCandidates(videoPath, srtKey, {
+                onProgress: async (progress) => {
+                    await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
+                },
+                srtPath: resolvedSrtPath,
+            });
+        } catch (error) {
+            dpLog.error('分析裁切状态失败:', error);
+            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
             return { status: 'completed' };
         }
 
-        // 3. 一次性查询数据库和任务队列
-        const [existingRows, inQueueAddKeys] = await Promise.all([
-            db.select({ key: videoLearningClip.key })
-              .from(videoLearningClip)
-              .where(inArray(videoLearningClip.key, matchedKeys)),
+        if (candidates.length === 0) {
+            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
+            return { status: 'completed' };
+        }
+
+        const candidateKeys = candidates.map((candidate) => candidate.clipKey);
+
+        const [existingRows, queueSnapshot] = await Promise.all([
+            candidateKeys.length > 0
+                ? db
+                    .select({ key: videoLearningClip.key })
+                    .from(videoLearningClip)
+                    .where(inArray(videoLearningClip.key, candidateKeys))
+                : Promise.resolve([] as { key: string }[]),
             Promise.resolve(
-                new Set(
-                    Array.from(this.taskQueue.values())
-                        .filter(t => t.operation === 'add' && t.srtKey === srtKey)
-                        .map(t => t.clipKey)
-                )
-            )
+                Array.from(this.taskQueue.values()).filter(
+                    (task) => task.operation === 'add' && task.srtKey === srtKey,
+                ),
+            ),
         ]);
 
-        const existingKeySet = new Set(existingRows.map(r => r.key));
+        const existingKeySet = new Set(existingRows.map((row) => row.key));
+        const inQueueKeySet = new Set(queueSnapshot.map((task) => task.clipKey));
 
-        // 4. 分类统计
+        let pendingCount = 0;
         let inProgressCount = 0;
         let completedCount = 0;
-        let pendingCount = 0;
 
-        for (const key of matchedKeys) {
-            if (inQueueAddKeys.has(key)) {
+        for (const candidate of candidates) {
+            if (inQueueKeySet.has(candidate.clipKey)) {
                 inProgressCount++;
-            } else if (existingKeySet.has(key)) {
+            } else if (existingKeySet.has(candidate.clipKey)) {
                 completedCount++;
             } else {
                 pendingCount++;
             }
         }
 
-        let status: 'pending' | 'in_progress' | 'completed';
+        let status: 'pending' | 'in_progress' | 'completed' = 'completed';
         if (inProgressCount > 0) {
             status = 'in_progress';
         } else if (pendingCount > 0) {
             status = 'pending';
-        } else {
-            status = 'completed';
         }
 
-        await this.notifyClipStatus(videoPath, srtKey, status, pendingCount, inProgressCount, completedCount);
+        await this.notifyClipStatus(
+            videoPath,
+            srtKey,
+            status,
+            pendingCount || undefined,
+            inProgressCount || undefined,
+            completedCount || undefined,
+            status === 'completed' ? 100 : undefined,
+        );
 
         return {
             status,
-            pendingCount: pendingCount > 0 ? pendingCount : undefined,
-            inProgressCount: inProgressCount > 0 ? inProgressCount : undefined,
-            completedCount: completedCount > 0 ? completedCount : undefined
+            pendingCount: pendingCount || undefined,
+            inProgressCount: inProgressCount || undefined,
+            completedCount: completedCount || undefined,
         };
     }
 
     private async notifyClipStatus(
         videoPath: string,
         srtKey: string,
-        status: 'pending' | 'in_progress' | 'completed',
+        status: 'pending' | 'in_progress' | 'completed' | 'analyzing',
         pendingCount?: number,
         inProgressCount?: number,
-        completedCount?: number
+        completedCount?: number,
+        analyzingProgress?: number
     ): Promise<void> {
         try {
             let message = '';
@@ -600,9 +832,32 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 message = `发现 ${pendingCount ?? 0} 个需要裁切的学习片段`;
             } else if (status === 'in_progress') {
                 message = `正在裁切 ${inProgressCount ?? 0} 个学习片段`;
+            } else if (status === 'analyzing') {
+                message = `正在分析视频内容 (${analyzingProgress ?? 0}%)`;
             } else {
                 message = '所有学习片段已裁切完成';
             }
+
+            const cachePayload: VideoLearningClipStatusVO = {
+                status,
+            };
+
+            if (typeof pendingCount === 'number') {
+                cachePayload.pendingCount = pendingCount;
+            }
+            if (typeof inProgressCount === 'number') {
+                cachePayload.inProgressCount = inProgressCount;
+            }
+            if (typeof completedCount === 'number') {
+                cachePayload.completedCount = completedCount;
+            }
+            if (typeof analyzingProgress === 'number') {
+                cachePayload.analyzingProgress = analyzingProgress;
+            }
+
+            const cacheKey = `clip-status:${videoPath}:${srtKey}`;
+            const cacheTtl = status === 'analyzing' ? 30 * 1000 : this.clipAnalysisCacheTtl;
+            this.cacheService.set('cache:clip-status', cacheKey, cachePayload, cacheTtl);
 
             await this.systemService.callRendererApi('video-learning/clip-status-update', {
                 videoPath,
@@ -611,7 +866,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 pendingCount,
                 inProgressCount,
                 completedCount,
-                message
+                message,
+                analyzingProgress
             });
         } catch (error) {
             dpLog.error('Failed to notify clip status:', error);
