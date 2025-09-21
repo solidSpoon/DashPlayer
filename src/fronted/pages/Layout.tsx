@@ -1,6 +1,5 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import {cn} from "@/fronted/lib/utils";
 import useLayout, { cpW } from '@/fronted/hooks/useLayout';
 import SideBar from '@/fronted/components/SideBar';
@@ -31,29 +30,22 @@ const Layout = () => {
                     <SideBar compact={!w('xl')} />
                 </div>
             )}
-            <motion.div
-                layout
+            <div
                 className={cn('p-2')}
                 style={{
                     gridArea: showSideBar
                         ? '1 / 2 / -1 / -1'
                         : '1 / 1 / -1 / -1',
                 }}
-                transition={{
-                    type: 'tween',
-                    duration: 0.2,
-                }}
             >
-                <AnimatePresence mode="wait">
-                    <div
-                        className={cn(
-                            'w-full h-full drop-shadow-lg rounded overflow-hidden'
-                        )}
-                    >
-                        <Outlet />
-                    </div>
-                </AnimatePresence>
-            </motion.div>
+                <div
+                    className={cn(
+                        'w-full h-full drop-shadow-lg rounded overflow-hidden'
+                    )}
+                >
+                    <Outlet />
+                </div>
+            </div>
         </div>
     );
 };
