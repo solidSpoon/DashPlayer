@@ -19,7 +19,8 @@ interface SideSentenceNewParam {
     isRepeat: boolean;
     selectionState?: {
         isMember: boolean;
-        isEdge: boolean;
+        isGroupStart: boolean;
+        isGroupEnd: boolean;
     };
 }
 
@@ -107,6 +108,9 @@ const AutoPausingIcon = () => {
     );
 };
 
+const CARD_SPACING_PX = 6; // 与 m-1.5 保持一致
+const CARD_RADIUS_PX = 12;
+
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat, selectionState }: SideSentenceNewParam, ref) => {
         const playing = usePlayerV2State((state) => state.playing);
@@ -177,19 +181,54 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             });
         };
 
+        const overlayStyle = React.useMemo(() => {
+            if (!selectionState?.isMember) {
+                return null;
+            }
+            const top = selectionState.isGroupStart ? 0 : -CARD_SPACING_PX;
+            const bottom = selectionState.isGroupEnd ? 0 : -CARD_SPACING_PX;
+            return {
+                top: `${top}px`,
+                bottom: `${bottom}px`,
+                borderTopLeftRadius: selectionState.isGroupStart ? `${CARD_RADIUS_PX}px` : '0px',
+                borderTopRightRadius: selectionState.isGroupStart ? `${CARD_RADIUS_PX}px` : '0px',
+                borderBottomLeftRadius: selectionState.isGroupEnd ? `${CARD_RADIUS_PX}px` : '0px',
+                borderBottomRightRadius: selectionState.isGroupEnd ? `${CARD_RADIUS_PX}px` : '0px',
+            } satisfies React.CSSProperties;
+        }, [selectionState]);
+
+        const overlayClass = React.useMemo(() => {
+            if (!selectionState?.isMember) {
+                return 'pointer-events-none absolute left-0 right-0';
+            }
+            const base = [
+                'pointer-events-none absolute left-0 right-0',
+                'bg-stone-50/95 dark:bg-neutral-800/95',
+                'transition-all duration-150 ease-out',
+            ];
+            if (selectionState.isGroupStart) {
+                base.push('border border-stone-200/80 dark:border-neutral-600/70 shadow-md');
+            } else if (selectionState.isMember) {
+                base.push('border-x border-stone-200/80 dark:border-neutral-600/70');
+            }
+            if (selectionState.isGroupEnd) {
+                base.push('border-b border-stone-200/80 dark:border-neutral-600/70');
+            }
+            return base.join(' ');
+        }, [selectionState]);
+
         return (
             // eslint-disable-next-linejsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
-                    'm-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg',
-                    'hover:drop-shadow-lg drop-shadow',
-                    'bg-stone-200 dark:bg-neutral-700',
-                    'hover:bg-stone-100 dark:hover:bg-neutral-600',
+                    'relative m-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg overflow-visible',
+                    selectionState?.isMember ? 'bg-transparent hover:bg-transparent drop-shadow-none' : 'bg-stone-200 dark:bg-neutral-700',
+                    selectionState?.isMember ? 'hover:drop-shadow-none' : 'hover:drop-shadow-lg drop-shadow',
+                    selectionState?.isMember && 'transition-transform duration-150',
                     !show && 'transition-colors duration-500',
                     fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
                     isFavourite && 'text-yellow-500 dark:text-yellow-300',
-                    selectionState?.isMember && 'transition-colors duration-150 !bg-purple-200/60 dark:!bg-purple-500/25',
-                    selectionState?.isEdge && 'outline outline-2 outline-purple-400/70 dark:outline-purple-500/60'
+                    !selectionState?.isMember && 'transition-colors duration-150'
                 )}
                 onClick={() => {
                     onClick(sentence);
@@ -202,9 +241,12 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 }}
                 ref={ref}
             >
+                {selectionState?.isMember && overlayStyle && (
+                    <div aria-hidden className={overlayClass} style={overlayStyle} />
+                )}
                 <div
                     className={cn(
-                        'flex flex-col items-center justify-center',
+                        'relative z-10 flex flex-col items-center justify-center',
                         isCurrent ? 'visible' : 'invisible',
                         fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7',
                         fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
@@ -216,7 +258,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
 
                 <motion.div
                     className={cn(
-                        'w-full text-center',
+                        'relative z-10 w-full text-center',
                         hover || show ? 'text-opacity-100' : 'text-opacity-0'
                     )}
                     initial={{ opacity: 0 }}

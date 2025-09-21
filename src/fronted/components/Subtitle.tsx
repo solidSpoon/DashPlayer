@@ -241,9 +241,8 @@ export default function Subtitle() {
                         const isSelected =
                             virtualGroupMeta.hasGroup &&
                             virtualGroupMeta.indexSet.has(item.index);
-                        const isGroupEdge =
-                            isSelected &&
-                            (item.index === virtualGroupMeta.min || item.index === virtualGroupMeta.max);
+                        const isGroupStart = isSelected && item.index === virtualGroupMeta.min;
+                        const isGroupEnd = isSelected && item.index === virtualGroupMeta.max;
                         return (
                             <div
                                 onMouseDown={handleMouseDown(item)}
@@ -257,7 +256,15 @@ export default function Subtitle() {
                                     }}
                                     isCurrent={isCurrent}
                                     isRepeat={singleRepeat}
-                                    selectionState={{ isMember: isSelected, isEdge: isGroupEdge }}
+                                    selectionState={
+                                        isSelected
+                                            ? {
+                                                isMember: true,
+                                                isGroupStart,
+                                                isGroupEnd,
+                                            }
+                                            : undefined
+                                    }
                                     ref={(ref) => {
                                         if (isCurrent) {
                                             updateCurrentRef(
