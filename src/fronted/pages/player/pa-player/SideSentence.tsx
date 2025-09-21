@@ -17,6 +17,10 @@ interface SideSentenceNewParam {
     onClick: (sentence: Sentence) => void;
     isCurrent: boolean;
     isRepeat: boolean;
+    selectionState?: {
+        isMember: boolean;
+        isEdge: boolean;
+    };
 }
 
 interface Part {
@@ -104,7 +108,7 @@ const AutoPausingIcon = () => {
 };
 
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
-    ({ sentence, onClick, isCurrent, isRepeat }: SideSentenceNewParam, ref) => {
+    ({ sentence, onClick, isCurrent, isRepeat, selectionState }: SideSentenceNewParam, ref) => {
         const playing = usePlayerV2State((state) => state.playing);
         const translationKey = sentence?.translationKey || '';
         const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
@@ -183,7 +187,9 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     'hover:bg-stone-100 dark:hover:bg-neutral-600',
                     !show && 'transition-colors duration-500',
                     fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                    isFavourite && 'text-yellow-500 dark:text-yellow-300'
+                    isFavourite && 'text-yellow-500 dark:text-yellow-300',
+                    selectionState?.isMember && 'transition-colors duration-150 !bg-purple-200/60 dark:!bg-purple-500/25',
+                    selectionState?.isEdge && 'outline outline-2 outline-purple-400/70 dark:outline-purple-500/60'
                 )}
                 onClick={() => {
                     onClick(sentence);
