@@ -19,7 +19,7 @@ const CURRENT_LOCK_MS = 500;  // 跳转后的 currentSentence 锁定时长（禁
 interface TailPreviewState {
   active: boolean;
   untilTs: number;
-  returnStart: number;
+  returnTarget: Sentence | null;
 }
 
 interface TimeOverrideState {
@@ -375,12 +375,13 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
         set((prev) => ({
           internal: { ...prev.internal, tailPreview: null }
         }));
-        if (singleRepeat) {
-          state.seekToTarget({ time: tailPreview.returnStart, target: currentSentence ?? undefined });
-        } else if (autoPause) {
-          state.pause();
-          state.onPlaySeek(tailPreview.returnStart);
+        // 统一：预览结束后回到目标句（或当前句）开头
+        const target = tailPreview.returnTarget ?? currentSentence ?? null;
+        let startTime = 0;
+        if (srtTender && target) {
+          startTime = srtTender.mapSeekTime(target).start;
         }
+        state.seekToTarget({ time: startTime, target: target ?? undefined });
       }
       return;
     }
@@ -961,7 +962,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
           tailPreview: {
             active: true,
             untilTs: Date.now() + previewMs,
-            returnStart: start
+            returnTarget: updated
           }
         }
       }));
