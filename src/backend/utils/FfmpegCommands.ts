@@ -106,14 +106,35 @@ export class FfmpegCommands {
     /**
      * 构建生成缩略图命令
      */
-    static buildThumbnail(inputFile: string, outputFolder: string, outputFileName: string, time: number): ffmpeg.FfmpegCommand {
+    static buildThumbnail(inputFile: string, outputFolder: string, outputFileName: string, time: number, options: {
+        quality?: 'low' | 'medium' | 'high' | 'ultra';
+        width?: number;
+        format?: 'jpg' | 'png';
+    } = {}): ffmpeg.FfmpegCommand {
         const outputPath = path.join(outputFolder, outputFileName);
+        const { quality = 'medium', width, format = 'jpg' } = options;
 
-        return ffmpeg(inputFile)
+        // Quality presets
+        const qualitySettings = {
+            low: { width: 320, jpegQuality: 80 },
+            medium: { width: 640, jpegQuality: 85 },
+            high: { width: 1280, jpegQuality: 90 },
+            ultra: { width: 1920, jpegQuality: 95 }
+        };
+
+        const settings = qualitySettings[quality];
+        const targetWidth = width || settings.width;
+
+        let command = ffmpeg(inputFile)
             .seekInput(time)
             .frames(1)
-            .size('320x?')
-            .output(outputPath);
+            .size(`${targetWidth}x?`);
+
+        if (format === 'jpg') {
+            command = command.outputOptions(['-q:v', `${(100 - settings.jpegQuality) / 10}`]);
+        }
+
+        return command.output(outputPath);
     }
 
 

@@ -17,8 +17,19 @@ export default class MediaServiceImpl implements MediaService {
     private ffmpegService!: FfmpegService;
 
 
-    private generateThumbnailPath(sourceFilePath: string, timestamp: number): string {
-        const thumbnailFileName = ObjUtil.hash(sourceFilePath) + '-' + timestamp + '.jpg';
+    private generateThumbnailPath(sourceFilePath: string, timestamp: number, options?: {
+        quality?: 'low' | 'medium' | 'high' | 'ultra';
+        width?: number;
+        format?: 'jpg' | 'png';
+    }): string {
+        const { quality = 'medium', width, format = 'jpg' } = options || {};
+
+        // Create a unique filename based on parameters to avoid caching issues
+        const qualitySuffix = quality !== 'medium' ? `-${quality}` : '';
+        const widthSuffix = width ? `-w${width}` : '';
+        const extension = format === 'png' ? '.png' : '.jpg';
+
+        const thumbnailFileName = ObjUtil.hash(sourceFilePath) + '-' + timestamp + qualitySuffix + widthSuffix + extension;
         return path.join(this.locationService.getDetailLibraryPath(LocationType.TEMP), thumbnailFileName);
     }
 
@@ -26,14 +37,18 @@ export default class MediaServiceImpl implements MediaService {
         return this.locationService.getDetailLibraryPath(LocationType.TEMP);
     }
 
-    async thumbnail(sourceFilePath: string, timestamp?: number): Promise<string> {
+    async thumbnail(sourceFilePath: string, timestamp?: number, options?: {
+        quality?: 'low' | 'medium' | 'high' | 'ultra';
+        width?: number;
+        format?: 'jpg' | 'png';
+    }): Promise<string> {
         if (!fs.existsSync(sourceFilePath)) {
             return '';
         }
         const duration = await this.ffmpegService.duration(sourceFilePath);
         const adjustedTimestamp = this.calculateAdjustedTimestamp(timestamp, duration);
         const tempDirectoryPath = this.getTempDirectoryPath();
-        const thumbnailPath = this.generateThumbnailPath(sourceFilePath, adjustedTimestamp);
+        const thumbnailPath = this.generateThumbnailPath(sourceFilePath, adjustedTimestamp, options);
 
         if (fs.existsSync(thumbnailPath)) {
             return thumbnailPath;
@@ -43,7 +58,8 @@ export default class MediaServiceImpl implements MediaService {
             inputFile: sourceFilePath,
             outputFolder: tempDirectoryPath,
             outputFileName: path.basename(thumbnailPath),
-            time: adjustedTimestamp
+            time: adjustedTimestamp,
+            options: options || {}
         });
 
         return thumbnailPath;

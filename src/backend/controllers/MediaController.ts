@@ -39,8 +39,14 @@ export default class MediaController implements Controller {
     }
 
 
-    public async thumbnail({filePath, time}: { filePath: string, time: number }): Promise<string> {
-        return this.mediaService.thumbnail(filePath, time);
+    public async thumbnail({filePath, time, quality = 'medium', width, format = 'jpg'}: {
+        filePath: string,
+        time: number,
+        quality?: 'low' | 'medium' | 'high' | 'ultra',
+        width?: number,
+        format?: 'jpg' | 'png'
+    }): Promise<string> {
+        return this.mediaService.thumbnail(filePath, time, { quality, width, format });
     }
 
     public videoLength(filePath: string): Promise<number> {

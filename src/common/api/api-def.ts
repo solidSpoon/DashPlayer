@@ -161,7 +161,16 @@ interface SplitVideoDef {
         params: { videoPath: string, srtPath: string | null, chapters: ChapterParseResult[] },
         return: string
     };
-    'split-video/thumbnail': { params: { filePath: string, time: number }, return: string };
+    'split-video/thumbnail': {
+        params: {
+            filePath: string,
+            time: number,
+            quality?: 'low' | 'medium' | 'high' | 'ultra',
+            width?: number,
+            format?: 'jpg' | 'png'
+        },
+        return: string
+    };
     'split-video/video-length': { params: string, return: number };
 }
 

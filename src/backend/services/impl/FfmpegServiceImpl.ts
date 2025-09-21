@@ -109,12 +109,18 @@ export default class FfmpegServiceImpl implements FfmpegService {
                                inputFile,
                                outputFileName,
                                outputFolder,
-                               time
+                               time,
+                               options = {}
                            }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
-        time: number
+        time: number,
+        options?: {
+            quality?: 'low' | 'medium' | 'high' | 'ultra';
+            width?: number;
+            format?: 'jpg' | 'png';
+        }
     }): Promise<void> {
         const totalDuration = await this.duration(inputFile);
         const actualTime = Math.min(time, totalDuration);
@@ -123,7 +129,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
             fs.mkdirSync(outputFolder, {recursive: true});
         }
 
-        const command = FfmpegCommands.buildThumbnail(inputFile, outputFolder, outputFileName, actualTime);
+        const command = FfmpegCommands.buildThumbnail(inputFile, outputFolder, outputFileName, actualTime, options);
         await this.executeFluentCommand(command);
     }
 
