@@ -22,12 +22,16 @@ const SideBar = ({ compact }: SideBarProps) => {
         key: string,
         icon: ReactElement
     ) => {
+        const isPlayer = key === 'pa-player';
+        const isActive = isPlayer
+            ? location.pathname.startsWith('/player')
+            : location.pathname.includes(key);
         return (
             <div
                 onMouseDown={() => navigate(path)}
                 className={cn(
                     'w-full px-2 flex justify-start items-center gap-2 rounded-xl h-10',
-                    location.pathname.includes(key)
+                    isActive
                         ? 'bg-zinc-100 drop-shadow dark:bg-neutral-900 shadow-white shadow-inner dark:shadow-none'
                         : 'hover:bg-stone-300 dark:hover:bg-neutral-800',
                     compact && 'justify-center'
