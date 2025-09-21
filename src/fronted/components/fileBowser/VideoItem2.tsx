@@ -9,7 +9,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { cn } from '@/fronted/lib/utils';
 import MediaUtil from '@/common/utils/MediaUtil';
-import { FileAudio2, FileVideo2, Loader2 } from 'lucide-react';
+import { FileAudio2, FileVideo2 } from 'lucide-react';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import { Button } from '@/fronted/components/ui/button';
@@ -18,6 +18,7 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import MusicCard from '@/fronted/components/fileBowser/music-card';
+import { motion } from 'framer-motion';
 
 const api = window.electron;
 
@@ -37,6 +38,8 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
     ctxMenus: CtxMenu[]
 }) => {
     const [contextMenu, setContextMenu] = React.useState(false);
+    const [thumbnailReady, setThumbnailReady] = React.useState(false);
+    const [thumbnailError, setThumbnailError] = React.useState(false);
     const isAudio = MediaUtil.isAudio(pv.fileName);
     const isVideo = MediaUtil.isVideo(pv.fileName);
     const shouldLoadThumbnail = !pv?.isFolder && isVideo;
@@ -48,6 +51,12 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
             return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
+
+    React.useEffect(() => {
+        setThumbnailReady(false);
+        setThumbnailError(false);
+    }, [thumbnail]);
+
     const progress = pv?.duration ? Math.min(100, Math.floor(((pv?.current_position ?? 0) / pv.duration) * 100)) : 0;
     const actionButtons = ctxMenus?.length ? ctxMenus : [];
     const renderMenuIcon = (icon: React.ReactNode) => {
@@ -58,6 +67,7 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
         }
         return icon;
     };
+    const showThumbnail = Boolean(thumbnail) && !thumbnailError;
     return (
         <ContextMenu
             onOpenChange={(open) => {
@@ -85,16 +95,29 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                                             <MusicCard fileName={pv.fileName} />
                                         </div>
                                     ) : shouldLoadThumbnail ? (
-                                        thumbnail ? (
-                                            <img
-                                                src={UrlUtil.file(thumbnail)}
-                                                alt={pv.fileName}
-                                                className="absolute inset-0 h-full w-full object-cover"
-                                            />
-                                        ) : thumbnailLoading ? (
-                                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                        showThumbnail ? (
+                                            <div className="absolute inset-0">
+                                                {!thumbnailReady && (
+                                                    <div className="absolute inset-0 bg-white pointer-events-none" />
+                                                )}
+                                                <motion.img
+                                                    key={UrlUtil.file(thumbnail)}
+                                                    src={UrlUtil.file(thumbnail)}
+                                                    alt={pv.fileName}
+                                                    className="absolute inset-0 h-full w-full object-cover"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: thumbnailReady ? 1 : 0 }}
+                                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                                    onLoad={() => {
+                                                        setThumbnailReady(true);
+                                                    }}
+                                                    onError={() => {
+                                                        setThumbnailError(true);
+                                                    }}
+                                                />
                                             </div>
+                                        ) : thumbnailLoading ? (
+                                            <div className="absolute inset-0 bg-white" />
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                                                 <FileVideo2 className="h-6 w-6" />
