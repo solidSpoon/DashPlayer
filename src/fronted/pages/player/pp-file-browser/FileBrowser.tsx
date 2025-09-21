@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
@@ -24,8 +24,20 @@ const FileBrowser = () => {
     const navigate = useNavigate();
     const file = useFile(state => state.videoPath);
     const videoId = useFile(state => state.videoId);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [showTitle, setShowTitle] = useState(true);
 
     const [previousData, setPreviousData] = useState<WatchHistoryVO | null>(null);
+
+    useEffect(() => {
+        const checkHeight = () => {
+            setShowTitle(window.innerHeight > 800);
+        };
+
+        checkHeight();
+        window.addEventListener('resize', checkHeight);
+        return () => window.removeEventListener('resize', checkHeight);
+    }, []);
     const { data } = useSWR(
         [apiPath('watch-history/detail'), videoId],
         ([_p, v]) => api.call('watch-history/detail', v ?? ''),
@@ -39,18 +51,21 @@ const FileBrowser = () => {
     );
     return (
         <Card
+            ref={cardRef}
             onClick={(e) => {
                 e.stopPropagation();
             }}
             className={cn('h-full w-full flex flex-col')}
         >
-            <CardHeader>
-                <CardTitle>Video Explorer</CardTitle>
-                <CardDescription>Browse and play your favorite videos</CardDescription>
-            </CardHeader>
-            <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-2')}>
+            {showTitle && (
+                <CardHeader className="pb-3">
+                    <CardTitle>Video Explorer</CardTitle>
+                    <CardDescription>Browse and play your favorite videos</CardDescription>
+                </CardHeader>
+            )}
+            <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-2 p-4')}>
                 <div
-                    className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
+                    className={cn('flex mb-6 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
                 >
                     <FileSelector
                         withMkv

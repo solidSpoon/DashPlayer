@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useSWR from 'swr';
 import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
@@ -20,6 +20,19 @@ const getShortcut = (key: SettingKey) => {
 };
 
 export default function ControlBox() {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [showTitle, setShowTitle] = useState(true);
+
+  useEffect(() => {
+    const checkHeight = () => {
+      setShowTitle(window.innerHeight > 800);
+    };
+
+    checkHeight();
+    window.addEventListener('resize', checkHeight);
+    return () => window.removeEventListener('resize', checkHeight);
+  }, []);
+
   const { showEn, showCn, syncSide, changeShowEn, changeShowCn, changeSyncSide } = usePlayerUi(
     useShallow((s) => ({
       showEn: s.showEn,
@@ -53,15 +66,18 @@ export default function ControlBox() {
   const changeFullScreen = useLayout((s) => s.changeFullScreen);
 
   return (
-    <Card className={cn('w-full h-full flex flex-col')}>
-      <CardHeader>
-        <CardTitle>Player Controls</CardTitle>
-        <CardDescription>Manage player settings and behavior</CardDescription>
-      </CardHeader>
+    <Card ref={cardRef} className={cn('w-full h-full flex flex-col')}>
+      {showTitle && (
+        <CardHeader className="pb-3">
+          <CardTitle>Player Controls</CardTitle>
+          <CardDescription>Manage player settings and behavior</CardDescription>
+        </CardHeader>
+      )}
 
       <CardContent
         className={cn(
-          'grid place-content-start overflow-y-auto gap-y-4 w-full h-0 flex-1 pt-1',
+          'grid place-content-start overflow-y-auto gap-y-4 w-full flex-1',
+          showTitle ? 'pt-1' : 'pt-6',
           'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-thumb-rounded scrollbar-track-gray-100 scrollbar-track-rounded'
         )}
         style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}
