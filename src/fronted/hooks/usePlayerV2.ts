@@ -52,6 +52,10 @@ type IndexingCache = {
   count: number;
 };
 
+type NavUnit =
+  | { type: 'sentence'; s: Sentence }
+  | { type: 'vg'; sentences: Sentence[]; repr: Sentence };
+
 interface VirtualGroupState {
   active: boolean;
   sentences: Sentence[];
@@ -150,6 +154,10 @@ interface PlayerState {
   getSentenceCount: () => number;      // 总句数
   isAtFirstSentence: () => boolean;
   isAtLastSentence: () => boolean;
+  getFocusedLogicalIndex: () => number;   // 逻辑行索引（虚拟组压缩）
+  getLogicalCount: () => number;          // 逻辑行数量
+  isAtFirstLogical: () => boolean;
+  isAtLastLogical: () => boolean;
 }
 
 // 模块内定时器（不放入 Zustand）
@@ -281,6 +289,67 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     }
     return internal.exactPlayTime;
   };
+
+  const buildNavUnits = (): NavUnit[] => {
+    const { sentences, virtualGroup } = get();
+    if (sentences.length === 0) return [];
+
+    const ordered = [...sentences].sort((a, b) => a.index - b.index);
+    if (!virtualGroup.active || virtualGroup.sentences.length === 0) {
+      return ordered.map((s) => ({ type: 'sentence' as const, s }));
+    }
+
+    const vgSet = new Set(virtualGroup.sentences.map((s) => sentenceKey(s)));
+    const groupAll = ordered.filter((s) => vgSet.has(sentenceKey(s)));
+    const fallbackRepr = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
+    const repr = groupAll[0] ?? fallbackRepr;
+    const units: NavUnit[] = [];
+    let placed = false;
+
+    for (const s of ordered) {
+      if (vgSet.has(sentenceKey(s))) {
+        if (!placed && repr) {
+          units.push({ type: 'vg', sentences: groupAll.length > 0 ? groupAll : [repr], repr });
+          placed = true;
+        }
+        continue;
+      }
+      units.push({ type: 'sentence', s });
+    }
+
+    if (!placed && repr) {
+      units.push({ type: 'vg', sentences: groupAll.length > 0 ? groupAll : [repr], repr });
+    }
+
+    return units;
+  };
+
+  const findFocusedNavIndex = (): number => {
+    const units = buildNavUnits();
+    if (units.length === 0) return -1;
+    const focus = getFocusedSentence();
+    if (!focus) return -1;
+    const key = sentenceKey(focus);
+    for (let i = 0; i < units.length; i++) {
+      const unit = units[i];
+      if (unit.type === 'sentence') {
+        if (sentenceKey(unit.s) === key) return i;
+      } else if (unit.sentences.some((s) => sentenceKey(s) === key)) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const isFocusInVirtualGroup = (): boolean => {
+    const idx = findFocusedNavIndex();
+    if (idx < 0) return false;
+    const units = buildNavUnits();
+    return units[idx]?.type === 'vg';
+  };
+
+  const getLogicalCountInternal = (): number => buildNavUnits().length;
+  const getFocusedLogicalIndexInternal = (): number => findFocusedNavIndex();
 
   // overdue：在覆盖窗口内直接放行
   const isTimeOverdue = (lastSeekAt: number): boolean => {
@@ -593,40 +662,54 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
       set({ virtualGroup: { active: false, sentences: [] } });
     },
 
-    // 高级 API —— 下一句（直接设目标句 + timeOverride + currentLock）
+    // 高级 API —— 下一句（虚拟组当作一行）
     nextSentence: (step = 1) => {
       clearTailPreview();
-      const { sentences, srtTender } = get();
-      if (!srtTender || sentences.length === 0) return;
+      const { srtTender } = get();
+      if (!srtTender) return;
 
-      const focus = getFocusedSentence();
-      if (!focus) return;
+      const units = buildNavUnits();
+      if (units.length === 0) return;
 
-      const ordered = [...sentences].sort((a, b) => a.index - b.index);
-      const pos = ordered.findIndex((s) => sentenceKey(s) === sentenceKey(focus));
-      const nextIdx = Math.min(ordered.length - 1, Math.max(0, pos + step));
-      const target = ordered[nextIdx];
-      const { start } = srtTender.mapSeekTime(target);
+      const pos = findFocusedNavIndex();
+      if (pos < 0) return;
 
-      get().seekToTarget({ time: start, target });
+      const nextIdx = Math.min(units.length - 1, Math.max(0, pos + step));
+      const unit = units[nextIdx];
+
+      if (unit.type === 'sentence') {
+        const { start } = srtTender.mapSeekTime(unit.s);
+        get().seekToTarget({ time: start, target: unit.s });
+      } else {
+        const range = get().getVirtualGroupRange();
+        const start = range ? range.start : srtTender.mapSeekTime(unit.repr).start;
+        get().seekToTarget({ time: start, target: unit.repr });
+      }
     },
 
     // 高级 API —— 上一句
     prevSentence: (step = 1) => {
       clearTailPreview();
-      const { sentences, srtTender } = get();
-      if (!srtTender || sentences.length === 0) return;
+      const { srtTender } = get();
+      if (!srtTender) return;
 
-      const focus = getFocusedSentence();
-      if (!focus) return;
+      const units = buildNavUnits();
+      if (units.length === 0) return;
 
-      const ordered = [...sentences].sort((a, b) => a.index - b.index);
-      const pos = ordered.findIndex((s) => sentenceKey(s) === sentenceKey(focus));
-      const nextIdx = Math.max(0, pos - step);
-      const target = ordered[nextIdx];
-      const { start } = srtTender.mapSeekTime(target);
+      const pos = findFocusedNavIndex();
+      if (pos < 0) return;
 
-      get().seekToTarget({ time: start, target });
+      const nextIdx = Math.max(0, Math.min(units.length - 1, pos - step));
+      const unit = units[nextIdx];
+
+      if (unit.type === 'sentence') {
+        const { start } = srtTender.mapSeekTime(unit.s);
+        get().seekToTarget({ time: start, target: unit.s });
+      } else {
+        const range = get().getVirtualGroupRange();
+        const start = range ? range.start : srtTender.mapSeekTime(unit.repr).start;
+        get().seekToTarget({ time: start, target: unit.repr });
+      }
     },
 
     // 高级 API —— 跳到指定句（按 index）
@@ -667,6 +750,16 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
           get().seekToTarget({ time: start, target: cur ?? undefined });
         }
       } else {
+        const vg = get().virtualGroup;
+        if (vg.active && vg.sentences.length > 0) {
+          const first = vg.sentences.slice().sort((a, b) => a.index - b.index)[0];
+          const range = get().getVirtualGroupRange();
+          const start = range ? range.start : get().mapCurrentRange().start;
+          if (first) {
+            get().seekToTarget({ time: start, target: first });
+            return;
+          }
+        }
         const { start } = get().mapCurrentRange();
         const cur = get().currentSentence ?? getFocusedSentence() ?? null;
         get().seekToTarget({ time: start, target: cur ?? undefined });
@@ -701,8 +794,21 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     // 高级 API —— 跳到当前句首
     seekToCurrentStart: () => {
       clearTailPreview();
-      const { srtTender, currentSentence } = get();
-      if (!srtTender || !currentSentence) return;
+      const { srtTender, virtualGroup } = get();
+      if (!srtTender) return;
+
+      if (virtualGroup.active && virtualGroup.sentences.length > 0 && isFocusInVirtualGroup()) {
+        const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
+        if (first) {
+          const range = get().getVirtualGroupRange();
+          const start = range ? range.start : srtTender.mapSeekTime(first).start;
+          get().seekToTarget({ time: start, target: first });
+          return;
+        }
+      }
+
+      const currentSentence = get().currentSentence ?? getFocusedSentence();
+      if (!currentSentence) return;
       const { start } = srtTender.mapSeekTime(currentSentence);
       get().seekToTarget({ time: start, target: currentSentence });
     },
@@ -710,8 +816,21 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     // 高级 API —— 跳到当前句尾
     seekToCurrentEnd: (epsilon = 0.05) => {
       clearTailPreview();
-      const { srtTender, currentSentence } = get();
-      if (!srtTender || !currentSentence) return;
+      const { srtTender, virtualGroup } = get();
+      if (!srtTender) return;
+
+      if (virtualGroup.active && virtualGroup.sentences.length > 0 && isFocusInVirtualGroup()) {
+        const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
+        if (first) {
+          const range = get().getVirtualGroupRange();
+          const end = range ? range.end : srtTender.mapSeekTime(first).end;
+          get().seekToTarget({ time: Math.max(end - epsilon, 0), target: first });
+          return;
+        }
+      }
+
+      const currentSentence = get().currentSentence ?? getFocusedSentence();
+      if (!currentSentence) return;
       const { end } = srtTender.mapSeekTime(currentSentence);
       get().seekToTarget({ time: Math.max(end - epsilon, 0), target: currentSentence });
     },
@@ -855,6 +974,21 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
       const cnt = get().getSentenceCount();
       if (cnt <= 0) return false;
       const idx = get().getFocusedIndex();
+      return idx === cnt - 1;
+    },
+
+    getFocusedLogicalIndex: () => getFocusedLogicalIndexInternal(),
+    getLogicalCount: () => getLogicalCountInternal(),
+    isAtFirstLogical: () => {
+      const cnt = getLogicalCountInternal();
+      if (cnt <= 0) return false;
+      const idx = getFocusedLogicalIndexInternal();
+      return idx === 0;
+    },
+    isAtLastLogical: () => {
+      const cnt = getLogicalCountInternal();
+      if (cnt <= 0) return false;
+      const idx = getFocusedLogicalIndexInternal();
       return idx === cnt - 1;
     },
   };
