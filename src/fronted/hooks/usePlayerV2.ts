@@ -46,9 +46,11 @@ interface InternalState {
   indexing: IndexingCache | null;
 }
 
-// 高效只读选择器所需：一次性构建 key -> position 的索引缓存
+// 高效只读选择器所需：一次性构建 key -> position 与 index -> position 的索引缓存
 type IndexingCache = {
   posMap: Map<string, number>;
+  // 若 index 在当前上下文中唯一（单文件字幕），可直接 O(1) 跳转
+  indexPos: Map<number, number>;
   count: number;
 };
 
@@ -176,42 +178,40 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     return true;
   };
 
-  // 构建索引缓存：key -> position，和总数
+  // 构建索引缓存：key -> position、index -> position、总数
   const buildIndexingCache = (sentences: Sentence[]): IndexingCache => {
     const n = sentences.length;
-    if (n === 0) return { posMap: new Map(), count: 0 };
+    if (n === 0) return { posMap: new Map(), indexPos: new Map(), count: 0 };
 
-    // 快路径：已按 index 非递减，无需排序
-    if (isNonDecreasingByIndex(sentences)) {
-      const posMap = new Map<string, number>();
-      for (let i = 0; i < n; i++) {
-        posMap.set(sentenceKey(sentences[i]), i);
-      }
-      return { posMap, count: n };
-    }
-
-    // 保守路径：拷贝排序后构建
-    const ordered = sentences.slice().sort((a, b) => a.index - b.index);
+    // 注意：posMap/indexPos 均以"当前 sentences 数组的位置"为准（不依赖排序结果）
     const posMap = new Map<string, number>();
-    for (let i = 0; i < ordered.length; i++) {
-      posMap.set(sentenceKey(ordered[i]), i);
+    const indexPos = new Map<number, number>();
+    for (let i = 0; i < n; i++) {
+      const s = sentences[i];
+      posMap.set(sentenceKey(s), i);
+      // 假设 index 在当前上下文中唯一（单一文件/源）
+      if (!indexPos.has(s.index)) {
+        indexPos.set(s.index, i);
+      }
     }
-    return { posMap, count: ordered.length };
+    return { posMap, indexPos, count: n };
   };
 
   // 覆盖某个句子（根据 key）
   const patchSentenceInStore = (updated: Sentence) => {
     const keyU = sentenceKey(updated);
     set((prev) => {
-      const sentences = prev.sentences.map((s) =>
-        sentenceKey(s) === keyU ? updated : s
-      );
-      const isCurrent =
-        prev.currentSentence && sentenceKey(prev.currentSentence) === keyU;
-      return {
-        sentences,
-        currentSentence: isCurrent ? updated : prev.currentSentence
-      };
+      const pos = prev.internal.indexing?.posMap.get(keyU);
+      if (pos === undefined) {
+        // 兜底：退化为 O(n) 替换
+        const sentences = prev.sentences.map((s) => sentenceKey(s) === keyU ? updated : s);
+        const isCurrent = prev.currentSentence && sentenceKey(prev.currentSentence) === keyU;
+        return { sentences, currentSentence: isCurrent ? updated : prev.currentSentence };
+      }
+      const sentences = prev.sentences.slice();
+      sentences[pos] = updated;
+      const isCurrent = prev.currentSentence && sentenceKey(prev.currentSentence) === keyU;
+      return { sentences, currentSentence: isCurrent ? updated : prev.currentSentence };
     });
   };
 
@@ -294,7 +294,10 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     const { sentences, virtualGroup } = get();
     if (sentences.length === 0) return [];
 
-    const ordered = [...sentences].sort((a, b) => a.index - b.index);
+    // 避免不必要的排序：若本身已按 index 非递减，直接使用原数组
+    const ordered = isNonDecreasingByIndex(sentences)
+      ? sentences
+      : [...sentences].sort((a, b) => a.index - b.index);
     if (!virtualGroup.active || virtualGroup.sentences.length === 0) {
       return ordered.map((s) => ({ type: 'sentence' as const, s }));
     }
@@ -731,9 +734,13 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     // 高级 API —— 跳到指定句（按 index）
     gotoSentenceIndex: (index: number) => {
       clearTailPreview();
-      const { sentences, srtTender } = get();
+      const { sentences, srtTender, internal } = get();
       if (!srtTender) return;
-      const target = sentences.find((s) => s.index === index);
+      // O(1) 通过索引缓存定位
+      const pos = internal.indexing?.indexPos.get(index);
+      const target = (pos !== undefined && pos >= 0 && pos < sentences.length)
+        ? sentences[pos]
+        : sentences.find((s) => s.index === index);
       if (!target) return;
       const { start } = srtTender.mapSeekTime(target);
       get().seekToTarget({ time: start, target });

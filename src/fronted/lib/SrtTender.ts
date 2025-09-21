@@ -39,6 +39,7 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
     private MAX_OP_ID = 0;
     private lineBucket = new Map<number, TenderLine<T>[]>();
     private readonly lines: TenderLine<T>[] = [];
+    private readonly lineRange = new Map<number, [number, number]>();
     private keyLineMapping:Map<string, number> | null = null;
     private cacheIndex: number | null = null;
     private backupIndex = 0;
@@ -180,19 +181,22 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
             ...this.orderTime(item),
             opId: this.MAX_OP_ID++
         };
+        // 先根据旧范围删除，再加入新范围
         this.deleteInBucket(tempItem.index);
         this.addInBucket(tempItem);
+        // 受 nextStart 影响的左邻居(i-1)需要重建桶归属
+        this.reindexLine(tempItem.index - 1);
         this.cacheIndex = null;
     }
 
     private addInBucket(tempItem: TenderLine<T>) {
         this.lines[tempItem.index] = tempItem;
         const [minIndex, maxIndex] = this.mapIndex(tempItem);
+        this.lineRange.set(tempItem.index, [minIndex, maxIndex]);
         for (let i = minIndex; i <= maxIndex; i += 1) {
             const group = this.lineBucket.get(i) ?? [];
-            group.push(tempItem);
-            // opId 越大越靠前
-            group.sort((a, b) => b.opId - a.opId);
+            // 最新写入的放到最前，等价于"按 opId 逆序"
+            group.unshift(tempItem);
             this.lineBucket.set(i, group);
         }
     }
@@ -200,7 +204,16 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
     private deleteInBucket(index: number) {
         const item = this.lines[index];
         if (!item) return;
-        const [minIndex, maxIndex] = this.mapIndex(item);
+        // 优先使用写入时记录的旧范围，保证能从"旧桶"正确移除
+        const range = this.lineRange.get(index);
+        let minIndex: number;
+        let maxIndex: number;
+        if (range) {
+            [minIndex, maxIndex] = range;
+        } else {
+            // 兜底：退化为按当前范围删除（可能漏删，但不影响正确性，只影响空间占用）
+            [minIndex, maxIndex] = this.mapIndex(item);
+        }
         for (let i = minIndex; i <= maxIndex; i += 1) {
             const group = this.lineBucket.get(i) ?? [];
             const idx = group.findIndex((item) => item.index === index);
@@ -209,6 +222,7 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
             }
             this.lineBucket.set(i, group);
         }
+        this.lineRange.delete(index);
     }
 
     private mapIndex(item: TenderLine<T>) {
@@ -218,6 +232,14 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
         }
         const maxIndex = Math.floor(Math.max(this.end(item), this.nextStart(item)) / this.GROUP_SECONDS);
         return [minIndex, maxIndex];
+    }
+
+    private reindexLine(i: number) {
+        if (i < 0 || i >= this.lines.length) return;
+        // 使用旧范围删除，再用新范围加入（nextStart 已经变化）
+        this.deleteInBucket(i);
+        const line = this.lines[i];
+        if (line) this.addInBucket(line);
     }
 
     public nextStart(line: TenderLine<T>): number {
@@ -259,6 +281,24 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
     }
 
     private getByTimeInternal(time: number) {
+        // 首尾时间钳制，避免越界返回 backupIndex 带来的语义不确定
+        if (this.lines.length > 0) {
+            const first = this.lines[0];
+            const last = this.lines[this.lines.length - 1];
+            const firstStart = this.start(first);
+            const lastEndBound = this.end(last); // 对最后一行，等价于 [start(last), end(last)]
+            if (time <= firstStart) {
+                this.cacheIndex = 0;
+                this.backupIndex = 0;
+                return first;
+            }
+            if (time >= lastEndBound) {
+                const i = this.lines.length - 1;
+                this.cacheIndex = i;
+                this.backupIndex = i;
+                return last;
+            }
+        }
         if (this.cacheIndex !== null) {
             const line = this.lines[this.cacheIndex];
             if (this.isCurrent(line, time)) {
