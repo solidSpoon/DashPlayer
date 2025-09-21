@@ -362,7 +362,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
   // 时间驱动：优先处理尾部预览；在 currentLock 有效期内跳过"按时间回写 currentSentence"
   const onTimeUpdate = () => {
     const state = get();
-    const { playing, autoPause, singleRepeat, currentSentence, srtTender } = state;
+    const { playing, autoPause, singleRepeat, currentSentence, srtTender, virtualGroup } = state;
     const { lastSeekAt, tailPreview, currentLock } = state.internal;
 
     // 1) 尾部预览优先
@@ -382,7 +382,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
       return;
     }
 
-    if (!srtTender || !isTimeOverdue(lastSeekAt)) return;
+    if (!srtTender || !isTimeOverdue(lastSeekAt)) return; // 保留 overdue 门控
 
     const effectiveTime = getEffectiveTime();
 
@@ -396,13 +396,27 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
       return;
     }
 
-    // 3) SingleRepeat：组优先
+    // 3) SingleRepeat：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
     if (playing && singleRepeat) {
       const { start, end } = state.getLoopRange();
       if (effectiveTime > end) {
-        state.seekToTarget({ time: start, target: currentSentence ?? undefined });
+        if (virtualGroup.active && virtualGroup.sentences.length > 0) {
+          const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
+          state.seekToTarget({ time: start, target: first });
+        } else {
+          state.seekToTarget({ time: start, target: currentSentence ?? undefined });
+        }
       }
-      return;
+      // 仅虚拟组：高亮随时间在组内流动；单句循环保持冻结
+      if (virtualGroup.active && virtualGroup.sentences.length > 0) {
+        const vgSet = new Set(virtualGroup.sentences.map((s) => `${(s as any).fileHash ?? 'nofile'}-${s.index}`));
+        const next = srtTender.getByTime(effectiveTime);
+        const nextKey = `${(next as any).fileHash ?? 'nofile'}-${next.index}`;
+        if (vgSet.has(nextKey) && next !== currentSentence) {
+          set({ currentSentence: next });
+        }
+      }
+      return; // singleRepeat 分支到此结束（单句冻结，组内已更新）
     }
 
     // 4) 正常模式：按时间回写 currentSentence（若当前未锁定）
@@ -838,17 +852,25 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     // 高级 API —— 调整开始时间
     adjustCurrentBegin: (deltaSeconds: number) => {
       const state = get();
-      const { srtTender } = state;
+      const { srtTender, virtualGroup } = state;
       const focus = getFocusedSentence();
-      if (!srtTender || !focus) return;
+      if (!srtTender) return;
+
+      // 目标句：组内第一句（若组激活且焦点在组内），否则当前焦点句
+      let target = focus;
+      if (virtualGroup.active && virtualGroup.sentences.length > 0 && isFocusInVirtualGroup()) {
+        const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
+        if (first) target = first;
+      }
+      if (!target) return;
 
       // 可选安全：避免 begin >= end
-      const { start, end } = srtTender.mapSeekTime(focus);
+      const { start, end } = srtTender.mapSeekTime(target);
       const minGap = 0.02;
       const maxDelta = (end - minGap) - start;
       const safeDelta = deltaSeconds > 0 ? Math.min(deltaSeconds, Math.max(maxDelta, 0)) : deltaSeconds;
 
-      const updated = srtTender.adjustBegin(focus, safeDelta);
+      const updated = srtTender.adjustBegin(target, safeDelta);
       patchSentenceInStore(updated);
 
       state.repeatCurrent({ loop: false });
@@ -877,11 +899,27 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     // 高级 API —— 调整结束时间（尾部预览 + 立即锁定高亮）
     adjustCurrentEnd: (deltaSeconds: number, options) => {
       const state = get();
-      const { srtTender } = state;
+      const { srtTender, virtualGroup } = state;
       const focus = getFocusedSentence();
-      if (!srtTender || !focus) return;
+      if (!srtTender) return;
 
-      const updated = srtTender.adjustEnd(focus, deltaSeconds);
+      // 目标句：组内最后一句（若组激活且焦点在组内），否则当前焦点句
+      let target = focus;
+      if (virtualGroup.active && virtualGroup.sentences.length > 0 && isFocusInVirtualGroup()) {
+        const sorted = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index);
+        const last = sorted[sorted.length - 1];
+        if (last) target = last;
+      }
+      if (!target) return;
+
+      // 可选安全（如需）：避免 end <= start（与你对 begin 的安全策略对称）
+      // const { start, end } = srtTender.mapSeekTime(target);
+      // const minGap = 0.02;
+      // const maxDelta = Number.POSITIVE_INFINITY; // 允许延长
+      // const minDelta = (start + minGap) - end;   // 防止缩短到与 start 交叉
+      // const safeDelta = Math.max(deltaSeconds, minDelta);
+
+      const updated = srtTender.adjustEnd(target, deltaSeconds /* 或 safeDelta */);
       patchSentenceInStore(updated);
 
       state.repeatCurrent({ loop: false });
