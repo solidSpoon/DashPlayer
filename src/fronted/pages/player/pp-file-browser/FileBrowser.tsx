@@ -4,7 +4,6 @@ import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import useFile from '@/fronted/hooks/useFile';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Folder, X } from 'lucide-react';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
@@ -17,6 +16,7 @@ import PathUtil from '@/common/utils/PathUtil';
 import useSWR from 'swr';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import BackNavItem from '@/fronted/components/fileBowser/BackNavItem';
 
 const api = window.electron;
 const logger = getRendererLogger('FileBrowser');
@@ -82,30 +82,13 @@ const FileBrowser = () => {
 
                 <ProjectListComp
                     enterProj={data?.isFolder ? data?.basePath : ''}
-                    backEle={(root, hc) => {
-                        return (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div
-                                            onClick={hc}
-                                            className={cn(
-                                                'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2'
-                                            )}
-                                        >
-                                            {root ? '.' : '..'}
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                        side={'bottom'}
-                                        align={'start'}
-                                    >
-                                        {root ? '.' : '返回上一级'}
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        );
-                    }}
+                    backEle={(root, currentPath, hc) => (
+                        <BackNavItem
+                            root={root}
+                            currentPath={currentPath}
+                            onClick={hc}
+                        />
+                    )}
                     videoEle={(pv) => {
                         let variant: BrowserItemVariant = 'normal';
                         if (file === PathUtil.join(pv.basePath, pv.fileName)) {

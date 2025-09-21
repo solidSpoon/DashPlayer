@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Folder } from 'lucide-react';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import MediaUtil from '@/common/utils/MediaUtil';
@@ -13,6 +12,7 @@ import ProjItem2 from '@/fronted/components/fileBowser/ProjItem2';
 import VideoItem2 from '@/fronted/components/fileBowser/VideoItem2';
 import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
+import BackNavItem from '@/fronted/components/fileBowser/BackNavItem';
 
 const api = window.electron;
 const TranscriptFile = () => {
@@ -44,30 +44,13 @@ const TranscriptFile = () => {
             </div>
 
             <ProjectListComp
-                backEle={(root, hc) => {
-                    return (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div
-                                        onClick={hc}
-                                        className={cn(
-                                            'w-full flex-shrink-0 flex justify-start items-center hover:bg-black/5 rounded-lg gap-3 px-3 lg:px-6 py-2'
-                                        )}
-                                    >
-                                        {root ? '.' : '..'}
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                    side={'bottom'}
-                                    align={'start'}
-                                >
-                                    {root ? '.' : '返回上一级'}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    );
-                }}
+                backEle={(root, currentPath, hc) => (
+                    <BackNavItem
+                        root={root}
+                        currentPath={currentPath}
+                        onClick={hc}
+                    />
+                )}
                 videoEle={(pv) => {
                     const ctxMenus = [
                         {
