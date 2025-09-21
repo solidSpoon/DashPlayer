@@ -399,16 +399,17 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
     // 3) SingleRepeat：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
     if (playing && singleRepeat) {
       const { start, end } = state.getLoopRange();
+      const focusInGroup = isFocusInVirtualGroup();
       if (effectiveTime > end) {
-        if (virtualGroup.active && virtualGroup.sentences.length > 0) {
+        if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
           const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
           state.seekToTarget({ time: start, target: first });
         } else {
           state.seekToTarget({ time: start, target: currentSentence ?? undefined });
         }
       }
-      // 仅虚拟组：高亮随时间在组内流动；单句循环保持冻结
-      if (virtualGroup.active && virtualGroup.sentences.length > 0) {
+      // 仅在焦点位于虚拟组内时：允许高亮随时间在组内流动；单句循环保持冻结
+      if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
         const vgSet = new Set(virtualGroup.sentences.map((s) => `${(s as any).fileHash ?? 'nofile'}-${s.index}`));
         const next = srtTender.getByTime(effectiveTime);
         const nextKey = `${(next as any).fileHash ?? 'nofile'}-${next.index}`;
@@ -416,7 +417,7 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
           set({ currentSentence: next });
         }
       }
-      return; // singleRepeat 分支到此结束（单句冻结，组内已更新）
+      return; // singleRepeat 分支到此结束（单句冻结 / 组内已更新）
     }
 
     // 4) 正常模式：按时间回写 currentSentence（若当前未锁定）
@@ -638,7 +639,8 @@ export const usePlayerV2 = create<PlayerState>((set, get) => {
       if (!singleRepeat) {
         return get().mapCurrentRange();
       }
-      if (virtualGroup.active && srtTender && virtualGroup.sentences.length > 0) {
+      const focusInGroup = isFocusInVirtualGroup();
+      if (focusInGroup && virtualGroup.active && srtTender && virtualGroup.sentences.length > 0) {
         return calcRangeForSentences(srtTender, virtualGroup.sentences);
       }
       if (currentSentence && srtTender) {
