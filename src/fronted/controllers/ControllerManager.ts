@@ -9,6 +9,7 @@ import { TranslationController } from './TranslationController';
 import { TranscriptionController } from './TranscriptionController';
 import { VocabularyController } from './VocabularyController';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { DictionaryController } from './DictionaryController';
 
 class ControllerManager {
     private controllers: ControllerRegistry[] = [];
@@ -40,6 +41,7 @@ class ControllerManager {
         this.registerController(new TranslationController());
         this.registerController(new TranscriptionController());
         this.registerController(new VocabularyController());
+        this.registerController(new DictionaryController());
 
         this.logger.info('Controllers registered', { count: this.controllers.length });
     }

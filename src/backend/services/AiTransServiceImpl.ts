@@ -1,7 +1,11 @@
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 
 export default interface TranslateService {
-    transWord(str: string, forceRefresh?: boolean): Promise<YdRes | OpenAIDictionaryResult | null>;
+    transWord(
+        str: string,
+        forceRefresh?: boolean,
+        requestId?: string
+    ): Promise<YdRes | OpenAIDictionaryResult | null>;
     transSentences(sentences: string[]): Promise<Map<string, string>>;
 
     groupTranslate(params: {
@@ -10,4 +14,3 @@ export default interface TranslateService {
         useCache?: boolean;
     }): Promise<void>;
 }
-

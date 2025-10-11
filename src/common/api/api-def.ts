@@ -96,7 +96,7 @@ interface SystemDef {
 interface AiTransDef {
     'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
     'ai-trans/word': {
-        params: { word: string; forceRefresh?: boolean },
+        params: { word: string; forceRefresh?: boolean; requestId?: string },
         return: YdRes | OpenAIDictionaryResult | null
     };
     // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)

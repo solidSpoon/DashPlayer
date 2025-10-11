@@ -1,19 +1,21 @@
-import {useEffect, useRef, useState} from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as turf from '@turf/turf';
-import {Feature, Polygon} from '@turf/turf';
+import { Feature, Polygon } from '@turf/turf';
 import WordPop from './word-pop';
-import {playUrl, playWord, getTtsUrl, playAudioUrl} from '@/common/utils/AudioPlayer';
+import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import useSWR, { mutate } from "swr";
-import Style from "@/fronted/styles/style";
-import {cn} from "@/fronted/lib/utils";
+import useSWR from 'swr';
+import Style from '@/fronted/styles/style';
+import { cn } from '@/fronted/lib/utils';
 import useCopyModeController from '../../hooks/useCopyModeController';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/common/Eb';
 import useVocabulary from '../../hooks/useVocabulary';
 import { useTransLineTheme } from './translatable-theme';
-import {usePlayerV2} from "@/fronted/hooks/usePlayerV2";
+import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/hooks/useDictionaryStream';
+import useSetting from '@/fronted/hooks/useSetting';
 
 const api = window.electron;
 const logger = getRendererLogger('Word');
@@ -67,15 +69,86 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
 
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
     const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
-    const {data: ydResp, isLoading: isWordLoading, mutate} = useSWR(hovered && !isCopyMode? ['ai-trans/word', original] : null, ([_apiName, word]) => api.call('ai-trans/word', { word, forceRefresh: false }));
+    const setting = useSetting((state) => state.setting);
+    const openaiDictionaryEnabled = setting('services.openai.enableDictionary') === 'true';
+    const dictionaryMode = openaiDictionaryEnabled ? 'openai' : 'youdao';
 
-    logger.debug('word loading status', { isWordLoading, hasYdResponse: !!ydResp });
+    const dictionaryEntry = useDictionaryStream((state) => state.getActiveEntry(original));
+
+    const shouldFetch = hovered && !isCopyMode;
+
+    const {
+        data: dictionaryResponse,
+        isLoading: isWordLoading,
+        mutate
+    } = useSWR(
+        shouldFetch ? ['ai-trans/word', original, dictionaryMode] : null,
+        async ([_apiName, wordParam]) => {
+            const targetWord = wordParam as string;
+            const requestId = openaiDictionaryEnabled ? createDictionaryRequestId(targetWord) : '';
+
+            if (openaiDictionaryEnabled) {
+                useDictionaryStream.getState().startRequest(targetWord, requestId);
+            }
+
+            try {
+                const result = await api.call('ai-trans/word', {
+                    word: targetWord,
+                    forceRefresh: false,
+                    requestId: openaiDictionaryEnabled ? requestId : undefined
+                });
+
+                if (openaiDictionaryEnabled) {
+                    const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in (result as Record<string, unknown>);
+                    useDictionaryStream.getState().setFinalResult(
+                        targetWord,
+                        requestId,
+                        isOpenAIDictionary ? result as OpenAIDictionaryResult : null
+                    );
+                }
+
+                return result;
+            } catch (error) {
+                if (openaiDictionaryEnabled) {
+                    useDictionaryStream.getState().setFinalResult(targetWord, requestId, null);
+                }
+                throw error;
+            }
+        }
+    );
+
+    logger.debug('word loading status', { isWordLoading, hasDictionaryResponse: !!dictionaryResponse });
+
     const handleRefresh = async () => {
         setIsRefreshing(true);
+        const requestId = openaiDictionaryEnabled ? createDictionaryRequestId(original) : '';
+
+        if (openaiDictionaryEnabled) {
+            useDictionaryStream.getState().startRequest(original, requestId);
+        }
+
         try {
-            // 强制重新请求，传递 forceRefresh: true 参数
-            const newData = await api.call('ai-trans/word', { word: original, forceRefresh: true });
+            const newData = await api.call('ai-trans/word', {
+                word: original,
+                forceRefresh: true,
+                requestId: openaiDictionaryEnabled ? requestId : undefined
+            });
+
+            if (openaiDictionaryEnabled) {
+                const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in (newData as Record<string, unknown>);
+                useDictionaryStream.getState().setFinalResult(
+                    original,
+                    requestId,
+                    isOpenAIDictionary ? newData as OpenAIDictionaryResult : null
+                );
+            }
+
             mutate(newData, { revalidate: false });
+        } catch (error) {
+            logger.error('failed to refresh dictionary result', { error: error instanceof Error ? error.message : error });
+            if (openaiDictionaryEnabled) {
+                useDictionaryStream.getState().setFinalResult(original, requestId, null);
+            }
         } finally {
             setIsRefreshing(false);
         }
@@ -137,8 +210,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             };
 
             let url = '';
-            if (isYoudaoFormat(ydResp)) {
-                url = ydResp?.speakUrl || '';
+            if (isYoudaoFormat(dictionaryResponse)) {
+                url = dictionaryResponse?.speakUrl || '';
             }
 
             logger.debug('TTS URL generated', { url });
@@ -180,10 +253,12 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                     <Eb>
                         <WordPop
                             word={word}
-                            translation={ydResp}
+                            translation={dictionaryResponse}
                             ref={popperRef}
-                            hoverColor={alwaysDark ? "bg-neutral-600" : theme.word.popReferenceBgClass}
+                            hoverColor={alwaysDark ? 'bg-neutral-600' : theme.word.popReferenceBgClass}
                             isLoading={isWordLoading || isRefreshing}
+                            openaiStreamingData={openaiDictionaryEnabled ? dictionaryEntry?.data : null}
+                            isStreaming={openaiDictionaryEnabled && !!dictionaryEntry && !dictionaryEntry.isComplete}
                             onRefresh={handleRefresh}
                         />
                     </Eb>

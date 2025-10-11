@@ -1,3 +1,5 @@
+import { OpenAIDictionaryResult } from '@/common/types/YdRes';
+
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
  * 遵循与后端API相同的设计模式，支持分散定义和类型安全
@@ -20,6 +22,19 @@ interface UIRendererDef {
 interface TranslationRendererDef {
     'translation/result': { params: { key: string, translation: string, isComplete?: boolean }, return: void };
     'translation/batch-result': { params: { translations: Array<{ key: string, translation: string, isComplete?: boolean }> }, return: void };
+}
+
+// 字典相关的前端API定义
+interface DictionaryRendererDef {
+    'dictionary/openai-update': {
+        params: {
+            requestId: string;
+            word: string;
+            data: OpenAIDictionaryResult;
+            isComplete?: boolean;
+        },
+        return: void
+    };
 }
 
 // 转录相关的前端API定义
@@ -70,6 +85,7 @@ interface VideoLearningRendererDef {
 export type RendererApiDefinitions = RendererApiDefinition
     & UIRendererDef
     & TranslationRendererDef
+    & DictionaryRendererDef
     & TranscriptRendererDef
     & VocabularyRendererDef
     & VideoLearningRendererDef;

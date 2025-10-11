@@ -6,7 +6,7 @@ import {
     useInteractions
 } from '@floating-ui/react';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import {cn} from "@/fronted/lib/utils";
+import { cn } from '@/fronted/lib/utils';
 import OpenAIWordPop from './openai-word-pop';
 import useSetting from '@/fronted/hooks/useSetting';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -20,6 +20,8 @@ export interface WordSubParam {
     translation: YdRes | OpenAIDictionaryResult | null | undefined;
     hoverColor: string;
     isLoading?: boolean;
+    openaiStreamingData?: OpenAIDictionaryResult | null;
+    isStreaming?: boolean;
     onRefresh?: () => void;
     classNames?: {
         container?: string;        // youdao 容器覆盖
@@ -30,10 +32,19 @@ export interface WordSubParam {
 
 const WordPop = React.forwardRef(
     (
-        { word, translation, hoverColor, isLoading: externalIsLoading, onRefresh, classNames }: WordSubParam,
+        {
+            word,
+            translation,
+            hoverColor,
+            isLoading: externalIsLoading,
+            openaiStreamingData,
+            isStreaming = false,
+            onRefresh,
+            classNames
+        }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
     ) => {
-        logger.debug('WordPop translation data', { translation });
+        logger.debug('WordPop translation data', { translation, openaiStreamingData, isStreaming });
 
         const theme = useTransLineTheme();
         const setting = useSetting((state) => state.setting);
@@ -102,21 +113,32 @@ const WordPop = React.forwardRef(
         const popper = () => {
             const shouldShowYoudao = isYoudaoFormat(translation);
             const shouldShowOpenAI = isOpenAIFormat(translation);
+            const openAIData = openaiStreamingData ?? (shouldShowOpenAI ? translation : null);
+            const openAIHasData = !!openAIData && (
+                (Array.isArray(openAIData.definitions) && openAIData.definitions.length > 0) ||
+                Boolean(openAIData.word)
+            );
+            const openAILoading = openaiDictionaryEnabled
+                ? (externalIsLoading || isStreaming) && !openAIHasData
+                : externalIsLoading;
             
             logger.debug('WordPop content type detection', {
                 translation,
                 shouldShowYoudao,
                 shouldShowOpenAI,
                 hasDefinitions: translation && 'definitions' in translation,
-                definitionsArray: translation && 'definitions' in translation ? translation.definitions : null
+                definitionsArray: translation && 'definitions' in translation ? translation.definitions : null,
+                openAIHasData,
+                isStreaming
             });
 
             if (openaiDictionaryEnabled) {
                 return (
                     <OpenAIWordPop
                         className={cn(theme.pop.openaiContainer, classNames?.openaiContainer)}
-                        data={shouldShowOpenAI ? translation : null}
-                        isLoading={externalIsLoading}
+                        data={openAIData}
+                        isLoading={openAILoading}
+                        isStreaming={isStreaming}
                         onRefresh={onRefresh}
                     />
                 );

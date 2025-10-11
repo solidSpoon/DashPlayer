@@ -23,8 +23,8 @@ export default class AiTransController implements Controller {
     /**
      * 单独的单词翻译（有道）
      */
-    public async youDaoTrans(params: { word: string; forceRefresh?: boolean }): Promise<YdRes | OpenAIDictionaryResult | null> {
-        return this.translateService.transWord(params.word, params.forceRefresh);
+    public async youDaoTrans(params: { word: string; forceRefresh?: boolean; requestId?: string }): Promise<YdRes | OpenAIDictionaryResult | null> {
+        return this.translateService.transWord(params.word, params.forceRefresh, params.requestId);
     }
 
     /**
