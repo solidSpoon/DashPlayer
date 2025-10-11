@@ -89,12 +89,17 @@ const TranslatableLine = ({
                         />
                     );
                 }
-                return <div
-                    className={`select-none ${show ? '' : 'text-transparent'}`}
-                    key={partId}
-                >
-                    {part}
-                </div>;
+                return (
+                    <div
+                        className={cn(
+                            'select-none whitespace-pre flex-shrink-0',
+                            !show && 'text-transparent'
+                        )}
+                        key={partId}
+                    >
+                        {part}
+                    </div>
+                );
             })}
         </div>
     );
