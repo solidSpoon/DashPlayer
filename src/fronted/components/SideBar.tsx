@@ -5,7 +5,7 @@ import logoLight from '../../../assets/logo-light.png';
 import logoDark from '../../../assets/logo-dark.png';
 import useFile from '../hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
-import { BookOpen, Captions, CloudDownload, Rotate3D, Settings, SquareSplitHorizontal, Star, User, Video } from 'lucide-react';
+import { BookOpen, Captions, Rotate3D, Settings, SquareSplitHorizontal, Star, User, Video } from 'lucide-react';
 
 export interface SideBarProps {
     compact?: boolean;
@@ -89,12 +89,6 @@ const SideBar = ({ compact }: SideBarProps) => {
                     '/split',
                     'split',
                     <SquareSplitHorizontal />
-                )}
-                {item(
-                    'Download',
-                    '/download',
-                    'download',
-                    <CloudDownload />
                 )}
                 {item(
                     'Convert',

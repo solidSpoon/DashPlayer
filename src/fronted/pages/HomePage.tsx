@@ -66,8 +66,6 @@ const HomePage = () => {
                           className="font-semibold ">Transcript</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
                           className="font-semibold ">Split Video</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/download'}
-                          className="font-semibold ">Download</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/convert'}
                           className="font-semibold ">Convert</Link>
                 </nav>

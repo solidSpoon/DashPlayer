@@ -30,8 +30,6 @@ export default class LocationServiceImpl implements LocationService {
                 return LocationServiceImpl.isDev ? path.resolve('lib/ffmpeg') : `${process.resourcesPath}/lib/ffmpeg`;
             case ProgramType.FFPROBE:
                 return LocationServiceImpl.isDev ? path.resolve('lib/ffprobe') : `${process.resourcesPath}/lib/ffprobe`;
-            case ProgramType.YT_DL:
-                return LocationServiceImpl.isDev ? path.resolve('lib/yt-dlp') : `${process.resourcesPath}/lib/yt-dlp`;
             case ProgramType.LIB:
                 return LocationServiceImpl.isDev ? path.resolve('lib') : `${process.resourcesPath}/lib`;
             default:

@@ -16,7 +16,6 @@ import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipVO} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
-import {COOKIE} from '@/common/types/DlVideoType';
 import {CoreMessage} from 'ai';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 
@@ -174,10 +173,6 @@ interface SplitVideoDef {
     'split-video/video-length': { params: string, return: number };
 }
 
-interface DownloadVideoDef {
-    'download-video/url': { params: { url: string, cookies: COOKIE }, return: number };
-}
-
 interface ConvertDef {
     'convert/to-mp4': { params: string, return: number };
     'convert/from-folder': { params: string[], return: FolderVideos[] };
@@ -265,7 +260,6 @@ export type ApiDefinitions = ApiDefinition
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & SettingsDef
-    & DownloadVideoDef
     & ConvertDef
     & FavoriteClipsDef
     & TagDef

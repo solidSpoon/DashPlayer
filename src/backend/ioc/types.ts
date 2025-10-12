@@ -5,7 +5,6 @@ const TYPES = {
     VideoLearningService: Symbol('VideoLearningService'),
     Controller: Symbol('Controller'),
     WatchProject: Symbol('WatchProject'),
-    DlVideo: Symbol('DlVideo'),
     TagService: Symbol('TagService'),
     SubtitleService: Symbol('SubtitleService'),
     SrtTimeAdjustService: Symbol('SubtitleTimestampAdjustmentService'),

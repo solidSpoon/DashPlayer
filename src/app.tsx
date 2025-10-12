@@ -20,7 +20,6 @@ import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from '@/fronted/components/short-cut/GlobalShortCut';
-import DownloadVideo from '@/fronted/pages/DownloadVideo';
 import Convert from '@/fronted/pages/convert/Convert';
 import Eb from '@/fronted/components/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
@@ -54,16 +53,12 @@ const App = () => {
                                     element={<Eb key="transcript"><Transcript /></Eb>}
                                 />
                                 <Route
-                                path="favorite"
-                                element={<Eb key="favorite"><Favorite /></Eb>}
+                                    path="favorite"
+                                    element={<Eb key="favorite"><Favorite /></Eb>}
                                 />
                                 <Route
                                     path="split"
                                     element={<Eb key="split"><Split /></Eb>}
-                                />
-                                <Route
-                                    path="download"
-                                    element={<Eb key="download"><DownloadVideo /></Eb>}
                                 />
                                 <Route
                                     path="convert"

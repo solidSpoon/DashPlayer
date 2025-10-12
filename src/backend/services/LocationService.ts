@@ -10,7 +10,6 @@ export enum LocationType {
 export enum ProgramType {
     FFMPEG = 'ffmpeg',
     FFPROBE = 'ffprobe',
-    YT_DL = 'yt-dlp',
     LIB = 'lib',
 }
 

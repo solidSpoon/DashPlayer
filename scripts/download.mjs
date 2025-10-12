@@ -182,19 +182,6 @@ const urls = {
         linux: {
             x64: `${FFMPEG_BASE_URL}ffprobe-linux-x64`,
         }
-    },
-    'yt-dlp': {
-        darwin: {
-            x64: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos',
-            arm64: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos',
-        },
-        win32: {
-            x64: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
-            ia32: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
-        },
-        linux: {
-            x64: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux'
-        }
     }
 }
 
@@ -231,20 +218,6 @@ const arch = process.env.npm_config_arch || os.arch()
     });
     if (res === 'need_download') {
         const downloadUrl = urls.ffprobe[platform][arch];
-        await download({url: downloadUrl, dir, file});
-        fs.chmodSync(path.join(dir, file), 0o755);
-    }
-}
-
-{
-    // yt-dlp
-    const file = platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-    const res = await verifyExistence({
-        dir,
-        file,
-    });
-    if (res === 'need_download') {
-        const downloadUrl = urls['yt-dlp'][platform][arch];
         await download({url: downloadUrl, dir, file});
         fs.chmodSync(path.join(dir, file), 0o755);
     }

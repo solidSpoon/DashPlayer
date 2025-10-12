@@ -2,7 +2,6 @@ import { Container } from 'inversify';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/interfaces/controller';
-import DownloadVideoController from '@/backend/controllers/DownloadVideoController';
 import TagService from '@/backend/services/TagService';
 import TagController from '@/backend/controllers/TagController';
 import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
@@ -58,8 +57,6 @@ import TranslateService from '@/backend/services/AiTransServiceImpl';
 import TagServiceImpl from '@/backend/services/impl/TagServiceImpl';
 import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
-import DlVideoService from '@/backend/services/DlVideoService';
-import DlVideoServiceImpl from '@/backend/services/impl/DlVideoServiceImpl';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
@@ -84,7 +81,6 @@ container.bind<ClientProviderService<TencentClient>>(TYPES.TencentClientProvider
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
-container.bind<Controller>(TYPES.Controller).to(DownloadVideoController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SrtTimeAdjustController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(AiFuncController).inSingletonScope();
@@ -104,7 +100,6 @@ container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSi
 container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
 container.bind<VideoLearningService>(TYPES.VideoLearningService).to(VideoLearningServiceImpl).inSingletonScope();
-container.bind<DlVideoService>(TYPES.DlVideo).to(DlVideoServiceImpl).inSingletonScope();
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
 container.bind<SubtitleService>(TYPES.SubtitleService).to(SubtitleServiceImpl).inSingletonScope();
