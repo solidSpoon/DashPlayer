@@ -11,7 +11,7 @@ import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import useSetting from '@/fronted/hooks/useSetting';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
-import {TranslatableLine} from "@/fronted/components/player-translable-line";
+import { TranslatableLine } from '@/fronted/components/player-translable-line';
 
 
 interface TranslatableLineWrapperProps {
@@ -20,6 +20,7 @@ interface TranslatableLineWrapperProps {
   clearAdjust: () => void;
   className?: string;     // 可选：容器附加 class
   coreClassName?: string; // 可选：如需给 Core 容器加类，可结合 atoms 改动一起使用
+  variant?: 'default' | 'plain';
 }
 
 const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
@@ -27,7 +28,8 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
   adjusted,
   clearAdjust,
   className,
-  coreClassName
+  coreClassName,
+  variant = 'default'
 }) => {
   const text = sentence.text;
   const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
@@ -40,15 +42,25 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
 
   if (!text) return <div />;
 
+  const variantConfig = variant === 'plain'
+    ? {
+      root: 'relative z-10 mx-0 mt-0 rounded-none bg-transparent drop-shadow-none shadow-none text-foreground dark:text-neutral-100 pointer-events-auto',
+      leftControl: 'w-10 h-10 flex-shrink-0',
+      rightControl: 'w-10 h-full flex items-center justify-center flex-shrink-0'
+    }
+    : {
+      root: 'rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50 bg-stone-200 dark:bg-neutral-700 text-stone-700 dark:text-neutral-100 shadow-stone-100 dark:shadow-neutral-600 pointer-events-auto',
+      leftControl: 'w-10 m-2.5 h-10 flex-shrink-0',
+      rightControl: 'w-10 h-full flex items-end justify-center pb-2 flex-shrink-0'
+    };
+
   return (
     <div
       onMouseOver={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'flex justify-between items-start rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50',
-        'bg-stone-200 dark:bg-neutral-700',
-        'text-stone-700 dark:text-neutral-100',
-        'shadow-stone-100 dark:shadow-neutral-600',
+        'flex justify-between items-start',
+        variantConfig.root,
         FONT_SIZE['ms1-large'],
         fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
         fontSize === 'fontSizeMedium' && FONT_SIZE['ms1-medium'],
@@ -57,7 +69,7 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
       )}
     >
       {/* 左侧：时间调整（业务控件） */}
-      <div className={cn('w-10 m-2.5 h-10 flex-shrink-0')}>
+      <div className={cn(variantConfig.leftControl)}>
         {adjusted && (
           <TooltipProvider>
             <Tooltip>
@@ -80,7 +92,7 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
       />
 
       {/* 右侧：收藏标记（业务控件） */}
-      <div className={cn('w-10 h-full flex items-end justify-center pb-2 flex-shrink-0')}>
+      <div className={cn(variantConfig.rightControl)}>
         {isFavourite && <Bookmark className={cn('w-5 h-5 text-yellow-500 dark:text-yellow-600')} />}
       </div>
     </div>

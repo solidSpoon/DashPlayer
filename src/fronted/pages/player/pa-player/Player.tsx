@@ -128,7 +128,7 @@ export default function Player({ className, onReady, onEnded }: PlayerProps): Re
                         videoElementRef.current = video;
                     }}
                 />
-                {!fullScreen && (
+                {!fullScreen && !podcastMode && (
                     <PlayerControlPanel
                         onTimeChange={(time) => playerV2Actions.seekTo({ time })}
                         className="absolute bottom-0 left-0 z-20"

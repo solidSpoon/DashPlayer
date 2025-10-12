@@ -49,6 +49,7 @@ const PlayerWithControlsPage = () => {
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
+    const autoModeAppliedRef = useRef<{ videoId: string | number; mediaType: 'audio' | 'video' } | null>(null);
     useEffect(() => {
         const runEffect = async () => {
             logger.debug('video effect triggered', {video});
@@ -73,45 +74,56 @@ const PlayerWithControlsPage = () => {
             if (subtitlePath && sp !== video.srtFile) {
                 useFile.getState().updateFile(subtitlePath);
             }
-            if (MediaUtil.isAudio(video.fileName)) {
-                const currentMode = useLayout.getState().podcastMode;
-                if (!currentMode) {
-                    useLayout.getState().setPodcastMode(true);
-                    toast(
-                        (t) => (
-                            <ModeSwitchToast
-                                mode="podcast"
-                                onCancel={() => {
-                                    useLayout.getState().setPodcastMode(false);
-                                    toast.dismiss(t.id);
-                                }}
-                            />
-                        ),
-                        {
-                            id: MODE_SWITCH_TOAST_ID,
-                            duration: 5000,
+            if (video) {
+                const mediaType: 'audio' | 'video' = MediaUtil.isAudio(video.fileName) ? 'audio' : 'video';
+                const alreadyApplied =
+                    autoModeAppliedRef.current?.videoId === video.id &&
+                    autoModeAppliedRef.current?.mediaType === mediaType;
+
+                if (!alreadyApplied) {
+                    autoModeAppliedRef.current = { videoId: video.id, mediaType };
+
+                    if (mediaType === 'audio') {
+                        const currentMode = useLayout.getState().podcastMode;
+                        if (!currentMode) {
+                            useLayout.getState().setPodcastMode(true);
+                            toast(
+                                (t) => (
+                                    <ModeSwitchToast
+                                        mode="podcast"
+                                        onCancel={() => {
+                                            useLayout.getState().setPodcastMode(false);
+                                            toast.dismiss(t.id);
+                                        }}
+                                    />
+                                ),
+                                {
+                                    id: MODE_SWITCH_TOAST_ID,
+                                    duration: 5000,
+                                }
+                            );
                         }
-                    );
-                }
-            } else {
-                const currentMode = useLayout.getState().podcastMode;
-                if (currentMode) {
-                    useLayout.getState().setPodcastMode(false);
-                    toast(
-                        (t) => (
-                            <ModeSwitchToast
-                                mode="video"
-                                onCancel={() => {
-                                    useLayout.getState().setPodcastMode(true);
-                                    toast.dismiss(t.id);
-                                }}
-                            />
-                        ),
-                        {
-                            id: MODE_SWITCH_TOAST_ID,
-                            duration: 5000,
+                    } else {
+                        const currentMode = useLayout.getState().podcastMode;
+                        if (currentMode) {
+                            useLayout.getState().setPodcastMode(false);
+                            toast(
+                                (t) => (
+                                    <ModeSwitchToast
+                                        mode="video"
+                                        onCancel={() => {
+                                            useLayout.getState().setPodcastMode(true);
+                                            toast.dismiss(t.id);
+                                        }}
+                                    />
+                                ),
+                                {
+                                    id: MODE_SWITCH_TOAST_ID,
+                                    duration: 5000,
+                                }
+                            );
                         }
-                    );
+                    }
                 }
             }
 

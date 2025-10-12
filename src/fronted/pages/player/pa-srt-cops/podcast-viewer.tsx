@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { playerV2Actions } from '@/fronted/components/player-components';
@@ -5,7 +6,6 @@ import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLinePodcast from '@/fronted/pages/player/pa-srt-cops/translatable-line-podcast';
 import ViewerControlPanel from '@/fronted/pages/player/subtitle-viewer/viewer-control-panel';
-import { useShallow } from 'zustand/react/shallow';
 import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';
 import useTranslation from '@/fronted/hooks/useTranslation';
@@ -13,16 +13,29 @@ import useTranslation from '@/fronted/hooks/useTranslation';
 const PodcastViewer = ({ className }: { className?: string }) => {
     const current: Sentence | null = usePlayerV2((s) => s.currentSentence);
     const sentences = usePlayerV2((s) => s.sentences);
-    const subtitleAround: Sentence[] = (() => {
-        if (!current) return [];
+
+    const surrounding = (() => {
+        if (!current) {
+            return { previous: [] as Sentence[], next: [] as Sentence[] };
+        }
         const idx = sentences.findIndex((x) => x.index === current.index && x.fileHash === current.fileHash);
-        const left = Math.max(0, idx - 5);
-        const right = Math.min(sentences.length - 1, idx + 5);
-        return sentences.slice(left, right + 1);
+        if (idx === -1) {
+            return { previous: [] as Sentence[], next: [] as Sentence[] };
+        }
+
+        const MAX_AROUND = 2;
+        const previous: Sentence[] = [];
+        const next: Sentence[] = [];
+
+        for (let i = Math.max(0, idx - MAX_AROUND); i < idx; i += 1) {
+            previous.push(sentences[i]);
+        }
+        for (let i = idx + 1; i <= Math.min(sentences.length - 1, idx + MAX_AROUND); i += 1) {
+            next.push(sentences[i]);
+        }
+
+        return { previous, next };
     })();
-    const currentIndex = current?.index ?? 0;
-    const subtitleBefore: Sentence[] = subtitleAround.filter((s) => s.index < currentIndex).sort((a, b) => b.index - a.index);
-    const subtitleAfter: Sentence[] = subtitleAround.filter((s) => s.index > currentIndex).sort((a, b) => a.index - b.index);
 
     const translationKey = current?.translationKey || '';
     const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
@@ -31,71 +44,57 @@ const PodcastViewer = ({ className }: { className?: string }) => {
     const srtTender = usePlayerV2(s => s.srtTender);
     const clearAdjust = () => { void playerV2Actions.clearAdjust(); };
     if (!current || !srtTender) {
-        return <div className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)} />;
+        return <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-900', className)} />;
     }
     return (
-        <div
-            className={cn('w-full h-full relative overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-800', className)}
-        >
-            <div className={cn('w-full h-full overflow-hidden grid grid-cols-1 bg-stone-100 dark:bg-neutral-800')}
-                 style={{
-                     gridTemplateRows: '15% 15% 55% 15%'
-                 }}
-            >
-                <div
-                    className={cn('row-start-1 row-end-3 col-start-1 col-end-2 flex flex-col-reverse items-center justify-start gap-10 text-foreground/50 overflow-hidden pb-8')}>
-                    {
-                        subtitleBefore.map((s) => (
-                            <TranslatableLinePodcast
-                                adjusted={false} clearAdjust={FuncUtil.blank}
-                                key={s.key} className={cn('text-3xl')}
-                                sentence={s}
-                            />
-                        ))
-                    }
-                </div>
-                <div
-                    className={cn('row-start-3 row-end-5 col-start-1 col-end-2 flex flex-col items-center justify-start gap-10 overflow-hidden')}
-                >
+        <div className={cn('relative flex h-full w-full items-center justify-center overflow-hidden rounded-none bg-stone-100 dark:bg-neutral-900', className)}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-stone-100 via-stone-100/80 to-transparent dark:from-neutral-900 dark:via-neutral-900/70" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-stone-100 via-stone-100/80 to-transparent dark:from-neutral-900 dark:via-neutral-900/70" />
 
-                    <div
-                        className={cn('py-20 w-full flex flex-col items-center justify-center gap-10',
-                            'bg-stone-50 dark:bg-neutral-700 text-foreground/80 border-8 rounded-2xl border-stone-100 dark:border-neutral-800'
-                        )}
-                    >
+            <div className="relative flex w-full max-w-5xl flex-col items-center gap-8 px-6 py-12 text-foreground/80">
+                <div className="flex w-full flex-col items-center gap-4 text-foreground/50">
+                    {surrounding.previous.map((sentence) => (
                         <TranslatableLinePodcast
-                            className={cn('text-4xl')}
-                            adjusted={srtTender.adjusted(current) ?? false} clearAdjust={clearAdjust}
+                            key={sentence.key}
+                            sentence={sentence}
+                            adjusted={false}
+                            clearAdjust={FuncUtil.blank}
+                            className={cn('text-2xl font-medium text-foreground/60 transition-colors')}
+                        />
+                    ))}
+                </div>
+
+                <div className="w-full rounded-3xl border border-stone-200/70 bg-white/70 p-10 shadow-xl shadow-stone-200/40 backdrop-blur-md transition-colors dark:border-neutral-700/60 dark:bg-neutral-800/85 dark:shadow-black/40">
+                    <div className="flex flex-col items-center gap-6 text-center text-foreground">
+                        <TranslatableLinePodcast
+                            className={cn('text-4xl font-semibold')}
+                            adjusted={srtTender.adjusted(current) ?? false}
+                            clearAdjust={clearAdjust}
                             sentence={current}
                         />
-                        {!StrUtil.isBlank(newTranslation) && showCn && <div className={cn('text-3xl text-center')}>
-                            {newTranslation}
-                        </div>}
-                        {!StrUtil.isBlank(current?.textZH) && showCn && <div className={cn('text-2xl text-center')}>
-                            {current?.textZH}
-                        </div>}
+                        {showCn && !StrUtil.isBlank(newTranslation) && (
+                            <div className="text-2xl text-foreground/80 dark:text-neutral-200">{newTranslation}</div>
+                        )}
+                        {showCn && !StrUtil.isBlank(current?.textZH) && (
+                            <div className="text-xl text-foreground/70 dark:text-neutral-300">{current?.textZH}</div>
+                        )}
                     </div>
-                    {
-                        subtitleAfter.map((s) => (
-                            <TranslatableLinePodcast
-                                sentence={s}
-                                adjusted={false} clearAdjust={FuncUtil.blank}
-                                key={s.key} className={cn('text-3xl text-foreground/75')} />
-
-                        ))
-                    }
                 </div>
-                <div className={cn('w-full row-start-1 row-end-2 col-start-1 col-end-2',
-                    'bg-gradient-to-t from-transparent to-stone-100 dark:from-transparent dark:to-neutral-800'
-                )}></div>
-                <div className={cn('w-full row-start-4 row-end-5 col-start-1 col-end-2',
-                    'bg-gradient-to-b from-transparent to-stone-100 dark:from-transparent dark:to-neutral-800'
-                )}></div>
-            </div>
-            <ViewerControlPanel
 
-                className={'absolute left-0 bottom-0'} />
-            {/* </CardContent> */}
+                <div className="flex w-full flex-col items-center gap-4 text-foreground/70">
+                    {surrounding.next.map((sentence) => (
+                        <TranslatableLinePodcast
+                            key={sentence.key}
+                            sentence={sentence}
+                            adjusted={false}
+                            clearAdjust={FuncUtil.blank}
+                            className={cn('text-3xl font-medium text-foreground/75')}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <ViewerControlPanel className="absolute left-0 bottom-0" />
         </div>
     );
 

@@ -1,9 +1,10 @@
+import React from 'react';
 import { AiOutlineFieldTime } from 'react-icons/ai';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
 import { Sentence } from '@/common/types/SentenceC';
-import TranslatableLineWrapper from "@/fronted/pages/player/pa-srt-cops/translatable-line-wrapper";
+import TranslatableLineWrapper from '@/fronted/pages/player/pa-srt-cops/translatable-line-wrapper';
 
 interface TranslatableLinePodcastParam {
     sentence: Sentence;
@@ -13,11 +14,11 @@ interface TranslatableLinePodcastParam {
 }
 
 const TranslatableLinePodcast = ({
-                                    sentence,
-                                    adjusted,
-                                    clearAdjust,
-                                    className
-                                }: TranslatableLinePodcastParam) => {
+    sentence,
+    adjusted,
+    clearAdjust,
+    className
+}: TranslatableLinePodcastParam) => {
 
     const text = sentence.text;
 
@@ -26,7 +27,7 @@ const TranslatableLinePodcast = ({
     ) : (
         <div
             className={cn(
-                'flex justify-between items-start w-full',
+                'relative flex justify-between items-start w-full overflow-visible pointer-events-auto',
                 'shadow-stone-100 dark:shadow-neutral-600',
                 className
             )}
@@ -49,7 +50,12 @@ const TranslatableLinePodcast = ({
                     </TooltipProvider>
                 )}
             </div>
-            <TranslatableLineWrapper sentence={sentence} adjusted={adjusted} clearAdjust={clearAdjust} />
+            <TranslatableLineWrapper
+                sentence={sentence}
+                adjusted={adjusted}
+                clearAdjust={clearAdjust}
+                variant={'plain'}
+            />
             <div className={cn('w-10 h-full')} />
         </div>
     );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as turf from '@turf/turf';
 import { Feature, Polygon } from '@turf/turf';
 import WordPop from './word-pop';
@@ -238,7 +238,6 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 ref={eleRef}
                 className="rounded select-none"
                 onMouseOver={() => {
-                    console.log('mouse over word, setting hovered to true');
                     setHovered(true);
                     pause();
                 }}

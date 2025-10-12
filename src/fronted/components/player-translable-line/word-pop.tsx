@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    FloatingPortal,
     autoPlacement,
     offset,
     useFloating,
@@ -175,18 +176,21 @@ const WordPop = React.forwardRef(
                     {word}
                 </div>
 
-                <div
-                    {...getFloatingProps()}
-                    ref={refs.setFloating}
-                    style={floatingStyles}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                    }}
-                >
-                    <div className="z-50" ref={ref}>
-                        {popper()}
+                <FloatingPortal context={context}>
+                    <div
+                        {...getFloatingProps()}
+                        ref={refs.setFloating}
+                        style={floatingStyles}
+                        className="z-[9999]"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="z-50" ref={ref}>
+                            {popper()}
+                        </div>
                     </div>
-                </div>
+                </FloatingPortal>
             </>
         );
     }
