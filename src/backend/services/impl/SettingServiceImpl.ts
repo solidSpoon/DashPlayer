@@ -1,6 +1,7 @@
 import { SettingKey } from '@/common/types/store_schema';
 import { storeGet, storeSet } from '../../store';
 import SystemService from '@/backend/services/SystemService';
+import SystemConfigService from '@/backend/services/SystemConfigService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/services/SettingService';
@@ -9,10 +10,15 @@ import { OpenAiService } from '@/backend/services/OpenAiService';
 import TencentProvider from '@/backend/services/impl/clients/TencentProvider';
 import YouDaoProvider from '@/backend/services/impl/clients/YouDaoProvider';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
+import {
+    OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,
+    getSubtitleDefaultStyle
+} from '@/common/constants/openaiSubtitlePrompts';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: TencentProvider;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: YouDaoProvider;
@@ -36,7 +42,8 @@ export default class SettingServiceImpl implements SettingService {
                 model: await this.get('model.gpt.default'),
                 enableSentenceLearning: await this.get('services.openai.enableSentenceLearning') === 'true',
                 enableSubtitleTranslation: await this.get('services.openai.enableSubtitleTranslation') === 'true',
-                subtitleTranslationMode: (await this.get('services.openai.subtitleTranslationMode')) === 'simple_en' ? 'simple_en' : 'zh',
+                subtitleTranslationMode: await this.getOpenAiSubtitleTranslationMode(),
+                subtitleCustomStyle: await this.getOpenAiSubtitleCustomStyle(),
                 enableDictionary: await this.get('services.openai.enableDictionary') === 'true',
                 enableTranscription: await this.get('services.openai.enableTranscription') === 'true',
             },
@@ -66,8 +73,13 @@ export default class SettingServiceImpl implements SettingService {
         await this.set('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
         await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
         await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
-        const subtitleMode = settings.openai.subtitleTranslationMode === 'simple_en' ? 'simple_en' : 'zh';
+        const subtitleModeInput = settings.openai.subtitleTranslationMode;
+        const subtitleMode: 'zh' | 'simple_en' | 'custom' =
+            subtitleModeInput === 'simple_en' || subtitleModeInput === 'custom' ? subtitleModeInput : 'zh';
         await this.set('services.openai.subtitleTranslationMode', subtitleMode);
+        const customStyleInput = settings.openai.subtitleCustomStyle ?? '';
+        const styleToStore = customStyleInput.trim().length > 0 ? customStyleInput.trim() : getSubtitleDefaultStyle('custom');
+        await this.systemConfigService.setValue(OPENAI_SUBTITLE_CUSTOM_STYLE_KEY, styleToStore);
         
         // Update Tencent settings
         await this.set('apiKeys.tencent.secretId', settings.tencent.secretId);
@@ -130,9 +142,20 @@ export default class SettingServiceImpl implements SettingService {
         return null;
     }
 
-    public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en'> {
+    public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'> {
         const mode = await this.get('services.openai.subtitleTranslationMode');
-        return mode === 'simple_en' ? 'simple_en' : 'zh';
+        if (mode === 'simple_en' || mode === 'custom') {
+            return mode;
+        }
+        return 'zh';
+    }
+
+    public async getOpenAiSubtitleCustomStyle(): Promise<string> {
+        const stored = await this.systemConfigService.getValue(OPENAI_SUBTITLE_CUSTOM_STYLE_KEY);
+        if (stored && stored.trim().length > 0) {
+            return stored.trim();
+        }
+        return getSubtitleDefaultStyle('custom');
     }
     
     public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {

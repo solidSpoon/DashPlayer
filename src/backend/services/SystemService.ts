@@ -28,11 +28,6 @@ export default interface SystemService {
     sendDpTaskUpdate(task: DpTask): void;
 
     /**
-     * 测试反向API调用 - 显示通知
-     */
-    testRendererApiCall(): Promise<void>;
-
-    /**
      * 调用前端API - 使用key作为第一个参数
      */
     callRendererApi<K extends keyof RendererApiDefinitions>(

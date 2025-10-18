@@ -5,7 +5,8 @@ export type ApiSettingVO = {
         model: string;
         enableSentenceLearning: boolean;
         enableSubtitleTranslation: boolean;
-        subtitleTranslationMode: 'zh' | 'simple_en';
+        subtitleTranslationMode: 'zh' | 'simple_en' | 'custom';
+        subtitleCustomStyle: string;
         enableDictionary: boolean;
         enableTranscription: boolean;
     };

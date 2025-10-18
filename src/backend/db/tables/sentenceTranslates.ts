@@ -5,7 +5,7 @@ export const sentenceTranslates = sqliteTable('dp_sentence_translates', {
     id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
     sentence: text('sentence').notNull(),
     translate: text('translate'),
-    mode: text('mode', { enum: ['tencent', 'openai_zh', 'openai_simple_en'] }).notNull().default('tencent'),
+    mode: text('mode').notNull().default('tencent'),
     created_at: text('created_at')
         .notNull()
         .default(sql`CURRENT_TIMESTAMP`),

@@ -19,6 +19,8 @@ import SystemController from '@/backend/controllers/SystemController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
 import SystemServiceImpl from '@/backend/services/impl/SystemServiceImpl';
 import SystemService from '@/backend/services/SystemService';
+import SystemConfigService from '@/backend/services/SystemConfigService';
+import SystemConfigServiceImpl from '@/backend/services/impl/SystemConfigServiceImpl';
 import { CacheServiceImpl } from '@/backend/services/impl/CacheService';
 import SettingService from '@/backend/services/SettingService';
 import SettingServiceImpl from '@/backend/services/impl/SettingServiceImpl';
@@ -104,6 +106,7 @@ container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
 container.bind<SubtitleService>(TYPES.SubtitleService).to(SubtitleServiceImpl).inSingletonScope();
 container.bind<SystemService>(TYPES.SystemService).to(SystemServiceImpl).inSingletonScope();
+container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigServiceImpl).inSingletonScope();
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
 container.bind<LocationService>(TYPES.LocationService).to(LocationServiceImpl).inSingletonScope();

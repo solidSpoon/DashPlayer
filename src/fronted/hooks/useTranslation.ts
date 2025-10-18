@@ -245,12 +245,13 @@ const syncInitialSettings = () => {
         getRendererLogger('useTranslation').error('failed to sync translation.engine', { error });
     });
 
-    api.call('storage/get', 'services.openai.subtitleTranslationMode').then((mode: string) => {
-        const normalized = mode === 'simple_en' ? 'simple_en' : 'zh';
-        useTranslation.getState().setOpenAiMode(normalized);
-    }).catch(error => {
-        getRendererLogger('useTranslation').error('failed to sync subtitleTranslationMode', { error });
-    });
+    api.call('storage/get', 'services.openai.subtitleTranslationMode')
+        .then((mode: string) => {
+            const normalized: TranslationMode = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
+            useTranslation.getState().setOpenAiMode(normalized);
+        }).catch(error => {
+            getRendererLogger('useTranslation').error('failed to sync subtitleTranslationMode', { error });
+        });
 };
 
 syncInitialSettings();
@@ -262,7 +263,7 @@ api.onStoreUpdate((key: SettingKey, value: string) => {
         }
     }
     if (key === 'services.openai.subtitleTranslationMode') {
-        const normalized = value === 'simple_en' ? 'simple_en' : 'zh';
+        const normalized: TranslationMode = value === 'simple_en' || value === 'custom' ? value : 'zh';
         useTranslation.getState().setOpenAiMode(normalized);
     }
 });

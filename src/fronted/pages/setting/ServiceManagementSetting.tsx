@@ -7,6 +7,7 @@ import { Label } from '@/fronted/components/ui/label';
 import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { Textarea } from '@/fronted/components/ui/textarea';
 import Separator from '@/fronted/components/Separtor';
 import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive } from 'lucide-react';
 import Header from '@/fronted/pages/setting/setting/Header';
@@ -14,6 +15,7 @@ import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 
 const api = window.electron;
 
@@ -32,6 +34,7 @@ const ServiceManagementSetting = () => {
     register('whisper.enabled');
     register('whisper.enableTranscription');
     register('openai.subtitleTranslationMode');
+    register('openai.subtitleCustomStyle');
 
     // Whisper settings - now part of main form
     const whisperEnabled = watch('whisper.enabled');
@@ -59,7 +62,15 @@ const ServiceManagementSetting = () => {
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
     const tencentSubtitleEnabled = watch('tencent.enableSubtitleTranslation');
     const openaiSubtitleMode = watch('openai.subtitleTranslationMode');
-
+    const openaiSubtitleCustomStyle = watch('openai.subtitleCustomStyle');
+    const resolvedSubtitleMode = (openaiSubtitleMode || 'zh') as 'zh' | 'simple_en' | 'custom';
+    const isCustomSubtitleMode = resolvedSubtitleMode === 'custom';
+    const subtitleStyleDisplay = React.useMemo(() => {
+        if (resolvedSubtitleMode === 'custom') {
+            return openaiSubtitleCustomStyle ?? getSubtitleDefaultStyle('custom');
+        }
+        return getSubtitleDefaultStyle(resolvedSubtitleMode);
+    }, [resolvedSubtitleMode, openaiSubtitleCustomStyle]);
     // Watch for dictionary mutual exclusion
     const openaiDictionaryEnabled = watch('openai.enableDictionary');
     const youdaoDictionaryEnabled = watch('youdao.enableDictionary');
@@ -85,6 +96,7 @@ const ServiceManagementSetting = () => {
                     enableSentenceLearning: settings.openai.enableSentenceLearning || true,
                     enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || true,
                     subtitleTranslationMode: settings.openai.subtitleTranslationMode || 'zh',
+                    subtitleCustomStyle: settings.openai.subtitleCustomStyle || getSubtitleDefaultStyle('custom'),
                     enableDictionary: settings.openai.enableDictionary ?? true,
                     enableTranscription: settings.openai.enableTranscription ?? true,
                 },
@@ -337,23 +349,42 @@ const ServiceManagementSetting = () => {
                                     </Label>
                                 </div>
                                 {openaiSubtitleEnabled && (
-                                    <div className="pl-6 space-y-2">
-                                        <Label className="text-sm font-medium">字幕翻译输出</Label>
-                                        <Select
-                                            value={openaiSubtitleMode || 'zh'}
-                                            onValueChange={(value) => setValue('openai.subtitleTranslationMode', value as 'zh' | 'simple_en')}
-                                        >
-                                            <SelectTrigger className="w-64">
-                                                <SelectValue placeholder="选择翻译输出" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="zh">翻译成中文</SelectItem>
-                                                <SelectItem value="simple_en">输出简易英文</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs text-muted-foreground">
-                                            简易英文会保留原句语序，仅替换复杂词汇为更易懂的表达。
-                                        </p>
+                                    <div className="pl-6 space-y-3">
+                                        <div className="space-y-3">
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">字幕翻译输出</Label>
+                                                <Select
+                                                    value={resolvedSubtitleMode}
+                                                    onValueChange={(value) => setValue('openai.subtitleTranslationMode', value as 'zh' | 'simple_en' | 'custom')}
+                                                >
+                                                    <SelectTrigger className="w-64">
+                                                        <SelectValue placeholder="选择翻译输出" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="zh">翻译成中文</SelectItem>
+                                                        <SelectItem value="simple_en">输出简易英文</SelectItem>
+                                                        <SelectItem value="custom">自定义风格</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">翻译风格</Label>
+                                                <Textarea
+                                                    value={subtitleStyleDisplay}
+                                                    onChange={(event) => {
+                                                        if (isCustomSubtitleMode) {
+                                                            setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
+                                                        }
+                                                    }}
+                                                    placeholder="示例：保持自然口语化，语句顺畅并兼顾字幕节奏。"
+                                                    className="h-32"
+                                                    readOnly={!isCustomSubtitleMode}
+                                                />
+                                                <p className="text-xs text-muted-foreground">
+                                                    自定义模式下可描述语气、细节程度、用词偏好等要求；预设模式展示系统默认风格。
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                                 <div className="flex items-center space-x-2">

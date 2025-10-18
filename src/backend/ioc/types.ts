@@ -9,6 +9,7 @@ const TYPES = {
     SubtitleService: Symbol('SubtitleService'),
     SrtTimeAdjustService: Symbol('SubtitleTimestampAdjustmentService'),
     SystemService: Symbol('SystemService'),
+    SystemConfigService: Symbol('SystemConfigService'),
     CacheService: Symbol('CacheService'),
     SettingService: Symbol('SettingService'),
     LocationService: Symbol('LocationService'),
