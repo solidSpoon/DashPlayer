@@ -147,11 +147,16 @@ interface StorageDef {
 }
 
 interface SettingsDef {
-    'settings/get-all-services': { params: void, return: ApiSettingVO };
-    'settings/update-service': { params: { service: string, settings: ApiSettingVO }, return: void };
-    'settings/test-openai': { params: void, return: { success: boolean, message: string } };
-    'settings/test-tencent': { params: void, return: { success: boolean, message: string } };
-    'settings/test-youdao': { params: void, return: { success: boolean, message: string } };
+    'settings/services/get-all': { params: void, return: ApiSettingVO };
+    'settings/services/update': { params: { service: string, settings: ApiSettingVO }, return: void };
+    'settings/services/test-openai': { params: void, return: { success: boolean, message: string } };
+    'settings/services/test-tencent': { params: void, return: { success: boolean, message: string } };
+    'settings/services/test-youdao': { params: void, return: { success: boolean, message: string } };
+    'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
+    'settings/shortcuts/update': { params: Partial<Record<SettingKey, string>>, return: void };
+    'settings/storage/update': { params: { path: string; collection: string }, return: void };
+    'settings/translation/update': { params: { engine: 'tencent' | 'openai'; tencentSecretId?: string; tencentSecretKey?: string }, return: void };
+    'settings/youdao/update': { params: { secretId: string; secretKey: string }, return: void };
 }
 
 interface SplitVideoDef {

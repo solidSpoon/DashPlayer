@@ -12,37 +12,45 @@ export interface SettingInputProps {
     inputWidth?: string;
     description?: string;
     className?: string;
+    onBlur?: () => void;
 }
 
-const SettingInput = ({
-    title,
-    description,
-    placeHolder,
-    value,
-    setValue,
-    type,
-    inputWidth,
-    className,
-}: SettingInputProps) => {
-    return (
-        <div className={cn("grid w-full items-center gap-1.5 pl-2",className)}>
-            <Label>{title}</Label>
-            <Input
-                className={inputWidth}
-                type={type}
-                   value={value}
-                   onChange={(event) => setValue(event.target.value)}
-                   placeholder={placeHolder}/>
-            <p
+const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps>(
+    (
+        {
+            title,
+            description,
+            placeHolder,
+            value,
+            setValue,
+            type,
+            inputWidth,
+            className,
+            onBlur,
+        },
+        ref,
+    ) => {
+        return (
+            <div className={cn('grid w-full items-center gap-1.5 pl-2', className)}>
+                <Label>{title}</Label>
+                <Input
+                    ref={ref}
+                    className={inputWidth}
+                    type={type}
+                    value={value}
+                    onChange={(event) => setValue(event.target.value)}
+                    onBlur={onBlur}
+                    placeholder={placeHolder}
+                />
+                <p className={cn('text-sm text-muted-foreground')}>
+                    {description}
+                </p>
+            </div>
+        );
+    }
+);
 
-                className={cn("text-sm text-muted-foreground")}
-
-            >
-                {description}
-            </p>
-        </div>
-    );
-};
+SettingInput.displayName = 'SettingInput';
 
 SettingInput.defaultProps = {
     placeHolder: '',

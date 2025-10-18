@@ -5,6 +5,7 @@ import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/services/SettingService';
 import { ApiSettingVO } from "@/common/types/vo/api-setting-vo";
 import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { SettingKey } from '@/common/types/store_schema';
 
 @injectable()
 export default class SettingsController implements Controller {
@@ -45,11 +46,54 @@ export default class SettingsController implements Controller {
         return this.settingService.testYoudao();
     }
 
+    public async updateAppearanceSettings(params: { theme: string; fontSize: string }): Promise<void> {
+        await this.settingService.set('appearance.theme', params.theme);
+        await this.settingService.set('appearance.fontSize', params.fontSize);
+    }
+
+    public async updateShortcutSettings(params: Partial<Record<SettingKey, string>>): Promise<void> {
+        const entries = Object.entries(params) as [SettingKey, string | undefined][];
+        for (const [key, value] of entries) {
+            if (value !== undefined) {
+                await this.settingService.set(key, value);
+            }
+        }
+    }
+
+    public async updateStorageSettings(params: { path: string; collection: string }): Promise<void> {
+        await this.settingService.set('storage.path', params.path);
+        await this.settingService.set('storage.collection', params.collection);
+    }
+
+    public async updateTranslationSettings(params: {
+        engine: 'tencent' | 'openai';
+        tencentSecretId?: string;
+        tencentSecretKey?: string;
+    }): Promise<void> {
+        await this.settingService.set('translation.engine', params.engine);
+        if (params.tencentSecretId !== undefined) {
+            await this.settingService.set('apiKeys.tencent.secretId', params.tencentSecretId);
+        }
+        if (params.tencentSecretKey !== undefined) {
+            await this.settingService.set('apiKeys.tencent.secretKey', params.tencentSecretKey);
+        }
+    }
+
+    public async updateYoudaoSettings(params: { secretId: string; secretKey: string }): Promise<void> {
+        await this.settingService.set('apiKeys.youdao.secretId', params.secretId);
+        await this.settingService.set('apiKeys.youdao.secretKey', params.secretKey);
+    }
+
     registerRoutes(): void {
-        registerRoute('settings/get-all-services', () => this.queryApiSettings());
-        registerRoute('settings/update-service', (p) => this.updateApiSettings(p));
-        registerRoute('settings/test-openai', () => this.testOpenAi());
-        registerRoute('settings/test-tencent', () => this.testTencent());
-        registerRoute('settings/test-youdao', () => this.testYoudao());
+        registerRoute('settings/services/get-all', () => this.queryApiSettings());
+        registerRoute('settings/services/update', (p) => this.updateApiSettings(p));
+        registerRoute('settings/services/test-openai', () => this.testOpenAi());
+        registerRoute('settings/services/test-tencent', () => this.testTencent());
+        registerRoute('settings/services/test-youdao', () => this.testYoudao());
+        registerRoute('settings/appearance/update', (p) => this.updateAppearanceSettings(p));
+        registerRoute('settings/shortcuts/update', (p) => this.updateShortcutSettings(p));
+        registerRoute('settings/storage/update', (p) => this.updateStorageSettings(p));
+        registerRoute('settings/translation/update', (p) => this.updateTranslationSettings(p));
+        registerRoute('settings/youdao/update', (p) => this.updateYoudaoSettings(p));
     }
 }

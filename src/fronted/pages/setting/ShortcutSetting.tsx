@@ -1,22 +1,21 @@
+import * as React from 'react';
 import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
-import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import Header from '@/fronted/pages/setting/setting/Header';
-import useSettingForm from '@/fronted/hooks/useSettingForm';
 import Separator from '@/fronted/components/Separtor';
 import { Button } from '@/fronted/components/ui/button';
 import { Label } from '@/fronted/components/ui/label';
 import { Input } from '@/fronted/components/ui/input';
-import * as React from 'react';
 import { useRecordHotkeys } from 'react-hotkeys-hook';
 import { DialogClose } from '@radix-ui/react-dialog';
 import { cn } from '@/fronted/lib/utils';
 import {
     Dialog,
     DialogContent,
-    DialogDescription, DialogFooter,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
 } from '@/fronted/components/ui/dialog';
 import { EllipsisVertical, Eraser, SquarePlus } from 'lucide-react';
 import { SettingKeyObj } from '@/common/types/store_schema';
@@ -24,8 +23,13 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from '@/fronted/components/ui/dropdown-menu';
+import { useForm, Controller } from 'react-hook-form';
+import useSetting from '@/fronted/hooks/useSetting';
+import { useShallow } from 'zustand/react/shallow';
+
+const api = window.electron;
 
 const merge = (a: string, b: string) => {
     const aArr = a.split(',');
@@ -33,56 +37,115 @@ const merge = (a: string, b: string) => {
     const res = Array.from(new Set([...aArr, ...bArr])).join(',');
     return res;
 };
-const ShortCutRecorder = ({
-                              title,
-                              description,
-                              placeHolder,
-                              value,
-                              setValue,
-                              type,
-                              inputWidth,
-                              defaultValue
-                          }: {
+
+type ShortcutKey =
+    | 'shortcut.previousSentence'
+    | 'shortcut.nextSentence'
+    | 'shortcut.repeatSentence'
+    | 'shortcut.playPause'
+    | 'shortcut.repeatSingleSentence'
+    | 'shortcut.autoPause'
+    | 'shortcut.toggleEnglishDisplay'
+    | 'shortcut.toggleChineseDisplay'
+    | 'shortcut.toggleBilingualDisplay'
+    | 'shortcut.toggleWordLevelDisplay'
+    | 'shortcut.nextTheme'
+    | 'shortcut.adjustBeginMinus'
+    | 'shortcut.adjustBeginPlus'
+    | 'shortcut.adjustEndMinus'
+    | 'shortcut.adjustEndPlus'
+    | 'shortcut.clearAdjust'
+    | 'shortcut.nextPlaybackRate'
+    | 'shortcut.aiChat'
+    | 'shortcut.toggleCopyMode'
+    | 'shortcut.addClip'
+    | 'shortcut.openControlPanel';
+
+const shortcutKeys: ShortcutKey[] = [
+    'shortcut.previousSentence',
+    'shortcut.nextSentence',
+    'shortcut.repeatSentence',
+    'shortcut.playPause',
+    'shortcut.repeatSingleSentence',
+    'shortcut.autoPause',
+    'shortcut.toggleEnglishDisplay',
+    'shortcut.toggleChineseDisplay',
+    'shortcut.toggleBilingualDisplay',
+    'shortcut.toggleWordLevelDisplay',
+    'shortcut.nextTheme',
+    'shortcut.adjustBeginMinus',
+    'shortcut.adjustBeginPlus',
+    'shortcut.adjustEndMinus',
+    'shortcut.adjustEndPlus',
+    'shortcut.clearAdjust',
+    'shortcut.nextPlaybackRate',
+    'shortcut.aiChat',
+    'shortcut.toggleCopyMode',
+    'shortcut.addClip',
+    'shortcut.openControlPanel',
+];
+
+type ShortcutFormValues = Record<ShortcutKey, string>;
+
+type ShortCutRecorderProps = {
     title: string;
+    description?: string;
     placeHolder?: string;
     value: string;
-    setValue: (value: string) => void;
+    onChange: (value: string) => void;
+    onBlur?: () => void;
     type?: string;
     inputWidth?: string;
-    description?: string;
     defaultValue?: string;
+};
+
+const ShortCutRecorder: React.FC<ShortCutRecorderProps> = ({
+    title,
+    description,
+    placeHolder,
+    value,
+    onChange,
+    onBlur,
+    type,
+    inputWidth,
+    defaultValue,
 }) => {
-    // 打印快捷键
-    // const [open, setOpen] = React.useState(false);
-    const [keys, { start, stop, isRecording }] = useRecordHotkeys();
-    // const [recordOpen, setRecordOpen] = React.useState(false);
+    const [keys, { start, stop }] = useRecordHotkeys();
     const trigger = React.useRef<HTMLButtonElement>(null);
+
     return (
         <div className={cn('grid w-full items-center gap-1.5 pl-2')}>
             <Label>{title}</Label>
-            <div className={'flex justify-start'}>
+            <div className="flex justify-start">
                 <Input
                     className={cn('mr-2', inputWidth)}
                     type={type}
                     value={value}
-                    onChange={(event) => setValue(event.target.value)}
-                    placeholder={placeHolder} />
+                    onBlur={onBlur}
+                    onChange={(event) => onChange(event.target.value)}
+                    placeholder={placeHolder}
+                />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant={'outline'} size={'icon'}>
+                        <Button variant="outline" size="icon">
                             <EllipsisVertical />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem
                             onClick={() => {
-                                // setRecordOpen(true);
                                 trigger.current?.click();
                             }}
-                        ><SquarePlus className={'h-4 w-4 mr-2'} />录制快捷键</DropdownMenuItem>
+                        >
+                            <SquarePlus className="h-4 w-4 mr-2" />
+                            录制快捷键
+                        </DropdownMenuItem>
                         <DropdownMenuItem
-                            onClick={() => setValue(defaultValue ?? '')}
-                        ><Eraser className={'h-4 w-4 mr-2'} />重置为默认值</DropdownMenuItem>
+                            onClick={() => onChange(defaultValue ?? '')}
+                        >
+                            <Eraser className="h-4 w-4 mr-2" />
+                            重置为默认值
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <Dialog
@@ -93,9 +156,9 @@ const ShortCutRecorder = ({
                     }}
                 >
                     <DialogTrigger asChild>
-                        <Button
-                            ref={trigger}
-                            className={'hidden'}>Open</Button>
+                        <Button ref={trigger} className="hidden">
+                            Open
+                        </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
@@ -105,15 +168,15 @@ const ShortCutRecorder = ({
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <Label htmlFor="name" className="">
+                            <Label htmlFor="shortcut-input" className="">
                                 {title}
                             </Label>
                             <Input
+                                id="shortcut-input"
                                 readOnly
                                 onFocus={start}
                                 onBlur={stop}
                                 value={Array.from(keys).join(' + ')}
-                                id="name"
                                 className="col-span-3"
                             />
                         </div>
@@ -121,217 +184,460 @@ const ShortCutRecorder = ({
                             <DialogClose asChild>
                                 <Button
                                     onClick={() => {
-                                        setValue(merge(value, Array.from(keys).join('+')));
-                                        // setRecordOpen(false);
+                                        onChange(merge(value, Array.from(keys).join('+')));
                                     }}
-                                    type="submit">Save changes</Button>
+                                    type="submit"
+                                >
+                                    Save changes
+                                </Button>
                             </DialogClose>
-
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
-
-            <p
-
-                className={cn('text-sm text-muted-foreground')}
-
-            >
-                {description}
-            </p>
+            <p className={cn('text-sm text-muted-foreground')}>{description}</p>
         </div>
     );
 };
+
 ShortCutRecorder.defaultProps = {
     placeHolder: '',
     type: 'text',
     inputWidth: 'w-96',
     description: '',
-    defaultValue: ''
+    defaultValue: '',
 };
 
 const ShortcutSetting = () => {
-    const { setting, setSettingFunc, submit, eqServer } = useSettingForm([
-        'shortcut.previousSentence',
-        'shortcut.nextSentence',
-        'shortcut.repeatSentence',
-        'shortcut.playPause',
-        'shortcut.repeatSingleSentence',
-        'shortcut.autoPause',
-        'shortcut.toggleEnglishDisplay',
-        'shortcut.toggleChineseDisplay',
-        'shortcut.toggleBilingualDisplay',
-        'shortcut.toggleWordLevelDisplay',
-        'shortcut.nextTheme',
-        'shortcut.adjustBeginMinus',
-        'shortcut.adjustBeginPlus',
-        'shortcut.adjustEndMinus',
-        'shortcut.adjustEndPlus',
-        'shortcut.clearAdjust',
-        'shortcut.nextPlaybackRate',
-        'shortcut.aiChat',
-        'shortcut.toggleCopyMode',
-        'shortcut.addClip',
-        'shortcut.openControlPanel'
-    ]);
+    const shortcutValues = useSetting(
+        useShallow((state) => {
+            const result = {} as ShortcutFormValues;
+            shortcutKeys.forEach((key) => {
+                result[key] = state.values.get(key) ?? SettingKeyObj[key];
+            });
+            return result;
+        })
+    );
+
+    const form = useForm<ShortcutFormValues>({
+        defaultValues: shortcutValues,
+    });
+
+    const { control, watch, getValues, reset, formState } = form;
+    const { isDirty } = formState;
+
+    const [, setAutoSaveStatus] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [, setAutoSaveError] = React.useState<string | null>(null);
+    const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingSaveRef = React.useRef<Promise<void> | null>(null);
+    const autoSaveIdleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isMountedRef = React.useRef(true);
+
+    React.useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    React.useEffect(() => {
+        if (!isDirty) {
+            reset(shortcutValues, { keepValues: true });
+        }
+    }, [shortcutValues, reset, isDirty]);
+
+    const saveSettings = React.useCallback(async (values: ShortcutFormValues) => {
+        await api.call('settings/shortcuts/update', values);
+    }, []);
+
+    const runSave = React.useCallback(async (values: ShortcutFormValues) => {
+        if (autoSaveIdleTimerRef.current) {
+            clearTimeout(autoSaveIdleTimerRef.current);
+            autoSaveIdleTimerRef.current = null;
+        }
+        if (isMountedRef.current) {
+            setAutoSaveStatus('saving');
+            setAutoSaveError(null);
+        }
+        const promise = (async () => {
+            try {
+                await saveSettings(values);
+                if (isMountedRef.current) {
+                    setAutoSaveStatus('saved');
+                    reset(values, { keepValues: true });
+                    autoSaveIdleTimerRef.current = setTimeout(() => {
+                        if (isMountedRef.current) {
+                            setAutoSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev));
+                        }
+                    }, 2000);
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (isMountedRef.current) {
+                    setAutoSaveStatus('error');
+                    setAutoSaveError(message);
+                }
+                throw error;
+            }
+        })();
+
+        pendingSaveRef.current = promise;
+        promise.finally(() => {
+            if (pendingSaveRef.current === promise) {
+                pendingSaveRef.current = null;
+            }
+        });
+        return promise;
+    }, [reset, saveSettings]);
+
+    const flushPendingSave = React.useCallback(async () => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+            debounceRef.current = null;
+        }
+        if (pendingSaveRef.current) {
+            await pendingSaveRef.current;
+            return;
+        }
+        if (!isDirty) {
+            return;
+        }
+        await runSave(getValues());
+        if (pendingSaveRef.current) {
+            await pendingSaveRef.current;
+        }
+    }, [getValues, isDirty, runSave]);
+
+    React.useEffect(() => {
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+                debounceRef.current = null;
+            }
+            if (autoSaveIdleTimerRef.current) {
+                clearTimeout(autoSaveIdleTimerRef.current);
+                autoSaveIdleTimerRef.current = null;
+            }
+            flushPendingSave().catch(() => undefined);
+        };
+    }, [flushPendingSave]);
+
+    React.useEffect(() => {
+        const subscription = watch(() => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+            if (!formState.isDirty) {
+                return;
+            }
+            debounceRef.current = setTimeout(() => {
+                runSave(getValues()).catch(() => undefined);
+            }, 600);
+        });
+        return () => subscription.unsubscribe();
+    }, [getValues, runSave, watch, formState.isDirty]);
+
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
             <Header title="快捷键" description="多个快捷键用 , 分割" />
             <Separator orientation="horizontal" className="px-0" />
             <ItemWrapper>
-                {/*<div className={'flex justify-start'}>*/}
-                <ShortCutRecorder
-                    title="上一句"
-                    description="跳转到上一句"
-                    defaultValue={SettingKeyObj['shortcut.previousSentence']}
-                    value={setting('shortcut.previousSentence')}
-                    setValue={setSettingFunc('shortcut.previousSentence')}
+                <Controller
+                    name="shortcut.previousSentence"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="上一句"
+                            description="跳转到上一句"
+                            defaultValue={SettingKeyObj['shortcut.previousSentence']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-
-                <ShortCutRecorder
-                    title="下一句"
-                    description="跳转到下一句"
-                    defaultValue={SettingKeyObj['shortcut.nextSentence']}
-                    value={setting('shortcut.nextSentence')}
-                    setValue={setSettingFunc('shortcut.nextSentence')}
+                <Controller
+                    name="shortcut.nextSentence"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="下一句"
+                            description="跳转到下一句"
+                            defaultValue={SettingKeyObj['shortcut.nextSentence']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="重复"
-                    description="重复当前句子"
-                    defaultValue={SettingKeyObj['shortcut.repeatSentence']}
-                    value={setting('shortcut.repeatSentence')}
-                    setValue={setSettingFunc('shortcut.repeatSentence')}
+                <Controller
+                    name="shortcut.repeatSentence"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="重复当前句（循环）"
+                            description="重复播放当前句"
+                            defaultValue={SettingKeyObj['shortcut.repeatSentence']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="播放/暂停"
-                    description="播放/暂停"
-                    defaultValue={SettingKeyObj['shortcut.playPause']}
-                    value={setting('shortcut.playPause')}
-                    setValue={setSettingFunc('shortcut.playPause')}
+                <Controller
+                    name="shortcut.playPause"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="播放/暂停"
+                            description="播放或暂停"
+                            defaultValue={SettingKeyObj['shortcut.playPause']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="单句重复"
-                    description="自动重复当前句子"
-                    defaultValue={SettingKeyObj['shortcut.repeatSingleSentence']}
-                    value={setting('shortcut.repeatSingleSentence')}
-                    setValue={setSettingFunc('shortcut.repeatSingleSentence')}
+                <Controller
+                    name="shortcut.repeatSingleSentence"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="单句循环"
+                            description="重复播放当前句子一次"
+                            defaultValue={SettingKeyObj['shortcut.repeatSingleSentence']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="自动暂停"
-                    description="当前句子播放完后自动暂停"
-                    defaultValue={SettingKeyObj['shortcut.autoPause']}
-                    value={setting('shortcut.autoPause')}
-                    setValue={setSettingFunc('shortcut.autoPause')}
+                <Controller
+                    name="shortcut.autoPause"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="自动暂停"
+                            description="播放一句后自动暂停"
+                            defaultValue={SettingKeyObj['shortcut.autoPause']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="展示/隐藏英文"
-                    description="展示/隐藏英文字幕"
-                    defaultValue={SettingKeyObj['shortcut.toggleEnglishDisplay']}
-                    value={setting('shortcut.toggleEnglishDisplay')}
-                    setValue={setSettingFunc('shortcut.toggleEnglishDisplay')}
+                <Controller
+                    name="shortcut.toggleEnglishDisplay"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="显示英语字幕"
+                            description="切换是否显示英语字幕"
+                            defaultValue={SettingKeyObj['shortcut.toggleEnglishDisplay']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="展示/隐藏中文"
-                    description="展示/隐藏中文字幕"
-                    defaultValue={SettingKeyObj['shortcut.toggleChineseDisplay']}
-                    value={setting('shortcut.toggleChineseDisplay')}
-                    setValue={setSettingFunc('shortcut.toggleChineseDisplay')}
+                <Controller
+                    name="shortcut.toggleChineseDisplay"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="显示中文字幕"
+                            description="切换是否显示中文字幕"
+                            defaultValue={SettingKeyObj['shortcut.toggleChineseDisplay']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="展示/隐藏中英"
-                    description="展示/隐藏中英文字幕"
-                    defaultValue={SettingKeyObj['shortcut.toggleBilingualDisplay']}
-                    value={setting('shortcut.toggleBilingualDisplay')}
-                    setValue={setSettingFunc('shortcut.toggleBilingualDisplay')}
+                <Controller
+                    name="shortcut.toggleBilingualDisplay"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="显示双语字幕"
+                            description="切换是否显示双语字幕"
+                            defaultValue={SettingKeyObj['shortcut.toggleBilingualDisplay']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="切换主题"
-                    description="切换播放器的明亮/暗黑主题"
-                    defaultValue={SettingKeyObj['shortcut.nextTheme']}
-                    value={setting('shortcut.nextTheme')}
-                    setValue={setSettingFunc('shortcut.nextTheme')}
+                <Controller
+                    name="shortcut.toggleWordLevelDisplay"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="显示逐词字幕"
+                            description="切换逐词字幕"
+                            defaultValue={SettingKeyObj['shortcut.toggleWordLevelDisplay']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="切换播放速度"
-                    description="在播放器速度选择弹窗勾选的速度中切换"
-                    defaultValue={SettingKeyObj['shortcut.nextPlaybackRate']}
-                    value={setting('shortcut.nextPlaybackRate')}
-                    setValue={setSettingFunc('shortcut.nextPlaybackRate')} />
-                <ShortCutRecorder
-                    title="开始时间 -"
-                    description="当精听一句话时, 可能遇到字幕时间不准确的情况, 可以通过这个快捷键来调整字幕的开始时间"
-                    defaultValue={SettingKeyObj['shortcut.adjustBeginMinus']}
-                    value={setting('shortcut.adjustBeginMinus')}
-                    setValue={setSettingFunc('shortcut.adjustBeginMinus')}
+                <Controller
+                    name="shortcut.nextTheme"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="切换主题"
+                            description="在不同主题之间切换"
+                            defaultValue={SettingKeyObj['shortcut.nextTheme']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="开始时间 +"
-                    description="当精听一句话时, 可能遇到字幕时间不准确的情况, 可以通过这个快捷键来调整字幕的开始时间"
-                    defaultValue={SettingKeyObj['shortcut.adjustBeginPlus']}
-                    value={setting('shortcut.adjustBeginPlus')}
-                    setValue={setSettingFunc('shortcut.adjustBeginPlus')}
+                <Controller
+                    name="shortcut.adjustBeginMinus"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="字幕开始时间提前"
+                            description="将字幕开始时间提前"
+                            defaultValue={SettingKeyObj['shortcut.adjustBeginMinus']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="结束时间 -"
-                    description="当精听一句话时, 可能遇到字幕时间不准确的情况, 可以通过这个快捷键来调整字幕的结束时间"
-                    defaultValue={SettingKeyObj['shortcut.adjustEndMinus']}
-                    value={setting('shortcut.adjustEndMinus')}
-                    setValue={setSettingFunc('shortcut.adjustEndMinus')}
+                <Controller
+                    name="shortcut.adjustBeginPlus"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="字幕开始时间延后"
+                            description="将字幕开始时间延后"
+                            defaultValue={SettingKeyObj['shortcut.adjustBeginPlus']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="结束时间 +"
-                    description="当精听一句话时, 可能遇到字幕时间不准确的情况, 可以通过这个快捷键来调整字幕的结束时间"
-                    defaultValue={SettingKeyObj['shortcut.adjustEndPlus']}
-                    value={setting('shortcut.adjustEndPlus')}
-                    setValue={setSettingFunc('shortcut.adjustEndPlus')}
+                <Controller
+                    name="shortcut.adjustEndMinus"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="字幕结束时间提前"
+                            description="将字幕结束时间提前"
+                            defaultValue={SettingKeyObj['shortcut.adjustEndMinus']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="重置时间调整"
-                    description="调整后可以用这个快捷键重置当前句子的时间"
-                    defaultValue={SettingKeyObj['shortcut.clearAdjust']}
-                    value={setting('shortcut.clearAdjust')}
-                    setValue={setSettingFunc('shortcut.clearAdjust')}
+                <Controller
+                    name="shortcut.adjustEndPlus"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="字幕结束时间延后"
+                            description="将字幕结束时间延后"
+                            defaultValue={SettingKeyObj['shortcut.adjustEndPlus']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="整句学习面板"
-                    description="打开/关闭整句学习面板"
-                    defaultValue={SettingKeyObj['shortcut.aiChat']}
-                    value={setting('shortcut.aiChat')}
-                    setValue={setSettingFunc('shortcut.aiChat')}
+                <Controller
+                    name="shortcut.clearAdjust"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="清除字幕偏移"
+                            description="恢复字幕时间到默认值"
+                            defaultValue={SettingKeyObj['shortcut.clearAdjust']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="复制模式"
-                    description="打开/关闭复制模式，长按后点击单词即可复制，点击句子空白处为复制句子"
-                    defaultValue={SettingKeyObj['shortcut.toggleCopyMode']}
-                    value={setting('shortcut.toggleCopyMode')}
-                    setValue={setSettingFunc('shortcut.toggleCopyMode')}
+                <Controller
+                    name="shortcut.nextPlaybackRate"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="切换播放速度"
+                            description="在常用播放速度之间循环切换"
+                            defaultValue={SettingKeyObj['shortcut.nextPlaybackRate']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="添加/取消收藏"
-                    description="使用这个快捷键可以添加/取消收藏当前句子"
-                    defaultValue={SettingKeyObj['shortcut.addClip']}
-                    value={setting('shortcut.addClip')}
-                    setValue={setSettingFunc('shortcut.addClip')}
+                <Controller
+                    name="shortcut.aiChat"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="打开 AI 对话"
+                            description="唤起 AI 对话窗口"
+                            defaultValue={SettingKeyObj['shortcut.aiChat']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
-                <ShortCutRecorder
-                    title="展示/隐藏控制界面"
-                    description="在播放器界面和控制界面之间切换"
-                    defaultValue={SettingKeyObj['shortcut.openControlPanel']}
-                    value={setting('shortcut.openControlPanel')}
-                    setValue={setSettingFunc('shortcut.openControlPanel')}
+                <Controller
+                    name="shortcut.toggleCopyMode"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="切换复制模式"
+                            description="切换字幕复制模式"
+                            defaultValue={SettingKeyObj['shortcut.toggleCopyMode']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
+                />
+                <Controller
+                    name="shortcut.addClip"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="添加收藏片段"
+                            description="将当前字幕加入收藏夹"
+                            defaultValue={SettingKeyObj['shortcut.addClip']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
+                />
+                <Controller
+                    name="shortcut.openControlPanel"
+                    control={control}
+                    render={({ field }) => (
+                        <ShortCutRecorder
+                            title="打开控制面板"
+                            description="打开播放器控制面板"
+                            defaultValue={SettingKeyObj['shortcut.openControlPanel']}
+                            value={field.value ?? ''}
+                            onChange={(value) => field.onChange(value)}
+                            onBlur={field.onBlur}
+                        />
+                    )}
                 />
             </ItemWrapper>
-
-            <FooterWrapper>
-                <Button
-                    onClick={submit}
-                    disabled={eqServer}
-                >
-                    Apply
-                </Button>
-
-            </FooterWrapper>
         </form>
     );
 };
+
 export default ShortcutSetting;

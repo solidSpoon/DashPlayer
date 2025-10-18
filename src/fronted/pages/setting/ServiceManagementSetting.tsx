@@ -30,11 +30,11 @@ const ServiceManagementSetting = () => {
     const logger = getRendererLogger('ServiceManagementSetting');
 
     // Fetch settings with SWR
-    const { data: settings, mutate } = useSWR('settings/get-all-services', () =>
-        api.call('settings/get-all-services')
+    const { data: settings, mutate } = useSWR('settings/services/get-all', () =>
+        api.call('settings/services/get-all')
     );
 
-    const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting } } = useForm<ApiSettingVO>();
+    const { register, handleSubmit, watch, setValue, reset } = useForm<ApiSettingVO>();
     const { toast } = useToast();
 
     // Register hidden fields for Whisper to ensure they're included in form data
@@ -57,6 +57,14 @@ const ServiceManagementSetting = () => {
     const [tencentTestResult, setTencentTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
     const [youdaoTestResult, setYoudaoTestResult] = React.useState<{ success: boolean, message: string } | null>(null);
 
+    // Auto-save tracking
+    const [, setAutoSaveStatus] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [, setAutoSaveError] = React.useState<string | null>(null);
+    const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const autoSaveIdleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingSavePromiseRef = React.useRef<Promise<void> | null>(null);
+    const hasChangesRef = React.useRef(false);
+    const isMountedRef = React.useRef(true);
     // Whisper states
 
     // Store original values for change detection
@@ -91,6 +99,149 @@ const ServiceManagementSetting = () => {
         if (!originalValues) return false;
         return JSON.stringify(currentValues) !== JSON.stringify(originalValues);
     }, [currentValues, originalValues]);
+
+    React.useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    React.useEffect(() => {
+        hasChangesRef.current = hasChanges;
+    }, [hasChanges]);
+
+    const saveSettings = React.useCallback(async (data: ApiSettingVO) => {
+        try {
+            await api.call('settings/services/update', {
+                service: 'openai',
+                settings: data
+            });
+
+            await api.call('settings/services/update', {
+                service: 'tencent',
+                settings: data
+            });
+
+            await api.call('settings/services/update', {
+                service: 'youdao',
+                settings: data
+            });
+
+            await api.call('settings/services/update', {
+                service: 'whisper',
+                settings: data
+            });
+
+            await mutate();
+            setOriginalValues(data);
+            logger.info('settings updated successfully');
+        } catch (error) {
+            logger.error('failed to update settings', { error });
+            throw error;
+        }
+    }, [mutate, logger]);
+
+    const runSave = React.useCallback((data: ApiSettingVO) => {
+        if (autoSaveIdleTimerRef.current) {
+            clearTimeout(autoSaveIdleTimerRef.current);
+            autoSaveIdleTimerRef.current = null;
+        }
+        const savePromise = (async () => {
+            if (isMountedRef.current) {
+                setAutoSaveStatus('saving');
+                setAutoSaveError(null);
+            }
+            try {
+                await saveSettings(data);
+                if (isMountedRef.current) {
+                    setAutoSaveStatus('saved');
+                    autoSaveIdleTimerRef.current = setTimeout(() => {
+                        if (isMountedRef.current) {
+                            setAutoSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev));
+                        }
+                    }, 2000);
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (isMountedRef.current) {
+                    setAutoSaveStatus('error');
+                    setAutoSaveError(message);
+                    toast({
+                        variant: 'destructive',
+                        title: '保存失败',
+                        description: message,
+                    });
+                }
+                throw error;
+            }
+        })();
+
+        pendingSavePromiseRef.current = savePromise;
+        savePromise.finally(() => {
+            if (pendingSavePromiseRef.current === savePromise) {
+                pendingSavePromiseRef.current = null;
+            }
+        });
+        return savePromise;
+    }, [saveSettings, toast]);
+
+    const flushPendingSave = React.useCallback(async () => {
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            autoSaveTimerRef.current = null;
+        }
+        if (pendingSavePromiseRef.current) {
+            await pendingSavePromiseRef.current;
+        }
+        if (!originalValues || !hasChangesRef.current) {
+            return;
+        }
+        await handleSubmit(runSave)();
+        if (pendingSavePromiseRef.current) {
+            await pendingSavePromiseRef.current;
+        }
+    }, [handleSubmit, runSave, originalValues]);
+
+    React.useEffect(() => {
+        if (!originalValues || !hasChanges) {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+                autoSaveTimerRef.current = null;
+            }
+            return;
+        }
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+        }
+        autoSaveTimerRef.current = setTimeout(() => {
+            handleSubmit(runSave)().catch((error) => {
+                logger.error('auto save failed', { error });
+            });
+        }, 800);
+
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+                autoSaveTimerRef.current = null;
+            }
+        };
+    }, [currentValues, hasChanges, originalValues, handleSubmit, runSave, logger]);
+
+    React.useEffect(() => {
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+                autoSaveTimerRef.current = null;
+            }
+            if (autoSaveIdleTimerRef.current) {
+                clearTimeout(autoSaveIdleTimerRef.current);
+                autoSaveIdleTimerRef.current = null;
+            }
+            if (hasChangesRef.current) {
+                flushPendingSave().catch(() => undefined);
+            }
+        };
+    }, [flushPendingSave]);
 
     // Initialize form when settings load
     React.useEffect(() => {
@@ -213,19 +364,28 @@ const ServiceManagementSetting = () => {
             'youdao': setYoudaoTestResult
         }[provider];
 
-        // 检查是否有未保存的更改
-        if (hasChanges) {
+        setTesting(true);
+        setResult(null);
+
+        try {
+            await flushPendingSave();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
             setResult({
                 success: false,
-                message: '请先保存配置后再测试'
+                message: `自动保存设置失败，请稍后重试：${message}`
             });
+            setTesting(false);
             return;
         }
 
-        setTesting(true);
-        setResult(null);
         try {
-            const result = await api.call(`settings/test-${provider}` as 'settings/test-openai' | 'settings/test-tencent' | 'settings/test-youdao');
+            const routeMap: Record<typeof provider, 'settings/services/test-openai' | 'settings/services/test-tencent' | 'settings/services/test-youdao'> = {
+                openai: 'settings/services/test-openai',
+                tencent: 'settings/services/test-tencent',
+                youdao: 'settings/services/test-youdao',
+            };
+            const result = await api.call(routeMap[provider]);
             setResult(result);
         } catch (error) {
             setResult({
@@ -237,44 +397,16 @@ const ServiceManagementSetting = () => {
         }
     };
 
-    const onSubmit = async (data: ApiSettingVO) => {
-        try {
-
-            // Update OpenAI service
-            await api.call('settings/update-service', {
-                service: 'openai',
-                settings: data
-            });
-
-            // Update Tencent service
-            await api.call('settings/update-service', {
-                service: 'tencent',
-                settings: data
-            });
-
-            // Update Youdao service
-            await api.call('settings/update-service', {
-                service: 'youdao',
-                settings: data
-            });
-
-            // Update Whisper service
-            await api.call('settings/update-service', {
-                service: 'whisper',
-                settings: data
-            });
-
-            // Refresh settings data and update original values
-            await mutate();
-            setOriginalValues(data);
-            logger.info('settings updated successfully');
-        } catch (error) {
-            logger.error('failed to update settings', { error });
-        }
-    };
-
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full flex flex-col gap-6">
+        <form
+            onSubmit={(event) => {
+                event.preventDefault();
+                handleSubmit(runSave)().catch((error) => {
+                    logger.error('manual submit failed', { error });
+                });
+            }}
+            className="w-full h-full flex flex-col gap-6"
+        >
             <Header title="服务配置" description="配置 API 服务和本地服务的功能设置" />
 
             <div className="flex flex-col gap-6 h-0 flex-1 overflow-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
@@ -704,16 +836,10 @@ const ServiceManagementSetting = () => {
                     onClick={async () => {
                         await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
                     }}
-                    variant="secondary"
-                >
-                    查看文档
-                </Button>
-                <Button
-                    type="submit"
-                    disabled={!hasChanges || isSubmitting}
-                >
-                    {isSubmitting ? '保存中...' : '保存配置'}
-                </Button>
+            variant="secondary"
+        >
+            查看文档
+        </Button>
             </FooterWrapper>
         </form>
     );
