@@ -33,7 +33,7 @@ type Props = {
   onImportWords: (file: File) => void;
 };
 
-function WordSidebarComponent({
+export default function WordSidebar({
   words,
   loading,
   selectedWord,
@@ -211,25 +211,17 @@ function WordSidebarComponent({
               const active = selectedWord?.id === word.id;
               return (
                 <div
-                  // role="button"
-                  // tabIndex={0}
+                  role="button"
+                  tabIndex={0}
                   className={[
                     'p-2 rounded cursor-pointer transition-all text-sm leading-tight mb-1',
                     active ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
                   ].join(' ')}
-                  onClick={(event) => {
-                    onWordClick(word);
-                    window.requestAnimationFrame(() => {
-                      (event.currentTarget as HTMLElement).blur();
-                    });
-                  }}
+                  onClick={() => onWordClick(word)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       onWordClick(word);
-                      window.requestAnimationFrame(() => {
-                        (e.currentTarget as HTMLElement).blur();
-                      });
                     }
                   }}
                 >
@@ -267,5 +259,3 @@ function WordSidebarComponent({
     </div>
   );
 }
-
-export default React.memo(WordSidebarComponent);
