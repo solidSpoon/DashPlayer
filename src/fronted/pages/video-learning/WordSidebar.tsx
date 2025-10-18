@@ -81,22 +81,7 @@ export default function WordSidebar({
     }
   };
 
-  // 自定义 Scroller, 保留滚动条样式
-  const Scroller = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-    (props, ref) => (
-      <div
-        ref={ref}
-        {...props}
-        className={[
-          'h-full',
-          'scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600',
-          props.className || ''
-        ].join(' ')}
-      />
-    )
-  );
-  Scroller.displayName = 'SidebarScroller';
-
+  
   return (
     <div className="h-full flex flex-col border-r">
       {/* 顶部工具栏 */}
@@ -201,9 +186,9 @@ export default function WordSidebar({
           <Virtuoso
             ref={virtuosoRef}
             style={{ height: '100%' }}
+            className="scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600"
             data={filteredWords}
             overscan={200}
-            components={{ Scroller }}
             itemContent={(index, word) => {
               const active = selectedWord?.id === word.id;
               return (
