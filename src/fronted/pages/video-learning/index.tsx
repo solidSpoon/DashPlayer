@@ -20,6 +20,12 @@ interface WordItem {
   videoCount?: number;
 }
 
+type PendingClipTarget = number | 'last';
+type PendingClipRequest = {
+  page: number;
+  index: PendingClipTarget;
+};
+
 const PAGE_SIZE = 12;
 const DEFAULT_LEARNING_RESPONSE: { success: true; data: VideoLearningClipPage } = {
   success: true,
@@ -37,6 +43,7 @@ export default function VideoLearningPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
+  const [pendingClip, setPendingClip] = useState<PendingClipRequest | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
   const inFlightThumbsRef = useRef<Set<string>>(new Set());
@@ -97,14 +104,15 @@ export default function VideoLearningPage() {
     return pages;
   }, [displayedPage, totalPages]);
 
-  const handlePageChange = useCallback((nextPage: number) => {
+  const handlePageChange = useCallback((nextPage: number, options?: { targetIndex?: PendingClipTarget }) => {
     if (nextPage < 1 || nextPage > totalPages) {
       return;
     }
+    setPendingClip({ page: nextPage, index: options?.targetIndex ?? 0 });
     setPage(nextPage);
     setCurrentClipIndex(-1);
     setCurrentLineIndex(-1);
-  }, [totalPages, setPage, setCurrentClipIndex, setCurrentLineIndex]);
+  }, [totalPages, setPage, setCurrentClipIndex, setCurrentLineIndex, setPendingClip]);
 
   const currentClip = useMemo(() => {
     return currentClipIndex >= 0 ? clips[currentClipIndex] : null;
@@ -141,8 +149,20 @@ export default function VideoLearningPage() {
     } else if (currentClipIndex < clips.length - 1) {
       // 跨视频：下一个视频的主要句
       playClip(currentClipIndex + 1);
+    } else if (displayedPage < totalPages) {
+      handlePageChange(displayedPage + 1, { targetIndex: 0 });
     }
-  }, [currentClip, currentLineIndex, currentClipIndex, clips.length, goToLine, playClip]);
+  }, [
+    currentClip,
+    currentLineIndex,
+    currentClipIndex,
+    clips.length,
+    goToLine,
+    playClip,
+    displayedPage,
+    totalPages,
+    handlePageChange
+  ]);
 
   const prevSentence = useCallback(() => {
     const clip = currentClip;
@@ -152,8 +172,18 @@ export default function VideoLearningPage() {
     } else if (currentClipIndex > 0) {
       // 跨视频：上一个视频的主要句
       playClip(currentClipIndex - 1);
+    } else if (displayedPage > 1) {
+      handlePageChange(displayedPage - 1, { targetIndex: 'last' });
     }
-  }, [currentClip, currentLineIndex, currentClipIndex, goToLine, playClip]);
+  }, [
+    currentClip,
+    currentLineIndex,
+    currentClipIndex,
+    goToLine,
+    playClip,
+    displayedPage,
+    handlePageChange
+  ]);
 
   const onEnded = useCallback(() => {
     // 视频自然播完，行为等价"下一句"
@@ -303,17 +333,39 @@ export default function VideoLearningPage() {
   //   generateThumbnails(clips);
   // }, [clips, generateThumbnails]);
 
+  useEffect(() => {
+    if (!clips.length) return;
+    const initialIndices = Array.from(
+      { length: Math.min(clips.length, PAGE_SIZE) },
+      (_, idx) => idx
+    );
+    ensureThumbnails(initialIndices);
+  }, [clips, ensureThumbnails]);
+
   // 初始化：有列表则默认播放第一个视频的中间句
   useEffect(() => {
     if (!clips.length) {
       setCurrentClipIndex(-1);
       setCurrentLineIndex(-1);
+      if (pendingClip && pendingClip.page === displayedPage) {
+        setPendingClip(null);
+      }
       return;
     }
+
+    if (pendingClip && pendingClip.page === displayedPage) {
+      const targetIndex = pendingClip.index === 'last'
+        ? clips.length - 1
+        : Math.max(0, Math.min(pendingClip.index, clips.length - 1));
+      playClip(targetIndex);
+      setPendingClip(null);
+      return;
+    }
+
     if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
       playClip(0);
     }
-  }, [clips, currentClipIndex, playClip]);
+  }, [clips, currentClipIndex, displayedPage, pendingClip, playClip, setPendingClip]);
 
   // 初始化加载单词
   useEffect(() => {
@@ -326,18 +378,14 @@ export default function VideoLearningPage() {
   // 处理单词点击
   const handleWordClick = useCallback((word: WordItem) => {
     setSelectedWord(word);
-    setPage(1);
-    setCurrentClipIndex(-1);
-    setCurrentLineIndex(-1);
-  }, []);
+    handlePageChange(1, { targetIndex: 0 });
+  }, [handlePageChange, setSelectedWord]);
 
   // 处理清除选择
   const handleClearSelection = useCallback(() => {
     setSelectedWord(null);
-    setPage(1);
-    setCurrentClipIndex(-1);
-    setCurrentLineIndex(-1);
-  }, []);
+    handlePageChange(1, { targetIndex: 0 });
+  }, [handlePageChange, setSelectedWord]);
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
