@@ -8,8 +8,9 @@ import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { Textarea } from '@/fronted/components/ui/textarea';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive, ChevronDown } from 'lucide-react';
 import Header from '@/fronted/pages/setting/setting/Header';
 import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
@@ -18,6 +19,12 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 
 const api = window.electron;
+
+const OPENAI_MODEL_PRESETS = [
+    { value: 'gpt-4o-mini', label: 'gpt-4o-mini (推荐)' },
+    { value: 'gpt-4o', label: 'gpt-4o' },
+    { value: 'gpt-3.5-turbo', label: 'gpt-3.5-turbo' },
+];
 
 const ServiceManagementSetting = () => {
     const logger = getRendererLogger('ServiceManagementSetting');
@@ -305,16 +312,31 @@ const ServiceManagementSetting = () => {
 
                         <div className="space-y-2">
                             <Label htmlFor="openai-model">模型</Label>
-                            <Select value={watch('openai.model')} onValueChange={(value) => setValue('openai.model', value)}>
-                                <SelectTrigger className="w-64">
-                                    <SelectValue placeholder="选择模型" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="gpt-4o-mini">gpt-4o-mini (推荐)</SelectItem>
-                                    <SelectItem value="gpt-4o">gpt-4o</SelectItem>
-                                    <SelectItem value="gpt-3.5-turbo">gpt-3.5-turbo</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex items-center gap-2 w-64">
+                                <Input
+                                    id="openai-model"
+                                    placeholder="例如 gpt-4o-mini"
+                                    className="flex-1"
+                                    {...register('openai.model')}
+                                />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="icon" type="button" className="shrink-0">
+                                            <ChevronDown className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {OPENAI_MODEL_PRESETS.map((preset) => (
+                                            <DropdownMenuItem
+                                                key={preset.value}
+                                                onSelect={() => setValue('openai.model', preset.value, { shouldDirty: true, shouldTouch: true })}
+                                            >
+                                                {preset.label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
 
                         <Separator orientation="horizontal" />

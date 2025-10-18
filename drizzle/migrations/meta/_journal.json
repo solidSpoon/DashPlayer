@@ -57,6 +57,13 @@
       "when": 1760773163611,
       "tag": "0007_outgoing_sharon_carter",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1760792886092,
+      "tag": "0008_smiling_silvermane",
+      "breakpoints": true
     }
   ]
 }
