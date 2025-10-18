@@ -91,6 +91,7 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
         components={{ List: ListContainer, Item: ItemContainer }}
         // 让内部 scroller 使用自定义滚动条样式
         style={{ height: '100%' }}
+        className="scrollbar-none"
         // 仅生成可视区域缩略图
         rangeChanged={({ startIndex, endIndex }) => {
           if (ensureThumbnails) {
