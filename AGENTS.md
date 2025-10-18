@@ -17,3 +17,6 @@ Repository history favors concise, action-focused commit messages (`优化代码
 
 ## Service Configuration & Security
 External integrations drive key features: Youdao, Tencent, OpenAI, Sherpa ONNX. Configure credentials through the in-app Settings UI or local secure storage—never commit keys or generated data. Ensure `lib/` binaries match the branch (rerun `yarn run download` after upgrades) and review `forge.config.ts` plus `drizzle.config.ts` whenever changing build or database behavior.
+
+## Agent Notes
+- Drizzle migrations under `drizzle/migrations/` are auto-generated; never edit them manually. Change the schema in `src/backend/db/tables/` and run `yarn drizzle-kit generate` afterwards.
