@@ -123,11 +123,15 @@ const sanitizeExamples = (value?: unknown): OpenAIDictionaryExample[] | undefine
             }
             const translation = sanitizeString(record.translation);
             const explanation = sanitizeString(record.explanation);
-            return {
-                sentence,
-                translation,
-                explanation
-            };
+
+            const normalizedExample: OpenAIDictionaryExample = { sentence };
+            if (translation) {
+                normalizedExample.translation = translation;
+            }
+            if (explanation) {
+                normalizedExample.explanation = explanation;
+            }
+            return normalizedExample;
         })
         .filter((example): example is OpenAIDictionaryExample => example !== null);
 
@@ -151,16 +155,44 @@ const sanitizeDefinitions = (value?: unknown): OpenAIDictionaryDefinition[] => {
                 return null;
             }
 
-            return {
-                partOfSpeech: sanitizeString(record.partOfSpeech),
-                meaning,
-                explanation: sanitizeString(record.explanation),
-                translationNote: sanitizeString(record.translationNote),
-                synonyms: sanitizeStringArray(record.synonyms),
-                antonyms: sanitizeStringArray(record.antonyms),
-                relatedPhrases: sanitizeStringArray(record.relatedPhrases),
-                examples: sanitizeExamples(record.examples)
-            };
+            const normalizedDefinition: OpenAIDictionaryDefinition = { meaning };
+
+            const partOfSpeech = sanitizeString(record.partOfSpeech);
+            if (partOfSpeech) {
+                normalizedDefinition.partOfSpeech = partOfSpeech;
+            }
+
+            const explanation = sanitizeString(record.explanation);
+            if (explanation) {
+                normalizedDefinition.explanation = explanation;
+            }
+
+            const translationNote = sanitizeString(record.translationNote);
+            if (translationNote) {
+                normalizedDefinition.translationNote = translationNote;
+            }
+
+            const synonyms = sanitizeStringArray(record.synonyms);
+            if (synonyms) {
+                normalizedDefinition.synonyms = synonyms;
+            }
+
+            const antonyms = sanitizeStringArray(record.antonyms);
+            if (antonyms) {
+                normalizedDefinition.antonyms = antonyms;
+            }
+
+            const relatedPhrases = sanitizeStringArray(record.relatedPhrases);
+            if (relatedPhrases) {
+                normalizedDefinition.relatedPhrases = relatedPhrases;
+            }
+
+            const examples = sanitizeExamples(record.examples);
+            if (examples) {
+                normalizedDefinition.examples = examples;
+            }
+
+            return normalizedDefinition;
         })
         .filter((definition): definition is OpenAIDictionaryDefinition => definition !== null);
 };
