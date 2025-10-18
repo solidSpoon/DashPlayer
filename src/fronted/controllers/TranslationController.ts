@@ -4,6 +4,7 @@
 
 import { BaseRendererController } from './BaseRendererController';
 import useTranslation from '../hooks/useTranslation';
+import { RendererTranslationItem } from '@/common/types/TranslationResult';
 
 export class TranslationController extends BaseRendererController {
     readonly name = 'TranslationController';
@@ -11,11 +12,10 @@ export class TranslationController extends BaseRendererController {
     protected setupApis(): void {
         this.batchRegisterApis({
             // 单个翻译结果回调
-            'translation/result': async (params) => {
+            'translation/result': async (params: RendererTranslationItem) => {
                 this.logger.debug('Translation result', { params });
                 
-                const { key, translation, isComplete = true } = params;
-                useTranslation.getState().updateTranslation(key, translation, isComplete);
+                useTranslation.getState().updateTranslation(params);
             },
 
             // 批量翻译结果回调 (流式返回数组)

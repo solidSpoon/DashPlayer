@@ -31,6 +31,7 @@ const ServiceManagementSetting = () => {
     // Register hidden fields for Whisper to ensure they're included in form data
     register('whisper.enabled');
     register('whisper.enableTranscription');
+    register('openai.subtitleTranslationMode');
 
     // Whisper settings - now part of main form
     const whisperEnabled = watch('whisper.enabled');
@@ -57,6 +58,7 @@ const ServiceManagementSetting = () => {
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
     const tencentSubtitleEnabled = watch('tencent.enableSubtitleTranslation');
+    const openaiSubtitleMode = watch('openai.subtitleTranslationMode');
 
     // Watch for dictionary mutual exclusion
     const openaiDictionaryEnabled = watch('openai.enableDictionary');
@@ -82,6 +84,7 @@ const ServiceManagementSetting = () => {
                     model: settings.openai.model || 'gpt-4o-mini',
                     enableSentenceLearning: settings.openai.enableSentenceLearning || true,
                     enableSubtitleTranslation: settings.openai.enableSubtitleTranslation || true,
+                    subtitleTranslationMode: settings.openai.subtitleTranslationMode || 'zh',
                     enableDictionary: settings.openai.enableDictionary ?? true,
                     enableTranscription: settings.openai.enableTranscription ?? true,
                 },
@@ -333,6 +336,26 @@ const ServiceManagementSetting = () => {
                                         )}
                                     </Label>
                                 </div>
+                                {openaiSubtitleEnabled && (
+                                    <div className="pl-6 space-y-2">
+                                        <Label className="text-sm font-medium">字幕翻译输出</Label>
+                                        <Select
+                                            value={openaiSubtitleMode || 'zh'}
+                                            onValueChange={(value) => setValue('openai.subtitleTranslationMode', value as 'zh' | 'simple_en')}
+                                        >
+                                            <SelectTrigger className="w-64">
+                                                <SelectValue placeholder="选择翻译输出" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="zh">翻译成中文</SelectItem>
+                                                <SelectItem value="simple_en">输出简易英文</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                            简易英文会保留原句语序，仅替换复杂词汇为更易懂的表达。
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="openai-dictionary"

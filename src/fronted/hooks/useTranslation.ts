@@ -3,6 +3,8 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import hash from 'object-hash';
 import { Sentence } from '@/common/types/SentenceC';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
+import { SettingKey } from '@/common/types/store_schema';
 
 const api = window.electron;
 
@@ -13,6 +15,7 @@ export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
 export interface TranslationState {
     // 翻译引擎
     engine: 'tencent' | 'openai';
+    openAiMode: TranslationMode;
 
     // 翻译缓存 - key为translationKey，value为翻译结果
     translations: Map<string, string>;
@@ -46,16 +49,19 @@ export interface TranslationActions {
     retranslate: (fileHash: string, indices: number[], useCache?: boolean) => void;
 
     // 更新翻译结果 (由前端Controller调用) - 单个
-    updateTranslation: (key: string, translation: string, isComplete?: boolean) => void;
+    updateTranslation: (item: RendererTranslationItem) => void;
 
     // 批量更新翻译结果 (由前端Controller调用) - 数组
-    updateTranslations: (translations: Array<{ key: string, translation: string, isComplete?: boolean }>) => void;
+    updateTranslations: (translations: RendererTranslationItem[]) => void;
 
     // 清除翻译缓存
     clearTranslations: () => void;
 
     // 设置翻译引擎
     setEngine: (engine: 'tencent' | 'openai') => void;
+
+    // 更新 OpenAI 字幕模式
+    setOpenAiMode: (mode: TranslationMode) => void;
 }
 
 // 创建翻译Store
@@ -63,6 +69,7 @@ const useTranslation = create(
     subscribeWithSelector<TranslationState & TranslationActions>((set, get) => ({
         // 初始状态
         engine: 'tencent',
+        openAiMode: 'zh',
         translations: new Map(),
         translationStatus: new Map(),
 
@@ -126,9 +133,13 @@ const useTranslation = create(
         },
 
         // 更新单个翻译结果 (由前端Controller调用)
-        updateTranslation: (key: string, translation: string, isComplete = true) => {
+        updateTranslation: (item: RendererTranslationItem) => {
 
             set(state => {
+                if (!shouldAcceptTranslation(state, item)) {
+                    return state;
+                }
+                const { key, translation, isComplete = true } = item;
                 const newTranslations = new Map(state.translations);
                 const newStatus = new Map(state.translationStatus);
 
@@ -144,13 +155,18 @@ const useTranslation = create(
         },
 
         // 批量更新翻译结果 (由前端Controller调用)
-        updateTranslations: (translations: Array<{ key: string, translation: string, isComplete?: boolean }>) => {
+        updateTranslations: (items: RendererTranslationItem[]) => {
 
             set(state => {
+                const filtered = items.filter(item => shouldAcceptTranslation(state, item));
+                if (filtered.length === 0) {
+                    return state;
+                }
+
                 const newTranslations = new Map(state.translations);
                 const newStatus = new Map(state.translationStatus);
 
-                translations.forEach(({ key, translation, isComplete = true }) => {
+                filtered.forEach(({ key, translation, isComplete = true }) => {
                     newTranslations.set(key, translation);
                     newStatus.set(key, isComplete ? 'completed' : 'translating');
                 });
@@ -173,9 +189,82 @@ const useTranslation = create(
 
         // 设置翻译引擎
         setEngine: (engine: 'tencent' | 'openai') => {
-            set({ engine });
+            set(state => {
+                if (state.engine === engine) {
+                    return state;
+                }
+                return {
+                    engine,
+                    openAiMode: state.openAiMode,
+                    translations: new Map(),
+                    translationStatus: new Map()
+                };
+            });
+        },
+
+        setOpenAiMode: (mode: TranslationMode) => {
+            set(state => {
+                if (state.openAiMode === mode) {
+                    return state;
+                }
+
+                const shouldReset = state.engine === 'openai';
+                return {
+                    engine: state.engine,
+                    openAiMode: mode,
+                    translations: shouldReset ? new Map() : state.translations,
+                    translationStatus: shouldReset ? new Map() : state.translationStatus
+                };
+            });
         }
     }))
 );
+
+const shouldAcceptTranslation = (
+    state: TranslationState,
+    item: RendererTranslationItem
+): boolean => {
+    if (item.provider !== state.engine) {
+        return false;
+    }
+
+    if (item.provider === 'openai') {
+        const mode = item.mode ?? 'zh';
+        return mode === state.openAiMode;
+    }
+
+    return true;
+};
+
+const syncInitialSettings = () => {
+    api.call('storage/get', 'translation.engine').then((engine: string) => {
+        if (engine === 'openai' || engine === 'tencent') {
+            useTranslation.getState().setEngine(engine);
+        }
+    }).catch(error => {
+        getRendererLogger('useTranslation').error('failed to sync translation.engine', { error });
+    });
+
+    api.call('storage/get', 'services.openai.subtitleTranslationMode').then((mode: string) => {
+        const normalized = mode === 'simple_en' ? 'simple_en' : 'zh';
+        useTranslation.getState().setOpenAiMode(normalized);
+    }).catch(error => {
+        getRendererLogger('useTranslation').error('failed to sync subtitleTranslationMode', { error });
+    });
+};
+
+syncInitialSettings();
+
+api.onStoreUpdate((key: SettingKey, value: string) => {
+    if (key === 'translation.engine') {
+        if (value === 'openai' || value === 'tencent') {
+            useTranslation.getState().setEngine(value);
+        }
+    }
+    if (key === 'services.openai.subtitleTranslationMode') {
+        const normalized = value === 'simple_en' ? 'simple_en' : 'zh';
+        useTranslation.getState().setOpenAiMode(normalized);
+    }
+});
 
 export default useTranslation;

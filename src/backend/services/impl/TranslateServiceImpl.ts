@@ -25,6 +25,7 @@ import dpLog from '@/backend/ioc/logger';
 import TranslateService from "@/backend/services/AiTransServiceImpl";
 import {Sentence} from "@/common/types/SentenceC";
 import CacheService from "@/backend/services/CacheService";
+import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 
 const openAIDictionaryExampleSchema = z.object({
     sentence: z.string().describe('Example sentence in English'),
@@ -52,6 +53,25 @@ const openAIDictionaryResultSchema = z.object({
     examples: z.array(openAIDictionaryExampleSchema).optional().describe('General example sentences with translations'),
     pronunciation: z.string().optional().describe('Pronunciation audio URL if available')
 });
+
+type SubtitleTranslationStorageMode = 'tencent' | 'openai_zh' | 'openai_simple_en';
+
+const mapOpenAiModeToStorage = (mode: TranslationMode): SubtitleTranslationStorageMode =>
+    mode === 'simple_en' ? 'openai_simple_en' : 'openai_zh';
+
+const mapStorageModeToRendererFields = (
+    storageMode: SubtitleTranslationStorageMode
+): { provider: 'tencent' | 'openai'; mode: TranslationMode } => {
+    switch (storageMode) {
+        case 'openai_simple_en':
+            return { provider: 'openai', mode: 'simple_en' };
+        case 'openai_zh':
+            return { provider: 'openai', mode: 'zh' };
+        case 'tencent':
+        default:
+            return { provider: 'tencent', mode: 'zh' };
+    }
+};
 
 const sanitizeString = (value?: unknown): string | undefined => {
     if (typeof value !== 'string') {
@@ -189,6 +209,10 @@ export default class TranslateServiceImpl implements TranslateService {
             dpLog.error('没有启用的翻译服务');
             return;
         }
+        const openAiMode: TranslationMode | null = engine === 'openai' ? await this.settingService.getOpenAiSubtitleTranslationMode() : null;
+        const storageMode: SubtitleTranslationStorageMode = engine === 'openai'
+            ? mapOpenAiModeToStorage(openAiMode!)
+            : 'tencent';
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData || !srtData.sentences) {
@@ -201,11 +225,14 @@ export default class TranslateServiceImpl implements TranslateService {
 
         if (useCache) {
             const keysToLookup = sentencesToTranslate.map(s => s.translationKey);
-            const cachedResults = await this.getTranslationsByKeys(keysToLookup);
+            const cachedResults = await this.getTranslationsByKeys(keysToLookup, storageMode);
             if (cachedResults.size > 0) {
-                const cachedTranslations = Array.from(cachedResults.entries()).map(([key, translation]) => ({
+                const rendererMeta = mapStorageModeToRendererFields(storageMode);
+                const cachedTranslations: RendererTranslationItem[] = Array.from(cachedResults.entries()).map(([key, translation]) => ({
                     key,
                     translation,
+                    provider: rendererMeta.provider,
+                    mode: rendererMeta.mode,
                     isComplete: true
                 }));
 
@@ -225,13 +252,13 @@ export default class TranslateServiceImpl implements TranslateService {
 
         dpLog.log(`准备使用 ${engine} 翻译 ${sentencesToTranslate.length} 条句子`);
         if (engine === 'tencent') {
-            await this.processTencentBatch(sentencesToTranslate);
+            await this.processTencentBatch(sentencesToTranslate, storageMode);
         } else if (engine === 'openai') {
-            await this.processOpenAIBatch(sentencesToTranslate, allSentences);
+            await this.processOpenAIBatch(sentencesToTranslate, allSentences, storageMode, openAiMode!);
         }
     }
 
-    private async processTencentBatch(tasks: Sentence[]): Promise<void> {
+    private async processTencentBatch(tasks: Sentence[], storageMode: SubtitleTranslationStorageMode): Promise<void> {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'tencent') {
             dpLog.error('腾讯翻译服务未启用');
@@ -248,19 +275,26 @@ export default class TranslateServiceImpl implements TranslateService {
         try {
             const translationMap = await tencentClient.batchTrans(sentencesText);
             const resultsToSave: Map<string, string> = new Map();
-            const resultsToRender: Array<{ key: string, translation: string, isComplete: boolean }> = [];
+            const resultsToRender: RendererTranslationItem[] = [];
+            const rendererMeta = mapStorageModeToRendererFields(storageMode);
 
             tasks.forEach(task => {
                 const translation = translationMap.get(task.text) || '';
                 // 仅当翻译结果非空时才处理
                 if (translation) {
                     resultsToSave.set(task.translationKey, translation);
-                    resultsToRender.push({ key: task.translationKey, translation, isComplete: true });
+                    resultsToRender.push({
+                        key: task.translationKey,
+                        translation,
+                        provider: rendererMeta.provider,
+                        mode: rendererMeta.mode,
+                        isComplete: true
+                    });
                 }
             });
 
             if (resultsToRender.length > 0) {
-                await this.saveTranslationsByKeys(resultsToSave);
+                await this.saveTranslationsByKeys(resultsToSave, storageMode);
                 this.systemService.callRendererApi('translation/batch-result', {
                     translations: resultsToRender
                 });
@@ -271,7 +305,12 @@ export default class TranslateServiceImpl implements TranslateService {
         }
     }
 
-    private async processOpenAIBatch(tasks: Sentence[], allSentences: Sentence[]): Promise<void> {
+    private async processOpenAIBatch(
+        tasks: Sentence[],
+        allSentences: Sentence[],
+        storageMode: SubtitleTranslationStorageMode,
+        openAiMode: TranslationMode
+    ): Promise<void> {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'openai') {
             dpLog.error('OpenAI 翻译服务未启用');
@@ -284,16 +323,14 @@ export default class TranslateServiceImpl implements TranslateService {
             return;
         }
 
-        const schema = z.object({
-            translation: z.string().describe('The translated sentence in Simplified Chinese.')
-        });
+        const schema = this.buildOpenAISchema(openAiMode);
 
         const translationPromises = tasks.map(async (task) => {
             try {
                 const currentIndex = task.index;
                 const prevSentence = allSentences[currentIndex - 1]?.text || '';
                 const nextSentence = allSentences[currentIndex + 1]?.text || '';
-                const prompt = this.buildOpenAIPrompt(task.text, prevSentence, nextSentence);
+                const prompt = this.buildOpenAIPrompt(task.text, prevSentence, nextSentence, openAiMode);
 
                 const { partialObjectStream } = streamObject({ model, schema, prompt });
 
@@ -302,14 +339,26 @@ export default class TranslateServiceImpl implements TranslateService {
                     if (partialObject.translation) {
                         finalTranslation = partialObject.translation;
                         this.systemService.callRendererApi('translation/batch-result', {
-                            translations: [{ key: task.translationKey, translation: finalTranslation, isComplete: false }]
+                            translations: [{
+                                key: task.translationKey,
+                                translation: finalTranslation,
+                                provider: 'openai',
+                                mode: openAiMode,
+                                isComplete: false
+                            }]
                         });
                     }
                 }
 
                 if (finalTranslation) {
                     this.systemService.callRendererApi('translation/batch-result', {
-                        translations: [{ key: task.translationKey, translation: finalTranslation, isComplete: true }]
+                        translations: [{
+                            key: task.translationKey,
+                            translation: finalTranslation,
+                            provider: 'openai',
+                            mode: openAiMode,
+                            isComplete: true
+                        }]
                     });
                     return { key: task.translationKey, translation: finalTranslation };
                 }
@@ -328,25 +377,49 @@ export default class TranslateServiceImpl implements TranslateService {
         });
 
         if (resultsToSave.size > 0) {
-            await this.saveTranslationsByKeys(resultsToSave);
+            await this.saveTranslationsByKeys(resultsToSave, storageMode);
             dpLog.log(`OpenAI 翻译流程结束，已保存 ${resultsToSave.size} 条结果。`);
         }
     }
 
-    private buildOpenAIPrompt(current: string, prev: string, next: string): string {
+    private buildOpenAISchema(mode: 'zh' | 'simple_en') {
+        const description = mode === 'zh'
+            ? 'The translated sentence in Simplified Chinese.'
+            : 'The simplified English sentence that preserves the original wording order and punctuation.';
+
+        return z.object({
+            translation: z.string().describe(description)
+        });
+    }
+
+    private buildOpenAIPrompt(current: string, prev: string, next: string, mode: 'zh' | 'simple_en'): string {
+        if (mode === 'simple_en') {
+            return `You are a professional language simplifier for subtitles. Rewrite the following English subtitle into clear and simple English.
+
+Maintain the original sentence structure, word order, and punctuation. Only replace difficult or advanced words or phrases with easier alternatives while preserving the original meaning.
+
+If surrounding context helps with tone or meaning, use it to choose appropriate simpler wording.
+
+Previous sentence: "${prev || '(None)'}"
+Next sentence: "${next || '(None)'}"
+
+Rewrite ONLY the following sentence using simpler English:
+"${current}"`;
+        }
+
         return `You are a professional translator specializing in subtitles. Your task is to translate an English subtitle sentence into natural and fluent Simplified Chinese.
-        Pay close attention to the surrounding context to ensure the translation is accurate and context-aware.
+Pay close attention to the surrounding context to ensure the translation is accurate and context-aware.
 
-        Previous sentence: "${prev || '(None)'}"
-        Next sentence: "${next || '(None)'}"
+Previous sentence: "${prev || '(None)'}"
+Next sentence: "${next || '(None)'}"
 
-        Translate ONLY the following sentence:
-        "${current}"`;
+Translate ONLY the following sentence into Simplified Chinese:
+"${current}"`;
     }
 
     // --- 数据库与缓存操作 ---
 
-    public async getTranslationsByKeys(keys: string[]): Promise<Map<string, string>> {
+    public async getTranslationsByKeys(keys: string[], mode: SubtitleTranslationStorageMode): Promise<Map<string, string>> {
         const result = new Map<string, string>();
         if (!keys || keys.length === 0) return result;
 
@@ -354,7 +427,10 @@ export default class TranslateServiceImpl implements TranslateService {
             const values: SentenceTranslate[] = await db
                 .select()
                 .from(sentenceTranslates)
-                .where(inArray(sentenceTranslates.sentence, keys));
+                .where(and(
+                    inArray(sentenceTranslates.sentence, keys),
+                    eq(sentenceTranslates.mode, mode)
+                ));
 
             values.forEach(v => {
                 if (v.sentence && !StrUtil.isBlank(v.translate)) {
@@ -367,16 +443,17 @@ export default class TranslateServiceImpl implements TranslateService {
         return result;
     }
 
-    public async saveTranslationsByKeys(translations: Map<string, string>): Promise<void> {
+    public async saveTranslationsByKeys(translations: Map<string, string>, mode: SubtitleTranslationStorageMode): Promise<void> {
         if (!translations || translations.size === 0) return;
 
         const promises = Array.from(translations.entries()).map(([key, translation]) =>
             db.insert(sentenceTranslates)
-                .values({ sentence: key, translate: translation })
+                .values({ sentence: key, translate: translation, mode })
                 .onConflictDoUpdate({
-                    target: sentenceTranslates.sentence,
+                    target: [sentenceTranslates.sentence, sentenceTranslates.mode],
                     set: {
                         translate: translation,
+                        mode,
                         updated_at: TimeUtil.timeUtc()
                     }
                 })
@@ -620,7 +697,18 @@ Ensure the response strictly matches the provided JSON schema.`;
      */
     public async transSentences(sentences: string[]): Promise<Map<string, string>> {
         const processedSentences = sentences.map((s) => p(s));
-        const cache: TransHolder<string> = await this.sentenceLoadBatch(processedSentences);
+        const currentProvider = await this.settingService.getCurrentTranslationProvider();
+        let openAiMode: 'zh' | 'simple_en' | null = null;
+        let storageMode: SubtitleTranslationStorageMode = 'tencent';
+
+        if (currentProvider === 'openai') {
+            openAiMode = await this.settingService.getOpenAiSubtitleTranslationMode();
+            storageMode = mapOpenAiModeToStorage(openAiMode);
+        } else if (currentProvider === 'tencent') {
+            storageMode = 'tencent';
+        }
+
+        const cache: TransHolder<string> = await this.sentenceLoadBatch(processedSentences, storageMode);
         dpLog.log('旧版句子翻译-缓存命中:', cache.getMapping());
 
         const retries = processedSentences.filter((e) => !cache.get(e));
@@ -631,7 +719,6 @@ Ensure the response strictly matches the provided JSON schema.`;
         }
 
         try {
-            const currentProvider = await this.settingService.getCurrentTranslationProvider();
             if (!currentProvider) {
                 dpLog.log('没有启用的翻译服务');
                 return cache.getMapping();
@@ -643,11 +730,11 @@ Ensure the response strictly matches the provided JSON schema.`;
                     return cache.getMapping();
                 }
                 const transResult: TransHolder<string> = await tencentClient.batchTrans(retries);
-                await this.sentenceRecordBatch(transResult);
+                await this.sentenceRecordBatch(transResult, storageMode);
                 return cache.merge(transResult).getMapping();
             } else if (currentProvider === 'openai') {
-                const transResult = await this.processOpenAIBatchLegacy(retries);
-                await this.sentenceRecordBatch(transResult);
+                const transResult = await this.processOpenAIBatchLegacy(retries, openAiMode || 'zh');
+                await this.sentenceRecordBatch(transResult, storageMode);
                 return cache.merge(transResult).getMapping();
             }
         } catch (e) {
@@ -657,7 +744,10 @@ Ensure the response strictly matches the provided JSON schema.`;
         return cache.getMapping();
     }
 
-    private async processOpenAIBatchLegacy(sentences: string[]): Promise<TransHolder<string>> {
+    private async processOpenAIBatchLegacy(
+        sentences: string[],
+        openAiMode: 'zh' | 'simple_en'
+    ): Promise<TransHolder<string>> {
         const result = new TransHolder<string>();
         const model = this.aiProviderService.getModel();
         if (!model) {
@@ -665,13 +755,11 @@ Ensure the response strictly matches the provided JSON schema.`;
             return result;
         }
 
-        const schema = z.object({
-            translation: z.string().describe('The translated sentence in Simplified Chinese.')
-        });
+        const schema = this.buildOpenAISchema(openAiMode);
 
         const translationPromises = sentences.map(async (sentence) => {
             try {
-                const prompt = `You are a professional translator. Translate the following English sentence to Simplified Chinese:\n\n"${sentence}"`;
+                const prompt = this.buildOpenAIPrompt(sentence, '', '', openAiMode);
                 const { partialObjectStream } = streamObject({ model, schema, prompt });
 
                 let finalTranslation = '';
@@ -768,7 +856,7 @@ Ensure the response strictly matches the provided JSON schema.`;
             });
     }
 
-    private async sentenceLoadBatch(sentences: string[]): Promise<TransHolder<string>> {
+    private async sentenceLoadBatch(sentences: string[], mode: SubtitleTranslationStorageMode): Promise<TransHolder<string>> {
         const result = new TransHolder<string>();
         if (sentences.length === 0) return result;
 
@@ -778,6 +866,7 @@ Ensure the response strictly matches the provided JSON schema.`;
             .where(
                 and(
                     inArray(sentenceTranslates.sentence, sentences.map(w => p(w))),
+                    eq(sentenceTranslates.mode, mode),
                     isNotNull(sentenceTranslates.translate)
                 )
             );
@@ -791,15 +880,15 @@ Ensure the response strictly matches the provided JSON schema.`;
         return result;
     }
 
-    private async sentenceRecordBatch(validTrans: TransHolder<string>): Promise<void> {
+    private async sentenceRecordBatch(validTrans: TransHolder<string>, mode: SubtitleTranslationStorageMode): Promise<void> {
         const promises = [];
         for (const [key, value] of validTrans.getMapping().entries()) {
             const promise = db
                 .insert(sentenceTranslates)
-                .values({ sentence: p(key), translate: value })
+                .values({ sentence: p(key), translate: value, mode })
                 .onConflictDoUpdate({
-                    target: sentenceTranslates.sentence,
-                    set: { translate: value }
+                    target: [sentenceTranslates.sentence, sentenceTranslates.mode],
+                    set: { translate: value, mode }
                 });
             promises.push(promise);
         }

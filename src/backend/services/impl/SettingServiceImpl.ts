@@ -36,6 +36,7 @@ export default class SettingServiceImpl implements SettingService {
                 model: await this.get('model.gpt.default'),
                 enableSentenceLearning: await this.get('services.openai.enableSentenceLearning') === 'true',
                 enableSubtitleTranslation: await this.get('services.openai.enableSubtitleTranslation') === 'true',
+                subtitleTranslationMode: (await this.get('services.openai.subtitleTranslationMode')) === 'simple_en' ? 'simple_en' : 'zh',
                 enableDictionary: await this.get('services.openai.enableDictionary') === 'true',
                 enableTranscription: await this.get('services.openai.enableTranscription') === 'true',
             },
@@ -65,6 +66,8 @@ export default class SettingServiceImpl implements SettingService {
         await this.set('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
         await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
         await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
+        const subtitleMode = settings.openai.subtitleTranslationMode === 'simple_en' ? 'simple_en' : 'zh';
+        await this.set('services.openai.subtitleTranslationMode', subtitleMode);
         
         // Update Tencent settings
         await this.set('apiKeys.tencent.secretId', settings.tencent.secretId);
@@ -125,6 +128,11 @@ export default class SettingServiceImpl implements SettingService {
         if (openaiEnabled) return 'openai';
         if (tencentEnabled) return 'tencent';
         return null;
+    }
+
+    public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en'> {
+        const mode = await this.get('services.openai.subtitleTranslationMode');
+        return mode === 'simple_en' ? 'simple_en' : 'zh';
     }
     
     public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {

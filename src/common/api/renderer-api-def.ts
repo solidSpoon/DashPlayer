@@ -1,4 +1,5 @@
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { RendererTranslationItem } from '@/common/types/TranslationResult';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -20,8 +21,8 @@ interface UIRendererDef {
 
 // 翻译相关的前端API定义
 interface TranslationRendererDef {
-    'translation/result': { params: { key: string, translation: string, isComplete?: boolean }, return: void };
-    'translation/batch-result': { params: { translations: Array<{ key: string, translation: string, isComplete?: boolean }> }, return: void };
+    'translation/result': { params: RendererTranslationItem, return: void };
+    'translation/batch-result': { params: { translations: RendererTranslationItem[] }, return: void };
 }
 
 // 字典相关的前端API定义

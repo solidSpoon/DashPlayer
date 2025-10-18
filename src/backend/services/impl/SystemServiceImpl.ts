@@ -7,9 +7,6 @@ import path from 'path';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import {DpTask} from "@/backend/db/tables/dpTask";
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
-import * as fs from 'fs/promises';
-import LocationUtil from '@/backend/utils/LocationUtil';
-import { LocationType } from '@/backend/services/LocationService';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 @injectable()
 export default class SystemServiceImpl implements SystemService {
@@ -114,7 +111,7 @@ export default class SystemServiceImpl implements SystemService {
         return new Promise<RendererApiDefinitions[K]['return']>((resolve, reject) => {
             // 添加一次性响应监听器
             const eventName = `renderer-api-response-${callId}`;
-            
+
             ipcMain.once(eventName, (event: any, response: any) => {
                 if (response.success) {
                     resolve(response.result);
@@ -128,56 +125,7 @@ export default class SystemServiceImpl implements SystemService {
         });
     }
 
-    /**
-     * 测试反向API调用 - 显示通知
-     */
-    public async testRendererApiCall(): Promise<void> {
-        this.logger.info('Testing frontend API call');
-        
-        try {
-            // 调用前端显示通知
-            await this.callRendererApi('ui/show-notification', {
-                title: '后端调用测试',
-                message: '这是从后端SystemService发送的通知！',
-                type: 'info'
-            });
-            this.logger.info('Notification sent successfully');
-            
-            // 调用前端显示Toast
-            await this.callRendererApi('ui/show-toast', {
-                message: '反向API调用成功！',
-                duration: 3000
-            });
-            this.logger.info('Toast sent successfully');
 
-            // 测试翻译功能 - 模拟翻译结果回传
-            this.logger.info('Testing translation functionality');
-            
-            setTimeout(async () => {
-                await this.callRendererApi('translation/result', {
-                    key: 'test-translation-key-1',
-                    translation: '这是一个测试翻译结果'
-                });
-                this.logger.info('Translation result sent successfully');
-            }, 1000);
-
-            setTimeout(async () => {
-                await this.callRendererApi('translation/batch-result', {
-                    translations: [
-                        { key: 'test-key-1', translation: '你好世界' },
-                        { key: 'test-key-2', translation: '这是第二个测试' },
-                        { key: 'test-key-3', translation: '批量翻译测试' }
-                    ]
-                });
-                this.logger.info('Batch translation result sent successfully');
-            }, 2000);
-            
-        } catch (error) {
-            this.logger.error('Reverse API call failed', { error: error instanceof Error ? error.message : String(error) });
-        }
-    }
-
-    
     @postConstruct()
     init() {
         PathUtil.SEPARATOR = path.sep;
