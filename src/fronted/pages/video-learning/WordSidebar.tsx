@@ -65,14 +65,11 @@ export default function WordSidebar({
     onClearSelection();
   };
 
-  const locateButtonRef = useRef<HTMLButtonElement | null>(null);
-
   const handleLocateCurrent = () => {
     if (!selectedWord) return;
     const targetIndex = filteredWords.findIndex((word) => word.id === selectedWord.id);
     if (targetIndex >= 0) {
       virtuosoRef.current?.scrollToIndex({ index: targetIndex, align: 'center', behavior: 'smooth' });
-      locateButtonRef.current?.blur();
     }
   };
 
@@ -113,9 +110,12 @@ export default function WordSidebar({
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
-
         <TooltipProvider>
-          <div className="flex items-center gap-2 justify-end">
+          <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
+            <div className="mr-auto">
+              共 {words.length} 个单词
+              {searchTerm && <span className="ml-2 text-blue-600">搜索到 {filteredWords.length} 个</span>}
+            </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -160,19 +160,16 @@ export default function WordSidebar({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="定位到当前单词"
-                    type="button"
-                    onClick={handleLocateCurrent}
-                    disabled={!selectedWord}
-                    ref={locateButtonRef}
-                  >
-                    <LocateFixed className="w-4 h-4" />
-                  </Button>
-                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="定位到当前单词"
+                  type="button"
+                  onClick={handleLocateCurrent}
+                  disabled={!selectedWord}
+                >
+                  <LocateFixed className="w-4 h-4" />
+                </Button>
               </TooltipTrigger>
               <TooltipContent>定位到当前单词</TooltipContent>
             </Tooltip>
@@ -248,13 +245,6 @@ export default function WordSidebar({
             }}
           />
         )}
-      </div>
-
-      {/* 底部统计 */}
-      <div className="p-3 border-t text-xs text-gray-500 text-center">
-        共 {words.length} 个单词
-        {searchTerm && <div className="text-blue-600">搜索到 {filteredWords.length} 个</div>}
-        {words.length > 1000 && !searchTerm && <div className="text-orange-600">显示所有单词</div>}
       </div>
     </div>
   );

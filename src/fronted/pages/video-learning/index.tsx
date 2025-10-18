@@ -406,12 +406,6 @@ export default function VideoLearningPage() {
               <Play className="w-6 h-6" />
               <h1 className="text-2xl font-bold">视频学习</h1>
             </div>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-yellow-600 rounded"></div>
-                <span>处理中（播放原视频）</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
