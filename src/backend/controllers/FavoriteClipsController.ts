@@ -31,7 +31,7 @@ export default class FavoriteClipsController implements Controller {
         return this.favouriteClipsService.exists(srtKey, linesInSrt);
     }
 
-    public async search(query: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
+    public async search(query?: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
         return this.favouriteClipsService.search(query);
     }
 

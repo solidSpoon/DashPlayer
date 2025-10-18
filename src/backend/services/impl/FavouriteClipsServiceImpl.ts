@@ -244,14 +244,13 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         return result;
     }
 
-    public async search({
-                            keyword,
-                            keywordRange,
-                            tags,
-                            tagsRelation,
-                            date,
-                            includeNoTag
-                        }: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
+    public async search(query?: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
+        const keyword = query?.keyword ?? '';
+        const keywordRange = query?.keywordRange ?? 'clip';
+        const tags = query?.tags ?? [];
+        const tagsRelation = query?.tagsRelation ?? 'and';
+        const date = query?.date;
+        const includeNoTag = query?.includeNoTag ?? false;
         let where1 = and(sql`1=1`);
         let having1 = and(sql`1=1`);
         if (StrUtil.isNotBlank(keyword)) {
@@ -267,14 +266,14 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         if (date?.to) {
             where1 = and(where1, lte(videoClip.created_at, TimeUtil.dateToUtc(date.to)));
         }
-        if (tags?.length) {
+        if (tags.length) {
             where1 = and(where1, inArray(clipTagRelation.tag_id, tags));
             if (tagsRelation === 'and') {
                 having1 = and(having1, eq(count(), tags.length));
             }
         }
         if (includeNoTag) {
-            if (tagsRelation === 'or' && tags?.length) {
+            if (tagsRelation === 'or' && tags.length) {
                 having1 = or(having1, isNull(clipTagRelation.tag_id));
             } else {
                 where1 = and(where1, isNull(clipTagRelation.tag_id));

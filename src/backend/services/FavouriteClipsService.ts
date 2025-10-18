@@ -69,7 +69,7 @@ export interface FavouriteClipsService {
      * @param query - The query parameters.
      * @returns A promise that resolves to an array of OssObject.
      */
-    search(query: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]>;
+    search(query?: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]>;
 
     /**
      * Checks if clips exist in the favorites.
