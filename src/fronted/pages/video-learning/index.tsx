@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
+import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
 import ClipGrid from '@/fronted/pages/video-learning/ClipGrid';
 import VideoPlayerPane from '@/fronted/pages/video-learning/VideoPlayerPane';
 import WordSidebar from '@/fronted/pages/video-learning/WordSidebar';
+import { Button } from '@/fronted/components/ui/button';
 
 interface WordItem {
   id: number;
@@ -18,11 +20,23 @@ interface WordItem {
   videoCount?: number;
 }
 
+const PAGE_SIZE = 12;
+const DEFAULT_LEARNING_RESPONSE: { success: true; data: VideoLearningClipPage } = {
+  success: true,
+  data: {
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: PAGE_SIZE
+  }
+};
+
 export default function VideoLearningPage() {
   const [selectedWord, setSelectedWord] = useState<WordItem | null>(null);
   const [words, setWords] = useState<WordItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
   const inFlightThumbsRef = useRef<Set<string>>(new Set());
@@ -31,28 +45,66 @@ export default function VideoLearningPage() {
   const [currentClipIndex, setCurrentClipIndex] = useState(-1);
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
 
-  const { data: learningClips = { success: true, data: [] }, mutate: mutateLearningClips } = useSWR(
-    selectedWord
-      ? `${apiPath('video-learning/search')}-${selectedWord.word}`
-      : apiPath('video-learning/search'),
+  const selectedWordValue = selectedWord?.word ?? '';
+  const searchKey = `${apiPath('video-learning/search')}::word=${selectedWordValue}::page=${page}::size=${PAGE_SIZE}`;
+  const { data: learningClips = DEFAULT_LEARNING_RESPONSE } = useSWR(
+    searchKey,
     async () => {
-      if (selectedWord) {
-        return await window.electron.call('video-learning/search', {
-          word: selectedWord.word
-        });
-      } else {
-        return await window.electron.call('video-learning/search', {
-          word: ''
-        });
-      }
+      return await window.electron.call('video-learning/search', {
+        word: selectedWordValue,
+        page,
+        pageSize: PAGE_SIZE
+      });
     },
-    { fallbackData: { success: true, data: [] } }
+    { fallbackData: DEFAULT_LEARNING_RESPONSE }
   );
 
   const clips: VideoClip[] = useMemo(() => {
-    const list = learningClips?.success ? learningClips.data : [];
-    return Array.isArray(list) ? list : [];
+    if (learningClips?.success && Array.isArray(learningClips.data.items)) {
+      return learningClips.data.items as VideoClip[];
+    }
+    return [];
   }, [learningClips]);
+  const totalClips = learningClips?.success ? learningClips.data.total : 0;
+  const totalPages = totalClips > 0 ? Math.ceil(totalClips / PAGE_SIZE) : 1;
+  const displayedPage = learningClips?.success ? learningClips.data.page : page;
+
+  useEffect(() => {
+    if (learningClips?.success) {
+      const serverPage = learningClips.data.page;
+      if (serverPage !== page) {
+        setPage(serverPage);
+      }
+    }
+  }, [learningClips, page, setPage]);
+
+  const canPrev = displayedPage > 1;
+  const canNext = displayedPage < totalPages;
+  const clipRangeStart = totalClips === 0 ? 0 : (displayedPage - 1) * PAGE_SIZE + 1;
+  const clipRangeEnd = totalClips === 0 ? 0 : Math.min(displayedPage * PAGE_SIZE, totalClips);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    const safeTotal = Math.max(totalPages, 1);
+    const half = Math.floor(maxButtons / 2);
+    let startPage = Math.max(1, displayedPage - half);
+    const endPage = Math.min(safeTotal, startPage + maxButtons - 1);
+    startPage = Math.max(1, endPage - maxButtons + 1);
+    const pages: number[] = [];
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [displayedPage, totalPages]);
+
+  const handlePageChange = useCallback((nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages) {
+      return;
+    }
+    setPage(nextPage);
+    setCurrentClipIndex(-1);
+    setCurrentLineIndex(-1);
+  }, [totalPages, setPage, setCurrentClipIndex, setCurrentLineIndex]);
 
   const currentClip = useMemo(() => {
     return currentClipIndex >= 0 ? clips[currentClipIndex] : null;
@@ -182,8 +234,15 @@ export default function VideoLearningPage() {
   const importWords = useCallback(async (file: File) => {
     setLoading(true);
     try {
+      const fileWithPath = file as File & { path?: string };
+      const filePath = fileWithPath.path;
+      if (!filePath) {
+        alert('导入失败：无法读取文件路径');
+        return;
+      }
+
       const result = await window.electron.call('vocabulary/import', {
-        filePath: (file as any).path
+        filePath
       });
 
       if (result.success) {
@@ -246,7 +305,12 @@ export default function VideoLearningPage() {
 
   // 初始化：有列表则默认播放第一个视频的中间句
   useEffect(() => {
-    if (clips.length && currentClipIndex < 0) {
+    if (!clips.length) {
+      setCurrentClipIndex(-1);
+      setCurrentLineIndex(-1);
+      return;
+    }
+    if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
       playClip(0);
     }
   }, [clips, currentClipIndex, playClip]);
@@ -262,11 +326,17 @@ export default function VideoLearningPage() {
   // 处理单词点击
   const handleWordClick = useCallback((word: WordItem) => {
     setSelectedWord(word);
+    setPage(1);
+    setCurrentClipIndex(-1);
+    setCurrentLineIndex(-1);
   }, []);
 
   // 处理清除选择
   const handleClearSelection = useCallback(() => {
     setSelectedWord(null);
+    setPage(1);
+    setCurrentClipIndex(-1);
+    setCurrentLineIndex(-1);
   }, []);
 
   return (
@@ -316,6 +386,44 @@ export default function VideoLearningPage() {
               }}
               ensureThumbnails={ensureThumbnails}
             />
+          </div>
+          <div className="px-4 pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
+                {totalClips > 0
+                  ? `显示第 ${clipRangeStart}-${clipRangeEnd} 个片段，共 ${totalClips} 个`
+                  : '暂无视频片段'}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={!canPrev}
+                  onClick={() => handlePageChange(displayedPage - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {pageNumbers.map((num) => (
+                  <Button
+                    key={num}
+                    variant={num === displayedPage ? 'default' : 'ghost'}
+                    size="sm"
+                    disabled={num === displayedPage}
+                    onClick={() => handlePageChange(num)}
+                  >
+                    {num}
+                  </Button>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={!canNext}
+                  onClick={() => handlePageChange(displayedPage + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
           <VideoPlayerPane

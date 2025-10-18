@@ -14,7 +14,7 @@ import {Tag} from '@/backend/db/tables/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
 import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
-import {VideoLearningClipVO} from '@/common/types/vo/VideoLearningClipVO';
+import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import {CoreMessage} from 'ai';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
@@ -235,7 +235,7 @@ interface VideoLearningDef {
     };
     'video-learning/search': {
         params: SimpleClipQuery,
-        return: { success: boolean; data: VideoLearningClipVO[] }
+        return: { success: boolean; data: VideoLearningClipPage }
     };
     'video-learning/sync-from-oss': {
         params: void,

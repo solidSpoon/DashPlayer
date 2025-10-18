@@ -1,5 +1,5 @@
-import { ClipQuery, SimpleClipQuery } from '@/common/api/dto';
-import { VideoLearningClipVO } from '@/common/types/vo/VideoLearningClipVO';
+import { SimpleClipQuery } from '@/common/api/dto';
+import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from "@/common/types/vo/VideoLearningClipStatusVO";
 
 /**
@@ -34,9 +34,9 @@ export interface VideoLearningService {
     /**
      * 搜索学习片段
      * @param query - 查询参数
-     * @returns Promise<VideoLearningClipVO[]>
+     * @returns Promise<VideoLearningClipPage>
      */
-    search(query: SimpleClipQuery): Promise<VideoLearningClipVO[]>;
+    search(query: SimpleClipQuery): Promise<VideoLearningClipPage>;
 
 
 

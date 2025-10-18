@@ -28,7 +28,7 @@ import SystemService from '@/backend/services/SystemService';
 import SubtitleService from '@/backend/services/SubtitleService';
 
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
-import { VideoLearningClipVO } from '@/common/types/vo/VideoLearningClipVO';
+import { VideoLearningClipVO, VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { WordMatchService, MatchedWord } from '@/backend/services/WordMatchService';
 import { SrtSentence } from '@/common/types/SentenceC';
@@ -541,64 +541,47 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return firstLine?.start || 0;
     }
 
-    public async search({word}: SimpleClipQuery): Promise<VideoLearningClipVO[]> {
+    public async search({ word, page, pageSize }: SimpleClipQuery): Promise<VideoLearningClipPage> {
+        const normalizedPageSize = Math.min(Math.max(pageSize ?? 12, 1), 100);
+        const normalizedPage = Math.max(page ?? 1, 1);
+        const offset = (normalizedPage - 1) * normalizedPageSize;
+        const searchWord = StrUtil.isNotBlank(word) ? word.trim().toLowerCase() : '';
+
         const conditions: any[] = [];
 
-        if (word && StrUtil.isNotBlank(word)) {
-            // 通过关联表查询匹配的单词
+        if (StrUtil.isNotBlank(searchWord)) {
             const clipKeysWithWord = await db
                 .select({ clip_key: videoLearningClipWord.clip_key })
                 .from(videoLearningClipWord)
-                .where(eq(videoLearningClipWord.word, word.toLowerCase()));
+                .where(eq(videoLearningClipWord.word, searchWord));
 
             const clipKeys = clipKeysWithWord.map(item => item.clip_key);
 
             if (clipKeys.length > 0) {
                 conditions.push(inArray(videoLearningClip.key, clipKeys));
             } else {
-                // 强制无结果
                 conditions.push(sql`1=0`);
             }
         }
 
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-        const lines: VideoLearningClip[] = await db
-            .select({
-                key: videoLearningClip.key,
-                video_name: videoLearningClip.video_name,
-                srt_clip: videoLearningClip.srt_clip,
-                srt_context: videoLearningClip.srt_context,
-                created_at: videoLearningClip.created_at,
-                updated_at: videoLearningClip.updated_at,
-            })
+        const totalRows = await db
+            .select({ count: sql<number>`count(*)` })
             .from(videoLearningClip)
-            .where(whereClause)
-            .orderBy(desc(videoLearningClip.created_at))
-            .limit(5000);
+            .where(whereClause);
 
-        const ossMetas = await Promise.all(
-            lines.map((line) => this.videoLearningOssService.get(line.key))
-        );
-        const completedClips = ossMetas.filter((m): m is OssBaseMeta & ClipMeta => m !== null);
+        const dbTotal = Number(totalRows?.[0]?.count ?? 0);
 
-        // 已完成的片段添加 sourceType
-        const completedWithSourceType = completedClips.map(clip => ({
-            ...clip,
-            sourceType: 'oss' as const
-        }));
-
-        // 获取进行中的任务（在 taskQueue 中的 add 操作）
         const inProgressTasks = Array.from(this.taskQueue.values())
-            .filter(task => task.operation === 'add');
+            .filter(task => task.operation === 'add')
+            .filter(task => {
+                if (!searchWord) {
+                    return true;
+                }
+                return task.matchedWords.some(matched => matched.toLowerCase() === searchWord);
+            });
 
-        if (inProgressTasks.length === 0) {
-            return completedWithSourceType.map(clip =>
-                this.convertToVideoLearningClipVO(clip)
-            );
-        }
-
-        // 将进行中的任务转换为 ClipMeta 格式
         const inProgressClips: (OssBaseMeta & ClipMeta & { sourceType: 'local' })[] = [];
         for (const task of inProgressTasks) {
             try {
@@ -622,15 +605,59 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             }
         }
 
-        // 转换为 VO 格式，进行中的排在前面
-        const inProgressVOs = inProgressClips.map(clip =>
-            this.convertToVideoLearningClipVO(clip)
-        );
-        const completedVOs = completedWithSourceType.map(clip =>
-            this.convertToVideoLearningClipVO(clip)
-        );
+        const inProgressVOs = inProgressClips.map(clip => this.convertToVideoLearningClipVO(clip));
+        const inProgressCount = inProgressVOs.length;
 
-        return [...inProgressVOs, ...completedVOs];
+        const start = offset;
+        const end = offset + normalizedPageSize;
+
+        const paginatedInProgress: VideoLearningClipVO[] = [];
+        if (start < inProgressCount) {
+            const inProgressEnd = Math.min(end, inProgressCount);
+            paginatedInProgress.push(...inProgressVOs.slice(start, inProgressEnd));
+        }
+
+        const dbOffset = Math.max(0, start - inProgressCount);
+        const dbLimit = Math.max(0, end - Math.max(start, inProgressCount));
+
+        let completedVOs: VideoLearningClipVO[] = [];
+        if (dbLimit > 0) {
+            const lines: VideoLearningClip[] = await db
+                .select({
+                    key: videoLearningClip.key,
+                    video_name: videoLearningClip.video_name,
+                    srt_clip: videoLearningClip.srt_clip,
+                    srt_context: videoLearningClip.srt_context,
+                    created_at: videoLearningClip.created_at,
+                    updated_at: videoLearningClip.updated_at,
+                })
+                .from(videoLearningClip)
+                .where(whereClause)
+                .orderBy(desc(videoLearningClip.created_at))
+                .offset(dbOffset)
+                .limit(dbLimit);
+
+            if (lines.length > 0) {
+                const ossMetas = await Promise.all(
+                    lines.map((line) => this.videoLearningOssService.get(line.key))
+                );
+                const completedClips = ossMetas.filter((m): m is OssBaseMeta & ClipMeta => m !== null);
+                const completedWithSourceType = completedClips.map(clip => ({
+                    ...clip,
+                    sourceType: 'oss' as const
+                }));
+                completedVOs = completedWithSourceType.map(clip =>
+                    this.convertToVideoLearningClipVO(clip)
+                );
+            }
+        }
+
+        return {
+            items: [...paginatedInProgress, ...completedVOs],
+            total: inProgressCount + dbTotal,
+            page: normalizedPage,
+            pageSize: normalizedPageSize
+        };
     }
 
     private async addToDb(metaData: ClipMeta & OssBaseMeta) {

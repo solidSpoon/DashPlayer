@@ -20,3 +20,10 @@ export type VideoLearningClipVO = {
         isClip: boolean;
     }>;
 };
+
+export type VideoLearningClipPage = {
+    items: VideoLearningClipVO[];
+    total: number;
+    page: number;
+    pageSize: number;
+};

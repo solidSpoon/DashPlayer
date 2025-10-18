@@ -11,5 +11,6 @@ export type ClipQuery = {
 
 export type SimpleClipQuery = {
     word: string;
+    page?: number;
+    pageSize?: number;
 }
-
