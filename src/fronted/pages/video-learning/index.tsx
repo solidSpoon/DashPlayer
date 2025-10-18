@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
@@ -7,7 +7,15 @@ import { VideoClip } from '@/fronted/hooks/useClipTender';
 import ClipGrid from '@/fronted/pages/video-learning/ClipGrid';
 import VideoPlayerPane from '@/fronted/pages/video-learning/VideoPlayerPane';
 import WordSidebar from '@/fronted/pages/video-learning/WordSidebar';
-import { Button } from '@/fronted/components/ui/button';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '@/fronted/components/ui/pagination';
 
 interface WordItem {
   id: number;
@@ -76,21 +84,17 @@ export default function VideoLearningPage() {
   const totalPages = totalClips > 0 ? Math.ceil(totalClips / PAGE_SIZE) : 1;
   const displayedPage = learningClips?.success ? learningClips.data.page : page;
 
-  useEffect(() => {
-    if (learningClips?.success) {
-      const serverPage = learningClips.data.page;
-      if (serverPage !== page) {
-        setPage(serverPage);
-      }
-    }
-  }, [learningClips, page, setPage]);
-
   const canPrev = displayedPage > 1;
   const canNext = displayedPage < totalPages;
   const clipRangeStart = totalClips === 0 ? 0 : (displayedPage - 1) * PAGE_SIZE + 1;
   const clipRangeEnd = totalClips === 0 ? 0 : Math.min(displayedPage * PAGE_SIZE, totalClips);
 
-  const pageNumbers = useMemo(() => {
+  const {
+    pages: pageNumbers,
+    hasPrevGap,
+    hasNextGap,
+    safeTotalPages
+  } = useMemo(() => {
     const maxButtons = 5;
     const safeTotal = Math.max(totalPages, 1);
     const half = Math.floor(maxButtons / 2);
@@ -101,7 +105,12 @@ export default function VideoLearningPage() {
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    return pages;
+    return {
+      pages,
+      hasPrevGap: startPage > 1,
+      hasNextGap: endPage < safeTotal,
+      safeTotalPages: safeTotal
+    };
   }, [displayedPage, totalPages]);
 
   const handlePageChange = useCallback((nextPage: number, options?: { targetIndex?: PendingClipTarget }) => {
@@ -442,35 +451,94 @@ export default function VideoLearningPage() {
                   ? `显示第 ${clipRangeStart}-${clipRangeEnd} 个片段，共 ${totalClips} 个`
                   : '暂无视频片段'}
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={!canPrev}
-                  onClick={() => handlePageChange(displayedPage - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {pageNumbers.map((num) => (
-                  <Button
-                    key={num}
-                    variant={num === displayedPage ? 'default' : 'ghost'}
-                    size="sm"
-                    disabled={num === displayedPage}
-                    onClick={() => handlePageChange(num)}
-                  >
-                    {num}
-                  </Button>
-                ))}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={!canNext}
-                  onClick={() => handlePageChange(displayedPage + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+              <Pagination className="ml-auto w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      aria-disabled={!canPrev}
+                      className={!canPrev ? 'pointer-events-none opacity-50' : undefined}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (canPrev) {
+                          handlePageChange(displayedPage - 1, { targetIndex: 0 });
+                        }
+                      }}
+                    />
+                  </PaginationItem>
+                  {hasPrevGap && (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          isActive={displayedPage === 1}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (displayedPage !== 1) {
+                              handlePageChange(1, { targetIndex: 0 });
+                            }
+                          }}
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    </>
+                  )}
+                  {pageNumbers.map((num) => (
+                    <PaginationItem key={num}>
+                      <PaginationLink
+                        href="#"
+                        isActive={num === displayedPage}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (num !== displayedPage) {
+                            handlePageChange(num, { targetIndex: 0 });
+                          }
+                        }}
+                      >
+                        {num}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  {hasNextGap && (
+                    <>
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          isActive={displayedPage === safeTotalPages}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (displayedPage !== safeTotalPages) {
+                              handlePageChange(safeTotalPages, { targetIndex: 0 });
+                            }
+                          }}
+                        >
+                          {safeTotalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      aria-disabled={!canNext}
+                      className={!canNext ? 'pointer-events-none opacity-50' : undefined}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (canNext) {
+                          handlePageChange(displayedPage + 1, { targetIndex: 0 });
+                        }
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </div>
 
