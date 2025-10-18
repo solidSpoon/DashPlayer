@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Play, Info } from 'lucide-react';
 import {
   Tooltip,
@@ -8,7 +8,7 @@ import {
 } from '@/fronted/components/ui/tooltip';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { VirtuosoGrid, VirtuosoGridHandle } from 'react-virtuoso';
+import { VirtuosoGrid } from 'react-virtuoso';
 
 type Props = {
   clips: VideoClip[];
@@ -19,8 +19,6 @@ type Props = {
 };
 
 export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, ensureThumbnails }: Props) {
-  const gridRef = useRef<VirtuosoGridHandle>(null);
-
   const getThumbnailUrlSync = (clip: VideoClip): string => {
     const raw = thumbnails?.[clip.key];
     if (!raw) return '';
@@ -36,15 +34,9 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
     [clips, playingKey]
   );
 
-  // 虚拟网格滚动到当前播放的视频
+  // 当前播放项变更时补齐缩略图
   useEffect(() => {
     if (playingIndex >= 0) {
-      gridRef.current?.scrollToIndex({
-        index: playingIndex,
-        align: 'center',
-        behavior: 'smooth',
-      });
-      // 确保当前播放项有缩略图
       ensureThumbnails?.([playingIndex]);
     }
   }, [playingIndex, ensureThumbnails]);
@@ -94,7 +86,6 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
   return (
     <div className="h-full">
       <VirtuosoGrid
-        ref={gridRef}
         data={clips}
         overscan={300} // 适度的超前渲染，滚动更顺滑
         components={{ List: ListContainer, Item: ItemContainer }}

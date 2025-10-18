@@ -1,8 +1,14 @@
 import React, { useMemo, useRef } from 'react';
 import { Input } from '@/fronted/components/ui/input';
 import { Button } from '@/fronted/components/ui/button';
-import { Search, Upload, Download } from 'lucide-react';
+import { Search, Upload, Download, List, LocateFixed } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/fronted/components/ui/tooltip';
 
 interface WordItem {
   id: number;
@@ -27,7 +33,7 @@ type Props = {
   onImportWords: (file: File) => void;
 };
 
-export default function WordSidebar({
+function WordSidebarComponent({
   words,
   loading,
   selectedWord,
@@ -55,6 +61,21 @@ export default function WordSidebar({
     fileRef.current?.click();
   };
 
+  const handleShowAll = () => {
+    onClearSelection();
+  };
+
+  const locateButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const handleLocateCurrent = () => {
+    if (!selectedWord) return;
+    const targetIndex = filteredWords.findIndex((word) => word.id === selectedWord.id);
+    if (targetIndex >= 0) {
+      virtuosoRef.current?.scrollToIndex({ index: targetIndex, align: 'center', behavior: 'smooth' });
+      locateButtonRef.current?.blur();
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -62,11 +83,6 @@ export default function WordSidebar({
       e.target.value = '';
     }
   };
-
-  // 搜索变化后回到顶部
-  React.useEffect(() => {
-    virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start', behavior: 'auto' });
-  }, [searchTerm]);
 
   // 自定义 Scroller, 保留滚动条样式
   const Scroller = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -98,30 +114,77 @@ export default function WordSidebar({
           />
         </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1" onClick={onExportTemplate}>
-            <Download className="w-4 h-4" /> 导出模板
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1" onClick={handleImportClick}>
-            <Upload className="w-4 h-4" /> 导入 Excel
-          </Button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </div>
-
-        <Button
-          variant={selectedWord ? 'default' : 'outline'}
-          size="sm"
-          className="w-full"
-          onClick={onClearSelection}
-        >
-          显示全部视频
-        </Button>
+        <TooltipProvider>
+          <div className="flex items-center gap-2 justify-end">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="导出模板"
+                  type="button"
+                  onClick={onExportTemplate}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>导出模板</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="导入 Excel"
+                  type="button"
+                  onClick={handleImportClick}
+                >
+                  <Upload className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>导入 Excel</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={selectedWord ? 'outline' : 'default'}
+                  size="icon"
+                  aria-label="显示全部视频"
+                  type="button"
+                  onClick={handleShowAll}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>显示全部视频</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="定位到当前单词"
+                    type="button"
+                    onClick={handleLocateCurrent}
+                    disabled={!selectedWord}
+                    ref={locateButtonRef}
+                  >
+                    <LocateFixed className="w-4 h-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>定位到当前单词</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
 
       {/* 列表区域：使用虚拟列表，占满剩余高度 */}
@@ -148,17 +211,25 @@ export default function WordSidebar({
               const active = selectedWord?.id === word.id;
               return (
                 <div
-                  role="button"
-                  tabIndex={0}
+                  // role="button"
+                  // tabIndex={0}
                   className={[
                     'p-2 rounded cursor-pointer transition-all text-sm leading-tight mb-1',
                     active ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
                   ].join(' ')}
-                  onClick={() => onWordClick(word)}
+                  onClick={(event) => {
+                    onWordClick(word);
+                    window.requestAnimationFrame(() => {
+                      (event.currentTarget as HTMLElement).blur();
+                    });
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       onWordClick(word);
+                      window.requestAnimationFrame(() => {
+                        (e.currentTarget as HTMLElement).blur();
+                      });
                     }
                   }}
                 >
@@ -196,3 +267,5 @@ export default function WordSidebar({
     </div>
   );
 }
+
+export default React.memo(WordSidebarComponent);
