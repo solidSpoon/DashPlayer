@@ -206,7 +206,7 @@ export default function VideoLearningPage() {
     try {
       const result = await window.electron.call('vocabulary/get-all', {});
       if (result.success) {
-        const wordData: WordItem[] = result.data || [];
+        const wordData: WordItem[] = Array.isArray(result.data) ? result.data as WordItem[] : [];
 
         let clipCounts: Record<string, number> = {};
         try {

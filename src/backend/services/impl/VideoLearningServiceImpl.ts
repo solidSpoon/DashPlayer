@@ -28,7 +28,7 @@ import SystemService from '@/backend/services/SystemService';
 import SubtitleService from '@/backend/services/SubtitleService';
 
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
-import { VideoLearningClipVO, VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
+import { ClipVocabularyEntry, VideoLearningClipVO, VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { WordMatchService, MatchedWord } from '@/backend/services/WordMatchService';
 import { SrtSentence } from '@/common/types/SentenceC';
@@ -316,7 +316,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const srt = await this.ensureSrtCached(task.srtKey, task.srtPath);
         if (!srt) return;
 
-        const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt, task.matchedWords);
+        const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
         const key = this.mapToMetaKey(srt, task.indexInSrt);
 
         const folder = this.locationService.getDetailLibraryPath(LocationType.TEMP);
@@ -474,7 +474,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         }
     }
 
-    private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number, matchedWords: string[]): ClipMeta {
+    private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number): ClipMeta {
         const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
         const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
         const clipLine = SrtUtil.findByIndex(srtLines, indexInSrt) as SrtLine;
@@ -508,7 +508,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
      * 转换为视频学习片段VO
      */
     private convertToVideoLearningClipVO(
-        clip: OssBaseMeta & ClipMeta & { sourceType: 'oss' | 'local' }
+        clip: OssBaseMeta & ClipMeta & { sourceType: 'oss' | 'local' },
+        vocabularyEntries: ClipVocabularyEntry[]
     ): VideoLearningClipVO {
         // 正在处理中：返回原视频路径，时间需要加上偏移量
         // 已处理完成：返回OSS片段路径，时间是相对片段的
@@ -524,6 +525,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             contentZh: item.contentZh,
             isClip: item.isClip
         }));
+        const normalizedVocabulary = this.normalizeVocabularyEntries(vocabularyEntries);
 
         return {
             key: clip.key,
@@ -531,8 +533,134 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             videoName: clip.video_name,
             videoPath: videoPath,
             createdAt: clip.created_at,
-            clipContent: processedClipContent
+            clipContent: processedClipContent,
+            vocabulary: normalizedVocabulary
         };
+    }
+
+    private normalizeVocabularyEntries(entries: ClipVocabularyEntry[] | undefined | null): ClipVocabularyEntry[] {
+        if (!entries || entries.length === 0) {
+            return [];
+        }
+
+        return entries
+            .map((entry) => {
+                const base = typeof entry.base === 'string' ? entry.base.toLowerCase().trim() : '';
+                if (!base) {
+                    return null;
+                }
+                const forms = new Set<string>();
+                (entry.forms || []).forEach((form) => {
+                    const normalizedForm = typeof form === 'string' ? form.toLowerCase().trim() : '';
+                    if (normalizedForm) {
+                        forms.add(normalizedForm);
+                    }
+                });
+                if (!forms.size) {
+                    forms.add(base);
+                }
+                return {
+                    base,
+                    forms: Array.from(forms)
+                };
+            })
+            .filter((entry): entry is ClipVocabularyEntry => entry !== null);
+    }
+
+    private async buildVocabularyEntriesFromClip(
+        clip: OssBaseMeta & ClipMeta & { sourceType: 'oss' | 'local' },
+        baseWords: string[]
+    ): Promise<ClipVocabularyEntry[]> {
+        if (!clip?.clip_content || clip.clip_content.length === 0) {
+            return [];
+        }
+
+        const normalizedBaseWords = Array.from(
+            new Set(
+                baseWords
+                    .map((word) => (typeof word === 'string' ? word.toLowerCase().trim() : ''))
+                    .filter((word): word is string => !!word)
+            )
+        );
+
+        if (normalizedBaseWords.length === 0) {
+            return [];
+        }
+
+        const baseSet = new Set(normalizedBaseWords);
+        const englishLines = clip.clip_content
+            .map((line) => line.contentEn || '')
+            .filter((line) => typeof line === 'string' && line.trim().length > 0);
+
+        if (englishLines.length === 0) {
+            return normalizedBaseWords.map((base) => ({
+                base,
+                forms: [base]
+            }));
+        }
+
+        const matchResults = await this.wordMatchService.matchWordsInTexts(englishLines);
+        const entryMap = new Map<string, Set<string>>();
+
+        matchResults.forEach((matches) => {
+            matches.forEach((match) => {
+                const base = (match.databaseWord?.word || match.normalized || match.stem || '').toLowerCase().trim();
+                if (!base || !baseSet.has(base)) {
+                    return;
+                }
+                const form = (match.original || match.normalized || '').toLowerCase().trim();
+                if (!entryMap.has(base)) {
+                    entryMap.set(base, new Set<string>());
+                }
+                if (form) {
+                    entryMap.get(base)!.add(form);
+                }
+            });
+        });
+
+        baseSet.forEach((base) => {
+            if (!entryMap.has(base)) {
+                entryMap.set(base, new Set([base]));
+            }
+        });
+
+        return Array.from(entryMap.entries()).map(([base, forms]) => ({
+            base,
+            forms: Array.from(forms)
+        }));
+    }
+
+    private async getClipWordsMap(keys: string[]): Promise<Map<string, string[]>> {
+        const result = new Map<string, string[]>();
+        if (!keys || keys.length === 0) {
+            return result;
+        }
+
+        const rows = await db
+            .select({
+                clipKey: videoLearningClipWord.clip_key,
+                word: videoLearningClipWord.word
+            })
+            .from(videoLearningClipWord)
+            .where(inArray(videoLearningClipWord.clip_key, keys));
+
+        const tempMap = new Map<string, Set<string>>();
+        for (const row of rows) {
+            const cleanedWord = typeof row.word === 'string' ? row.word.toLowerCase().trim() : '';
+            if (!cleanedWord) {
+                continue;
+            }
+            if (!tempMap.has(row.clipKey)) {
+                tempMap.set(row.clipKey, new Set());
+            }
+            tempMap.get(row.clipKey)?.add(cleanedWord);
+        }
+
+        tempMap.forEach((set, key) => {
+            result.set(key, Array.from(set));
+        });
+
+        return result;
     }
 
     private getClipBeginAt(clip: OssBaseMeta & ClipMeta): number {
@@ -582,16 +710,16 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 return task.matchedWords.some(matched => matched.toLowerCase() === searchWord);
             });
 
-        const inProgressClips: (OssBaseMeta & ClipMeta & { sourceType: 'local' })[] = [];
+        const inProgressClips: Array<{ clip: OssBaseMeta & ClipMeta & { sourceType: 'local' }, matchedWords: string[] }> = [];
         for (const task of inProgressTasks) {
             try {
                 const srt = this.getSrtFromCache(task.srtKey);
                 if (!srt) continue;
 
-                const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt, task.matchedWords);
+                const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
                 const key = this.mapToMetaKey(srt, task.indexInSrt);
 
-                inProgressClips.push({
+                const clipEntry = {
                     ...metaData,
                     key,
                     sourceType: 'local' as const,
@@ -599,13 +727,23 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     clip_file: task.videoPath,
                     thumbnail_file: '',
                     baseDir: ''
-                } as unknown as OssBaseMeta & ClipMeta & { sourceType: 'local' });
+                } as unknown as OssBaseMeta & ClipMeta & { sourceType: 'local' };
+
+                inProgressClips.push({
+                    clip: clipEntry,
+                    matchedWords: task.matchedWords ?? []
+                });
             } catch (error) {
                 dpLog.error('Failed to process in-progress task:', error);
             }
         }
 
-        const inProgressVOs = inProgressClips.map(clip => this.convertToVideoLearningClipVO(clip));
+        const inProgressVOs = await Promise.all(
+            inProgressClips.map(async ({ clip, matchedWords }) => {
+                const vocabulary = await this.buildVocabularyEntriesFromClip(clip, matchedWords ?? []);
+                return this.convertToVideoLearningClipVO(clip, vocabulary);
+            })
+        );
         const inProgressCount = inProgressVOs.length;
 
         const start = offset;
@@ -646,8 +784,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     ...clip,
                     sourceType: 'oss' as const
                 }));
-                completedVOs = completedWithSourceType.map(clip =>
-                    this.convertToVideoLearningClipVO(clip)
+                const wordMap = await this.getClipWordsMap(completedWithSourceType.map(clip => clip.key));
+                completedVOs = await Promise.all(
+                    completedWithSourceType.map(async (clip) => {
+                        const vocabulary = await this.buildVocabularyEntriesFromClip(
+                            clip,
+                            wordMap.get(clip.key) ?? []
+                        );
+                        return this.convertToVideoLearningClipVO(clip, vocabulary);
+                    })
                 );
             }
         }

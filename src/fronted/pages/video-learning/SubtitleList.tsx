@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { Play, Pause, CirclePause, Repeat } from 'lucide-react';
+import useVocabulary from '@/fronted/hooks/useVocabulary';
 
 type Props = {
   lines: ClipSrtLine[];
@@ -13,6 +14,9 @@ type Props = {
   onToggleAutoPause?: () => void;
   onToggleSingleRepeat?: () => void;
 };
+
+const SPLIT_REGEX =
+  /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 
 export default function SubtitleList({
   lines,
@@ -27,6 +31,10 @@ export default function SubtitleList({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const { vocabularyVersion, isVocabularyWord } = useVocabulary((state) => ({
+    vocabularyVersion: state.version,
+    isVocabularyWord: state.isVocabularyWord
+  }));
 
   useEffect(() => {
     const el = itemRefs.current[activeIndex];
@@ -34,6 +42,36 @@ export default function SubtitleList({
       el.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
   }, [activeIndex]);
+
+  const renderHighlightedText = useCallback((text: string, keyPrefix: string) => {
+    if (!text) {
+      return null;
+    }
+    const textHashBase = `${keyPrefix}-${vocabularyVersion}`;
+    const tokens = text
+      .replace(/\s+/g, ' ')
+      .split(SPLIT_REGEX)
+      .filter((token) => token);
+    return tokens.map((token, index) => {
+      const cleanToken = token.toLowerCase().replace(/[^\w-]/g, '');
+      const isVocab = cleanToken && isVocabularyWord(cleanToken);
+      if (isVocab) {
+        return (
+          <span
+            key={`${textHashBase}-${index}`}
+            className="text-primary font-semibold underline decoration-primary/70 decoration-1 bg-primary/10 px-0.5 rounded-sm"
+          >
+            {token}
+          </span>
+        );
+      }
+      return (
+        <span key={`${textHashBase}-${index}`}>
+          {token}
+        </span>
+      );
+    });
+  }, [isVocabularyWord, vocabularyVersion]);
 
   return (
     <div ref={containerRef} className="overflow-auto max-h-64 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
@@ -51,9 +89,11 @@ export default function SubtitleList({
                   : 'bg-muted/50 border-transparent hover:bg-muted/70'
             }`}
           >
-            <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-foreground">{line.contentEn}</div>
+                <div className="text-sm text-foreground">
+                  {renderHighlightedText(line.contentEn, `${idx}-${line.index}`)}
+                </div>
                 <div className="text-xs text-muted-foreground mt-1">{line.contentZh}</div>
               </div>
 

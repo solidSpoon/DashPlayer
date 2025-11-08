@@ -7,6 +7,7 @@ import VideoPlayerShortcut from './VideoPlayerShortcut';
 import { PlayerEngineV2 } from '@/fronted/components/player-components';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
+import useVocabulary from '@/fronted/hooks/useVocabulary';
 
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   lines,
@@ -84,6 +85,11 @@ export default function VideoPlayerPane({
   const setSource = usePlayerV2((s) => s.setSource);
   const loadSubtitles = usePlayerV2((s) => s.loadSubtitles);
   const clearSubtitles = usePlayerV2((s) => s.clearSubtitles);
+  const { setVocabularyWords, setVocabularyForms, clearVocabularyWords } = useVocabulary((state) => ({
+    setVocabularyWords: state.setVocabularyWords,
+    setVocabularyForms: state.setVocabularyForms,
+    clearVocabularyWords: state.clearVocabularyWords
+  }));
 
   // 高级API
   const prevSentence = usePlayerV2((s) => s.prevSentence);
@@ -116,6 +122,40 @@ export default function VideoPlayerPane({
       clearSubtitles();
     }
   }, [clip, forcePlayKey]);
+
+  useEffect(() => {
+    if (!clip) {
+      clearVocabularyWords();
+      return;
+    }
+
+    const vocabularyEntries = clip.vocabulary ?? [];
+    const baseWords: string[] = [];
+    const formMap: Record<string, string> = {};
+
+    vocabularyEntries.forEach((entry) => {
+      const base = entry.base?.toLowerCase().trim();
+      if (!base) {
+        return;
+      }
+      if (!baseWords.includes(base)) {
+        baseWords.push(base);
+      }
+      (entry.forms || []).forEach((form) => {
+        const normalizedForm = form?.toLowerCase().trim();
+        if (normalizedForm) {
+          formMap[normalizedForm] = base;
+        }
+      });
+    });
+
+    setVocabularyWords(baseWords);
+    setVocabularyForms(formMap);
+
+    return () => {
+      clearVocabularyWords();
+    };
+  }, [clip, setVocabularyWords, setVocabularyForms, clearVocabularyWords]);
 
   // 当外部 lineIdx 变化时，同步到播放器
   useEffect(() => {

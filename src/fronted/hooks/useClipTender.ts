@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { ClipTenderImpl } from '@/fronted/lib/SrtTender';
+import { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
 
 export type VideoClip = {
   key: string;
@@ -9,6 +10,7 @@ export type VideoClip = {
   videoPath: string;
   createdAt: number;
   clipContent: ClipSrtLine[];
+  vocabulary: ClipVocabularyEntry[];
 };
 
 export function useClipTender(clip: VideoClip | null) {

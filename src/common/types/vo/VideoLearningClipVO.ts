@@ -1,3 +1,8 @@
+export type ClipVocabularyEntry = {
+    base: string;
+    forms: string[];
+};
+
 export type VideoLearningClipVO = {
     // 基础标识信息
     key: string;
@@ -19,6 +24,7 @@ export type VideoLearningClipVO = {
         contentZh: string;
         isClip: boolean;
     }>;
+    vocabulary: ClipVocabularyEntry[];
 };
 
 export type VideoLearningClipPage = {
