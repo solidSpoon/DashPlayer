@@ -63,9 +63,10 @@ const NormalLine = ({text, order}: NormalLineParam) => {
     };
 
     const notWord = (str: string, key: string): ReactElement => {
+        const content = str === ' ' ? ' ' : str;
         return (
             <span className={`${show ? '' : 'text-transparent'} `} key={key}>
-                {str === ' ' ? <>&nbsp;</> : str}
+                {content}
             </span>
         );
     };
