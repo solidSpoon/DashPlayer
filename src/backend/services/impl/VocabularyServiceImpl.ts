@@ -2,12 +2,17 @@ import { words } from '@/backend/db/tables/words';
 import { eq, like, or } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { promises as fs } from 'fs';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import db from '@/backend/db';
+import TYPES from '@/backend/ioc/types';
 import VocabularyService, { GetAllWordsParams, GetAllWordsResult, ExportTemplateResult, ImportWordsResult } from '@/backend/services/VocabularyService';
+import { VideoLearningService } from '@/backend/services/VideoLearningService';
 
 @injectable()
 export default class VocabularyServiceImpl implements VocabularyService {
+
+    @inject(TYPES.VideoLearningService)
+    private videoLearningService!: VideoLearningService;
 
     async getAllWords(params: GetAllWordsParams = {}): Promise<GetAllWordsResult> {
         try {
@@ -162,9 +167,21 @@ export default class VocabularyServiceImpl implements VocabularyService {
                 }
             }
 
+            try {
+                await this.videoLearningService.syncFromOss();
+            } catch (syncError) {
+                console.error('同步单词管理片段失败:', syncError);
+                return {
+                    success: false,
+                    error: syncError instanceof Error
+                        ? `单词导入完成，但同步单词管理片段失败：${syncError.message}`
+                        : '单词导入完成，但同步单词管理片段失败'
+                };
+            }
+
             return {
                 success: true,
-                message: `导入完成：更新 ${updateCount} 条，新增 ${addCount} 条`
+                message: `导入完成：更新 ${updateCount} 条，新增 ${addCount} 条，已同步单词管理片段`
             };
         } catch (error) {
             console.error('导入单词失败:', error);

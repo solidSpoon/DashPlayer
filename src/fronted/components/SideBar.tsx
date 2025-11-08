@@ -97,7 +97,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                     <Rotate3D />
                 )}
                 {item(
-                    '单词管理',
+                    'Vocabulary',
                     '/vocabulary',
                     'vocabulary',
                     <BookOpen />

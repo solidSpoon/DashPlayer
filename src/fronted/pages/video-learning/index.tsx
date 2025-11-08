@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Play } from 'lucide-react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
@@ -55,6 +55,7 @@ export default function VideoLearningPage() {
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
   const inFlightThumbsRef = useRef<Set<string>>(new Set());
+  const { mutate } = useSWRConfig();
 
   // 播放状态管理
   const [currentClipIndex, setCurrentClipIndex] = useState(-1);
@@ -286,7 +287,8 @@ export default function VideoLearningPage() {
 
       if (result.success) {
         await fetchWords();
-        alert('导入成功');
+        await mutate(searchKey);
+        alert(result.message || '导入成功，已同步单词管理片段');
       } else {
         alert(`导入失败：${result.error || '未知错误'}`);
       }
@@ -296,7 +298,7 @@ export default function VideoLearningPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchWords]);
+  }, [fetchWords, mutate, searchKey]);
 
   // 仅生成可视区域缩略图（防抖）
   const ensureThumbnails = useCallback(async (visibleIndices: number[] = []) => {
@@ -404,7 +406,7 @@ export default function VideoLearningPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Play className="w-6 h-6" />
-              <h1 className="text-2xl font-bold">视频学习</h1>
+              <h1 className="text-2xl font-bold">Vocabulary Clip</h1>
             </div>
           </div>
         </div>

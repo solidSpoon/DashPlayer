@@ -68,6 +68,8 @@ const HomePage = () => {
                           className="font-semibold ">Split Video</Link>
                     <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/convert'}
                           className="font-semibold ">Convert</Link>
+                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/vocabulary'}
+                          className="font-semibold ">Vocabulary</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div
