@@ -19,6 +19,7 @@ import { codeBlock } from 'common-tags';
 import { useForm, Controller } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
+import { Input } from '@/fronted/components/ui/input';
 
 const api = window.electron;
 
@@ -178,6 +179,20 @@ const StorageSetting = () => {
         });
     }
 
+    async function reloadWordLearningClips() {
+        try {
+            await flushPendingSave();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`保存设置失败，请稍后重试：${message}`);
+        }
+        const result = await api.call('video-learning/sync-from-oss');
+        if (!result?.success) {
+            throw new Error('同步单词管理片段失败，请稍后再试');
+        }
+        await swrApiMutate('video-learning/search');
+    }
+
     const handleClear = async () => {
         await api.call('system/reset-db');
     };
@@ -293,6 +308,49 @@ const StorageSetting = () => {
 
                         <p className="text-sm text-muted-foreground">
                             favourite_clips 文件夹下的子文件夹会被视为收藏夹，如有需求您可以去该文件夹下创建新的收藏夹。
+                        </p>
+                    </div>
+                </div>
+                <div className="flex gap-2 items-end">
+                    <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
+                        <Label>单词管理片段</Label>
+                        <div className="flex gap-2 items-center">
+                            <Input
+                                value="word_video"
+                                readOnly
+                                className="w-48"
+                            />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            disabled={!canSyncCollections}
+                                            onClick={async () => {
+                                                await toast.promise(reloadWordLearningClips(), {
+                                                    loading: '正在同步单词管理片段',
+                                                    success: '单词管理片段已同步',
+                                                    error: '同步单词管理片段失败',
+                                                });
+                                            }}
+                                            variant="outline"
+                                            type="button"
+                                        >
+                                            重新同步单词管理数据
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
+                                        <Md>
+                                            {codeBlock`
+                                            #### 重新同步单词管理数据
+                                            将 word_video 文件夹中的自动匹配片段重新写入数据库，数据丢失或异常时可尝试使用。
+                                            `}
+                                        </Md>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            word_video 文件夹保存生词自动匹配生成的片段，数据库缺失时可在此重新写入。
                         </p>
                     </div>
                 </div>
