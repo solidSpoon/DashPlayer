@@ -9,6 +9,7 @@ import {
 import { VideoClip } from '@/fronted/hooks/useClipTender';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { VirtuosoGrid } from 'react-virtuoso';
+import { cn } from '@/fronted/lib/utils';
 
 type Props = {
   clips: VideoClip[];
@@ -50,9 +51,9 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
 
   if (clips.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
         <div className="text-center">
-          <Play className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <Play className="w-12 h-12 mx-auto mb-4 opacity-70" />
           <p className="text-lg mb-2">暂无视频片段</p>
           <p className="text-sm">请先添加一些视频片段到收藏</p>
         </div>
@@ -115,13 +116,15 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
               key={clip.key}
               role="button"
               tabIndex={0}
-              className={`border rounded-lg overflow-hidden cursor-pointer transition-all group ${
+              className={cn(
+                'border overflow-hidden rounded-2xl cursor-pointer transition-all group bg-card text-card-foreground',
                 isPlaying
-                  ? 'border-blue-500 ring-2 ring-blue-200'
-                  : clip.sourceType === 'local'
-                    ? 'border-yellow-300 dark:border-yellow-600 hover:shadow-lg'
-                    : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'
-              }`}
+                  ? 'border-primary ring-2 ring-primary/30 shadow-lg'
+                  : 'hover:border-primary/60 hover:shadow-md',
+                clip.sourceType === 'local' && !isPlaying
+                  ? 'border-dashed border-amber-400/70 dark:border-amber-500/70'
+                  : undefined
+              )}
               onClick={() => onClickClip(idx)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -131,18 +134,19 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
               }}
             >
               {/* 视频预览图 */}
-              <div className="relative bg-gray-100 aspect-[16/7] flex items-center justify-center">
+              <div className="relative bg-muted aspect-[16/7] flex items-center justify-center">
                 {thumb ? (
                   <img src={thumb} alt={title} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <div
-                    className={`w-full h-full flex items-center justify-center ${
+                    className={cn(
+                      'w-full h-full flex items-center justify-center text-white/80',
                       clip.sourceType === 'local'
-                        ? 'bg-gradient-to-br from-yellow-500 to-orange-600'
-                        : 'bg-gradient-to-br from-gray-400 to-gray-600'
-                    }`}
+                        ? 'bg-gradient-to-br from-amber-400 to-orange-600'
+                        : 'bg-gradient-to-br from-gray-500 to-gray-700'
+                    )}
                   >
-                    <Play className="w-8 h-8 text-white/80" />
+                    <Play className="w-8 h-8" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -151,13 +155,13 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
 
                 {/* 状态标识 */}
                 {isPlaying && (
-                  <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
                     播放中
                   </div>
                 )}
                 {clip.sourceType === 'local' && !isPlaying && (
-                  <div className="absolute top-2 left-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 left-2 bg-amber-500 text-amber-950 dark:text-amber-50 text-xs px-2 py-1 rounded flex items-center gap-1">
+                    <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
                     处理中
                   </div>
                 )}
@@ -194,8 +198,8 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
               </div>
 
               {/* 视频信息 */}
-              <div className="p-2 bg-white dark:bg-gray-800">
-                <p className="text-xs text-gray-600 line-clamp-2">{subtitle}</p>
+              <div className="p-3 bg-card border-t border-border/60">
+                <p className="text-xs text-muted-foreground line-clamp-2">{subtitle}</p>
               </div>
             </div>
           );

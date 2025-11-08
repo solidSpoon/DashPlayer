@@ -43,18 +43,18 @@ export default function SubtitleList({
             key={idx}
             ref={(r) => (itemRefs.current[idx] = r)}
             onClick={() => onPickLine?.(idx)}
-            className={`p-2 rounded text-sm cursor-pointer ${
+            className={`p-2 rounded-lg text-sm cursor-pointer border transition-colors ${
               idx === activeIndex
-                ? 'bg-blue-100 dark:bg-blue-900/30 border-l-2 border-blue-500'
+                ? 'bg-primary/10 border-primary/40'
                 : line.isClip
-                  ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30'
-                  : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-secondary/10 border-secondary/40 hover:bg-secondary/20'
+                  : 'bg-muted/50 border-transparent hover:bg-muted/70'
             }`}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <div className="text-gray-900 dark:text-gray-100">{line.contentEn}</div>
-                <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">{line.contentZh}</div>
+                <div className="text-sm text-foreground">{line.contentEn}</div>
+                <div className="text-xs text-muted-foreground mt-1">{line.contentZh}</div>
               </div>
 
               {/* 当前行的状态图标 */}
@@ -67,13 +67,13 @@ export default function SubtitleList({
                         e.stopPropagation();
                         onTogglePlay?.();
                       }}
-                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      className="p-1 rounded hover:bg-muted transition-colors"
                       title={playing ? "暂停" : "播放"}
                     >
                       {playing ? (
-                        <Pause className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                        <Pause className="w-3 h-3 text-muted-foreground" />
                       ) : (
-                        <Play className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                        <Play className="w-3 h-3 text-muted-foreground" />
                       )}
                     </button>
 
@@ -85,15 +85,15 @@ export default function SubtitleList({
                       }}
                       className={`p-1 rounded transition-colors ${
                         autoPause
-                          ? 'bg-blue-100 dark:bg-blue-800'
-                          : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                          ? 'bg-primary/10'
+                          : 'hover:bg-muted'
                       }`}
                       title={autoPause ? "关闭自动暂停" : "开启自动暂停"}
                     >
                       <CirclePause className={`w-3 h-3 ${
                         autoPause
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-gray-400 dark:text-gray-500'
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
                       }`} />
                     </button>
 
@@ -105,15 +105,15 @@ export default function SubtitleList({
                       }}
                       className={`p-1 rounded transition-colors ${
                         singleRepeat
-                          ? 'bg-green-100 dark:bg-green-800'
-                          : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                          : 'hover:bg-muted'
                       }`}
                       title={singleRepeat ? "关闭单句循环" : "开启单句循环"}
                     >
                       <Repeat className={`w-3 h-3 ${
                         singleRepeat
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-gray-400 dark:text-gray-500'
+                          ? 'text-emerald-600 dark:text-emerald-300'
+                          : 'text-muted-foreground'
                       }`} />
                     </button>
                   </>

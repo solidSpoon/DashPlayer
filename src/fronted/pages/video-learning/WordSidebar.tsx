@@ -83,11 +83,11 @@ export default function WordSidebar({
 
   
   return (
-    <div className="h-full flex flex-col border-r">
+    <div className="h-full flex flex-col rounded-2xl border border-border bg-card/90 shadow-sm backdrop-blur">
       {/* 顶部工具栏 */}
-      <div className="p-4 border-b space-y-3">
+      <div className="p-5 border-b border-border/60 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             className="pl-10"
             placeholder="搜索单词..."
@@ -96,10 +96,10 @@ export default function WordSidebar({
           />
         </div>
         <TooltipProvider>
-          <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
+          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
             <div className="mr-auto">
               共 {words.length} 个单词
-              {searchTerm && <span className="ml-2 text-blue-600">搜索到 {filteredWords.length} 个</span>}
+              {searchTerm && <span className="ml-2 text-primary">搜索到 {filteredWords.length} 个</span>}
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -170,23 +170,23 @@ export default function WordSidebar({
       </div>
 
       {/* 列表区域：使用虚拟列表，占满剩余高度 */}
-      <div className="flex-1 min-h-0 p-3 pt-2">
+      <div className="flex-1 min-h-0 p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-32">
+          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               加载中...
             </div>
           </div>
         ) : filteredWords.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-muted-foreground py-8 text-sm">
             {searchTerm ? '未找到匹配的单词' : '暂无生词记录'}
           </div>
         ) : (
           <Virtuoso
             ref={virtuosoRef}
             style={{ height: '100%' }}
-            className="scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600"
+            className="scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600"
             data={filteredWords}
             overscan={200}
             itemContent={(index, word) => {
@@ -196,8 +196,10 @@ export default function WordSidebar({
                   role="button"
                   tabIndex={0}
                   className={[
-                    'p-2 rounded cursor-pointer transition-all text-sm leading-tight mb-1',
-                    active ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700',
+                    'p-2 rounded-lg cursor-pointer transition-all text-sm leading-tight mb-1 border border-transparent',
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm border-primary/80'
+                      : 'hover:bg-muted'
                   ].join(' ')}
                   onClick={() => onWordClick(word)}
                   onKeyDown={(e) => {
@@ -212,17 +214,17 @@ export default function WordSidebar({
                     {!!word.videoCount && word.videoCount > 0 && (
                       <div
                         className={[
-                          'text-xs px-2 py-0.5 rounded-full',
+                          'text-xs px-2 py-0.5 rounded-full border',
                           active
-                            ? 'bg-blue-400 text-white'
-                            : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+                            ? 'bg-primary/20 text-primary-foreground border-primary/30'
+                            : 'bg-secondary text-secondary-foreground border-transparent'
                         ].join(' ')}
                       >
                         {word.videoCount}个视频
                       </div>
                     )}
                   </div>
-                  <div className={['text-xs truncate', active ? 'text-blue-100' : 'text-gray-500'].join(' ')}>
+                  <div className={['text-xs truncate', active ? 'text-primary-foreground/80' : 'text-muted-foreground'].join(' ')}>
                     {word.translate || '暂无释义'}
                   </div>
                 </div>

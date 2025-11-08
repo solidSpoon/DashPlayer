@@ -399,22 +399,24 @@ export default function VideoLearningPage() {
   }, [handlePageChange, setSelectedWord]);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* 顶部操作区域 */}
-      <div className="p-6 bg-white dark:bg-gray-800 border-b">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Play className="w-6 h-6" />
-              <h1 className="text-2xl font-bold">Vocabulary Clip</h1>
-            </div>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 pt-12 pb-6 gap-6 text-foreground">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full bg-primary/10 p-2 text-primary">
+            <Play className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold leading-tight">Vocabulary Clip</h1>
+            <p className="text-sm text-muted-foreground">
+              聚焦生词视频片段，快速定位并回看关键句子
+            </p>
           </div>
         </div>
       </div>
 
       {/* 主体内容区域 */}
-      <div className="flex-1 px-4 py-4 flex gap-4 overflow-hidden">
-        <div className="w-[480px] flex-shrink-0">
+      <div className="flex-1 flex gap-6 overflow-hidden">
+        <div className="w-[420px] flex-shrink-0">
           <WordSidebar
             words={words}
             loading={loading}
@@ -428,8 +430,8 @@ export default function VideoLearningPage() {
           />
         </div>
 
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 min-h-0 p-4">
+        <div className="flex-1 flex flex-col gap-4 min-h-0">
+          <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card/80 shadow-sm backdrop-blur p-4">
             <ClipGrid
               clips={clips}
               playingKey={playingKey}
@@ -440,9 +442,9 @@ export default function VideoLearningPage() {
               ensureThumbnails={ensureThumbnails}
             />
           </div>
-          <div className="px-4 pb-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+          <div className="rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground">
                 {totalClips > 0
                   ? `显示第 ${clipRangeStart}-${clipRangeEnd} 个片段，共 ${totalClips} 个`
                   : '暂无视频片段'}
