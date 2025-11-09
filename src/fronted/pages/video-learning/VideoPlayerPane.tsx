@@ -1,4 +1,4 @@
-import React, { useEffect, memo } from 'react';
+import React, { useEffect, memo, useRef, useCallback } from 'react';
 import UrlUtil from '@/common/utils/UrlUtil';
 import SubtitleList from './SubtitleList';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
@@ -8,6 +8,7 @@ import { PlayerEngineV2 } from '@/fronted/components/player-components';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 import useVocabulary from '@/fronted/hooks/useVocabulary';
+import { Sentence } from '@/common/types/SentenceC';
 
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   lines,
@@ -68,7 +69,6 @@ export default function VideoPlayerPane({
   const playing = usePlayerV2((s) => s.playing);
   const currentSentence = usePlayerV2((s) => s.currentSentence);
   const sentences = usePlayerV2((s) => s.sentences);
-  const duration = usePlayerV2((s) => s.duration);
   const autoPause = usePlayerV2((s) => s.autoPause);
   const singleRepeat = usePlayerV2((s) => s.singleRepeat);
 
@@ -91,6 +91,56 @@ export default function VideoPlayerPane({
     clearVocabularyWords: state.clearVocabularyWords
   }));
 
+  const playerReadyRef = useRef(false);
+  const pendingTargetRef = useRef<{ sentence: Sentence; time: number } | null>(null);
+  const pendingHighlightRef = useRef<{ fileHash?: string; index: number } | null>(null);
+  const autoPlayRef = useRef(false);
+  const lineIdxRef = useRef(lineIdx);
+
+  useEffect(() => {
+    lineIdxRef.current = lineIdx;
+  }, [lineIdx]);
+
+  const currentSentenceRef = useRef<Sentence | null>(currentSentence);
+  useEffect(() => {
+    currentSentenceRef.current = currentSentence;
+  }, [currentSentence]);
+
+  const queuePendingTarget = useCallback((sentence: Sentence | null | undefined) => {
+    if (!sentence) {
+      pendingTargetRef.current = null;
+      pendingHighlightRef.current = null;
+      return;
+    }
+    pendingTargetRef.current = { sentence, time: sentence.start };
+    pendingHighlightRef.current = {
+      fileHash: sentence.fileHash,
+      index: sentence.index
+    };
+  }, []);
+
+  const applyPendingTarget = useCallback(() => {
+    if (!pendingTargetRef.current) {
+      return;
+    }
+    const target = pendingTargetRef.current;
+    pendingHighlightRef.current = {
+      fileHash: target.sentence.fileHash,
+      index: target.sentence.index
+    };
+    seekToTarget({ time: target.time, target: target.sentence });
+    pendingTargetRef.current = null;
+  }, [seekToTarget]);
+
+  const handlePlayerReady = useCallback(() => {
+    playerReadyRef.current = true;
+    applyPendingTarget();
+    if (autoPlayRef.current) {
+      play();
+      autoPlayRef.current = false;
+    }
+  }, [applyPendingTarget, play]);
+
   // 高级API
   const prevSentence = usePlayerV2((s) => s.prevSentence);
   const nextSentence = usePlayerV2((s) => s.nextSentence);
@@ -106,22 +156,32 @@ export default function VideoPlayerPane({
       const videoUrl = clip.videoPath ? UrlUtil.file(clip.videoPath) : '';
       setSource(videoUrl);
 
-      // 转换字幕格式
-      const sentences = convertClipSrtLinesToSentences(clip.clipContent, clip.videoPath, clip.key);
-      loadSubtitles(sentences);
+      const sentencesConverted = convertClipSrtLinesToSentences(clip.clipContent, clip.videoPath, clip.key);
+      loadSubtitles(sentencesConverted);
 
-      // 播放指定的句子
-      if (lineIdx >= 0 && lineIdx < sentences.length) {
-        const targetSentence = sentences[lineIdx];
-        seekToTarget({ time: targetSentence.start, target: targetSentence });
+      playerReadyRef.current = false;
+      autoPlayRef.current = true;
+
+      const desiredIndex = lineIdxRef.current ?? -1;
+      let targetSentence: Sentence | null = null;
+      if (desiredIndex >= 0 && desiredIndex < sentencesConverted.length) {
+        targetSentence = sentencesConverted[desiredIndex];
+      } else if (sentencesConverted.length > 0) {
+        targetSentence = sentencesConverted[0];
+        if (desiredIndex !== 0) {
+          onLineIdxChange(0);
+        }
       }
 
-      play();
+      queuePendingTarget(targetSentence);
     } else {
       setSource(null);
       clearSubtitles();
+      queuePendingTarget(null);
+      playerReadyRef.current = false;
+      autoPlayRef.current = false;
     }
-  }, [clip, forcePlayKey]);
+  }, [clip, forcePlayKey, setSource, loadSubtitles, clearSubtitles, onLineIdxChange, queuePendingTarget]);
 
   useEffect(() => {
     if (!clip) {
@@ -159,17 +219,59 @@ export default function VideoPlayerPane({
 
   // 当外部 lineIdx 变化时，同步到播放器
   useEffect(() => {
-    if (clip && lineIdx >= 0 && sentences.length > 0) {
-      const targetSentence = sentences[lineIdx];
-      if (targetSentence && currentSentence?.index !== targetSentence.index) {
-        seekToTarget({ time: targetSentence.start, target: targetSentence });
-      }
+    if (!clip || lineIdx < 0 || sentences.length === 0) {
+      return;
     }
-  }, [lineIdx, sentences]);
+
+    if (lineIdx >= sentences.length) {
+      const safeIndex = sentences.length - 1;
+      if (safeIndex >= 0) {
+        onLineIdxChange(safeIndex);
+      }
+      return;
+    }
+
+    const targetSentence = sentences[lineIdx];
+    if (!targetSentence) {
+      return;
+    }
+
+    const current = currentSentenceRef.current;
+    const isSameSentence =
+      current &&
+      current.index === targetSentence.index &&
+      current.fileHash === targetSentence.fileHash;
+
+    if (isSameSentence) {
+      return;
+    }
+
+    if (!playerReadyRef.current) {
+      queuePendingTarget(targetSentence);
+      return;
+    }
+
+    pendingHighlightRef.current = {
+      fileHash: targetSentence.fileHash,
+      index: targetSentence.index
+    };
+    seekToTarget({ time: targetSentence.start, target: targetSentence });
+  }, [clip, lineIdx, sentences, onLineIdxChange, queuePendingTarget, seekToTarget]);
 
   // 监听当前句子的变化，同步到外部
   useEffect(() => {
     if (currentSentence && sentences.length > 0) {
+      const pendingGuard = pendingHighlightRef.current;
+      if (pendingGuard) {
+        const matchesTarget =
+          pendingGuard.index === currentSentence.index &&
+          pendingGuard.fileHash === currentSentence.fileHash;
+        if (!matchesTarget) {
+          return;
+        }
+        pendingHighlightRef.current = null;
+      }
+
       const currentIndex = sentences.findIndex(s =>
         s.index === currentSentence.index && s.fileHash === currentSentence.fileHash
       );
@@ -177,7 +279,7 @@ export default function VideoPlayerPane({
         onLineIdxChange(currentIndex);
       }
     }
-  }, [currentSentence, sentences]);
+  }, [currentSentence, sentences, lineIdx, onLineIdxChange]);
 
   // 视频播放结束处理
   const handlePlayerEnded = () => {
@@ -209,6 +311,7 @@ export default function VideoPlayerPane({
   const initialIndex = currentSentence && sentences.length > 0
     ? sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash)
     : lineIdx >= 0 ? lineIdx : 0;
+  const activeLineIndex = lineIdx >= 0 ? lineIdx : initialIndex;
 
   if (!clip) {
     // 空白骨架屏幕
@@ -255,6 +358,7 @@ export default function VideoPlayerPane({
               <PlayerEngineV2
                 width="100%"
                 height="100%"
+                onReady={handlePlayerReady}
                 onEnded={handlePlayerEnded}
               />
             </div>
@@ -264,13 +368,13 @@ export default function VideoPlayerPane({
         <div>
           <SubtitleListWithProgress
             lines={clip.clipContent ?? []}
-            activeIndex={initialIndex}
+            activeIndex={activeLineIndex}
             playing={playing}
             autoPause={autoPause}
             singleRepeat={singleRepeat}
             onPickLine={(idx) => {
               // 如果点击的是当前激活的句子，重新播放
-              if (idx === initialIndex) {
+              if (idx === activeLineIndex) {
                 repeatCurrent({ loop: false });
               } else {
                 onLineIdxChange(idx);
