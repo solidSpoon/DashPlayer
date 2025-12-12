@@ -23,5 +23,8 @@ export type ApiSettingVO = {
     whisper: {
         enabled: boolean;
         enableTranscription: boolean;
+        modelSize: 'base' | 'large';
+        enableVad: boolean;
+        vadModel: 'silero-v5.1.2' | 'silero-v6.2.0';
     };
 };

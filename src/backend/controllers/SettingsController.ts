@@ -25,6 +25,9 @@ export default class SettingsController implements Controller {
             // Update only Whisper settings, but still receive full ApiSettingVO
             await this.settingService.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
             await this.settingService.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
+            await this.settingService.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
+            await this.settingService.set('whisper.enableVad', settings.whisper.enableVad ? 'true' : 'false');
+            await this.settingService.set('whisper.vadModel', settings.whisper.vadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0');
         } else {
             // Update all settings (for backward compatibility)
             await this.settingService.updateApiSettings(settings);

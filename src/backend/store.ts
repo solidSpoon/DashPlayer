@@ -20,4 +20,3 @@ export const storeSet = (key: SettingKey, value: string | undefined | null): boo
 export const storeGet = (key: SettingKey): string => {
     return store.get(key, SettingKeyObj[key]) as string;
 }
-

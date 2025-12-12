@@ -40,12 +40,18 @@ const ServiceManagementSetting = () => {
     // Register hidden fields for Whisper to ensure they're included in form data
     register('whisper.enabled');
     register('whisper.enableTranscription');
+    register('whisper.modelSize');
+    register('whisper.enableVad');
+    register('whisper.vadModel');
     register('openai.subtitleTranslationMode');
     register('openai.subtitleCustomStyle');
 
     // Whisper settings - now part of main form
     const whisperEnabled = watch('whisper.enabled');
     const whisperTranscriptionEnabled = watch('whisper.enableTranscription');
+    const whisperModelSize = watch('whisper.modelSize');
+    const whisperEnableVad = watch('whisper.enableVad');
+    const whisperVadModel = watch('whisper.vadModel');
 
     // Test states
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
@@ -271,6 +277,9 @@ const ServiceManagementSetting = () => {
                 whisper: {
                     enabled: (settings.whisper && settings.whisper.enabled) || false,
                     enableTranscription: (settings.whisper && settings.whisper.enableTranscription) || false,
+                    modelSize: (settings.whisper && settings.whisper.modelSize) || 'base',
+                    enableVad: (settings.whisper && settings.whisper.enableVad) ?? true,
+                    vadModel: (settings.whisper && settings.whisper.vadModel) || 'silero-v6.2.0',
                 },
             };
             reset(formData, { keepDefaultValues: false });
@@ -806,6 +815,75 @@ const ServiceManagementSetting = () => {
                             <p className="text-xs text-muted-foreground">
                                 启用后，转录功能将优先使用本地 Whisper 引擎
                             </p>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">模型选择</Label>
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">模型大小</Label>
+                                    <Select
+                                        value={whisperModelSize || 'base'}
+                                        onValueChange={(v) => {
+                                            setValue('whisper.modelSize', v as 'base' | 'large');
+                                        }}
+                                        disabled={!whisperTranscriptionEnabled}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="选择模型" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="base">base（速度快）</SelectItem>
+                                            <SelectItem value="large">large（更准）</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        模型会在首次转录时自动下载并缓存到本地
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">自动 VAD</Label>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="whisper-enable-vad"
+                                    checked={!!whisperEnableVad}
+                                    onCheckedChange={(checked) => {
+                                        setValue('whisper.enableVad', !!checked);
+                                    }}
+                                    disabled={!whisperTranscriptionEnabled}
+                                />
+                                <Label htmlFor="whisper-enable-vad" className="font-normal">
+                                    启用静音检测（VAD）
+                                </Label>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">VAD 模型</Label>
+                                <Select
+                                    value={whisperVadModel || 'silero-v6.2.0'}
+                                    onValueChange={(v) => {
+                                        setValue('whisper.vadModel', v as 'silero-v5.1.2' | 'silero-v6.2.0');
+                                    }}
+                                    disabled={!whisperTranscriptionEnabled || !whisperEnableVad}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="选择 VAD 模型" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="silero-v6.2.0">silero-v6.2.0（推荐）</SelectItem>
+                                        <SelectItem value="silero-v5.1.2">silero-v5.1.2</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    开启后会自动下载 VAD 模型，用于提升长音频转录稳定性
+                                </p>
+                            </div>
                         </div>
 
                         <Separator orientation="horizontal" />

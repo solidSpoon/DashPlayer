@@ -60,6 +60,9 @@ export default class SettingServiceImpl implements SettingService {
             whisper: {
                 enabled: await this.get('whisper.enabled') === 'true',
                 enableTranscription: await this.get('whisper.enableTranscription') === 'true',
+                modelSize: (await this.get('whisper.modelSize')) === 'large' ? 'large' : 'base',
+                enableVad: await this.get('whisper.enableVad') === 'true',
+                vadModel: (await this.get('whisper.vadModel')) === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0',
             }
         };
         return settings;
@@ -115,6 +118,9 @@ export default class SettingServiceImpl implements SettingService {
         // Update Whisper settings
         await this.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
         await this.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
+        await this.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
+        await this.set('whisper.enableVad', settings.whisper.enableVad ? 'true' : 'false');
+        await this.set('whisper.vadModel', settings.whisper.vadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0');
         
         // Handle mutual exclusion for transcription
         if (settings.openai.enableTranscription && settings.whisper.enableTranscription) {

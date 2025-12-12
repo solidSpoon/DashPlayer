@@ -7,6 +7,7 @@ import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
+import { spawn, ChildProcess } from 'child_process';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
@@ -16,6 +17,7 @@ import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
 import {storeGet} from "@/backend/store";
 import {VADOptions} from "echogarden";
 import {DpTaskState} from "@/backend/db/tables/dpTask";
+import axios from 'axios';
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -33,6 +35,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private deferred = new Map<string, { resolve: () => void; reject: (e: any) => void }>();
 
     private logger = getMainLogger('LocalTranscriptionService');
+    private activeWhisperProcess: ChildProcess | null = null;
+    private whisperHelpCache: string | null = null;
 
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
@@ -183,6 +187,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const folderName = objectHash(`${filePath}::${Date.now()}`);
             tempFolder = path.join(LocationUtil.staticGetStoragePath(LocationType.TEMP), 'parakeet', folderName);
             await fsPromises.mkdir(tempFolder, {recursive: true});
+
+            if (recognitionConfig.engine === 'whisper.cpp') {
+                await this.transcribeWithWhisperCppCli({
+                    filePath,
+                    processedAudioPath,
+                    tempFolder,
+                });
+                return;
+            }
 
             // VAD 切段
             if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
@@ -351,6 +364,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             throw error;
         } finally {
             this.activeFilePath = null;
+            this.activeWhisperProcess = null;
 
             // 清理临时文件
             try {
@@ -361,6 +375,214 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 this.logger.warn('Failed to cleanup temporary files', {cleanupError});
             }
         }
+    }
+
+    private resolveWhisperCppExecutablePath(): string {
+        const isDev = process.env.NODE_ENV === 'development';
+        const basePath = isDev ? path.resolve('lib', 'whisper.cpp') : path.join(process.resourcesPath, 'lib', 'whisper.cpp');
+
+        const platform = process.platform;
+        const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';
+        const archDir = process.arch === 'arm64' ? 'arm64' : 'x64';
+
+        const candidates: string[] = [];
+        if (platform === 'win32') {
+            candidates.push(
+                path.join(basePath, archDir, platformDir, 'whisper-cli.exe'),
+                path.join(basePath, archDir, platformDir, 'main.exe'),
+            );
+        } else {
+            candidates.push(
+                path.join(basePath, archDir, platformDir, 'whisper-cli'),
+                path.join(basePath, archDir, platformDir, 'main'),
+            );
+        }
+
+        for (const p of candidates) {
+            if (fs.existsSync(p)) return p;
+        }
+
+        throw new Error(`whisper.cpp executable not found: ${candidates.join(', ')}`);
+    }
+
+    private async getWhisperCppHelp(executablePath: string): Promise<string> {
+        if (this.whisperHelpCache) return this.whisperHelpCache;
+
+        const helpText = await new Promise<string>((resolve) => {
+            const child = spawn(executablePath, ['-h'], { stdio: ['ignore', 'pipe', 'pipe'] });
+            let stdout = '';
+            let stderr = '';
+            child.stdout.on('data', (d) => (stdout += String(d)));
+            child.stderr.on('data', (d) => (stderr += String(d)));
+            child.on('close', () => resolve((stdout || stderr || '').toString()));
+        });
+
+        this.whisperHelpCache = helpText;
+        return helpText;
+    }
+
+    private async downloadFileIfMissing(url: string, destPath: string): Promise<void> {
+        if (fs.existsSync(destPath)) return;
+
+        await fsPromises.mkdir(path.dirname(destPath), { recursive: true });
+        const tempPath = `${destPath}.tmp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+        const response = await axios.get(url, { responseType: 'stream' });
+        await new Promise<void>((resolve, reject) => {
+            const writer = fs.createWriteStream(tempPath);
+            response.data.pipe(writer);
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        await fsPromises.rename(tempPath, destPath);
+    }
+
+    private async transcribeWithWhisperCppCli(opts: { filePath: string; processedAudioPath: string; tempFolder: string }): Promise<void> {
+        const { filePath, processedAudioPath, tempFolder } = opts;
+
+        const executablePath = this.resolveWhisperCppExecutablePath();
+        const help = await this.getWhisperCppHelp(executablePath);
+        const supportsVadFlag = /\-\-vad\b/.test(help);
+        const supportsVadModelFlag = /\s\-vm\b/.test(help) || /\-\-vad\-model\b/.test(help);
+
+        const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
+        const enableVad = await this.settingService.get('whisper.enableVad') === 'true';
+        const vadModel = (await this.settingService.get('whisper.vadModel')) === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0';
+
+        const whisperModelTag = modelSize === 'large' ? 'large-v3' : 'base';
+        const modelsRoot = LocationUtil.staticGetStoragePath('models');
+        const modelPath = path.join(modelsRoot, 'whisper', `ggml-${whisperModelTag}.bin`);
+        const modelUrl = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${whisperModelTag}.bin`;
+
+        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 10, { message: `检查/下载模型：${modelSize}` });
+        await this.downloadFileIfMissing(modelUrl, modelPath);
+
+        let vadModelPath: string | null = null;
+        if (enableVad) {
+            if (!supportsVadFlag) {
+                this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
+                this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, { message: '当前 whisper.cpp 不支持 VAD 参数，将跳过 VAD' });
+            } else if (supportsVadModelFlag) {
+                vadModelPath = path.join(modelsRoot, 'whisper-vad', `ggml-${vadModel}.bin`);
+                const vadUrl = `https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-${vadModel}.bin`;
+                this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, { message: `检查/下载 VAD 模型：${vadModel}` });
+                await this.downloadFileIfMissing(vadUrl, vadModelPath);
+            }
+        }
+
+        if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
+
+        const outPrefix = path.join(tempFolder, 'whispercpp_out');
+        const outSrt = `${outPrefix}.srt`;
+
+        const args: string[] = [
+            '-m', modelPath,
+            '-f', processedAudioPath,
+            '-l', 'auto',
+            '-osrt',
+            '-of', outPrefix,
+            ...(help.includes('--print-progress') || help.includes('-pp') ? ['-pp'] : []),
+        ];
+
+        if (enableVad && supportsVadFlag) {
+            args.push('--vad');
+            if (vadModelPath && supportsVadModelFlag) {
+                args.push('-vm', vadModelPath);
+            }
+        }
+
+        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 20, { message: 'whisper.cpp 正在识别...' });
+        const progressFromWhisperPercent = (p: number) => Math.max(20, Math.min(90, Math.floor(20 + p * 0.7)));
+        let lastReportedProgress = 20;
+        let lastProgressUpdateAt = 0;
+        let hasSeenWhisperPercent = false;
+        const maybeReportProgress = (percent: number) => {
+            const now = Date.now();
+            if (!Number.isFinite(percent)) return;
+            const boundedPercent = Math.max(0, Math.min(100, Math.floor(percent)));
+            const progress = progressFromWhisperPercent(boundedPercent);
+            const shouldUpdate =
+                progress > lastReportedProgress ||
+                (now - lastProgressUpdateAt > 1500 && progress >= lastReportedProgress);
+            if (!shouldUpdate) return;
+            hasSeenWhisperPercent = true;
+            lastReportedProgress = progress;
+            lastProgressUpdateAt = now;
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress, { message: `whisper.cpp 正在识别... (${boundedPercent}%)` });
+        };
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                const child = spawn(executablePath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+                this.activeWhisperProcess = child;
+
+                let stderr = '';
+                const stripAnsi = (s: string) => s.replace(/\u001b\[[0-9;]*m/g, '');
+                const percentRegexGlobal = /(\d{1,3})%/g;
+
+                const scanForPercent = (text: string) => {
+                    const clean = stripAnsi(text);
+                    let m: RegExpExecArray | null;
+                    while ((m = percentRegexGlobal.exec(clean)) !== null) {
+                        maybeReportProgress(Number(m[1]));
+                    }
+                };
+
+                child.stdout.on('data', (d) => {
+                    scanForPercent(String(d));
+                });
+                child.stderr.on('data', (d) => {
+                    const chunk = String(d);
+                    stderr += chunk;
+                    scanForPercent(chunk);
+                });
+
+                const heartbeat = setInterval(() => {
+                    if (this.isCancelled(filePath)) return;
+                    if (hasSeenWhisperPercent) return;
+                    const now = Date.now();
+                    if (now - lastProgressUpdateAt < 8000) return;
+                    lastProgressUpdateAt = now;
+                    this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, lastReportedProgress, { message: 'whisper.cpp 正在识别...' });
+                }, 4000);
+
+                child.on('error', reject);
+                child.on('close', (code) => {
+                    clearInterval(heartbeat);
+                    if (code === 0) resolve();
+                    else reject(new Error(`whisper.cpp exit code ${code}: ${stderr.slice(-2000)}`));
+                });
+            });
+        } finally {
+            this.activeWhisperProcess = null;
+        }
+
+        if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
+        if (!fs.existsSync(outSrt)) {
+            throw new Error(`whisper.cpp did not generate srt output: ${outSrt}`);
+        }
+
+        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
+        const srtContentRaw = await fsPromises.readFile(outSrt, 'utf-8');
+        const parsedLines = SrtUtil.parseSrt(srtContentRaw);
+
+        const SHIFT_SECONDS = -0.2;
+        const shiftedLines: SrtLine[] = parsedLines
+            .map((l, idx) => ({
+                index: idx + 1,
+                start: Math.max(0, l.start + SHIFT_SECONDS),
+                end: Math.max(0, l.end + SHIFT_SECONDS),
+                contentEn: l.contentEn,
+                contentZh: l.contentZh,
+            }))
+            .filter(l => l.end > l.start);
+
+        const finalSrt = SrtUtil.srtLinesToSrt(shiftedLines, { reindex: true });
+        const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
+        await fsPromises.writeFile(srtFileName, finalSrt);
+
+        this.sendProgress(0, filePath, DpTaskState.DONE, 100, { srtPath: srtFileName });
     }
 
     // 取消逻辑：按文件路径取消
@@ -385,6 +607,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         // 如果是当前任务，doTranscribe 会在检查点自行退出
         if (this.activeFilePath === filePath) {
+            try {
+                this.activeWhisperProcess?.kill('SIGKILL');
+            } catch {
+                //
+            }
             return true;
         }
 
