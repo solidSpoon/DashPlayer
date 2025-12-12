@@ -1,0 +1,268 @@
+FFmpeg 8.0 (Part 1): Using Whisper for Native Video Transcription in FFmpeg
+Writer: Peter Naftaliev
+Peter Naftaliev
+Nov 17
+6 min read
+
+Updated: Nov 19
+
+The most exciting feature in ffmpeg 8.0 is native support for Whisper, a free and open-source speech recognition library developed by OpenAI. FFmpeg's Whisper integration enables you to use a single tool for transcribing video, adding subtitles, or automatically extracting highlights. It's fast enough that you can even do it in real time on a streaming video.
+
+
+FFmpeg is a free and powerful tool that enables you to easily convert, compress, or transcode nearly any video or audio format with a single command.
+
+
+This post is part of a series of posts about the new FFmpeg 8.0 release:
+
+FFmpeg 8.0 (Part 2): How to use pad_cuda
+
+FFmpeg 8.0 (Part 3): Failed attempts to use Vulkan for AV1 Encoding & VP9 Decoding
+
+
+
+This post covers:
+
+FFmpeg + Whisper Demo
+
+Installing FFmpeg 8.0 with Whisper on Windows
+
+Explaining the new FFmpeg 8.0 Whisper filter
+
+Review and benchmarks of Whisper transcription with FFmpeg
+
+Real-time video stream transcription with FFmpeg
+
+Voice activation detection (VAD) in FFmepg
+
+
+
+Adding subtitles to a video with two FFmpeg commands
+
+Popeye meets Sinbad with Whisper-generated subtitles.
+
+These are the two FFmpeg commands used to add subtitles to the video (link to source video):
+
+./ffmpeg -i popeye_meets_sinbad.mp4 -vn -af "whisper=model=ggml-medium.en.bin:language=en:queue=30:destination=popey_whisper_medium.srt:format=srt" -f null -
+
+./ffmpeg -i popeye_meets_sinbad.mp4 -vf "subtitles=popey_whisper_medium.srt:force_style='BackColour=&H80000000,BorderStyle=4,Outline=0,Shadow=0,Fontsize=24,MarginV=25'" -c:a copy popeye_meets_sinbad_subtitled.mp4
+
+In this post, I will explain how you can do it yourself.
+
+
+
+Why is the Whisper FFmpeg filter interesting?
+
+You can use one tool for transcription and subtitle burning by utilizing the Whisper filter to create an SRT file, a standard subtitle format, which you can then write to a video (burn) with FFmpeg.
+
+Whisper supports WAV and MP3 files. You usually need to install FFmpeg along with Whisper to support different video and audio formats. Having Whisper ship as part of FFmpeg automatically creates support for the various media formats.
+
+It is straightforward to transcribe video streams in near real-time (see example below)
+
+You can use the output from FFmpeg-Whisper, run it through your favorite LLM to extract highlight timestamps from the original video, and use FFmpeg again to trim out clips based on these highlights.
+
+
+
+How to install FFmpeg 8 with Whisper on Windows
+
+Getting FFmpeg 8.0
+I used the November 15 pre-compiled GPL version of FFmpeg 8.0 with Whisper (and Vulkan) for Windows from FFmpeg-Builds:
+
+Log in to GitHub
+
+Go to https://github.com/BtbN/FFmpeg-Builds/actions
+
+For the latest build, pick the file below named "ffmpeg-win64-gpl"
+
+To check which FFmpeg version this build corresponds to, you can take the seven characters of the commit code, after the 'g' character in the build's version, and insert them into this URL:
+
+https://git.ffmpeg.org/gitweb/ffmpeg.git/blob_plain/1ce88d2:/RELEASE
+
+8.0.git
+
+Those interested in compiling FFmpeg 8.0 themselves, some resources to get you started:
+
+FFmpeg 8.0 is built with a link to the compiled Whisper version (version 1.7.5 or later). Due to the high frequency of Whisper updates, providing FFmpeg with the compiled Whisper version enables updating to future, improved Whisper versions while maintaining the same FFmpeg version. Good Reddit thread about compiling FFmpeg 8 with Whisper
+
+Helpful Reddit thread with compilation issues and instructions
+
+Official compilation docs (a bit outdated) https://trac.ffmpeg.org/wiki/CompilationGuide https://trac.ffmpeg.org/wiki/CompilationGuide/WinRT
+
+All the build information and tutorials I found online were inconsistent, especially with the new introduction of FFmpeg 8.0 + Whisper build. It's best to reverse-engineer the FFmpeg-Builds compilation script; the code is clear, well-organized, and works.
+
+
+
+Get the OpenAI Whisper models
+
+OpenAI's C/C++ based Whisper open-source project includes language models for transcribing audio to text. It is hosted in ggml's repository, an open-source machine learning library written in C/C++ with a focus on Transformer inference.
+
+
+To download the Whisper models, get this script from Whisper.cpp:
+
+# Download base.en medium.en and large models
+./download-ggml-model.cmd base.en
+...
+ggml-base.en.bin
+
+./download-ggml-model.cmd medium.en
+...
+ggml-medium.en.bin
+
+./download-ggml-model.cmd large-v3
+...
+ggml-large-v3.bin
+About the models
+"Models are multilingual unless the model name includes .en. Models ending in -q5_0 are quantized. Models ending in -tdrz support local diarization (marking of speaker turns) using tinydiarize."
+
+I attempted to run FFmpeg with the Whisper ggml-small.en-tdrz.bin model for speaker recognition, but it did not work as expected. Therefore, I omit this model from the rest of the post.
+
+
+All the experiments run over a Windows 11 Lenovo laptop with Nvidia RTX 4060 - Driver version 581.29, CUDA version 13.0
+
+Transcribing a video with FFmpeg and Whisper
+
+For testing, I used the video Popeye the Sailor Meets Sinbad the Sailor, released to the public domain by the Library of Congress.
+
+More about the whisper filter and its parameters in FFmpeg's documentation
+
+Following, I run an FFmpeg Whisper command with the Base English model, sending whisper audio chunks (queue) of 30 seconds and outputting SRT subtitles format to the output destination SRT file:
+
+$INPUT_FILE="popeye_sinbad.mp4"
+$OUTPUT_FILE="popey_whisper_base.srt"
+
+$MODEL="ggml-base.en.bin" #whisper model
+$LANGUAGE="en"
+$QUEUE="30" #Size of audio chunks to send to whisper (seconds)
+$FORMAT="srt" #Other possible output formats are json and txt
+
+./ffmpeg -i $INPUT_FILE -vn -af "whisper=model='$MODEL':language='$LANGUAGE':queue='$QUEUE':destination='$OUTPUT_FILE':format='$FORMAT'" -f null -
+popey_whisper_base.srt snippet:
+
+0
+00:00:00,000 --> 00:00:02,980
+[MUSIC PLAYING]
+
+1
+00:00:29,994 --> 00:00:32,494
+(tense music)
+
+2
+00:00:59,988 --> 00:01:06,988
+[screaming]
+
+3
+00:01:06,988 --> 00:01:08,988
+[grunting]
+
+4
+00:01:08,988 --> 00:01:11,988
+[grunting]
+
+5
+00:01:11,988 --> 00:01:15,988
+I'm sitting down to say this so hardy and hail.
+
+6
+00:01:15,988 --> 00:01:18,988
+I live on an island on the back of a whale.
+
+7
+00:01:18,988 --> 00:01:22,988
+It's a whale of an island. That's not a bad joke.
+
+Immediately, you can see that Whisper annotates the sound even if there is no speech, with music, screaming, and other audio artifacts. This works both for the Base and Medium English models. The multilingual large model does not annotate sounds.
+
+
+To burn the SRT subtitles to the video using FFmpeg you can follow our cheat sheet or use GPT.
+
+More useful flags:
+format=json creates a JSON-style file with timestamps and transcription, similarly to SRT.
+
+format=text transcribes the speech to text without timestamps
+
+By default, Whisper uses your system's GPU. To disable it, specify use_gpu=false. This will result in much slower processing time.
+
+
+
+People online remark that whisper models can hallucinate speech when it does not exist in the original audio. I did not see hallucinations in my tests. I have also tested the Big Buck Bunny video, which does not contain any speech, and the results with the ggml-base.en.bin model were very clean, with no hallucinations. Output: JSON file.
+
+In case you see -transcription- hallucinations, you can use the VAD model (explained below)
+
+
+
+Performance benchmarks of the three whisper models
+
+Expectantly, the larger the model, the more GPU resources it utilizes:
+
+
+% of GPU utilization by Whisper model
+
+% of GPU utilization by Whisper model
+
+I also tested the total processing time over the full Popeye video (15:50 minutes) and reported the results as ratios of processing time to video time for GPU-enabled (GPU speed) and GPU-disabled (CPU speed) runs. 1x means processing took 15:50 minutes:
+
+
+Processing time as a multiplier of video duration
+
+Processing time as a multiplier of video duration
+
+
+The base and medium English models have audio annotations for different sounds. The large model, which is multi-lingual, doesn't have annotations; instead, music notes mark for differing sounds - json output of large model popey_whisper_largev3.json
+
+
+
+
+Real-time video stream transcription
+
+You can use FFmpeg to transcribe microphone, HTTP Live Streaming (HLS) and Secure Reliable Transport (SRT) stream.
+
+
+HLS is a widely used media streaming protocol that delivers video and audio content over standard HTTP web servers. Developed by Apple, it works by breaking a media file or live stream into a sequence of small, downloadable segments (typically a few seconds long) and creating an index file (with a .m3u8 extension) that lists the order and location of these segments.
+
+SRT protocol is used to deliver video and audio with high quality and low latency over unreliable networks like the public internet. SRT streams.
+The term is ambiguous, it could mean subtitles format or streaming protocol. I will be using it to mean subtitles format.
+
+Following is a screen recording of real-time SRT transcription of a live HLS video stream:
+
+
+I started playing the video with FFplay (FFmpeg's media player) at the same time with the FFmpeg command:
+
+./ffmpeg -live_start_index -1 -i https://livecmaftest1.akamaized.net/cmaf/live/2099281/abr6s/master.m3u8 -vn -af "whisper=model=ggml-base.en.bin:language=en:queue=3:destination=-:format=srt" -f null -
+The FFplay command:
+
+ffplay -live_start_index -1 -i https://livecmaftest1.akamaized.net/cmaf/live/2099281/abr6s/master.m3u8
+
+Both commands are running from the last TS chunk of the HLS stream due to the "-live_start_index -1" parameter.
+
+I added "destination=-:format=srt" to output the SRT transcription directly to the terminal.
+
+
+With queue=3, I experience a 3-second delay in addition to the HLS stream. The transcription processing time for the base model, ggml-base.en.bin, is below 3 seconds, so it is not the delay factor. Over time, because the transcription is so fast, even with the 3-second batch size, the transcription outpaces the video.
+
+
+
+
+Voice activation detection - vad_model
+
+VAD can be beneficial for:
+
+Handling hallucinations - If you find that the speech-to-text model hallucinates text while there is no speech in the video, you can use the VAD model to make sure only to pass audio with speech to the model.
+
+Pre-processing the audio before sending it to the speech-to-text model - For better transcription results. But, judging by what I saw, even the basic model is so good that it is not required to use the VAD model.
+
+
+You can download the Whisper VAD model using this script.
+
+
+I attempted to use the VAD model to speed up video stream transcription via audio chunking; however, I observed no increase in transcription speed. With queue=30, the queue parameter still took effect, and each batch took 30 seconds to get transcriptions.
+
+
+Thanks, Vittorio Palmisano, for a nice first overview of FFmpeg and Whisper capabilities.
+
+
+
+Closing remarks
+
+FFmpeg 8.0 includes more filters, encoders, and decoders, as well as security updates. You can read more about them in the official release message and the version 8 changelog.
+
+
+If you want more info, want us to check something else, or if anything was unclear in the post, let us know in the comments below.
