@@ -1,0 +1,1241 @@
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Build Server for FFmpeg powered by Martin Riedl">
+    <link rel="stylesheet" href="/static/style.dist.css?t=1758834995">
+
+    <title>Martin-Riedl.de - FFmpeg</title>
+    <style data-id="immersive-translate-input-injected-css">.immersive-translate-input {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 2147483647;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .immersive-translate-attach-loading::after {
+        content: " ";
+
+        --loading-color: #f78fb6;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: block;
+        margin: 12px auto;
+        position: relative;
+        color: white;
+        left: -100px;
+        box-sizing: border-box;
+        animation: immersiveTranslateShadowRolling 1.5s linear infinite;
+
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-2000%, -50%);
+        z-index: 100;
+    }
+
+    .immersive-translate-loading-spinner {
+        vertical-align: middle !important;
+        width: 10px !important;
+        height: 10px !important;
+        display: inline-block !important;
+        margin: 0 4px !important;
+        border: 2px rgba(221, 244, 255, 0.6) solid !important;
+        border-top: 2px rgba(0, 0, 0, 0.375) solid !important;
+        border-left: 2px rgba(0, 0, 0, 0.375) solid !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        -webkit-animation: immersive-translate-loading-animation 0.6s infinite linear !important;
+        animation: immersive-translate-loading-animation 0.6s infinite linear !important;
+    }
+
+    @-webkit-keyframes immersive-translate-loading-animation {
+        from {
+            -webkit-transform: rotate(0deg);
+        }
+
+        to {
+            -webkit-transform: rotate(359deg);
+        }
+    }
+
+    @keyframes immersive-translate-loading-animation {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(359deg);
+        }
+    }
+
+    .immersive-translate-input-loading {
+        --loading-color: #f78fb6;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: block;
+        margin: 12px auto;
+        position: relative;
+        color: white;
+        left: -100px;
+        box-sizing: border-box;
+        animation: immersiveTranslateShadowRolling 1.5s linear infinite;
+    }
+
+    @keyframes immersiveTranslateShadowRolling {
+        0% {
+            box-shadow: 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0),
+            0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
+        }
+
+        12% {
+            box-shadow: 100px 0 var(--loading-color), 0px 0 rgba(255, 255, 255, 0),
+            0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
+        }
+
+        25% {
+            box-shadow: 110px 0 var(--loading-color), 100px 0 var(--loading-color),
+            0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
+        }
+
+        36% {
+            box-shadow: 120px 0 var(--loading-color), 110px 0 var(--loading-color),
+            100px 0 var(--loading-color), 0px 0 rgba(255, 255, 255, 0);
+        }
+
+        50% {
+            box-shadow: 130px 0 var(--loading-color), 120px 0 var(--loading-color),
+            110px 0 var(--loading-color), 100px 0 var(--loading-color);
+        }
+
+        62% {
+            box-shadow: 200px 0 rgba(255, 255, 255, 0), 130px 0 var(--loading-color),
+            120px 0 var(--loading-color), 110px 0 var(--loading-color);
+        }
+
+        75% {
+            box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0),
+            130px 0 var(--loading-color), 120px 0 var(--loading-color);
+        }
+
+        87% {
+            box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0),
+            200px 0 rgba(255, 255, 255, 0), 130px 0 var(--loading-color);
+        }
+
+        100% {
+            box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0),
+            200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0);
+        }
+    }
+
+    .immersive-translate-toast {
+        display: flex;
+        position: fixed;
+        z-index: 2147483647;
+        left: 0;
+        right: 0;
+        top: 1%;
+        width: fit-content;
+        padding: 12px 20px;
+        margin: auto;
+        overflow: auto;
+        background: #fef6f9;
+        box-shadow: 0px 4px 10px 0px rgba(0, 10, 30, 0.06);
+        font-size: 15px;
+        border-radius: 8px;
+        color: #333;
+    }
+
+    .immersive-translate-toast-content {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .immersive-translate-toast-hidden {
+        margin: 0 20px 0 72px;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .immersive-translate-toast-close {
+        color: #666666;
+        font-size: 20px;
+        font-weight: bold;
+        padding: 0 10px;
+        cursor: pointer;
+    }
+
+    @media screen and (max-width: 768px) {
+        .immersive-translate-toast {
+            top: 0;
+            padding: 12px 0px 0 10px;
+        }
+        .immersive-translate-toast-content {
+            flex-direction: column;
+            text-align: center;
+        }
+        .immersive-translate-toast-hidden {
+            margin: 10px auto;
+        }
+    }
+
+    .immersive-translate-dialog {
+        position: fixed;
+        z-index: 2147483647;
+        left: 0;
+        top: 0;
+        display: flex;
+        width: 300px;
+        flex-direction: column;
+        align-items: center;
+        font-size: 15px;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        margin: auto;
+        height: fit-content;
+        border-radius: 20px;
+        background-color: #fff;
+    }
+
+    .immersive-translate-modal {
+        display: none;
+        position: fixed;
+        z-index: 2147483647;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0, 0, 0);
+        background-color: rgba(0, 0, 0, 0.4);
+        font-size: 15px;
+    }
+
+    .immersive-translate-modal-content {
+        background-color: #fefefe;
+        margin: 10% auto;
+        padding: 40px 24px 24px;
+        border-radius: 12px;
+        width: 350px;
+        font-family: system-ui, -apple-system, "Segoe UI", "Roboto", "Ubuntu",
+        "Cantarell", "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+        "Segoe UI Symbol", "Noto Color Emoji";
+        position: relative;
+    }
+
+    @media screen and (max-width: 768px) {
+        .immersive-translate-modal-content {
+            margin: 25% auto !important;
+        }
+    }
+
+    @media screen and (max-width: 480px) {
+        .immersive-translate-modal-content {
+            width: 80vw !important;
+            margin: 20vh auto !important;
+            padding: 20px 12px 12px !important;
+        }
+
+        .immersive-translate-modal-title {
+            font-size: 14px !important;
+        }
+
+        .immersive-translate-modal-body {
+            font-size: 13px !important;
+            max-height: 60vh !important;
+        }
+
+        .immersive-translate-btn {
+            font-size: 13px !important;
+            padding: 8px 16px !important;
+            margin: 0 4px !important;
+        }
+
+        .immersive-translate-modal-footer {
+            gap: 6px !important;
+            margin-top: 16px !important;
+        }
+    }
+
+    .immersive-translate-modal .immersive-translate-modal-content-in-input {
+        max-width: 500px;
+    }
+    .immersive-translate-modal-content-in-input .immersive-translate-modal-body {
+        text-align: left;
+        max-height: unset;
+    }
+
+    .immersive-translate-modal-title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        color: #333333;
+    }
+
+    .immersive-translate-modal-body {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 400;
+        color: #333333;
+        margin-top: 24px;
+        word-break: break-all;
+    }
+
+    @media screen and (max-width: 768px) {
+        .immersive-translate-modal-body {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+    }
+
+    .immersive-translate-close {
+        color: #666666;
+        position: absolute;
+        right: 16px;
+        top: 16px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .immersive-translate-close:hover,
+    .immersive-translate-close:focus {
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .immersive-translate-modal-footer {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 24px;
+    }
+
+    .immersive-translate-btn {
+        width: fit-content;
+        color: #fff;
+        background-color: #ea4c89;
+        border: none;
+        font-size: 14px;
+        margin: 0 8px;
+        padding: 9px 30px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .immersive-translate-btn-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .immersive-translate-btn:hover {
+        background-color: #f082ac;
+    }
+    .immersive-translate-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .immersive-translate-btn:disabled:hover {
+        background-color: #ea4c89;
+    }
+
+    .immersive-translate-link-btn {
+        background-color: transparent;
+        color: #ea4c89;
+        border: none;
+        cursor: pointer;
+        height: 30px;
+        line-height: 30px;
+    }
+
+    .immersive-translate-cancel-btn {
+        /* gray color */
+        background-color: rgb(89, 107, 120);
+    }
+
+    .immersive-translate-cancel-btn:hover {
+        background-color: hsl(205, 20%, 32%);
+    }
+
+    .immersive-translate-action-btn {
+        background-color: transparent;
+        color: #ea4c89;
+        border: 1px solid #ea4c89;
+    }
+
+    .immersive-translate-btn svg {
+        margin-right: 5px;
+    }
+
+    .immersive-translate-link {
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-drag: none;
+        text-decoration: none;
+        color: #ea4c89;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .immersive-translate-primary-link {
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-drag: none;
+        text-decoration: none;
+        color: #ea4c89;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .immersive-translate-modal input[type="radio"] {
+        margin: 0 6px;
+        cursor: pointer;
+    }
+
+    .immersive-translate-modal label {
+        cursor: pointer;
+    }
+
+    .immersive-translate-close-action {
+        position: absolute;
+        top: 2px;
+        right: 0px;
+        cursor: pointer;
+    }
+
+    .imt-image-status {
+        background-color: rgba(0, 0, 0, 0.5) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 16px !important;
+    }
+    .imt-image-status img,
+    .imt-image-status svg,
+    .imt-img-loading {
+        width: 28px !important;
+        height: 28px !important;
+        margin: 0 0 8px 0 !important;
+        min-height: 28px !important;
+        min-width: 28px !important;
+        position: relative !important;
+    }
+    .imt-img-loading {
+        background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAMAAACfWMssAAAAtFBMVEUAAAD////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////oK74hAAAAPHRSTlMABBMIDyQXHwyBfFdDMSw+OjXCb+5RG51IvV/k0rOqlGRM6KKMhdvNyZBz9MaupmxpWyj437iYd/yJVNZeuUC7AAACt0lEQVRIx53T2XKiUBCA4QYOiyCbiAsuuGBcYtxiYtT3f6/pbqoYHVFO5r+iivpo6DpAWYpqeoFfr9f90DsYAuRSWkFnPO50OgR9PwiCUFcl2GEcx+N/YBh6pvKaefHlUgZd1zVe0NbYcQjGBfzrPE8Xz8aF+71D8gG6DHFPpc4a7xFiCDuhaWgKgGIJQ3d5IMGDrpS4S5KgpIm+en9f6PlAhKby4JwEIxlYJV9h5k5nee9GoxHJ2IDSNB0dwdad1NAxDJ/uXDHYmebdk4PdbkS58CIVHdYSUHTYYRWOJblWSyu2lmy3KNFVJNBhxcuGW4YBVCbYGRZwIooipHsNqjM4FbgOQqQqSKQQU9V8xmi1QlgHqQQ6DDBvRUVCDirs+EzGDGOQTCATgtYTnbCVLgsVgRE0T1QE0qHCFAht2z6dLvJQs3Lo2FQoDxWNUiBhaP4eRgwNkI+dAjVOA/kUrIDwf3CG8NfNOE0eiFotSuo+rBiq8tD9oY4Qzc6YJw99hl1wzpQvD7ef2M8QgnOGJfJw+EltQc+oX2yn907QB22WZcvlUpd143dqQu+8pCJZuGE4xCuPXJqqcs5sNpsI93Rmzym1k4Npk+oD1SH3/a3LOK/JpUBpWfqNySxWzCfNCUITuDG5dtuphrUJ1myeIE9bIsPiKrfqTai5WZxbhtNphYx6GEIHihyGFTI69lje/rxajdh0s0msZ0zYxyPLhYCb1CyHm9Qsd2H37Y3lugVwL9kNh8Ot8cha6fUNQ8nuXi5z9/ExsAO4zQrb/ev1yrCB7lGyQzgYDGuxq1toDN/JGvN+HyWNHKB7zEoK+PX11e12G431erGYzwmytAWU56fkMHY5JJnDRR2eZji3AwtIcrEV8Cojat/BdQ7XOwGV1e1hDjGGjXbdArm8uJZtCH5MbcctVX8A1WpqumJHwckAAAAASUVORK5CYII=");
+        background-size: 28px 28px;
+        animation: image-loading-rotate 1s linear infinite !important;
+    }
+
+    .imt-image-status span {
+        color: var(--bg-2, #fff) !important;
+        font-size: 14px !important;
+        line-height: 14px !important;
+        font-weight: 500 !important;
+        font-family: "PingFang SC", Arial, sans-serif !important;
+    }
+
+    .imt-primary-button {
+        display: flex;
+        padding: 12px 80px;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        border-radius: 8px;
+        background: #ea4c89;
+        color: #fff;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 24px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .imt-retry-text {
+        color: #999;
+        text-align: center;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 21px;
+        cursor: pointer;
+    }
+
+    .imt-action-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .imt-modal-content-text {
+        text-align: left;
+        color: #333;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 24px;
+    }
+
+    @keyframes image-loading-rotate {
+        from {
+            transform: rotate(360deg);
+        }
+        to {
+            transform: rotate(0deg);
+        }
+    }
+
+    .imt-linear-gradient-text {
+        background: linear-gradient(90deg, #00a6ff 0%, #c369ff 52.4%, #ff4590 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .imt-flex-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .imt-linear-black-btn {
+        border-radius: 50px;
+        background: linear-gradient(66deg, #222 19%, #696969 94.25%);
+        height: 48px;
+        width: 100%;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        justify-content: center;
+    }
+    </style><style id="_goober"> @keyframes go2264125279{from{transform:scale(0) rotate(45deg);opacity:0;}to{transform:scale(1) rotate(45deg);opacity:1;}}@keyframes go3020080000{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}@keyframes go463499852{from{transform:scale(0) rotate(90deg);opacity:0;}to{transform:scale(1) rotate(90deg);opacity:1;}}@keyframes go1268368563{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}@keyframes go1310225428{from{transform:scale(0) rotate(45deg);opacity:0;}to{transform:scale(1) rotate(45deg);opacity:1;}}@keyframes go651618207{0%{height:0;width:0;opacity:0;}40%{height:0;width:6px;opacity:1;}100%{opacity:1;height:10px;}}@keyframes go901347462{from{transform:scale(0.6);opacity:0.4;}to{transform:scale(1);opacity:1;}}.go4109123758{z-index:9999;}.go4109123758 > *{pointer-events:auto;}</style><style type="text/css">.___Latex___1nfc2_1 ._latex_1nfc2_1 {
+    font: inherit
+}
+</style></head>
+
+<body class="bg-gray-800 text-gray-200 mb-4">
+<div class="max-w-screen-lg mx-2 lg:mx-auto my-2">
+    <h1>Martin Riedl's FFmpeg Build Server</h1>
+    <p>This project provides static builds of FFmpeg, FFprobe and FFplay. It uses the latest snapshot or release of FFmpeg
+        and adds several codes.</p>
+    <h2>Download Snapshot Build</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2">
+        <div class="custom-box">
+            <h3>macOS (Intel/amd64)</h3>
+
+            <p><b>Release: </b>N-122073-g7b773aba82</p>
+            <p><b>Created: </b>09 Dec 2025 21:30 CET</p>
+            <p>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffmpeg.pkg">
+                    FFmpeg Installer (PKG)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffmpeg.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffprobe.pkg">
+                    FFprobe Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffprobe.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffplay.pkg">
+                    FFplay Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffplay.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1765312224_N-122073-g7b773aba82/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/macos/amd64/snapshot">
+                    History
+                </a>
+            </p>
+
+        </div>
+        <div class="custom-box">
+            <h3>macOS (Apple Silicon/arm64)</h3>
+
+            <p><b>Release: </b>N-122073-g7b773aba82</p>
+            <p><b>Created: </b>09 Dec 2025 19:28 CET</p>
+            <p>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffmpeg.pkg">
+                    FFmpeg Installer (PKG)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffmpeg.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffprobe.pkg">
+                    FFprobe Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffprobe.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffplay.pkg">
+                    FFplay Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffplay.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1765304903_N-122073-g7b773aba82/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/macos/arm64/snapshot">
+                    History
+                </a>
+            </p>
+
+        </div>
+        <div class="custom-box">
+            <h3>Linux (amd64)</h3>
+
+            <p><b>Release: </b>N-122073-g7b773aba82</p>
+            <p><b>Created: </b>09 Dec 2025 19:24 CET</p>
+            <p>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1765304683_N-122073-g7b773aba82/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/linux/amd64/snapshot">
+                    History
+                </a>
+            </p>
+
+        </div>
+        <div class="custom-box">
+            <h3>Linux (arm64v8)</h3>
+
+            <p><b>Release: </b>N-122073-g7b773aba82</p>
+            <p><b>Created: </b>09 Dec 2025 19:09 CET</p>
+            <p>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1765303792_N-122073-g7b773aba82/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/linux/arm64/snapshot">
+                    History
+                </a>
+            </p>
+
+        </div>
+    </div>
+    <h2>Download Release Build</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2">
+        <div class="custom-box">
+            <h3>macOS (Intel/amd64)</h3>
+
+            <p><b>Release: </b>8.0</p>
+            <p><b>Created: </b>28 Aug 2025 20:59 CEST</p>
+            <p>
+                <a href="/download/macos/amd64/1756407576_8.0/ffmpeg.pkg">
+                    FFmpeg Installer (PKG)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/ffmpeg.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1756407576_8.0/ffprobe.pkg">
+                    FFprobe Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/ffprobe.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1756407576_8.0/ffplay.pkg">
+                    FFplay Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/ffplay.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1756407576_8.0/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1756407576_8.0/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/amd64/1756407576_8.0/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/macos/amd64/1756407576_8.0/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/macos/amd64/1756407576_8.0/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/macos/amd64/release">
+                    History
+                </a>
+            </p>
+
+        </div>
+        <div class="custom-box">
+            <h3>macOS (Apple Silicon/arm64)</h3>
+
+            <p><b>Release: </b>8.0</p>
+            <p><b>Created: </b>28 Aug 2025 19:18 CEST</p>
+            <p>
+                <a href="/download/macos/arm64/1756401489_8.0/ffmpeg.pkg">
+                    FFmpeg Installer (PKG)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/ffmpeg.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1756401489_8.0/ffprobe.pkg">
+                    FFprobe Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/ffprobe.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1756401489_8.0/ffplay.pkg">
+                    FFplay Installer (PKG)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/ffplay.pkg.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1756401489_8.0/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1756401489_8.0/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/macos/arm64/1756401489_8.0/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/macos/arm64/1756401489_8.0/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/macos/arm64/1756401489_8.0/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/macos/arm64/release">
+                    History
+                </a>
+            </p>
+
+        </div>
+        <div class="custom-box">
+            <h3>Linux (amd64)</h3>
+
+            <p><b>Release: </b>8.0</p>
+            <p><b>Created: </b>28 Aug 2025 19:29 CEST</p>
+            <p>
+                <a href="/download/linux/amd64/1756402187_8.0/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1756402187_8.0/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/linux/amd64/1756402187_8.0/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/amd64/1756402187_8.0/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/linux/amd64/1756402187_8.0/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/amd64/1756402187_8.0/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/linux/amd64/1756402187_8.0/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1756402187_8.0/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1756402187_8.0/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/linux/amd64/1756402187_8.0/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/linux/amd64/release">
+                    History
+                </a>
+            </p>
+
+        </div>
+        <div class="custom-box">
+            <h3>Linux (arm64v8)</h3>
+
+            <p><b>Release: </b>8.0</p>
+            <p><b>Created: </b>28 Aug 2025 19:11 CEST</p>
+            <p>
+                <a href="/download/linux/arm64/1756401062_8.0/ffmpeg.zip">
+                    FFmpeg (ZIP)
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1756401062_8.0/ffmpeg.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+            </p>
+            <p>
+                <a href="/download/linux/arm64/1756401062_8.0/ffprobe.zip">
+                    FFprobe (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/arm64/1756401062_8.0/ffprobe.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p>
+                <a href="/download/linux/arm64/1756401062_8.0/ffplay.zip">
+                    FFplay (ZIP)
+                </a>
+
+                <span> | </span>
+                <a href="/download/linux/arm64/1756401062_8.0/ffplay.zip.sha256" class="text-xs">
+                    SHA256
+                </a>
+
+            </p>
+            <p class="text-sm">
+                <a href="/download/linux/arm64/1756401062_8.0/formats.txt" target="_blank">
+                    Formats
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1756401062_8.0/codecs.txt" target="_blank">
+                    Codecs
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1756401062_8.0/protocols.txt" target="_blank">
+                    Protocols
+                </a>
+                <span> | </span>
+                <a href="/download/linux/arm64/1756401062_8.0/versions.txt" target="_blank">
+                    Versions
+                </a>
+                <span> | </span>
+                <a href="/info/history/linux/arm64/release">
+                    History
+                </a>
+            </p>
+
+        </div>
+    </div>
+    <h2>Timeline for macOS (Intel) Builds</h2>
+    <p>Apple has announced the discontinuation of Intel macOS, and so will I.</p>
+    <ul class="list-disc list-outside pl-5">
+        <li>starting January 2026: no more regular snapshot builds for macOS Intel</li>
+        <li>starting January 2027: no more release builds for macOS Intel</li>
+    </ul>
+    <h2>Info</h2>
+    <ul class="list-disc list-outside pl-5">
+        <li>macOS binaries are signed (zip and installer) and notarized (installer)</li>
+        <li>not every OS/architecture may contain all codecs (check Formats, Codecs and Versions files)</li>
+    </ul>
+    <h2>Codecs and libraries</h2>
+    <p>Each build contains the following codecs and libraries:</p>
+    <h3>Video Codecs</h3>
+    <ul class="list-disc list-inside">
+        <li>
+            <a href="https://aomedia.org/" target="_blank" rel="noopener">aom</a>
+            <span> for AV1 de-/encoding</span>
+        </li>
+        <li>
+            <a href="https://www.videolan.org/projects/dav1d.html" target="_blank" rel="noopener">dav1d</a>
+            <span> for AV1 decoding</span>
+        </li>
+        <li><a href="https://www.openh264.org/" target="_blank" rel="noopener">openh264</a> for H.264 de-/encoding</li>
+        <li><a href="http://www.openjpeg.org/" target="_blank" rel="noopener">OpenJPEG</a> for JPEG de-/encoding</li>
+        <li><a href="https://github.com/xiph/rav1e" target="_blank" rel="noopener">rav1e</a> for AV1 encoding</li>
+        <li><a href="https://gitlab.com/AOMediaCodec/SVT-AV1" target="_blank" rel="noopener">svt-av1</a> for AV1 encoding
+        </li>
+        <li><a href="https://www.theora.org" target="_blank" rel="noopener">libtheroa</a> for theora encoding</li>
+        <li><a href="https://www.webmproject.org/" target="_blank" rel="noopener">vpx</a> for VP8/VP9 de-/encoding</li>
+        <li>
+            <a href="https://github.com/fraunhoferhhi/vvenc" target="_blank" rel="noopener">vvenc</a>
+            <span> for H.266/VVC encoding</span>
+        </li>
+        <li><a href="https://www.webmproject.org/" target="_blank" rel="noopener">libwebp</a> for webp encoding</li>
+        <li><a href="http://www.videolan.org/developers/x264.html" target="_blank" rel="noopener">x264</a> for H.264
+            encoding</li>
+        <li><a href="https://www.videolan.org/developers/x265.html" target="_blank" rel="noopener">x265</a> for H.265/HEVC
+            encoding (8bit+10bit+12bit)</li>
+    </ul>
+    <h3>Audio Codecs</h3>
+    <ul class="list-disc list-inside">
+        <li><a href="http://lame.sourceforge.net/" target="_blank" rel="noopener">LAME</a> for MP3 encoding</li>
+        <li><a href="https://opus-codec.org/" target="_blank" rel="noopener">opus</a> for Opus de-/encoding</li>
+        <li><a href="https://xiph.org/vorbis/" target="_blank" rel="noopener">libvorbis</a> for vorbis de-/encoding</li>
+    </ul>
+    <h3>Other libraries and tools</h3>
+    <ul class="list-disc list-inside">
+        <li><a href="https://github.com/libass/libass" target="_blank" rel="noopener">libass</a> for subtitle rendering</li>
+        <li><a href="https://www.videolan.org/developers/libbluray.html" target="_blank" rel="noopener">libbluray</a> for
+            container format bluray</li>
+        <li><a href="https://www.blackmagicdesign.com/developer/" target="_blank" rel="noopener">decklink</a> for
+            Blackmagicdesign hardware</li>
+        <li><a href="https://www.freedesktop.org/wiki/Software/fontconfig/" target="_blank" rel="noopener">fontconfig</a>
+        </li>
+        <li><a href="https://freetype.org" target="_blank" rel="noopener">FreeType</a></li>
+        <li><a href="https://github.com/fribidi/fribidi" target="_blank" rel="noopener">FriBidi</a></li>
+        <li><a href="https://github.com/harfbuzz/harfbuzz" target="_blank" rel="noopener">harfbuzz</a></li>
+        <li><a href="https://www.gnu.org/software/libiconv/" target="_blank" rel="noopener">libiconv</a></li>
+        <li><a href="https://github.com/stoth68000/libklvanc" target="_blank" rel="noopener">libklvanc</a></li>
+        <li><a href="https://xiph.org/ogg/" target="_blank" rel="noopener">libogg</a></li>
+        <li><a href="https://www.openssl.org/" target="_blank" rel="noopener">openssl</a></li>
+        <li><a href="https://www.libsdl.org/" target="_blank" rel="noopener">SDL</a> for ffplay</li>
+        <li><a href="https://github.com/google/snappy/" target="_blank" rel="noopener">snappy</a> for HAP encoding</li>
+        <li><a href="https://github.com/Haivision/srt" target="_blank" rel="noopener">srt</a> for protocol srt</li>
+        <li><a href="https://github.com/Netflix/vmaf/tree/master/libvmaf" target="_blank" rel="noopener">libvmaf</a> for
+            VMAF video filter</li>
+        <li><a href="http://xmlsoft.org" target="_blank" rel="noopener">libxml2</a></li>
+        <li><a href="https://github.com/sekrit-twc/zimg" target="_blank" rel="noopener">zimg</a></li>
+        <li><a href="https://www.zlib.net" target="_blank" rel="noopener">zlib</a> for png format</li>
+        <li><a href="https://sourceforge.net/projects/zapping/" target="_blank" rel="noopener">zvbi</a> for teletext
+            decoding</li>
+    </ul>
+    <h2>Scripting URLs</h2>
+    <p>Use the following URLs for automated scripts:
+        <br>
+        <code class="font-mono text-xs">https://ffmpeg.martin-riedl.de/redirect/latest/{macos,linux}/{amd64,arm64}/{snapshot,release}/{ffmpeg.zip,ffprobe.zip,...}</code>
+        <br>
+        Example for latest macOS Silicon (arm64) snapshot build for ffmpeg:
+        <br>
+        <code class="font-mono text-xs">https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/snapshot/ffmpeg.zip</code>
+    </p>
+    <h2>Found a bug?</h2>
+    <p>If the bug is related to FFmpeg then you should check out the following page:
+        <a href="https://ffmpeg.org/bugreports.html" target="_blank" rel="noopener">FFmpeg Bug Reports</a>
+    </p>
+    <p>Please contact me directly only, if the bug is related to this website using
+        <a href="https://mastodon.social/@martinr92" target="_blank" rel="noopener">Mastodon</a>
+    </p>
+    <h2>Like it?</h2>
+    <p>Feel free to send a donation via
+        <a href="https://paypal.me/martinr92" target="_blank" rel="noopener">PayPal</a>
+    </p>
+    <h2>Source Code</h2>
+    <p>The build script is open source under
+        <a href="https://git.martin-riedl.de/ffmpeg/build-script" target="_blank" rel="noopener">git.martin-riedl.de/ffmpeg/build-script</a>
+    </p>
+</div>
+<script defer="" src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;7961f495226e47a99b49bd5b242df2be&quot;,&quot;r&quot;:1,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}" crossorigin="anonymous"></script>
+
+
+
+</body><div id="immersive-translate-browser-popup" style="all: initial"></div><div id="__yetone-nextai-translator" style="z-index: 2147483647;"></div></html>
