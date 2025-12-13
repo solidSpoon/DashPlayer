@@ -33,8 +33,6 @@ const FavouriteProgress = memo(function FavouriteProgress() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  console.log('FavouriteProgress render:', { currentTime, duration, progress: progress.toFixed(1), timestamp: Date.now() });
-
   return (
     <div className="flex-1 flex items-center gap-2">
       <span className="text-xs text-muted-foreground w-10 text-right">
@@ -61,11 +59,6 @@ const FavouritePlayer = () => {
 
   const playInfo = useFavouriteClip((state) => state.playInfo);
   const setPlayInfo = useFavouriteClip((state) => state.setPlayInfo);
-
-  console.log('FavouritePlayer render:', {
-    playInfoKey: playInfo?.video?.key,
-    timestamp: Date.now()
-  });
 
   const { data: allVideos = [] } = useSWR(
     apiPath('favorite-clips/search'),

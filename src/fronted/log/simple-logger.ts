@@ -12,7 +12,38 @@ const levelOrder: Record<SimpleLevel, number> = {
   debug: 20, info: 30, warn: 40, error: 50,
 };
 
-const CURRENT_LEVEL: SimpleLevel = 'info';
+function getDefaultLevel(): SimpleLevel {
+  try {
+    const saved = localStorage.getItem('DP_LOG_LEVEL');
+    if (saved === 'debug' || saved === 'info' || saved === 'warn' || saved === 'error') {
+      return saved;
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'debug';
+    }
+  } catch {
+    // ignore
+  }
+
+  return 'info';
+}
+
+let CURRENT_LEVEL: SimpleLevel = getDefaultLevel();
+
+export function setRendererLogLevel(level: SimpleLevel) {
+  CURRENT_LEVEL = level;
+  try {
+    localStorage.setItem('DP_LOG_LEVEL', level);
+  } catch {
+    // ignore
+  }
+}
 const RENDERER_LOGGER_CACHE = new Map<string, RendererLogger>();
 
 function write(processName: 'renderer', moduleName: string, level: SimpleLevel, msg: string, data?: any) {

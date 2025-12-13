@@ -7,12 +7,15 @@ import db from '@/backend/db';
 import TYPES from '@/backend/ioc/types';
 import VocabularyService, { GetAllWordsParams, GetAllWordsResult, ExportTemplateResult, ImportWordsResult } from '@/backend/services/VocabularyService';
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
+import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 @injectable()
 export default class VocabularyServiceImpl implements VocabularyService {
 
     @inject(TYPES.VideoLearningService)
     private videoLearningService!: VideoLearningService;
+
+    private readonly logger = getMainLogger('VocabularyServiceImpl');
 
     async getAllWords(params: GetAllWordsParams = {}): Promise<GetAllWordsResult> {
         try {
@@ -51,7 +54,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
                 }))
             };
         } catch (error) {
-            console.error('获取单词失败:', error);
+            this.logger.error('获取单词失败', { error });
             return {
                 success: false,
                 error: error instanceof Error ? error.message : '获取单词失败'
@@ -97,7 +100,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
                 data: Buffer.from(excelBuffer).toString('base64')
             };
         } catch (error) {
-            console.error('导出模板失败:', error);
+            this.logger.error('导出模板失败', { error });
             return {
                 success: false,
                 error: error instanceof Error ? error.message : '导出模板失败'
@@ -170,7 +173,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
             try {
                 await this.videoLearningService.syncFromOss();
             } catch (syncError) {
-                console.error('同步单词管理片段失败:', syncError);
+                this.logger.error('同步单词管理片段失败', { error: syncError });
                 return {
                     success: false,
                     error: syncError instanceof Error
@@ -184,7 +187,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
                 message: `导入完成：更新 ${updateCount} 条，新增 ${addCount} 条，已同步单词管理片段`
             };
         } catch (error) {
-            console.error('导入单词失败:', error);
+            this.logger.error('导入单词失败', { error });
             return {
                 success: false,
                 error: error instanceof Error ? error.message : '导入单词失败'

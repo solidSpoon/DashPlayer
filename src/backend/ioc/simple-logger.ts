@@ -1,128 +1,154 @@
-// src/backend/ioc/simple-logger.ts
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import util from 'util';
 import log from 'electron-log/main';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import { LocationType } from '@/backend/services/LocationService';
 
-// 使用你们现有存储路径
 const logPath = LocationUtil.staticGetStoragePath(LocationType.LOGS);
 
-// 确保目录存在
-if (!fs.existsSync(logPath)) fs.mkdirSync(logPath, { recursive: true });
-
-// 按天文件名
-function todayFile() {
-  const d = new Date();
-  const day = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  return path.join(logPath, `main-${day}.log`);
+if (!fs.existsSync(logPath)) {
+    fs.mkdirSync(logPath, { recursive: true });
 }
 
-// electron-log 配置
+function todayFile() {
+    const d = new Date();
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return path.join(logPath, `main-${day}.log`);
+}
+
 log.initialize({ preload: true });
 log.transports.file.resolvePathFn = todayFile;
-log.transports.file.level = 'silly'; // 统一用我们自己的级别过滤
+log.transports.file.level = 'silly';
+log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
+log.transports.console.level = process.env.NODE_ENV === 'development' ? 'silly' : 'warn';
 log.errorHandler.startCatching();
 
 const levelOrder: Record<SimpleLevel, number> = {
-  debug: 20, info: 30, warn: 40, error: 50,
+    debug: 20,
+    info: 30,
+    warn: 40,
+    error: 50,
 };
 
-// 全局开关：默认 debug
-let CURRENT_LEVEL: SimpleLevel = (process.env.DP_LOG_LEVEL as SimpleLevel) || 'debug';
-
-// 启动时输出当前日志级别
-const initLogger = getMainLogger('logger-init');
-initLogger.debug('=== LOGGER INIT ===');
-initLogger.debug('DP_LOG_LEVEL env:', process.env.DP_LOG_LEVEL);
-initLogger.debug('CURRENT_LEVEL:', CURRENT_LEVEL);
-initLogger.debug('levelOrder debug:', levelOrder.debug);
-initLogger.debug('levelOrder info:', levelOrder.info);
-
-// 测试日志输出
-const testLogger = getMainLogger('logger-test');
-testLogger.debug('This is a test debug message from logger init');
-testLogger.info('This is a test info message from logger init');
-
-export function setLogLevel(lv: SimpleLevel) {
-  CURRENT_LEVEL = lv;
+function normalizeLevel(level: string | undefined): SimpleLevel | null {
+    if (level === 'debug' || level === 'info' || level === 'warn' || level === 'error') {
+        return level;
+    }
+    return null;
 }
 
-function writeJsonl(e: SimpleEvent) {
-  try {
-    // 根据日志级别使用对应的方法
-    switch (e.level) {
-      case 'debug':
-        log.debug(JSON.stringify(e));
-        break;
-      case 'info':
-        log.info(JSON.stringify(e));
-        break;
-      case 'warn':
-        log.warn(JSON.stringify(e));
-        break;
-      case 'error':
-        log.error(JSON.stringify(e));
-        break;
-      default:
-        log.log(JSON.stringify(e));
+function defaultLevel(): SimpleLevel {
+    const envLevel = normalizeLevel(process.env.DP_LOG_LEVEL);
+    if (envLevel) {
+        return envLevel;
     }
-  } catch (err) {
-    // 兜底
-    const errorLogger = getMainLogger('logger-write');
-    errorLogger.error('writeJsonl failed', err);
-  }
+    return process.env.NODE_ENV === 'development' ? 'debug' : 'info';
+}
+
+let CURRENT_LEVEL: SimpleLevel = defaultLevel();
+
+export function setLogLevel(level: SimpleLevel) {
+    CURRENT_LEVEL = level;
+}
+
+function shouldLog(level: SimpleLevel) {
+    return levelOrder[level] >= levelOrder[CURRENT_LEVEL];
+}
+
+function normalizeData(data: unknown): string {
+    if (data === undefined) return '';
+    if (data instanceof Error) {
+        const stack = data.stack ? data.stack.split('\n').slice(0, 5).join(' | ') : '';
+        return stack ? `${data.name}: ${data.message} | ${stack}` : `${data.name}: ${data.message}`;
+    }
+    try {
+        return util.inspect(data, { depth: 3, breakLength: Infinity, compact: true });
+    } catch {
+        return String(data);
+    }
+}
+
+function toSingleLine(text: string) {
+    return text.replaceAll('\n', ' | ').replaceAll('\r', '');
+}
+
+function truncate(text: string, maxLen = 1200) {
+    if (text.length <= maxLen) return text;
+    return `${text.slice(0, maxLen)}…`;
+}
+
+function formatLine(event: SimpleEvent) {
+    const prefix = `[${event.process}|${event.module}]`;
+    const msg = event.msg ? toSingleLine(event.msg) : '';
+    const isPrimitiveData = event.data === null || ['string', 'number', 'boolean'].includes(typeof event.data);
+    const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData;
+    const data = includeData ? normalizeData(event.data) : '';
+    const dataPart = data ? ` ${truncate(toSingleLine(data), 800)}` : '';
+    return `${prefix} ${msg}${dataPart}`.trim();
+}
+
+export function writeEvent(event: SimpleEvent) {
+    if (!shouldLog(event.level)) {
+        return;
+    }
+    const line = formatLine({
+        ...event,
+        ts: event.ts || new Date().toISOString(),
+    });
+
+    switch (event.level) {
+        case 'debug':
+            log.debug(line);
+            break;
+        case 'info':
+            log.info(line);
+            break;
+        case 'warn':
+            log.warn(line);
+            break;
+        case 'error':
+            log.error(line);
+            break;
+    }
 }
 
 function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) {
-  const levelNum = levelOrder[level];
-  const currentNum = levelOrder[CURRENT_LEVEL];
-  
-  // 调试：输出日志过滤决策
-  if (msg.includes('=== LOGGER INIT') || msg.includes('SRT GENERATION') || msg.includes('DTW Word-level')) {
-    const debugLogger = getMainLogger('logger-debug');
-    debugLogger.debug(`LOG FILTER DEBUG: level=${level}(${levelNum}), current=${CURRENT_LEVEL}(${currentNum}), pass=${levelNum >= currentNum}`);
-  }
-  
-  if (levelNum < currentNum) return;
-  writeJsonl({
-    ts: new Date().toISOString(),
-    level,
-    process: 'main',
-    module: moduleName,
-    msg,
-    data,
-  });
-}
-
-// 导出一个简单 Logger 工厂
-export function getMainLogger(moduleName: string) {
-  return {
-    debug: (msg: string, data?: any) => logAt(moduleName, 'debug', msg, data),
-    info:  (msg: string, data?: any) => logAt(moduleName, 'info',  msg, data),
-    warn:  (msg: string, data?: any) => logAt(moduleName, 'warn',  msg, data),
-    error: (msg: string, data?: any) => logAt(moduleName, 'error', msg, data),
-  };
-}
-
-// 可选：简单的日志清理（保留 14 天）
-export function pruneOldLogs(days = 14) {
-  const keepMs = days * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  try {
-    const files = fs.readdirSync(logPath);
-    files.forEach(f => {
-      if (!/^main-\d{4}-\d{2}-\d{2}\.log$/.test(f)) return;
-      const full = path.join(logPath, f);
-      const st = fs.statSync(full);
-      if (now - st.mtimeMs > keepMs) fs.unlinkSync(full);
+    writeEvent({
+        ts: new Date().toISOString(),
+        level,
+        process: 'main',
+        module: moduleName,
+        msg,
+        data,
     });
-  } catch (e) {
-    const errorLogger = getMainLogger('logger-prune');
-    errorLogger.error('pruneOldLogs error', e);
-  }
 }
 
-// 可选：每日清理
+export function getMainLogger(moduleName: string) {
+    return {
+        debug: (msg: string, data?: any) => logAt(moduleName, 'debug', msg, data),
+        info: (msg: string, data?: any) => logAt(moduleName, 'info', msg, data),
+        warn: (msg: string, data?: any) => logAt(moduleName, 'warn', msg, data),
+        error: (msg: string, data?: any) => logAt(moduleName, 'error', msg, data),
+    };
+}
+
+export function pruneOldLogs(days = 14) {
+    const keepMs = days * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    try {
+        const files = fs.readdirSync(logPath);
+        files.forEach((file) => {
+            if (!/^main-\\d{4}-\\d{2}-\\d{2}\\.log$/.test(file)) return;
+            const full = path.join(logPath, file);
+            const st = fs.statSync(full);
+            if (now - st.mtimeMs > keepMs) fs.unlinkSync(full);
+        });
+    } catch (error) {
+        getMainLogger('logger-prune').error('pruneOldLogs error', { error });
+    }
+}
+
 setInterval(() => pruneOldLogs(), 24 * 60 * 60 * 1000).unref();
