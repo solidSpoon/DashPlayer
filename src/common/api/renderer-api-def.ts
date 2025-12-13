@@ -17,6 +17,7 @@ interface UIRendererDef {
     'ui/show-confirm-dialog': { params: { title: string, message: string }, return: boolean };
     'ui/update-progress': { params: { taskId: string, progress: number, message?: string }, return: void };
     'ui/show-toast': { params: { message: string, duration?: number }, return: void };
+    'settings/whisper-model-download-progress': { params: { key: string; percent: number; downloaded?: number; total?: number }, return: void };
 }
 
 // 翻译相关的前端API定义

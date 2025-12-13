@@ -7,6 +7,7 @@ import { Label } from '@/fronted/components/ui/label';
 import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
 import Separator from '@/fronted/components/Separtor';
@@ -17,6 +18,7 @@ import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
+import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
 
 const api = window.electron;
 
@@ -72,12 +74,50 @@ const ServiceManagementSetting = () => {
     const hasChangesRef = React.useRef(false);
     const isMountedRef = React.useRef(true);
     // Whisper states
+    const [whisperModelStatus, setWhisperModelStatus] = React.useState<WhisperModelStatusVO | null>(null);
+    const [downloadingWhisperModel, setDownloadingWhisperModel] = React.useState(false);
+    const [downloadingVadModel, setDownloadingVadModel] = React.useState(false);
+    const [downloadProgressByKey, setDownloadProgressByKey] = React.useState<Record<string, { percent: number; downloaded?: number; total?: number }>>({});
 
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
 
     // Watch all form values for change detection
     const currentValues = watch();
+
+    const refreshWhisperModelStatus = React.useCallback(async () => {
+        try {
+            const status = await api.call('whisper/models/status');
+            setWhisperModelStatus(status);
+        } catch (error) {
+            logger.error('failed to fetch whisper model status', { error });
+        }
+    }, [logger]);
+
+    React.useEffect(() => {
+        refreshWhisperModelStatus().catch(() => null);
+    }, [refreshWhisperModelStatus]);
+
+    React.useEffect(() => {
+        const handler = (evt: Event) => {
+            const detail = (evt as CustomEvent).detail as { key: string; percent: number; downloaded?: number; total?: number } | undefined;
+            if (!detail?.key) return;
+            setDownloadProgressByKey((prev) => ({
+                ...prev,
+                [detail.key]: { percent: detail.percent, downloaded: detail.downloaded, total: detail.total },
+            }));
+
+            if (detail.percent >= 100) {
+                setTimeout(() => {
+                    refreshWhisperModelStatus().catch(() => null);
+                }, 300);
+            }
+        };
+        window.addEventListener('whisper-model-download-progress', handler as EventListener);
+        return () => {
+            window.removeEventListener('whisper-model-download-progress', handler as EventListener);
+        };
+    }, [refreshWhisperModelStatus]);
 
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
@@ -339,6 +379,17 @@ const ServiceManagementSetting = () => {
                 setValue('openai.enableTranscription', true);
                 setValue('whisper.enableTranscription', false);
             } else {
+                const targetSize = (whisperModelSize === 'large' ? 'large' : 'base') as 'base' | 'large';
+                const modelReady = whisperModelStatus?.whisper?.[targetSize]?.exists;
+                if (!modelReady) {
+                    toast({
+                        title: '需要先下载模型',
+                        description: `请先下载 Whisper ${targetSize} 模型，下载完成后才能开启转录。`,
+                        variant: 'destructive',
+                    });
+                    setValue('whisper.enableTranscription', false);
+                    return;
+                }
                 setValue('whisper.enableTranscription', true);
                 setValue('openai.enableTranscription', false);
                 // Also enable whisper service when transcription is enabled
@@ -356,6 +407,46 @@ const ServiceManagementSetting = () => {
             } else {
                 setValue('whisper.enableTranscription', false);
             }
+        }
+    };
+
+    const downloadSelectedWhisperModel = async () => {
+        const size = (whisperModelSize === 'large' ? 'large' : 'base') as 'base' | 'large';
+        const key = `whisper:${size}`;
+        setDownloadingWhisperModel(true);
+        setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
+        try {
+            await api.call('whisper/models/download', { modelSize: size });
+            toast({ title: '下载完成', description: `Whisper 模型已下载：${size}` });
+            await refreshWhisperModelStatus();
+        } catch (error) {
+            toast({
+                title: '下载失败',
+                description: error instanceof Error ? error.message : String(error),
+                variant: 'destructive',
+            });
+        } finally {
+            setDownloadingWhisperModel(false);
+        }
+    };
+
+    const downloadSelectedVadModel = async () => {
+        const vadModel = (whisperVadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0') as 'silero-v5.1.2' | 'silero-v6.2.0';
+        const key = `vad:${vadModel}`;
+        setDownloadingVadModel(true);
+        setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
+        try {
+            await api.call('whisper/models/download-vad', { vadModel });
+            toast({ title: '下载完成', description: `VAD 模型已下载：${vadModel}` });
+            await refreshWhisperModelStatus();
+        } catch (error) {
+            toast({
+                title: '下载失败',
+                description: error instanceof Error ? error.message : String(error),
+                variant: 'destructive',
+            });
+        } finally {
+            setDownloadingVadModel(false);
         }
     };
 
@@ -823,27 +914,131 @@ const ServiceManagementSetting = () => {
                             <Label className="text-sm font-medium">模型选择</Label>
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground">模型大小</Label>
+                                <Label className="text-xs text-muted-foreground">模型大小</Label>
                                     <Select
                                         value={whisperModelSize || 'base'}
                                         onValueChange={(v) => {
                                             setValue('whisper.modelSize', v as 'base' | 'large');
                                         }}
-                                        disabled={!whisperTranscriptionEnabled}
+                                        disabled={false}
                                     >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="选择模型" />
-                                        </SelectTrigger>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="选择模型" />
+                                    </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="base">base（速度快）</SelectItem>
                                             <SelectItem value="large">large（更准）</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
-                                        模型会在首次转录时自动下载并缓存到本地
+                                        需要先下载模型，下载完成后才能转录
                                     </p>
                                 </div>
                             </div>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">模型管理</Label>
+                            <div className="grid grid-cols-1 gap-3 text-sm">
+	                                <div className="flex items-center justify-between gap-3">
+	                                    {(() => {
+	                                        const size = (whisperModelSize === 'large' ? 'large' : 'base') as 'base' | 'large';
+	                                        const key = `whisper:${size}`;
+	                                        const status = whisperModelStatus?.whisper?.[size];
+	                                        const p = downloadProgressByKey[key]?.percent;
+	                                        const showProgress = downloadingWhisperModel && (p != null) && !status?.exists;
+	                                        return (
+	                                            <>
+	                                                <div className="min-w-0">
+	                                                    <div className="font-medium">
+	                                                        Whisper {whisperModelSize === 'large' ? 'large' : 'base'} 模型
+	                                                    </div>
+	                                                    <div className="text-xs text-muted-foreground break-all">
+	                                                        {status?.path || '...'}
+	                                                    </div>
+	                                                    <div className="text-xs text-muted-foreground">
+	                                                        状态：{status?.exists ? '已下载' : (showProgress ? `下载中 ${p}%` : '未下载')}
+	                                                    </div>
+	                                                    {showProgress && (
+	                                                        <div className="mt-2">
+	                                                            <Progress value={p} />
+	                                                        </div>
+	                                                    )}
+	                                                </div>
+	                                                <Button
+	                                                    type="button"
+	                                                    variant="outline"
+	                                                    size="sm"
+	                                                    onClick={() => downloadSelectedWhisperModel().catch(() => null)}
+	                                                    disabled={downloadingWhisperModel || !!status?.exists}
+	                                                >
+	                                                    {status?.exists ? '已下载' : (downloadingWhisperModel ? '下载中...' : '下载')}
+	                                                </Button>
+	                                            </>
+	                                        );
+	                                    })()}
+	                                </div>
+
+	                                <div className="flex items-center justify-between gap-3">
+	                                    {(() => {
+	                                        const vadModel = (whisperVadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0') as 'silero-v5.1.2' | 'silero-v6.2.0';
+	                                        const key = `vad:${vadModel}`;
+	                                        const status = whisperModelStatus?.vad?.[vadModel];
+	                                        const p = downloadProgressByKey[key]?.percent;
+	                                        const showProgress = downloadingVadModel && (p != null) && !status?.exists;
+	                                        return (
+	                                            <>
+	                                                <div className="min-w-0">
+	                                                    <div className="font-medium">
+	                                                        VAD 模型（{whisperVadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0'}）
+	                                                    </div>
+	                                                    <div className="text-xs text-muted-foreground break-all">
+	                                                        {status?.path || '...'}
+	                                                    </div>
+	                                                    <div className="text-xs text-muted-foreground">
+	                                                        状态：{status?.exists ? '已下载' : (showProgress ? `下载中 ${p}%` : '未下载')}
+	                                                    </div>
+	                                                    {showProgress && (
+	                                                        <div className="mt-2">
+	                                                            <Progress value={p} />
+	                                                        </div>
+	                                                    )}
+	                                                </div>
+	                                                <Button
+	                                                    type="button"
+	                                                    variant="outline"
+	                                                    size="sm"
+	                                                    onClick={() => downloadSelectedVadModel().catch(() => null)}
+	                                                    disabled={downloadingVadModel || !whisperEnableVad || !!status?.exists}
+	                                                >
+	                                                    {status?.exists ? '已下载' : (downloadingVadModel ? '下载中...' : '下载')}
+	                                                </Button>
+	                                            </>
+	                                        );
+	                                    })()}
+	                                </div>
+
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="text-xs text-muted-foreground">
+                                            存储目录：{whisperModelStatus?.modelsRoot || '...'}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => refreshWhisperModelStatus().catch(() => null)}
+                                    >
+                                        刷新
+                                    </Button>
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                提示：开启本地转录前必须下载对应的 Whisper 模型；开启 VAD 则需要下载 VAD 模型
+                            </p>
                         </div>
 
                         <Separator orientation="horizontal" />
@@ -857,7 +1052,7 @@ const ServiceManagementSetting = () => {
                                     onCheckedChange={(checked) => {
                                         setValue('whisper.enableVad', !!checked);
                                     }}
-                                    disabled={!whisperTranscriptionEnabled}
+                                    disabled={false}
                                 />
                                 <Label htmlFor="whisper-enable-vad" className="font-normal">
                                     启用静音检测（VAD）
@@ -870,7 +1065,7 @@ const ServiceManagementSetting = () => {
                                     onValueChange={(v) => {
                                         setValue('whisper.vadModel', v as 'silero-v5.1.2' | 'silero-v6.2.0');
                                     }}
-                                    disabled={!whisperTranscriptionEnabled || !whisperEnableVad}
+                                    disabled={!whisperEnableVad}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="选择 VAD 模型" />
@@ -881,7 +1076,7 @@ const ServiceManagementSetting = () => {
                                     </SelectContent>
                                 </Select>
                                 <p className="text-xs text-muted-foreground">
-                                    开启后会自动下载 VAD 模型，用于提升长音频转录稳定性
+                                    开启后需要下载 VAD 模型，用于提升长音频转录稳定性
                                 </p>
                             </div>
                         </div>

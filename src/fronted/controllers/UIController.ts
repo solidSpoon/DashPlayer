@@ -42,7 +42,14 @@ export class UIController extends BaseRendererController {
 
                 const event = new CustomEvent('show-toast', { detail: params });
                 window.dispatchEvent(event);
-            }
+            },
+
+            'settings/whisper-model-download-progress': async (params) => {
+                this.logger.debug('Whisper model download progress', { params });
+
+                const event = new CustomEvent('whisper-model-download-progress', { detail: params });
+                window.dispatchEvent(event);
+            },
         });
     }
 }

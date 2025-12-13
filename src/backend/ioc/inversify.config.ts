@@ -63,6 +63,7 @@ import WatchHistoryService from '@/backend/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
 import SettingsController from '@/backend/controllers/SettingsController';
+import { WhisperModelController } from '@/backend/controllers/WhisperModelController';
 import { OpenAIServiceImpl } from '@/backend/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import AiProviderService from '@/backend/services/AiProviderService';
@@ -95,6 +96,7 @@ container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonSco
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(WhisperModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services

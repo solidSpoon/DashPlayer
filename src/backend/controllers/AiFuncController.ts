@@ -14,6 +14,9 @@ import SettingService from "@/backend/services/SettingService";
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
 import { DpTaskState } from '@/backend/db/tables/dpTask';
+import * as fs from 'fs';
+import * as path from 'path';
+import LocationUtil from '@/backend/utils/LocationUtil';
 
 @injectable()
 export default class AiFuncController implements Controller {
@@ -130,7 +133,10 @@ export default class AiFuncController implements Controller {
         const whisperEnabled = await this.settingService.get('whisper.enabled') === 'true';
         const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
         const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
-        const modelDownloaded = true;
+        const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
+        const modelTag = modelSize === 'large' ? 'large-v3' : 'base';
+        const modelPath = path.join(LocationUtil.staticGetStoragePath('models'), 'whisper', `ggml-${modelTag}.bin`);
+        const modelDownloaded = fs.existsSync(modelPath);
 
         let transcriptionService: TranscriptionService;
         let serviceName = '';
@@ -140,9 +146,20 @@ export default class AiFuncController implements Controller {
             transcriptionService = this.localTranscriptionService;
             serviceName = 'Local';
             this.logger.info('Using local transcription service');
+        } else if (whisperEnabled && whisperTranscriptionEnabled && !modelDownloaded) {
+            this.logger.warn('Whisper model not downloaded', { modelSize, modelPath });
+            this.systemService.callRendererApi('transcript/batch-result', {
+                updates: [{
+                    filePath,
+                    taskId: 0,
+                    status: DpTaskState.FAILED,
+                    result: { error: `本地 Whisper 模型未下载：${modelSize}。请到设置页面下载模型后再转录。` }
+                }]
+            });
+            return;
         } else if (openaiTranscriptionEnabled) {
             // 使用云转录服务
-            transcriptionService = this.localTranscriptionService;
+            transcriptionService = this.cloudTranscriptionService;
             serviceName = 'Cloud';
             this.logger.info('Using cloud transcription service');
         } else {
@@ -227,4 +244,3 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/translate-with-context', (p) => this.translateWithContext(p));
     }
 }
-

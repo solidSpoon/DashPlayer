@@ -18,6 +18,7 @@ import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import {CoreMessage} from 'ai';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
+import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -159,6 +160,12 @@ interface SettingsDef {
     'settings/youdao/update': { params: { secretId: string; secretKey: string }, return: void };
 }
 
+interface WhisperModelDef {
+    'whisper/models/status': { params: void, return: WhisperModelStatusVO };
+    'whisper/models/download': { params: { modelSize: WhisperModelSize }, return: { success: boolean; message: string } };
+    'whisper/models/download-vad': { params: { vadModel: WhisperVadModel }, return: { success: boolean; message: string } };
+}
+
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
     'split-video/split': {
@@ -265,6 +272,7 @@ export type ApiDefinitions = ApiDefinition
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & SettingsDef
+    & WhisperModelDef
     & ConvertDef
     & FavoriteClipsDef
     & TagDef
