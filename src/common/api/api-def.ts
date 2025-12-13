@@ -19,6 +19,7 @@ import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStat
 import {CoreMessage} from 'ai';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
+import { KokoroModelVariant, TtsModelStatusVO } from '@/common/types/vo/tts-model-vo';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -112,6 +113,11 @@ interface AiTransDef {
     'ai-trans/test-tencent': { params: void, return: void };
     // 测试新的翻译流程
     'ai-trans/test-new-flow': { params: void, return: void };
+}
+
+interface TtsModelDef {
+    'tts/models/status': { params: void, return: TtsModelStatusVO };
+    'tts/models/download': { params: { variant: KokoroModelVariant }, return: { success: boolean; message: string } };
 }
 
 interface WatchHistoryDef {
@@ -266,6 +272,7 @@ export type ApiDefinitions = ApiDefinition
     & DpTaskDef
     & SystemDef
     & AiTransDef
+    & TtsModelDef
     & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef

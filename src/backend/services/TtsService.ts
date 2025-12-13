@@ -6,11 +6,58 @@ import * as os from 'node:os';
 import fs from 'fs';
 import dpLog from '@/backend/ioc/logger';
 import {WaitRateLimit} from "@/common/utils/RateLimiter";
+import LocationUtil from '@/backend/utils/LocationUtil';
 
 class TtsService {
     static joinUrl = (base: string, path2: string) => {
         return base.replace(/\/+$/, '') + '/' + path2.replace(/^\/+/, '');
     };
+
+    private static envLock: Promise<void> = Promise.resolve();
+
+    private static async withEnvLock<T>(task: () => Promise<T>): Promise<T> {
+        const previous = this.envLock;
+        let release: (() => void) | null = null;
+        this.envLock = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        await previous;
+        try {
+            return await task();
+        } finally {
+            release?.();
+        }
+    }
+
+    private static async withEchogardenHome<T>(homeDir: string, task: () => Promise<T>): Promise<T> {
+        return this.withEnvLock(async () => {
+            const prevHome = process.env.HOME;
+            const prevUserProfile = process.env.USERPROFILE;
+            const prevHomeDrive = process.env.HOMEDRIVE;
+            const prevHomePath = process.env.HOMEPATH;
+
+            process.env.HOME = homeDir;
+            process.env.USERPROFILE = homeDir;
+            process.env.HOMEDRIVE = '';
+            process.env.HOMEPATH = '';
+
+            try {
+                return await task();
+            } finally {
+                if (prevHome === undefined) delete process.env.HOME;
+                else process.env.HOME = prevHome;
+
+                if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+                else process.env.USERPROFILE = prevUserProfile;
+
+                if (prevHomeDrive === undefined) delete process.env.HOMEDRIVE;
+                else process.env.HOMEDRIVE = prevHomeDrive;
+
+                if (prevHomePath === undefined) delete process.env.HOMEPATH;
+                else process.env.HOMEPATH = prevHomePath;
+            }
+        });
+    }
 
     @WaitRateLimit('tts')
     public static async tts(str: string) {
@@ -49,21 +96,30 @@ class TtsService {
 
   public static async ttsLocal(str: string) {
         try {
-            const Echogarden = await import('echogarden');
-            
-            // 使用 echogarden 进行本地 TTS
-            const { audio } = await Echogarden.synthesize(
-                str,
-                {
-                    engine: 'kokoro',  // 使用 kokoro 引擎，高质量离线 TTS
-                    language: 'en-US', // 英语美音
-                    voice: 'Alloy',     // 音色
-                    speed: 1.0,         // 语速
-                    pitch: 1.0,        // 音高
-                    splitToSentences: true, // 按句子切分
-                    outputAudioFormat: { codec: 'mp3', bitrate: 64000 } // 输出格式
-                }
-            );
+            const modelsRoot = LocationUtil.staticGetStoragePath('models');
+            const echogardenHomeDir = path.join(modelsRoot, 'echogarden-home');
+
+            if (!fs.existsSync(echogardenHomeDir)) {
+                fs.mkdirSync(echogardenHomeDir, { recursive: true });
+            }
+
+            const { audio } = await this.withEchogardenHome(echogardenHomeDir, async () => {
+                const Echogarden = await import('echogarden');
+
+                // 使用 echogarden 进行本地 TTS
+                return await Echogarden.synthesize(
+                    str,
+                    {
+                        engine: 'kokoro',  // 使用 kokoro 引擎，高质量离线 TTS
+                        language: 'en-US', // 英语美音
+                        voice: 'Alloy',     // 音色
+                        speed: 1.0,         // 语速
+                        pitch: 1.0,        // 音高
+                        splitToSentences: true, // 按句子切分
+                        outputAudioFormat: { codec: 'mp3', bitrate: 64000 } // 输出格式
+                    }
+                );
+            });
 
             // 创建临时目录
             const tempDir = path.join(os.tmpdir(), 'dp/tts');
@@ -81,8 +137,10 @@ class TtsService {
             dpLog.info('Local TTS generated successfully', { text: str, outputPath });
             return outputPath;
         } catch (error) {
-            dpLog.error('Failed to generate local TTS with echogarden', error);
-            throw new Error('Failed to generate local TTS');
+            dpLog.error('Failed to generate local TTS with echogarden', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            throw new Error('Failed to generate local TTS (echogarden model download may have failed)');
         }
     }
 }

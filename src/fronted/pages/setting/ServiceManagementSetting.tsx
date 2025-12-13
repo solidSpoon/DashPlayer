@@ -11,7 +11,7 @@ import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive, ChevronDown } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive, ChevronDown, Volume2 } from 'lucide-react';
 import Header from '@/fronted/pages/setting/setting/Header';
 import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
@@ -19,6 +19,7 @@ import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
+import { TtsModelStatusVO } from '@/common/types/vo/tts-model-vo';
 
 const api = window.electron;
 
@@ -78,6 +79,8 @@ const ServiceManagementSetting = () => {
     const [downloadingWhisperModel, setDownloadingWhisperModel] = React.useState(false);
     const [downloadingVadModel, setDownloadingVadModel] = React.useState(false);
     const [downloadProgressByKey, setDownloadProgressByKey] = React.useState<Record<string, { percent: number; downloaded?: number; total?: number }>>({});
+    const [ttsModelStatus, setTtsModelStatus] = React.useState<TtsModelStatusVO | null>(null);
+    const [downloadingTtsModel, setDownloadingTtsModel] = React.useState(false);
 
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
@@ -94,9 +97,22 @@ const ServiceManagementSetting = () => {
         }
     }, [logger]);
 
+    const refreshTtsModelStatus = React.useCallback(async () => {
+        try {
+            const status = await api.call('tts/models/status');
+            setTtsModelStatus(status);
+        } catch (error) {
+            logger.error('failed to fetch tts model status', { error });
+        }
+    }, [logger]);
+
     React.useEffect(() => {
         refreshWhisperModelStatus().catch(() => null);
     }, [refreshWhisperModelStatus]);
+
+    React.useEffect(() => {
+        refreshTtsModelStatus().catch(() => null);
+    }, [refreshTtsModelStatus]);
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
@@ -118,6 +134,27 @@ const ServiceManagementSetting = () => {
             window.removeEventListener('whisper-model-download-progress', handler as EventListener);
         };
     }, [refreshWhisperModelStatus]);
+
+    React.useEffect(() => {
+        const handler = (evt: Event) => {
+            const detail = (evt as CustomEvent).detail as { key: string; percent: number; downloaded?: number; total?: number } | undefined;
+            if (!detail?.key) return;
+            setDownloadProgressByKey((prev) => ({
+                ...prev,
+                [detail.key]: { percent: detail.percent, downloaded: detail.downloaded, total: detail.total },
+            }));
+
+            if (detail.percent >= 100) {
+                setTimeout(() => {
+                    refreshTtsModelStatus().catch(() => null);
+                }, 300);
+            }
+        };
+        window.addEventListener('tts-model-download-progress', handler as EventListener);
+        return () => {
+            window.removeEventListener('tts-model-download-progress', handler as EventListener);
+        };
+    }, [refreshTtsModelStatus]);
 
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
@@ -427,6 +464,20 @@ const ServiceManagementSetting = () => {
             });
         } finally {
             setDownloadingWhisperModel(false);
+        }
+    };
+
+    const downloadKokoroModel = async () => {
+        setDownloadingTtsModel(true);
+        try {
+            await api.call('tts/models/download', { variant: 'quantized' });
+            toast({ title: '下载完成', description: '本地 TTS 模型已下载（Kokoro 量化）' });
+            await refreshTtsModelStatus();
+        } catch (error) {
+            logger.error('download kokoro model failed', { error });
+            toast({ title: '下载失败', description: '下载本地 TTS 模型失败，请检查网络后重试', variant: 'destructive' });
+        } finally {
+            setDownloadingTtsModel(false);
         }
     };
 
@@ -1098,6 +1149,93 @@ const ServiceManagementSetting = () => {
                                     <HardDrive className="h-4 w-4" />
                                     <span>自动生成 SRT 字幕文件</span>
                                 </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Local TTS (Kokoro via echogarden) */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Volume2 className="h-5 w-5" />
+                            本地 TTS
+                        </CardTitle>
+                        <CardDescription>
+                            离线语音合成，用于句子/对话播放
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">模型包</Label>
+                            <div className="space-y-3">
+                                {(() => {
+                                    const voices = ttsModelStatus?.kokoro.voices;
+                                    const quantized = ttsModelStatus?.kokoro.quantized;
+                                    const ready = !!voices?.exists && !!quantized?.exists;
+                                    const progress = downloadProgressByKey['tts:kokoro'];
+
+                                    return (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-medium">
+                                                        Kokoro（量化）
+                                                        <span className="text-xs text-muted-foreground ml-2">
+                                                            {ready ? '已下载' : '未下载'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground truncate">
+                                                        {ttsModelStatus?.echogardenPackagesDir || '...'}
+                                                    </div>
+                                                </div>
+                                                {ready ? (
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                                                )}
+                                            </div>
+                                            {downloadingTtsModel && progress != null && !ready && (
+                                                <Progress value={progress.percent} className="h-2" />
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="text-xs text-muted-foreground">
+                                        存储目录：{ttsModelStatus?.echogardenPackagesDir || '...'}
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => refreshTtsModelStatus().catch(() => null)}
+                                >
+                                    刷新
+                                </Button>
+                            </div>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs text-muted-foreground">
+                                推荐使用量化版（体积更小，速度更快）。
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadKokoroModel().catch(() => null)}
+                                    disabled={downloadingTtsModel || (!!ttsModelStatus?.kokoro.voices.exists && !!ttsModelStatus?.kokoro.quantized.exists)}
+                                >
+                                    {ttsModelStatus?.kokoro.voices.exists && ttsModelStatus?.kokoro.quantized.exists ? '已下载' : (downloadingTtsModel ? '下载中...' : '下载')}
+                                </Button>
                             </div>
                         </div>
                     </CardContent>
