@@ -63,7 +63,7 @@ export default function VideoLearningPage() {
 
   const selectedWordValue = selectedWord?.word ?? '';
   const searchKey = `${apiPath('video-learning/search')}::word=${selectedWordValue}::page=${page}::size=${PAGE_SIZE}`;
-  const { data: learningClips = DEFAULT_LEARNING_RESPONSE } = useSWR(
+  const { data: learningClips = DEFAULT_LEARNING_RESPONSE, isValidating } = useSWR(
     searchKey,
     async () => {
       return await window.electron.call('video-learning/search', {
@@ -72,7 +72,7 @@ export default function VideoLearningPage() {
         pageSize: PAGE_SIZE
       });
     },
-    { fallbackData: DEFAULT_LEARNING_RESPONSE }
+    { fallbackData: DEFAULT_LEARNING_RESPONSE, keepPreviousData: true }
   );
 
   const clips: VideoClip[] = useMemo(() => {
@@ -83,12 +83,14 @@ export default function VideoLearningPage() {
   }, [learningClips]);
   const totalClips = learningClips?.success ? learningClips.data.total : 0;
   const totalPages = totalClips > 0 ? Math.ceil(totalClips / PAGE_SIZE) : 1;
-  const displayedPage = learningClips?.success ? learningClips.data.page : page;
+  const loadedPage = learningClips?.success ? learningClips.data.page : page;
+  const displayedPage = page;
+  const isPageSwitching = isValidating && loadedPage !== displayedPage;
 
   const canPrev = displayedPage > 1;
   const canNext = displayedPage < totalPages;
-  const clipRangeStart = totalClips === 0 ? 0 : (displayedPage - 1) * PAGE_SIZE + 1;
-  const clipRangeEnd = totalClips === 0 ? 0 : Math.min(displayedPage * PAGE_SIZE, totalClips);
+  const clipRangeStart = totalClips === 0 ? 0 : (loadedPage - 1) * PAGE_SIZE + 1;
+  const clipRangeEnd = totalClips === 0 ? 0 : Math.min(loadedPage * PAGE_SIZE, totalClips);
 
   const {
     pages: pageNumbers,
@@ -159,8 +161,8 @@ export default function VideoLearningPage() {
     } else if (currentClipIndex < clips.length - 1) {
       // 跨视频：下一个视频的主要句
       playClip(currentClipIndex + 1);
-    } else if (displayedPage < totalPages) {
-      handlePageChange(displayedPage + 1, { targetIndex: 0 });
+    } else if (loadedPage < totalPages) {
+      handlePageChange(loadedPage + 1, { targetIndex: 0 });
     }
   }, [
     currentClip,
@@ -169,7 +171,7 @@ export default function VideoLearningPage() {
     clips.length,
     goToLine,
     playClip,
-    displayedPage,
+    loadedPage,
     totalPages,
     handlePageChange
   ]);
@@ -182,8 +184,8 @@ export default function VideoLearningPage() {
     } else if (currentClipIndex > 0) {
       // 跨视频：上一个视频的主要句
       playClip(currentClipIndex - 1);
-    } else if (displayedPage > 1) {
-      handlePageChange(displayedPage - 1, { targetIndex: 'last' });
+    } else if (loadedPage > 1) {
+      handlePageChange(loadedPage - 1, { targetIndex: 'last' });
     }
   }, [
     currentClip,
@@ -191,7 +193,7 @@ export default function VideoLearningPage() {
     currentClipIndex,
     goToLine,
     playClip,
-    displayedPage,
+    loadedPage,
     handlePageChange
   ]);
 
@@ -358,13 +360,13 @@ export default function VideoLearningPage() {
     if (!clips.length) {
       setCurrentClipIndex(-1);
       setCurrentLineIndex(-1);
-      if (pendingClip && pendingClip.page === displayedPage) {
+      if (pendingClip && pendingClip.page === loadedPage) {
         setPendingClip(null);
       }
       return;
     }
 
-    if (pendingClip && pendingClip.page === displayedPage) {
+    if (pendingClip && pendingClip.page === loadedPage) {
       const targetIndex = pendingClip.index === 'last'
         ? clips.length - 1
         : Math.max(0, Math.min(pendingClip.index, clips.length - 1));
@@ -376,7 +378,7 @@ export default function VideoLearningPage() {
     if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
       playClip(0);
     }
-  }, [clips, currentClipIndex, displayedPage, pendingClip, playClip, setPendingClip]);
+  }, [clips, currentClipIndex, loadedPage, pendingClip, playClip, setPendingClip]);
 
   // 初始化加载单词
   useEffect(() => {
@@ -443,22 +445,22 @@ export default function VideoLearningPage() {
             />
           </div>
           <div className="rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-nowrap items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground tabular-nums">
                 {totalClips > 0
                   ? `显示第 ${clipRangeStart}-${clipRangeEnd} 个片段，共 ${totalClips} 个`
                   : '暂无视频片段'}
               </div>
-              <Pagination className="ml-auto w-auto">
+              <Pagination className="ml-auto w-auto tabular-nums">
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
                       href="#"
-                      aria-disabled={!canPrev}
-                      className={!canPrev ? 'pointer-events-none opacity-50' : undefined}
+                      aria-disabled={!canPrev || isPageSwitching}
+                      className={!canPrev || isPageSwitching ? 'pointer-events-none opacity-50' : undefined}
                       onClick={(event) => {
                         event.preventDefault();
-                        if (canPrev) {
+                        if (canPrev && !isPageSwitching) {
                           handlePageChange(displayedPage - 1, { targetIndex: 0 });
                         }
                       }}
@@ -472,7 +474,7 @@ export default function VideoLearningPage() {
                           isActive={displayedPage === 1}
                           onClick={(event) => {
                             event.preventDefault();
-                            if (displayedPage !== 1) {
+                            if (displayedPage !== 1 && !isPageSwitching) {
                               handlePageChange(1, { targetIndex: 0 });
                             }
                           }}
@@ -492,7 +494,7 @@ export default function VideoLearningPage() {
                         isActive={num === displayedPage}
                         onClick={(event) => {
                           event.preventDefault();
-                          if (num !== displayedPage) {
+                          if (num !== displayedPage && !isPageSwitching) {
                             handlePageChange(num, { targetIndex: 0 });
                           }
                         }}
@@ -512,7 +514,7 @@ export default function VideoLearningPage() {
                           isActive={displayedPage === safeTotalPages}
                           onClick={(event) => {
                             event.preventDefault();
-                            if (displayedPage !== safeTotalPages) {
+                            if (displayedPage !== safeTotalPages && !isPageSwitching) {
                               handlePageChange(safeTotalPages, { targetIndex: 0 });
                             }
                           }}
@@ -525,11 +527,11 @@ export default function VideoLearningPage() {
                   <PaginationItem>
                     <PaginationNext
                       href="#"
-                      aria-disabled={!canNext}
-                      className={!canNext ? 'pointer-events-none opacity-50' : undefined}
+                      aria-disabled={!canNext || isPageSwitching}
+                      className={!canNext || isPageSwitching ? 'pointer-events-none opacity-50' : undefined}
                       onClick={(event) => {
                         event.preventDefault();
-                        if (canNext) {
+                        if (canNext && !isPageSwitching) {
                           handlePageChange(displayedPage + 1, { targetIndex: 0 });
                         }
                       }}

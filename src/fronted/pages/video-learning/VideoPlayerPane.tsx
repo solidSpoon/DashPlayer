@@ -9,6 +9,7 @@ import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 import useVocabulary from '@/fronted/hooks/useVocabulary';
 import { Sentence } from '@/common/types/SentenceC';
+import { ClipSrtLine } from '@/common/types/clipMeta';
 
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   lines,
@@ -21,7 +22,7 @@ const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   onToggleAutoPause,
   onToggleSingleRepeat
 }: {
-  lines: any[];
+  lines: ClipSrtLine[];
   activeIndex: number;
   playing: boolean;
   autoPause: boolean;

@@ -511,16 +511,20 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         clip: OssBaseMeta & ClipMeta & { sourceType: 'oss' | 'local' },
         vocabularyEntries: ClipVocabularyEntry[]
     ): VideoLearningClipVO {
-        // 正在处理中：返回原视频路径，时间需要加上偏移量
-        // 已处理完成：返回OSS片段路径，时间是相对片段的
+        // 正在处理中：返回原视频路径，字幕时间使用原视频的绝对时间
+        // 已处理完成：返回OSS片段路径，字幕时间是相对片段的
         const videoPath = clip.sourceType === 'local' ? clip.video_name :
                         (clip.baseDir && clip.clip_file ? `${clip.baseDir}/${clip.clip_file}` : clip.video_name);
 
-        // 后端直接返回处理好的时间，前端不用计算
+        const clipBeginAt = clip.sourceType === 'local'
+            ? (clip as (typeof clip & { clipBeginAt?: number })).clipBeginAt ?? 0
+            : 0;
+
+        // 后端直接返回处理好的时间，前端不用计算（local: absolute，oss: relative）
         const processedClipContent = (clip.clip_content ?? []).map(item => ({
             index: item.index,
-            start: clip.sourceType === 'local' ? (this.getClipBeginAt(clip) + item.start) : item.start,
-            end: clip.sourceType === 'local' ? (this.getClipBeginAt(clip) + item.end) : item.end,
+            start: clip.sourceType === 'local' ? (clipBeginAt + item.start) : item.start,
+            end: clip.sourceType === 'local' ? (clipBeginAt + item.end) : item.end,
             contentEn: item.contentEn,
             contentZh: item.contentZh,
             isClip: item.isClip
@@ -663,12 +667,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return result;
     }
 
-    private getClipBeginAt(clip: OssBaseMeta & ClipMeta): number {
-        // 从 clip_content 中获取第一个句子的 start 时间，作为原视频的起始时间
-        const firstLine = clip.clip_content?.[0];
-        return firstLine?.start || 0;
-    }
-
     public async search({ word, page, pageSize }: SimpleClipQuery): Promise<VideoLearningClipPage> {
         const normalizedPageSize = Math.min(Math.max(pageSize ?? 12, 1), 100);
         const normalizedPage = Math.max(page ?? 1, 1);
@@ -718,6 +716,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
                 const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
                 const key = this.mapToMetaKey(srt, task.indexInSrt);
+                const [clipBeginAt] = this.mapTrimRange(srt, task.indexInSrt);
 
                 const clipEntry = {
                     ...metaData,
@@ -726,7 +725,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     version: 1,
                     clip_file: task.videoPath,
                     thumbnail_file: '',
-                    baseDir: ''
+                    baseDir: '',
+                    clipBeginAt
                 } as unknown as OssBaseMeta & ClipMeta & { sourceType: 'local' };
 
                 inProgressClips.push({

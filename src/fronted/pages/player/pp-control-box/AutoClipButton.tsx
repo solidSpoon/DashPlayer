@@ -22,6 +22,12 @@ export default function AutoClipButton() {
   const srtHash = useFile((state) => state.srtHash);
   const subtitlePath = useFile((state) => state.subtitlePath);
 
+  const clipTaskKey = videoPath && srtHash ? `${videoPath}::${srtHash}` : null;
+  const clipTaskRequestedAtByKey = useFile((state) => state.clipTaskRequestedAtByKey);
+  const markClipTaskRequested = useFile((state) => state.markClipTaskRequested);
+  const clearClipTaskRequested = useFile((state) => state.clearClipTaskRequested);
+  const clipRequested = clipTaskKey ? !!clipTaskRequestedAtByKey[clipTaskKey] : false;
+
   // 使用 SWR 获取裁切状态
   const { data: clipStatusData } = useSWR(
     videoPath && srtHash && subtitlePath
@@ -83,6 +89,12 @@ export default function AutoClipButton() {
     }
   }, [clipStatusData]);
 
+  useEffect(() => {
+    if (clipStatus?.status === 'completed' && clipTaskKey) {
+      clearClipTaskRequested(clipTaskKey);
+    }
+  }, [clipStatus?.status, clipTaskKey, clearClipTaskRequested]);
+
   // 监听来自后端的状态更新
   useEffect(() => {
     const unregister = window.electron.registerRendererApi(
@@ -129,7 +141,8 @@ export default function AutoClipButton() {
   const inProgressCount = clipStatus?.inProgressCount ?? 0;
   const analyzingProgress = clipStatus?.analyzingProgress ?? 0;
 
-  const canClip = clipStatus?.status === 'pending' && pendingCount > 0;
+  const hasExistingClipTask = clipStatus?.status === 'in_progress' || clipRequested;
+  const canClip = clipStatus?.status === 'pending' && pendingCount > 0 && !hasExistingClipTask;
 
   const getButtonText = () => {
     if (!clipStatus?.status) return '裁切生词视频';
@@ -139,7 +152,9 @@ export default function AutoClipButton() {
       case 'in_progress':
         return `裁切中 (${inProgressCount})`;
       case 'pending':
-        return pendingCount > 0 ? `裁切 ${pendingCount} 个生词片段` : '暂无可裁切片段';
+        return pendingCount > 0
+          ? (hasExistingClipTask ? `裁切中 (${inProgressCount || pendingCount})` : `裁切 ${pendingCount} 个生词片段`)
+          : '暂无可裁切片段';
       case 'completed':
       default:
         return '暂无可裁切片段';
@@ -152,6 +167,7 @@ export default function AutoClipButton() {
     if (!clipStatus?.status) return '等待字幕分析完成';
     if (clipStatus.status === 'analyzing') return '正在分析视频内容，请等待完成';
     if (clipStatus.status === 'in_progress') return '正在裁切生词视频中，请等待完成';
+    if (clipRequested) return '已创建裁切任务，等待后端开始处理';
     if (!canClip) return '暂无可裁切的生词片段';
     return '';
   })();
@@ -161,12 +177,19 @@ export default function AutoClipButton() {
       toast.error('请先加载视频和字幕');
       return;
     }
+    if (hasExistingClipTask) {
+      toast('已存在裁切任务，请等待完成', { icon: 'ℹ️' });
+      return;
+    }
     if (!canClip) {
       toast('暂无可裁切的生词片段', { icon: 'ℹ️' });
       return;
     }
     try {
       toast('开始裁切生词视频...', { icon: '✂️' });
+      if (clipTaskKey) {
+        markClipTaskRequested(clipTaskKey);
+      }
       await api.call('video-learning/auto-clip', {
         videoPath,
         srtKey: srtHash,
@@ -174,6 +197,9 @@ export default function AutoClipButton() {
       });
     } catch (error) {
       logger.error('生词视频裁切失败:', error);
+      if (clipTaskKey) {
+        clearClipTaskRequested(clipTaskKey);
+      }
       toast.error('生词视频裁切失败，请重试');
     }
   };
@@ -201,7 +227,7 @@ export default function AutoClipButton() {
       icon={Scissors}
       text={getButtonText()}
       disabled={isDisabled}
-      onClick={handleClick}
+      onClick={canClip ? handleClick : undefined}
       tooltipMd={tooltipMd}
       tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
