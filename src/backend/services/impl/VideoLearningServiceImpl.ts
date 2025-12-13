@@ -32,6 +32,7 @@ import { ClipVocabularyEntry, VideoLearningClipVO, VideoLearningClipPage } from 
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { WordMatchService, MatchedWord } from '@/backend/services/WordMatchService';
 import { SrtSentence } from '@/common/types/SentenceC';
+import Lock from '@/common/utils/Lock';
 
 type SrtCache = SrtSentence;
 
@@ -87,6 +88,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
     // todo 改用 cacheService 存储, 无需过期时间，我会在其他业务逻辑中主动清理
     private readonly clipAnalysisCacheTtl = 2 * 60 * 1000; // 2 minutes
+    private readonly maxClipTasksPerTick = 1;
 
     private getSrtFromCache(srtKey: string): SrtCache | null {
         return (this.cacheService.get('cache:srt', srtKey) as SrtCache) ?? null;
@@ -101,7 +103,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const resolvedSrtPath = srt.filePath || srtPath || undefined;
 
         const analysisKey = this.mapAnalysisKey(videoPath, srtKey);
-        const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath });
+        const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath, yieldMs: 20 });
 
         if (candidates.length === 0) {
             await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
@@ -240,6 +242,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             return;
         }
 
+        const ffprobeStatus = Lock.status('ffprobe');
+        const ffmpegStatus = Lock.status('ffmpeg');
+        if (ffprobeStatus.waiting > 0 || ffmpegStatus.waiting > 0) {
+            return;
+        }
+
         const snapshot = new Map(this.taskQueue); // 快照，避免遍历中被修改
         const keys = Array.from(snapshot.keys());
 
@@ -258,7 +266,11 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         let processedVideoPath = '';
 
         // 处理新增任务：仅针对数据库中不存在的键
+        let taskProcessed = 0;
         for (const key of notExistingKeys) {
+            if (taskProcessed >= this.maxClipTasksPerTick) {
+                break;
+            }
             const task = snapshot.get(key);
             if (!task) {
                 dpLog.error('[checkQueue] task not found for key:', key);
@@ -268,6 +280,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 processedSrtKey = task.srtKey;
                 processedVideoPath = task.videoPath;
                 await this.taskAddOperation(task);
+                taskProcessed++;
             }
             // 从真实队列中删除该任务（如果没有被新的任务覆盖）
             if (this.taskQueue.get(key) === task) {
@@ -277,6 +290,9 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         // 处理取消任务：仅针对数据库中存在的键
         for (const key of existingKeys) {
+            if (taskProcessed >= this.maxClipTasksPerTick) {
+                break;
+            }
             const task = snapshot.get(key);
             if (!task) continue;
             if (task.operation === 'cancel') {
@@ -287,6 +303,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     processedVideoPath = anyTaskForSrt?.videoPath || '';
                 }
                 await this.taskCancelOperation(task);
+                taskProcessed++;
             }
             if (this.taskQueue.get(key) === task) {
                 this.taskQueue.delete(key);
@@ -371,7 +388,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private async collectClipCandidates(
         videoPath: string,
         srtKey: string,
-        options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string }
+        options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string; yieldMs?: number }
     ): Promise<ClipCandidate[]> {
         const analysisKey = this.mapAnalysisKey(videoPath, srtKey);
         const now = Date.now();
@@ -392,6 +409,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 throw new Error(ErrorConstants.CACHE_NOT_FOUND);
             }
 
+            const yieldMs = options?.yieldMs ?? 0;
             const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
             const contents = srtLines.map((line) => (line?.contentEn || '').toLowerCase());
 
@@ -417,7 +435,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     await options.onProgress(progress);
                 }
 
-                await new Promise((resolve) => setTimeout(resolve, 0));
+                await new Promise((resolve) => setTimeout(resolve, yieldMs));
             }
 
             const candidates: ClipCandidate[] = [];
@@ -919,6 +937,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
                 },
                 srtPath: resolvedSrtPath,
+                yieldMs: 20,
             });
         } catch (error) {
             dpLog.error('分析裁切状态失败:', error);

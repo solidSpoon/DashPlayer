@@ -110,19 +110,21 @@ export default class FfmpegServiceImpl implements FfmpegService {
                                outputFileName,
                                outputFolder,
                                time,
+                               inputDuration,
                                options = {}
                            }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
         time: number,
+        inputDuration?: number,
         options?: {
             quality?: 'low' | 'medium' | 'high' | 'ultra';
             width?: number;
             format?: 'jpg' | 'png';
         }
     }): Promise<void> {
-        const totalDuration = await this.duration(inputFile);
+        const totalDuration = typeof inputDuration === 'number' ? inputDuration : await this.duration(inputFile);
         const actualTime = Math.min(time, totalDuration);
 
         if (!fs.existsSync(outputFolder)) {

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { Play, Pause, CirclePause, Repeat } from 'lucide-react';
-import useVocabulary from '@/fronted/hooks/useVocabulary';
+import { useVocabularyState } from '@/fronted/hooks/useVocabulary';
 
 type Props = {
   lines: ClipSrtLine[];
@@ -31,10 +31,8 @@ export default function SubtitleList({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const { vocabularyVersion, isVocabularyWord } = useVocabulary((state) => ({
-    vocabularyVersion: state.version,
-    isVocabularyWord: state.isVocabularyWord
-  }));
+  const vocabularyVersion = useVocabularyState((state) => state.version);
+  const isVocabularyWord = useVocabularyState((state) => state.isVocabularyWord);
 
   useEffect(() => {
     const el = itemRefs.current[activeIndex];
@@ -79,7 +77,9 @@ export default function SubtitleList({
         {lines.map((line, idx) => (
           <div
             key={idx}
-            ref={(r) => (itemRefs.current[idx] = r)}
+            ref={(r) => {
+              itemRefs.current[idx] = r;
+            }}
             onClick={() => onPickLine?.(idx)}
             className={`p-2 rounded-lg text-sm cursor-pointer border transition-colors ${
               idx === activeIndex

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player/file';
-import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { shallow } from 'zustand/shallow';
 
 export interface PlayerEngineV2Props {
@@ -32,7 +32,7 @@ const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
     setDuration,
     updateExactPlayTime,
     play
-  } = usePlayerV2((s) => ({
+  } = usePlayerV2State((s) => ({
     src: s.src,
     playing: s.playing,
     muted: s.muted,

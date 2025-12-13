@@ -16,6 +16,13 @@ export default class Lock {
     private static waiters: Map<LOCK_KEY, (() => void)[]> = new Map();
     private static config = LockConfig;
 
+    public static status(key: LOCK_KEY): { locked: number; waiting: number; max: number } {
+        const locked = this.locks.get(key) || 0;
+        const waiting = this.waiters.get(key)?.length || 0;
+        const max = this.config[key]?.size || Infinity;
+        return { locked, waiting, max };
+    }
+
     public static async lock(key: LOCK_KEY): Promise<void> {
         const currentLockCount = this.locks.get(key) || 0;
         const maxLockCount = this.config[key]?.size || Infinity;

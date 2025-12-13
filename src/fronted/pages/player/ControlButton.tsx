@@ -2,8 +2,8 @@ import React from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {cn} from "@/fronted/lib/utils";
 import useLayout from '../../hooks/useLayout';
-import useSubtitleScroll from '../../hooks/useSubtitleScroll';
-import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
+import { useSubtitleScrollState } from '../../hooks/useSubtitleScroll';
+import { swrApiMutate } from '@/fronted/lib/swr-util';
 import {useHotkeys} from "react-hotkeys-hook";
 import {Button} from "@/fronted/components/ui/button";
 import useSetting from '@/fronted/hooks/useSetting';
@@ -18,7 +18,7 @@ const process = (values: string) => values
 export default function ControlButton() {
     const changeSideBar = useLayout((s) => s.changeSideBar);
     const showSideBar = useLayout((s) => s.showSideBar);
-    const pauseMeasurement = useSubtitleScroll(state => state.pauseMeasurement);
+    const pauseMeasurement = useSubtitleScrollState((state) => state.pauseMeasurement);
     const fullScreen = useLayout(s => s.fullScreen);
     const setting = useSetting((s) => s.setting);
 

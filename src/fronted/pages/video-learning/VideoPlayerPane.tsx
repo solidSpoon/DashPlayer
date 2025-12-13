@@ -5,9 +5,9 @@ import { VideoClip } from '@/fronted/hooks/useClipTender';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
 import { PlayerEngineV2 } from '@/fronted/components/player-components';
-import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
-import useVocabulary from '@/fronted/hooks/useVocabulary';
+import { useVocabularyState } from '@/fronted/hooks/useVocabulary';
 import { Sentence } from '@/common/types/SentenceC';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 
@@ -67,30 +67,28 @@ export default function VideoPlayerPane({
   forcePlayKey,
 }: Props) {
   // 使用新的播放器状态管理 - 精确订阅避免频繁重渲染
-  const playing = usePlayerV2((s) => s.playing);
-  const currentSentence = usePlayerV2((s) => s.currentSentence);
-  const sentences = usePlayerV2((s) => s.sentences);
-  const autoPause = usePlayerV2((s) => s.autoPause);
-  const singleRepeat = usePlayerV2((s) => s.singleRepeat);
+  const playing = usePlayerV2State((s) => s.playing);
+  const currentSentence = usePlayerV2State((s) => s.currentSentence);
+  const sentences = usePlayerV2State((s) => s.sentences);
+  const autoPause = usePlayerV2State((s) => s.autoPause);
+  const singleRepeat = usePlayerV2State((s) => s.singleRepeat);
 
   // 播放控制方法
-  const play = usePlayerV2((s) => s.play);
-  const togglePlay = usePlayerV2((s) => s.togglePlay);
-  const seekToTarget = usePlayerV2((s) => s.seekToTarget);
+  const play = usePlayerV2State((s) => s.play);
+  const togglePlay = usePlayerV2State((s) => s.togglePlay);
+  const seekToTarget = usePlayerV2State((s) => s.seekToTarget);
 
   // 模式控制方法
-  const setAutoPause = usePlayerV2((s) => s.setAutoPause);
-  const setSingleRepeat = usePlayerV2((s) => s.setSingleRepeat);
+  const setAutoPause = usePlayerV2State((s) => s.setAutoPause);
+  const setSingleRepeat = usePlayerV2State((s) => s.setSingleRepeat);
 
   // 字幕相关方法
-  const setSource = usePlayerV2((s) => s.setSource);
-  const loadSubtitles = usePlayerV2((s) => s.loadSubtitles);
-  const clearSubtitles = usePlayerV2((s) => s.clearSubtitles);
-  const { setVocabularyWords, setVocabularyForms, clearVocabularyWords } = useVocabulary((state) => ({
-    setVocabularyWords: state.setVocabularyWords,
-    setVocabularyForms: state.setVocabularyForms,
-    clearVocabularyWords: state.clearVocabularyWords
-  }));
+  const setSource = usePlayerV2State((s) => s.setSource);
+  const loadSubtitles = usePlayerV2State((s) => s.loadSubtitles);
+  const clearSubtitles = usePlayerV2State((s) => s.clearSubtitles);
+  const setVocabularyWords = useVocabularyState((s) => s.setVocabularyWords);
+  const setVocabularyForms = useVocabularyState((s) => s.setVocabularyForms);
+  const clearVocabularyWords = useVocabularyState((s) => s.clearVocabularyWords);
 
   const playerReadyRef = useRef(false);
   const pendingTargetRef = useRef<{ sentence: Sentence; time: number } | null>(null);
@@ -143,13 +141,13 @@ export default function VideoPlayerPane({
   }, [applyPendingTarget, play]);
 
   // 高级API
-  const prevSentence = usePlayerV2((s) => s.prevSentence);
-  const nextSentence = usePlayerV2((s) => s.nextSentence);
-  const repeatCurrent = usePlayerV2((s) => s.repeatCurrent);
+  const prevSentence = usePlayerV2State((s) => s.prevSentence);
+  const nextSentence = usePlayerV2State((s) => s.nextSentence);
+  const repeatCurrent = usePlayerV2State((s) => s.repeatCurrent);
 
   // 只读选择器（用于边界检测）
-  const isAtFirstSentence = usePlayerV2((s) => s.isAtFirstSentence);
-  const isAtLastSentence = usePlayerV2((s) => s.isAtLastSentence);
+  const isAtFirstSentence = usePlayerV2State((s) => s.isAtFirstSentence);
+  const isAtLastSentence = usePlayerV2State((s) => s.isAtLastSentence);
 
   // 当clip或forcePlayKey发生变化时，加载新的视频和字幕
   useEffect(() => {

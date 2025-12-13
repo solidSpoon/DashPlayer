@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 type VocabularyFormsMap = Record<string, string>;
 
@@ -107,5 +108,12 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
         return vocabularyWords.includes(normalized) ? normalized : undefined;
     }
 }));
+
+export function useVocabularyState<T>(
+    selector: (s: VocabularyState) => T,
+    equalityFn?: (a: T, b: T) => boolean
+): T {
+    return useStoreWithEqualityFn(useVocabularyStore, selector, equalityFn);
+}
 
 export default useVocabularyStore;

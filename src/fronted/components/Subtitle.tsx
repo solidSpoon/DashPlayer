@@ -8,7 +8,7 @@ import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { playerV2Actions } from '@/fronted/components/player-components';
 import useLayout from '../hooks/useLayout';
 import {cn} from "@/fronted/lib/utils";
-import useSubtitleScroll from '../hooks/useSubtitleScroll';
+import useSubtitleScroll, { useSubtitleScrollState } from '../hooks/useSubtitleScroll';
 import useBoundary from '../hooks/useBoundary';
 import {FlipVertical2} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
@@ -35,7 +35,8 @@ export default function Subtitle() {
         setVirtuoso,
         updateVisibleRange,
         delaySetNormal,
-    } = useSubtitleScroll((s) => ({
+        syncIndexIntoView,
+    } = useSubtitleScrollState((s) => ({
         scrollState: s.scrollState,
         onScrolling: s.onScrolling,
         updateCurrentRef: s.updateCurrentRef,
@@ -43,7 +44,17 @@ export default function Subtitle() {
         setVirtuoso: s.setVirtuoso,
         updateVisibleRange: s.updateVisibleRange,
         delaySetNormal: s.delaySetNormal,
-    }));
+        syncIndexIntoView: s.syncIndexIntoView,
+    }), shallow);
+
+    const currentIndex = currentSentence?.index ?? -1;
+
+    useEffect(() => {
+        if (currentIndex < 0) {
+            return;
+        }
+        syncIndexIntoView(currentIndex);
+    }, [currentIndex, syncIndexIntoView]);
 
     useEffect(() => {
         const handleWheel = (e: { preventDefault: () => void }) => {
@@ -182,6 +193,64 @@ export default function Subtitle() {
         finalizeSelection();
     }, [finalizeSelection]);
 
+    const handleScrollerRef = useCallback((ref: unknown) => {
+        scrollerRef.current = ref as HTMLElement;
+    }, []);
+
+    const handleRangeChanged = useCallback(({ startIndex, endIndex }: { startIndex: number; endIndex: number }) => {
+        updateVisibleRange([startIndex, endIndex]);
+    }, [updateVisibleRange]);
+
+    const renderItem = useCallback((_index: number, item: Sentence) => {
+        const isCurrent = !!currentSentence && item.index === currentSentence.index && item.fileHash === currentSentence.fileHash;
+        const isSelected =
+            virtualGroupMeta.hasGroup &&
+            virtualGroupMeta.indexSet.has(item.index);
+        const isGroupStart = isSelected && item.index === virtualGroupMeta.min;
+        const isGroupEnd = isSelected && item.index === virtualGroupMeta.max;
+        return (
+            <div
+                onMouseDown={handleMouseDown(item)}
+                onMouseEnter={handleMouseEnter(item)}
+                onMouseUp={handleMouseUp}
+            >
+                <SideSentence
+                    sentence={item}
+                    onClick={() => {
+                        // handled via drag finalize logic
+                    }}
+                    isCurrent={isCurrent}
+                    isRepeat={singleRepeat}
+                    selectionState={
+                        isSelected
+                            ? {
+                                isMember: true,
+                                isGroupStart,
+                                isGroupEnd,
+                            }
+                            : undefined
+                    }
+                    ref={(ref) => {
+                        if (isCurrent) {
+                            updateCurrentRef(
+                                ref,
+                                currentSentence?.index ?? -1
+                            );
+                        }
+                    }}
+                />
+            </div>
+        );
+    }, [
+        currentSentence,
+        handleMouseDown,
+        handleMouseEnter,
+        handleMouseUp,
+        singleRepeat,
+        updateCurrentRef,
+        virtualGroupMeta,
+    ]);
+
     const render = () => {
         return (
             <div className="w-full h-full relative" ref={setBoundaryRef}>
@@ -213,9 +282,7 @@ export default function Subtitle() {
                 </AnimatePresence>
                 <Virtuoso
                     onScroll={onScrolling}
-                    scrollerRef={(ref) => {
-                        scrollerRef.current = ref as HTMLElement;
-                    }}
+                    scrollerRef={handleScrollerRef}
                     onMouseOver={() => {
                         setMouseOver(true);
                     }}
@@ -233,50 +300,8 @@ export default function Subtitle() {
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}
-                    rangeChanged={({ startIndex, endIndex }) => {
-                        updateVisibleRange([startIndex, endIndex]);
-                    }}
-                    itemContent={(_index, item) => {
-                        const isCurrent = !!currentSentence && item.index === currentSentence.index && item.fileHash === currentSentence.fileHash;
-                        const isSelected =
-                            virtualGroupMeta.hasGroup &&
-                            virtualGroupMeta.indexSet.has(item.index);
-                        const isGroupStart = isSelected && item.index === virtualGroupMeta.min;
-                        const isGroupEnd = isSelected && item.index === virtualGroupMeta.max;
-                        return (
-                            <div
-                                onMouseDown={handleMouseDown(item)}
-                                onMouseEnter={handleMouseEnter(item)}
-                                onMouseUp={handleMouseUp}
-                            >
-                                <SideSentence
-                                    sentence={item}
-                                    onClick={() => {
-                                        // handled via drag finalize logic
-                                    }}
-                                    isCurrent={isCurrent}
-                                    isRepeat={singleRepeat}
-                                    selectionState={
-                                        isSelected
-                                            ? {
-                                                isMember: true,
-                                                isGroupStart,
-                                                isGroupEnd,
-                                            }
-                                            : undefined
-                                    }
-                                    ref={(ref) => {
-                                        if (isCurrent) {
-                                            updateCurrentRef(
-                                                ref,
-                                                currentSentence?.index ?? -1
-                                            );
-                                        }
-                                    }}
-                                />
-                            </div>
-                        );
-                    }}
+                    rangeChanged={handleRangeChanged}
+                    itemContent={renderItem}
                     components={{
                         Footer: () => <div className="h-52" />,
                         Header: () => <div className={cn('h-0.5')} />,

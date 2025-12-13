@@ -7,10 +7,11 @@
 // - 建议在需要一次取多项时配合 shallow，减少对象重建导致的重渲染
 
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 export function usePlayerV2State<T>(
   selector: (s: ReturnType<typeof usePlayerV2.getState>) => T,
   equalityFn?: (a: T, b: T) => boolean
 ): T {
-  return usePlayerV2(selector as any, equalityFn as any);
+  return useStoreWithEqualityFn(usePlayerV2, selector, equalityFn);
 }

@@ -59,6 +59,7 @@ export default class MediaServiceImpl implements MediaService {
             outputFolder: tempDirectoryPath,
             outputFileName: path.basename(thumbnailPath),
             time: adjustedTimestamp,
+            inputDuration: duration,
             options: options || {}
         });
 
@@ -87,4 +88,3 @@ export default class MediaServiceImpl implements MediaService {
         return this.ffmpegService.duration(inputFile);
     }
 }
-

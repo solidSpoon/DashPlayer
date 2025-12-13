@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 type PlayerUiState = {
   showEn: boolean;
@@ -28,5 +29,11 @@ export const usePlayerUi = create<PlayerUiState & PlayerUiActions>((set, get) =>
   changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
 }));
 
-export default usePlayerUi;
+export function usePlayerUiState<T>(
+    selector: (s: PlayerUiState & PlayerUiActions) => T,
+    equalityFn?: (a: T, b: T) => boolean
+): T {
+    return useStoreWithEqualityFn(usePlayerUi, selector, equalityFn);
+}
 
+export default usePlayerUi;

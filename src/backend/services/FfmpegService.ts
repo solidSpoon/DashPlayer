@@ -32,12 +32,20 @@ export default interface FfmpegService {
                   inputFile,
                   outputFileName,
                   outputFolder,
-                  time
+                  time,
+                  inputDuration,
+                  options
               }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
-        time: number
+        time: number,
+        inputDuration?: number,
+        options?: {
+            quality?: 'low' | 'medium' | 'high' | 'ultra';
+            width?: number;
+            format?: 'jpg' | 'png';
+        }
     }): Promise<void>;
 
     splitToAudio({
@@ -111,4 +119,3 @@ export default interface FfmpegService {
         outputFilePrefix?: string
     }): Promise<string[]>;
 }
-

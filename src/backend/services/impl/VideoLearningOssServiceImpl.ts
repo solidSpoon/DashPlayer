@@ -60,7 +60,8 @@ export default class VideoLearningOssServiceImpl extends AbstractOssServiceImpl<
             inputFile: sourcePath,
             outputFileName: thumbnailFileName,
             outputFolder: tempFolder,
-            time: length / 2
+            time: length / 2,
+            inputDuration: length
         });
         await this.putFile(key, this.THUMBNAIL_FILE, path.join(tempFolder, thumbnailFileName));
         await this.putFile(key, this.CLIP_FILE, sourcePath);

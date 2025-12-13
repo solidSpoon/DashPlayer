@@ -71,6 +71,19 @@ protocol.registerSchemesAsPrivileged([
             codeCache: true,
             corsEnabled: false
         }
+    },
+    {
+        scheme: DP_FILE,
+        privileges: {
+            standard: true,
+            secure: true,
+            bypassCSP: true,
+            allowServiceWorkers: true,
+            supportFetchAPI: true,
+            stream: true,
+            codeCache: true,
+            corsEnabled: false
+        }
     }
 ]);
 app.on('ready', async () => {

@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import useSetting from '../../hooks/useSetting';
-import useSubtitleScroll from '../../hooks/useSubtitleScroll';
+import { useSubtitleScrollState } from '../../hooks/useSubtitleScroll';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useCopyModeController from '../../hooks/useCopyModeController';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
@@ -31,10 +31,12 @@ export default function PlayerShortCut() {
         }))
     );
 
-    const { onUserFinishScrolling, scrollState } = useSubtitleScroll((s) => ({
-        onUserFinishScrolling: s.onUserFinishScrolling,
-        scrollState: s.scrollState
-    }));
+    const { onUserFinishScrolling, scrollState } = useSubtitleScrollState(
+        useShallow((s) => ({
+            onUserFinishScrolling: s.onUserFinishScrolling,
+            scrollState: s.scrollState,
+        }))
+    );
 
     const setting = useSetting((s) => s.setting);
     const { createFromCurrent } = useChatPanel(useShallow((s) => ({
