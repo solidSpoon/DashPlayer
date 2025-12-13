@@ -3,7 +3,7 @@ import {eq, or} from 'drizzle-orm';
 import db from '@/backend/db/db';
 import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpTask';
 
-import LRUCache from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
 import {inject, injectable, postConstruct} from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
