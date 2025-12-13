@@ -5,15 +5,18 @@ import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import SystemService from '@/backend/services/SystemService';
+import SystemConfigService from '@/backend/services/SystemConfigService';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import { WhisperModelSize, WhisperModelStatusVO, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
+import { WHISPER_MODEL_DOWNLOADED_KEY } from '@/common/constants/systemConfigKeys';
 
 @injectable()
 export class WhisperModelController implements Controller {
     @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     private logger = getMainLogger('WhisperModelController');
 
     private getModelsRoot(): string {
@@ -37,6 +40,9 @@ export class WhisperModelController implements Controller {
         const largePath = this.getWhisperModelPath('large');
         const v5Path = this.getVadModelPath('silero-v5.1.2');
         const v6Path = this.getVadModelPath('silero-v6.2.0');
+
+        const whisperModelDownloaded = fs.existsSync(basePath) || fs.existsSync(largePath);
+        await this.systemConfigService.setValue(WHISPER_MODEL_DOWNLOADED_KEY, whisperModelDownloaded ? 'true' : 'false');
 
         return {
             modelsRoot,
@@ -104,6 +110,7 @@ export class WhisperModelController implements Controller {
 
         this.logger.info('download whisper model', { size, modelPath });
         await this.downloadFile(url, modelPath, `whisper:${size}`);
+        await this.systemConfigService.setValue(WHISPER_MODEL_DOWNLOADED_KEY, 'true');
         return { success: true, message: `模型已下载：${size}` };
     }
 
@@ -114,7 +121,7 @@ export class WhisperModelController implements Controller {
 
         this.logger.info('download whisper vad model', { vadModel, modelPath });
         await this.downloadFile(url, modelPath, `vad:${vadModel}`);
-        return { success: true, message: `VAD 模型已下载：${vadModel}` };
+        return { success: true, message: `静音检测模型已下载：${vadModel}` };
     }
 
     registerRoutes(): void {

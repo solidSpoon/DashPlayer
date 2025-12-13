@@ -239,8 +239,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const supportsVadModelFlag = /\s\-vm\b/.test(help) || /\-\-vad\-model\b/.test(help);
 
         const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
-        const enableVad = await this.settingService.get('whisper.enableVad') === 'true';
-        const vadModel = (await this.settingService.get('whisper.vadModel')) === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0';
+        const enableVad = true;
+        const vadModel = 'silero-v6.2.0' as const;
 
         const whisperModelTag = modelSize === 'large' ? 'large-v3' : 'base';
         const modelsRoot = LocationUtil.staticGetStoragePath('models');
@@ -253,11 +253,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         if (enableVad) {
             if (!supportsVadFlag) {
                 this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
-                this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, { message: '当前 whisper.cpp 不支持 VAD 参数，将跳过 VAD' });
+                this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, { message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测' });
             } else if (supportsVadModelFlag) {
                 vadModelPath = path.join(modelsRoot, 'whisper-vad', `ggml-${vadModel}.bin`);
                 if (!fs.existsSync(vadModelPath)) {
-                    throw new Error(`VAD 模型未下载：${vadModel}。请在【设置 → 服务配置 → Whisper 本地字幕识别】中下载 VAD 模型后再转录，或关闭 VAD。`);
+                    throw new Error(`静音检测模型未下载。请在【设置 → 服务配置 → Whisper 本地字幕识别】中下载静音检测模型后再转录。`);
                 }
             }
         }

@@ -20,6 +20,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
 import { TtsModelStatusVO } from '@/common/types/vo/tts-model-vo';
+import useSetting from '@/fronted/hooks/useSetting';
 
 const api = window.electron;
 
@@ -31,6 +32,12 @@ const OPENAI_MODEL_PRESETS = [
 
 const ServiceManagementSetting = () => {
     const logger = getRendererLogger('ServiceManagementSetting');
+    const ttsEngine = useSetting((s) => s.setting('tts.engine') || 'local');
+    const setSetting = useSetting((s) => s.setSetting);
+    const resolvedTtsEngine = (ttsEngine === 'openai' ? 'openai' : 'local') as 'local' | 'openai';
+    const setTtsEngine = React.useCallback((engine: 'local' | 'openai') => {
+        setSetting('tts.engine', engine);
+    }, [setSetting]);
 
     // Fetch settings with SWR
     const { data: settings, mutate } = useSWR('settings/services/get-all', () =>
@@ -53,8 +60,7 @@ const ServiceManagementSetting = () => {
     const whisperEnabled = watch('whisper.enabled');
     const whisperTranscriptionEnabled = watch('whisper.enableTranscription');
     const whisperModelSize = watch('whisper.modelSize');
-    const whisperEnableVad = watch('whisper.enableVad');
-    const whisperVadModel = watch('whisper.vadModel');
+    const forcedVadModel = 'silero-v6.2.0' as const;
 
     // Test states
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
@@ -355,8 +361,8 @@ const ServiceManagementSetting = () => {
                     enabled: (settings.whisper && settings.whisper.enabled) || false,
                     enableTranscription: (settings.whisper && settings.whisper.enableTranscription) || false,
                     modelSize: (settings.whisper && settings.whisper.modelSize) || 'base',
-                    enableVad: (settings.whisper && settings.whisper.enableVad) ?? true,
-                    vadModel: (settings.whisper && settings.whisper.vadModel) || 'silero-v6.2.0',
+                    enableVad: true,
+                    vadModel: forcedVadModel,
                 },
             };
             reset(formData, { keepDefaultValues: false });
@@ -471,24 +477,24 @@ const ServiceManagementSetting = () => {
         setDownloadingTtsModel(true);
         try {
             await api.call('tts/models/download', { variant: 'quantized' });
-            toast({ title: '下载完成', description: '本地 TTS 模型已下载（Kokoro 量化）' });
+            toast({ title: '下载完成', description: '本地朗读模型已下载' });
             await refreshTtsModelStatus();
         } catch (error) {
             logger.error('download kokoro model failed', { error });
-            toast({ title: '下载失败', description: '下载本地 TTS 模型失败，请检查网络后重试', variant: 'destructive' });
+            toast({ title: '下载失败', description: '下载本地朗读模型失败，请检查网络后重试', variant: 'destructive' });
         } finally {
             setDownloadingTtsModel(false);
         }
     };
 
     const downloadSelectedVadModel = async () => {
-        const vadModel = (whisperVadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0') as 'silero-v5.1.2' | 'silero-v6.2.0';
+        const vadModel = forcedVadModel;
         const key = `vad:${vadModel}`;
         setDownloadingVadModel(true);
         setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
         try {
             await api.call('whisper/models/download-vad', { vadModel });
-            toast({ title: '下载完成', description: `VAD 模型已下载：${vadModel}` });
+            toast({ title: '下载完成', description: '静音检测模型已下载' });
             await refreshWhisperModelStatus();
         } catch (error) {
             toast({
@@ -718,10 +724,25 @@ const ServiceManagementSetting = () => {
                                         )}
                                     </Label>
                                 </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="tts-engine-openai"
+                                        checked={resolvedTtsEngine === 'openai'}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                setTtsEngine('openai');
+                                            }
+                                        }}
+                                    />
+                                    <Label htmlFor="tts-engine-openai" className="font-normal">
+                                        OpenAI 朗读
+                                        {resolvedTtsEngine === 'local' && (
+                                            <span className="text-xs text-muted-foreground ml-2">(与本地朗读互斥)</span>
+                                        )}
+                                    </Label>
+                                </div>
                             </div>
                         </div>
-
-                        <Separator orientation="horizontal" />
 
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
@@ -804,8 +825,6 @@ const ServiceManagementSetting = () => {
                             </div>
                         </div>
 
-                        <Separator orientation="horizontal" />
-
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 {tencentTestResult && (
@@ -887,8 +906,6 @@ const ServiceManagementSetting = () => {
                             </div>
                         </div>
 
-                        <Separator orientation="horizontal" />
-
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 {youdaoTestResult && (
@@ -931,11 +948,6 @@ const ServiceManagementSetting = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-
-                        <Separator orientation="horizontal" />
-
-
-                        <Separator orientation="horizontal" />
 
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">启用功能</Label>
@@ -1034,7 +1046,7 @@ const ServiceManagementSetting = () => {
 
 	                                <div className="flex items-center justify-between gap-3">
 	                                    {(() => {
-	                                        const vadModel = (whisperVadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0') as 'silero-v5.1.2' | 'silero-v6.2.0';
+	                                        const vadModel = forcedVadModel;
 	                                        const key = `vad:${vadModel}`;
 	                                        const status = whisperModelStatus?.vad?.[vadModel];
 	                                        const p = downloadProgressByKey[key]?.percent;
@@ -1043,7 +1055,7 @@ const ServiceManagementSetting = () => {
 	                                            <>
 	                                                <div className="min-w-0">
 	                                                    <div className="font-medium">
-	                                                        VAD 模型（{whisperVadModel === 'silero-v5.1.2' ? 'silero-v5.1.2' : 'silero-v6.2.0'}）
+	                                                        静音检测模型
 	                                                    </div>
 	                                                    <div className="text-xs text-muted-foreground break-all">
 	                                                        {status?.path || '...'}
@@ -1062,7 +1074,7 @@ const ServiceManagementSetting = () => {
 	                                                    variant="outline"
 	                                                    size="sm"
 	                                                    onClick={() => downloadSelectedVadModel().catch(() => null)}
-	                                                    disabled={downloadingVadModel || !whisperEnableVad || !!status?.exists}
+	                                                    disabled={downloadingVadModel || !!status?.exists}
 	                                                >
 	                                                    {status?.exists ? '已下载' : (downloadingVadModel ? '下载中...' : '下载')}
 	                                                </Button>
@@ -1087,55 +1099,15 @@ const ServiceManagementSetting = () => {
                                     </Button>
                                 </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                提示：开启本地转录前必须下载对应的 Whisper 模型；开启 VAD 则需要下载 VAD 模型
-                            </p>
-                        </div>
+	                            <p className="text-xs text-muted-foreground">
+	                                提示：开启本地转录前必须下载对应的 Whisper 模型；需要下载静音检测模型才能启用静音检测
+	                            </p>
+	                        </div>
 
-                        <Separator orientation="horizontal" />
+	                        <Separator orientation="horizontal" />
 
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">自动 VAD</Label>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="whisper-enable-vad"
-                                    checked={!!whisperEnableVad}
-                                    onCheckedChange={(checked) => {
-                                        setValue('whisper.enableVad', !!checked);
-                                    }}
-                                    disabled={false}
-                                />
-                                <Label htmlFor="whisper-enable-vad" className="font-normal">
-                                    启用静音检测（VAD）
-                                </Label>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">VAD 模型</Label>
-                                <Select
-                                    value={whisperVadModel || 'silero-v6.2.0'}
-                                    onValueChange={(v) => {
-                                        setValue('whisper.vadModel', v as 'silero-v5.1.2' | 'silero-v6.2.0');
-                                    }}
-                                    disabled={!whisperEnableVad}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="选择 VAD 模型" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="silero-v6.2.0">silero-v6.2.0（推荐）</SelectItem>
-                                        <SelectItem value="silero-v5.1.2">silero-v5.1.2</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    开启后需要下载 VAD 模型，用于提升长音频转录稳定性
-                                </p>
-                            </div>
-                        </div>
-
-                        <Separator orientation="horizontal" />
-
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">功能说明</Label>
+	                        <div className="space-y-3">
+	                            <Label className="text-sm font-medium">功能说明</Label>
                             <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-2">
                                     <HardDrive className="h-4 w-4" />
@@ -1154,18 +1126,41 @@ const ServiceManagementSetting = () => {
                     </CardContent>
                 </Card>
 
-                {/* Local TTS (Kokoro via echogarden) */}
+                {/* Local TTS */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Volume2 className="h-5 w-5" />
-                            本地 TTS
+                            本地朗读
                         </CardTitle>
                         <CardDescription>
-                            离线语音合成，用于句子/对话播放
+                            离线朗读，用于句子/对话播放
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                            <Label className="text-sm font-medium">启用功能</Label>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="tts-engine-local"
+                                    checked={resolvedTtsEngine === 'local'}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) {
+                                            setTtsEngine('local');
+                                        }
+                                    }}
+                                />
+                                <Label htmlFor="tts-engine-local" className="font-normal">
+                                    本地朗读
+                                    {resolvedTtsEngine === 'openai' && (
+                                        <span className="text-xs text-muted-foreground ml-2">(与 OpenAI 朗读互斥)</span>
+                                    )}
+                                </Label>
+                            </div>
+                        </div>
+
+                        <Separator orientation="horizontal" />
+
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">模型包</Label>
                             <div className="space-y-3">
@@ -1180,7 +1175,7 @@ const ServiceManagementSetting = () => {
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="min-w-0">
                                                     <div className="text-sm font-medium">
-                                                        Kokoro（量化）
+                                                        本地模型
                                                         <span className="text-xs text-muted-foreground ml-2">
                                                             {ready ? '已下载' : '未下载'}
                                                         </span>
@@ -1220,12 +1215,7 @@ const ServiceManagementSetting = () => {
                             </div>
                         </div>
 
-                        <Separator orientation="horizontal" />
-
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs text-muted-foreground">
-                                推荐使用量化版（体积更小，速度更快）。
-                            </div>
+                        <div className="flex items-center justify-end gap-3">
                             <div className="flex items-center gap-2">
                                 <Button
                                     type="button"
