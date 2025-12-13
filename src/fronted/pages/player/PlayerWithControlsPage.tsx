@@ -21,8 +21,9 @@ import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
-import toast from 'react-hot-toast';
+import toast, { Toast } from 'react-hot-toast';
 import {ModeSwitchToast} from '@/fronted/components/toasts/ModeSwitchToast';
+import useSystem from '@/fronted/hooks/useSystem';
 
 const api = window.electron;
 const logger = getRendererLogger('PlayerWithControlsPage');
@@ -31,8 +32,11 @@ const PlayerWithControlsPage = () => {
     const {videoId} = useParams();
     const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
     logger.debug('pa-player page loaded', {videoId, hasVideo: !!video});
+    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
+    const isMac = useSystem((s) => s.isMac);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
+    const uiFullScreen = useLayout((s) => s.fullScreen);
     const chatTopic = useChatPanel(s => s.topic);
     const w = cpW.bind(
         null,
@@ -50,6 +54,67 @@ const PlayerWithControlsPage = () => {
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
     const autoModeAppliedRef = useRef<{ videoId: string | number; mediaType: 'audio' | 'video' } | null>(null);
+    const windowButtonsVisibleRef = useRef<boolean | null>(null);
+    useEffect(() => {
+        if (!isMac) {
+            return;
+        }
+
+        const isVideo = !!video && !MediaUtil.isAudio(video.fileName);
+        if (!isVideo) {
+            api.call('system/window-buttons/visibility', true).then();
+            windowButtonsVisibleRef.current = true;
+            return;
+        }
+
+        const setVisible = (visible: boolean) => {
+            if (windowButtonsVisibleRef.current === visible) {
+                return;
+            }
+            windowButtonsVisibleRef.current = visible;
+            api.call('system/window-buttons/visibility', visible).then();
+        };
+
+        if (showSideBar) {
+            setVisible(true);
+            return;
+        }
+
+        const HOT_ZONE_WIDTH_PX = 480;
+        const HOT_ZONE_HEIGHT_PX = 160;
+        const HIDE_DELAY_MS = 250;
+
+        let hideTimeout: NodeJS.Timeout | null = null;
+        const scheduleHide = () => {
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            hideTimeout = setTimeout(() => setVisible(false), HIDE_DELAY_MS);
+        };
+
+        const onMouseMove = (e: MouseEvent) => {
+            const nearTrafficLights = e.clientX <= HOT_ZONE_WIDTH_PX && e.clientY <= HOT_ZONE_HEIGHT_PX;
+            if (nearTrafficLights) {
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+                setVisible(true);
+            } else {
+                scheduleHide();
+            }
+        };
+
+        setVisible(false);
+        window.addEventListener('mousemove', onMouseMove);
+        return () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            setVisible(true);
+        };
+    }, [chatTopic, isMac, showSideBar, uiFullScreen, video, windowState]);
     useEffect(() => {
         const runEffect = async () => {
             logger.debug('video effect triggered', {video});
@@ -88,7 +153,7 @@ const PlayerWithControlsPage = () => {
                         if (!currentMode) {
                             useLayout.getState().setPodcastMode(true);
                             toast(
-                                (t) => (
+                                (t: Toast) => (
                                     <ModeSwitchToast
                                         mode="podcast"
                                         onCancel={() => {
@@ -108,7 +173,7 @@ const PlayerWithControlsPage = () => {
                         if (currentMode) {
                             useLayout.getState().setPodcastMode(false);
                             toast(
-                                (t) => (
+                                (t: Toast) => (
                                     <ModeSwitchToast
                                         mode="video"
                                         onCancel={() => {

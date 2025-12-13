@@ -35,14 +35,21 @@ const mainWindowRef = {
 };
 const createWindow = () => {
     // Create the browser window.
+    const isMac = process.platform === 'darwin';
     const mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
         },
-        frame: false,
-        titleBarStyle: 'customButtonsOnHover'
+        ...(isMac
+            ? {
+                frame: true,
+                titleBarStyle: 'hiddenInset' as const,
+            }
+            : {
+                frame: false,
+            }),
     });
     mainWindowRef.current = mainWindow;
     // and load the index.html of the app.

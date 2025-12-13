@@ -56,6 +56,8 @@ interface SystemDef {
     'system/info': {
         params: void, return: {
             isWindows: boolean,
+            isMac: boolean,
+            isLinux: boolean,
             pathSeparator: string,
         }
     };
@@ -88,6 +90,7 @@ interface SystemDef {
     'system/open-folder/cache': { params: void, return: void };
     'system/window-size/change': { params: WindowState, return: void };
     'system/window-size': { params: void, return: WindowState };
+    'system/window-buttons/visibility': { params: boolean, return: void };
     'system/check-update': { params: void, return: Release[] };
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };

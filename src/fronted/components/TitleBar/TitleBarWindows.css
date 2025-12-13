@@ -35,6 +35,10 @@
   position: relative;
   outline: none;
 }
+.traffic-light:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.8);
+  outline-offset: 2px;
+}
 .traffic-light:before, .traffic-light:after {
   content: "";
   position: absolute;

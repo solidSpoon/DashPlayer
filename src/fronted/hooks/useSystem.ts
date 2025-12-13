@@ -5,6 +5,8 @@ import PathUtil from '@/common/utils/PathUtil';
 const api = window.electron;
 type State = {
     isWindows: boolean;
+    isMac: boolean;
+    isLinux: boolean;
     pathSeparator: string;
 };
 
@@ -15,6 +17,8 @@ type Actions = {
 const useSystem = create(
     subscribeWithSelector<State & Actions>((set) => ({
         isWindows: false,
+        isMac: false,
+        isLinux: false,
         pathSeparator: '',
         appVersion: '',
         windowState: 'normal',
@@ -26,10 +30,14 @@ export const syncStatus = () => {
     api.call('system/info').then((sysInfo) => {
         useSystem.setState({
             isWindows: sysInfo.isWindows,
+            isMac: sysInfo.isMac,
+            isLinux: sysInfo.isLinux,
             pathSeparator: sysInfo.pathSeparator,
         });
         PathUtil.SEPARATOR = sysInfo.pathSeparator;
     });
 };
+
+syncStatus();
 
 export default useSystem;

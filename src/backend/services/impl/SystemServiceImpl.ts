@@ -72,6 +72,17 @@ export default class SystemServiceImpl implements SystemService {
         }
     }
 
+    public setWindowButtonsVisible(visible: boolean): void {
+        const win = this.mainWindowRef.current;
+        if (!win || win.isDestroyed()) {
+            return;
+        }
+        if (process.platform !== 'darwin') {
+            return;
+        }
+        win.setWindowButtonVisibility(visible);
+    }
+
     public isWindows() {
         return process.platform === 'win32';
     }

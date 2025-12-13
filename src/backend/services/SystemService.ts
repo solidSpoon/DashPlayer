@@ -21,6 +21,8 @@ export default interface SystemService {
     mainWindow(): Electron.BrowserWindow;
 
     setMainWindow(mainWindowRef: { current: BrowserWindow | null }): void;
+
+    setWindowButtonsVisible(visible: boolean): void;
     /**
      * @description 向渲染进程发送 DpTask 的更新信息。
      * @param task 更新后的任务对象
@@ -35,4 +37,4 @@ export default interface SystemService {
         params: RendererApiDefinitions[K]['params']
     ): Promise<RendererApiDefinitions[K]['return']>;
 
-  }
+}

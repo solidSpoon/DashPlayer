@@ -31,9 +31,12 @@ export default class SystemController implements Controller {
     private locationService!: LocationService;
 
     public async info() {
+        const platform = process.platform;
         return {
-            isWindows: process.platform === 'win32',
-            pathSeparator: path.sep
+            isWindows: platform === 'win32',
+            isMac: platform === 'darwin',
+            isLinux: platform === 'linux',
+            pathSeparator: path.sep,
         };
     }
 
@@ -86,6 +89,10 @@ export default class SystemController implements Controller {
         await shell.openPath(folder);
     }
 
+    public async setWindowButtonsVisible(visible: boolean) {
+        this.systemService.setWindowButtonsVisible(visible);
+    }
+
     public async changeWindowSize(state: WindowState) {
         this.systemService.changeWindowSize(state);
     }
@@ -120,6 +127,7 @@ export default class SystemController implements Controller {
         registerRoute('system/open-folder/cache', (p) => this.openCacheDir());
         registerRoute('system/window-size/change', (p) => this.changeWindowSize(p));
         registerRoute('system/window-size', (p) => this.windowState());
+        registerRoute('system/window-buttons/visibility', (p) => this.setWindowButtonsVisible(p));
         registerRoute('system/check-update', (p) => this.checkUpdate());
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', (p) => this.appVersion());
