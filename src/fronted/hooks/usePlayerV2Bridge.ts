@@ -33,10 +33,12 @@ export function usePlayerV2Bridge(navigate: (path: string) => void) {
         let cancelled = false;
         const loadSubtitles = async () => {
             if (StrUtil.isBlank(subtitlePath)) {
+                useFile.setState({ srtHash: null });
                 playerV2Actions.clearSubtitles();
                 return;
             }
             const currentPath = subtitlePath!;
+            useFile.setState({ srtHash: null });
             try {
                 const result = await api.call('subtitle/srt/parse-to-sentences', currentPath);
                 if (cancelled || currentPath !== useFile.getState().subtitlePath) {

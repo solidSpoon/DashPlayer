@@ -37,9 +37,10 @@ const useFile = create(
                 }
             }
             if (MediaUtil.isSrt(ph)) {
-                set({
-                    subtitlePath: ph
-                });
+                set((s) => ({
+                    subtitlePath: ph,
+                    srtHash: s.subtitlePath === ph ? s.srtHash : null,
+                }));
             }
         },
         loadedVideo: (ph: string) => {

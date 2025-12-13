@@ -24,25 +24,27 @@ export default function AutoClipButton() {
 
   // 使用 SWR 获取裁切状态
   const { data: clipStatusData } = useSWR(
-    videoPath && srtHash ? `video-learning/detect-clip-status-${videoPath}-${srtHash}-${subtitlePath ?? 'none'}` : null,
-    async () => {
-      if (!videoPath || !srtHash) return { status: 'completed' as const };
-      try {
-        const result = await api.call('video-learning/detect-clip-status', {
-          videoPath,
-          srtKey: srtHash,
-          srtPath: subtitlePath || undefined
-        });
-        return result as ClipStatusState;
-      } catch (error) {
-        logger.error('检测裁切状态失败:', error);
-        return { status: 'completed' as const };
-      }
+    videoPath && srtHash && subtitlePath
+      ? ['video-learning/detect-clip-status', videoPath, srtHash, subtitlePath]
+      : null,
+    async ([, videoPathParam, srtHashParam, subtitlePathParam]) => {
+      const result = await api.call('video-learning/detect-clip-status', {
+        videoPath: videoPathParam,
+        srtKey: srtHashParam,
+        srtPath: subtitlePathParam || undefined
+      });
+      return result as ClipStatusState;
     },
     {
       revalidateIfStale: false,
       revalidateOnFocus: false,
-      revalidateOnReconnect: false
+      revalidateOnReconnect: false,
+      shouldRetryOnError: true,
+      errorRetryCount: 3,
+      errorRetryInterval: 1500,
+      onError: (error) => {
+        logger.error('检测裁切状态失败:', error);
+      }
     }
   );
 
