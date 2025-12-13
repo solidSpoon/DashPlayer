@@ -49,8 +49,12 @@ const WordPop = React.forwardRef(
 
         const theme = useTransLineTheme();
         const setting = useSetting((state) => state.setting);
-        const openaiDictionaryEnabled = setting('services.openai.enableDictionary') === 'true';
-        const youdaoDictionaryEnabled = setting('services.youdao.enableDictionary') === 'true';
+        const dictionaryEngineRaw = setting('dictionary.engine');
+        const dictionaryEngine =
+            dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
+                ? dictionaryEngineRaw
+                : 'openai';
+        const openaiDictionaryEnabled = dictionaryEngine === 'openai';
         const vocabularyStore = useVocabulary();
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
         

@@ -31,35 +31,63 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async get(key: SettingKey): Promise<string> {
+        if (key === 'subtitleTranslation.engine') {
+            return await this.getSubtitleTranslationEngine();
+        }
+        if (key === 'dictionary.engine') {
+            return await this.getDictionaryEngine();
+        }
+        if (key === 'transcription.engine') {
+            return await this.getTranscriptionEngine();
+        }
         return storeGet(key);
+    }
+
+    private async getSubtitleTranslationEngine(): Promise<'openai' | 'tencent'> {
+        const stored = storeGet('subtitleTranslation.engine');
+        return stored === 'tencent' || stored === 'openai' ? stored : 'openai';
+    }
+
+    private async getDictionaryEngine(): Promise<'openai' | 'youdao'> {
+        const stored = storeGet('dictionary.engine');
+        return stored === 'youdao' || stored === 'openai' ? stored : 'openai';
+    }
+
+    private async getTranscriptionEngine(): Promise<'openai' | 'whisper'> {
+        const stored = storeGet('transcription.engine');
+        return stored === 'whisper' || stored === 'openai' ? stored : 'openai';
     }
     
     public async queryApiSettings(): Promise<ApiSettingVO> {
+        const subtitleTranslationEngine = await this.getSubtitleTranslationEngine();
+        const dictionaryEngine = await this.getDictionaryEngine();
+        const transcriptionEngine = await this.getTranscriptionEngine();
+
         const settings: ApiSettingVO = {
             openai: {
                 key: await this.get('apiKeys.openAi.key'),
                 endpoint: await this.get('apiKeys.openAi.endpoint'),
                 model: await this.get('model.gpt.default'),
                 enableSentenceLearning: await this.get('services.openai.enableSentenceLearning') === 'true',
-                enableSubtitleTranslation: await this.get('services.openai.enableSubtitleTranslation') === 'true',
+                enableSubtitleTranslation: subtitleTranslationEngine === 'openai',
                 subtitleTranslationMode: await this.getOpenAiSubtitleTranslationMode(),
                 subtitleCustomStyle: await this.getOpenAiSubtitleCustomStyle(),
-                enableDictionary: await this.get('services.openai.enableDictionary') === 'true',
-                enableTranscription: await this.get('services.openai.enableTranscription') === 'true',
+                enableDictionary: dictionaryEngine === 'openai',
+                enableTranscription: transcriptionEngine === 'openai',
             },
             tencent: {
                 secretId: await this.get('apiKeys.tencent.secretId'),
                 secretKey: await this.get('apiKeys.tencent.secretKey'),
-                enableSubtitleTranslation: await this.get('services.tencent.enableSubtitleTranslation') === 'true',
+                enableSubtitleTranslation: subtitleTranslationEngine === 'tencent',
             },
             youdao: {
                 secretId: await this.get('apiKeys.youdao.secretId'),
                 secretKey: await this.get('apiKeys.youdao.secretKey'),
-                enableDictionary: await this.get('services.youdao.enableDictionary') === 'true',
+                enableDictionary: dictionaryEngine === 'youdao',
             },
             whisper: {
                 enabled: await this.get('whisper.enabled') === 'true',
-                enableTranscription: await this.get('whisper.enableTranscription') === 'true',
+                enableTranscription: transcriptionEngine === 'whisper',
                 modelSize: (await this.get('whisper.modelSize')) === 'large' ? 'large' : 'base',
                 enableVad: true,
                 vadModel: 'silero-v6.2.0',
@@ -74,8 +102,6 @@ export default class SettingServiceImpl implements SettingService {
         await this.set('apiKeys.openAi.endpoint', settings.openai.endpoint);
         await this.set('model.gpt.default', settings.openai.model);
         await this.set('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
-        await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
-        await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
         const subtitleModeInput = settings.openai.subtitleTranslationMode;
         const subtitleMode: 'zh' | 'simple_en' | 'custom' =
             subtitleModeInput === 'simple_en' || subtitleModeInput === 'custom' ? subtitleModeInput : 'zh';
@@ -91,46 +117,26 @@ export default class SettingServiceImpl implements SettingService {
         // Update Youdao settings
         await this.set('apiKeys.youdao.secretId', settings.youdao.secretId);
         await this.set('apiKeys.youdao.secretKey', settings.youdao.secretKey);
-        
-        // Handle mutual exclusion for subtitle translation
-        if (settings.openai.enableSubtitleTranslation && settings.tencent.enableSubtitleTranslation) {
-            // Both enabled - this shouldn't happen due to frontend logic, but handle it
-            // Default to tencent as it was the original default
-            await this.set('services.tencent.enableSubtitleTranslation', 'true');
-            await this.set('services.openai.enableSubtitleTranslation', 'false');
-        } else {
-            // Set both as requested
-            await this.set('services.openai.enableSubtitleTranslation', settings.openai.enableSubtitleTranslation ? 'true' : 'false');
-            await this.set('services.tencent.enableSubtitleTranslation', settings.tencent.enableSubtitleTranslation ? 'true' : 'false');
-        }
-        
-        // Handle mutual exclusion for dictionary
-        if (settings.openai.enableDictionary && settings.youdao.enableDictionary) {
-            // Both enabled - default to openai
-            await this.set('services.openai.enableDictionary', 'true');
-            await this.set('services.youdao.enableDictionary', 'false');
-        } else {
-            // Set both as requested
-            await this.set('services.openai.enableDictionary', settings.openai.enableDictionary ? 'true' : 'false');
-            await this.set('services.youdao.enableDictionary', settings.youdao.enableDictionary ? 'true' : 'false');
-        }
+
+        const subtitleTranslationEngine: 'openai' | 'tencent' =
+            settings.tencent.enableSubtitleTranslation ? 'tencent' : 'openai';
+        await this.set('subtitleTranslation.engine', subtitleTranslationEngine);
+
+        const dictionaryEngine: 'openai' | 'youdao' =
+            settings.youdao.enableDictionary ? 'youdao' : 'openai';
+        await this.set('dictionary.engine', dictionaryEngine);
         
         // Update Whisper settings
         await this.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
-        await this.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
         await this.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
         await this.set('whisper.enableVad', 'true');
         await this.set('whisper.vadModel', 'silero-v6.2.0');
-        
-        // Handle mutual exclusion for transcription
-        if (settings.openai.enableTranscription && settings.whisper.enableTranscription) {
-            // Both enabled - default to whisper as it's local and preferred
-            await this.set('whisper.enableTranscription', 'true');
-            await this.set('services.openai.enableTranscription', 'false');
-        } else {
-            // Set both as requested
-            await this.set('services.openai.enableTranscription', settings.openai.enableTranscription ? 'true' : 'false');
-            await this.set('whisper.enableTranscription', settings.whisper.enableTranscription ? 'true' : 'false');
+
+        const transcriptionEngine: 'openai' | 'whisper' =
+            settings.whisper.enableTranscription ? 'whisper' : 'openai';
+        await this.set('transcription.engine', transcriptionEngine);
+        if (transcriptionEngine === 'whisper') {
+            await this.set('whisper.enabled', 'true');
         }
     }
     
@@ -140,12 +146,13 @@ export default class SettingServiceImpl implements SettingService {
     }
     
     public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
-        const openaiEnabled = await this.get('services.openai.enableSubtitleTranslation') === 'true';
-        const tencentEnabled = await this.get('services.tencent.enableSubtitleTranslation') === 'true';
-        
-        if (openaiEnabled) return 'openai';
-        if (tencentEnabled) return 'tencent';
-        return null;
+        const engine = await this.getSubtitleTranslationEngine();
+        return engine === 'openai' || engine === 'tencent' ? engine : null;
+    }
+
+    public async getCurrentTranscriptionProvider(): Promise<'openai' | 'whisper' | null> {
+        const engine = await this.getTranscriptionEngine();
+        return engine === 'openai' || engine === 'whisper' ? engine : null;
     }
 
     public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'> {
@@ -165,12 +172,8 @@ export default class SettingServiceImpl implements SettingService {
     }
     
     public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
-        const openaiEnabled = await this.get('services.openai.enableDictionary') === 'true';
-        const youdaoEnabled = await this.get('services.youdao.enableDictionary') === 'true';
-        
-        if (openaiEnabled) return 'openai';
-        if (youdaoEnabled) return 'youdao';
-        return null;
+        const engine = await this.getDictionaryEngine();
+        return engine === 'openai' || engine === 'youdao' ? engine : null;
     }
     
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {

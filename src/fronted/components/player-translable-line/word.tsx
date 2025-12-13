@@ -70,8 +70,13 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
     const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
     const setting = useSetting((state) => state.setting);
-    const openaiDictionaryEnabled = setting('services.openai.enableDictionary') === 'true';
-    const dictionaryMode = openaiDictionaryEnabled ? 'openai' : 'youdao';
+    const dictionaryEngineRaw = setting('dictionary.engine');
+    const dictionaryEngine =
+        dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
+            ? dictionaryEngineRaw
+            : 'openai';
+    const openaiDictionaryEnabled = dictionaryEngine === 'openai';
+    const dictionaryMode = dictionaryEngine;
 
     const dictionaryEntry = useDictionaryStream((state) => state.getActiveEntry(original));
 

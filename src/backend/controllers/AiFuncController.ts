@@ -130,9 +130,7 @@ export default class AiFuncController implements Controller {
         });
 
         // 检查转录服务设置
-        const whisperEnabled = await this.settingService.get('whisper.enabled') === 'true';
-        const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
-        const openaiTranscriptionEnabled = await this.settingService.get('services.openai.enableTranscription') === 'true';
+        const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
         const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
         const modelTag = modelSize === 'large' ? 'large-v3' : 'base';
         const modelPath = path.join(LocationUtil.staticGetStoragePath('models'), 'whisper', `ggml-${modelTag}.bin`);
@@ -141,12 +139,12 @@ export default class AiFuncController implements Controller {
         let transcriptionService: TranscriptionService;
         let serviceName = '';
 
-        if (whisperEnabled && whisperTranscriptionEnabled && modelDownloaded) {
+        if (transcriptionEngine === 'whisper' && modelDownloaded) {
             // 使用本地转录服务
             transcriptionService = this.localTranscriptionService;
             serviceName = 'Local';
             this.logger.info('Using local transcription service');
-        } else if (whisperEnabled && whisperTranscriptionEnabled && !modelDownloaded) {
+        } else if (transcriptionEngine === 'whisper' && !modelDownloaded) {
             this.logger.warn('Whisper model not downloaded', { modelSize, modelPath });
             this.systemService.callRendererApi('transcript/batch-result', {
                 updates: [{
@@ -157,7 +155,7 @@ export default class AiFuncController implements Controller {
                 }]
             });
             return;
-        } else if (openaiTranscriptionEnabled) {
+        } else if (transcriptionEngine === 'openai') {
             // 使用云转录服务
             transcriptionService = this.cloudTranscriptionService;
             serviceName = 'Cloud';

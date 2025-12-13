@@ -141,11 +141,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             processedAudioPath = await this.ensureWavFormat(filePath);
 
             // 引擎选择（按配置，不做兜底）
-            const whisperTranscriptionEnabled = await this.settingService.get('whisper.enableTranscription') === 'true';
+            const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
 
             this.logger.info('Transcription config', {
-                whisperTranscriptionEnabled,
-            })
+                transcriptionEngine,
+            });
 
             // 临时目录
             // 包含时间戳，避免同一文件并发任务相互覆盖
@@ -154,7 +154,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             await fsPromises.mkdir(tempFolder, {recursive: true});
 
             // 本地 whisper.cpp CLI 走内置语言自动检测（-l auto），无需额外语言检测步骤
-            if (!whisperTranscriptionEnabled) {
+            if (transcriptionEngine !== 'whisper') {
                 throw new Error('Local transcription is not enabled by configuration.');
             }
             await this.transcribeWithWhisperCppCli({
