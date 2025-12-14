@@ -149,7 +149,14 @@ const mkdirp = (dir) => {
 const extractZip = async (zipPath, destDir) => {
     mkdirp(destDir);
     if (process.platform === 'win32') {
-        await $`powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Force -Path '${zipPath}' -DestinationPath '${destDir}'"`;
+        // Prefer `tar` on Windows runners to avoid PowerShell quoting edge cases under zx/git-bash.
+        try {
+            await $`tar -xf ${zipPath} -C ${destDir}`;
+            return;
+        } catch {
+            const cmd = `Expand-Archive -Force -LiteralPath "${zipPath}" -DestinationPath "${destDir}"`;
+            await $`powershell -NoProfile -ExecutionPolicy Bypass -Command ${cmd}`;
+        }
         return;
     }
     await $`unzip -o ${zipPath} -d ${destDir}`;
