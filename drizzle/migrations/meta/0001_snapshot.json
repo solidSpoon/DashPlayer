@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f5db4915-7f04-4005-a45a-ba8dbb268b6a",
+  "id": "f899dec5-00d6-4e4a-8c72-9e8b2026b752",
   "prevId": "42ddbe7e-c3ed-4803-b9f3-29e9767dac43",
   "tables": {
     "dp_clip_tag_relation": {
@@ -187,6 +187,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'tencent'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -205,10 +213,11 @@
         }
       },
       "indexes": {
-        "dp_sentence_translates_sentence_unique": {
-          "name": "dp_sentence_translates_sentence_unique",
+        "dp_sentence_translates_sentence_mode_unique": {
+          "name": "dp_sentence_translates_sentence_mode_unique",
           "columns": [
-            "sentence"
+            "sentence",
+            "mode"
           ],
           "isUnique": true
         }
@@ -350,6 +359,61 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "dp_sys_conf": {
+      "name": "dp_sys_conf",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "dp_sys_conf_key_unique": {
+          "name": "dp_sys_conf_key_unique",
+          "columns": [
+            "key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "dp_tag": {
       "name": "dp_tag",
       "columns": {
@@ -447,6 +511,116 @@
         }
       },
       "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dp_video_learning_clip": {
+      "name": "dp_video_learning_clip",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "video_name": {
+          "name": "video_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "srt_clip": {
+          "name": "srt_clip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "srt_context": {
+          "name": "srt_context",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dp_video_learning_clip_word": {
+      "name": "dp_video_learning_clip_word",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "clip_key": {
+          "name": "clip_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "word": {
+          "name": "word",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_dp_video_learning_clip_word_word_clip_key_unique": {
+          "name": "idx_dp_video_learning_clip_word_word_clip_key_unique",
+          "columns": [
+            "word",
+            "clip_key"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

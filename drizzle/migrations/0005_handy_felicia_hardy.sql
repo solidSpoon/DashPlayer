@@ -1,2 +1,0 @@
-DROP INDEX IF EXISTS `idx_dp_video_learning_clip_word_clip_key_word_unique`;--> statement-breakpoint
-CREATE UNIQUE INDEX `idx_dp_video_learning_clip_word_word_clip_key_unique` ON `dp_video_learning_clip_word` (`word`,`clip_key`);
