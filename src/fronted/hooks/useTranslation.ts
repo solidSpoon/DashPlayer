@@ -117,6 +117,19 @@ const useTranslation = create(
                 useCache: true
             }).catch(error => {
                 getRendererLogger('useTranslation').error('group translation request failed', { error });
+                const message = error instanceof Error ? error.message : String(error);
+                const dedupeKey = `subtitle-translation-request:${state.engine}:${hash(message)}`;
+                const event = new CustomEvent('show-toast', {
+                    detail: {
+                        title: '字幕翻译失败',
+                        message,
+                        variant: 'error',
+                        position: 'top-left',
+                        bubble: true,
+                        dedupeKey,
+                    }
+                });
+                window.dispatchEvent(event);
             });
         },
 
@@ -129,6 +142,19 @@ const useTranslation = create(
                 useCache
             }).catch(error => {
                 getRendererLogger('useTranslation').error('retranslate request failed', { error });
+                const message = error instanceof Error ? error.message : String(error);
+                const dedupeKey = `subtitle-translation-request:${get().engine}:${hash(message)}`;
+                const event = new CustomEvent('show-toast', {
+                    detail: {
+                        title: '字幕翻译失败',
+                        message,
+                        variant: 'error',
+                        position: 'top-left',
+                        bubble: true,
+                        dedupeKey,
+                    }
+                });
+                window.dispatchEvent(event);
             });
         },
 

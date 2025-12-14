@@ -15,6 +15,7 @@ import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
 import ServiceManagementSetting from '@/fronted/pages/setting/ServiceManagementSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
 import toast, { Toaster as HotToaster } from 'react-hot-toast';
+import RendererToastHost from '@/fronted/components/toasts/RendererToastHost';
 
 import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
@@ -105,6 +106,7 @@ const App = () => {
             </div>
             <Toaster position="bottom-left" />
             <HotToaster />
+            <RendererToastHost />
             <GlobalShortCut />
         </>
     );

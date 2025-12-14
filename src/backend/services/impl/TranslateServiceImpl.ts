@@ -100,6 +100,31 @@ const mapStorageModeToRendererFields = (
     }
 };
 
+const errorToBriefMessage = (error: unknown): string | undefined => {
+    if (!error) {
+        return undefined;
+    }
+    if (error instanceof Error) {
+        return error.message?.trim() ? error.message.trim() : String(error);
+    }
+    if (typeof error === 'string') {
+        return error.trim() ? error.trim() : undefined;
+    }
+    try {
+        const asString = JSON.stringify(error);
+        return asString && asString !== '{}' ? asString : String(error);
+    } catch {
+        return String(error);
+    }
+};
+
+const truncate = (value: string, maxLength: number): string => {
+    if (value.length <= maxLength) {
+        return value;
+    }
+    return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
+};
+
 const sanitizeString = (value?: unknown): string | undefined => {
     if (typeof value !== 'string') {
         return undefined;
@@ -253,6 +278,31 @@ export default class TranslateServiceImpl implements TranslateService {
     @inject(TYPES.SettingService)
     private settingService!: SettingService;
 
+    private showSubtitleTranslationToast(params: {
+        message: string;
+        title?: string;
+        variant?: 'default' | 'success' | 'info' | 'warning' | 'error';
+        dedupeKey: string;
+        error?: unknown;
+    }): void {
+        const errorMessage = errorToBriefMessage(params.error);
+        const combinedMessage = errorMessage
+            ? truncate(`${params.message}（${errorMessage}）`, 220)
+            : params.message;
+
+        this.systemService.callRendererApi('ui/show-toast', {
+            title: params.title ?? '字幕翻译失败',
+            message: combinedMessage,
+            variant: params.variant ?? 'error',
+            position: 'top-left',
+            bubble: true,
+            dedupeKey: params.dedupeKey,
+            duration: 6500,
+        }).catch((error) => {
+            dpLog.error('failed to show subtitle translation toast', error);
+        });
+    }
+
     public async groupTranslate(params: {
         fileHash: string;
         indices: number[];
@@ -266,6 +316,10 @@ export default class TranslateServiceImpl implements TranslateService {
         const engine = await this.settingService.getCurrentTranslationProvider();
         if (!engine) {
             dpLog.error('没有启用的翻译服务');
+            this.showSubtitleTranslationToast({
+                message: '未启用字幕翻译服务，请在设置中配置后重试',
+                dedupeKey: 'subtitle-translation:engine-not-enabled',
+            });
             return;
         }
         const openAiMode: TranslationMode | null = engine === 'openai'
@@ -282,6 +336,10 @@ export default class TranslateServiceImpl implements TranslateService {
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData || !srtData.sentences) {
             dpLog.error(`未找到 Hash 为 ${fileHash} 的字幕缓存`);
+            this.showSubtitleTranslationToast({
+                message: '未找到字幕缓存，请重新加载字幕或重新打开视频后再试',
+                dedupeKey: `subtitle-translation:missing-srt-cache:${fileHash}`,
+            });
             return;
         }
 
@@ -321,6 +379,10 @@ export default class TranslateServiceImpl implements TranslateService {
         } else if (engine === 'openai') {
             if (!openAiMode || !promptConfig) {
                 dpLog.error('OpenAI 翻译配置缺失，无法执行翻译');
+                this.showSubtitleTranslationToast({
+                    message: 'OpenAI 字幕翻译配置缺失，请检查设置',
+                    dedupeKey: 'subtitle-translation:openai-config-missing',
+                });
                 return;
             }
             await this.processOpenAIBatch(sentencesToTranslate, allSentences, storageMode, openAiMode, promptConfig);
@@ -331,12 +393,20 @@ export default class TranslateServiceImpl implements TranslateService {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'tencent') {
             dpLog.error('腾讯翻译服务未启用');
+            this.showSubtitleTranslationToast({
+                message: '腾讯字幕翻译未启用，请检查设置',
+                dedupeKey: 'subtitle-translation:tencent-not-enabled',
+            });
             return;
         }
 
         const tencentClient = this.tencentProvider.getClient();
         if (!tencentClient) {
             dpLog.error('Tencent 翻译客户端未初始化');
+            this.showSubtitleTranslationToast({
+                message: '腾讯翻译客户端未初始化，请检查密钥配置',
+                dedupeKey: 'subtitle-translation:tencent-client-not-ready',
+            });
             return;
         }
 
@@ -368,9 +438,19 @@ export default class TranslateServiceImpl implements TranslateService {
                     translations: resultsToRender
                 });
                 dpLog.log(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
+            } else {
+                this.showSubtitleTranslationToast({
+                    message: '腾讯字幕翻译未返回有效结果，请稍后重试或检查服务配置',
+                    dedupeKey: 'subtitle-translation:tencent-empty-result',
+                });
             }
         } catch (error) {
             dpLog.error('腾讯批量翻译失败:', error);
+            this.showSubtitleTranslationToast({
+                message: '腾讯字幕翻译请求失败',
+                dedupeKey: 'subtitle-translation:tencent-request-failed',
+                error,
+            });
         }
     }
 
@@ -384,17 +464,27 @@ export default class TranslateServiceImpl implements TranslateService {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'openai') {
             dpLog.error('OpenAI 翻译服务未启用');
+            this.showSubtitleTranslationToast({
+                message: 'OpenAI 字幕翻译未启用，请检查设置',
+                dedupeKey: 'subtitle-translation:openai-not-enabled',
+            });
             return;
         }
 
         const model = this.aiProviderService.getModel();
         if (!model) {
             dpLog.error('OpenAI 模型未配置');
+            this.showSubtitleTranslationToast({
+                message: 'OpenAI 模型未配置，请在设置中选择模型/填写 Key',
+                dedupeKey: 'subtitle-translation:openai-model-missing',
+            });
             return;
         }
 
         const schema = this.buildOpenAISchema(openAiMode);
 
+        let failedCount = 0;
+        let firstError: unknown = null;
         const translationPromises = tasks.map(async (task) => {
             try {
                 const currentIndex = task.index;
@@ -432,8 +522,16 @@ export default class TranslateServiceImpl implements TranslateService {
                     });
                     return { key: task.translationKey, translation: finalTranslation };
                 }
+                failedCount += 1;
+                if (!firstError) {
+                    firstError = new Error('empty translation');
+                }
             } catch (error) {
                 dpLog.error(`OpenAI 翻译句子失败 (key: ${task.translationKey}):`, error);
+                failedCount += 1;
+                if (!firstError) {
+                    firstError = error;
+                }
             }
             return null;
         });
@@ -449,6 +547,14 @@ export default class TranslateServiceImpl implements TranslateService {
         if (resultsToSave.size > 0) {
             await this.saveTranslationsByKeys(resultsToSave, storageMode);
             dpLog.log(`OpenAI 翻译流程结束，已保存 ${resultsToSave.size} 条结果。`);
+        }
+
+        if (failedCount > 0) {
+            this.showSubtitleTranslationToast({
+                message: `OpenAI 字幕翻译失败 ${failedCount}/${tasks.length} 条`,
+                dedupeKey: `subtitle-translation:openai-batch-failed:${openAiMode}`,
+                error: firstError,
+            });
         }
     }
 
