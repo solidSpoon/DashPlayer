@@ -152,7 +152,11 @@ const extractZip = async (zipPath, destDir) => {
         // Avoid embedding Windows paths in `-Command` strings: zx + bash can interpret `\e` in `\extract` as ESC.
         const zipArg = String(zipPath).replaceAll('\\', '/');
         const destArg = String(destDir).replaceAll('\\', '/');
-        const psCommand = 'param([string]$zip,[string]$dest) Expand-Archive -Force -LiteralPath $zip -DestinationPath $dest';
+        if (!zipArg || !destArg) {
+            throw new Error(`Invalid archive arguments: zipPath="${zipArg}", destDir="${destArg}"`);
+        }
+        // Use `$args` instead of `param()` binding to avoid differences in how shells pass args to `-Command`.
+        const psCommand = 'Expand-Archive -Force -LiteralPath $args[0] -DestinationPath $args[1]';
         try {
             await $`pwsh -NoProfile -ExecutionPolicy Bypass -Command ${psCommand} ${zipArg} ${destArg}`;
         } catch {
