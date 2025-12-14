@@ -149,13 +149,14 @@ const mkdirp = (dir) => {
 const extractZip = async (zipPath, destDir) => {
     mkdirp(destDir);
     if (process.platform === 'win32') {
-        // Prefer `tar` on Windows runners to avoid PowerShell quoting edge cases under zx/git-bash.
+        // Avoid embedding Windows paths in `-Command` strings: zx + bash can interpret `\e` in `\extract` as ESC.
+        const zipArg = String(zipPath).replaceAll('\\', '/');
+        const destArg = String(destDir).replaceAll('\\', '/');
+        const psCommand = 'param([string]$zip,[string]$dest) Expand-Archive -Force -LiteralPath $zip -DestinationPath $dest';
         try {
-            await $`tar -xf ${zipPath} -C ${destDir}`;
-            return;
+            await $`pwsh -NoProfile -ExecutionPolicy Bypass -Command ${psCommand} ${zipArg} ${destArg}`;
         } catch {
-            const cmd = `Expand-Archive -Force -LiteralPath "${zipPath}" -DestinationPath "${destDir}"`;
-            await $`powershell -NoProfile -ExecutionPolicy Bypass -Command ${cmd}`;
+            await $`powershell -NoProfile -ExecutionPolicy Bypass -Command ${psCommand} ${zipArg} ${destArg}`;
         }
         return;
     }
