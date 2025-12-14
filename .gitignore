@@ -93,5 +93,5 @@ out/
 
 .idea
 
-lib/
+/lib/
 /dist/
