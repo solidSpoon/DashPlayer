@@ -109,7 +109,7 @@ const syncCurrentIntoView = () => {
     if (showSideBar) {
         useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
         setTimeout(() => {
-            virtuoso.scrollToIndex({ index, align: 'start' });
+            virtuoso.scrollToIndex({ index });
             delaySetNormal();
         }, 0);
         return;
@@ -119,7 +119,7 @@ const syncCurrentIntoView = () => {
     if (topShouldScroll(boundary, currentEle)) {
         useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
         setTimeout(() => {
-            virtuoso.scrollToIndex({ index, align: 'start' });
+            virtuoso.scrollToIndex({ index });
             delaySetNormal();
         }, 0);
         return;
@@ -138,7 +138,7 @@ const syncCurrentIntoView = () => {
         virtuoso.scrollBy({ top: scrollBottom });
     }, 0);
     internal.scrollTopTimer = setTimeout(() => {
-        virtuoso.scrollToIndex({ behavior: 'smooth', index, align: 'start' });
+        virtuoso.scrollToIndex({ behavior: 'smooth', index });
         delaySetNormal();
     }, 150);
 };
@@ -217,7 +217,7 @@ const useSubtitleScroll = create(
                     return;
                 }
                 set({ scrollState: 'AUTO_SCROLLING' });
-                internal.virtuoso.scrollToIndex({ behavior: 'smooth', index, align: 'start' });
+                internal.virtuoso.scrollToIndex({ behavior: 'smooth', index });
                 delaySetNormal();
             },
             onUserFinishScrolling: () => {
