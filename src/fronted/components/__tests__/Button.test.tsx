@@ -1,65 +1,54 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import {Button} from "@/fronted/components/ui/button";
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { Button } from '@/fronted/components/ui/button';
 
 describe('Button Component', () => {
-  it('renders with title', () => {
-    render(<Button title="Test Button" />)
-    expect(screen.getByText('Test Button')).toBeInTheDocument()
-  })
+    it('renders children as label', () => {
+        render(<Button>Test Button</Button>);
+        expect(screen.getByRole('button', { name: 'Test Button' })).toBeInTheDocument();
+    });
 
-  it('calls onClick when clicked', () => {
-    const mockOnClick = vi.fn()
-    render(<Button title="Click me" onClick={mockOnClick} />)
+    it('supports title attribute', () => {
+        render(<Button title="Tooltip Title">Click me</Button>);
+        expect(screen.getByRole('button', { name: 'Click me' })).toHaveAttribute('title', 'Tooltip Title');
+    });
 
-    fireEvent.click(screen.getByText('Click me'))
-    expect(mockOnClick).toHaveBeenCalledOnce()
-  })
+    it('calls onClick when clicked', () => {
+        const mockOnClick = vi.fn();
+        render(<Button onClick={mockOnClick}>Click me</Button>);
 
-  it('renders children correctly', () => {
-    const TestIcon = () => <span data-testid="test-icon">Icon</span>
-    render(
-      <Button title="With Icon">
-        <TestIcon />
-      </Button>
-    )
+        fireEvent.click(screen.getByRole('button', { name: 'Click me' }));
+        expect(mockOnClick).toHaveBeenCalledOnce();
+    });
 
-    expect(screen.getByTestId('test-icon')).toBeInTheDocument()
-    expect(screen.getByText('With Icon')).toBeInTheDocument()
-  })
+    it('renders children correctly', () => {
+        const TestIcon = () => <span data-testid="test-icon">Icon</span>;
+        render(
+            <Button>
+                With Icon
+                <TestIcon />
+            </Button>,
+        );
 
-  it('applies custom className', () => {
-    render(<Button title="Styled Button" className="custom-class" />)
-    const buttonElement = screen.getByText('Styled Button').parentElement?.parentElement
-    expect(buttonElement).toHaveClass('custom-class')
-  })
+        expect(screen.getByRole('button', { name: /With Icon/ })).toBeInTheDocument();
+        expect(screen.getByTestId('test-icon')).toBeInTheDocument();
+    });
 
-  it('handles click state changes', () => {
-    // Test that clicking triggers the onClick function
-    const mockOnClick = vi.fn()
-    render(<Button title="Click Test" onClick={mockOnClick} />)
+    it('applies custom className', () => {
+        render(<Button className="custom-class">Styled Button</Button>);
+        expect(screen.getByRole('button', { name: 'Styled Button' })).toHaveClass('custom-class');
+    });
 
-    const button = screen.getByText('Click Test').parentElement?.parentElement
-    if (button) {
-      fireEvent.click(button)
-    }
+    it('handles multiple rapid clicks', () => {
+        const mockOnClick = vi.fn();
+        render(<Button onClick={mockOnClick}>Rapid Click</Button>);
 
-    expect(mockOnClick).toHaveBeenCalledOnce()
-  })
+        const button = screen.getByRole('button', { name: 'Rapid Click' });
+        fireEvent.click(button);
+        fireEvent.click(button);
+        fireEvent.click(button);
 
-  it('handles multiple rapid clicks', () => {
-    const mockOnClick = vi.fn()
-    render(<Button title="Rapid Click" onClick={mockOnClick} />)
-
-    const button = screen.getByText('Rapid Click').parentElement?.parentElement
-
-    if (button) {
-      fireEvent.click(button)
-      fireEvent.click(button)
-      fireEvent.click(button)
-    }
-
-    expect(mockOnClick).toHaveBeenCalledTimes(3)
-  })
-})
+        expect(mockOnClick).toHaveBeenCalledTimes(3);
+    });
+});

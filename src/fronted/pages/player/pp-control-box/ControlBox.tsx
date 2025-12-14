@@ -53,6 +53,7 @@ export default function ControlBox() {
 
   const setSetting = useSetting((s) => s.setSetting);
   const setting = useSetting((s) => s.setting);
+  const autoPlayNextSetting = useSetting((s) => s.setting('player.autoPlayNext'));
 
   const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
 
@@ -64,6 +65,15 @@ export default function ControlBox() {
   );
 
   const changeFullScreen = useLayout((s) => s.changeFullScreen);
+
+  useEffect(() => {
+    if (autoPlayNextSetting === 'true') {
+      setAutoPlayNext(true);
+    }
+    if (autoPlayNextSetting === 'false') {
+      setAutoPlayNext(false);
+    }
+  }, [autoPlayNextSetting, setAutoPlayNext]);
 
   return (
     <Card ref={cardRef} className={cn('w-full h-full flex flex-col')}>
@@ -121,7 +131,11 @@ export default function ControlBox() {
           id="autoPlayNext"
           label="自动播放下一个"
           checked={autoPlayNext}
-          onCheckedChange={() => setAutoPlayNext(!autoPlayNext)}
+          onCheckedChange={async () => {
+            const next = !autoPlayNext;
+            setAutoPlayNext(next);
+            await setSetting('player.autoPlayNext', next ? 'true' : 'false');
+          }}
           tooltipMd="文件夹模式下视频结束后自动播放下一个视频"
         />
         <SettingToggle

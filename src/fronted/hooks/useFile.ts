@@ -40,7 +40,7 @@ const useFile = create(
                     document.title = MediaUtil.fileName(ph);
                 }
             }
-            if (MediaUtil.isSrt(ph)) {
+            if (MediaUtil.isSubtitle(ph)) {
                 set((s) => ({
                     subtitlePath: ph,
                     srtHash: s.subtitlePath === ph ? s.srtHash : null,

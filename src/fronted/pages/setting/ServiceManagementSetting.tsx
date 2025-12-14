@@ -11,7 +11,7 @@ import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, HardDrive, ChevronDown, Volume2 } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, ChevronDown, Volume2 } from 'lucide-react';
 import Header from '@/fronted/pages/setting/setting/Header';
 import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
@@ -1104,25 +1104,6 @@ const ServiceManagementSetting = () => {
 	                            </p>
 	                        </div>
 
-	                        <Separator orientation="horizontal" />
-
-	                        <div className="space-y-3">
-	                            <Label className="text-sm font-medium">功能说明</Label>
-                            <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <HardDrive className="h-4 w-4" />
-                                    <span>本地运行，保护隐私</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Cpu className="h-4 w-4" />
-                                    <span>支持中英文语音识别</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <HardDrive className="h-4 w-4" />
-                                    <span>自动生成 SRT 字幕文件</span>
-                                </div>
-                            </div>
-                        </div>
                     </CardContent>
                 </Card>
 

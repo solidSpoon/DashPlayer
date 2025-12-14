@@ -11,6 +11,13 @@ function extractBaseName(filePath: string): string {
     return path.basename(filePath, path.extname(filePath));
 }
 
+function subtitleFormatRank(filePath: string): number {
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.srt') return 0;
+    if (ext === '.vtt') return 1;
+    return 2;
+}
+
 function getLanguagePriority(langSuffix: string): number {
     const lang = langSuffix.toLowerCase();
     const languagePriorities: { [key: string]: number } = {
@@ -48,6 +55,7 @@ export default class MatchSrt {
         const videoName = extractBaseName(videoPath).toLowerCase();
 
         const matches: SRTMatch[] = [];
+        let usedFuzzyMatch = false;
 
         srtPaths.forEach((srtPath) => {
             const srtBaseName = extractBaseName(srtPath).toLowerCase();
@@ -64,13 +72,24 @@ export default class MatchSrt {
             }
         });
         if (matches.length === 0) {
+            usedFuzzyMatch = true;
             srtPaths.forEach((srtPath) => {
                 const distance = leven(videoName, extractBaseName(srtPath).toLowerCase());
                 matches.push({ path: srtPath, priority: 1000 - distance });
             });
         }
         // 按优先级降序排序
-        matches.sort((a, b) => b.priority - a.priority);
+        matches.sort((a, b) => {
+            const ar = subtitleFormatRank(a.path);
+            const br = subtitleFormatRank(b.path);
+            if (!usedFuzzyMatch && ar !== br) {
+                return ar - br;
+            }
+            if (b.priority !== a.priority) {
+                return b.priority - a.priority;
+            }
+            return ar - br;
+        });
         // 提取排序后的字幕路径
         return matches.map(match => match.path);
     }

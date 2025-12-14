@@ -20,7 +20,7 @@ export class FileAction {
 
     public static playerAction(navigate: (s: string) => void) {
         return async (ps: string[]) => {
-            if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
+            if (ps.length === 1 && MediaUtil.isSubtitle(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
                 if (StrUtil.isNotBlank(videoPath)) {
                     await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
@@ -57,7 +57,7 @@ export class FileAction {
 
     public static playerAction2(navigate: (s: string) => void) {
         return async (ps: string[]) => {
-            if (ps.length === 1 && MediaUtil.isSrt(ps[0])) {
+            if (ps.length === 1 && MediaUtil.isSubtitle(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
                 if (StrUtil.isNotBlank(videoPath)) {
                     await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });

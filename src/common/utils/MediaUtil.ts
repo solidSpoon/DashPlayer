@@ -5,7 +5,7 @@ import StrUtil from '@/common/utils/str-util';
 export const SupportedVideoFormats = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'];
 export const UnsupportedVideoFormats = ['.mkv'];
 export const SupportedAudioFormats = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.wma', '.aac'];
-export const SupportedSubtitleFormats = ['.srt'];
+export const SupportedSubtitleFormats = ['.srt', '.vtt'];
 export const AllFormats = [...SupportedVideoFormats, ...UnsupportedVideoFormats, ...SupportedAudioFormats, ...SupportedSubtitleFormats];
 export const SupportedFormats = [...SupportedVideoFormats, ...SupportedAudioFormats, ...SupportedSubtitleFormats];
 export default class MediaUtil {
@@ -14,6 +14,17 @@ export default class MediaUtil {
             return false;
         }
         return path.endsWith('.srt');
+    }
+
+    public static isVtt(path: string): boolean {
+        if (StrUtil.isBlank(path)) {
+            return false;
+        }
+        return path.endsWith('.vtt');
+    }
+
+    public static isSubtitle(path: string): boolean {
+        return MediaUtil.isSrt(path) || MediaUtil.isVtt(path);
     }
 
     public static supported(path: string): boolean {

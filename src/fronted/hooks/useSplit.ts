@@ -44,7 +44,7 @@ const useSplit = create(
                 if (MediaUtil.isMedia(filePath)) {
                     set({ videoPath: filePath });
                 }
-                if (MediaUtil.isSrt(filePath)) {
+                if (MediaUtil.isSubtitle(filePath)) {
                     set({ srtPath: filePath });
                 }
                 set({ parseResult: get().parseResult.map(r => ({ ...r, taskId: null })) });

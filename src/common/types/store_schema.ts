@@ -43,6 +43,7 @@ export const SettingKeyObj = {
     'tts.engine': 'local',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
+    'player.autoPlayNext': 'false',
     'storage.path': '',
     'storage.collection': 'default',
 }

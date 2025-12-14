@@ -239,8 +239,19 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
 
     private async listSrtFiles(folder: string): Promise<string[]> {
         const files = await FileUtil.listFiles(folder);
-        return files.filter(file => MediaUtil.isSrt(file))
+        const fullPaths = files
+            .filter(file => MediaUtil.isSubtitle(file))
             .map(file => path.join(folder, file));
+        const srt: string[] = [];
+        const vtt: string[] = [];
+        for (const p of fullPaths) {
+            if (MediaUtil.isSrt(p)) {
+                srt.push(p);
+            } else {
+                vtt.push(p);
+            }
+        }
+        return [...srt, ...vtt];
     }
 
     private async tryCreateFromFolder(folder: string): Promise<string[]> {
@@ -344,7 +355,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     async suggestSrt(file: string): Promise<string[]> {
         const folder = path.dirname(file);
         const files = await FileUtil.listFiles(folder);
-        const srtInFolder = files.filter(file => MediaUtil.isSrt(file))
+        const srtInFolder = files.filter(file => MediaUtil.isSubtitle(file))
             .map(file => path.join(folder, file));
         return MatchSrt.matchAll(file, srtInFolder);
     }

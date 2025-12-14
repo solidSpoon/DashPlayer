@@ -5,9 +5,20 @@ import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { computeResumeTime } from '@/fronted/lib/playerResume';
 
 const api = window.electron;
 const logger = getRendererLogger('usePlayerV2Bridge');
+
+async function waitForPlayerDuration(timeoutMs = 1500): Promise<number> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        const d = usePlayerV2.getState().duration;
+        if (d > 0) return d;
+        await new Promise((r) => setTimeout(r, 50));
+    }
+    return usePlayerV2.getState().duration;
+}
 
 export function usePlayerV2Bridge(navigate: (path: string) => void) {
     const videoPath = useFile((s) => s.videoPath);
@@ -106,8 +117,15 @@ export function usePlayerV2Bridge(navigate: (path: string) => void) {
         try {
             const result = await api.call('watch-history/detail', currentVideoId);
             const progress = result?.current_position ?? 0;
-            logger.debug('jumping to history progress', { progress });
-            playerV2Actions.seekTo({ time: progress });
+            const duration = await waitForPlayerDuration();
+            const resumeTime = computeResumeTime({ progress, duration });
+            logger.debug('jumping to history progress', { progress, duration, resumeTime });
+
+            if (resumeTime === 0 && progress > 0) {
+                await api.call('watch-history/progress/update', { file, currentPosition: 0 });
+            }
+
+            playerV2Actions.seekTo({ time: resumeTime });
             playerV2Actions.play();
             lastLoadedFileRef.current = file;
         } catch (error) {

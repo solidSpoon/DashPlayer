@@ -3,7 +3,6 @@ import Util from '@/common/utils/Util';
 import { Sentence } from '@/common/types/SentenceC';
 import StrUtil from "@/common/utils/str-util";
 import {Nullable} from "@/common/types/Types";
-import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 // 使用 interface 并设为只读
 export interface SrtLine {
@@ -48,17 +47,39 @@ export default class SrtUtil {
 
     // ==================== 基础工具方法（被其他方法复用） ====================
 
+    private static normalizeTimeStringForMoment(timeString: string): string {
+        const raw = (timeString ?? '').trim();
+        if (!raw) {
+            throw new Error('Invalid time string');
+        }
+
+        const normalized = raw.replace(',', '.');
+        const [timePart, msPartRaw] = normalized.split('.', 2);
+        const hms = timePart.split(':');
+
+        let hours = '00';
+        let minutes = '00';
+        let seconds = '00';
+
+        if (hms.length === 2) {
+            [minutes, seconds] = hms;
+        } else if (hms.length === 3) {
+            [hours, minutes, seconds] = hms;
+        } else {
+            throw new Error(`Invalid time format: ${timeString}`);
+        }
+
+        const msPart = (msPartRaw ?? '000').padEnd(3, '0').slice(0, 3);
+        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}.${msPart}`;
+    }
+
     /**
      * 将 SRT 时间格式转换为秒数
      * @param timeString 格式: "01:23:45,678" 或 "01:23:45.678"
      */
     public static timeStringToSeconds(timeString: string): number {
-        if (!timeString) {
-            throw new Error('Invalid time string');
-        }
-
         try {
-            const normalizedTime = timeString.replace(',', '.');
+            const normalizedTime = SrtUtil.normalizeTimeStringForMoment(timeString);
             const time = moment(normalizedTime, SRT_TIME_FORMAT, true);
 
             if (!time.isValid()) {
@@ -254,29 +275,60 @@ export default class SrtUtil {
     /**
      * 解析单个 SRT 文本块为结构化数据
      */
-    public static parseSrtBlock(block: Nullable<string>): ParsedSrtBlock | null {
+    public static parseSrtBlock(block: Nullable<string>, fallbackIndex?: number): ParsedSrtBlock | null {
         if (StrUtil.isBlank(block)) {
             return null;
         }
 
         const lines = block.trim().split(LINE_SEPARATOR);
 
-        if (lines.length < 3) {
+        if (lines.length < 2) {
             return null;
         }
 
         try {
-            const index = parseInt(lines[0], 10);
-            if (isNaN(index) || index <= 0) {
+            let indexLine = lines[0]?.trim() ?? '';
+            let timeLine = '';
+            let contentOffset = 0;
+
+            if (/^\d+$/.test(indexLine)) {
+                const parsed = parseInt(indexLine, 10);
+                if (isNaN(parsed) || parsed <= 0) {
+                    return null;
+                }
+                timeLine = lines[1] ?? '';
+                contentOffset = 2;
+                fallbackIndex = parsed;
+            } else if (indexLine.includes('-->')) {
+                timeLine = lines[0] ?? '';
+                contentOffset = 1;
+            } else if ((lines[1] ?? '').includes('-->')) {
+                // WebVTT cue identifier + time line
+                timeLine = lines[1] ?? '';
+                contentOffset = 2;
+            }
+
+            const index = fallbackIndex ?? 0;
+            if (index <= 0) {
                 return null;
             }
 
-            const timeString = lines[1];
-            if (!timeString.includes(TIME_ARROW)) {
+            if (!timeLine.includes('-->')) {
                 return null;
             }
 
-            const contentLines = lines.slice(2).filter(line => line.trim().length > 0);
+            const [startRaw, endRawWithSettings] = timeLine.split('-->', 2);
+            if (StrUtil.isBlank(startRaw) || StrUtil.isBlank(endRawWithSettings)) {
+                return null;
+            }
+            const startTime = startRaw.trim().split(/\s+/)[0] ?? '';
+            const endTime = endRawWithSettings.trim().split(/\s+/)[0] ?? '';
+            if (StrUtil.isBlank(startTime) || StrUtil.isBlank(endTime)) {
+                return null;
+            }
+
+            const timeString = `${startTime}${TIME_ARROW}${endTime}`;
+            const contentLines = lines.slice(contentOffset).filter(line => line.trim().length > 0);
 
             return {
                 index,
@@ -284,7 +336,7 @@ export default class SrtUtil {
                 contentLines
             };
         } catch (error: unknown) {
-            getMainLogger('SrtUtil').warn('failed to parse srt block', { error });
+            console.warn('failed to parse srt block', { error });
             return null;
         }
     }
@@ -316,8 +368,8 @@ export default class SrtUtil {
     /**
      * 直接将 SRT 文本块转换为 SrtLine（复用解析方法）
      */
-    public static srtBlockToSrtLine(block: Nullable<string>): SrtLine | null {
-        const parsedBlock = SrtUtil.parseSrtBlock(block);
+    public static srtBlockToSrtLine(block: Nullable<string>, fallbackIndex?: number): SrtLine | null {
+        const parsedBlock = SrtUtil.parseSrtBlock(block, fallbackIndex);
         if (!parsedBlock) {
             return null;
         }
@@ -325,7 +377,7 @@ export default class SrtUtil {
         try {
             return SrtUtil.parsedBlockToSrtLine(parsedBlock);
         } catch (error: unknown) {
-            getMainLogger('SrtUtil').warn('failed to convert srt block to srtline', { error });
+            console.warn('failed to convert srt block to srtline', { error });
             return null;
         }
     }
@@ -518,15 +570,29 @@ export default class SrtUtil {
         }
 
         const blocks = srtContent
+            .replace(/^\uFEFF/, '')
             .split(SRT_BLOCK_SEPARATOR)
             .map(block => block.trim())
             .filter(block => block.length > 0)
-            .map(block => block.replace(/{\w+}/g, '')); // 移除样式标签
+            .filter((block) => {
+                const firstLine = block.split(LINE_SEPARATOR)[0]?.trim() ?? '';
+                const upper = firstLine.toUpperCase();
+                if (upper.startsWith('WEBVTT')) return false;
+                if (upper.startsWith('NOTE')) return false;
+                if (upper.startsWith('STYLE')) return false;
+                if (upper.startsWith('REGION')) return false;
+                return true;
+            })
+            .map(block => block
+                .replace(/{\w+}/g, '')
+                .replace(/<\/?c[^>]*>/g, '')
+                .replace(/<\/?v[^>]*>/g, '')
+            ); // 移除样式/WEBVTT 标签
 
         const srtLines: SrtLine[] = [];
 
         for (const block of blocks) {
-            const srtLine = SrtUtil.srtBlockToSrtLine(block); // 复用块转换方法
+            const srtLine = SrtUtil.srtBlockToSrtLine(block, srtLines.length + 1); // 复用块转换方法
             if (srtLine) {
                 srtLines.push(srtLine);
             }

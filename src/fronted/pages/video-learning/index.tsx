@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Play } from 'lucide-react';
 import useSWR, { useSWRConfig } from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
@@ -404,9 +403,6 @@ export default function VideoLearningPage() {
     <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 pt-12 pb-6 gap-6 text-foreground">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <div className="rounded-full bg-primary/10 p-2 text-primary">
-            <Play className="w-5 h-5" />
-          </div>
           <div>
             <h1 className="text-3xl font-semibold leading-tight">Vocabulary Clip</h1>
             <p className="text-sm text-muted-foreground">
