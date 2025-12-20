@@ -34,9 +34,6 @@ const config: ForgeConfig = {
                 '/node_modules/isexe',
                 '/node_modules/inversify',
                 '/node_modules/reflect-metadata',
-                '/node_modules/sherpa-onnx-node',
-                '/node_modules/sherpa-onnx-darwin-arm64',
-                '/node_modules/sherpa-onnx-darwin-x64',
             ];
 
             for (const prefix of keptNodeModulePrefixes) {

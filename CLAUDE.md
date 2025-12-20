@@ -62,7 +62,6 @@ DashPlayer 是一个专为英语学习设计的视频播放器，基于 Electron
 
 #### AI 和语言处理
 - **OpenAI API** - 用于字幕生成和学习功能
-- **Sherpa ONNX** - 本地语音识别（需要平台特定库）
 - **Compromise.js** - 自然语言处理
 
 #### 数据库和状态
@@ -106,7 +105,6 @@ DashPlayer 是一个专为英语学习设计的视频播放器，基于 Electron
 #### 开发环境
 - Node.js（package.json 中指定的版本）
 - Yarn 包管理器
-- 用于语音识别的平台特定 Sherpa ONNX 库
 
 #### API 配置
 应用程序需要配置几个外部 API：
@@ -253,7 +251,7 @@ export type ApiMap = {
 
 #### 转录流程
 1. 前端调用 `ai-func/transcript` 启动 AI 字幕生成
-2. 后端使用 Whisper/Sherpa ONNX 处理音频
+2. 后端使用 Whisper 处理音频
 3. 后端调用 `transcript/batch-result` 发送进度更新
 4. 前端显示实时转录进度
 
@@ -269,6 +267,5 @@ export type ApiMap = {
 
 - 项目使用路径别名（`@/` 表示 src 目录）
 - 自定义文件协议处理用于安全本地文件访问
-- Sherpa ONNX 需要平台特定的库路径（在 main.ts 中配置）
 - 应用程序包含针对语言学习优化的广泛键盘快捷键
 - 蓝牙控制器支持学习期间免提操作

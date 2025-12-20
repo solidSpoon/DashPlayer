@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
-import * as fs from 'fs';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
@@ -12,33 +11,6 @@ import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 import '@/backend/ipc/renderer-log';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 
-// 在应用启动前设置 DYLD_LIBRARY_PATH
-const setupSherpaOnnxEnvironment = () => {
-    const platform = process.platform;
-    const arch = process.arch;
-    
-    if (platform === 'darwin' && arch === 'arm64') {
-        const libraryPath = 'node_modules/sherpa-onnx-darwin-arm64';
-        const resolvedPathCandidates = [
-            // Packaged app: native modules are typically unpacked here.
-            path.join(process.resourcesPath, 'app.asar.unpacked'),
-            // Fallback: some builds may keep files inside asar.
-            path.join(process.resourcesPath, 'app.asar'),
-            // Dev / other cases
-            app.getAppPath(),
-            process.cwd(),
-        ].map((basePath) => path.resolve(basePath, libraryPath));
-        const resolvedPath = resolvedPathCandidates.find((p) => fs.existsSync(p)) ?? resolvedPathCandidates[0];
-        
-        process.env.DYLD_LIBRARY_PATH = `${resolvedPath}:${process.env.DYLD_LIBRARY_PATH || ''}`;
-        getMainLogger('main').info('set dyld library path', { path: resolvedPath });
-        getMainLogger('main').debug('sherpa onnx path exists', { exists: fs.existsSync(resolvedPath) });
-        getMainLogger('main').debug('sherpa onnx node file exists', { exists: fs.existsSync(path.join(resolvedPath, 'sherpa-onnx.node')) });
-    }
-};
-
-// 立即执行环境变量设置
-setupSherpaOnnxEnvironment();
 const mainWindowRef = {
     current: null as BrowserWindow | null
 };

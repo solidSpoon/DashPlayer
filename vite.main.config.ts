@@ -13,8 +13,6 @@ export default defineConfig({
                 'better-sqlite3',
                 // `fluent-ffmpeg` has a conditional require to a missing `lib-cov/` entry.
                 'fluent-ffmpeg',
-                'sherpa-onnx-node',
-                'sherpa-onnx-darwin-arm64',
             ],
             output: {
                 strict: false,
