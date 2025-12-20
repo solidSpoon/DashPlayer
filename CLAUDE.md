@@ -63,7 +63,6 @@ DashPlayer 是一个专为英语学习设计的视频播放器，基于 Electron
 #### AI 和语言处理
 - **OpenAI API** - 用于字幕生成和学习功能
 - **Sherpa ONNX** - 本地语音识别（需要平台特定库）
-- **Echogarden** - 语音处理工具
 - **Compromise.js** - 自然语言处理
 
 #### 数据库和状态

@@ -40,7 +40,6 @@ export const SettingKeyObj = {
     'whisper.modelSize': 'base',
     'whisper.enableVad': 'true',
     'whisper.vadModel': 'silero-v6.2.0',
-    'tts.engine': 'local',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
     'player.autoPlayNext': 'false',

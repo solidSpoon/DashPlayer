@@ -50,13 +50,6 @@ export class UIController extends BaseRendererController {
                 const event = new CustomEvent('whisper-model-download-progress', { detail: params });
                 window.dispatchEvent(event);
             },
-
-            'settings/tts-model-download-progress': async (params) => {
-                this.logger.debug('TTS model download progress', { params });
-
-                const event = new CustomEvent('tts-model-download-progress', { detail: params });
-                window.dispatchEvent(event);
-            },
         });
     }
 }

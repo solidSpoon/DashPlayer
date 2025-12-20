@@ -32,21 +32,15 @@ const config: ForgeConfig = {
                 '/node_modules/async',
                 '/node_modules/which',
                 '/node_modules/isexe',
+                '/node_modules/inversify',
                 '/node_modules/reflect-metadata',
                 '/node_modules/sherpa-onnx-node',
                 '/node_modules/sherpa-onnx-darwin-arm64',
                 '/node_modules/sherpa-onnx-darwin-x64',
-                '/node_modules/echogarden',
-                '/node_modules/@echogarden',
             ];
 
             for (const prefix of keptNodeModulePrefixes) {
                 if (file === prefix || file.startsWith(`${prefix}/`)) {
-                    // Drop non-current-platform native binaries to save space.
-                    if (file.includes('/node_modules/@echogarden/audio-io/addons/bin/')) {
-                        const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-                        if (!file.includes(`/macos-${arch}-`)) return true;
-                    }
                     return false;
                 }
             }

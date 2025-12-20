@@ -3,7 +3,6 @@ import StrUtil from '@/common/utils/str-util';
 import { Nullable } from '@/common/types/Types';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import useSetting from '@/fronted/hooks/useSetting';
 
 const cache = new Map<string, string>();
 const api = window.electron;
@@ -62,18 +61,12 @@ export const getTtsUrl = async (str: string) => {
     if (audioUrl) {
         return audioUrl;
     }
-    const ttsEngine = (useSetting.getState().setting('tts.engine') || 'local') as 'local' | 'openai';
 
     try {
-        if (ttsEngine === 'openai') {
-            audioUrl = await api.call('ai-func/tts', str);
-            getRendererLogger('AudioPlayer').debug('cloud tts result', { audioUrl });
-        } else {
-            audioUrl = await api.call('ai-func/tts-local', str);
-            getRendererLogger('AudioPlayer').debug('local tts result', { audioUrl });
-        }
+        audioUrl = await api.call('ai-func/tts', str);
+        getRendererLogger('AudioPlayer').debug('tts result', { audioUrl });
     } catch (error) {
-        getRendererLogger('AudioPlayer').warn('tts failed', { ttsEngine, error });
+        getRendererLogger('AudioPlayer').warn('tts failed', { error });
         return;
     }
 

@@ -11,13 +11,8 @@ export default defineConfig({
             external: [
                 // Native / non-bundle-friendly deps (ship via `node_modules` in the packaged app)
                 'better-sqlite3',
-                'echogarden',
                 // `fluent-ffmpeg` has a conditional require to a missing `lib-cov/` entry.
                 'fluent-ffmpeg',
-                'echogarden/dist/api/API.js',
-                'echogarden/dist/audio/AudioUtilities.js',
-                'echogarden/dist/utilities/Timeline.js',
-                'echogarden/dist/utilities/PackageManager.js',
                 'sherpa-onnx-node',
                 'sherpa-onnx-darwin-arm64',
             ],
@@ -25,9 +20,6 @@ export default defineConfig({
                 strict: false,
             },
         },
-    },
-    optimizeDeps: {
-        exclude: ['echogarden'],
     },
     resolve: {
         alias: {

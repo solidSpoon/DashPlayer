@@ -11,7 +11,7 @@ import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
 import Separator from '@/fronted/components/Separtor';
-import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, ChevronDown, Volume2 } from 'lucide-react';
+import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, ChevronDown } from 'lucide-react';
 import Header from '@/fronted/pages/setting/setting/Header';
 import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
@@ -19,7 +19,6 @@ import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
-import { TtsModelStatusVO } from '@/common/types/vo/tts-model-vo';
 import useSetting from '@/fronted/hooks/useSetting';
 
 const api = window.electron;
@@ -32,12 +31,7 @@ const OPENAI_MODEL_PRESETS = [
 
 const ServiceManagementSetting = () => {
     const logger = getRendererLogger('ServiceManagementSetting');
-    const ttsEngine = useSetting((s) => s.setting('tts.engine') || 'local');
     const setSetting = useSetting((s) => s.setSetting);
-    const resolvedTtsEngine = (ttsEngine === 'openai' ? 'openai' : 'local') as 'local' | 'openai';
-    const setTtsEngine = React.useCallback((engine: 'local' | 'openai') => {
-        setSetting('tts.engine', engine);
-    }, [setSetting]);
 
     // Fetch settings with SWR
     const { data: settings, mutate } = useSWR('settings/services/get-all', () =>
@@ -85,8 +79,6 @@ const ServiceManagementSetting = () => {
     const [downloadingWhisperModel, setDownloadingWhisperModel] = React.useState(false);
     const [downloadingVadModel, setDownloadingVadModel] = React.useState(false);
     const [downloadProgressByKey, setDownloadProgressByKey] = React.useState<Record<string, { percent: number; downloaded?: number; total?: number }>>({});
-    const [ttsModelStatus, setTtsModelStatus] = React.useState<TtsModelStatusVO | null>(null);
-    const [downloadingTtsModel, setDownloadingTtsModel] = React.useState(false);
 
     // Store original values for change detection
     const [originalValues, setOriginalValues] = React.useState<ApiSettingVO | null>(null);
@@ -103,22 +95,9 @@ const ServiceManagementSetting = () => {
         }
     }, [logger]);
 
-    const refreshTtsModelStatus = React.useCallback(async () => {
-        try {
-            const status = await api.call('tts/models/status');
-            setTtsModelStatus(status);
-        } catch (error) {
-            logger.error('failed to fetch tts model status', { error });
-        }
-    }, [logger]);
-
     React.useEffect(() => {
         refreshWhisperModelStatus().catch(() => null);
     }, [refreshWhisperModelStatus]);
-
-    React.useEffect(() => {
-        refreshTtsModelStatus().catch(() => null);
-    }, [refreshTtsModelStatus]);
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
@@ -140,27 +119,6 @@ const ServiceManagementSetting = () => {
             window.removeEventListener('whisper-model-download-progress', handler as EventListener);
         };
     }, [refreshWhisperModelStatus]);
-
-    React.useEffect(() => {
-        const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { key: string; percent: number; downloaded?: number; total?: number } | undefined;
-            if (!detail?.key) return;
-            setDownloadProgressByKey((prev) => ({
-                ...prev,
-                [detail.key]: { percent: detail.percent, downloaded: detail.downloaded, total: detail.total },
-            }));
-
-            if (detail.percent >= 100) {
-                setTimeout(() => {
-                    refreshTtsModelStatus().catch(() => null);
-                }, 300);
-            }
-        };
-        window.addEventListener('tts-model-download-progress', handler as EventListener);
-        return () => {
-            window.removeEventListener('tts-model-download-progress', handler as EventListener);
-        };
-    }, [refreshTtsModelStatus]);
 
     // Watch for subtitle translation mutual exclusion
     const openaiSubtitleEnabled = watch('openai.enableSubtitleTranslation');
@@ -473,20 +431,6 @@ const ServiceManagementSetting = () => {
         }
     };
 
-    const downloadKokoroModel = async () => {
-        setDownloadingTtsModel(true);
-        try {
-            await api.call('tts/models/download', { variant: 'quantized' });
-            toast({ title: '下载完成', description: '本地朗读模型已下载' });
-            await refreshTtsModelStatus();
-        } catch (error) {
-            logger.error('download kokoro model failed', { error });
-            toast({ title: '下载失败', description: '下载本地朗读模型失败，请检查网络后重试', variant: 'destructive' });
-        } finally {
-            setDownloadingTtsModel(false);
-        }
-    };
-
     const downloadSelectedVadModel = async () => {
         const vadModel = forcedVadModel;
         const key = `vad:${vadModel}`;
@@ -721,23 +665,6 @@ const ServiceManagementSetting = () => {
                                         字幕转录
                                         {whisperEnabled && (
                                             <span className="text-xs text-muted-foreground ml-2">(与 Whisper 转录互斥)</span>
-                                        )}
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="tts-engine-openai"
-                                        checked={resolvedTtsEngine === 'openai'}
-                                        onCheckedChange={(checked) => {
-                                            if (checked) {
-                                                setTtsEngine('openai');
-                                            }
-                                        }}
-                                    />
-                                    <Label htmlFor="tts-engine-openai" className="font-normal">
-                                        OpenAI 朗读
-                                        {resolvedTtsEngine === 'local' && (
-                                            <span className="text-xs text-muted-foreground ml-2">(与本地朗读互斥)</span>
                                         )}
                                     </Label>
                                 </div>
@@ -1107,110 +1034,6 @@ const ServiceManagementSetting = () => {
                     </CardContent>
                 </Card>
 
-                {/* Local TTS */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Volume2 className="h-5 w-5" />
-                            本地朗读
-                        </CardTitle>
-                        <CardDescription>
-                            离线朗读，用于句子/对话播放
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">启用功能</Label>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="tts-engine-local"
-                                    checked={resolvedTtsEngine === 'local'}
-                                    onCheckedChange={(checked) => {
-                                        if (checked) {
-                                            setTtsEngine('local');
-                                        }
-                                    }}
-                                />
-                                <Label htmlFor="tts-engine-local" className="font-normal">
-                                    本地朗读
-                                    {resolvedTtsEngine === 'openai' && (
-                                        <span className="text-xs text-muted-foreground ml-2">(与 OpenAI 朗读互斥)</span>
-                                    )}
-                                </Label>
-                            </div>
-                        </div>
-
-                        <Separator orientation="horizontal" />
-
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">模型包</Label>
-                            <div className="space-y-3">
-                                {(() => {
-                                    const voices = ttsModelStatus?.kokoro.voices;
-                                    const quantized = ttsModelStatus?.kokoro.quantized;
-                                    const ready = !!voices?.exists && !!quantized?.exists;
-                                    const progress = downloadProgressByKey['tts:kokoro'];
-
-                                    return (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <div className="text-sm font-medium">
-                                                        本地模型
-                                                        <span className="text-xs text-muted-foreground ml-2">
-                                                            {ready ? '已下载' : '未下载'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground truncate">
-                                                        {ttsModelStatus?.echogardenPackagesDir || '...'}
-                                                    </div>
-                                                </div>
-                                                {ready ? (
-                                                    <CheckCircle className="h-4 w-4 text-green-500" />
-                                                ) : (
-                                                    <XCircle className="h-4 w-4 text-muted-foreground" />
-                                                )}
-                                            </div>
-                                            {downloadingTtsModel && progress != null && !ready && (
-                                                <Progress value={progress.percent} className="h-2" />
-                                            )}
-                                        </div>
-                                    );
-                                })()}
-                            </div>
-
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <div className="text-xs text-muted-foreground">
-                                        存储目录：{ttsModelStatus?.echogardenPackagesDir || '...'}
-                                    </div>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => refreshTtsModelStatus().catch(() => null)}
-                                >
-                                    刷新
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-3">
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => downloadKokoroModel().catch(() => null)}
-                                    disabled={downloadingTtsModel || (!!ttsModelStatus?.kokoro.voices.exists && !!ttsModelStatus?.kokoro.quantized.exists)}
-                                >
-                                    {ttsModelStatus?.kokoro.voices.exists && ttsModelStatus?.kokoro.quantized.exists ? '已下载' : (downloadingTtsModel ? '下载中...' : '下载')}
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
 
             <FooterWrapper>
