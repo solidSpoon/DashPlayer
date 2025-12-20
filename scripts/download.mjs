@@ -167,10 +167,14 @@ const extractZip = async (zipPath, destDir) => {
                 '',
             ].join('\n')
         );
+        // Avoid `\e` escape sequences when zx renders arguments through a bash-like layer on Windows.
+        const psFileArg = String(psFile).replaceAll('\\', '/');
+        const zipArg = String(zipPath).replaceAll('\\', '/');
+        const destArg = String(destDir).replaceAll('\\', '/');
         try {
-            await $`pwsh -NoProfile -ExecutionPolicy Bypass -File ${psFile} ${zipPath} ${destDir}`;
+            await $`pwsh -NoProfile -ExecutionPolicy Bypass -File ${psFileArg} ${zipArg} ${destArg}`;
         } catch {
-            await $`powershell -NoProfile -ExecutionPolicy Bypass -File ${psFile} ${zipPath} ${destDir}`;
+            await $`powershell -NoProfile -ExecutionPolicy Bypass -File ${psFileArg} ${zipArg} ${destArg}`;
         } finally {
             try {
                 fs.rmSync(psTmpDir, { recursive: true, force: true });
