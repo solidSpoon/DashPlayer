@@ -41,11 +41,11 @@ export class FfmpegCommands {
     static buildMkvToMp4(inputFile: string, outputFile: string): ffmpeg.FfmpegCommand {
         return ffmpeg(inputFile)
             .outputOptions([
-                '-map', '0:v',
-                '-map', '0:a',
+                '-map', '0:v:0?',
+                '-map', '0:a:0?',
                 '-c:v', 'copy',
                 '-c:a', 'aac',
-                '-ac', '1'
+                '-movflags', '+faststart'
             ])
             .output(outputFile);
     }

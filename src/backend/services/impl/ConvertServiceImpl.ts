@@ -6,7 +6,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/services/FfmpegService';
 import ConvertService from '@/backend/services/ConvertService';
-import fs from "fs";
+import fs from 'fs';
 
 
 @injectable()
@@ -19,7 +19,9 @@ export default class ConvertServiceImpl implements ConvertService {
     private logger = getMainLogger('ConvertServiceImpl');
 
     public async toMp4(taskId: number, file: string): Promise<void> {
-        const mp4File = file.replace(path.extname(file), '.mp4');
+        const parsed = path.parse(file);
+        const baseName = parsed.name.endsWith('.html5') ? parsed.name.slice(0, -'.html5'.length) : parsed.name;
+        const mp4File = path.join(parsed.dir, `${baseName}.html5.mp4`);
         const onProgress = (progress: number) => {
             this.dpTaskService.process(taskId, {
                 progress: `正在转换`,
@@ -37,12 +39,13 @@ export default class ConvertServiceImpl implements ConvertService {
                 path: mp4File
             })
         });
-        // 如果没有对应的 mkv
+        // 如果没有对应的输出文件
         if (!fs.existsSync(mp4File)) {
             try {
                 await this.ffmpegService.mkvToMp4({
                     taskId,
                     inputFile: file,
+                    outputFile: mp4File,
                     onProgress
                 });
             } catch (e) {
@@ -65,6 +68,7 @@ export default class ConvertServiceImpl implements ConvertService {
                 await this.ffmpegService.extractSubtitles({
                     taskId,
                     inputFile: file,
+                    outputFile: srtName,
                     onProgress,
                     en: true
                 });
@@ -73,6 +77,7 @@ export default class ConvertServiceImpl implements ConvertService {
                     await this.ffmpegService.extractSubtitles({
                         taskId,
                         inputFile: file,
+                        outputFile: srtName,
                         onProgress,
                         en: false
                     });
@@ -97,7 +102,13 @@ export default class ConvertServiceImpl implements ConvertService {
             const mkvFiles = fs.readdirSync(folder).filter(file => file.endsWith('.mkv'));
             result.push({
                 folder,
-                videos: mkvFiles.map(file => path.join(folder, file))
+                videos: mkvFiles
+                    .map(file => path.join(folder, file))
+                    .filter((filePath) => {
+                        const parsed = path.parse(filePath);
+                        const html5Path = path.join(parsed.dir, `${parsed.name}.html5.mp4`);
+                        return !fs.existsSync(html5Path);
+                    })
             });
         }
         return result;

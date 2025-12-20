@@ -5,7 +5,6 @@ import { Button } from '@/fronted/components/ui/button';
 import MediaUtil, {
     AllFormats,
     SupportedFormats,
-    UnsupportedVideoFormats
 } from '@/common/utils/MediaUtil';
 import useFile from '@/fronted/hooks/useFile';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
@@ -30,17 +29,41 @@ export class FileAction {
                 const [id] = await api.call('watch-history/create', ps);
                 await api.call('system/window-size/change', 'player');
                 navigate(`/player/${id}`);
-                const hasUnsupported = UnsupportedVideoFormats.some(f => ps.some(p => p.endsWith(f)));
-                if (hasUnsupported) {
-                    const vs = ps.filter(p => MediaUtil.isMedia(p));
+                const mkvs = ps.filter(p => p.toLowerCase().endsWith('.mkv'));
+                if (mkvs.length > 0) {
+                    const suggested = await Promise.all(mkvs.map((p) => api.call('convert/suggest-html5-video', p)));
+                    const missing = mkvs.filter((_p, idx) => !suggested[idx]);
+                    if (missing.length === 0) {
+                        return;
+                    }
+                    const suspiciousAudioCodecs = new Set([
+                        // DTS may appear as `dts` or `dca` in ffprobe
+                        'dts',
+                        'dca',
+                        // TrueHD may appear as `truehd` or `mlp`
+                        'truehd',
+                        'mlp',
+                        'eac3',
+                        'ac3',
+                        'opus',
+                        'vorbis',
+                    ]);
+                    const infos = await Promise.all(missing.map((p) => api.call('convert/video-info', p)));
+                    const suspiciousFiles = missing.filter((_p, idx) => {
+                        const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
+                        return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
+                    });
+                    if (suspiciousFiles.length === 0) {
+                        return;
+                    }
                     setTimeout(() => {
-                        toast('MKV 格式的的视频可能会遇到问题', {
-                            description: '如果您遇到问题，请尝试转换视频格式',
+                        toast('某些视频可能在播放器里无声', {
+                            description: '如果遇到无声/无法播放，建议生成“兼容播放版本”',
                             position: 'top-right',
                             action: {
-                                label: 'Convert',
+                                label: '去生成',
                                 onClick: () => {
-                                    useConvert.getState().addFiles(vs);
+                                    useConvert.getState().addFiles(suspiciousFiles);
                                     navigate(`/convert`);
                                 }
                             }
@@ -69,17 +92,39 @@ export class FileAction {
                 useLayout.getState().changeSideBar(false);
                 navigate(`/player/${id}`);
 
-                const hasUnsupported = UnsupportedVideoFormats.some(f => ps.some(p => p.endsWith(f)));
-                if (hasUnsupported) {
-                    const vs = ps.filter(p => MediaUtil.isMedia(p));
+                const mkvs = ps.filter(p => p.toLowerCase().endsWith('.mkv'));
+                if (mkvs.length > 0) {
+                    const suggested = await Promise.all(mkvs.map((p) => api.call('convert/suggest-html5-video', p)));
+                    const missing = mkvs.filter((_p, idx) => !suggested[idx]);
+                    if (missing.length === 0) {
+                        return;
+                    }
+                    const suspiciousAudioCodecs = new Set([
+                        'dts',
+                        'dca',
+                        'truehd',
+                        'mlp',
+                        'eac3',
+                        'ac3',
+                        'opus',
+                        'vorbis',
+                    ]);
+                    const infos = await Promise.all(missing.map((p) => api.call('convert/video-info', p)));
+                    const suspiciousFiles = missing.filter((_p, idx) => {
+                        const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
+                        return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
+                    });
+                    if (suspiciousFiles.length === 0) {
+                        return;
+                    }
                     setTimeout(() => {
-                        toast('MKV 格式的的视频可能会遇到问题', {
-                            description: '如果您遇到问题，请尝试转换视频格式',
+                        toast('某些视频可能在播放器里无声', {
+                            description: '如果遇到无声/无法播放，建议生成“兼容播放版本”',
                             position: 'top-right',
                             action: {
-                                label: 'Convert',
+                                label: '去生成',
                                 onClick: () => {
-                                    useConvert.getState().addFiles(vs);
+                                    useConvert.getState().addFiles(suspiciousFiles);
                                     navigate(`/convert`);
                                 }
                             }

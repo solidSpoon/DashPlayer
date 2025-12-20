@@ -10,8 +10,6 @@ import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBow
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
 import VideoItem2, { BrowserItemVariant } from '@/fronted/components/fileBowser/VideoItem2';
 import ProjItem2 from '@/fronted/components/fileBowser/ProjItem2';
-import { toast } from 'sonner';
-import useConvert from '@/fronted/hooks/useConvert';
 import PathUtil from '@/common/utils/PathUtil';
 import useSWR from 'swr';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -74,23 +72,6 @@ const FileBrowser = () => {
                     <FolderSelector
                         onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
                             navigate(`/player/${vid}`);
-                            const analyse = await api.call('watch-history/analyse-folder', fp);
-                            if (analyse?.unsupported > 0) {
-                                const folderList = await api.call('convert/from-folder', [fp]);
-                                setTimeout(() => {
-                                    toast('MKV 格式的的视频可能会遇到问题', {
-                                        description: '如果您遇到问题，请尝试转换视频格式',
-                                        position: 'top-right',
-                                        action: {
-                                            label: 'Convert',
-                                            onClick: () => {
-                                                useConvert.getState().addFolders(folderList);
-                                                navigate(`/convert`);
-                                            }
-                                        }
-                                    });
-                                }, 500);
-                            }
                         })}
                     />
                 </div>

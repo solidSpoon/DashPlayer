@@ -19,6 +19,7 @@ import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStat
 import {CoreMessage} from 'ai';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
+import { VideoInfo } from '@/common/types/video-info';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -128,7 +129,6 @@ interface WatchHistoryDef {
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/suggest-srt': { params: string, return: string[] };
-    'watch-history/analyse-folder': { params: string, return: { supported: number, unsupported: number } };
     'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };
 }
 
@@ -191,6 +191,8 @@ interface ConvertDef {
     'convert/to-mp4': { params: string, return: number };
     'convert/from-folder': { params: string[], return: FolderVideos[] };
     'convert/video-length': { params: string, return: number };
+    'convert/video-info': { params: string, return: VideoInfo };
+    'convert/suggest-html5-video': { params: string, return: string | null };
 
 }
 

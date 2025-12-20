@@ -110,7 +110,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                                 disabled={dpTask?.status === DpTaskState.IN_PROGRESS}
                                 className={cn(buttonVariant === 'small' && 'px-2.5 py-0.5 text-xs h-6')}
                                 size={'sm'} variant={'default'}>
-                                Convert
+                                生成
                             </Button>
                         </div>
                     </div>

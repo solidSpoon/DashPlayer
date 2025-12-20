@@ -141,7 +141,12 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                                     )}
                                 </div>
                                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                                    <div className="truncate text-sm font-medium" title={pv.fileName}>{pv.fileName}</div>
+                                    <div
+                                        className="truncate text-sm font-medium"
+                                        title={pv.displayFileName ?? pv.fileName}
+                                    >
+                                        {pv.displayFileName ?? pv.fileName}
+                                    </div>
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                         {pv?.updatedAt && (
                                             <span>{TimeUtil.dateToRelativeTime(pv.updatedAt)}</span>

@@ -44,10 +44,10 @@ const Convert = () => {
         >
             <div className={cn('p-4')}>
                 <h1 className={cn('text-4xl font-bold font-serif')}>
-                    Convert mkv to mp4
+                    生成兼容播放版本
                 </h1>
                 <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                    Convert mkv to mp4 with subtitles
+                    解决无声/无法播放等问题（必要时仅转音频，并尝试提取字幕）
                 </h2>
                 <Separator orientation="horizontal" className="px-0" />
             </div>
@@ -90,7 +90,7 @@ const Convert = () => {
                                             size={'sm'} className={cn('')} onClick={() => {
                                             convertFolder(folder.folder);
                                         }}>
-                                            Convert
+                                            生成
                                         </Button>
                                     </div>
 

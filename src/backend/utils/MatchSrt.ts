@@ -38,6 +38,17 @@ function getLanguagePriority(langSuffix: string): number {
 
 export default class MatchSrt {
 
+    private static videoNameCandidates(videoPath: string): string[] {
+        const raw = extractBaseName(videoPath).toLowerCase();
+        const candidates: string[] = [raw];
+        if (raw.endsWith('.html5')) {
+            const stripped = raw.slice(0, -'.html5'.length);
+            if (StrUtil.isNotBlank(stripped)) {
+                candidates.push(stripped);
+            }
+        }
+        return Array.from(new Set(candidates));
+    }
 
     /**
      * 根据视频路径和字幕路径列表，返回匹配的字幕文件列表，按匹配优先级降序排列。
@@ -51,8 +62,7 @@ export default class MatchSrt {
         if (srtPaths?.length === 0 || StrUtil.isBlank(videoPath)) {
             return [];
         }
-        // 提取视频文件名（不含扩展名）
-        const videoName = extractBaseName(videoPath).toLowerCase();
+        const videoNames = MatchSrt.videoNameCandidates(videoPath);
 
         const matches: SRTMatch[] = [];
         let usedFuzzyMatch = false;
@@ -60,21 +70,27 @@ export default class MatchSrt {
         srtPaths.forEach((srtPath) => {
             const srtBaseName = extractBaseName(srtPath).toLowerCase();
 
-            if (srtBaseName === videoName) {
+            if (videoNames.some((n) => srtBaseName === n)) {
                 // 完全匹配，最低优先级
                 matches.push({ path: srtPath, priority: 1 });
-            } else if (srtBaseName.startsWith(videoName + '.')) {
-                const langSuffix = srtBaseName.substring(videoName.length + 1);
-                const langPriority = getLanguagePriority(langSuffix);
-                if (langPriority > 0) {
-                    matches.push({ path: srtPath, priority: langPriority + 1 });
+            } else {
+                for (const videoName of videoNames) {
+                    if (srtBaseName.startsWith(videoName + '.')) {
+                        const langSuffix = srtBaseName.substring(videoName.length + 1);
+                        const langPriority = getLanguagePriority(langSuffix);
+                        if (langPriority > 0) {
+                            matches.push({ path: srtPath, priority: langPriority + 1 });
+                        }
+                        break;
+                    }
                 }
             }
         });
         if (matches.length === 0) {
             usedFuzzyMatch = true;
+            const baseName = videoNames[videoNames.length - 1] ?? extractBaseName(videoPath).toLowerCase();
             srtPaths.forEach((srtPath) => {
-                const distance = leven(videoName, extractBaseName(srtPath).toLowerCase());
+                const distance = leven(baseName, extractBaseName(srtPath).toLowerCase());
                 matches.push({ path: srtPath, priority: 1000 - distance });
             });
         }

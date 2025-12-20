@@ -186,17 +186,19 @@ export default class FfmpegServiceImpl implements FfmpegService {
     public async mkvToMp4({
                               taskId,
                               inputFile,
+                              outputFile,
                               onProgress
                           }: {
         taskId: number,
         inputFile: string,
+        outputFile?: string,
         onProgress?: (progress: number) => void
     }): Promise<string> {
-        const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
-        const command = FfmpegCommands.buildMkvToMp4(inputFile, outputFile);
+        const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.mp4');
+        const command = FfmpegCommands.buildMkvToMp4(inputFile, finalOutputFile);
 
         await this.executeFluentCommand(command, {taskId, onProgress});
-        return outputFile;
+        return finalOutputFile;
     }
 
     /**
@@ -206,19 +208,21 @@ export default class FfmpegServiceImpl implements FfmpegService {
     public async extractSubtitles({
                                       taskId,
                                       inputFile,
+                                      outputFile,
                                       onProgress,
                                       en
                                   }: {
         taskId: number,
         inputFile: string,
+        outputFile?: string,
         onProgress?: (progress: number) => void,
         en: boolean
     }): Promise<string> {
-        const outputFile = inputFile.replace(path.extname(inputFile), '.srt');
-        const command = FfmpegCommands.buildExtractSubtitles(inputFile, outputFile, en);
+        const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.srt');
+        const command = FfmpegCommands.buildExtractSubtitles(inputFile, finalOutputFile, en);
 
         await this.executeFluentCommand(command, {taskId, onProgress});
-        return outputFile;
+        return finalOutputFile;
     }
 
     /**

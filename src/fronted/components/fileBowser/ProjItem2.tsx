@@ -122,8 +122,11 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                         )}
                                     </div>
                                     <div className="flex min-w-0 flex-1 flex-col gap-1">
-                                        <div className="truncate text-sm font-medium" title={isFolder ? PathUtil.parse(v.basePath).base : v.fileName}>
-                                            {isFolder ? PathUtil.parse(v.basePath).base : v.fileName}
+                                        <div
+                                            className="truncate text-sm font-medium"
+                                            title={isFolder ? PathUtil.parse(v.basePath).base : (v.displayFileName ?? v.fileName)}
+                                        >
+                                            {isFolder ? PathUtil.parse(v.basePath).base : (v.displayFileName ?? v.fileName)}
                                         </div>
                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                             {v?.updatedAt && (
@@ -188,7 +191,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                             side={'bottom'}
                             align={'start'}
                         >
-                            {v.fileName}
+                            {v.displayFileName ?? v.fileName}
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

@@ -32,6 +32,79 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return ObjUtil.hash(`${folder}-${name}-${type}`);
     }
 
+    private preferHtml5VideoPath(filePath: string): string {
+        const parsed = path.parse(filePath);
+        if (parsed.base.toLowerCase().endsWith('.html5.mp4')) {
+            return filePath;
+        }
+        const baseName = parsed.name.toLowerCase().endsWith('.html5') ? parsed.name.slice(0, -'.html5'.length) : parsed.name;
+        const html5Path = path.join(parsed.dir, `${baseName}.html5.mp4`);
+        return fs.existsSync(html5Path) ? html5Path : filePath;
+    }
+
+    private html5VariantPathFromRecord(record: WatchHistory): string {
+        const parsed = path.parse(record.file_name);
+        if (record.file_name.toLowerCase().endsWith('.html5.mp4')) {
+            return path.join(record.base_path, record.file_name);
+        }
+        const baseName = parsed.name.toLowerCase().endsWith('.html5') ? parsed.name.slice(0, -'.html5'.length) : parsed.name;
+        return path.join(record.base_path, `${baseName}.html5.mp4`);
+    }
+
+    private isHtml5VariantFileName(fileName: string): boolean {
+        return fileName.toLowerCase().endsWith('.html5.mp4');
+    }
+
+    private normalizeHtml5GroupKey(basePath: string, fileName: string): string {
+        const ext = path.extname(fileName);
+        let base = path.basename(fileName, ext);
+        if (base.toLowerCase().endsWith('.html5')) {
+            base = base.slice(0, -'.html5'.length);
+        }
+        return `${basePath}::${base.toLowerCase()}`;
+    }
+
+    private pickDisplayFileName(group: WatchHistoryVO[], primary: WatchHistoryVO): string {
+        if (!this.isHtml5VariantFileName(primary.fileName)) {
+            return primary.fileName;
+        }
+        const mkv = group.find((g) => g.fileName.toLowerCase().endsWith('.mkv'));
+        if (mkv) {
+            return mkv.fileName;
+        }
+        const nonHtml5 = group.find((g) => !this.isHtml5VariantFileName(g.fileName));
+        return nonHtml5?.fileName ?? primary.fileName;
+    }
+
+    private mergeHtml5Variants(items: WatchHistoryVO[]): WatchHistoryVO[] {
+        const groups = new Map<string, WatchHistoryVO[]>();
+        for (const item of items) {
+            if (item.isFolder) {
+                groups.set(`${item.id}::folder`, [item]);
+                continue;
+            }
+            const key = this.normalizeHtml5GroupKey(item.basePath, item.fileName);
+            const list = groups.get(key) ?? [];
+            list.push(item);
+            groups.set(key, list);
+        }
+        const merged: WatchHistoryVO[] = [];
+        for (const group of groups.values()) {
+            if (group.length === 1) {
+                merged.push(group[0]);
+                continue;
+            }
+            const primary =
+                group.find((g) => this.isHtml5VariantFileName(g.fileName)) ??
+                group[0];
+            merged.push({
+                ...primary,
+                displayFileName: this.pickDisplayFileName(group, primary)
+            });
+        }
+        return merged;
+    }
+
     public async list(bathPath: string): Promise<WatchHistoryVO[]> {
         await this.syncLibrary();
         if (StrUtil.isNotBlank(bathPath)) {
@@ -73,7 +146,9 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
                     result.push(vo);
                 }
             }
-            return result;
+            const merged = this.mergeHtml5Variants(result);
+            merged.sort((a, b) => (a.displayFileName ?? a.fileName).localeCompare(b.displayFileName ?? b.fileName));
+            return merged;
         }
         const result = [];
         const files: WatchHistory[] = await db.select().from(watchHistory)
@@ -94,8 +169,9 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
                 result.push(vo);
             }
         }
-        result.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-        return result;
+        const merged = this.mergeHtml5Variants(result);
+        merged.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        return merged;
     }
 
     public async detail(id: string): Promise<WatchHistoryVO | null> {
@@ -104,6 +180,27 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (!record) {
             return null;
         }
+
+        const html5CandidatePath = this.html5VariantPathFromRecord(record);
+        if (!this.isHtml5VariantFileName(record.file_name) && fs.existsSync(html5CandidatePath)) {
+            await this.tryCreate(html5CandidatePath, record.project_type);
+            const [html5Record] = await db.select().from(watchHistory).where(and(
+                eq(watchHistory.base_path, record.base_path),
+                eq(watchHistory.file_name, path.basename(html5CandidatePath)),
+                eq(watchHistory.project_type, record.project_type)
+            ));
+            if (html5Record) {
+                const html5Vo = await this.buildVoFromFile(html5Record);
+                if (html5Vo) {
+                    return {
+                        ...html5Vo,
+                        displayFileName: record.file_name,
+                        isFolder: record.project_type === WatchHistoryType.DIRECTORY
+                    };
+                }
+            }
+        }
+
         const r = await this.buildVoFromFile(record);
         if (!r) {
             return null;
@@ -128,7 +225,18 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             .filter(file => fs.statSync(file).isFile())
             .filter(file => MediaUtil.isMedia(file));
         for (const video of videos) {
-            const sids = await this.tryCreate(video);
+            const preferredVideo = (() => {
+                const parsed = path.parse(video);
+                if (parsed.base.toLowerCase().endsWith('.html5.mp4')) {
+                    return video;
+                }
+                const baseName = parsed.name.toLowerCase().endsWith('.html5')
+                    ? parsed.name.slice(0, -'.html5'.length)
+                    : parsed.name;
+                const html5Path = path.join(parsed.dir, `${baseName}.html5.mp4`);
+                return fs.existsSync(html5Path) ? html5Path : video;
+            })();
+            const sids = await this.tryCreate(preferredVideo);
             ids.push(...sids);
         }
         for (const id of ids) {
@@ -159,16 +267,8 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
 
-    public async analyseFolder(path: string): Promise<{ supported: number, unsupported: number }> {
-        const files = await FileUtil.listFiles(path);
-        const videos = files.filter((f) => MediaUtil.isMedia(f));
-        return {
-            supported: videos.filter((v) => MediaUtil.supported(v)).length,
-            unsupported: videos.filter((v) => !MediaUtil.supported(v)).length
-        };
-    }
-
     public async updateProgress(file: string, currentPosition: number): Promise<void> {
+        file = this.preferHtml5VideoPath(file);
         const base_path = path.dirname(file);
         const file_name = path.basename(file);
         await db.update(watchHistory).set({
@@ -312,6 +412,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
      * @private
      */
     public async attachSrt(videoPath: string, srtPath: string) {
+        videoPath = this.preferHtml5VideoPath(videoPath);
         if (!fs.existsSync(videoPath)) {
             return;
         }
@@ -353,6 +454,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     async suggestSrt(file: string): Promise<string[]> {
+        file = this.preferHtml5VideoPath(file);
         const folder = path.dirname(file);
         const files = await FileUtil.listFiles(folder);
         const srtInFolder = files.filter(file => MediaUtil.isSubtitle(file))
@@ -462,11 +564,43 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             return null;
         }
 
-        const currentIndex = folderVideos.findIndex(video => video.id === currentId);
+        const orderedGroupKeys: string[] = [];
+        const seenKeys = new Set<string>();
+        for (const record of folderVideos) {
+            const key = this.normalizeHtml5GroupKey(record.base_path, record.file_name);
+            if (seenKeys.has(key)) {
+                continue;
+            }
+            seenKeys.add(key);
+            orderedGroupKeys.push(key);
+        }
+        const currentKey = this.normalizeHtml5GroupKey(currentRecord.base_path, currentRecord.file_name);
+        const currentIndex = orderedGroupKeys.indexOf(currentKey);
 
-        if (currentIndex >= 0 && currentIndex < folderVideos.length - 1) {
-            const nextVideo = folderVideos[currentIndex + 1];
-            return await this.buildVoFromFile(nextVideo);
+        if (currentIndex >= 0 && currentIndex < orderedGroupKeys.length - 1) {
+            const nextKey = orderedGroupKeys[currentIndex + 1];
+            const group = folderVideos.filter((r) => this.normalizeHtml5GroupKey(r.base_path, r.file_name) === nextKey);
+            const primary =
+                group.find((r) => this.isHtml5VariantFileName(r.file_name)) ??
+                group[0];
+            if (!primary) {
+                return null;
+            }
+            if (!this.isHtml5VariantFileName(primary.file_name)) {
+                const html5Path = this.html5VariantPathFromRecord(primary);
+                if (fs.existsSync(html5Path)) {
+                    await this.tryCreate(html5Path, WatchHistoryType.DIRECTORY);
+                    const [html5Record] = await db.select().from(watchHistory).where(and(
+                        eq(watchHistory.base_path, primary.base_path),
+                        eq(watchHistory.file_name, path.basename(html5Path)),
+                        eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
+                    ));
+                    if (html5Record) {
+                        return await this.buildVoFromFile(html5Record);
+                    }
+                }
+            }
+            return await this.buildVoFromFile(primary);
         }
 
         return null;

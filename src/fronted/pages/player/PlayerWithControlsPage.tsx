@@ -1,6 +1,6 @@
 import {AnimatePresence} from 'framer-motion';
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {useLocation, useParams, useSearchParams} from 'react-router-dom';
+import {useLocation, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
 import {cn} from '@/fronted/lib/utils';
 import FileBrowser from '@/fronted/pages/player/pp-file-browser/FileBrowser';
@@ -24,12 +24,16 @@ import {getRendererLogger} from '@/fronted/log/simple-logger';
 import toast, { Toast } from 'react-hot-toast';
 import {ModeSwitchToast} from '@/fronted/components/toasts/ModeSwitchToast';
 import useSystem from '@/fronted/hooks/useSystem';
+import useConvert from '@/fronted/hooks/useConvert';
+import { toast as sonnerToast } from 'sonner';
 
 const api = window.electron;
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
+const COMPAT_TOAST_ID = 'compat-playback-toast';
 const PlayerWithControlsPage = () => {
     const {videoId} = useParams();
+    const navigate = useNavigate();
     const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
     logger.debug('pa-player page loaded', {videoId, hasVideo: !!video});
     const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
@@ -55,6 +59,7 @@ const PlayerWithControlsPage = () => {
     logger.debug('page referrer', {referrer});
     const autoModeAppliedRef = useRef<{ videoId: string | number; mediaType: 'audio' | 'video' } | null>(null);
     const windowButtonsVisibleRef = useRef<boolean | null>(null);
+    const compatToastShownRef = useRef<Set<string>>(new Set());
     useEffect(() => {
         if (!isMac) {
             return;
@@ -129,6 +134,50 @@ const PlayerWithControlsPage = () => {
                 useFile.getState().updateFile(videoPath);
                 playerV2Actions.play();
             }
+
+            setTimeout(() => {
+                (async () => {
+                    if (!videoPath || compatToastShownRef.current.has(videoPath)) {
+                        return;
+                    }
+                    compatToastShownRef.current.add(videoPath);
+                    try {
+                        const suggested = await api.call('convert/suggest-html5-video', videoPath);
+                        if (suggested) {
+                            return;
+                        }
+                        const info = await api.call('convert/video-info', videoPath);
+                        const audioCodec = (info?.audioCodec ?? '').toLowerCase();
+                        const suspiciousAudioCodecs = new Set([
+                            'dts',
+                            'dca',
+                            'truehd',
+                            'mlp',
+                            'eac3',
+                            'ac3',
+                            'opus',
+                            'vorbis',
+                        ]);
+                        if (audioCodec.length > 0 && !suspiciousAudioCodecs.has(audioCodec)) {
+                            return;
+                        }
+                        sonnerToast('该视频可能在播放器里无声', {
+                            id: COMPAT_TOAST_ID,
+                            duration: 6000,
+                            position: 'top-right',
+                            action: {
+                                label: '生成兼容版本',
+                                onClick: () => {
+                                    useConvert.getState().addFiles([videoPath]);
+                                    navigate('/convert');
+                                },
+                            },
+                        });
+                    } catch (error) {
+                        logger.debug('compat probe failed', { error: error instanceof Error ? error.message : String(error) });
+                    }
+                })().then();
+            }, 800);
 
             let subtitlePath = video.srtFile;
             if (StrUtil.isBlank(subtitlePath)) {

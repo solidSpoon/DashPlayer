@@ -13,8 +13,6 @@ import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
 import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
-import { toast } from 'sonner';
-import useConvert from '@/fronted/hooks/useConvert';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;
@@ -84,23 +82,6 @@ const HomePage = () => {
                                 await api.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
-                                const analyse = await api.call('watch-history/analyse-folder', fp);
-                                if (analyse?.unsupported > 0) {
-                                    const folderList = await api.call('convert/from-folder', [fp]);
-                                    setTimeout(() => {
-                                        toast('MKV 格式的的视频可能会遇到问题', {
-                                            description: '如果您遇到问题，请尝试转换视频格式',
-                                            position: 'top-right',
-                                            action: {
-                                                label: 'Convert',
-                                                onClick: () => {
-                                                    useConvert.getState().addFolders(folderList);
-                                                    navigate(`/convert`);
-                                                }
-                                            }
-                                        });
-                                    }, 500);
-                                }
                             })}
                         />
                     </div>

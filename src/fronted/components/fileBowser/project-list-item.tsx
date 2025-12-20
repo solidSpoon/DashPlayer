@@ -85,7 +85,7 @@ const ProjectListItem = ({ video, onSelected }: {
                     <div className={'flex-1 w-0'}>
                         <div
                             className={' w-full line-clamp-2 break-words h-fit'}
-                        >{video.fileName}</div>
+                        >{video.displayFileName ?? video.fileName}</div>
                         <div className={'text-sm text-muted-foreground mt-2'}>
                             {TimeUtil.dateToRelativeTime(video?.updatedAt ?? new Date())}
                         </div>

@@ -286,7 +286,6 @@ const processSentence = (sentence: string): SentenceStruct => {
     const blocks: SentenceBlockBySpace[] = [];
     let blockParts: SentenceBlockPart[] = [];
     for (const token of tokens) {
-        logger.debug('processing token position', { position: token.pos });
         const pw = holder.subTo(token.pos.start);
         if (pw.length > 0) {
             if (StrUtil.isBlank(pw)) {

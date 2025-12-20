@@ -73,21 +73,25 @@ export default interface FfmpegService {
     mkvToMp4({
                  taskId,
                  inputFile,
+                 outputFile,
                  onProgress
              }: {
         taskId: number,
         inputFile: string,
+        outputFile?: string,
         onProgress?: (progress: number) => void
     }): Promise<string>;
 
     extractSubtitles({
                          taskId,
                          inputFile,
+                         outputFile,
                          onProgress,
                          en
                      }: {
         taskId: number,
         inputFile: string,
+        outputFile?: string,
         onProgress?: (progress: number) => void,
         en: boolean
     }): Promise<string>;

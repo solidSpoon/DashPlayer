@@ -17,8 +17,6 @@ interface WatchHistoryService {
 
     groupDelete(id: string): Promise<void>;
 
-    analyseFolder(path: string): Promise<{ supported: number, unsupported: number }>;
-
     /**
      * 获取推荐的字幕文件
      * @param file 视频文件路径
@@ -33,4 +31,3 @@ interface WatchHistoryService {
 }
 
 export default WatchHistoryService;
-
