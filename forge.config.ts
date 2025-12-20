@@ -19,7 +19,39 @@ const config: ForgeConfig = {
         // Keep the package small by still ignoring everything else.
         ignore: (file: string) => {
             if (!file) return false;
-            return !(file.startsWith('/.vite') || file.startsWith('/node_modules'));
+            if (file.startsWith('/.vite')) return false;
+            if (file === '/node_modules') return false;
+
+            // Only ship the minimum set of runtime deps from `node_modules`.
+            // Everything else should be bundled by Vite into `/.vite/**`.
+            const keptNodeModulePrefixes = [
+                '/node_modules/better-sqlite3',
+                '/node_modules/bindings',
+                '/node_modules/file-uri-to-path',
+                '/node_modules/fluent-ffmpeg',
+                '/node_modules/async',
+                '/node_modules/which',
+                '/node_modules/isexe',
+                '/node_modules/reflect-metadata',
+                '/node_modules/sherpa-onnx-node',
+                '/node_modules/sherpa-onnx-darwin-arm64',
+                '/node_modules/sherpa-onnx-darwin-x64',
+                '/node_modules/echogarden',
+                '/node_modules/@echogarden',
+            ];
+
+            for (const prefix of keptNodeModulePrefixes) {
+                if (file === prefix || file.startsWith(`${prefix}/`)) {
+                    // Drop non-current-platform native binaries to save space.
+                    if (file.includes('/node_modules/@echogarden/audio-io/addons/bin/')) {
+                        const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+                        if (!file.includes(`/macos-${arch}-`)) return true;
+                    }
+                    return false;
+                }
+            }
+
+            return true;
         },
         asar: {
             unpack: '**/*.{wasm,node}',

@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
 import * as fs from 'fs';
@@ -6,7 +7,6 @@ import runMigrate from '@/backend/db/migrate';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
 import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
-import 'reflect-metadata';
 
 // 导入日志 IPC 监听
 import '@/backend/ipc/renderer-log';
@@ -19,7 +19,16 @@ const setupSherpaOnnxEnvironment = () => {
     
     if (platform === 'darwin' && arch === 'arm64') {
         const libraryPath = 'node_modules/sherpa-onnx-darwin-arm64';
-        const resolvedPath = path.resolve('/Users/spoon/projects/DashPlayer', libraryPath);
+        const resolvedPathCandidates = [
+            // Packaged app: native modules are typically unpacked here.
+            path.join(process.resourcesPath, 'app.asar.unpacked'),
+            // Fallback: some builds may keep files inside asar.
+            path.join(process.resourcesPath, 'app.asar'),
+            // Dev / other cases
+            app.getAppPath(),
+            process.cwd(),
+        ].map((basePath) => path.resolve(basePath, libraryPath));
+        const resolvedPath = resolvedPathCandidates.find((p) => fs.existsSync(p)) ?? resolvedPathCandidates[0];
         
         process.env.DYLD_LIBRARY_PATH = `${resolvedPath}:${process.env.DYLD_LIBRARY_PATH || ''}`;
         getMainLogger('main').info('set dyld library path', { path: resolvedPath });

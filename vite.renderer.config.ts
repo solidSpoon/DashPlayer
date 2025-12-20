@@ -4,18 +4,10 @@ import path from 'node:path';
 
 // https://vitejs.dev/config
 export default defineConfig({
-    build: {
-        rollupOptions: {
-            external: ['tiktoken', '@dqbd/tiktoken', '@dqbd/tiktoken/lite'],
-        },
-    },
     plugins: [react()],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
         },
-    },
-    optimizeDeps: {
-        exclude: ['tiktoken', '@dqbd/tiktoken', '@dqbd/tiktoken/lite'],
     },
 });
