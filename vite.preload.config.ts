@@ -1,36 +1,19 @@
-import type { ConfigEnv, UserConfig } from 'vite';
-import { defineConfig, mergeConfig } from 'vite';
-import { getBuildConfig, external, pluginHotRestart } from './vite.base.config';
-import path from 'path';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import path from 'node:path';
+import packageJson from './package.json';
+
+const dependencies = Object.keys(packageJson.dependencies ?? {});
 
 // https://vitejs.dev/config
-export default defineConfig((env) => {
-    const forgeEnv = env as ConfigEnv<'build'>;
-    const { forgeConfigSelf } = forgeEnv;
-    const config: UserConfig = {
-        build: {
-            rollupOptions: {
-                external,
-                // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-                input: forgeConfigSelf.entry!,
-                output: {
-                    format: 'cjs',
-                    // It should not be split chunks.
-                    inlineDynamicImports: true,
-                    entryFileNames: '[name].js',
-                    chunkFileNames: '[name].js',
-                    assetFileNames: '[name].[ext]'
-                }
-            }
+export default defineConfig({
+    build: {
+        rollupOptions: {
+            external: dependencies,
         },
-        plugins: [pluginHotRestart('reload'), react()],
-        resolve: {
-            alias: {
-                '@': path.resolve(__dirname, './src')
-            }
-        }
-    };
-
-    return mergeConfig(getBuildConfig(forgeEnv), config);
+    },
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
+    },
 });

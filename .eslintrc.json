@@ -17,6 +17,7 @@
     "parser": "@typescript-eslint/parser",
     "ignorePatterns": [
         "vite.*.config.ts",
+        "my-new-app/**",
         "node_modules/**",
         ".vite/**",
         "out/**",

@@ -14,8 +14,15 @@ import fs from 'node:fs/promises';
 
 const config: ForgeConfig = {
     packagerConfig: {
+        // `@electron-forge/plugin-vite` defaults to packaging only `/.vite/**`.
+        // DashPlayer has runtime deps (incl. native modules) that must ship with the app.
+        // Keep the package small by still ignoring everything else.
+        ignore: (file: string) => {
+            if (!file) return false;
+            return !(file.startsWith('/.vite') || file.startsWith('/node_modules'));
+        },
         asar: {
-            unpack: '**/*.wasm',
+            unpack: '**/*.{wasm,node}',
         },
         icon: './assets/icons/icon',
         extraResource: ['./drizzle', './lib', './scripts'],

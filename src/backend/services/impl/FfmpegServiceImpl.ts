@@ -241,7 +241,10 @@ export default class FfmpegServiceImpl implements FfmpegService {
     @WaitLock('ffmpeg')
     public async convertToWav(inputPath: string, outputPath: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            ffmpeg(inputPath)
+            const command = ffmpeg(inputPath);
+            const getStderrLines = this.attachFfmpegStderr(command, { maxLines: 120 });
+
+            command
                 .audioChannels(1)        // 强制单声道
                 .audioFrequency(16000)   // 强制采样率 16kHz
                 .audioCodec('pcm_s16le') // 强制 16-bit PCM (小端序)
@@ -259,8 +262,9 @@ export default class FfmpegServiceImpl implements FfmpegService {
                     resolve();
                 })
                 .on('error', (error) => {
-                    dpLog.error('Audio conversion to WAV failed:', error);
-                    reject(this.processError(error));
+                    const enhanced = this.enhanceFfmpegError(error, getStderrLines());
+                    dpLog.error('Audio conversion to WAV failed:', enhanced);
+                    reject(this.processError(enhanced));
                 })
                 .save(outputPath);
         });
@@ -279,6 +283,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
         const {taskId, onProgress} = options;
 
         return new Promise<void>((resolve, reject) => {
+            const getStderrLines = this.attachFfmpegStderr(command, { maxLines: 120 });
             if (taskId) {
                 this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
             }
@@ -297,8 +302,9 @@ export default class FfmpegServiceImpl implements FfmpegService {
                     resolve();
                 })
                 .on('error', (error) => {
-                    dpLog.error('An error occurred while executing ffmpeg command:', error);
-                    reject(this.processError(error));
+                    const enhanced = this.enhanceFfmpegError(error, getStderrLines());
+                    dpLog.error('An error occurred while executing ffmpeg command:', enhanced);
+                    reject(this.processError(enhanced));
                 })
                 .run();
         });
@@ -310,12 +316,21 @@ export default class FfmpegServiceImpl implements FfmpegService {
     private async executeRawCommand(args: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
             const ff = spawn(this.locationService.getThirdLibPath(ProgramType.FFMPEG), args);
+            const stderrLines: string[] = [];
+            ff.stderr?.on('data', (chunk: Buffer | string) => {
+                const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
+                for (const line of text.split(/\r?\n/).filter(Boolean)) {
+                    stderrLines.push(line);
+                    if (stderrLines.length > 120) stderrLines.shift();
+                }
+            });
             ff.on('close', (code) => {
                 dpLog.log(`child process exited with code ${code}`);
                 if (code === 0) {
                     resolve();
                 } else {
-                    reject(new Error(`FFmpeg process exited with code ${code}`));
+                    const suffix = stderrLines.length ? `\nFFmpeg stderr:\n${stderrLines.join('\n')}` : '';
+                    reject(new Error(`FFmpeg process exited with code ${code}${suffix}`));
                 }
             });
             ff.on('error', (error) => {
@@ -335,6 +350,29 @@ export default class FfmpegServiceImpl implements FfmpegService {
         return error;
     }
 
+    private attachFfmpegStderr(
+        command: ffmpeg.FfmpegCommand,
+        options: { maxLines?: number } = {}
+    ): () => string[] {
+        const maxLines = options.maxLines ?? 120;
+        const lines: string[] = [];
+
+        command.on('stderr', (stderrLine: string) => {
+            if (!stderrLine) return;
+            lines.push(stderrLine);
+            if (lines.length > maxLines) lines.shift();
+        });
+
+        return () => lines.slice();
+    }
+
+    private enhanceFfmpegError(error: Error, stderrLines: string[]): Error {
+        if (!stderrLines.length) return error;
+        const enhanced = new Error(`${error.message}\nFFmpeg stderr:\n${stderrLines.join('\n')}`);
+        enhanced.stack = error.stack;
+        return enhanced;
+    }
+
     /**
      * NEW: 裁剪音频（按时间，转码为 mp3 以保证兼容）
      */
@@ -348,8 +386,10 @@ export default class FfmpegServiceImpl implements FfmpegService {
         return new Promise<void>((resolve, reject) => {
             const duration = Math.max(endTime - startTime, 0);
             if (duration <= 0) return resolve();
+            const command = ffmpeg(inputPath);
+            const getStderrLines = this.attachFfmpegStderr(command, { maxLines: 120 });
 
-            ffmpeg(inputPath)
+            command
                 .setStartTime(startTime)
                 .duration(duration)
                 .audioCodec('libmp3lame')
@@ -357,8 +397,9 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 .on('start', (cmd) => dpLog.log('Trim audio start:', cmd))
                 .on('end', () => resolve())
                 .on('error', (error) => {
-                    dpLog.error('Trim audio failed:', error);
-                    reject(this.processError(error));
+                    const enhanced = this.enhanceFfmpegError(error, getStderrLines());
+                    dpLog.error('Trim audio failed:', enhanced);
+                    reject(this.processError(enhanced));
                 })
                 .save(outputPath);
         });
