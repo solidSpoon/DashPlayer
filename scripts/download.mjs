@@ -149,18 +149,34 @@ const mkdirp = (dir) => {
 const extractZip = async (zipPath, destDir) => {
     mkdirp(destDir);
     if (process.platform === 'win32') {
-        // Avoid embedding Windows paths in `-Command` strings: zx + bash can interpret `\e` in `\extract` as ESC.
-        const zipArg = String(zipPath).replaceAll('\\', '/');
-        const destArg = String(destDir).replaceAll('\\', '/');
-        if (!zipArg || !destArg) {
-            throw new Error(`Invalid archive arguments: zipPath="${zipArg}", destDir="${destArg}"`);
+        if (!zipPath || !destDir) {
+            throw new Error(`Invalid archive arguments: zipPath="${zipPath}", destDir="${destDir}"`);
         }
-        // Use `$args` instead of `param()` binding to avoid differences in how shells pass args to `-Command`.
-        const psCommand = 'Expand-Archive -Force -LiteralPath $args[0] -DestinationPath $args[1]';
+        // NOTE: `pwsh -Command <string>` consumes the remainder of the command line, so extra args are not reliably
+        // available in `$args` on CI shells. Use `-File` to pass zip/dest as proper script arguments.
+        const psTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-ps-'));
+        const psFile = path.join(psTmpDir, 'expand-archive.ps1');
+        fs.writeFileSync(
+            psFile,
+            [
+                'param(',
+                '    [Parameter(Mandatory = $true)][string]$Zip,',
+                '    [Parameter(Mandatory = $true)][string]$Dest',
+                ')',
+                'Expand-Archive -Force -LiteralPath $Zip -DestinationPath $Dest',
+                '',
+            ].join('\n')
+        );
         try {
-            await $`pwsh -NoProfile -ExecutionPolicy Bypass -Command ${psCommand} ${zipArg} ${destArg}`;
+            await $`pwsh -NoProfile -ExecutionPolicy Bypass -File ${psFile} ${zipPath} ${destDir}`;
         } catch {
-            await $`powershell -NoProfile -ExecutionPolicy Bypass -Command ${psCommand} ${zipArg} ${destArg}`;
+            await $`powershell -NoProfile -ExecutionPolicy Bypass -File ${psFile} ${zipPath} ${destDir}`;
+        } finally {
+            try {
+                fs.rmSync(psTmpDir, { recursive: true, force: true });
+            } catch {
+                // ignore
+            }
         }
         return;
     }
