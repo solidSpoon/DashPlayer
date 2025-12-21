@@ -3,8 +3,9 @@ import path from 'path';
 import fs from 'fs';
 
 import db from '@/backend/db';
-import { VideoLearningClip, videoLearningClip } from '@/backend/db/tables/videoLearningClip';
+import { VideoLearningClip } from '@/backend/db/tables/videoLearningClip';
 import { videoLearningClipWord, InsertVideoLearningClipWord } from '@/backend/db/tables/videoLearningClipWord';
+import VideoLearningClipRepository from '@/backend/db/repositories/VideoLearningClipRepository';
 
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -74,6 +75,9 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     @inject(TYPES.SubtitleService)
     private subtitleService!: SubtitleService;
 
+    @inject(TYPES.VideoLearningClipRepository)
+    private videoLearningClipRepository!: VideoLearningClipRepository;
+
     /**
      * key: clipKey = hash(clip srt context)
      */
@@ -110,15 +114,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         }
 
         const candidateKeys = candidates.map((candidate) => candidate.clipKey);
-
-        const existingRows = candidateKeys.length > 0
-            ? await db
-                .select({ key: videoLearningClip.key })
-                .from(videoLearningClip)
-                .where(inArray(videoLearningClip.key, candidateKeys))
-            : [];
-
-        const existingKeySet = new Set(existingRows.map((row) => row.key));
+        const existingKeySet = await this.videoLearningClipRepository.findExistingKeys(candidateKeys);
         const queueSnapshot = Array.from(this.taskQueue.values()).filter(
             (task) => task.operation === 'add' && task.srtKey === srtKey,
         );
@@ -252,12 +248,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         if (keys.length === 0) return;
 
-        const existingRows = await db
-            .select({ key: videoLearningClip.key })
-            .from(videoLearningClip)
-            .where(inArray(videoLearningClip.key, keys));
-
-        const existingKeys = new Set(existingRows.map((r) => r.key));
+        const existingKeys = await this.videoLearningClipRepository.findExistingKeys(keys);
         const notExistingKeys = keys.filter((k) => !existingKeys.has(k));
 
         // 用于通知
@@ -517,7 +508,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     public async deleteLearningClip(key: string): Promise<void> {
-        await db.delete(videoLearningClip).where(eq(videoLearningClip.key, key));
+        await this.videoLearningClipRepository.deleteByKey(key);
         await this.videoLearningOssService.delete(key);
     }
 
@@ -709,7 +700,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const offset = (normalizedPage - 1) * normalizedPageSize;
         const searchWord = StrUtil.isNotBlank(word) ? word.trim().toLowerCase() : '';
 
-        const conditions: any[] = [];
+        let dbClipKeys: string[] | undefined;
 
         if (StrUtil.isNotBlank(searchWord)) {
             const clipKeysWithWord = await db
@@ -717,23 +708,9 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 .from(videoLearningClipWord)
                 .where(eq(videoLearningClipWord.word, searchWord));
 
-            const clipKeys = clipKeysWithWord.map(item => item.clip_key);
-
-            if (clipKeys.length > 0) {
-                conditions.push(inArray(videoLearningClip.key, clipKeys));
-            } else {
-                conditions.push(sql`1=0`);
-            }
+            dbClipKeys = clipKeysWithWord.map(item => item.clip_key);
         }
-
-        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-        const totalRows = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(videoLearningClip)
-            .where(whereClause);
-
-        const dbTotal = Number(totalRows?.[0]?.count ?? 0);
+        const dbTotal = await this.videoLearningClipRepository.count({ keys: dbClipKeys });
 
         const inProgressTasks = Array.from(this.taskQueue.values())
             .filter(task => task.operation === 'add')
@@ -789,20 +766,11 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         let completedVOs: VideoLearningClipVO[] = [];
         if (dbLimit > 0) {
-            const lines: VideoLearningClip[] = await db
-                .select({
-                    key: videoLearningClip.key,
-                    video_name: videoLearningClip.video_name,
-                    srt_clip: videoLearningClip.srt_clip,
-                    srt_context: videoLearningClip.srt_context,
-                    created_at: videoLearningClip.created_at,
-                    updated_at: videoLearningClip.updated_at,
-                })
-                .from(videoLearningClip)
-                .where(whereClause)
-                .orderBy(desc(videoLearningClip.created_at))
-                .offset(dbOffset)
-                .limit(dbLimit);
+            const lines: VideoLearningClip[] = await this.videoLearningClipRepository.listPage({
+                keys: dbClipKeys,
+                offset: dbOffset,
+                limit: dbLimit,
+            });
 
             if (lines.length > 0) {
                 const ossMetas = await Promise.all(
@@ -839,21 +807,13 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
         const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
 
-        await db.insert(videoLearningClip).values({
+        await this.videoLearningClipRepository.upsert({
             key: metaData.key,
             video_name: metaData.video_name,
             srt_clip: srtClip,
             srt_context: srtContext,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
-        }).onConflictDoUpdate({
-            target: [videoLearningClip.key],
-            set: {
-                video_name: metaData.video_name,
-                srt_clip: srtClip,
-                srt_context: srtContext,
-                updated_at: TimeUtil.timeUtc()
-            }
         });
 
         // 始终通过算法对核心文本进行匹配，以写入单词关系
@@ -880,8 +840,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     private async clipInDb(key: string) {
-        const rows = await db.select().from(videoLearningClip).where(eq(videoLearningClip.key, key));
-        return rows.length > 0;
+        return await this.videoLearningClipRepository.exists(key);
     }
 
     /**
@@ -889,7 +848,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
      */
     public async syncFromOss() {
         const keys = await this.videoLearningOssService.list();
-        await db.delete(videoLearningClip).where(sql`1=1`);
+        await this.videoLearningClipRepository.deleteAll();
         await db.delete(videoLearningClipWord).where(sql`1=1`);
         for (const key of keys) {
             const clip = await this.videoLearningOssService.get(key);
@@ -963,21 +922,14 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const candidateKeys = candidates.map((candidate) => candidate.clipKey);
 
-        const [existingRows, queueSnapshot] = await Promise.all([
-            candidateKeys.length > 0
-                ? db
-                    .select({ key: videoLearningClip.key })
-                    .from(videoLearningClip)
-                    .where(inArray(videoLearningClip.key, candidateKeys))
-                : Promise.resolve([] as { key: string }[]),
+        const [existingKeySet, queueSnapshot] = await Promise.all([
+            this.videoLearningClipRepository.findExistingKeys(candidateKeys),
             Promise.resolve(
                 Array.from(this.taskQueue.values()).filter(
                     (task) => task.operation === 'add' && task.srtKey === srtKey,
                 ),
             ),
         ]);
-
-        const existingKeySet = new Set(existingRows.map((row) => row.key));
         const inQueueKeySet = new Set(queueSnapshot.map((task) => task.clipKey));
 
         let pendingCount = 0;

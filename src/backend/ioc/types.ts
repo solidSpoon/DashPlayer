@@ -31,6 +31,7 @@ const TYPES = {
     RendererGateway: Symbol('RendererGateway'),
     WordsRepository: Symbol('WordsRepository'),
     DpTaskRepository: Symbol('DpTaskRepository'),
+    VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),

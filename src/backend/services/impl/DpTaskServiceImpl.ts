@@ -1,7 +1,7 @@
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import { DpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/dpTask';
 
-import LRUCache from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
 import {inject, injectable, postConstruct} from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
