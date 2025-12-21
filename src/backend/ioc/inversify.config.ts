@@ -79,6 +79,8 @@ import RendererGateway from '@/backend/services/RendererGateway';
 import RendererGatewayImpl from '@/backend/services/impl/RendererGatewayImpl';
 import WordsRepository from '@/backend/db/repositories/WordsRepository';
 import WordsRepositoryImpl from '@/backend/db/repositories/impl/WordsRepositoryImpl';
+import DpTaskRepository from '@/backend/db/repositories/DpTaskRepository';
+import DpTaskRepositoryImpl from '@/backend/db/repositories/impl/DpTaskRepositoryImpl';
 
 
 const container = new Container();
@@ -106,6 +108,7 @@ container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSi
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
+container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();

@@ -1,9 +1,7 @@
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import {eq, or} from 'drizzle-orm';
-import db from '@/backend/db/db';
-import {DpTask, dpTask, DpTaskState, InsertDpTask} from '@/backend/db/tables/dpTask';
+import { DpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/dpTask';
 
-import { LRUCache } from 'lru-cache';
+import LRUCache from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
 import {inject, injectable, postConstruct} from 'inversify';
 import DpTaskService from '@/backend/services/DpTaskService';
@@ -12,10 +10,12 @@ import {Cancelable} from '@/common/interfaces';
 import {CancelByUserError} from '@/backend/errors/errors';
 import TYPES from "@/backend/ioc/types";
 import SystemService from "@/backend/services/SystemService";
+import DpTaskRepository from '@/backend/db/repositories/DpTaskRepository';
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
     @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.DpTaskRepository) private dpTaskRepository!: DpTaskRepository;
     private logger = getMainLogger('DpTaskServiceImpl');
     private upQueue: Map<number, InsertDpTask> = new Map();
     private cancelQueue: Set<number> = new Set();
@@ -44,15 +44,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
             return this.cache.get(id) as DpTask;
         }
 
-        const tasks: DpTask[] = await db
-            .select()
-            .from(dpTask)
-            .where(eq(dpTask.id, id));
-
-        if (tasks.length === 0) {
-            return null;
-        }
-        return tasks[0];
+        return await this.dpTaskRepository.findById(id);
     }
 
     public async details(ids: number[]): Promise<Map<number, DpTask>> {
@@ -69,13 +61,11 @@ export default class DpTaskServiceImpl implements DpTaskService {
 
 
     public async create(): Promise<number> {
-        const task: DpTask[] = await db
-            .insert(dpTask)
-            .values({
-                status: DpTaskState.INIT,
-                progress: '任务创建成功'
-            }).returning();
-        const taskId = task[0].id;
+        const task = await this.dpTaskRepository.create({
+            status: DpTaskState.INIT,
+            progress: '任务创建成功',
+        });
+        const taskId = task.id;
         this.cache.set(taskId, {
             id: taskId,
             status: DpTaskState.INIT,
@@ -172,13 +162,10 @@ export default class DpTaskServiceImpl implements DpTaskService {
         setInterval(async () => {
             if (this.upQueue.size > 0) {
                 for (const [key, value] of this.upQueue) {
-                    await db
-                        .update(dpTask)
-                        .set({
-                            ...value,
-                            updated_at: TimeUtil.timeUtc()
-                        })
-                        .where(eq(dpTask.id, key));
+                    await this.dpTaskRepository.updateById(key, {
+                        ...value,
+                        updated_at: TimeUtil.timeUtc(),
+                    });
                     this.upQueue.delete(key);
                 }
             }
@@ -189,14 +176,9 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * 应用重启时取消所有任务
      */
     public static async cancelAll() {
-        await db
-            .update(dpTask)
-            .set({
-                status: DpTaskState.CANCELLED,
-                progress: '任务取消',
-                updated_at: TimeUtil.timeUtc()
-            })
-            .where(or(eq(dpTask.status, DpTaskState.INIT), eq(dpTask.status, DpTaskState.IN_PROGRESS)));
+        const { default: DpTaskRepositoryImpl } = await import('@/backend/db/repositories/impl/DpTaskRepositoryImpl');
+        const repo = new DpTaskRepositoryImpl();
+        await repo.cancelAllActive();
     }
 
     public registerTask(taskId: number, process: Cancelable) {
