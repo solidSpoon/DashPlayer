@@ -16,7 +16,7 @@ import { ConfigTender } from '@/backend/objs/config-tender';
 import FileUtil from '@/backend/utils/FileUtil';
 import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
-import SystemService from "@/backend/services/SystemService";
+import RendererGateway from '@/backend/services/RendererGateway';
 
 /**
  * 将 Whisper 的 API 响应转换成 SRT 文件格式
@@ -61,13 +61,13 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     @inject(TYPES.OpenAiService)
     private openAiService!: OpenAiService;
 
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
 
     private static readonly INFO_FILE = 'info.json';
 
     private sendProgress(taskId: number, filePath: string, status: string, progress: number, result?: any) {
-        this.systemService.callRendererApi('transcript/batch-result', {
+        this.rendererGateway.fireAndForget('transcript/batch-result', {
             updates: [{
                 filePath,
                 taskId,

@@ -8,7 +8,7 @@ import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import WhisperService from '@/backend/services/WhisperService';
-import SystemService from '@/backend/services/SystemService';
+import RendererGateway from '@/backend/services/RendererGateway';
 import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
 import { getMainLogger } from '@/backend/ioc/simple-logger';
@@ -36,8 +36,8 @@ export default class AiFuncController implements Controller {
     private whisperService!: WhisperService;
 
 
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
 
     @inject(TYPES.SettingService)
     private settingService!: SettingService;
@@ -116,7 +116,7 @@ export default class AiFuncController implements Controller {
         this.logger.info('Transcription task started', { filePath });
 
         // 发送初始任务状态到前端
-        this.systemService.callRendererApi('transcript/batch-result', {
+        this.rendererGateway.fireAndForget('transcript/batch-result', {
             updates: [{
                 filePath,
                 taskId: 0,
@@ -142,7 +142,7 @@ export default class AiFuncController implements Controller {
             this.logger.info('Using local transcription service');
         } else if (transcriptionEngine === 'whisper' && !modelDownloaded) {
             this.logger.warn('Whisper model not downloaded', { modelSize, modelPath });
-            this.systemService.callRendererApi('transcript/batch-result', {
+            this.rendererGateway.fireAndForget('transcript/batch-result', {
                 updates: [{
                     filePath,
                     taskId: 0,
@@ -159,7 +159,7 @@ export default class AiFuncController implements Controller {
         } else {
             // 没有启用的转录服务
             this.logger.warn('No transcription service enabled');
-            this.systemService.callRendererApi('transcript/batch-result', {
+            this.rendererGateway.fireAndForget('transcript/batch-result', {
                 updates: [{
                     filePath,
                     taskId: 0,

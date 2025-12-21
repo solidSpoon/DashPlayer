@@ -15,7 +15,7 @@ import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { p } from '@/common/utils/Util';
 import { YdRes, OpenAIDictionaryResult, OpenAIDictionaryDefinition, OpenAIDictionaryExample } from '@/common/types/YdRes';
-import SystemService from '@/backend/services/SystemService';
+import RendererGateway from '@/backend/services/RendererGateway';
 import AiProviderService from '@/backend/services/AiProviderService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import SettingService from '@/backend/services/SettingService';
@@ -269,8 +269,8 @@ export default class TranslateServiceImpl implements TranslateService {
     private youDaoProvider!: ClientProviderService<YouDaoClient>;
     @inject(TYPES.TencentClientProvider)
     private tencentProvider!: ClientProviderService<TencentClient>;
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
     @inject(TYPES.CacheService)
@@ -290,7 +290,7 @@ export default class TranslateServiceImpl implements TranslateService {
             ? truncate(`${params.message}（${errorMessage}）`, 220)
             : params.message;
 
-        this.systemService.callRendererApi('ui/show-toast', {
+        this.rendererGateway.fireAndForget('ui/show-toast', {
             title: params.title ?? '字幕翻译失败',
             message: combinedMessage,
             variant: params.variant ?? 'error',
@@ -298,8 +298,6 @@ export default class TranslateServiceImpl implements TranslateService {
             bubble: true,
             dedupeKey: params.dedupeKey,
             duration: 6500,
-        }).catch((error) => {
-            dpLog.error('failed to show subtitle translation toast', error);
         });
     }
 
@@ -359,7 +357,7 @@ export default class TranslateServiceImpl implements TranslateService {
                     isComplete: true
                 }));
 
-                this.systemService.callRendererApi('translation/batch-result', {
+                this.rendererGateway.fireAndForget('translation/batch-result', {
                     translations: cachedTranslations
                 });
                 dpLog.log(`命中缓存并将 ${cachedTranslations.length} 条结果回传前端`);
@@ -434,7 +432,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
             if (resultsToRender.length > 0) {
                 await this.saveTranslationsByKeys(resultsToSave, storageMode);
-                this.systemService.callRendererApi('translation/batch-result', {
+                this.rendererGateway.fireAndForget('translation/batch-result', {
                     translations: resultsToRender
                 });
                 dpLog.log(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
@@ -498,7 +496,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 for await (const partialObject of partialObjectStream) {
                     if (partialObject.translation) {
                         finalTranslation = partialObject.translation;
-                        this.systemService.callRendererApi('translation/batch-result', {
+                        this.rendererGateway.fireAndForget('translation/batch-result', {
                             translations: [{
                                 key: task.translationKey,
                                 translation: finalTranslation,
@@ -511,7 +509,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 }
 
                 if (finalTranslation) {
-                    this.systemService.callRendererApi('translation/batch-result', {
+                    this.rendererGateway.fireAndForget('translation/batch-result', {
                         translations: [{
                             key: task.translationKey,
                             translation: finalTranslation,
@@ -860,7 +858,7 @@ Ensure the response strictly matches the provided JSON schema.`;
         };
 
         try {
-            await this.systemService.callRendererApi('dictionary/openai-update', {
+            await this.rendererGateway.call('dictionary/openai-update', {
                 requestId,
                 word,
                 data: payload,

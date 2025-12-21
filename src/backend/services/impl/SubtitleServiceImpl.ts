@@ -16,7 +16,7 @@ import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import hash from 'object-hash';
 import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService';
-import SystemService from '@/backend/services/SystemService';
+import RendererGateway from '@/backend/services/RendererGateway';
 
 // 生成翻译key的工具函数 - hash(附近三行)
 function generateTranslationKey(sentences: Sentence[], centerIndex: number): string {
@@ -64,8 +64,8 @@ export class SubtitleServiceImpl implements SubtitleService {
     private cacheService!: CacheService;
     @inject(TYPES.WordMatchService)
     private wordMatchService!: WordMatchService;
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
 
     public async parseSrt(path: string): Promise<SrtSentence> {
         if (!fs.existsSync(path)) {
@@ -154,7 +154,7 @@ export class SubtitleServiceImpl implements SubtitleService {
             if (matchedWords && matchedWords.length > 0) {
                 const vocabularyWords = matchedWords.map(mw => mw.original.toLowerCase());
                 if (vocabularyWords.length > 0) {
-                    await this.systemService.callRendererApi('vocabulary/match-result', { vocabularyWords });
+                    await this.rendererGateway.call('vocabulary/match-result', { vocabularyWords });
                     logger.info(`Vocabulary matching completed: ${vocabularyWords.length} words found`);
                     logger.debug('Vocabulary words being sent to frontend:', { vocabularyWords });
                 }

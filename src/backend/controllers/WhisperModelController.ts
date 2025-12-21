@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import LocationUtil from '@/backend/utils/LocationUtil';
-import SystemService from '@/backend/services/SystemService';
+import RendererGateway from '@/backend/services/RendererGateway';
 import SystemConfigService from '@/backend/services/SystemConfigService';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -15,7 +15,7 @@ import { WHISPER_MODEL_DOWNLOADED_KEY } from '@/common/constants/systemConfigKey
 
 @injectable()
 export class WhisperModelController implements Controller {
-    @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.RendererGateway) private rendererGateway!: RendererGateway;
     @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     private logger = getMainLogger('WhisperModelController');
 
@@ -80,7 +80,7 @@ export class WhisperModelController implements Controller {
                 if (percent === lastEmittedPercent && now - lastEmitAt < 500) return;
                 lastEmittedPercent = percent;
                 lastEmitAt = now;
-                this.systemService.callRendererApi('settings/whisper-model-download-progress', {
+                this.rendererGateway.fireAndForget('settings/whisper-model-download-progress', {
                     key: progressKey,
                     percent,
                     downloaded,
@@ -94,7 +94,7 @@ export class WhisperModelController implements Controller {
         });
 
         await fsPromises.rename(tempPath, destPath);
-        this.systemService.callRendererApi('settings/whisper-model-download-progress', {
+        this.rendererGateway.fireAndForget('settings/whisper-model-download-progress', {
             key: progressKey,
             percent: 100,
             downloaded: total || undefined,

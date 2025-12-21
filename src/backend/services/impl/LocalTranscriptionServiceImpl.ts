@@ -2,7 +2,7 @@
 import {injectable, inject} from 'inversify';
 import {TranscriptionService} from '@/backend/services/TranscriptionService';
 import SettingService from '@/backend/services/SettingService';
-import SystemService from '@/backend/services/SystemService';
+import RendererGateway from '@/backend/services/RendererGateway';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -38,7 +38,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
-        @inject(TYPES.SystemService) private systemService: SystemService
+        @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway
     ) {}
 
     private async ensureWavFormat(inputPath: string): Promise<string> {
@@ -56,7 +56,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             finalResult.message = `[${progress}%] ${finalResult.message || ''}`.trim();
         }
         
-        this.systemService.callRendererApi('transcript/batch-result', {
+        this.rendererGateway.fireAndForget('transcript/batch-result', {
             updates: [{
                 filePath,
                 taskId,

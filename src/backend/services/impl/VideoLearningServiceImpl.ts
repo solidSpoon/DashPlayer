@@ -24,7 +24,7 @@ import CacheService from '@/backend/services/CacheService';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import { ClipOssService } from '@/backend/services/OssService';
 import FfmpegService from '@/backend/services/FfmpegService';
-import SystemService from '@/backend/services/SystemService';
+import RendererGateway from '@/backend/services/RendererGateway';
 import SubtitleService from '@/backend/services/SubtitleService';
 
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
@@ -66,8 +66,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
 
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
 
     @inject(TYPES.WordMatchService)
     private wordMatchService!: WordMatchService;
@@ -1062,7 +1062,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             const cacheTtl = status === 'analyzing' ? 30 * 1000 : this.clipAnalysisCacheTtl;
             this.cacheService.set('cache:clip-status', cacheKey, cachePayload, cacheTtl);
 
-            await this.systemService.callRendererApi('video-learning/clip-status-update', {
+            await this.rendererGateway.call('video-learning/clip-status-update', {
                 videoPath,
                 srtKey,
                 status,

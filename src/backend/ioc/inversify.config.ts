@@ -75,6 +75,8 @@ import WordMatchServiceImpl from '@/backend/services/impl/WordMatchServiceImpl';
 import VocabularyController from '@/backend/controllers/VocabularyController';
 import VocabularyService from '@/backend/services/VocabularyService';
 import VocabularyServiceImpl from '@/backend/services/impl/VocabularyServiceImpl';
+import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGatewayImpl from '@/backend/services/impl/RendererGatewayImpl';
 
 
 const container = new Container();
@@ -100,6 +102,7 @@ container.bind<Controller>(TYPES.Controller).to(WhisperModelController).inSingle
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services
+container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
