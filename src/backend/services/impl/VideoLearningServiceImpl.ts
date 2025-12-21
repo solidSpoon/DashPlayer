@@ -652,6 +652,25 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         }));
     }
 
+    private buildVocabularyEntriesFromMatchedWords(baseWords: string[] | undefined | null): ClipVocabularyEntry[] {
+        if (!baseWords || baseWords.length === 0) {
+            return [];
+        }
+
+        const normalizedBaseWords = Array.from(
+            new Set(
+                baseWords
+                    .map((word) => (typeof word === 'string' ? word.toLowerCase().trim() : ''))
+                    .filter((word): word is string => !!word)
+            )
+        );
+
+        return normalizedBaseWords.map((base) => ({
+            base,
+            forms: [base],
+        }));
+    }
+
     private async getClipWordsMap(keys: string[]): Promise<Map<string, string[]>> {
         const result = new Map<string, string[]>();
         if (!keys || keys.length === 0) {
@@ -726,51 +745,44 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 return task.matchedWords.some(matched => matched.toLowerCase() === searchWord);
             });
 
-        const inProgressClips: Array<{ clip: OssBaseMeta & ClipMeta & { sourceType: 'local' }, matchedWords: string[] }> = [];
-        for (const task of inProgressTasks) {
-            try {
-                const srt = this.getSrtFromCache(task.srtKey);
-                if (!srt) continue;
-
-                const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
-                const key = this.mapToMetaKey(srt, task.indexInSrt);
-                const [clipBeginAt] = this.mapTrimRange(srt, task.indexInSrt);
-
-                const clipEntry = {
-                    ...metaData,
-                    key,
-                    sourceType: 'local' as const,
-                    version: 1,
-                    clip_file: task.videoPath,
-                    thumbnail_file: '',
-                    baseDir: '',
-                    clipBeginAt
-                } as unknown as OssBaseMeta & ClipMeta & { sourceType: 'local' };
-
-                inProgressClips.push({
-                    clip: clipEntry,
-                    matchedWords: task.matchedWords ?? []
-                });
-            } catch (error) {
-                dpLog.error('Failed to process in-progress task:', error);
-            }
-        }
-
-        const inProgressVOs = await Promise.all(
-            inProgressClips.map(async ({ clip, matchedWords }) => {
-                const vocabulary = await this.buildVocabularyEntriesFromClip(clip, matchedWords ?? []);
-                return this.convertToVideoLearningClipVO(clip, vocabulary);
-            })
-        );
-        const inProgressCount = inProgressVOs.length;
-
         const start = offset;
         const end = offset + normalizedPageSize;
+
+        const inProgressCount = inProgressTasks.length;
 
         const paginatedInProgress: VideoLearningClipVO[] = [];
         if (start < inProgressCount) {
             const inProgressEnd = Math.min(end, inProgressCount);
-            paginatedInProgress.push(...inProgressVOs.slice(start, inProgressEnd));
+            const pageTasks = inProgressTasks.slice(start, inProgressEnd);
+
+            for (const task of pageTasks) {
+                try {
+                    const srt = await this.ensureSrtCached(task.srtKey, task.srtPath);
+                    if (!srt) {
+                        continue;
+                    }
+
+                    const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
+                    const key = this.mapToMetaKey(srt, task.indexInSrt);
+                    const [clipBeginAt] = this.mapTrimRange(srt, task.indexInSrt);
+
+                    const clipEntry = {
+                        ...metaData,
+                        key,
+                        sourceType: 'local' as const,
+                        version: 1,
+                        clip_file: task.videoPath,
+                        thumbnail_file: '',
+                        baseDir: '',
+                        clipBeginAt
+                    } as unknown as OssBaseMeta & ClipMeta & { sourceType: 'local' };
+
+                    const vocabulary = this.buildVocabularyEntriesFromMatchedWords(task.matchedWords);
+                    paginatedInProgress.push(this.convertToVideoLearningClipVO(clipEntry, vocabulary));
+                } catch (error) {
+                    dpLog.error('Failed to process in-progress task:', error);
+                }
+            }
         }
 
         const dbOffset = Math.max(0, start - inProgressCount);
