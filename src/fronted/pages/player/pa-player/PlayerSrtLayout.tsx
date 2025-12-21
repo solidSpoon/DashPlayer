@@ -1,6 +1,5 @@
 import {cn} from "@/fronted/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
-import { darkColor, lightColor } from '@/fronted/styles/style';
 import Player from '@/fronted/pages/player/pa-player/Player';
 import PodcastViewer from '@/fronted/pages/player/pa-srt-cops/podcast-viewer';
 import MainSubtitle from '@/fronted/pages/player/pa-player/MainSubtitle';
@@ -48,8 +47,7 @@ const PlayerSrtLayout = () => {
         <div className={containerClass}>
             <ResizablePanelGroup
                 className={cn(
-                    lightColor['bg-background'],
-                    `dark:${darkColor['bg-background']}`
+                    'bg-gray-300 dark:bg-neutral-800'
                 )}
                 direction={'horizontal'}>
                 <ResizablePanel
