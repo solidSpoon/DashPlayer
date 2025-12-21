@@ -48,7 +48,7 @@ const config: ForgeConfig = {
             unpack: '**/*.{wasm,node}',
         },
         icon: './assets/icons/icon',
-        extraResource: ['./drizzle', './lib', './scripts'],
+        extraResource: ['./drizzle', './lib', './scripts', './resources'],
         executableName: 'dash-player',
         name: 'DashPlayer',
     },

@@ -3,6 +3,7 @@ import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/db/migrate';
+import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
 import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
@@ -76,6 +77,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 app.on('ready', async () => {
     await runMigrate();
+    await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     createWindow();
     protocol.registerFileProtocol(DP_FILE, (request, callback) => {

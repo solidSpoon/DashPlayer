@@ -82,7 +82,10 @@ export default class VocabularyServiceImpl implements VocabularyService {
 
             // 创建工作簿
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(templateData);
+            const headers = ['英文', '释义'];
+            const ws = templateData.length > 0
+                ? XLSX.utils.json_to_sheet(templateData, { header: headers })
+                : XLSX.utils.aoa_to_sheet([headers]);
 
             // 设置列宽
             ws['!cols'] = [
