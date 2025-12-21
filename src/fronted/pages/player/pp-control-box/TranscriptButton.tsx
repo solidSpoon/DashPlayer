@@ -12,8 +12,13 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 const logger = getRendererLogger('TranscriptButton');
 
 export default function TranscriptButton() {
-  const videoPath = useFile.getState().videoPath;
-  const { files } = useTranscript(useShallow((s) => ({ files: s.files })));
+  const videoPath = useFile((s) => s.videoPath);
+  const { files, onTranscript } = useTranscript(
+    useShallow((s) => ({
+      files: s.files,
+      onTranscript: s.onTranscript,
+    }))
+  );
 
   const currentVideoTask = files.find((f) => f.file === videoPath);
   const isInProgress =
@@ -47,13 +52,13 @@ export default function TranscriptButton() {
   `;
 
   const handleClick = async () => {
-    const srtPath = useFile.getState().videoPath;
+    const srtPath = videoPath;
     if (StrUtil.isBlank(srtPath)) {
       toast.error('请先选择一个视频文件');
       return;
     }
     toast('已添加到转录队列', { icon: '👏' });
-    await useTranscript.getState().onTranscript(srtPath);
+    await onTranscript(srtPath);
   };
 
   return (

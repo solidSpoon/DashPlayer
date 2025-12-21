@@ -260,9 +260,11 @@ const useSubtitleScroll = create(
 );
 export default useSubtitleScroll;
 
+const subtitleScrollStore = useSubtitleScroll;
+
 export function useSubtitleScrollState<T>(
     selector: (s: SubtitleScrollState & SubtitleScrollActions) => T,
     equalityFn?: (a: T, b: T) => boolean
 ): T {
-    return useStoreWithEqualityFn(useSubtitleScroll, selector, equalityFn);
+    return useStoreWithEqualityFn(subtitleScrollStore, selector, equalityFn);
 }

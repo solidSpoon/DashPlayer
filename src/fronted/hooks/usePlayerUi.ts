@@ -29,11 +29,13 @@ export const usePlayerUi = create<PlayerUiState & PlayerUiActions>((set, get) =>
   changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
 }));
 
+const playerUiStore = usePlayerUi;
+
 export function usePlayerUiState<T>(
     selector: (s: PlayerUiState & PlayerUiActions) => T,
     equalityFn?: (a: T, b: T) => boolean
 ): T {
-    return useStoreWithEqualityFn(usePlayerUi, selector, equalityFn);
+    return useStoreWithEqualityFn(playerUiStore, selector, equalityFn);
 }
 
 export default usePlayerUi;

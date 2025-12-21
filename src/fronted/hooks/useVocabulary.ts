@@ -107,13 +107,15 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
         }
         return vocabularyWords.includes(normalized) ? normalized : undefined;
     }
-}));
+	}));
+
+const vocabularyStore = useVocabularyStore;
 
 export function useVocabularyState<T>(
     selector: (s: VocabularyState) => T,
     equalityFn?: (a: T, b: T) => boolean
 ): T {
-    return useStoreWithEqualityFn(useVocabularyStore, selector, equalityFn);
+    return useStoreWithEqualityFn(vocabularyStore, selector, equalityFn);
 }
 
 export default useVocabularyStore;

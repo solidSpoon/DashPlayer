@@ -9,9 +9,11 @@
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 
+const playerV2Store = usePlayerV2;
+
 export function usePlayerV2State<T>(
   selector: (s: ReturnType<typeof usePlayerV2.getState>) => T,
   equalityFn?: (a: T, b: T) => boolean
 ): T {
-  return useStoreWithEqualityFn(usePlayerV2, selector, equalityFn);
+  return useStoreWithEqualityFn(playerV2Store, selector, equalityFn);
 }
