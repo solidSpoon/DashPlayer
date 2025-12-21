@@ -1,11 +1,15 @@
 import { Word } from '@/backend/db/tables/words';
-import db from '@/backend/db/db';
 import nlp from 'compromise';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService';
+import TYPES from '@/backend/ioc/types';
+import WordsRepository from '@/backend/db/repositories/WordsRepository';
 
 @injectable()
 export default class WordMatchServiceImpl implements WordMatchService {
+
+    @inject(TYPES.WordsRepository)
+    private wordsRepository!: WordsRepository;
 
     async matchWordsInText(text: string): Promise<MatchedWord[]> {
         const results = await this.matchWordsInTexts([text]);
@@ -215,8 +219,7 @@ export default class WordMatchServiceImpl implements WordMatchService {
     }
 
     async getVocabularyWords(): Promise<Word[]> {
-        const { words } = await import('@/backend/db/tables/words');
-        return await db.select().from(words);
+        return await this.wordsRepository.getAll();
     }
 
     private findMatchingWord(original: string, normalized: string, stem: string, vocabularyWords: Word[]): Word | undefined {

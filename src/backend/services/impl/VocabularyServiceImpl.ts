@@ -1,13 +1,11 @@
-import { words } from '@/backend/db/tables/words';
-import { eq, like, or } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { promises as fs } from 'fs';
 import { inject, injectable } from 'inversify';
-import db from '@/backend/db';
 import TYPES from '@/backend/ioc/types';
 import VocabularyService, { GetAllWordsParams, GetAllWordsResult, ExportTemplateResult, ImportWordsResult } from '@/backend/services/VocabularyService';
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
+import WordsRepository from '@/backend/db/repositories/WordsRepository';
 
 @injectable()
 export default class VocabularyServiceImpl implements VocabularyService {
@@ -15,31 +13,14 @@ export default class VocabularyServiceImpl implements VocabularyService {
     @inject(TYPES.VideoLearningService)
     private videoLearningService!: VideoLearningService;
 
+    @inject(TYPES.WordsRepository)
+    private wordsRepository!: WordsRepository;
+
     private readonly logger = getMainLogger('VocabularyServiceImpl');
 
     async getAllWords(params: GetAllWordsParams = {}): Promise<GetAllWordsResult> {
         try {
-            const wordsResult = db
-                .select({
-                    id: words.id,
-                    word: words.word,
-                    stem: words.stem,
-                    translate: words.translate,
-                    note: words.note,
-                    created_at: words.created_at,
-                    updated_at: words.updated_at
-                })
-                .from(words)
-                .where(
-                    params.search
-                        ? or(
-                            like(words.word, `%${params.search}%`),
-                            like(words.translate, `%${params.search}%`),
-                            like(words.stem, `%${params.search}%`)
-                        )
-                        : undefined
-                )
-                .all();
+            const wordsResult = await this.wordsRepository.getAll({ search: params.search });
 
             return {
                 success: true,
@@ -141,34 +122,25 @@ export default class VocabularyServiceImpl implements VocabularyService {
                 const now = new Date().toISOString();
 
                 // 检查是否已存在
-                const existingWord = db
-                    .select({id: words.id})
-                    .from(words)
-                    .where(eq(words.word, wordText))
-                    .get();
+                const existingWordId = await this.wordsRepository.findIdByWord(wordText);
 
-                if (existingWord) {
+                if (existingWordId) {
                     // 更新现有记录
-                    await db
-                        .update(words)
-                        .set({
-                            translate: translate || null,
-                            stem: stemText,
-                            updated_at: now
-                        })
-                        .where(eq(words.word, wordText));
+                    await this.wordsRepository.updateByWord(wordText, {
+                        translate: translate || null,
+                        stem: stemText,
+                        updated_at: now,
+                    });
                     updateCount++;
                 } else {
                     // 添加新记录
-                    await db
-                        .insert(words)
-                        .values({
-                            word: wordText,
-                            translate: translate || null,
-                            stem: stemText,
-                            created_at: now,
-                            updated_at: now
-                        });
+                    await this.wordsRepository.insert({
+                        word: wordText,
+                        translate: translate || null,
+                        stem: stemText,
+                        created_at: now,
+                        updated_at: now,
+                    });
                     addCount++;
                 }
             }

@@ -4,7 +4,6 @@ import fs from 'fs';
 
 import db from '@/backend/db';
 import { VideoLearningClip, videoLearningClip } from '@/backend/db/tables/videoLearningClip';
-import { words } from '@/backend/db/tables/words';
 import { videoLearningClipWord, InsertVideoLearningClipWord } from '@/backend/db/tables/videoLearningClipWord';
 
 import ErrorConstants from '@/common/constants/error-constants';

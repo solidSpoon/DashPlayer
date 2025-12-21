@@ -29,6 +29,7 @@ const TYPES = {
     WordMatchService: Symbol('WordMatchService'),
     VocabularyService: Symbol('VocabularyService'),
     RendererGateway: Symbol('RendererGateway'),
+    WordsRepository: Symbol('WordsRepository'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
