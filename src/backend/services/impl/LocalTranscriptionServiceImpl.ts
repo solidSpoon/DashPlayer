@@ -235,8 +235,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         const executablePath = this.resolveWhisperCppExecutablePath();
         const help = await this.getWhisperCppHelp(executablePath);
-        const supportsVadFlag = /\-\-vad\b/.test(help);
-        const supportsVadModelFlag = /\s\-vm\b/.test(help) || /\-\-vad\-model\b/.test(help);
+        const supportsVadFlag = /--vad\b/.test(help);
+        const supportsVadModelFlag = /\s-vm\b/.test(help) || /--vad-model\b/.test(help);
 
         const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
         const enableVad = true;
@@ -309,7 +309,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 this.activeWhisperProcess = child;
 
                 let stderr = '';
-                const stripAnsi = (s: string) => s.replace(/\u001b\[[0-9;]*m/g, '');
+                // eslint-disable-next-line no-control-regex
+                const ansiRegex = new RegExp('\\x1b\\[[0-9;]*m', 'g');
+                const stripAnsi = (s: string) => s.replace(ansiRegex, '');
                 const percentRegexGlobal = /(\d{1,3})%/g;
                 const floatProgressRegexGlobal = /\bprogress\s*=\s*(\d*\.\d+)\b/gi;
 

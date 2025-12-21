@@ -276,4 +276,6 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     }
 );
 
+SideSentence.displayName = 'SideSentence';
+
 export default SideSentence;

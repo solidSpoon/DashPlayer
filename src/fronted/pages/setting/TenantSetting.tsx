@@ -255,7 +255,7 @@ const TenantSetting = () => {
 
                     {translationEngine === 'openai' && (
                         <div className={cn('text-sm text-gray-500 p-4 bg-blue-50 rounded-lg')}>
-                            OpenAI翻译使用您在"OpenAI"页面中配置的密钥和端点。
+                            OpenAI翻译使用您在“OpenAI”页面中配置的密钥和端点。
                             <br />
                             请确保已在OpenAI设置页面中正确配置API密钥。
                         </div>

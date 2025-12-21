@@ -59,14 +59,14 @@ const WordPop = React.forwardRef(
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
         
         // 检查是否是词汇单词
-        const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
-        const isVocab = cleanWord && isVocabularyWord(cleanWord);
+	        const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+	        const isVocab = cleanWord && isVocabularyWord(cleanWord);
 
-        const { refs, floatingStyles, context } = useFloating({
-            middleware: [
-                // autoPlacement({ allowedPlacements: ['bottom'] }),
-                offset(50),
-                autoPlacement({
+	        const { refs, floatingStyles } = useFloating({
+	            middleware: [
+	                // autoPlacement({ allowedPlacements: ['bottom'] }),
+	                offset(50),
+	                autoPlacement({
                     allowedPlacements: [
                         'top',
                         'bottom',
@@ -178,13 +178,13 @@ const WordPop = React.forwardRef(
                     {...getReferenceProps()}
                 >
                     {word}
-                </div>
-
-                <FloatingPortal context={context}>
-                    <div
-                        {...getFloatingProps()}
-                        ref={refs.setFloating}
-                        style={floatingStyles}
+	                </div>
+	 
+	                <FloatingPortal>
+	                    <div
+	                        {...getFloatingProps()}
+	                        ref={refs.setFloating}
+	                        style={floatingStyles}
                         className="z-[9999]"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -199,5 +199,7 @@ const WordPop = React.forwardRef(
         );
     }
 );
+
+WordPop.displayName = 'WordPop';
 
 export default WordPop;

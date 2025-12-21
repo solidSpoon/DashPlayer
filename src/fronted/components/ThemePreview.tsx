@@ -37,6 +37,7 @@ const themePreview = ({className, theme}: ThemePreviewParam) => {
                 <div className="w-1/3 flex flex-col gap-1 overflow-y-hidden px-1">
                     {[...Array(10)].map((_, i) => (
                         <div
+                            key={i}
                             className={cn(
                                 'flex-shrink-0 rounded h-4 bg-stone-200', dark && 'bg-neutral-700',
                             )}

@@ -86,18 +86,20 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
                             return (
 
                                 <span
+                                    key={`text:${i}`}
                                     className={cn('px-2 py-1 rounded word')}>{group}</span>
                             );
                         } else {
                             const words = group.original.split(' ');
                             return (
                                 <span
+                                    key={`group:${i}:${group.original}`}
                                     className={
                                         cn('word-group relative rounded-md mr-1 p-1 pl-2 pr-1 leading-[42px] last:pr-2'
                                             , mapColor(group?.tags ?? [])
                                         )}>
-                                    {words.map((word, i) => {
-                                        return <span data-tags={group.tags} data-trans={group.translation}
+                                    {words.map((word, wordIndex) => {
+                                        return <span key={`${i}:${wordIndex}:${word}`} data-tags={group.tags} data-trans={group.translation}
                                                      className="word">
                                     {word}
                                     </span>;

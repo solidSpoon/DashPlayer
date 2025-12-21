@@ -287,7 +287,7 @@ export default class SrtUtil {
         }
 
         try {
-            let indexLine = lines[0]?.trim() ?? '';
+            const indexLine = lines[0]?.trim() ?? '';
             let timeLine = '';
             let contentOffset = 0;
 

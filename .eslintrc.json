@@ -15,6 +15,13 @@
         "plugin:jsx-a11y/recommended"
     ],
     "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "sourceType": "module",
+        "ecmaFeatures": {
+            "jsx": true
+        }
+    },
     "ignorePatterns": [
         "vite.*.config.ts",
         "my-new-app/**",
@@ -39,5 +46,26 @@
         "react": {
             "version": "detect"
         }
+    },
+    "rules": {
+        "no-mixed-spaces-and-tabs": "off",
+        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/no-unused-vars": [
+            "warn",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+            }
+        ],
+        "react/react-in-jsx-scope": "off",
+        "react/jsx-uses-react": "off",
+        "jsx-a11y/anchor-is-valid": "warn",
+        "jsx-a11y/click-events-have-key-events": "warn",
+        "jsx-a11y/mouse-events-have-key-events": "warn",
+        "jsx-a11y/no-static-element-interactions": "warn",
+        "jsx-a11y/no-noninteractive-tabindex": "warn",
+        "jsx-a11y/label-has-associated-control": "warn",
+        "jsx-a11y/alt-text": "warn"
     }
 }
