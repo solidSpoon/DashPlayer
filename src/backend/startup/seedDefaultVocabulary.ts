@@ -6,7 +6,9 @@ import { count } from 'drizzle-orm';
 import db from '@/backend/db';
 import { words } from '@/backend/db/tables/words';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import SystemConfigServiceImpl from '@/backend/services/impl/SystemConfigServiceImpl';
+import TYPES from '@/backend/ioc/types';
+import container from '@/backend/ioc/inversify.config';
+import SystemConfigService from '@/backend/services/SystemConfigService';
 
 export type DefaultVocabularyWord = {
     word: string;
@@ -61,7 +63,7 @@ const loadDefaultVocabulary = async (): Promise<DefaultVocabularyWord[]> => {
 
 export const seedDefaultVocabularyIfNeeded = async (): Promise<void> => {
     const logger = getMainLogger('seedDefaultVocabulary');
-    const sysConf = new SystemConfigServiceImpl();
+    const sysConf = container.get<SystemConfigService>(TYPES.SystemConfigService);
 
     const seededVersion = await sysConf.getValue(SEED_VERSION_KEY);
     if (seededVersion === DEFAULT_VOCABULARY_VERSION) {
