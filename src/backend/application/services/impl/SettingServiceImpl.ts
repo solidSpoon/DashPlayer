@@ -97,7 +97,20 @@ export default class SettingServiceImpl implements SettingService {
         return settings;
     }
 
-    public async updateApiSettings(settings: ApiSettingVO): Promise<void> {
+    public async updateApiSettings(settings: ApiSettingVO, service?: string): Promise<void> {
+        if (service === 'whisper') {
+            await this.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
+            const transcriptionEngine = settings.whisper.enableTranscription ? 'whisper' : 'openai';
+            await this.set('transcription.engine', transcriptionEngine);
+            await this.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
+            await this.set('whisper.enableVad', 'true');
+            await this.set('whisper.vadModel', 'silero-v6.2.0');
+            if (transcriptionEngine === 'whisper') {
+                await this.set('whisper.enabled', 'true');
+            }
+            return;
+        }
+
         // Update OpenAI settings
         await this.set('apiKeys.openAi.key', settings.openai.key);
         await this.set('apiKeys.openAi.endpoint', settings.openai.endpoint);

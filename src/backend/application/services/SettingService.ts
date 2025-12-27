@@ -7,7 +7,7 @@ export default interface SettingService {
     
     // API Settings management
     queryApiSettings(): Promise<ApiSettingVO>;
-    updateApiSettings(settings: ApiSettingVO): Promise<void>;
+    updateApiSettings(settings: ApiSettingVO, service?: string): Promise<void>;
     
     // Service provider queries
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;

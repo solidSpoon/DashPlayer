@@ -17,6 +17,7 @@ import MediaController from '@/backend/adapters/controllers/MediaController';
 import StorageController from '@/backend/adapters/controllers/StorageController';
 import SystemController from '@/backend/adapters/controllers/SystemController';
 import SubtitleController from '@/backend/adapters/controllers/SubtitleController';
+import AiFuncService from '@/backend/application/services/impl/AiFuncService';
 import SystemServiceImpl from '@/backend/application/services/impl/SystemServiceImpl';
 import SystemService from '@/backend/application/services/SystemService';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
@@ -66,6 +67,7 @@ import WatchHistoryServiceImpl from '@/backend/application/services/impl/WatchHi
 import WatchHistoryController from '@/backend/adapters/controllers/WatchHistoryController';
 import SettingsController from '@/backend/adapters/controllers/SettingsController';
 import { WhisperModelController } from '@/backend/adapters/controllers/WhisperModelController';
+import { WhisperModelService } from '@/backend/application/services/impl/WhisperModelService';
 import { OpenAIServiceImpl } from '@/backend/application/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
@@ -132,6 +134,8 @@ container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSi
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();
+container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncService).inSingletonScope();
+container.bind<WhisperModelService>(TYPES.WhisperModelService).to(WhisperModelService).inSingletonScope();
 container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();

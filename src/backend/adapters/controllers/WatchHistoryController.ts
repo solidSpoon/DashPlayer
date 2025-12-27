@@ -1,18 +1,14 @@
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
-import path from 'path';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/interfaces/controller';
 import WatchHistoryService from '@/backend/application/services/WatchHistoryService';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
-import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 
 @injectable()
 export default class WatchHistoryController implements Controller {
     @inject(TYPES.WatchHistoryService)
     private watchHistoryService!: WatchHistoryService;
-    @inject(TYPES.LocationService)
-    private locationService!: LocationService;
 
     public async updateProgress({ file, currentPosition }: {
         file: string, currentPosition: number
@@ -21,17 +17,10 @@ export default class WatchHistoryController implements Controller {
     }
 
     public async create(files: string[], concatLibrary = false): Promise<string[]> {
-        const lp = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
-        if (concatLibrary) {
-            files = files.map((f) => path.join(lp, f));
-        }
-        return this.watchHistoryService.create(files);
+        return this.watchHistoryService.create(files, concatLibrary);
     }
 
     public async attachSrt({ videoPath, srtPath }: { videoPath: string, srtPath: string | 'same' }): Promise<void> {
-        if (srtPath === 'same') {
-            srtPath = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)) + '.srt');
-        }
         await this.watchHistoryService.attachSrt(videoPath, srtPath);
     }
 

@@ -20,22 +20,7 @@ export default class SettingsController implements Controller {
         const { service, settings } = params;
 
         this.logger.info('update api settings', { service, settings: { ...settings, openai: { ...settings.openai, key: '***' } } });
-
-        if (service === 'whisper') {
-            // Update only Whisper settings, but still receive full ApiSettingVO
-            await this.settingService.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
-            const transcriptionEngine = settings.whisper.enableTranscription ? 'whisper' : 'openai';
-            await this.settingService.set('transcription.engine', transcriptionEngine);
-            await this.settingService.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
-            await this.settingService.set('whisper.enableVad', 'true');
-            await this.settingService.set('whisper.vadModel', 'silero-v6.2.0');
-            if (transcriptionEngine === 'whisper') {
-                await this.settingService.set('whisper.enabled', 'true');
-            }
-        } else {
-            // Update all settings (for backward compatibility)
-            await this.settingService.updateApiSettings(settings);
-        }
+        await this.settingService.updateApiSettings(settings, service);
     }
 
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {

@@ -9,11 +9,11 @@ interface WatchHistoryService {
      * 添加媒体文件
      * @param filePaths 路径列表，可以是文件或文件夹
      */
-    create(filePaths: string[]): Promise<string[]>;
+    create(filePaths: string[], concatLibrary?: boolean): Promise<string[]>;
 
     updateProgress(file: string, currentPosition: number): Promise<void>;
 
-    attachSrt(videoPath: string, srtPath: string): Promise<void>;
+    attachSrt(videoPath: string, srtPath: string | 'same'): Promise<void>;
 
     groupDelete(id: string): Promise<void>;
 

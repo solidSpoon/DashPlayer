@@ -59,7 +59,7 @@ src/
 ## 代码层面规则
 
 - Controller 层：只做参数校验与错误映射，业务编排下沉到 `application/services`
-- Service 层：不直接写 SQL（走 repository），不直接碰 `webContents`（走 gateway）；不为小工具强行建 ports
+- Service 层：不需要为 service 单独写接口（默认用具体类即可）；不直接写 SQL（走 repository），不直接碰 `webContents`（走 gateway）；不为小工具强行建 ports
 - DB：只允许 `infrastructure/db/**` 接触 drizzle（`db/tables/drizzle-orm` 只在此处出现）
 - 前端通知：只允许 RendererGateway 作为出口
 

@@ -31,6 +31,8 @@ const TYPES = {
     VocabularyService: Symbol('VocabularyService'),
     RendererGateway: Symbol('RendererGateway'),
     RendererEvents: Symbol('RendererEvents'),
+    AiFuncService: Symbol('AiFuncService'),
+    WhisperModelService: Symbol('WhisperModelService'),
     WhisperCppCli: Symbol('WhisperCppCli'),
     WordsRepository: Symbol('WordsRepository'),
     DpTaskRepository: Symbol('DpTaskRepository'),

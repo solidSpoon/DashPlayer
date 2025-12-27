@@ -113,4 +113,14 @@ export default class ConvertServiceImpl implements ConvertService {
         }
         return result;
     }
+
+    public async suggestHtml5Video(filePath: string): Promise<string | null> {
+        const parsed = path.parse(filePath);
+        if (parsed.base.endsWith('.html5.mp4')) {
+            return filePath;
+        }
+        const baseName = parsed.name.endsWith('.html5') ? parsed.name.slice(0, -'.html5'.length) : parsed.name;
+        const html5Path = path.join(parsed.dir, `${baseName}.html5.mp4`);
+        return fs.existsSync(html5Path) ? html5Path : null;
+    }
 }

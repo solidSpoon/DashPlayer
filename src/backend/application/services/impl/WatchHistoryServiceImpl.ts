@@ -162,6 +162,21 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return merged;
     }
 
+    public async create(filePaths: string[], concatLibrary = false): Promise<string[]> {
+        if (concatLibrary) {
+            const lp = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
+            filePaths = filePaths.map((f) => path.join(lp, f));
+        }
+        return this.createInner(filePaths);
+    }
+
+    public async attachSrt(videoPath: string, srtPath: string | 'same'): Promise<void> {
+        if (srtPath === 'same') {
+            srtPath = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)) + '.srt');
+        }
+        return this.attachSrtInner(videoPath, srtPath);
+    }
+
     public async detail(id: string): Promise<WatchHistoryVO | null> {
         const record = await this.watchHistoryRepository.findById(id);
         if (!record) {
@@ -198,7 +213,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         };
     }
 
-    public async create(files: string[]): Promise<string[]> {
+    private async createInner(files: string[]): Promise<string[]> {
         const ids: string[] = [];
         const existFiles = files.filter(file => fs.existsSync(file));
         const folders = existFiles.filter(file => fs.statSync(file).isDirectory());
@@ -382,7 +397,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
      * @param srtPath
      * @private
      */
-    public async attachSrt(videoPath: string, srtPath: string) {
+    private async attachSrtInner(videoPath: string, srtPath: string) {
         videoPath = this.preferHtml5VideoPath(videoPath);
         if (!fs.existsSync(videoPath)) {
             return;

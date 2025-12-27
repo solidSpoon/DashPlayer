@@ -4,11 +4,9 @@ import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/application/services/DpTaskService';
-import ConvertService from '@/backend/application/services/ConvertService';
 import FfmpegService from '@/backend/application/services/FfmpegService';
-import path from 'path';
-import fs from 'fs';
 import { VideoInfo } from '@/common/types/video-info';
+import ConvertServiceImpl from '@/backend/application/services/impl/ConvertServiceImpl';
 
 @injectable()
 export default class ConvertController implements Controller {
@@ -16,7 +14,7 @@ export default class ConvertController implements Controller {
     private dpTaskService!: DpTaskService;
 
     @inject(TYPES.ConvertService)
-    private convertService!: ConvertService;
+    private convertService!: ConvertServiceImpl;
 
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
@@ -40,13 +38,7 @@ export default class ConvertController implements Controller {
     }
 
     public async suggestHtml5Video(filePath: string): Promise<string | null> {
-        const parsed = path.parse(filePath);
-        if (parsed.base.endsWith('.html5.mp4')) {
-            return filePath;
-        }
-        const baseName = parsed.name.endsWith('.html5') ? parsed.name.slice(0, -'.html5'.length) : parsed.name;
-        const html5Path = path.join(parsed.dir, `${baseName}.html5.mp4`);
-        return fs.existsSync(html5Path) ? html5Path : null;
+        return this.convertService.suggestHtml5Video(filePath);
     }
 
     registerRoutes(): void {
