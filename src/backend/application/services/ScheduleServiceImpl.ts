@@ -1,5 +1,5 @@
 import { injectable, postConstruct } from 'inversify';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 
 
 @injectable()

@@ -1,5 +1,5 @@
 import { FolderVideos } from '@/common/types/tonvert-type';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import path from 'path';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/application/services/DpTaskService';

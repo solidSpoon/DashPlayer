@@ -1,4 +1,4 @@
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { DpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 
 import { LRUCache } from 'lru-cache';

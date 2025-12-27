@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { compareVersions } from 'compare-versions';
 import Release from "@/common/types/release";
 import {app} from "electron";

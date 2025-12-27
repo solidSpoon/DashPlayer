@@ -2,7 +2,7 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';

@@ -3,7 +3,7 @@ import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
 import { InsertWord, Word, words } from '@/backend/infrastructure/db/tables/words';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import WordsRepository, { GetAllWordsQuery, WordsUpdatePatch } from '@/backend/application/ports/repositories/WordsRepository';
 
 @injectable()

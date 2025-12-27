@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 
 import axios from 'axios';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 export interface YouDaoConfig {
     from: string;

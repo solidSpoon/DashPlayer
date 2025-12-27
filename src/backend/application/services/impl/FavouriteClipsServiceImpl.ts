@@ -10,7 +10,7 @@ import StrUtil from '@/common/utils/str-util';
 
 import { SrtSentence } from '@/common/types/SentenceC';
 import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import CacheService from '@/backend/application/services/CacheService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import { ClipOssService } from '@/backend/application/services/OssService';

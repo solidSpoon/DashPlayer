@@ -1,5 +1,5 @@
 import analyzeWordsPrompt from '@/backend/application/services/prompts/analyze-word';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import exampleSentences from '@/backend/application/services/prompts/example-sentence';
 import analyzePhrasesPrompt from './prompts/analyze-phrases';
 import synonymousSentence from '@/backend/application/services/prompts/synonymous-sentence';
@@ -160,4 +160,3 @@ export default class AiServiceImpl implements AiService {
         await this.chatService.run(taskId, AiFuncTranslateWithContextPrompt.schema, AiFuncTranslateWithContextPrompt.promptFunc(sentence, context));
     }
 }
-

@@ -1,4 +1,4 @@
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 export type LOCK_KEY =
     | 'ffmpeg'

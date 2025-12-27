@@ -3,7 +3,7 @@ import fs from 'fs';
 import StrUtil from '@/common/utils/str-util';
 import { Cancelable } from '@/common/interfaces';
 import OpenAI from 'openai';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import { WhisperResponseFormatError } from '@/backend/errors/errors';
 import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
 import {WaitRateLimit} from "@/common/utils/RateLimiter";

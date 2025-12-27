@@ -10,7 +10,7 @@ import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskService
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 const mainWindowRef = {
     current: null as BrowserWindow | null

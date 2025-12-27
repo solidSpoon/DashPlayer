@@ -7,7 +7,7 @@ import path from 'path';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 @injectable()
 export default class SystemServiceImpl implements SystemService {
     public mainWindowRef: { current: BrowserWindow | null } = { current: null };

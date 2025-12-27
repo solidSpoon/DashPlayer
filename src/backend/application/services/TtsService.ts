@@ -4,7 +4,7 @@ import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';
 import fs from 'fs';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 
 class TtsService {

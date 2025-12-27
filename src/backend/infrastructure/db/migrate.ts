@@ -1,7 +1,7 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import db, { clearDB } from './db';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 const isDev = process.env.NODE_ENV === 'development';
 const config = {

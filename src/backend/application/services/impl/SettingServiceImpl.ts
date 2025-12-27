@@ -8,7 +8,7 @@ import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import TencentProvider from '@/backend/application/services/impl/clients/TencentProvider';
 import YouDaoProvider from '@/backend/application/services/impl/clients/YouDaoProvider';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
 import {
     OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,

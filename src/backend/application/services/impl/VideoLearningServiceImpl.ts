@@ -17,7 +17,7 @@ import { and, desc, eq, gte, inArray, like, lte, sql } from 'drizzle-orm';
 import { inject, injectable, postConstruct } from 'inversify';
 
 import TYPES from '@/backend/ioc/types';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 
 import { ClipQuery, SimpleClipQuery } from '@/common/api/dto';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';

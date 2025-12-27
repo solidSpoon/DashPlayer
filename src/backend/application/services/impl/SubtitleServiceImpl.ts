@@ -1,4 +1,4 @@
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import nlp from 'compromise/one';
 import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
 import StrUtil from '@/common/utils/str-util';

@@ -6,7 +6,7 @@ import path from 'path';
 import OpenDialogOptions = Electron.OpenDialogOptions;
 import { Nullable } from '@/common/types/Types';
 import { VideoInfo } from '@/common/types/video-info';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 /**
  * 装饰器工厂，用于处理路径访问权限错误

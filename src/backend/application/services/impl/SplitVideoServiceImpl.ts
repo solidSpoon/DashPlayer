@@ -1,4 +1,4 @@
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import dpLog, { getMainLogger } from '@/backend/infrastructure/logger';
 import parseChapter from '@/common/utils/praser/chapter-parser';
 import path from 'path';
 import fs from 'fs';
@@ -11,7 +11,6 @@ import { inject, injectable } from 'inversify';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import SplitVideoService from '@/backend/application/services/SplitVideoService';
-import dpLog from '@/backend/ioc/logger';
 import SrtUtil from "@/common/utils/SrtUtil";
 
 

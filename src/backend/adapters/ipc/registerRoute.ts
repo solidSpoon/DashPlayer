@@ -5,7 +5,7 @@ import { ApiMap } from '@/common/api/api-def';
 import SystemService from '@/backend/application/services/SystemService';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 const logger = getMainLogger('ipc');
 

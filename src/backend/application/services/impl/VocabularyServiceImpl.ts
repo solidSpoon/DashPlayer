@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import VocabularyService, { GetAllWordsParams, GetAllWordsResult, ExportTemplateResult, ImportWordsResult } from '@/backend/application/services/VocabularyService';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import WordsRepository from '@/backend/application/ports/repositories/WordsRepository';
 
 @injectable()

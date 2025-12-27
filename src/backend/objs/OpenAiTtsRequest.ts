@@ -2,7 +2,7 @@ import {storeGet} from '@/backend/infrastructure/settings/store';
 import fs from 'fs';
 import axios from 'axios';
 import UrlUtil from '@/common/utils/UrlUtil';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import StrUtil from '@/common/utils/str-util';
 import path from 'path';
 import os from 'node:os';

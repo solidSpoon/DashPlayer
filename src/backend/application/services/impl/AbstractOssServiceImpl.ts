@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 import path from 'path';
 import fs from 'fs';
 import { OssService } from '@/backend/application/services/OssService';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import { OssBaseMeta } from '@/common/types/clipMeta';
 
 @injectable()

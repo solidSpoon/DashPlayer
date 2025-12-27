@@ -1,5 +1,5 @@
 import type { SimpleLevel } from '@/common/log/simple-types';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from './simple-logger';
 
 type DpLog = {
     debug: (...args: any[]) => void;

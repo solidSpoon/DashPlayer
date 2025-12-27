@@ -11,7 +11,7 @@ import WhisperService from '@/backend/application/services/WhisperService';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import { CoreMessage } from 'ai';
 import SettingService from "@/backend/application/services/SettingService";
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import * as fs from 'fs';

@@ -2,7 +2,7 @@ import {spawn, ChildProcess} from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import {injectable} from 'inversify';
-import {getMainLogger} from '@/backend/ioc/simple-logger';
+import {getMainLogger} from '@/backend/infrastructure/logger';
 
 export type WhisperCppCliProgressEvent = {
     percent: number;
@@ -156,4 +156,3 @@ export class WhisperCppCli {
         if (isCancelled?.()) throw new Error('Transcription cancelled by user');
     }
 }
-

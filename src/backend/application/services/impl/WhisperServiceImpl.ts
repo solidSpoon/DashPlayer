@@ -10,7 +10,7 @@ import WhisperService from '@/backend/application/services/WhisperService';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import OpenAiWhisperRequest from '@/backend/objs/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';

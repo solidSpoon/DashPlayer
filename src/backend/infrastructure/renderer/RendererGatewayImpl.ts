@@ -3,7 +3,7 @@ import TYPES from '@/backend/ioc/types';
 import SystemService from '@/backend/application/services/SystemService';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 @injectable()
 export default class RendererGatewayImpl implements RendererGateway {

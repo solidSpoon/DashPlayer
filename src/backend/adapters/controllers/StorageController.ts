@@ -7,7 +7,7 @@ import SettingService from '@/backend/application/services/SettingService';
 import LocationService from '@/backend/application/services/LocationService';
 import FileUtil from '@/backend/utils/FileUtil';
 import SystemService from '@/backend/application/services/SystemService';
-import {getMainLogger} from '@/backend/ioc/simple-logger';
+import {getMainLogger} from '@/backend/infrastructure/logger';
 
 @injectable()
 export default class StorageController implements Controller {

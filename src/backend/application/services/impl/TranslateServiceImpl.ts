@@ -21,7 +21,7 @@ import ClientProviderService from '@/backend/application/services/ClientProvider
 import SettingService from '@/backend/application/services/SettingService';
 import YouDaoClient from '@/backend/objs/YouDaoClient';
 import TencentClient from '@/backend/objs/TencentClient';
-import dpLog from '@/backend/ioc/logger';
+import dpLog from '@/backend/infrastructure/logger';
 import TranslateService from "@/backend/application/services/AiTransServiceImpl";
 import {Sentence} from "@/common/types/SentenceC";
 import CacheService from "@/backend/application/services/CacheService";

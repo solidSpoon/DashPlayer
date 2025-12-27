@@ -5,7 +5,7 @@ import { count } from 'drizzle-orm';
 
 import db from '@/backend/infrastructure/db';
 import { words } from '@/backend/infrastructure/db/tables/words';
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
 import container from '@/backend/ioc/inversify.config';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';

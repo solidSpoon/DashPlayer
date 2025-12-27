@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/application/services/SettingService';
 import { ApiSettingVO } from "@/common/types/vo/api-setting-vo";
-import { getMainLogger } from '@/backend/ioc/simple-logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { SettingKey } from '@/common/types/store_schema';
 
 @injectable()

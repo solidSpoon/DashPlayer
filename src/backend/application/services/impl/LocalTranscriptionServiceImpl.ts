@@ -10,7 +10,7 @@ import * as fsPromises from 'fs/promises';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/application/services/LocationService';
 import FfmpegService from '@/backend/application/services/FfmpegService';
-import {getMainLogger} from '@/backend/ioc/simple-logger';
+import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
 import {DpTaskState} from "@/backend/infrastructure/db/tables/dpTask";
