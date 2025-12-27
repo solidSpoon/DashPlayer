@@ -3,18 +3,18 @@ import { cn } from '@/fronted/lib/utils';
 import { IconOpenAI } from '@/fronted/pages/player/chat/components/icons';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import MsgDelete from '@/fronted/pages/player/chat/components/messages/MsgDelete';
+import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiFuncExplainSelectRes } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 import StrUtil from '@/common/utils/str-util';
 
-export function AiCtxMenuExplainSelectMsg({ msg }: { msg: AiCtxMenuExplainSelectMessage }) {
+export function AiExplainSelectionMessage({ msg }: { msg: AiCtxMenuExplainSelectMessage }) {
     const { detail: resp } = useDpTaskViewer<AiFuncExplainSelectRes>(msg.taskId);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     return (
         <div className={cn('group relative flex items-start')}>
-            <MsgDelete msg={msg} />
+            <MessageDeleteButton msg={msg} />
             <div
                 className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
                 <IconOpenAI />

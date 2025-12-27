@@ -6,17 +6,17 @@ import * as React from "react";
 import useChatPanel from "@/fronted/hooks/useChatPanel";
 import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
-import HumanTopicMsg from "@/fronted/pages/player/chat/components/messages/HumanTopicMsg";
-import AiWelcomeMsg from "@/fronted/pages/player/chat/components/messages/AiWelcomeMsg";
+import UserTopicMessage from "@/fronted/pages/player/chat/components/messages/UserTopicMessage";
+import AiWelcomeBubble from "@/fronted/pages/player/chat/components/messages/AiWelcomeBubble";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
-import {AiNormalMsg} from "@/fronted/pages/player/chat/components/messages/AiNormalMsg";
+import {AiTextMessage} from "@/fronted/pages/player/chat/components/messages/AiTextMessage";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
-import HumanNormalMsg from "@/fronted/pages/player/chat/components/messages/HumanNormalMsg";
+import UserTextMessage from "@/fronted/pages/player/chat/components/messages/UserTextMessage";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import { AiCtxMenuExplainSelectWithContextMsg } from '@/fronted/pages/player/chat/components/messages/AiCtxMenuExplainSelectWithContextMsg';
+import { AiExplainSelectionWithContextMessage } from '@/fronted/pages/player/chat/components/messages/AiExplainSelectionWithContextMessage';
 import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
-import { AiCtxMenuPolishMsg } from '@/fronted/pages/player/chat/components/messages/AiCtxMenuPolishMsg';
-import { AiCtxMenuExplainSelectMsg } from '@/fronted/pages/player/chat/components/messages/AiCtxMenuExplainSelectMsg';
+import { AiPolishMessage } from '@/fronted/pages/player/chat/components/messages/AiPolishMessage';
+import { AiExplainSelectionMessage } from '@/fronted/pages/player/chat/components/messages/AiExplainSelectionMessage';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import { useShallow } from 'zustand/react/shallow';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
@@ -25,8 +25,8 @@ import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { Send } from 'lucide-react';
 import AiCtxMenuPolishMessage from "@/common/types/msg/AiCtxMenuPolishMessage";
 
-const ChatCenter = () => {
-    const logger = getRendererLogger('ChatCenter');
+const ConversationPane = () => {
+    const logger = getRendererLogger('ConversationPane');
     const {messages, streamingMessage, sent, input, setInput} = useChatPanel(useShallow(s=> ({
         messages: s.messages,
         streamingMessage: s.streamingMessage,
@@ -74,19 +74,19 @@ const ChatCenter = () => {
     const mapping = (msg: CustomMessage<any>) => {
         switch (msg.msgType) {
             case "human-topic":
-                return <HumanTopicMsg msg={msg as HumanTopicMessage}/>;
+                return <UserTopicMessage msg={msg as HumanTopicMessage}/>;
             case "ai-welcome":
-                return <AiWelcomeMsg msg={msg as AiWelcomeMessage}/>;
+                return <AiWelcomeBubble msg={msg as AiWelcomeMessage}/>;
             case "ai-normal":
-                return <AiNormalMsg msg={msg as AiNormalMessage}/>;
+                return <AiTextMessage msg={msg as AiNormalMessage}/>;
             case "human-normal":
-                return <HumanNormalMsg msg={msg as HumanNormalMessage}/>;
+                return <UserTextMessage msg={msg as HumanNormalMessage}/>;
             case 'ai-func-explain-select':
-                return <AiCtxMenuExplainSelectMsg msg={msg as AiCtxMenuExplainSelectMessage}/>;
+                return <AiExplainSelectionMessage msg={msg as AiCtxMenuExplainSelectMessage}/>;
             case 'ai-func-explain-select-with-context':
-                return <AiCtxMenuExplainSelectWithContextMsg msg={msg as AiCtxMenuExplainSelectWithContextMessage}/>;
+                return <AiExplainSelectionWithContextMessage msg={msg as AiCtxMenuExplainSelectWithContextMessage}/>;
             case 'ai-func-polish':
-                return <AiCtxMenuPolishMsg msg={msg as AiCtxMenuPolishMessage}/>;
+                return <AiPolishMessage msg={msg as AiCtxMenuPolishMessage}/>;
             default:
                 return <></>
         }
@@ -216,4 +216,4 @@ const ChatCenter = () => {
         </div>
     )
 }
-export default ChatCenter;
+export default ConversationPane;

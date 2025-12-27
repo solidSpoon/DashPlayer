@@ -9,7 +9,7 @@ import { Skeleton } from '@/fronted/components/ui/skeleton';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
 
-const ChatLeftPhrases = ({ className}: {
+const PhrasesPane = ({ className}: {
     className: string,
 }) => {
     const tid = useChatPanel(state => state.tasks.phraseTask);
@@ -43,4 +43,4 @@ const ChatLeftPhrases = ({ className}: {
     )
 }
 
-export default ChatLeftPhrases;
+export default PhrasesPane;

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/fronted/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 
-const ChatTopicSelector = ({ className }: {
+const TopicSelector = ({ className }: {
     className: string,
 }) => {
 
@@ -61,4 +61,4 @@ const ChatTopicSelector = ({ className }: {
     );
 };
 
-export default ChatTopicSelector;
+export default TopicSelector;

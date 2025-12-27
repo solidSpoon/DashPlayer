@@ -4,17 +4,17 @@ import { IconOpenAI } from '@/fronted/pages/player/chat/components/icons';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
-import MsgDelete from '@/fronted/pages/player/chat/components/messages/MsgDelete';
+import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';
 import { AiFuncPolishRes } from '@/common/types/aiRes/AiFuncPolish';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 
-export function AiCtxMenuPolishMsg({ msg }: { msg: AiCtxMenuPolishMessage }) {
+export function AiPolishMessage({ msg }: { msg: AiCtxMenuPolishMessage }) {
     const { detail: resp } = useDpTaskViewer<AiFuncPolishRes>(msg.taskId);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     return (
         <div className={cn('group relative flex items-start')}>
-            <MsgDelete msg={msg} />
+            <MessageDeleteButton msg={msg} />
             <div
                 className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
                 <IconOpenAI />

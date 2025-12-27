@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 
-const MsgDelete = ({ msg }: { msg: CustomMessage<any> }) => {
+const MessageDeleteButton = ({ msg }: { msg: CustomMessage<any> }) => {
     const deleteMessage = useChatPanel(s => s.deleteMessage).bind(null, msg);
     return (
         <Button variant={'ghost'} size={'icon'} onClick={deleteMessage}
@@ -15,4 +15,4 @@ const MsgDelete = ({ msg }: { msg: CustomMessage<any> }) => {
     );
 };
 
-export default MsgDelete;
+export default MessageDeleteButton;

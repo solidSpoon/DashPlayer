@@ -10,7 +10,7 @@ import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseGrammarsRes } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
 import StrUtil from '@/common/utils/str-util';
 
-const ChatLeftGrammers = ({ className }: {
+const GrammarPane = ({ className }: {
     className: string,
 }) => {
     const retry = useChatPanel(state => state.retry);
@@ -41,4 +41,4 @@ const ChatLeftGrammers = ({ className }: {
     );
 };
 
-export default ChatLeftGrammers;
+export default GrammarPane;

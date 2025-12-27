@@ -3,12 +3,12 @@
 import * as React from 'react';
 import {cn} from "@/fronted/lib/utils";
 import {motion} from 'framer-motion';
-import ChatLeftWords from '@/fronted/pages/player/chat/components/ChatLeftWords';
-import ChatLeftPhrases from '@/fronted/pages/player/chat/components/ChatLeftPhrases';
-import ChatLeftGrammers from '@/fronted/pages/player/chat/components/ChatLeftGrammers';
-import ChatRightSentences from '@/fronted/pages/player/chat/components/ChatRightSentences';
-import ChatCenter from '@/fronted/pages/player/chat/components/ChatCenter';
-import ChatTopicSelector from '@/fronted/pages/player/chat/components/ChatTopicSelector';
+import VocabularyPane from '@/fronted/pages/player/chat/components/VocabularyPane';
+import PhrasesPane from '@/fronted/pages/player/chat/components/PhrasesPane';
+import GrammarPane from '@/fronted/pages/player/chat/components/GrammarPane';
+import SentencesPane from '@/fronted/pages/player/chat/components/SentencesPane';
+import ConversationPane from '@/fronted/pages/player/chat/components/ConversationPane';
+import TopicSelector from '@/fronted/pages/player/chat/components/TopicSelector';
 
 import {
     ContextMenu,
@@ -22,7 +22,7 @@ import {ChevronLeft, ChevronRight, X} from 'lucide-react';
 import {useShallow} from 'zustand/react/shallow';
 import {useHotkeys} from "react-hotkeys-hook";
 
-const Chat = () => {
+const ChatPanel = () => {
     const {createFromSelect, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
         createFromSelect: s.createFromSelect,
         clear: s.clear,
@@ -146,16 +146,16 @@ const Chat = () => {
                             <div
                                 className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
 
-                                <ChatLeftWords className={cn('flex-shrink-0')}/>
-                                <ChatLeftPhrases className={cn('flex-shrink-0')}/>
-                                <ChatLeftGrammers className={cn('flex-shrink-0')}/>
+                                <VocabularyPane className={cn('flex-shrink-0')}/>
+                                <PhrasesPane className={cn('flex-shrink-0')}/>
+                                <GrammarPane className={cn('flex-shrink-0')}/>
                             </div>
-                            <ChatCenter/>
+                            <ConversationPane/>
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <ChatTopicSelector className={cn('flex-shrink-0')}/>
+                                <TopicSelector className={cn('flex-shrink-0')}/>
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
-                                <ChatRightSentences className={cn('flex-shrink-0')}/>
+                                <SentencesPane className={cn('flex-shrink-0')}/>
                             </div>
                         </div>
                     </motion.div>
@@ -189,9 +189,9 @@ const Chat = () => {
     );
 };
 
-Chat.defaultProps = {
+ChatPanel.defaultProps = {
     orientation: 'horizontal',
     className: ''
 };
 
-export default Chat;
+export default ChatPanel;

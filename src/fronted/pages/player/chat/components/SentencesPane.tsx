@@ -41,11 +41,11 @@ const SentencesPart = ({ tid }: { tid: number }) => {
             className={'h-6 mt-2'} /></>}
     </>;
 };
-const ChatRightSentences = ({ className }: {
+const SentencesPane = ({ className }: {
     className: string,
 }) => {
 
-    const logger = getRendererLogger('ChatRightSentences');
+    const logger = getRendererLogger('SentencesPane');
     const tids = useChatPanel(state => state.tasks.sentenceTask);
     logger.debug('Sentence task IDs loaded', { tids });
     const retry = useChatPanel(state => state.retry);
@@ -64,4 +64,4 @@ const ChatRightSentences = ({ className }: {
     );
 };
 
-export default ChatRightSentences;
+export default SentencesPane;

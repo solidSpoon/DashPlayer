@@ -9,7 +9,7 @@ import ControlButton from '@/fronted/pages/player/components/ControlButton';
 import useFile from '@/fronted/hooks/useFile';
 import PlayerShortCut from '@/fronted/components/shared/shortcuts/PlayerShortCut';
 import SideBar from '@/fronted/components/layout/SideBar';
-import Chat from '@/fronted/pages/player/chat/Chat';
+import ChatPanel from '@/fronted/pages/player/chat/ChatPanel';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
 import PlaybackLayout from '@/fronted/pages/player/components/srt-layout/Layout';
@@ -357,7 +357,7 @@ const PlayerWithControlsPage = () => {
                     </>
                 )}
                 <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <Chat/>}
+                    {chatTopic !== 'offscreen' && <ChatPanel/>}
                 </AnimatePresence>
 
             </div>

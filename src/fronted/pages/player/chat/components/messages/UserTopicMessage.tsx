@@ -11,7 +11,7 @@ import useDpTaskViewer from "@/fronted/hooks/useDpTaskViewer";
 import {Nullable} from "@/common/types/Types";
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
-const logger = getRendererLogger('HumanTopicMsg');
+const logger = getRendererLogger('UserTopicMessage');
 
 const process = (original: string, parseRes: Nullable<AiPhraseGroupRes>): (string | AiPhraseGroupElement)[] => {
     if (((parseRes?.phraseGroups ?? []).length) === 0) return [original];
@@ -40,7 +40,7 @@ const process = (original: string, parseRes: Nullable<AiPhraseGroupRes>): (strin
 
     return res;
 };
-const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
+const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
     const retry = useChatPanel(state => state.retry);
     const {detail:res} = useDpTaskViewer<AiPhraseGroupRes>(msg.phraseGroupTask);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
@@ -114,4 +114,4 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
     );
 };
 
-export default HumanTopicMsg;
+export default UserTopicMessage;

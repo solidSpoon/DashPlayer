@@ -1,10 +1,9 @@
 'use client';
 
 import {IconOpenAI, IconUser} from '@/fronted/pages/player/chat/components/icons';
-import {spinner} from './spinner';
+import {spinner} from './Spinner';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import {cn} from '@/fronted/lib/utils';
-import {number} from "zod";
 
 export function UserMessage({children}: { children: string }) {
     return (

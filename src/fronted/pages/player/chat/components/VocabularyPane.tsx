@@ -10,10 +10,10 @@ import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
-const ChatLeftWords = ({ className }: {
+const VocabularyPane = ({ className }: {
     className: string,
 }) => {
-    const logger = getRendererLogger('ChatLeftWords');
+    const logger = getRendererLogger('VocabularyPane');
     const tid = useChatPanel(state => state.tasks.vocabularyTask);
 
     const { detail } = useDpTaskViewer<AiAnalyseNewWordsRes>(typeof tid === 'number' ? tid : null);
@@ -55,4 +55,4 @@ const ChatLeftWords = ({ className }: {
     );
 };
 
-export default ChatLeftWords;
+export default VocabularyPane;

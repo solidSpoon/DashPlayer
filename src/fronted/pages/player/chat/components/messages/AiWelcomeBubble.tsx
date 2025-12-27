@@ -10,8 +10,8 @@ import { AiFuncTranslateWithContextRes } from '@/common/types/aiRes/AiFuncTransl
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
-const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
-    const logger = getRendererLogger('AiWelcomeMsg');
+const AiWelcomeBubble = ({ msg }: { msg: AiWelcomeMessage }) => {
+    const logger = getRendererLogger('AiWelcomeBubble');
     const { detail: polishTaskRes } = useDpTaskViewer<AiFuncPolishRes>(msg.polishTask);
     const { detail: punctuationTaskResp } = useDpTaskViewer<AiFuncPunctuationRes>(msg.punctuationTask);
     const { detail: transTaskResp } = useDpTaskViewer<AiFuncTranslateWithContextRes>(msg.translateTask);
@@ -81,4 +81,4 @@ const AiWelcomeMsg = ({ msg }: { msg: AiWelcomeMessage }) => {
 };
 
 
-export default AiWelcomeMsg;
+export default AiWelcomeBubble;

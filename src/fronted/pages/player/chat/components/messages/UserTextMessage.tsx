@@ -2,12 +2,12 @@ import React from 'react';
 import {IconUser} from "@/fronted/pages/player/chat/components/icons";
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import MsgDelete from '@/fronted/pages/player/chat/components/messages/MsgDelete';
+import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';
 
-export default function HumanNormalMsg({msg}: { msg: HumanNormalMessage }) {
+export default function UserTextMessage({msg}: { msg: HumanNormalMessage }) {
     return (
         <div className="group relative flex items-start">
-            <MsgDelete msg={msg}/>
+            <MessageDeleteButton msg={msg}/>
             <div
                 className="flex size-[25px] shrink-0 select-none items-center justify-center rounded-md border bg-background shadow-sm">
                 <IconUser/>
