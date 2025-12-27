@@ -1,5 +1,5 @@
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
-import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
+import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
 import TYPES from '@/backend/ioc/types';
 import { SettingKey } from '@/common/types/store_schema';
 import { inject, injectable } from 'inversify';
@@ -19,4 +19,3 @@ export default class SettingsKeyValueService {
         return this.settingsStore.get(key);
     }
 }
-

@@ -18,8 +18,8 @@ import StorageController from '@/backend/adapters/controllers/StorageController'
 import SystemController from '@/backend/adapters/controllers/SystemController';
 import SubtitleController from '@/backend/adapters/controllers/SubtitleController';
 import AiFuncService from '@/backend/application/services/impl/AiFuncService';
-import SystemServiceImpl from '@/backend/application/services/impl/SystemServiceImpl';
-import SystemService from '@/backend/application/services/SystemService';
+import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
+import MainWindowRegistryImpl from '@/backend/infrastructure/system/MainWindowRegistryImpl';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import SystemConfigServiceImpl from '@/backend/application/services/impl/SystemConfigServiceImpl';
 import { CacheServiceImpl } from '@/backend/application/services/impl/CacheService';
@@ -85,10 +85,12 @@ import WordMatchServiceImpl from '@/backend/application/services/impl/WordMatchS
 import VocabularyController from '@/backend/adapters/controllers/VocabularyController';
 import VocabularyService from '@/backend/application/services/VocabularyService';
 import VocabularyServiceImpl from '@/backend/application/services/impl/VocabularyServiceImpl';
-import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
+import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import RendererGatewayImpl from '@/backend/infrastructure/renderer/RendererGatewayImpl';
-import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
+import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
 import RendererEventsImpl from '@/backend/infrastructure/renderer/RendererEventsImpl';
+import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
+import WindowPortImpl from '@/backend/infrastructure/window/WindowPortImpl';
 import WordsRepository from '@/backend/application/ports/repositories/WordsRepository';
 import WordsRepositoryImpl from '@/backend/infrastructure/db/repositories/WordsRepositoryImpl';
 import DpTaskRepository from '@/backend/application/ports/repositories/DpTaskRepository';
@@ -139,6 +141,8 @@ container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSi
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();
+container.bind<MainWindowRegistry>(TYPES.MainWindowRegistry).to(MainWindowRegistryImpl).inSingletonScope();
+container.bind<WindowPort>(TYPES.WindowPort).to(WindowPortImpl).inSingletonScope();
 container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncService).inSingletonScope();
 container.bind<WhisperModelService>(TYPES.WhisperModelService).to(WhisperModelService).inSingletonScope();
 container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
@@ -159,7 +163,6 @@ container.bind<VideoLearningService>(TYPES.VideoLearningService).to(VideoLearnin
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
 container.bind<SubtitleService>(TYPES.SubtitleService).to(SubtitleServiceImpl).inSingletonScope();
-container.bind<SystemService>(TYPES.SystemService).to(SystemServiceImpl).inSingletonScope();
 container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigServiceImpl).inSingletonScope();
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();

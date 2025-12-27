@@ -9,7 +9,7 @@ import ClientProviderService from '@/backend/application/services/ClientProvider
 import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
 import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
+import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import {
     OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,

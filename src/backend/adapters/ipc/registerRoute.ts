@@ -2,10 +2,10 @@ import { ipcMain } from 'electron';
 import util from 'util';
 
 import { ApiMap } from '@/common/api/api-def';
-import SystemService from '@/backend/application/services/SystemService';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
 
 const logger = getMainLogger('ipc');
 
@@ -80,9 +80,9 @@ export default function registerRoute<K extends keyof ApiMap>(path: K, func: Api
             const costMs = Date.now() - start;
             const message = error instanceof Error ? error.message : String(error);
             logger.error(`api-error path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
-            container.get<SystemService>(TYPES.SystemService).sendErrorToRenderer(
-                error instanceof Error ? error : new Error(String(error)),
-            );
+            container
+                .get<RendererEvents>(TYPES.RendererEvents)
+                .error(error instanceof Error ? error : new Error(String(error)));
             throw error;
         }
     });

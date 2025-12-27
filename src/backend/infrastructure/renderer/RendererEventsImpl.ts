@@ -1,21 +1,17 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import SystemService from '@/backend/application/services/SystemService';
-import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
+import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
 import { SettingKey } from '@/common/types/store_schema';
 import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 
 @injectable()
 export default class RendererEventsImpl implements RendererEvents {
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.MainWindowRegistry)
+    private mainWindowRegistry!: MainWindowRegistry;
 
     private resolveWindow() {
-        try {
-            return this.systemService.mainWindow();
-        } catch {
-            return null;
-        }
+        return this.mainWindowRegistry.tryGetMainWindow();
     }
 
     public storeUpdate(key: SettingKey, value: string): void {
@@ -32,5 +28,21 @@ export default class RendererEventsImpl implements RendererEvents {
             return;
         }
         win.webContents.send('dp-task-update', task);
+    }
+
+    public error(error: Error): void {
+        const win = this.resolveWindow();
+        if (!win || win.isDestroyed()) {
+            return;
+        }
+        win.webContents.send('error-msg', error);
+    }
+
+    public info(message: string): void {
+        const win = this.resolveWindow();
+        if (!win || win.isDestroyed()) {
+            return;
+        }
+        win.webContents.send('info-msg', message);
     }
 }

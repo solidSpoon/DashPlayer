@@ -14,7 +14,7 @@ import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigS
 import FileUtil from '@/backend/utils/FileUtil';
 import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
-import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
+import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 
 /**
  * 将 Whisper 的 API 响应转换成 SRT 文件格式

@@ -5,7 +5,7 @@ import { TranscriptionService } from '@/backend/application/services/Transcripti
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
+import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { CoreMessage } from 'ai';

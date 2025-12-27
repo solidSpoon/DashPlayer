@@ -25,7 +25,7 @@ import CacheService from '@/backend/application/services/CacheService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import { ClipOssService } from '@/backend/application/services/OssService';
 import FfmpegService from '@/backend/application/services/FfmpegService';
-import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
+import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import SubtitleService from '@/backend/application/services/SubtitleService';
 
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';

@@ -1,7 +1,7 @@
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
+import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import { WHISPER_MODEL_DOWNLOADED_KEY } from '@/common/constants/systemConfigKeys';
 import { WhisperModelSize, WhisperModelStatusVO, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
@@ -122,4 +122,3 @@ export class WhisperModelService {
         return { success: true, message: `静音检测模型已下载：${vadModel}` };
     }
 }
-

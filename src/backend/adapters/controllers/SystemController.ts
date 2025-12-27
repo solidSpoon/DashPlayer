@@ -3,7 +3,6 @@ import { app, dialog, shell } from 'electron';
 import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
-import SystemService from '@/backend/application/services/SystemService';
 import { checkUpdate } from '@/backend/application/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { inject, injectable } from 'inversify';
@@ -12,6 +11,7 @@ import StrUtil from '@/common/utils/str-util';
 import TYPES from '@/backend/ioc/types';
 import OpenDialogOptions = Electron.OpenDialogOptions;
 import LocationService from '@/backend/application/services/LocationService';
+import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
 
 /**
  * eg: .mkv -> mkv
@@ -25,8 +25,8 @@ function processFilter(filter: string[]) {
 
 @injectable()
 export default class SystemController implements Controller {
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.WindowPort)
+    private windowPort!: WindowPort;
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
@@ -90,15 +90,15 @@ export default class SystemController implements Controller {
     }
 
     public async setWindowButtonsVisible(visible: boolean) {
-        this.systemService.setWindowButtonsVisible(visible);
+        this.windowPort.setWindowButtonsVisible(visible);
     }
 
     public async changeWindowSize(state: WindowState) {
-        this.systemService.changeWindowSize(state);
+        this.windowPort.changeWindowSize(state);
     }
 
     public async windowState(): Promise<WindowState> {
-        return this.systemService.windowState();
+        return this.windowPort.windowState();
     }
 
     public async checkUpdate(): Promise<Release[]> {

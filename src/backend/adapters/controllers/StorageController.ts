@@ -5,7 +5,6 @@ import {inject, injectable} from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import LocationService from '@/backend/application/services/LocationService';
 import FileUtil from '@/backend/utils/FileUtil';
-import SystemService from '@/backend/application/services/SystemService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
 import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
 
@@ -13,7 +12,6 @@ import SettingsKeyValueService from '@/backend/application/services/impl/Setting
 export default class StorageController implements Controller {
     @inject(TYPES.SettingsKeyValueService) private settingsKeyValueService!: SettingsKeyValueService;
     @inject(TYPES.LocationService) private locationService!: LocationService;
-        @inject(TYPES.SystemService) private systemService!: SystemService;
     private logger = getMainLogger('StorageController');
 
     public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
