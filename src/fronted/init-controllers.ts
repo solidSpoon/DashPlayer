@@ -5,6 +5,7 @@
 
 import { initRendererApis } from './application/bootstrap/initRendererApis';
 import { initSettingsSync } from './application/bootstrap/initSettingsSync';
+import { initIpcMessageToasts } from './application/bootstrap/initIpcMessageToasts';
 import { getRendererLogger } from './log/simple-logger';
 
 function initializeRendererApis() {
@@ -14,9 +15,11 @@ function initializeRendererApis() {
     try {
         const cleanupRendererApis = initRendererApis();
         const cleanupSettingsSync = initSettingsSync();
+        const cleanupIpcMessageToasts = initIpcMessageToasts();
         const cleanup = () => {
             cleanupRendererApis();
             cleanupSettingsSync();
+            cleanupIpcMessageToasts();
         };
         
         // 将清理函数挂载到window对象，方便调试
