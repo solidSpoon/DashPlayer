@@ -4,7 +4,7 @@ import { injectable } from 'inversify';
 import db from '@/backend/infrastructure/db';
 import { InsertVideoLearningClipWord, videoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 
-import VideoLearningClipWordRepository from '@/backend/infrastructure/db/repositories/VideoLearningClipWordRepository';
+import VideoLearningClipWordRepository from '@/backend/application/ports/repositories/VideoLearningClipWordRepository';
 
 @injectable()
 export default class VideoLearningClipWordRepositoryImpl implements VideoLearningClipWordRepository {

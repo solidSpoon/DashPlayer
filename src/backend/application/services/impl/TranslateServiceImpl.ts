@@ -7,8 +7,8 @@ import { streamObject } from 'ai';
 import TYPES from '@/backend/ioc/types';
 import { SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
 import { WordTranslate, InsertWordTranslate } from '@/backend/infrastructure/db/tables/wordTranslates';
-import SentenceTranslatesRepository from '@/backend/infrastructure/db/repositories/SentenceTranslatesRepository';
-import WordTranslatesRepository from '@/backend/infrastructure/db/repositories/WordTranslatesRepository';
+import SentenceTranslatesRepository from '@/backend/application/ports/repositories/SentenceTranslatesRepository';
+import WordTranslatesRepository from '@/backend/application/ports/repositories/WordTranslatesRepository';
 
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';

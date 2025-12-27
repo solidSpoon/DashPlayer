@@ -3,7 +3,7 @@ import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
 import { systemConfigs } from '@/backend/infrastructure/db/tables/sysConf';
-import SysConfRepository from '@/backend/infrastructure/db/repositories/SysConfRepository';
+import SysConfRepository from '@/backend/application/ports/repositories/SysConfRepository';
 import TimeUtil from '@/common/utils/TimeUtil';
 
 @injectable()

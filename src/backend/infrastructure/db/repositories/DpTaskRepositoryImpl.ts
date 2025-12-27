@@ -4,7 +4,7 @@ import { injectable } from 'inversify';
 import db from '@/backend/infrastructure/db';
 import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 import TimeUtil from '@/common/utils/TimeUtil';
-import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/infrastructure/db/repositories/DpTaskRepository';
+import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/application/ports/repositories/DpTaskRepository';
 
 @injectable()
 export default class DpTaskRepositoryImpl implements DpTaskRepository {

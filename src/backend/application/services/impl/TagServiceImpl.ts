@@ -3,7 +3,7 @@ import StrUtil from '@/common/utils/str-util';
 import TagService from '@/backend/application/services/TagService';
 import TYPES from '@/backend/ioc/types';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
-import FavouriteClipsRepository from '@/backend/infrastructure/db/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 
 
 @injectable()

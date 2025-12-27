@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import TYPES from '@/backend/ioc/types';
-import SysConfRepository from '@/backend/infrastructure/db/repositories/SysConfRepository';
+import SysConfRepository from '@/backend/application/ports/repositories/SysConfRepository';
 
 @injectable()
 export default class SystemConfigServiceImpl implements SystemConfigService {

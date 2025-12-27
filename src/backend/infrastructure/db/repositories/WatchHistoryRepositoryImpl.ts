@@ -7,7 +7,7 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import WatchHistoryRepository, {
     WatchHistoryDistinctBasePathFileName,
     WatchHistoryUpdatePatch,
-} from '@/backend/infrastructure/db/repositories/WatchHistoryRepository';
+} from '@/backend/application/ports/repositories/WatchHistoryRepository';
 
 @injectable()
 export default class WatchHistoryRepositoryImpl implements WatchHistoryRepository {

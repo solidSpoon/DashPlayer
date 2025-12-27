@@ -7,7 +7,7 @@ import TimeUtil from '@/common/utils/TimeUtil';
 
 import SentenceTranslatesRepository, {
     SentenceTranslatesUpsertParams,
-} from '@/backend/infrastructure/db/repositories/SentenceTranslatesRepository';
+} from '@/backend/application/ports/repositories/SentenceTranslatesRepository';
 
 @injectable()
 export default class SentenceTranslatesRepositoryImpl implements SentenceTranslatesRepository {

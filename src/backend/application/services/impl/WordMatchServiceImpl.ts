@@ -3,7 +3,7 @@ import nlp from 'compromise';
 import { inject, injectable } from 'inversify';
 import {MatchedWord, WordMatchService} from '@/backend/application/services/WordMatchService';
 import TYPES from '@/backend/ioc/types';
-import WordsRepository from '@/backend/infrastructure/db/repositories/WordsRepository';
+import WordsRepository from '@/backend/application/ports/repositories/WordsRepository';
 
 @injectable()
 export default class WordMatchServiceImpl implements WordMatchService {

@@ -14,7 +14,7 @@ import StrUtil from '@/common/utils/str-util';
 import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import FileUtil from '@/backend/utils/FileUtil';
-import WatchHistoryRepository from '@/backend/infrastructure/db/repositories/WatchHistoryRepository';
+import WatchHistoryRepository from '@/backend/application/ports/repositories/WatchHistoryRepository';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 
 

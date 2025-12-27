@@ -4,7 +4,7 @@ import { injectable } from 'inversify';
 import db from '@/backend/infrastructure/db';
 import { InsertVideoLearningClip, VideoLearningClip, videoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import VideoLearningClipRepository, { VideoLearningClipCountQuery, VideoLearningClipPageQuery } from '@/backend/infrastructure/db/repositories/VideoLearningClipRepository';
+import VideoLearningClipRepository, { VideoLearningClipCountQuery, VideoLearningClipPageQuery } from '@/backend/application/ports/repositories/VideoLearningClipRepository';
 
 @injectable()
 export default class VideoLearningClipRepositoryImpl implements VideoLearningClipRepository {

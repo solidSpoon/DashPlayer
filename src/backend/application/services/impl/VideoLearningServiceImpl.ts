@@ -5,8 +5,8 @@ import fs from 'fs';
 import db from '@/backend/infrastructure/db';
 import { VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
-import VideoLearningClipRepository from '@/backend/infrastructure/db/repositories/VideoLearningClipRepository';
-import VideoLearningClipWordRepository from '@/backend/infrastructure/db/repositories/VideoLearningClipWordRepository';
+import VideoLearningClipRepository from '@/backend/application/ports/repositories/VideoLearningClipRepository';
+import VideoLearningClipWordRepository from '@/backend/application/ports/repositories/VideoLearningClipWordRepository';
 
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';

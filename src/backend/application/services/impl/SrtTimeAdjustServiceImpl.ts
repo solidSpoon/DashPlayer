@@ -5,7 +5,7 @@ import {
 import { inject, injectable } from 'inversify';
 import SrtTimeAdjustService from '@/backend/application/services/SrtTimeAdjustService';
 import TYPES from '@/backend/ioc/types';
-import SubtitleTimestampAdjustmentsRepository from '@/backend/infrastructure/db/repositories/SubtitleTimestampAdjustmentsRepository';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/application/ports/repositories/SubtitleTimestampAdjustmentsRepository';
 
 @injectable()
 export default class SrtTimeAdjustServiceImpl implements SrtTimeAdjustService {

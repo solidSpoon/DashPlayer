@@ -9,7 +9,7 @@ import {Cancelable} from '@/common/interfaces';
 
 import {CancelByUserError} from '@/backend/errors/errors';
 import TYPES from "@/backend/ioc/types";
-import DpTaskRepository from '@/backend/infrastructure/db/repositories/DpTaskRepository';
+import DpTaskRepository from '@/backend/application/ports/repositories/DpTaskRepository';
 import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
 
 @injectable()
@@ -176,7 +176,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * 应用重启时取消所有任务
      */
     public static async cancelAll() {
-        const { default: DpTaskRepositoryImpl } = await import('@/backend/infrastructure/db/repositories/impl/DpTaskRepositoryImpl');
+        const { default: DpTaskRepositoryImpl } = await import('@/backend/infrastructure/db/repositories/DpTaskRepositoryImpl');
         const repo = new DpTaskRepositoryImpl();
         await repo.cancelAllActive();
     }

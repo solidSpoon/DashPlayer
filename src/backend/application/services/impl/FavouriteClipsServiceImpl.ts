@@ -19,7 +19,7 @@ import FfmpegService from '@/backend/application/services/FfmpegService';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
-import FavouriteClipsRepository from '@/backend/infrastructure/db/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 
 type ClipTask = {
     videoPath: string,
