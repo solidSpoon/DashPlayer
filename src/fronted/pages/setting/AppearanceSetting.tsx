@@ -11,9 +11,10 @@ import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const logger = getRendererLogger('AppearanceSetting');
-const api = window.electron;
+const api = backendClient;
 
 type AppearanceFormValues = {
     theme: 'dark' | 'light';

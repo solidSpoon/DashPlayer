@@ -8,8 +8,9 @@ import TransHolder from '@/common/utils/TransHolder';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export interface PlayInfo {
   video: ClipMeta & OssBaseMeta;

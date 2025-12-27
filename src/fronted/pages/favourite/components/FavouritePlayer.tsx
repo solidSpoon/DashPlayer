@@ -16,8 +16,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const logger = getRendererLogger('FavouritePlayer');
 
 // 进度条子组件：只订阅 currentTime 和 duration，其他部分不受影响

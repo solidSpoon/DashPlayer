@@ -25,8 +25,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/fronted/components/ui/dropdown-menu';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
     v: WatchHistoryVO;
     variant?: BrowserItemVariant;

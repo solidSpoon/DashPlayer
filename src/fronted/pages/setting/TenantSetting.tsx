@@ -11,8 +11,9 @@ import { useForm, Controller } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { SettingKeyObj } from '@/common/types/store_schema';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 type TenantFormValues = {
     translationEngine: 'tencent' | 'openai';

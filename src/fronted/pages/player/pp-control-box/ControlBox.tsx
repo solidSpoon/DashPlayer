@@ -11,8 +11,8 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { SettingKey } from '@/common/types/store_schema';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { SettingToggle, TranscriptButton, AutoClipButton, ClearAdjustButton } from './index';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
 const logger = getRendererLogger('ControlBox');
 
 const getShortcut = (key: SettingKey) => {
@@ -55,7 +55,7 @@ export default function ControlBox() {
   const setting = useSetting((s) => s.setting);
   const autoPlayNextSetting = useSetting((s) => s.setting('player.autoPlayNext'));
 
-  const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
+  const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => backendClient.call('system/window-size'));
 
   const { podcstMode, setPodcastMode } = useLayout(
     useShallow((s) => ({
@@ -153,9 +153,9 @@ export default function ControlBox() {
           checked={windowState === 'fullscreen'}
           onCheckedChange={async () => {
             if (windowState === 'fullscreen') {
-              await api.call('system/window-size/change', 'normal');
+              await backendClient.call('system/window-size/change', 'normal');
             } else {
-              await api.call('system/window-size/change', 'fullscreen');
+              await backendClient.call('system/window-size/change', 'fullscreen');
             }
             await swrMutate(SWR_KEY.WINDOW_SIZE);
           }}

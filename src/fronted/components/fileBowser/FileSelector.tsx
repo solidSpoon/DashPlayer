@@ -12,8 +12,9 @@ import useLayout from '@/fronted/hooks/useLayout';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast } from 'sonner';
 import StrUtil from '@/common/utils/str-util';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export class FileAction {
 

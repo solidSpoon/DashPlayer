@@ -9,8 +9,9 @@ import useSWR from 'swr';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import NewTips from '@/fronted/components/NewTips';
 import { cn } from '@/fronted/lib/utils';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 const CheckUpdate = () => {
 

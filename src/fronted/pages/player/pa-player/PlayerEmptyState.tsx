@@ -10,8 +10,9 @@ import PathUtil from '@/common/utils/PathUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const logger = getRendererLogger('PlayerEmptyState');
 
 type PlayerEmptyStateProps = {

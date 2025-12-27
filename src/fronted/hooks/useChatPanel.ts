@@ -20,8 +20,9 @@ import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export type Topic = {
     content: string | {

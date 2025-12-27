@@ -6,6 +6,7 @@ import { VideoClip } from '@/fronted/hooks/useClipTender';
 import ClipGrid from '@/fronted/pages/video-learning/ClipGrid';
 import VideoPlayerPane from '@/fronted/pages/video-learning/VideoPlayerPane';
 import WordSidebar from '@/fronted/pages/video-learning/WordSidebar';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import {
   Pagination,
   PaginationContent,
@@ -65,7 +66,7 @@ export default function VideoLearningPage() {
   const { data: learningClips = DEFAULT_LEARNING_RESPONSE, isValidating } = useSWR(
     searchKey,
     async () => {
-      return await window.electron.call('video-learning/search', {
+      return await backendClient.call('video-learning/search', {
         word: selectedWordValue,
         page,
         pageSize: PAGE_SIZE
@@ -205,13 +206,13 @@ export default function VideoLearningPage() {
   const fetchWords = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await window.electron.call('vocabulary/get-all', {});
+      const result = await backendClient.call('vocabulary/get-all', {});
       if (result.success) {
         const wordData: WordItem[] = Array.isArray(result.data) ? result.data as WordItem[] : [];
 
         let clipCounts: Record<string, number> = {};
         try {
-          const countResult = await window.electron.call('video-learning/clip-counts', undefined);
+          const countResult = await backendClient.call('video-learning/clip-counts', undefined);
           if (countResult?.success && countResult.data) {
             clipCounts = countResult.data as Record<string, number>;
           }
@@ -248,7 +249,7 @@ export default function VideoLearningPage() {
   // 导出模板
   const exportTemplate = useCallback(async () => {
     try {
-      const result = await window.electron.call('vocabulary/export-template');
+      const result = await backendClient.call('vocabulary/export-template');
       if (result.success) {
         // 直接使用 data URL 下载，避免手动 base64 解码
         const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.data}`;
@@ -282,7 +283,7 @@ export default function VideoLearningPage() {
         return;
       }
 
-      const result = await window.electron.call('vocabulary/import', {
+      const result = await backendClient.call('vocabulary/import', {
         filePath
       });
 
@@ -318,7 +319,7 @@ export default function VideoLearningPage() {
       const tasks = clipsToProcess.map(async (clip) => {
         try {
           const startTime = clip.clipContent.find((c) => c.isClip)?.start || 0;
-          const thumbnailPathOrUrl = await window.electron.call('split-video/thumbnail', {
+          const thumbnailPathOrUrl = await backendClient.call('split-video/thumbnail', {
             filePath: clip.videoPath,
             time: startTime
           });

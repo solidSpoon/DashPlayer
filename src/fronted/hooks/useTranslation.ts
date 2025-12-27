@@ -5,8 +5,7 @@ import { Sentence } from '@/common/types/SentenceC';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 import { SettingKey } from '@/common/types/store_schema';
-
-const api = window.electron;
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 // 每句话的翻译状态
 export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
@@ -111,7 +110,7 @@ const useTranslation = create(
             }
 
             // 只发送未翻译的索引
-            api.call('ai-trans/request-group-translation', {
+            backendClient.call('ai-trans/request-group-translation', {
                 fileHash,
                 indices: untranslatedIndices,
                 useCache: true
@@ -136,7 +135,7 @@ const useTranslation = create(
         // 强制重新翻译
         retranslate: (fileHash: string, indices: number[], useCache = false) => {
             // 发送索引数组，不使用缓存
-            api.call('ai-trans/request-group-translation', {
+            backendClient.call('ai-trans/request-group-translation', {
                 fileHash,
                 indices,
                 useCache
@@ -263,7 +262,7 @@ const shouldAcceptTranslation = (
 };
 
 const syncInitialSettings = () => {
-    api.call('storage/get', 'translation.engine').then((engine: string) => {
+    backendClient.call('storage/get', 'translation.engine').then((engine: string) => {
         if (engine === 'openai' || engine === 'tencent') {
             useTranslation.getState().setEngine(engine);
         }
@@ -271,7 +270,7 @@ const syncInitialSettings = () => {
         getRendererLogger('useTranslation').error('failed to sync translation.engine', { error });
     });
 
-    api.call('storage/get', 'services.openai.subtitleTranslationMode')
+    backendClient.call('storage/get', 'services.openai.subtitleTranslationMode')
         .then((mode: string) => {
             const normalized: TranslationMode = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
             useTranslation.getState().setOpenAiMode(normalized);
@@ -282,7 +281,7 @@ const syncInitialSettings = () => {
 
 syncInitialSettings();
 
-api.onStoreUpdate((key: SettingKey, value: string) => {
+window.electron.onStoreUpdate((key: SettingKey, value: string) => {
     if (key === 'translation.engine') {
         if (value === 'openai' || value === 'tencent') {
             useTranslation.getState().setEngine(value);

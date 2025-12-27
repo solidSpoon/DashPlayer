@@ -17,8 +17,9 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/components/fileBowser/music-card';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 const ProjectListItem = ({ video, onSelected }: {
     video: WatchHistoryVO,

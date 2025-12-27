@@ -23,9 +23,10 @@ import { Dialog, DialogContent } from '@/fronted/components/ui/dialog';
 import { Badge } from '@/fronted/components/ui/badge';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 // 模拟API调用
-const api = window.electron;
+const api = backendClient;
 export default function TagSelector() {
     const playInfo = useFavouriteClip(state => state.playInfo);
     const {

@@ -19,8 +19,9 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import MusicCard from '@/fronted/components/fileBowser/music-card';
 import { motion } from 'framer-motion';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export interface CtxMenu {
     icon: React.ReactNode;

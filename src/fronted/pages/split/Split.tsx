@@ -14,8 +14,9 @@ import { useShallow } from 'zustand/react/shallow';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { AllFormats } from '@/common/utils/MediaUtil';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 const example = `
 00:00:00 Intro

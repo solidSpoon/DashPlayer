@@ -10,11 +10,12 @@ import { Button } from '@/fronted/components/ui/button';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import Eb from '@/fronted/components/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const logger = getRendererLogger('Convert');
 
 
-const api = window.electron;
+const api = backendClient;
 const Convert = () => {
     const {
         files,

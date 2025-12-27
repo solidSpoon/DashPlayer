@@ -1,7 +1,8 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 export type ScreenSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 const SCREEN_SIZES: ScreenSize[] = ['sm', 'md', 'lg', 'xl', '2xl'];
 export type UseLayoutState = {

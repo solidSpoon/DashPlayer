@@ -17,8 +17,9 @@ import {
   CommandList
 } from '@/fronted/components/ui/command';
 import { apiPath } from '@/fronted/lib/swr-util';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const TagQuery = ({
                     onUpdate
                   }: {

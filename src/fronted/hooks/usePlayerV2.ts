@@ -6,8 +6,9 @@ import StrUtil from '@/common/utils/str-util';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 import useSetting from '@/fronted/hooks/useSetting';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export type SeekAction = { time: number } | ((prev: { time: number }) => { time: number });
 type Range = { start: number; end: number };

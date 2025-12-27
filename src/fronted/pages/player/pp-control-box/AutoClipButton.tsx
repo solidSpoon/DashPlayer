@@ -7,8 +7,8 @@ import TooltippedButton from '@/fronted/components/common/TooltippedButton';
 import useFile from '@/fronted/hooks/useFile';
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
 const logger = getRendererLogger('AutoClipButton');
 
 type ClipStatus = 'pending' | 'in_progress' | 'completed' | 'analyzing';
@@ -34,7 +34,7 @@ export default function AutoClipButton() {
       ? ['video-learning/detect-clip-status', videoPath, srtHash, subtitlePath]
       : null,
     async ([, videoPathParam, srtHashParam, subtitlePathParam]) => {
-      const result = await api.call('video-learning/detect-clip-status', {
+      const result = await backendClient.call('video-learning/detect-clip-status', {
         videoPath: videoPathParam,
         srtKey: srtHashParam,
         srtPath: subtitlePathParam || undefined
@@ -190,7 +190,7 @@ export default function AutoClipButton() {
       if (clipTaskKey) {
         markClipTaskRequested(clipTaskKey);
       }
-      await api.call('video-learning/auto-clip', {
+      await backendClient.call('video-learning/auto-clip', {
         videoPath,
         srtKey: srtHash,
         srtPath: subtitlePath

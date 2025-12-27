@@ -3,8 +3,9 @@ import { persist, subscribeWithSelector } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export interface TranscriptTask {
     file: string;

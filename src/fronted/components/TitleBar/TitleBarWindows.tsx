@@ -4,13 +4,14 @@ import './TitleBarWindows.css';
 import useLayout from '@/fronted/hooks/useLayout';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import useTrafficLightsVisibility from './useTrafficLightsVisibility';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 export interface TitleBarWindowsProps {
     maximizable?: boolean;
     className?: string;
 }
 
-const api = window.electron;
+const api = backendClient;
 const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
     const showSideBar = useLayout((s) => s.showSideBar);
     const { visible, onMouseEnter, onMouseLeave, onMouseMove } = useTrafficLightsVisibility(showSideBar);

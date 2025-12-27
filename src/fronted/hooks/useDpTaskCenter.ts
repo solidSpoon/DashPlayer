@@ -3,8 +3,10 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {DpTask, DpTaskState} from '@/backend/infrastructure/db/tables/dpTask';
 import {emptyFunc} from '@/common/utils/Util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { dpTaskEvents } from '@/fronted/application/bootstrap/dpTaskEvents';
 
-const api = window.electron;
+const api = backendClient;
 
 type UseDpTaskCenterState = {
     tasks: Map<number, DpTask | 'init'>;
@@ -101,7 +103,7 @@ export default useDpTaskCenter;
 let cleanupListener: (() => void) | null = null;
 export const startListeningToDpTasks = () => {
     if (!cleanupListener) {
-        cleanupListener = api.onTaskUpdate((updatedTask: DpTask) => {
+        cleanupListener = dpTaskEvents.onTaskUpdate((updatedTask: DpTask) => {
             if (!updatedTask || !updatedTask.id) return;
               useDpTaskCenter.setState(state => ({
                 tasks: new Map(state.tasks).set(updatedTask.id, updatedTask)

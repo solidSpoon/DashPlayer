@@ -20,8 +20,9 @@ import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 import UrlUtil from "@/common/utils/UrlUtil";
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
     file: string,

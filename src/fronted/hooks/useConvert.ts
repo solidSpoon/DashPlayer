@@ -4,8 +4,9 @@ import { FolderVideos } from '@/common/types/tonvert-type';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 
 export type UseConvertState = {

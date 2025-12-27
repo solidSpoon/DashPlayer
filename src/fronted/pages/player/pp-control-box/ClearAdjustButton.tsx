@@ -5,6 +5,7 @@ import TooltippedButton from '@/fronted/components/common/TooltippedButton';
 import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const getShortcut = (key: string) => useSetting.getState().setting(key as any);
 
@@ -21,10 +22,9 @@ export default function ClearAdjustButton() {
   `;
 
   const handleClick = async () => {
-    const api = window.electron;
     const fileHash = useFile.getState().srtHash;
     if (!fileHash) return;
-    await api.call('subtitle-timestamp/delete/by-file-hash', fileHash);
+    await backendClient.call('subtitle-timestamp/delete/by-file-hash', fileHash);
     // 触发字幕重载
     const path = useFile.getState().subtitlePath;
     useFile.setState({ subtitlePath: null });

@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import TimeUtil from '@/common/utils/TimeUtil';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import useSWR from "swr";
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 export interface TranscriptItemProps {
     file: string;
@@ -15,7 +16,7 @@ export interface TranscriptItemProps {
     onDelete: () => void;
 }
 
-const api = window.electron;
+const api = backendClient;
 
 const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
     const [started, setStarted] = React.useState(false);

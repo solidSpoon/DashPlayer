@@ -2,8 +2,7 @@ import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-
-const api = window.electron;
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 export type SettingState = {
     init: boolean;
@@ -25,7 +24,7 @@ const useSetting = create(
                 ...state,
                 values: new Map(state.values).set(key, value),
             }));
-            await api.call('storage/put', { key, value });
+            await backendClient.call('storage/put', { key, value });
         },
         setLocalSetting: (key: SettingKey, value: string) => {
             set((state) => ({
@@ -42,13 +41,13 @@ const useSetting = create(
 for (const key in SettingKeyObj) {
     const k = key as SettingKey;
     getRendererLogger('useSetting').debug('setting init', { key: k });
-    api.call('storage/get', k).then((value: string) => {
+    backendClient.call('storage/get', k).then((value: string) => {
         getRendererLogger('useSetting').debug('setting init value', { key: k, value });
         useSetting.getState().setLocalSetting(k, value);
     });
 }
 
-api.onStoreUpdate((key: SettingKey, value: string) => {
+window.electron.onStoreUpdate((key: SettingKey, value: string) => {
     getRendererLogger('useSetting').debug('store update', { key, value });
     const oldValues = useSetting.getState().values.get(key);
     if (oldValues !== value) {

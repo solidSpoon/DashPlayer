@@ -20,8 +20,9 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
 import useSetting from '@/fronted/hooks/useSetting';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 const OPENAI_MODEL_PRESETS = [
     { value: 'gpt-4o-mini', label: 'gpt-4o-mini (推荐)' },

@@ -26,8 +26,9 @@ import {ModeSwitchToast} from '@/fronted/components/toasts/ModeSwitchToast';
 import useSystem from '@/fronted/hooks/useSystem';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast as sonnerToast } from 'sonner';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const COMPAT_TOAST_ID = 'compat-playback-toast';

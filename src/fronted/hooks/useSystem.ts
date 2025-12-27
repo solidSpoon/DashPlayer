@@ -1,8 +1,9 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import PathUtil from '@/common/utils/PathUtil';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 type State = {
     isWindows: boolean;
     isMac: boolean;

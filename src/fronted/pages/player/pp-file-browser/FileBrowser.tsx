@@ -15,8 +15,9 @@ import useSWR from 'swr';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import BackNavItem from '@/fronted/components/fileBowser/BackNavItem';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const logger = getRendererLogger('FileBrowser');
 const FileBrowser = () => {
     const navigate = useNavigate();

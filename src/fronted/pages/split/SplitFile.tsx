@@ -13,8 +13,9 @@ import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
 import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/components/fileBowser/BackNavItem';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const SplitFile = () => {
 
     const {updateFile, videoPath} = useSplit(useShallow(s => ({

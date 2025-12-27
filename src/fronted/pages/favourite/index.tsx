@@ -14,8 +14,9 @@ import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 const Loader = () => {
     const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info'), {

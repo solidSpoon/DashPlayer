@@ -3,8 +3,9 @@ import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronte
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
 import { UnsupportedVideoFormats } from '@/common/utils/MediaUtil';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export default function ConvertFileSelector({
                                          onSelected

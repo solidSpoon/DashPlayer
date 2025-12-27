@@ -5,6 +5,7 @@ import { cn } from '@/fronted/lib/utils';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const logger = getRendererLogger('ProjectListComp');
 
@@ -16,7 +17,7 @@ export interface ProjectListCompProps {
     enterProj?: string;
 }
 
-const api = window.electron;
+const api = backendClient;
 
 
 const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = '' }: ProjectListCompProps) => {

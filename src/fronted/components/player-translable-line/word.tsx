@@ -16,8 +16,9 @@ import { useTransLineTheme } from './translatable-theme';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/hooks/useDictionaryStream';
 import useSetting from '@/fronted/hooks/useSetting';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const logger = getRendererLogger('Word');
 export interface WordParam {
     word: string;

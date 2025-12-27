@@ -4,8 +4,9 @@ import React from 'react';
 import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export interface FolderSelectorProps {
     onSelected?: (folders: string[]) => void;

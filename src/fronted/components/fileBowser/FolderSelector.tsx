@@ -5,10 +5,11 @@ import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const logger = getRendererLogger('FolderSelector');
 
-const api = window.electron;
+const api = backendClient;
 
 export interface FolderSelectorProps {
     onSelected?: (fp: string) => void;

@@ -5,8 +5,9 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import StrUtil from '@/common/utils/str-util';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 export interface TaskChapterParseResult extends ChapterParseResult {
     taskId: number | null;

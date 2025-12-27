@@ -14,26 +14,26 @@ import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
 const logger = getRendererLogger('HomePage');
 const HomePage = () => {
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
 
     async function handleClickById(vId: string) {
-        await api.call('system/window-size/change', 'player');
+        await backendClient.call('system/window-size/change', 'player');
         changeSideBar(false);
         navigate(`/player/${vId}`);
     }
 
-    const { data: vps } = useSWR(apiPath('watch-history/list'), () => api.call('watch-history/list'));
+    const { data: vps } = useSWR(apiPath('watch-history/list'), () => backendClient.call('watch-history/list'));
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
     // 从第四个开始截取num个
     const rest = vps?.slice(3, num + 3);
     useEffect(() => {
-        api.call('system/window-size/change', 'home').then();
+        backendClient.call('system/window-size/change', 'home').then();
         clear();
     }, [clear]);
     logger.debug('video project statistics', { vpsCount: vps?.length, restCount: rest?.length, num });
@@ -54,19 +54,19 @@ const HomePage = () => {
                 >
                     <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
                     <Link
-                        onClick={() => api.call('system/window-size/change', 'player')}
+                        onClick={() => backendClient.call('system/window-size/change', 'player')}
                         to="/home" className="font-semibold text-primary mt-28 text-base ">
                         Home Page
                     </Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/favorite'}
+                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/favorite'}
                           className="font-semibold ">Favorite Clips</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/transcript'}
+                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/transcript'}
                           className="font-semibold ">Transcript</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to="/split"
+                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to="/split"
                           className="font-semibold ">Split Video</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/convert'}
+                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/convert'}
                           className="font-semibold ">Convert</Link>
-                    <Link onClick={() => api.call('system/window-size/change', 'player')} to={'/vocabulary'}
+                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/vocabulary'}
                           className="font-semibold ">Vocabulary</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
@@ -79,7 +79,7 @@ const HomePage = () => {
                         />
                         <FolderSelector
                             onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
-                                await api.call('system/window-size/change', 'player');
+                                await backendClient.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
                             })}

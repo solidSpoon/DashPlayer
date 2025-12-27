@@ -6,8 +6,9 @@ import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { computeResumeTime } from '@/fronted/lib/playerResume';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const logger = getRendererLogger('usePlayerV2Bridge');
 
 async function waitForPlayerDuration(timeoutMs = 1500): Promise<number> {

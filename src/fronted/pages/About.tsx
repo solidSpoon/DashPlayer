@@ -5,8 +5,9 @@ import AboutBg from '@/fronted/components/bg/AboutBg';
 import Separator from '@/fronted/components/Separtor';
 import logoLight from '../../../assets/logo-light.png';
 import useSWR from "swr";
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 const About = () => {
     const {data:appVersion} = useSWR('system/app-version', () => api.call('system/app-version'),{
         fallbackData: '0.0.0'

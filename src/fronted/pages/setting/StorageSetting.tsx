@@ -20,8 +20,9 @@ import { useForm, Controller } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { Input } from '@/fronted/components/ui/input';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
-const api = window.electron;
+const api = backendClient;
 
 type StorageFormValues = {
     path: string;
