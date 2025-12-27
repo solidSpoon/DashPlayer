@@ -1,4 +1,4 @@
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { FolderVideos } from '@/common/types/tonvert-type';
 import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';

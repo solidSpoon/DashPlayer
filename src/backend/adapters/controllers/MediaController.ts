@@ -1,5 +1,5 @@
 import {ChapterParseResult} from '@/common/types/chapter-result';
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import FfmpegServiceImpl from '@/backend/services/impl/FfmpegServiceImpl';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';

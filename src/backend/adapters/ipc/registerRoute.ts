@@ -1,10 +1,11 @@
 import { ipcMain } from 'electron';
+import util from 'util';
+
 import { ApiMap } from '@/common/api/api-def';
 import SystemService from '@/backend/services/SystemService';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import util from 'util';
 
 const logger = getMainLogger('ipc');
 
@@ -30,11 +31,11 @@ function sanitize(value: unknown, depth = 0): unknown {
     if (typeof value === 'object') {
         const out: Record<string, unknown> = {};
         const entries = Object.entries(value as Record<string, unknown>).slice(0, maxKeys);
-        for (const [k, v] of entries) {
-            if (SENSITIVE_KEY_RE.test(k)) {
-                out[k] = '***';
+        for (const [key, val] of entries) {
+            if (SENSITIVE_KEY_RE.test(key)) {
+                out[key] = '***';
             } else {
-                out[k] = sanitize(v, depth + 1);
+                out[key] = sanitize(val, depth + 1);
             }
         }
         return out;

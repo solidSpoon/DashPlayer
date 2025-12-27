@@ -1,5 +1,5 @@
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/interfaces/controller';

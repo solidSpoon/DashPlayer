@@ -1,4 +1,4 @@
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
@@ -20,4 +20,3 @@ export default class SubtitleController implements Controller {
         registerRoute('subtitle/srt/parse-to-sentences', (p) => this.parseSrt(p));
     }
 }
-

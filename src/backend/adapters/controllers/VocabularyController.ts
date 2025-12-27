@@ -2,7 +2,7 @@ import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import VocabularyService, {GetAllWordsParams} from '@/backend/services/VocabularyService';
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 
 @injectable()
 export default class VocabularyController implements Controller {

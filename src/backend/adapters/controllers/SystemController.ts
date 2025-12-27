@@ -1,4 +1,4 @@
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { app, dialog, shell } from 'electron';
 import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';

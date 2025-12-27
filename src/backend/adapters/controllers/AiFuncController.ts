@@ -1,5 +1,5 @@
 import TtsService from '@/backend/services/TtsService';
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import AiServiceImpl from '@/backend/services/AiServiceImpl';
 import ChatServiceImpl from '@/backend/services/impl/ChatServiceImpl';
 import UrlUtil from '@/common/utils/UrlUtil';

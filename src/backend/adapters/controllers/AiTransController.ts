@@ -1,6 +1,6 @@
 // src/backend/controllers/AiTransController.ts
 
-import registerRoute from '@/common/api/register';
+import registerRoute from '@/backend/adapters/ipc/registerRoute';
 
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types'; // 使用接口定义
