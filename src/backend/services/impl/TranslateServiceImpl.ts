@@ -1,14 +1,14 @@
 // src/backend/services/AiTransServiceImpl.ts
 
 import { inject, injectable } from 'inversify';
-import {and, eq, inArray, isNotNull} from 'drizzle-orm';
 import { z } from 'zod';
 import { streamObject } from 'ai';
 
 import TYPES from '@/backend/ioc/types';
-import db from '@/backend/db';
-import { SentenceTranslate, sentenceTranslates } from '@/backend/db/tables/sentenceTranslates';
-import { WordTranslate, wordTranslates, InsertWordTranslate } from '@/backend/db/tables/wordTranslates';
+import { SentenceTranslate } from '@/backend/db/tables/sentenceTranslates';
+import { WordTranslate, InsertWordTranslate } from '@/backend/db/tables/wordTranslates';
+import SentenceTranslatesRepository from '@/backend/db/repositories/SentenceTranslatesRepository';
+import WordTranslatesRepository from '@/backend/db/repositories/WordTranslatesRepository';
 
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -277,6 +277,10 @@ export default class TranslateServiceImpl implements TranslateService {
     private cacheService!: CacheService;
     @inject(TYPES.SettingService)
     private settingService!: SettingService;
+    @inject(TYPES.WordTranslatesRepository)
+    private wordTranslatesRepository!: WordTranslatesRepository;
+    @inject(TYPES.SentenceTranslatesRepository)
+    private sentenceTranslatesRepository!: SentenceTranslatesRepository;
 
     private showSubtitleTranslationToast(params: {
         message: string;
@@ -601,13 +605,7 @@ export default class TranslateServiceImpl implements TranslateService {
         if (!keys || keys.length === 0) return result;
 
         try {
-            const values: SentenceTranslate[] = await db
-                .select()
-                .from(sentenceTranslates)
-                .where(and(
-                    inArray(sentenceTranslates.sentence, keys),
-                    eq(sentenceTranslates.mode, mode)
-                ));
+            const values: SentenceTranslate[] = await this.sentenceTranslatesRepository.findBySentencesAndMode(keys, mode);
 
             values.forEach(v => {
                 if (v.sentence && !StrUtil.isBlank(v.translate)) {
@@ -623,21 +621,15 @@ export default class TranslateServiceImpl implements TranslateService {
     public async saveTranslationsByKeys(translations: Map<string, string>, mode: SubtitleTranslationStorageMode): Promise<void> {
         if (!translations || translations.size === 0) return;
 
-        const promises = Array.from(translations.entries()).map(([key, translation]) =>
-            db.insert(sentenceTranslates)
-                .values({ sentence: key, translate: translation, mode })
-                .onConflictDoUpdate({
-                    target: [sentenceTranslates.sentence, sentenceTranslates.mode],
-                    set: {
-                        translate: translation,
-                        mode,
-                        updated_at: TimeUtil.timeUtc()
-                    }
-                })
-        );
+        const params = Array.from(translations.entries()).map(([key, translation]) => ({
+            sentence: key,
+            translate: translation,
+            mode,
+            updated_at: TimeUtil.timeUtc()
+        }));
 
         try {
-            await Promise.all(promises);
+            await this.sentenceTranslatesRepository.upsertMany(params);
         } catch (error) {
             dpLog.error('批量保存翻译结果失败:', error);
         }
@@ -975,18 +967,10 @@ Ensure the response strictly matches the provided JSON schema.`;
     }
 
     private async wordLoad(word: string, provider: 'youdao' | 'openai'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
-        const value: WordTranslate[] = await db
-            .select()
-            .from(wordTranslates)
-            .where(and(
-                eq(wordTranslates.word, p(word)),
-                eq(wordTranslates.provider, provider)
-            ))
-            .limit(1);
+        const value: WordTranslate | null = await this.wordTranslatesRepository.findOne(p(word), provider);
+        if (!value) return undefined;
 
-        if (value.length === 0) return undefined;
-
-        const trans = value[0].translate;
+        const trans = value.translate;
         if (StrUtil.isBlank(trans)) {
             return undefined;
         }
@@ -1020,42 +1004,22 @@ Ensure the response strictly matches the provided JSON schema.`;
     private async wordRecord(word: string, translate: YdRes): Promise<void> {
         const value = JSON.stringify(translate);
         const wt: InsertWordTranslate = { word: p(word), provider: 'youdao', translate: value };
-        await db
-            .insert(wordTranslates)
-            .values(wt)
-            .onConflictDoUpdate({
-                target: [wordTranslates.word, wordTranslates.provider],
-                set: { translate: wt.translate, updated_at: TimeUtil.timeUtc() }
-            });
+        await this.wordTranslatesRepository.upsert(wt.word, 'youdao', value, TimeUtil.timeUtc());
     }
 
     private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult): Promise<void> {
         const sanitized = sanitizeDictionaryResult(translate);
         const value = JSON.stringify(sanitized);
         const wt: InsertWordTranslate = { word: p(word), provider: 'openai', translate: value };
-        await db
-            .insert(wordTranslates)
-            .values(wt)
-            .onConflictDoUpdate({
-                target: [wordTranslates.word, wordTranslates.provider],
-                set: { translate: wt.translate, updated_at: TimeUtil.timeUtc() }
-            });
+        await this.wordTranslatesRepository.upsert(wt.word, 'openai', value, TimeUtil.timeUtc());
     }
 
     private async sentenceLoadBatch(sentences: string[], mode: SubtitleTranslationStorageMode): Promise<TransHolder<string>> {
         const result = new TransHolder<string>();
         if (sentences.length === 0) return result;
 
-        const values: SentenceTranslate[] = await db
-            .select()
-            .from(sentenceTranslates)
-            .where(
-                and(
-                    inArray(sentenceTranslates.sentence, sentences.map(w => p(w))),
-                    eq(sentenceTranslates.mode, mode),
-                    isNotNull(sentenceTranslates.translate)
-                )
-            );
+        const normalizedSentences = sentences.map(w => p(w));
+        const values: SentenceTranslate[] = await this.sentenceTranslatesRepository.findTranslatedBySentencesAndMode(normalizedSentences, mode);
 
         values
             .filter((e) => e.sentence && !StrUtil.isBlank(e.translate))
@@ -1067,17 +1031,14 @@ Ensure the response strictly matches the provided JSON schema.`;
     }
 
     private async sentenceRecordBatch(validTrans: TransHolder<string>, mode: SubtitleTranslationStorageMode): Promise<void> {
-        const promises = [];
+        const params = [];
         for (const [key, value] of validTrans.getMapping().entries()) {
-            const promise = db
-                .insert(sentenceTranslates)
-                .values({ sentence: p(key), translate: value, mode })
-                .onConflictDoUpdate({
-                    target: [sentenceTranslates.sentence, sentenceTranslates.mode],
-                    set: { translate: value, mode }
-                });
-            promises.push(promise);
+            params.push({
+                sentence: p(key),
+                translate: value,
+                mode,
+            });
         }
-        await Promise.all(promises);
+        await this.sentenceTranslatesRepository.upsertMany(params);
     }
 }
