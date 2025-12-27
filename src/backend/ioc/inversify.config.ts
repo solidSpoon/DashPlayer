@@ -87,6 +87,8 @@ import VideoLearningClipWordRepository from '@/backend/db/repositories/VideoLear
 import VideoLearningClipWordRepositoryImpl from '@/backend/db/repositories/impl/VideoLearningClipWordRepositoryImpl';
 import WatchHistoryRepository from '@/backend/db/repositories/WatchHistoryRepository';
 import WatchHistoryRepositoryImpl from '@/backend/db/repositories/impl/WatchHistoryRepositoryImpl';
+import FavouriteClipsRepository from '@/backend/db/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepositoryImpl from '@/backend/db/repositories/impl/FavouriteClipsRepositoryImpl';
 
 
 const container = new Container();
@@ -118,6 +120,7 @@ container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipWordRepository>(TYPES.VideoLearningClipWordRepository).to(VideoLearningClipWordRepositoryImpl).inSingletonScope();
 container.bind<WatchHistoryRepository>(TYPES.WatchHistoryRepository).to(WatchHistoryRepositoryImpl).inSingletonScope();
+container.bind<FavouriteClipsRepository>(TYPES.FavouriteClipsRepository).to(FavouriteClipsRepositoryImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();

@@ -34,6 +34,7 @@ const TYPES = {
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
     VideoLearningClipWordRepository: Symbol('VideoLearningClipWordRepository'),
     WatchHistoryRepository: Symbol('WatchHistoryRepository'),
+    FavouriteClipsRepository: Symbol('FavouriteClipsRepository'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),

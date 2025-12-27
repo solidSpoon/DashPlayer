@@ -1,36 +1,32 @@
-import { tag, Tag } from '@/backend/db/tables/tag';
-import { injectable } from 'inversify';
-import db from '@/backend/db';
-import { eq, like } from 'drizzle-orm';
+import { inject, injectable } from 'inversify';
 import StrUtil from '@/common/utils/str-util';
 import TagService from '@/backend/services/TagService';
+import TYPES from '@/backend/ioc/types';
+import { Tag } from '@/backend/db/tables/tag';
+import FavouriteClipsRepository from '@/backend/db/repositories/FavouriteClipsRepository';
 
 
 @injectable()
 export default class TagServiceImpl implements TagService {
+    @inject(TYPES.FavouriteClipsRepository)
+    private favouriteClipsRepository!: FavouriteClipsRepository;
+
     public async addTag(name: string): Promise<Tag> {
         if (StrUtil.isBlank(name)) {
             throw new Error('name is blank');
         }
-        const e: Tag[] = await db.insert(tag).values({ name })
-            .onConflictDoUpdate({
-                target: [tag.name],
-                set: { name }
-            })
-            .returning();
-        return e[0];
+        return this.favouriteClipsRepository.ensureTag(name);
     }
 
     public async deleteTag(id: number): Promise<void> {
-        await db.delete(tag).where(eq(tag.id, id));
+        await this.favouriteClipsRepository.deleteTagById(id);
     }
 
     public async updateTag(id: number, name: string): Promise<void> {
-        await db.update(tag).set({ name }).where(eq(tag.id, id));
+        await this.favouriteClipsRepository.updateTagName(id, name);
     }
 
     public async search(keyword: string): Promise<Tag[]> {
-        return db.select().from(tag)
-            .where(like(tag.name, `${keyword}%`));
+        return this.favouriteClipsRepository.searchTagsByPrefix(keyword);
     }
 }

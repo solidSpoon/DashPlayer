@@ -1,15 +1,10 @@
 import hash from 'object-hash';
 import path from 'path';
-import db from '@/backend/db';
-import { VideoClip, videoClip } from '@/backend/db/tables/videoClip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { and, count, desc, eq, gte, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import fs from 'fs';
 import ErrorConstants from '@/common/constants/error-constants';
 import { inject, injectable, postConstruct } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { tag, Tag } from '@/backend/db/tables/tag';
-import { clipTagRelation } from '@/backend/db/tables/clipTagRelation';
 import { ClipQuery } from '@/common/api/dto';
 import StrUtil from '@/common/utils/str-util';
 
@@ -19,11 +14,12 @@ import dpLog from '@/backend/ioc/logger';
 import CacheService from '@/backend/services/CacheService';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import { ClipOssService } from '@/backend/services/OssService';
-import TagService from '@/backend/services/TagService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/services/FfmpegService';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
-import SrtUtil, { SrtLine } from "@/common/utils/SrtUtil";
+import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
+import { Tag } from '@/backend/db/tables/tag';
+import FavouriteClipsRepository from '@/backend/db/repositories/FavouriteClipsRepository';
 
 type ClipTask = {
     videoPath: string,
@@ -43,11 +39,11 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
-    @inject(TYPES.TagService)
-    private tagService!: TagService;
-
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
+
+    @inject(TYPES.FavouriteClipsRepository)
+    private favouriteClipsRepository!: FavouriteClipsRepository;
 
     /**
      * key: hash(srtContext)
@@ -100,8 +96,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const tempMapping = new Map(this.taskQueue);
         const newKeys = Array.from(tempMapping.keys());
 
-        const exists = await db.select().from(videoClip).where(inArray(videoClip.key, newKeys));
-        const existsKeys = exists.map((item) => item.key);
+        const existsKeys = await this.favouriteClipsRepository.listExistingClipKeys(newKeys);
         const notExistKeys = newKeys.filter((key) => !existsKeys.includes(key));
 
         for (const k of notExistKeys) {
@@ -211,18 +206,8 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     public async deleteFavoriteClip(key: string): Promise<void> {
-        await db.delete(videoClip).where(eq(videoClip.key, key));
+        await this.favouriteClipsRepository.deleteClipAndPruneTags(key);
         await this.clipOssService.delete(key);
-        const tagIds = await db.select({ tag_id: clipTagRelation.tag_id })
-            .from(clipTagRelation)
-            .leftJoin(videoClip, eq(clipTagRelation.clip_key, videoClip.key))
-            .where(isNull(videoClip.key));
-        for (const tagId of tagIds) {
-            if (!tagId.tag_id) {
-                continue;
-            }
-            await db.delete(tag).where(eq(tag.id, tagId.tag_id));
-        }
     }
 
     async exists(srtKey: string, linesInSrt: number[]): Promise<Map<number, boolean>> {
@@ -245,59 +230,9 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     public async search(query?: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
-        const keyword = query?.keyword ?? '';
-        const keywordRange = query?.keywordRange ?? 'clip';
-        const tags = query?.tags ?? [];
-        const tagsRelation = query?.tagsRelation ?? 'and';
-        const date = query?.date;
-        const includeNoTag = query?.includeNoTag ?? false;
-        let where1 = and(sql`1=1`);
-        let having1 = and(sql`1=1`);
-        if (StrUtil.isNotBlank(keyword)) {
-            if (keywordRange === 'context') {
-                where1 = and(like(videoClip.srt_context, `%${keyword}%`));
-            } else {
-                where1 = and(like(videoClip.srt_clip, `%${keyword}%`));
-            }
-        }
-        if (date?.from) {
-            where1 = and(where1, gte(videoClip.created_at, TimeUtil.dateToUtc(date.from)));
-        }
-        if (date?.to) {
-            where1 = and(where1, lte(videoClip.created_at, TimeUtil.dateToUtc(date.to)));
-        }
-        if (tags.length) {
-            where1 = and(where1, inArray(clipTagRelation.tag_id, tags));
-            if (tagsRelation === 'and') {
-                having1 = and(having1, eq(count(), tags.length));
-            }
-        }
-        if (includeNoTag) {
-            if (tagsRelation === 'or' && tags.length) {
-                having1 = or(having1, isNull(clipTagRelation.tag_id));
-            } else {
-                where1 = and(where1, isNull(clipTagRelation.tag_id));
-            }
-        }
-        const lines: VideoClip[] = await db
-            .select({
-                key: videoClip.key,
-                video_name: videoClip.video_name,
-                srt_clip: videoClip.srt_clip,
-                srt_context: videoClip.srt_context,
-                created_at: videoClip.created_at,
-                updated_at: videoClip.updated_at,
-                count: count()
-            }).from(videoClip)
-            .leftJoin(clipTagRelation, eq(clipTagRelation.clip_key, videoClip.key))
-            .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
-            .where(where1)
-            .groupBy(videoClip.key)
-            .having(having1)
-            .orderBy(desc(videoClip.created_at))
-            .limit(5000);
-        return Promise.all(lines
-            .map((line) => this.clipOssService.get(line.key)))
+        const keys = await this.favouriteClipsRepository.searchClipKeys(query);
+        return Promise.all(keys
+            .map((key) => this.clipOssService.get(key)))
             .then((res) => res.filter((item) => item !== null)) as Promise<(OssBaseMeta & ClipMeta)[]>;
 
     }
@@ -306,83 +241,46 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const srtLines = metaData.clip_content ?? [];
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
         const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
-        await db.insert(videoClip).values({
+        await this.favouriteClipsRepository.upsertClip({
             key: metaData.key,
             video_name: metaData.video_name,
             srt_clip: srtClip,
             srt_context: srtContext,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
-        }).onConflictDoUpdate({
-            target: [videoClip.key],
-            set: {
-                video_name: metaData.video_name,
-                srt_clip: srtClip,
-                srt_context: srtContext,
-                updated_at: TimeUtil.timeUtc()
-            }
         });
         const tagNames = CollUtil.emptyIfNull(metaData.tags);
         for (const tagName of tagNames) {
-            const tag = await this.tagService.addTag(tagName);
+            const tag = await this.favouriteClipsRepository.ensureTag(tagName);
             await this.addClipTag(metaData.key, tag.id);
         }
     }
 
     private async clipInDb(key: string) {
-        return (await db.select().from(videoClip).where(eq(videoClip.key, key)))
-            .length > 0;
+        return this.favouriteClipsRepository.existsClipKey(key);
     }
 
     async queryClipTags(key: string): Promise<Tag[]> {
-        const joinRes = await db.select().from(clipTagRelation)
-            .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
-            .where(eq(clipTagRelation.clip_key, key));
-        return joinRes
-            .map((item) => item.dp_tag)
-            .filter((item): item is Tag => item !== null);
+        return this.favouriteClipsRepository.listTagsByClipKey(key);
     }
 
 
     async addClipTag(key: string, tagId: number): Promise<void> {
-        await db.insert(clipTagRelation).values({
-            clip_key: key,
-            tag_id: tagId,
-            created_at: TimeUtil.timeUtc(),
-            updated_at: TimeUtil.timeUtc()
-        }).onConflictDoNothing();
+        await this.favouriteClipsRepository.insertClipTagIgnore(key, tagId);
         await this.syncTagToOss(key);
     }
 
     async deleteClipTag(key: string, tagId: number): Promise<void> {
-        await db.transaction(async (tx) => {
-            await tx.delete(clipTagRelation).where(
-                and(
-                    eq(clipTagRelation.clip_key, key),
-                    eq(clipTagRelation.tag_id, tagId)
-                )
-            );
-            const r = await tx.select({ count: count() })
-                .from(clipTagRelation)
-                .where(eq(clipTagRelation.tag_id, tagId));
-            if (r[0].count === 0) {
-                await tx.delete(tag).where(eq(tag.id, tagId));
-            }
-        });
+        await this.favouriteClipsRepository.deleteClipTagAndPruneTag(key, tagId);
         await this.syncTagToOss(key);
     }
 
     async renameTag(tagId: number, newName: string): Promise<void> {
-        await this.tagService.updateTag(tagId, newName);
+        await this.favouriteClipsRepository.updateTagName(tagId, newName);
         // 查出来所有带有这个tag的clip
-        const clips = await db.select().from(clipTagRelation)
-            .leftJoin(videoClip, eq(clipTagRelation.clip_key, videoClip.key))
-            .where(eq(clipTagRelation.tag_id, tagId));
-        for (const clip of clips) {
-            if (!clip.dp_video_clip) {
-                continue;
-            }
-            await this.syncTagToOss(clip.dp_video_clip.key);
+        const clipKeys = await this.favouriteClipsRepository.listClipKeysByTagId(tagId);
+        for (const clipKey of clipKeys) {
+            await this.syncTagToOss(clipKey);
         }
     }
 
@@ -401,9 +299,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
      */
     async syncFromOss() {
         const keys = await this.clipOssService.list();
-        await db.delete(videoClip).where(sql`1=1`);
-        await db.delete(clipTagRelation).where(sql`1=1`);
-        await db.delete(tag).where(sql`1=1`);
+        await this.favouriteClipsRepository.deleteAll();
         for (const key of keys) {
             const clip = await this.clipOssService.get(key);
             if (!clip) {
