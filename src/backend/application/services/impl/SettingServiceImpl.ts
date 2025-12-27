@@ -1,5 +1,4 @@
 import { SettingKey } from '@/common/types/store_schema';
-import {storeGet, storeSet} from '@/backend/infrastructure/settings/store';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
@@ -11,6 +10,7 @@ import { TencentTranslateClient } from '@/backend/application/ports/gateways/tra
 import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
+import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import {
     OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,
     getSubtitleDefaultStyle
@@ -23,10 +23,11 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
+    @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     private logger = getMainLogger('SettingServiceImpl');
 
     public async set(key: SettingKey, value: string): Promise<void> {
-        if (storeSet(key, value)) {
+        if (this.settingsStore.set(key, value)) {
             this.rendererEvents.storeUpdate(key, value);
         }
     }
@@ -41,21 +42,21 @@ export default class SettingServiceImpl implements SettingService {
         if (key === 'transcription.engine') {
             return await this.getTranscriptionEngine();
         }
-        return storeGet(key);
+        return this.settingsStore.get(key);
     }
 
     private async getSubtitleTranslationEngine(): Promise<'openai' | 'tencent'> {
-        const stored = storeGet('subtitleTranslation.engine');
+        const stored = this.settingsStore.get('subtitleTranslation.engine');
         return stored === 'tencent' || stored === 'openai' ? stored : 'openai';
     }
 
     private async getDictionaryEngine(): Promise<'openai' | 'youdao'> {
-        const stored = storeGet('dictionary.engine');
+        const stored = this.settingsStore.get('dictionary.engine');
         return stored === 'youdao' || stored === 'openai' ? stored : 'openai';
     }
 
     private async getTranscriptionEngine(): Promise<'openai' | 'whisper'> {
-        const stored = storeGet('transcription.engine');
+        const stored = this.settingsStore.get('transcription.engine');
         return stored === 'whisper' || stored === 'openai' ? stored : 'openai';
     }
 

@@ -49,6 +49,7 @@ const TYPES = {
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
+    SettingsStore: Symbol('SettingsStore'),
 };
 
 export default TYPES;
