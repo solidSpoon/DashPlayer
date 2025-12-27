@@ -8,6 +8,7 @@ import useFile from '@/fronted/hooks/useFile';
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { rendererApiRegistry } from '@/fronted/application/bootstrap/rendererApiRegistry';
 
 const logger = getRendererLogger('AutoClipButton');
 
@@ -97,7 +98,7 @@ export default function AutoClipButton() {
 
   // 监听来自后端的状态更新
   useEffect(() => {
-    const unregister = window.electron.registerRendererApi(
+    const unregister = rendererApiRegistry.register(
       'video-learning/clip-status-update',
       (params: {
         videoPath: string;
