@@ -1,4 +1,4 @@
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';

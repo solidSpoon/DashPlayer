@@ -5,7 +5,7 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types'; // 使用接口定义
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
-import Controller from "@/backend/interfaces/controller";
+import Controller from '@/backend/adapters/controllers/Controller';
 import TranslateService from "@/backend/application/services/AiTransServiceImpl";
 
 @injectable()

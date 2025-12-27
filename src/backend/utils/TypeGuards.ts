@@ -1,4 +1,4 @@
-import AssertionError from '@/backend/errors/AssertionError';
+import AssertionError from '@/backend/application/errors/AssertionError';
 
 export class TypeGuards {
     /**
@@ -37,4 +37,3 @@ export class TypeGuards {
         }
     }
 }
-

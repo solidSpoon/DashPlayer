@@ -12,7 +12,7 @@ import LocationService, {ProgramType} from '@/backend/application/services/Locat
 import FfmpegTask from '@/backend/infrastructure/media/ffmpeg/FfmpegTask';
 import dpLog from '@/backend/infrastructure/logger';
 import {VideoInfo} from '@/common/types/video-info';
-import {CancelByUserError} from '@/backend/errors/errors';
+import { CancelByUserError } from '@/backend/application/errors/errors';
 import {FfmpegCommands} from '@/backend/infrastructure/media/ffmpeg/FfmpegCommands';
 
 @injectable()

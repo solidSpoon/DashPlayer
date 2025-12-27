@@ -1,4 +1,4 @@
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import VocabularyService, {GetAllWordsParams} from '@/backend/application/services/VocabularyService';

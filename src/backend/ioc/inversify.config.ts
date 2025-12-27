@@ -1,7 +1,7 @@
 import { Container } from 'inversify';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/adapters/controllers/FavoriteClipsController';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import TagService from '@/backend/application/services/TagService';
 import TagController from '@/backend/adapters/controllers/TagController';
 import SrtTimeAdjustService from '@/backend/application/services/SrtTimeAdjustService';

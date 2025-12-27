@@ -1,6 +1,6 @@
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { FolderVideos } from '@/common/types/tonvert-type';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/application/services/DpTaskService';

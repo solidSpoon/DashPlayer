@@ -1,7 +1,7 @@
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import WatchHistoryService from '@/backend/application/services/WatchHistoryService';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 

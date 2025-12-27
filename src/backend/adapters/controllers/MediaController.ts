@@ -2,7 +2,7 @@ import {ChapterParseResult} from '@/common/types/chapter-result';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import FfmpegServiceImpl from '@/backend/application/services/impl/FfmpegServiceImpl';
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
 import SplitVideoService from '@/backend/application/services/SplitVideoService';
 import MediaService from '@/backend/application/services/MediaService';

@@ -7,7 +7,7 @@ import {inject, injectable, postConstruct} from 'inversify';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import {Cancelable} from '@/common/interfaces';
 
-import {CancelByUserError} from '@/backend/errors/errors';
+import { CancelByUserError } from '@/backend/application/errors/errors';
 import TYPES from "@/backend/ioc/types";
 import DpTaskRepository from '@/backend/application/ports/repositories/DpTaskRepository';
 import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';

@@ -7,7 +7,7 @@ import { WaitRateLimit } from '@/common/utils/RateLimiter';
 import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
 
 import dpLog from '@/backend/infrastructure/logger';
-import { WhisperResponseFormatError } from '@/backend/errors/errors';
+import { WhisperResponseFormatError } from '@/backend/application/errors/errors';
 
 class OpenAiWhisperRequest implements Cancelable {
     private readonly file: string;

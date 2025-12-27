@@ -2,7 +2,7 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import SubtitleService from '@/backend/application/services/SubtitleService';
 
 

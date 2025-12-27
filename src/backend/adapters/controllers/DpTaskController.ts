@@ -1,6 +1,6 @@
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/application/services/DpTaskService';

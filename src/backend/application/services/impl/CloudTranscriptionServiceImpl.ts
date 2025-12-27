@@ -12,7 +12,7 @@ import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
 import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigStore';
 import FileUtil from '@/backend/utils/FileUtil';
-import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
+import { CancelByUserError, WhisperResponseFormatError } from '@/backend/application/errors/errors';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 

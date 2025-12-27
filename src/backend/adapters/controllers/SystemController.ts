@@ -6,7 +6,7 @@ import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/application/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/interfaces/controller';
+import Controller from '@/backend/adapters/controllers/Controller';
 import StrUtil from '@/common/utils/str-util';
 import TYPES from '@/backend/ioc/types';
 import OpenDialogOptions = Electron.OpenDialogOptions;
