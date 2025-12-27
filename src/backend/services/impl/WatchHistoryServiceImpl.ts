@@ -13,9 +13,9 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
-import SystemService from '@/backend/services/SystemService';
 import FileUtil from '@/backend/utils/FileUtil';
 import WatchHistoryRepository from '@/backend/db/repositories/WatchHistoryRepository';
+import RendererGateway from '@/backend/services/RendererGateway';
 
 
 @injectable()
@@ -24,8 +24,8 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     private locationService!: LocationService;
     @inject(TYPES.MediaService)
     private mediaService!: MediaService;
-    @inject(TYPES.SystemService)
-    private systemService!: SystemService;
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
     @inject(TYPES.WatchHistoryRepository)
     private watchHistoryRepository!: WatchHistoryRepository;
 
@@ -479,7 +479,10 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         const filePath = path.join(record.base_path, record.file_name);
         if (filePath.startsWith(libraryPath)) {
             await FileUtil.deleteFile(filePath);
-            this.systemService.sendInfoToRenderer('该文件位于视频库中，已为您删除原文件');
+            this.rendererGateway.fireAndForget('ui/show-toast', {
+                message: '该文件位于视频库中，已为您删除原文件',
+                variant: 'info',
+            });
         }
         await this.watchHistoryRepository.deleteById(id);
         // 删除字幕文件

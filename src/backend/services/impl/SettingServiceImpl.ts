@@ -1,6 +1,5 @@
 import { SettingKey } from '@/common/types/store_schema';
 import { storeGet, storeSet } from '../../store';
-import SystemService from '@/backend/services/SystemService';
 import SystemConfigService from '@/backend/services/SystemConfigService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
@@ -10,6 +9,7 @@ import { OpenAiService } from '@/backend/services/OpenAiService';
 import TencentProvider from '@/backend/services/impl/clients/TencentProvider';
 import YouDaoProvider from '@/backend/services/impl/clients/YouDaoProvider';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
+import RendererEvents from '@/backend/services/RendererEvents';
 import {
     OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,
     getSubtitleDefaultStyle
@@ -17,7 +17,7 @@ import {
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
-    @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
     @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: TencentProvider;
@@ -26,7 +26,7 @@ export default class SettingServiceImpl implements SettingService {
     
     public async set(key: SettingKey, value: string): Promise<void> {
         if (storeSet(key, value)) {
-            this.systemService.mainWindow()?.webContents.send('store-update', key, value);
+            this.rendererEvents.storeUpdate(key, value);
         }
     }
 

@@ -9,12 +9,12 @@ import {Cancelable} from '@/common/interfaces';
 
 import {CancelByUserError} from '@/backend/errors/errors';
 import TYPES from "@/backend/ioc/types";
-import SystemService from "@/backend/services/SystemService";
 import DpTaskRepository from '@/backend/db/repositories/DpTaskRepository';
+import RendererEvents from '@/backend/services/RendererEvents';
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {
-    @inject(TYPES.SystemService) private systemService!: SystemService;
+    @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
     @inject(TYPES.DpTaskRepository) private dpTaskRepository!: DpTaskRepository;
     private logger = getMainLogger('DpTaskServiceImpl');
     private upQueue: Map<number, InsertDpTask> = new Map();
@@ -32,7 +32,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
         this.detail(taskId)
             .then(task => {
                 if (task) {
-                    this.systemService.sendDpTaskUpdate(task);
+                    this.rendererEvents.dpTaskUpdate(task);
                 }
             })
     }

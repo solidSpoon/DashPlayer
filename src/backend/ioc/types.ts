@@ -29,6 +29,7 @@ const TYPES = {
     WordMatchService: Symbol('WordMatchService'),
     VocabularyService: Symbol('VocabularyService'),
     RendererGateway: Symbol('RendererGateway'),
+    RendererEvents: Symbol('RendererEvents'),
     WordsRepository: Symbol('WordsRepository'),
     DpTaskRepository: Symbol('DpTaskRepository'),
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),

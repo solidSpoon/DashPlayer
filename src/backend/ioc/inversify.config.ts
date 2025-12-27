@@ -77,6 +77,8 @@ import VocabularyService from '@/backend/services/VocabularyService';
 import VocabularyServiceImpl from '@/backend/services/impl/VocabularyServiceImpl';
 import RendererGateway from '@/backend/services/RendererGateway';
 import RendererGatewayImpl from '@/backend/services/impl/RendererGatewayImpl';
+import RendererEvents from '@/backend/services/RendererEvents';
+import RendererEventsImpl from '@/backend/services/impl/RendererEventsImpl';
 import WordsRepository from '@/backend/db/repositories/WordsRepository';
 import WordsRepositoryImpl from '@/backend/db/repositories/impl/WordsRepositoryImpl';
 import DpTaskRepository from '@/backend/db/repositories/DpTaskRepository';
@@ -123,6 +125,7 @@ container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingleto
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
+container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();
