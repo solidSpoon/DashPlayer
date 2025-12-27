@@ -1,5 +1,5 @@
 // src/fronted/hooks/useDpTaskViewer.ts
-import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { useEffect } from 'react';
 import { TypeGuards } from '@/backend/utils/TypeGuards';

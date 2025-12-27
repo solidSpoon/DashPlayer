@@ -1,10 +1,10 @@
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { InsertVideoLearningClip, VideoLearningClip, videoLearningClip } from '@/backend/db/tables/videoLearningClip';
+import db from '@/backend/infrastructure/db';
+import { InsertVideoLearningClip, VideoLearningClip, videoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import VideoLearningClipRepository, { VideoLearningClipCountQuery, VideoLearningClipPageQuery } from '@/backend/db/repositories/VideoLearningClipRepository';
+import VideoLearningClipRepository, { VideoLearningClipCountQuery, VideoLearningClipPageQuery } from '@/backend/infrastructure/db/repositories/VideoLearningClipRepository';
 
 @injectable()
 export default class VideoLearningClipRepositoryImpl implements VideoLearningClipRepository {

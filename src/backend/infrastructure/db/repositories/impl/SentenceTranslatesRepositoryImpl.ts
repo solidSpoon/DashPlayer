@@ -1,13 +1,13 @@
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { sentenceTranslates } from '@/backend/db/tables/sentenceTranslates';
+import db from '@/backend/infrastructure/db';
+import { sentenceTranslates } from '@/backend/infrastructure/db/tables/sentenceTranslates';
 import TimeUtil from '@/common/utils/TimeUtil';
 
 import SentenceTranslatesRepository, {
     SentenceTranslatesUpsertParams,
-} from '@/backend/db/repositories/SentenceTranslatesRepository';
+} from '@/backend/infrastructure/db/repositories/SentenceTranslatesRepository';
 
 @injectable()
 export default class SentenceTranslatesRepositoryImpl implements SentenceTranslatesRepository {

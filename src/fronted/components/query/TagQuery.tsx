@@ -1,7 +1,7 @@
 import { Plus, Search, Tag as TagIcon, X } from 'lucide-react';
 import { Input } from '@/fronted/components/ui/input';
 import React from 'react';
-import { Tag } from '@/backend/db/tables/tag';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import useSWR, { mutate } from 'swr';
 import { cn } from '@/fronted/lib/utils';

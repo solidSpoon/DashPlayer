@@ -1,4 +1,4 @@
-import { DpTask, InsertDpTask } from '@/backend/db/tables/dpTask';
+import { DpTask, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 import { Cancelable } from '@/common/interfaces';
 
 

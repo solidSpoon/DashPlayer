@@ -1,4 +1,4 @@
-import { InsertWord, Word } from '@/backend/db/tables/words';
+import { InsertWord, Word } from '@/backend/infrastructure/db/tables/words';
 
 export interface GetAllWordsQuery {
     search?: string;

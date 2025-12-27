@@ -1,4 +1,4 @@
-import { InsertWatchHistory, WatchHistory, WatchHistoryType } from '@/backend/db/tables/watchHistory';
+import { InsertWatchHistory, WatchHistory, WatchHistoryType } from '@/backend/infrastructure/db/tables/watchHistory';
 
 export type WatchHistoryUpdatePatch = Partial<Pick<InsertWatchHistory, 'current_position' | 'srt_file' | 'updated_at'>>;
 

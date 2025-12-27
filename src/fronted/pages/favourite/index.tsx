@@ -10,7 +10,7 @@ import DatePickerWithRange from '@/fronted/components/query/DatePickerWithRange'
 import StringQuery from '@/fronted/components/query/StringQuery';
 import TagQuery from '@/fronted/components/query/TagQuery';
 import { DateRange } from 'react-day-picker';
-import { Tag } from '@/backend/db/tables/tag';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';

@@ -13,7 +13,7 @@ import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import * as fs from 'fs';
 import * as path from 'path';
 import LocationUtil from '@/backend/utils/LocationUtil';

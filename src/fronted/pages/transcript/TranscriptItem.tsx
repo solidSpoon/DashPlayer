@@ -2,7 +2,7 @@ import { TableCell, TableRow } from '@/fronted/components/ui/table';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import React from 'react';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -29,11 +29,11 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
             extName: ''
         }
     });
-    
+
     // 从 useTranscript store 获取任务信息
     const task = files.find(f => f.file === file);
     logger.debug('task status updated', { task });
-    
+
     // 同步任务状态
     React.useEffect(() => {
         if (task && task.status) {
@@ -134,7 +134,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                     variant={'secondary'}
                     size={'sm'} className={'mx-auto'}
                     disabled={cancelling}>
-                    {cancelling ? '取消中...' : 
+                    {cancelling ? '取消中...' :
                      (() => {
                          const status = task?.status as DpTaskState;
                          if (!task || !status || status === DpTaskState.DONE || status === DpTaskState.CANCELLED || status === DpTaskState.FAILED) {

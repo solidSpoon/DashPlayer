@@ -1,10 +1,10 @@
 import { eq, or } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/dpTask';
+import db from '@/backend/infrastructure/db';
+import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 import TimeUtil from '@/common/utils/TimeUtil';
-import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/db/repositories/DpTaskRepository';
+import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/infrastructure/db/repositories/DpTaskRepository';
 
 @injectable()
 export default class DpTaskRepositoryImpl implements DpTaskRepository {

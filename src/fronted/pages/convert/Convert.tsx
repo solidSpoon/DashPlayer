@@ -7,7 +7,7 @@ import ConvertItem from '@/fronted/pages/convert/convert-item';
 import useConvert from '@/fronted/hooks/useConvert';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/fronted/components/ui/button';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import Eb from '@/fronted/components/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

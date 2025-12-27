@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { wordTranslates } from '@/backend/db/tables/wordTranslates';
+import db from '@/backend/infrastructure/db';
+import { wordTranslates } from '@/backend/infrastructure/db/tables/wordTranslates';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import WordTranslatesRepository from '@/backend/db/repositories/WordTranslatesRepository';
+import WordTranslatesRepository from '@/backend/infrastructure/db/repositories/WordTranslatesRepository';
 
 @injectable()
 export default class WordTranslatesRepositoryImpl implements WordTranslatesRepository {

@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { systemConfigs } from '@/backend/db/tables/sysConf';
-import SysConfRepository from '@/backend/db/repositories/SysConfRepository';
+import db from '@/backend/infrastructure/db';
+import { systemConfigs } from '@/backend/infrastructure/db/tables/sysConf';
+import SysConfRepository from '@/backend/infrastructure/db/repositories/SysConfRepository';
 import TimeUtil from '@/common/utils/TimeUtil';
 
 @injectable()

@@ -10,7 +10,7 @@ import TYPES from '@/backend/ioc/types';
 import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 import FileUtil from '@/backend/utils/FileUtil';
 import CacheService from '@/backend/services/CacheService';
-import { SubtitleTimestampAdjustment } from '@/backend/db/tables/subtitleTimestampAdjustment';
+import { SubtitleTimestampAdjustment } from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";

@@ -1,7 +1,7 @@
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment,
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
+} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 
 export default interface SubtitleTimestampAdjustmentsRepository {
     upsert(values: InsertSubtitleTimestampAdjustment): Promise<void>;

@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import {DpTask, DpTaskState} from '@/backend/db/tables/dpTask';
+import {DpTask, DpTaskState} from '@/backend/infrastructure/db/tables/dpTask';
 import {emptyFunc} from '@/common/utils/Util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

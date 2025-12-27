@@ -1,14 +1,14 @@
 import { and, count, desc, eq, gte, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { clipTagRelation } from '@/backend/db/tables/clipTagRelation';
-import { InsertTag, Tag, tag } from '@/backend/db/tables/tag';
-import {InsertVideoClip, VideoClip, videoClip} from '@/backend/db/tables/videoClip';
+import db from '@/backend/infrastructure/db';
+import { clipTagRelation } from '@/backend/infrastructure/db/tables/clipTagRelation';
+import { InsertTag, Tag, tag } from '@/backend/infrastructure/db/tables/tag';
+import {InsertVideoClip, VideoClip, videoClip} from '@/backend/infrastructure/db/tables/videoClip';
 import { ClipQuery } from '@/common/api/dto';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import FavouriteClipsRepository, { FavouriteClipsUpsertClipParams } from '@/backend/db/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository, { FavouriteClipsUpsertClipParams } from '@/backend/infrastructure/db/repositories/FavouriteClipsRepository';
 
 @injectable()
 export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepository {

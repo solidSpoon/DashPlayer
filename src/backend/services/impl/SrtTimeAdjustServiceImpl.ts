@@ -1,11 +1,11 @@
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
+} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import { inject, injectable } from 'inversify';
 import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 import TYPES from '@/backend/ioc/types';
-import SubtitleTimestampAdjustmentsRepository from '@/backend/db/repositories/SubtitleTimestampAdjustmentsRepository';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/infrastructure/db/repositories/SubtitleTimestampAdjustmentsRepository';
 
 @injectable()
 export default class SrtTimeAdjustServiceImpl implements SrtTimeAdjustService {

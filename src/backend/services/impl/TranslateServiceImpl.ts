@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { streamObject } from 'ai';
 
 import TYPES from '@/backend/ioc/types';
-import { SentenceTranslate } from '@/backend/db/tables/sentenceTranslates';
-import { WordTranslate, InsertWordTranslate } from '@/backend/db/tables/wordTranslates';
-import SentenceTranslatesRepository from '@/backend/db/repositories/SentenceTranslatesRepository';
-import WordTranslatesRepository from '@/backend/db/repositories/WordTranslatesRepository';
+import { SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
+import { WordTranslate, InsertWordTranslate } from '@/backend/infrastructure/db/tables/wordTranslates';
+import SentenceTranslatesRepository from '@/backend/infrastructure/db/repositories/SentenceTranslatesRepository';
+import WordTranslatesRepository from '@/backend/infrastructure/db/repositories/WordTranslatesRepository';
 
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -644,7 +644,7 @@ export default class TranslateServiceImpl implements TranslateService {
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null> {
         const currentProvider = await this.settingService.getCurrentDictionaryProvider();
-        
+
         if (!currentProvider) {
             dpLog.log('没有启用的字典服务');
             return null;
@@ -660,7 +660,7 @@ export default class TranslateServiceImpl implements TranslateService {
         } else {
             dpLog.log(`强制刷新${currentProvider}单词:`, str);
         }
-        
+
         if (currentProvider === 'youdao') {
             const client = this.youDaoProvider.getClient();
             if (!client) {

@@ -3,7 +3,7 @@ import TYPES from '@/backend/ioc/types';
 import SystemService from '@/backend/services/SystemService';
 import RendererEvents from '@/backend/services/RendererEvents';
 import { SettingKey } from '@/common/types/store_schema';
-import { DpTask } from '@/backend/db/tables/dpTask';
+import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
 
 @injectable()
 export default class RendererEventsImpl implements RendererEvents {

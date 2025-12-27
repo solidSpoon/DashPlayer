@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Tag } from '@/backend/db/tables/tag';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import TagServiceImpl from '../impl/TagServiceImpl';
 
 // Mock inversify

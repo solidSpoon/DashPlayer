@@ -1,5 +1,5 @@
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import { DpTask, DpTaskState, InsertDpTask } from '@/backend/db/tables/dpTask';
+import { DpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 
 import { LRUCache } from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -9,7 +9,7 @@ import {Cancelable} from '@/common/interfaces';
 
 import {CancelByUserError} from '@/backend/errors/errors';
 import TYPES from "@/backend/ioc/types";
-import DpTaskRepository from '@/backend/db/repositories/DpTaskRepository';
+import DpTaskRepository from '@/backend/infrastructure/db/repositories/DpTaskRepository';
 import RendererEvents from '@/backend/services/RendererEvents';
 
 @injectable()
@@ -176,7 +176,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * 应用重启时取消所有任务
      */
     public static async cancelAll() {
-        const { default: DpTaskRepositoryImpl } = await import('@/backend/db/repositories/impl/DpTaskRepositoryImpl');
+        const { default: DpTaskRepositoryImpl } = await import('@/backend/infrastructure/db/repositories/impl/DpTaskRepositoryImpl');
         const repo = new DpTaskRepositoryImpl();
         await repo.cancelAllActive();
     }

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import hash from 'object-hash';
 import { inject, injectable } from 'inversify';
 import DpTaskService from '../DpTaskService';

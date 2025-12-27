@@ -14,7 +14,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import {getMainLogger} from '@/backend/ioc/simple-logger';
 import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
-import {DpTaskState} from "@/backend/db/tables/dpTask";
+import {DpTaskState} from "@/backend/infrastructure/db/tables/dpTask";
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -55,7 +55,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         if (progress !== undefined && progress !== null) {
             finalResult.message = `[${progress}%] ${finalResult.message || ''}`.trim();
         }
-        
+
         this.rendererGateway.fireAndForget('transcript/batch-result', {
             updates: [{
                 filePath,
@@ -71,8 +71,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         return new Promise<void>((resolve, reject) => {
             // 检查是否已经在队列中或正在处理
             if (this.queue.includes(filePath) || this.activeFilePath === filePath) {
-                this.sendProgress(0, filePath, DpTaskState.FAILED, 0, { 
-                    message: '该文件已在转录队列中或正在处理' 
+                this.sendProgress(0, filePath, DpTaskState.FAILED, 0, {
+                    message: '该文件已在转录队列中或正在处理'
                 });
                 reject(new Error('File already in queue or processing'));
                 return;

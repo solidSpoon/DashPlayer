@@ -1,4 +1,4 @@
-import { WordTranslate } from '@/backend/db/tables/wordTranslates';
+import { WordTranslate } from '@/backend/infrastructure/db/tables/wordTranslates';
 
 export default interface WordTranslatesRepository {
     findOne(word: string, provider: string): Promise<WordTranslate | null>;

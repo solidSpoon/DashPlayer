@@ -1,10 +1,10 @@
 import { eq, like, or } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { InsertWord, Word, words } from '@/backend/db/tables/words';
+import db from '@/backend/infrastructure/db';
+import { InsertWord, Word, words } from '@/backend/infrastructure/db/tables/words';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import WordsRepository, { GetAllWordsQuery, WordsUpdatePatch } from '@/backend/db/repositories/WordsRepository';
+import WordsRepository, { GetAllWordsQuery, WordsUpdatePatch } from '@/backend/infrastructure/db/repositories/WordsRepository';
 
 @injectable()
 export default class WordsRepositoryImpl implements WordsRepository {

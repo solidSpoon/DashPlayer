@@ -2,8 +2,8 @@ import { inject, injectable } from 'inversify';
 import StrUtil from '@/common/utils/str-util';
 import TagService from '@/backend/services/TagService';
 import TYPES from '@/backend/ioc/types';
-import { Tag } from '@/backend/db/tables/tag';
-import FavouriteClipsRepository from '@/backend/db/repositories/FavouriteClipsRepository';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
+import FavouriteClipsRepository from '@/backend/infrastructure/db/repositories/FavouriteClipsRepository';
 
 
 @injectable()

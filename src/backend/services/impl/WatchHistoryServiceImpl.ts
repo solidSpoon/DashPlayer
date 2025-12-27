@@ -1,7 +1,7 @@
 import { inject, injectable, postConstruct } from 'inversify';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import TYPES from '@/backend/ioc/types';
-import { WatchHistory, WatchHistoryType } from '@/backend/db/tables/watchHistory';
+import { WatchHistory, WatchHistoryType } from '@/backend/infrastructure/db/tables/watchHistory';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import fs from 'fs';
 import path from 'path';
@@ -14,7 +14,7 @@ import StrUtil from '@/common/utils/str-util';
 import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import FileUtil from '@/backend/utils/FileUtil';
-import WatchHistoryRepository from '@/backend/db/repositories/WatchHistoryRepository';
+import WatchHistoryRepository from '@/backend/infrastructure/db/repositories/WatchHistoryRepository';
 import RendererGateway from '@/backend/services/RendererGateway';
 
 

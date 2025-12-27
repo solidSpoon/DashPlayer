@@ -2,11 +2,11 @@ import hash from 'object-hash';
 import path from 'path';
 import fs from 'fs';
 
-import db from '@/backend/db';
-import { VideoLearningClip } from '@/backend/db/tables/videoLearningClip';
-import { InsertVideoLearningClipWord } from '@/backend/db/tables/videoLearningClipWord';
-import VideoLearningClipRepository from '@/backend/db/repositories/VideoLearningClipRepository';
-import VideoLearningClipWordRepository from '@/backend/db/repositories/VideoLearningClipWordRepository';
+import db from '@/backend/infrastructure/db';
+import { VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
+import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
+import VideoLearningClipRepository from '@/backend/infrastructure/db/repositories/VideoLearningClipRepository';
+import VideoLearningClipWordRepository from '@/backend/infrastructure/db/repositories/VideoLearningClipWordRepository';
 
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';

@@ -1,7 +1,7 @@
 import registerRoute from '@/common/api/register';
 import { app, dialog, shell } from 'electron';
 import path from 'path';
-import { clearDB } from '@/backend/db/db';
+import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import SystemService from '@/backend/services/SystemService';
 import { checkUpdate } from '@/backend/services/CheckUpdate';

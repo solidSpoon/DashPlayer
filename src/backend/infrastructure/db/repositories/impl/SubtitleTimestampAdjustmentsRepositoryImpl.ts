@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import SubtitleTimestampAdjustmentsRepository from '@/backend/db/repositories/SubtitleTimestampAdjustmentsRepository';
+import db from '@/backend/infrastructure/db';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/infrastructure/db/repositories/SubtitleTimestampAdjustmentsRepository';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment,
     subtitleTimestampAdjustments,
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
+} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import TimeUtil from '@/common/utils/TimeUtil';
 
 @injectable()

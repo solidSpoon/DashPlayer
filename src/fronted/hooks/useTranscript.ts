@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 
 const api = window.electron;
 
@@ -46,14 +46,14 @@ const useTranscript = create(
             onTranscript: async (file: string) => {
                 const currentFiles = get().files.map((f) => f.file);
                 const existingFile = get().files.find((f) => f.file === file);
-                const isProcessing = existingFile && 
+                const isProcessing = existingFile &&
                     (existingFile.status === 'init' || existingFile.status === 'in_progress');
-                
+
                 if (isProcessing) {
                     // 如果文件正在处理中，不重复添加
                     return;
                 }
-                
+
                 await api.call('ai-func/transcript', { filePath: file });
                 // 如果没有就新增，有就更新状态
                 if (!currentFiles.includes(file)) {
@@ -71,11 +71,11 @@ const useTranscript = create(
             updateTranscriptTasks: (updates) => {
                 set((state) => {
                     const newFiles = [...state.files];
-                    
+
                     updates.forEach((update) => {
                         const { filePath, status, result } = update;
                         const existingIndex = newFiles.findIndex((f) => f.file === filePath);
-                        
+
                         if (existingIndex >= 0) {
                             // 更新现有任务
                             const existingTask = newFiles[existingIndex];
@@ -87,15 +87,15 @@ const useTranscript = create(
                             };
                         } else if (filePath && filePath !== 'unknown') {
                             // 添加新任务
-                            newFiles.push({ 
-                                file: filePath, 
-                                status, 
+                            newFiles.push({
+                                file: filePath,
+                                status,
                                 result,
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString()
                             });
                         }
-                        
+
                         // 处理转录完成逻辑
                         if (status === 'done' && result?.srtPath) {
                             // 使用 setTimeout 避免在 set 回调中执行异步操作
@@ -115,7 +115,7 @@ const useTranscript = create(
                             }, 0);
                         }
                     });
-                    
+
                     return { files: newFiles };
                 });
             }

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { FolderVideos } from '@/common/types/tonvert-type';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const api = window.electron;

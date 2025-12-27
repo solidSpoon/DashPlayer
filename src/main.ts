@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { app, BrowserWindow, protocol, net } from 'electron';
 import path from 'path';
 import registerHandler from '@/backend/dispatcher';
-import runMigrate from '@/backend/db/migrate';
+import runMigrate from '@/backend/infrastructure/db/migrate';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';

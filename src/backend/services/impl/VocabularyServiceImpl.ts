@@ -5,7 +5,7 @@ import TYPES from '@/backend/ioc/types';
 import VocabularyService, { GetAllWordsParams, GetAllWordsResult, ExportTemplateResult, ImportWordsResult } from '@/backend/services/VocabularyService';
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import WordsRepository from '@/backend/db/repositories/WordsRepository';
+import WordsRepository from '@/backend/infrastructure/db/repositories/WordsRepository';
 
 @injectable()
 export default class VocabularyServiceImpl implements VocabularyService {

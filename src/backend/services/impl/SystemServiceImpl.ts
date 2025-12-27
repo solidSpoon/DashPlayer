@@ -5,7 +5,7 @@ import { BrowserWindow, ipcMain, app } from 'electron';
 import PathUtil from '@/common/utils/PathUtil';
 import path from 'path';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
-import {DpTask} from "@/backend/db/tables/dpTask";
+import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 @injectable()

@@ -16,7 +16,7 @@ import useConvert from '@/fronted/hooks/useConvert';
 import { useShallow } from 'zustand/react/shallow';
 import { emptyFunc } from '@/common/utils/Util';
 import { ConvertResult } from '@/common/types/tonvert-type';
-import { DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 import UrlUtil from "@/common/utils/UrlUtil";

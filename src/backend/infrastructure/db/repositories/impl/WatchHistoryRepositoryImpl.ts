@@ -1,13 +1,13 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
-import db from '@/backend/db';
-import { InsertWatchHistory, watchHistory, WatchHistory, WatchHistoryType } from '@/backend/db/tables/watchHistory';
+import db from '@/backend/infrastructure/db';
+import { InsertWatchHistory, watchHistory, WatchHistory, WatchHistoryType } from '@/backend/infrastructure/db/tables/watchHistory';
 import TimeUtil from '@/common/utils/TimeUtil';
 import WatchHistoryRepository, {
     WatchHistoryDistinctBasePathFileName,
     WatchHistoryUpdatePatch,
-} from '@/backend/db/repositories/WatchHistoryRepository';
+} from '@/backend/infrastructure/db/repositories/WatchHistoryRepository';
 
 @injectable()
 export default class WatchHistoryRepositoryImpl implements WatchHistoryRepository {

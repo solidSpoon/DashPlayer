@@ -21,7 +21,7 @@ import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSe
 import { useShallow } from 'zustand/react/shallow';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { Send } from 'lucide-react';
 import AiCtxMenuPolishMessage from "@/common/types/msg/AiCtxMenuPolishMessage";
 

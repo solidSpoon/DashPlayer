@@ -1,7 +1,7 @@
 import { ClipQuery } from '@/common/api/dto';
 
-import { InsertVideoClip } from '@/backend/db/tables/videoClip';
-import { Tag } from '@/backend/db/tables/tag';
+import { InsertVideoClip } from '@/backend/infrastructure/db/tables/videoClip';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
 
 export type FavouriteClipsUpsertClipParams = Pick<InsertVideoClip, 'key' | 'video_name' | 'srt_clip' | 'srt_context' | 'created_at' | 'updated_at'>;
 

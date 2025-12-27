@@ -1,4 +1,4 @@
-import { DpTask, DpTaskState } from '@/backend/db/tables/dpTask';
+import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { Nullable } from 'vitest';
 
 

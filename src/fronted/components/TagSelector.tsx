@@ -16,7 +16,7 @@ import {
     PopoverTrigger
 } from '@/fronted/components/ui/popover';
 import useSWR from 'swr';
-import { Tag } from '@/backend/db/tables/tag';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import { Plus, X } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
 import { Dialog, DialogContent } from '@/fronted/components/ui/dialog';

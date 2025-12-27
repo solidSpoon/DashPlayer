@@ -1,16 +1,16 @@
-import {DpTask} from '@/backend/db/tables/dpTask';
+import {DpTask} from '@/backend/infrastructure/db/tables/dpTask';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence} from '@/common/types/SentenceC';
 import {WindowState} from '@/common/types/Types';
 import {
     InsertSubtitleTimestampAdjustment
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
+} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import {SettingKey} from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import {FolderVideos} from '@/common/types/tonvert-type';
 
-import {Tag} from '@/backend/db/tables/tag';
+import {Tag} from '@/backend/infrastructure/db/tables/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
 import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';

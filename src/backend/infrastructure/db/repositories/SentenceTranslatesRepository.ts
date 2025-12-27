@@ -1,4 +1,4 @@
-import { InsertSentenceTranslate, SentenceTranslate } from '@/backend/db/tables/sentenceTranslates';
+import { InsertSentenceTranslate, SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
 
 export type SentenceTranslatesUpsertParams = Pick<InsertSentenceTranslate, 'sentence' | 'translate' | 'mode'> & Partial<Pick<InsertSentenceTranslate, 'updated_at'>>;
 

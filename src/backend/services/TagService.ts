@@ -1,4 +1,4 @@
-import { Tag } from '@/backend/db/tables/tag';
+import { Tag } from '@/backend/infrastructure/db/tables/tag';
 
 export default interface TagService {
     addTag(name: string): Promise<Tag>;

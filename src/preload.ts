@@ -3,7 +3,7 @@
 import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
 import {SettingKey} from './common/types/store_schema';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
-import {DpTask} from "@/backend/db/tables/dpTask";
+import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
 import {RendererApiMap} from '@/common/api/renderer-api-def';
 import type { SimpleEvent } from '@/common/log/simple-types';
 

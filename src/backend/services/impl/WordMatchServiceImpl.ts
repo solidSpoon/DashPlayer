@@ -1,9 +1,9 @@
-import { Word } from '@/backend/db/tables/words';
+import { Word } from '@/backend/infrastructure/db/tables/words';
 import nlp from 'compromise';
 import { inject, injectable } from 'inversify';
 import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService';
 import TYPES from '@/backend/ioc/types';
-import WordsRepository from '@/backend/db/repositories/WordsRepository';
+import WordsRepository from '@/backend/infrastructure/db/repositories/WordsRepository';
 
 @injectable()
 export default class WordMatchServiceImpl implements WordMatchService {

@@ -3,8 +3,8 @@ import path from 'node:path';
 
 import { count } from 'drizzle-orm';
 
-import db from '@/backend/db';
-import { words } from '@/backend/db/tables/words';
+import db from '@/backend/infrastructure/db';
+import { words } from '@/backend/infrastructure/db/tables/words';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import TYPES from '@/backend/ioc/types';
 import container from '@/backend/ioc/inversify.config';

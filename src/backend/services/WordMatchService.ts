@@ -1,4 +1,4 @@
-import { Word } from '@/backend/db/tables/words';
+import { Word } from '@/backend/infrastructure/db/tables/words';
 
 export interface WordMatchService {
     matchWordsInText(text: string): Promise<MatchedWord[]>;

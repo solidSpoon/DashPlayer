@@ -1,4 +1,4 @@
-import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/db/tables/videoLearningClip';
+import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 
 export interface VideoLearningClipPageQuery {
     keys?: string[];

@@ -1,4 +1,4 @@
-import {InsertSubtitleTimestampAdjustment} from '@/backend/db/tables/subtitleTimestampAdjustment';
+import {InsertSubtitleTimestampAdjustment} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import registerRoute from '@/common/api/register';
 import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';

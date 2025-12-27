@@ -1,7 +1,7 @@
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
+} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 
 /**
  * 调整字幕时间

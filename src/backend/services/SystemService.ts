@@ -1,6 +1,6 @@
 import { WindowState } from '@/common/types/Types';
 import { BrowserWindow } from 'electron';
-import {DpTask} from "@/backend/db/tables/dpTask";
+import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 
 /**

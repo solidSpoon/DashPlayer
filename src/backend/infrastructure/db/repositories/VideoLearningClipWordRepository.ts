@@ -1,4 +1,4 @@
-import { InsertVideoLearningClipWord } from '@/backend/db/tables/videoLearningClipWord';
+import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 
 export default interface VideoLearningClipWordRepository {
     findClipKeysByWord(word: string): Promise<string[]>;
