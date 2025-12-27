@@ -7,8 +7,7 @@ import DpTaskService from '../DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import WhisperService from '@/backend/application/services/WhisperService';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
-import OpenAiWhisperRequest from '@/backend/objs/OpenAiWhisperRequest';
+import OpenAiWhisperRequest from '@/backend/infrastructure/openai/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import dpLog from '@/backend/infrastructure/logger';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
@@ -193,12 +192,14 @@ class WhisperServiceImpl implements WhisperService {
      */
     @WaitLock('whisper')
     private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
-        const openAi = this.openAiService.getOpenAi();
-        const req = OpenAiWhisperRequest.build(openAi, chunk.filePath);
-        if (TypeGuards.isNull(req)) {
+        let openAi: ReturnType<OpenAiService['getOpenAi']>;
+        try {
+            openAi = this.openAiService.getOpenAi();
+        } catch (error) {
             this.dpTaskService.fail(taskId, { progress: '未设置 OpenAI 密钥' });
-            throw new Error('未设置 OpenAI 密钥');
+            throw error;
         }
+        const req = new OpenAiWhisperRequest(openAi, chunk.filePath);
         this.dpTaskService.registerTask(taskId, req);
         const response = await req.invoke();
         return { ...response };

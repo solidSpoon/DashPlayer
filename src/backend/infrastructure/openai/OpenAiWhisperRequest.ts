@@ -1,41 +1,31 @@
-import {storeGet} from '@/backend/infrastructure/settings/store';
 import fs from 'fs';
-import StrUtil from '@/common/utils/str-util';
-import { Cancelable } from '@/common/interfaces';
+
 import OpenAI from 'openai';
+
+import { Cancelable } from '@/common/interfaces';
+import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
+
 import dpLog from '@/backend/infrastructure/logger';
 import { WhisperResponseFormatError } from '@/backend/errors/errors';
-import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
-import {WaitRateLimit} from "@/common/utils/RateLimiter";
 
 class OpenAiWhisperRequest implements Cancelable {
     private readonly file: string;
     private abortController: AbortController | null = null;
     public readonly openAi: OpenAI;
 
-    constructor(openai: OpenAI, file: string) {
+    constructor(openAi: OpenAI, file: string) {
         this.file = file;
-        this.openAi = openai;
-    }
-
-    public static build(openai: OpenAI, file: string): OpenAiWhisperRequest | null {
-        const apiKey = storeGet('apiKeys.openAi.key');
-        const endpoint = storeGet('apiKeys.openAi.endpoint');
-        if (StrUtil.hasBlank(file, apiKey, endpoint)) {
-            return null;
-        }
-        return new OpenAiWhisperRequest(openai, file);
+        this.openAi = openAi;
     }
 
     @WaitRateLimit('whisper')
     public async invoke(): Promise<WhisperResponse> {
         this.cancel();
         const transcription = await this.doTranscription();
-        // 用 zed 校验一下 transcription 是否为 类型 TranscriptionVerbose
         const parseRes = WhisperResponseVerifySchema.safeParse(transcription);
         if (!parseRes.success) {
-            // dperror 为什么不匹配
-            dpLog.error('Invalid response from OpenAI', parseRes.error.errors);
+            dpLog.error('Invalid response from OpenAI', parseRes.error.issues);
             throw new WhisperResponseFormatError();
         }
         return {
@@ -46,21 +36,23 @@ class OpenAiWhisperRequest implements Cancelable {
                 seek: seg.seek,
                 start: seg.start,
                 end: seg.end,
-                text: seg.text
-            })) ?? []
+                text: seg.text,
+            })) ?? [],
         };
-
     }
 
     private async doTranscription() {
         this.abortController = new AbortController();
         try {
-            return await this.openAi.audio.transcriptions.create({
-                file: fs.createReadStream(this.file),
-                model: 'whisper-1',
-                response_format: 'verbose_json',
-                timestamp_granularities: ['segment']
-            }, { signal: this.abortController.signal });
+            return await this.openAi.audio.transcriptions.create(
+                {
+                    file: fs.createReadStream(this.file),
+                    model: 'whisper-1',
+                    response_format: 'verbose_json',
+                    timestamp_granularities: ['segment'],
+                },
+                { signal: this.abortController.signal },
+            );
         } catch (error) {
             dpLog.error(error);
             throw error;
@@ -73,7 +65,6 @@ class OpenAiWhisperRequest implements Cancelable {
             this.abortController = null;
         }
     }
-
 }
 
 export default OpenAiWhisperRequest;

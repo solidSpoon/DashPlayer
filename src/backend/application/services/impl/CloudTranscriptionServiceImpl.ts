@@ -5,8 +5,7 @@ import { inject, injectable } from 'inversify';
 import { TranscriptionService } from '../TranscriptionService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
-import OpenAiWhisperRequest from '@/backend/objs/OpenAiWhisperRequest';
+import OpenAiWhisperRequest from '@/backend/infrastructure/openai/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import dpLog from '@/backend/infrastructure/logger';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
@@ -225,10 +224,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     @WaitLock('whisper')
     private async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
         const openAi = this.openAiService.getOpenAi();
-        const req = OpenAiWhisperRequest.build(openAi, chunk.filePath);
-        if (TypeGuards.isNull(req)) {
-            throw new Error('未设置 OpenAI 密钥');
-        }
+        const req = new OpenAiWhisperRequest(openAi, chunk.filePath);
         const response = await req.invoke();
         return { ...response };
     }
