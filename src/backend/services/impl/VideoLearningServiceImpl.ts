@@ -4,8 +4,9 @@ import fs from 'fs';
 
 import db from '@/backend/db';
 import { VideoLearningClip } from '@/backend/db/tables/videoLearningClip';
-import { videoLearningClipWord, InsertVideoLearningClipWord } from '@/backend/db/tables/videoLearningClipWord';
+import { InsertVideoLearningClipWord } from '@/backend/db/tables/videoLearningClipWord';
 import VideoLearningClipRepository from '@/backend/db/repositories/VideoLearningClipRepository';
+import VideoLearningClipWordRepository from '@/backend/db/repositories/VideoLearningClipWordRepository';
 
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -77,6 +78,9 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
     @inject(TYPES.VideoLearningClipRepository)
     private videoLearningClipRepository!: VideoLearningClipRepository;
+
+    @inject(TYPES.VideoLearningClipWordRepository)
+    private videoLearningClipWordRepository!: VideoLearningClipWordRepository;
 
     /**
      * key: clipKey = hash(clip srt context)
@@ -662,36 +666,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     private async getClipWordsMap(keys: string[]): Promise<Map<string, string[]>> {
-        const result = new Map<string, string[]>();
-        if (!keys || keys.length === 0) {
-            return result;
-        }
-
-        const rows = await db
-            .select({
-                clipKey: videoLearningClipWord.clip_key,
-                word: videoLearningClipWord.word
-            })
-            .from(videoLearningClipWord)
-            .where(inArray(videoLearningClipWord.clip_key, keys));
-
-        const tempMap = new Map<string, Set<string>>();
-        for (const row of rows) {
-            const cleanedWord = typeof row.word === 'string' ? row.word.toLowerCase().trim() : '';
-            if (!cleanedWord) {
-                continue;
-            }
-            if (!tempMap.has(row.clipKey)) {
-                tempMap.set(row.clipKey, new Set());
-            }
-            tempMap.get(row.clipKey)?.add(cleanedWord);
-        }
-
-        tempMap.forEach((set, key) => {
-            result.set(key, Array.from(set));
-        });
-
-        return result;
+        return await this.videoLearningClipWordRepository.getWordsMapByClipKeys(keys);
     }
 
     public async search({ word, page, pageSize }: SimpleClipQuery): Promise<VideoLearningClipPage> {
@@ -703,12 +678,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         let dbClipKeys: string[] | undefined;
 
         if (StrUtil.isNotBlank(searchWord)) {
-            const clipKeysWithWord = await db
-                .select({ clip_key: videoLearningClipWord.clip_key })
-                .from(videoLearningClipWord)
-                .where(eq(videoLearningClipWord.word, searchWord));
-
-            dbClipKeys = clipKeysWithWord.map(item => item.clip_key);
+            dbClipKeys = await this.videoLearningClipWordRepository.findClipKeysByWord(searchWord);
         }
         const dbTotal = await this.videoLearningClipRepository.count({ keys: dbClipKeys });
 
@@ -834,7 +804,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     created_at: TimeUtil.timeUtc(),
                     updated_at: TimeUtil.timeUtc()
                 }));
-                await db.insert(videoLearningClipWord).values(wordRelations).onConflictDoNothing();
+                await this.videoLearningClipWordRepository.insertManyIgnoreDuplicates(wordRelations);
             }
         }
     }
@@ -849,7 +819,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     public async syncFromOss() {
         const keys = await this.videoLearningOssService.list();
         await this.videoLearningClipRepository.deleteAll();
-        await db.delete(videoLearningClipWord).where(sql`1=1`);
+        await this.videoLearningClipWordRepository.deleteAll();
         for (const key of keys) {
             const clip = await this.videoLearningOssService.get(key);
             if (!clip) continue;
@@ -858,19 +828,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     public async countClipsGroupedByWord(): Promise<Record<string, number>> {
-        const rows = await db
-            .select({
-                word: videoLearningClipWord.word,
-                count: sql<number>`count(*)`
-            })
-            .from(videoLearningClipWord)
-            .groupBy(videoLearningClipWord.word);
-
-        const result: Record<string, number> = {};
-        for (const row of rows) {
-            result[row.word] = Number(row.count) || 0;
-        }
-        return result;
+        return await this.videoLearningClipWordRepository.countGroupedByWord();
     }
 
     @postConstruct()
