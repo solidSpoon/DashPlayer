@@ -5,10 +5,9 @@ import { inject, injectable } from 'inversify';
 import { TranscriptionService } from '../TranscriptionService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
-import OpenAiWhisperRequest from '@/backend/infrastructure/openai/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import dpLog from '@/backend/infrastructure/logger';
-import { OpenAiService } from '@/backend/application/services/OpenAiService';
+import { OpenAiWhisperGateway } from '@/backend/application/ports/gateways/OpenAiWhisperGateway';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
 import { ConfigTender } from '@/backend/objs/config-tender';
@@ -57,8 +56,8 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
-    @inject(TYPES.OpenAiService)
-    private openAiService!: OpenAiService;
+    @inject(TYPES.OpenAiWhisperGateway)
+    private openAiWhisperGateway!: OpenAiWhisperGateway;
 
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
@@ -223,8 +222,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
      */
     @WaitLock('whisper')
     private async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
-        const openAi = this.openAiService.getOpenAi();
-        const req = new OpenAiWhisperRequest(openAi, chunk.filePath);
+        const req = this.openAiWhisperGateway.createRequest(chunk.filePath);
         const response = await req.invoke();
         return { ...response };
     }

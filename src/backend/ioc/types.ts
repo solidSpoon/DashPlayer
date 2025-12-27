@@ -24,6 +24,7 @@ const TYPES = {
     TranslateService: Symbol('TranslateService'),
     WatchHistoryService: Symbol('WatchHistoryService'),
     OpenAiService: Symbol('OpenAiService'),
+    OpenAiWhisperGateway: Symbol('OpenAiWhisperGateway'),
     CloudTranscriptionService: Symbol('CloudTranscriptionService'),
     LocalTranscriptionService: Symbol('LocalTranscriptionService'),
     WordMatchService: Symbol('WordMatchService'),

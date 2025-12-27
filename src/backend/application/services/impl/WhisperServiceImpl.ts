@@ -7,10 +7,9 @@ import DpTaskService from '../DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import WhisperService from '@/backend/application/services/WhisperService';
-import OpenAiWhisperRequest from '@/backend/infrastructure/openai/OpenAiWhisperRequest';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import dpLog from '@/backend/infrastructure/logger';
-import { OpenAiService } from '@/backend/application/services/OpenAiService';
+import { OpenAiWhisperGateway } from '@/backend/application/ports/gateways/OpenAiWhisperGateway';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
 import { ConfigTender } from '@/backend/objs/config-tender';
@@ -58,8 +57,8 @@ class WhisperServiceImpl implements WhisperService {
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
-    @inject(TYPES.OpenAiService)
-    private openAiService!: OpenAiService;
+    @inject(TYPES.OpenAiWhisperGateway)
+    private openAiWhisperGateway!: OpenAiWhisperGateway;
 
     private static readonly INFO_FILE = 'info.json';
 
@@ -192,14 +191,13 @@ class WhisperServiceImpl implements WhisperService {
      */
     @WaitLock('whisper')
     private async whisper(taskId: number, chunk: SplitChunk): Promise<WhisperResponse> {
-        let openAi: ReturnType<OpenAiService['getOpenAi']>;
+        let req;
         try {
-            openAi = this.openAiService.getOpenAi();
+            req = this.openAiWhisperGateway.createRequest(chunk.filePath);
         } catch (error) {
             this.dpTaskService.fail(taskId, { progress: '未设置 OpenAI 密钥' });
             throw error;
         }
-        const req = new OpenAiWhisperRequest(openAi, chunk.filePath);
         this.dpTaskService.registerTask(taskId, req);
         const response = await req.invoke();
         return { ...response };

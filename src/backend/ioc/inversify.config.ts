@@ -66,7 +66,9 @@ import SettingsController from '@/backend/adapters/controllers/SettingsControlle
 import { WhisperModelController } from '@/backend/adapters/controllers/WhisperModelController';
 import { OpenAIServiceImpl } from '@/backend/application/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
+import { OpenAiWhisperGateway } from '@/backend/application/ports/gateways/OpenAiWhisperGateway';
 import AiProviderService from '@/backend/application/services/AiProviderService';
+import OpenAiWhisperGatewayImpl from '@/backend/infrastructure/openai/OpenAiWhisperGatewayImpl';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import { CloudTranscriptionServiceImpl } from '@/backend/application/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/application/services/impl/LocalTranscriptionServiceImpl';
@@ -161,6 +163,7 @@ container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingleto
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
+container.bind<OpenAiWhisperGateway>(TYPES.OpenAiWhisperGateway).to(OpenAiWhisperGatewayImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.CloudTranscriptionService).to(CloudTranscriptionServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
