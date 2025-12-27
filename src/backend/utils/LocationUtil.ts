@@ -1,4 +1,4 @@
-import { LocationType } from '@/backend/services/LocationService';
+import { LocationType } from '@/backend/application/services/LocationService';
 import path from 'path';
 import StrUtil from '@/common/utils/str-util';
 import {storeGet, storeSet} from '@/backend/infrastructure/settings/store';

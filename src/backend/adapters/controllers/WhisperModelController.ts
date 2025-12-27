@@ -5,7 +5,7 @@ import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
-import SystemConfigService from '@/backend/services/SystemConfigService';
+import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';

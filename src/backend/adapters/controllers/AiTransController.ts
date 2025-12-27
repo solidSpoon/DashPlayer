@@ -6,7 +6,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types'; // 使用接口定义
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Controller from "@/backend/interfaces/controller";
-import TranslateService from "@/backend/services/AiTransServiceImpl";
+import TranslateService from "@/backend/application/services/AiTransServiceImpl";
 
 @injectable()
 export default class AiTransController implements Controller {

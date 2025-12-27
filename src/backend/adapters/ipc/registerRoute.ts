@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import util from 'util';
 
 import { ApiMap } from '@/common/api/api-def';
-import SystemService from '@/backend/services/SystemService';
+import SystemService from '@/backend/application/services/SystemService';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/ioc/simple-logger';

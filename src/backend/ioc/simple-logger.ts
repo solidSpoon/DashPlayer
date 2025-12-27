@@ -4,7 +4,7 @@ import util from 'util';
 import log from 'electron-log/main';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
 import LocationUtil from '@/backend/utils/LocationUtil';
-import { LocationType } from '@/backend/services/LocationService';
+import { LocationType } from '@/backend/application/services/LocationService';
 
 const logPath = LocationUtil.staticGetStoragePath(LocationType.LOGS);
 

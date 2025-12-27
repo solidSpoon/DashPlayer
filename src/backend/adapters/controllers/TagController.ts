@@ -1,10 +1,10 @@
 import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import TagService from '@/backend/services/TagService';
+import TagService from '@/backend/application/services/TagService';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
-import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
 
 @injectable()
 export default class TagController implements Controller {

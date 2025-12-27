@@ -3,9 +3,9 @@ import path from 'path';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/interfaces/controller';
-import WatchHistoryService from '@/backend/services/WatchHistoryService';
+import WatchHistoryService from '@/backend/application/services/WatchHistoryService';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
-import LocationService, { LocationType } from '@/backend/services/LocationService';
+import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 
 @injectable()
 export default class WatchHistoryController implements Controller {

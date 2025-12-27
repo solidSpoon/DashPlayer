@@ -3,10 +3,10 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import Controller from '@/backend/interfaces/controller';
 import {inject, injectable} from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import SettingService from '@/backend/services/SettingService';
-import LocationService from '@/backend/services/LocationService';
+import SettingService from '@/backend/application/services/SettingService';
+import LocationService from '@/backend/application/services/LocationService';
 import FileUtil from '@/backend/utils/FileUtil';
-import SystemService from '@/backend/services/SystemService';
+import SystemService from '@/backend/application/services/SystemService';
 import {getMainLogger} from '@/backend/ioc/simple-logger';
 
 @injectable()

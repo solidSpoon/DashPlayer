@@ -3,7 +3,7 @@ import { SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/interfaces/controller';
-import SubtitleService from '@/backend/services/SubtitleService';
+import SubtitleService from '@/backend/application/services/SubtitleService';
 
 
 @injectable()

@@ -3,15 +3,15 @@ import { app, dialog, shell } from 'electron';
 import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
-import SystemService from '@/backend/services/SystemService';
-import { checkUpdate } from '@/backend/services/CheckUpdate';
+import SystemService from '@/backend/application/services/SystemService';
+import { checkUpdate } from '@/backend/application/services/CheckUpdate';
 import Release from '@/common/types/release';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import StrUtil from '@/common/utils/str-util';
 import TYPES from '@/backend/ioc/types';
 import OpenDialogOptions = Electron.OpenDialogOptions;
-import LocationService from '@/backend/services/LocationService';
+import LocationService from '@/backend/application/services/LocationService';
 
 /**
  * eg: .mkv -> mkv

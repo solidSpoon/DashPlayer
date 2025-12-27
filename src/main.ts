@@ -6,7 +6,7 @@ import runMigrate from '@/backend/infrastructure/db/migrate';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import { DP_FILE, DP } from '@/common/utils/UrlUtil';
 import * as base32 from 'hi-base32';
-import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
+import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';

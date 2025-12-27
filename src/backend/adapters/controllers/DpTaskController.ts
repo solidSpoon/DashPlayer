@@ -3,7 +3,7 @@ import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
 import Controller from '@/backend/interfaces/controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import DpTaskService from '@/backend/services/DpTaskService';
+import DpTaskService from '@/backend/application/services/DpTaskService';
 
 /**
  * AI 翻译

@@ -8,7 +8,7 @@ import { words } from '@/backend/infrastructure/db/tables/words';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 import TYPES from '@/backend/ioc/types';
 import container from '@/backend/ioc/inversify.config';
-import SystemConfigService from '@/backend/services/SystemConfigService';
+import SystemConfigService from '@/backend/application/services/SystemConfigService';
 
 export type DefaultVocabularyWord = {
     word: string;

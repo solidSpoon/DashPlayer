@@ -4,7 +4,7 @@ import path from 'path';
 import { and, ExtractTablesWithRelations, sql } from 'drizzle-orm';
 import fs from 'fs';
 import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
-import { LocationType } from '@/backend/services/LocationService';
+import { LocationType } from '@/backend/application/services/LocationService';
 import LocationUtil from '@/backend/utils/LocationUtil';
 
 // const file = path.join(

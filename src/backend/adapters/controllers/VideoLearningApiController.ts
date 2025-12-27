@@ -1,4 +1,4 @@
-import { VideoLearningService } from '@/backend/services/VideoLearningService';
+import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
@@ -42,13 +42,13 @@ export default class VideoLearningApiController implements Controller {
             return { success: true };
         });
 
-        
+
         registerRoute('video-learning/search', async (params) => {
             const result = await this.videoLearningService.search(params);
             return { success: true, data: result };
         });
 
-        
+
         registerRoute('video-learning/sync-from-oss', async () => {
             await this.videoLearningService.syncFromOss();
             return { success: true };
