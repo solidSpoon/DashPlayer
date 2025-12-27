@@ -1,9 +1,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
+import {SettingKey} from '@/common/types/store_schema';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
 
 export type SettingState = {
     init: boolean;
@@ -38,22 +36,5 @@ const useSetting = create(
         },
     }))
 );
-
-for (const key in SettingKeyObj) {
-    const k = key as SettingKey;
-    getRendererLogger('useSetting').debug('setting init', { key: k });
-    backendClient.call('storage/get', k).then((value: string) => {
-        getRendererLogger('useSetting').debug('setting init value', { key: k, value });
-        useSetting.getState().setLocalSetting(k, value);
-    });
-}
-
-storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
-    getRendererLogger('useSetting').debug('store update', { key, value });
-    const oldValues = useSetting.getState().values.get(key);
-    if (oldValues !== value) {
-        useSetting.getState().setLocalSetting(key, value);
-    }
-});
 
 export default useSetting;

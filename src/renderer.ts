@@ -27,9 +27,8 @@
  */
 
 import './index.css';
-// Add this to the end of the existing file
-import './app';
-
-// 初始化前端Controllers
+// 初始化前端（renderer apis、settings sync等）
 import './fronted/init-controllers';
 
+// React App
+import './app';

@@ -4,6 +4,7 @@
  */
 
 import { initRendererApis } from './application/bootstrap/initRendererApis';
+import { initSettingsSync } from './application/bootstrap/initSettingsSync';
 import { getRendererLogger } from './log/simple-logger';
 
 function initializeRendererApis() {
@@ -11,7 +12,12 @@ function initializeRendererApis() {
     logger.info('initializing renderer apis...');
     
     try {
-        const cleanup = initRendererApis();
+        const cleanupRendererApis = initRendererApis();
+        const cleanupSettingsSync = initSettingsSync();
+        const cleanup = () => {
+            cleanupRendererApis();
+            cleanupSettingsSync();
+        };
         
         // 将清理函数挂载到window对象，方便调试
         (window as any).cleanupRendererApis = cleanup;

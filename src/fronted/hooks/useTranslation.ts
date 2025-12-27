@@ -4,9 +4,7 @@ import hash from 'object-hash';
 import { Sentence } from '@/common/types/SentenceC';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
-import { SettingKey } from '@/common/types/store_schema';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
 
 // 每句话的翻译状态
 export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
@@ -261,37 +259,5 @@ const shouldAcceptTranslation = (
 
     return true;
 };
-
-const syncInitialSettings = () => {
-    backendClient.call('storage/get', 'translation.engine').then((engine: string) => {
-        if (engine === 'openai' || engine === 'tencent') {
-            useTranslation.getState().setEngine(engine);
-        }
-    }).catch(error => {
-        getRendererLogger('useTranslation').error('failed to sync translation.engine', { error });
-    });
-
-    backendClient.call('storage/get', 'services.openai.subtitleTranslationMode')
-        .then((mode: string) => {
-            const normalized: TranslationMode = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
-            useTranslation.getState().setOpenAiMode(normalized);
-        }).catch(error => {
-            getRendererLogger('useTranslation').error('failed to sync subtitleTranslationMode', { error });
-        });
-};
-
-syncInitialSettings();
-
-storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
-    if (key === 'translation.engine') {
-        if (value === 'openai' || value === 'tencent') {
-            useTranslation.getState().setEngine(value);
-        }
-    }
-    if (key === 'services.openai.subtitleTranslationMode') {
-        const normalized: TranslationMode = value === 'simple_en' || value === 'custom' ? value : 'zh';
-        useTranslation.getState().setOpenAiMode(normalized);
-    }
-});
 
 export default useTranslation;
