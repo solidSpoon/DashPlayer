@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import {SettingKey, SettingKeyObj} from "@/common/types/store_schema";
+import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
 import StrUtil from '@/common/utils/str-util';
 
 

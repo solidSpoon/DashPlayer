@@ -1,5 +1,5 @@
 import { SettingKey } from '@/common/types/store_schema';
-import { storeGet, storeSet } from '../../store';
+import {storeGet, storeSet} from '@/backend/infrastructure/settings/store';
 import SystemConfigService from '@/backend/services/SystemConfigService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';

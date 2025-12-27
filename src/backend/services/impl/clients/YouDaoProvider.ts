@@ -1,4 +1,4 @@
-import { storeGet } from '@/backend/store';
+import {storeGet} from '@/backend/infrastructure/settings/store';
 import { injectable } from 'inversify';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import StrUtil from '@/common/utils/str-util';

@@ -1,7 +1,7 @@
 import { LocationType } from '@/backend/services/LocationService';
 import path from 'path';
 import StrUtil from '@/common/utils/str-util';
-import { storeGet, storeSet } from '@/backend/store';
+import {storeGet, storeSet} from '@/backend/infrastructure/settings/store';
 import { app } from 'electron';
 
 export default class LocationUtil {

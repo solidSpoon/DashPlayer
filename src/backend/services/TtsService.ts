@@ -1,5 +1,5 @@
 import StrUtil from '@/common/utils/str-util';
-import { storeGet } from '@/backend/store';
+import {storeGet} from '@/backend/infrastructure/settings/store';
 import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';

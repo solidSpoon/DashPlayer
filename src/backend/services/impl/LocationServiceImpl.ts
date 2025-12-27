@@ -1,5 +1,5 @@
 import path from 'path';
-import { storeGet } from '@/backend/store';
+import {storeGet} from '@/backend/infrastructure/settings/store';
 import StrUtil from '@/common/utils/str-util';
 import LocationService, { LocationType, ProgramType } from '@/backend/services/LocationService';
 import { injectable } from 'inversify';

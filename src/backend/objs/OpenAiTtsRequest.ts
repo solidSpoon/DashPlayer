@@ -1,4 +1,4 @@
-import { storeGet } from '@/backend/store';
+import {storeGet} from '@/backend/infrastructure/settings/store';
 import fs from 'fs';
 import axios from 'axios';
 import UrlUtil from '@/common/utils/UrlUtil';

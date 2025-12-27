@@ -1,10 +1,9 @@
 import { OpenAiService } from '@/backend/services/OpenAiService';
 import OpenAI from 'openai';
 import { injectable } from 'inversify';
-import { storeGet } from '@/backend/store';
+import {storeGet} from '@/backend/infrastructure/settings/store';
 import StrUtil from '@/common/utils/str-util';
-import fs from "fs";
-import { TranscriptionVerbose } from 'openai/src/resources/audio/transcriptions';
+
 @injectable()
 export class OpenAIServiceImpl implements OpenAiService {
     private openai: OpenAI | null = null;
