@@ -1,4 +1,3 @@
-// @/backend/commands/FfmpegCommands.ts
 import ffmpeg from 'fluent-ffmpeg';
 import TimeUtil from '@/common/utils/TimeUtil';
 import path from 'path';

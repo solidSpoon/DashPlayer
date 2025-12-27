@@ -13,7 +13,7 @@ import FfmpegTask from '@/backend/objs/FfmpegTask';
 import dpLog from '@/backend/ioc/logger';
 import {VideoInfo} from '@/common/types/video-info';
 import {CancelByUserError} from '@/backend/errors/errors';
-import {FfmpegCommands} from '@/backend/utils/FfmpegCommands';
+import {FfmpegCommands} from '@/backend/infrastructure/media/ffmpeg/FfmpegCommands';
 
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
