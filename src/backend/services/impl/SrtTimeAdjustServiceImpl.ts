@@ -1,72 +1,39 @@
-import { eq } from 'drizzle-orm';
-import db from '@/backend/db/db';
 import {
     InsertSubtitleTimestampAdjustment,
-    SubtitleTimestampAdjustment,
-    subtitleTimestampAdjustments
+    SubtitleTimestampAdjustment
 } from '@/backend/db/tables/subtitleTimestampAdjustment';
-import TimeUtil from '@/common/utils/TimeUtil';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
+import TYPES from '@/backend/ioc/types';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/db/repositories/SubtitleTimestampAdjustmentsRepository';
 
 @injectable()
 export default class SrtTimeAdjustServiceImpl implements SrtTimeAdjustService {
+
+    @inject(TYPES.SubtitleTimestampAdjustmentsRepository)
+    private subtitleTimestampAdjustmentsRepository!: SubtitleTimestampAdjustmentsRepository;
+
     public async record(e: InsertSubtitleTimestampAdjustment): Promise<void> {
-        await db
-            .insert(subtitleTimestampAdjustments)
-            .values(e)
-            .onConflictDoUpdate({
-                target: subtitleTimestampAdjustments.key,
-                set: {
-                    subtitle_path: e.subtitle_path,
-                    start_at: e.start_at,
-                    end_at: e.end_at,
-                    updated_at: TimeUtil.timeUtc()
-                }
-            });
+        await this.subtitleTimestampAdjustmentsRepository.upsert(e);
     }
 
     public async deleteByKey(key: string): Promise<void> {
-        await db
-            .delete(subtitleTimestampAdjustments)
-            .where(eq(subtitleTimestampAdjustments.key, key));
+        await this.subtitleTimestampAdjustmentsRepository.deleteByKey(key);
     }
 
     public async deleteByFile(fileHash: string): Promise<void> {
-        await db
-            .delete(subtitleTimestampAdjustments)
-            .where(
-                eq(subtitleTimestampAdjustments.subtitle_hash, fileHash)
-            );
+        await this.subtitleTimestampAdjustmentsRepository.deleteByFileHash(fileHash);
     }
 
     public async getByKey(key: string): Promise<SubtitleTimestampAdjustment | undefined> {
-        const values: SubtitleTimestampAdjustment[] = await db
-            .select()
-            .from(subtitleTimestampAdjustments)
-            .where(eq(subtitleTimestampAdjustments.key, key))
-            .limit(1);
-        if (values.length === 0) {
-            return undefined;
-        }
-        return values[0];
+        return this.subtitleTimestampAdjustmentsRepository.findByKey(key);
     }
 
     public getByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]> {
-        return db
-            .select()
-            .from(subtitleTimestampAdjustments)
-            .where(
-                eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath)
-            );
+        return this.subtitleTimestampAdjustmentsRepository.findByPath(subtitlePath);
     }
 
     public getByHash(h: string): Promise<SubtitleTimestampAdjustment[]> {
-        return db
-            .select()
-            .from(subtitleTimestampAdjustments)
-            .where(
-                eq(subtitleTimestampAdjustments.subtitle_hash, h.toString())
-            );
+        return this.subtitleTimestampAdjustmentsRepository.findByHash(h.toString());
     }
 }

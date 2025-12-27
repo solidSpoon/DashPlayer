@@ -93,6 +93,10 @@ import WordTranslatesRepository from '@/backend/db/repositories/WordTranslatesRe
 import WordTranslatesRepositoryImpl from '@/backend/db/repositories/impl/WordTranslatesRepositoryImpl';
 import SentenceTranslatesRepository from '@/backend/db/repositories/SentenceTranslatesRepository';
 import SentenceTranslatesRepositoryImpl from '@/backend/db/repositories/impl/SentenceTranslatesRepositoryImpl';
+import SysConfRepository from '@/backend/db/repositories/SysConfRepository';
+import SysConfRepositoryImpl from '@/backend/db/repositories/impl/SysConfRepositoryImpl';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/db/repositories/SubtitleTimestampAdjustmentsRepository';
+import SubtitleTimestampAdjustmentsRepositoryImpl from '@/backend/db/repositories/impl/SubtitleTimestampAdjustmentsRepositoryImpl';
 
 
 const container = new Container();
@@ -127,6 +131,8 @@ container.bind<WatchHistoryRepository>(TYPES.WatchHistoryRepository).to(WatchHis
 container.bind<FavouriteClipsRepository>(TYPES.FavouriteClipsRepository).to(FavouriteClipsRepositoryImpl).inSingletonScope();
 container.bind<WordTranslatesRepository>(TYPES.WordTranslatesRepository).to(WordTranslatesRepositoryImpl).inSingletonScope();
 container.bind<SentenceTranslatesRepository>(TYPES.SentenceTranslatesRepository).to(SentenceTranslatesRepositoryImpl).inSingletonScope();
+container.bind<SysConfRepository>(TYPES.SysConfRepository).to(SysConfRepositoryImpl).inSingletonScope();
+container.bind<SubtitleTimestampAdjustmentsRepository>(TYPES.SubtitleTimestampAdjustmentsRepository).to(SubtitleTimestampAdjustmentsRepositoryImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
