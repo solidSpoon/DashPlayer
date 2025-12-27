@@ -3,7 +3,7 @@ import { Virtuoso } from 'react-virtuoso';
 import { shallow } from 'zustand/shallow';
 import { twJoin } from 'tailwind-merge';
 import { AnimatePresence, motion } from 'framer-motion';
-import SideSentence from '@/fronted/pages/player/pa-player/SideSentence';
+import SideSentence from '../SideSentence';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import useLayout from '@/fronted/hooks/useLayout';

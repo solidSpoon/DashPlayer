@@ -11,7 +11,7 @@ import { Sentence } from '@/common/types/SentenceC';
 import { Bookmark } from 'lucide-react';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
-import TranslatableLineWrapper from "@/fronted/pages/player/pa-srt-cops/translatable-line-wrapper";
+import TranslatableLineWrapper from './translatable-line-wrapper';
 
 interface PlayerTranslatableSubtitleLineParam {
     sentence: Sentence;

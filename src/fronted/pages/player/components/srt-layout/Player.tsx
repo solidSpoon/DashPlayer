@@ -6,7 +6,7 @@ import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useLayout from '@/fronted/hooks/useLayout';
 import PlayerControlPanel from './PlayerControlPanel';
-import PlayerSubtitlePanel from '@/fronted/pages/player/playerSubtitle/PlayerSubtitlePanel';
+import PlayerSubtitlePanel from '@/fronted/pages/player/components/subtitles/PlayerSubtitlePanel';
 import PlaySpeedToaster from '@/fronted/pages/player/components/PlaySpeedToaster';
 import PlayerToaster from '@/fronted/pages/player/components/PlayerToaster';
 import { cn } from '@/fronted/lib/utils';

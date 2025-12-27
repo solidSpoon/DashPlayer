@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import useSetting from '../../../hooks/useSetting';
+import useSetting from '@/fronted/hooks/useSetting';
 // removed old player controller usage
 import { usePlayerUiState } from '@/fronted/hooks/usePlayerUi';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
@@ -10,7 +10,7 @@ import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
 import { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/hooks/useTranslation';
-import useVocabulary from '../../../hooks/useVocabulary';
+import useVocabulary from '@/fronted/hooks/useVocabulary';
 import { shallow } from 'zustand/shallow';
 
 interface SideSentenceNewParam {

@@ -1,9 +1,9 @@
 import {cn} from "@/fronted/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
-import Player from '@/fronted/pages/player/pa-player/Player';
-import PodcastViewer from '@/fronted/pages/player/pa-srt-cops/podcast-viewer';
-import MainSubtitle from '@/fronted/pages/player/pa-player/MainSubtitle';
-import Subtitle from '@/fronted/pages/player/pa-player/components/Subtitle';
+import Player from './Player';
+import PodcastViewer from '@/fronted/pages/player/components/subtitles/podcast-viewer';
+import MainSubtitle from './MainSubtitle';
+import Subtitle from './components/Subtitle';
 import React from 'react';
 import useFile from '@/fronted/hooks/useFile';
 import useLayout from '@/fronted/hooks/useLayout';
@@ -13,7 +13,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2Bridge } from '@/fronted/hooks/usePlayerV2Bridge';
 import { useNavigate } from 'react-router-dom';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
-import PlayerEmptyState from '@/fronted/pages/player/pa-player/PlayerEmptyState';
+import PlayerEmptyState from './PlayerEmptyState';
 
 const logger = getRendererLogger('PlayerSrtLayout');
 

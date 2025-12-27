@@ -3,8 +3,8 @@ import React, { ReactElement } from 'react';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { useMemo } from 'react';
-import FullscreenTranslatableLine from '@/fronted/pages/player/pa-srt-cops/fullscreen-translatable-line';
-import PlayerNormalLine from '@/fronted/pages/player/playerSubtitle/PlayerNormalLine';
+import FullscreenTranslatableLine from './fullscreen-translatable-line';
+import PlayerNormalLine from './PlayerNormalLine';
 import StrUtil from '@/common/utils/str-util';
 import useTranslation from '@/fronted/hooks/useTranslation';
 

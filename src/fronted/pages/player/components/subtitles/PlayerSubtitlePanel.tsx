@@ -1,6 +1,6 @@
 import { cn } from '@/fronted/lib/utils';
-import PlayerSubtitle from '@/fronted/pages/player/playerSubtitle/PlayerSubtitle';
-import PlayerSubtitleControlPanel from '@/fronted/pages/player/playerSubtitle/PlayerSubtitleControlPannel';
+import PlayerSubtitle from './PlayerSubtitle';
+import PlayerSubtitleControlPanel from './PlayerSubtitleControlPannel';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 

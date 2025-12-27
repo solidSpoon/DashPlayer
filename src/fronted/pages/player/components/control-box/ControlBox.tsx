@@ -6,7 +6,7 @@ import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
-import useLayout from '../../../hooks/useLayout';
+import useLayout from '@/fronted/hooks/useLayout';
 import useSetting from '@/fronted/hooks/useSetting';
 import { SettingKey } from '@/common/types/store_schema';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

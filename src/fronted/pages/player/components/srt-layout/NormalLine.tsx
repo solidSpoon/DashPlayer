@@ -1,9 +1,9 @@
 import {ReactElement} from 'react';
-import usePlayerUi from '../../../hooks/usePlayerUi';
+import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import {cn} from "@/fronted/lib/utils";
-import useSetting from '../../../hooks/useSetting';
-import useVocabulary from '../../../hooks/useVocabulary';
-import Style, {FONT_SIZE} from '../../../styles/style';
+import useSetting from '@/fronted/hooks/useSetting';
+import useVocabulary from '@/fronted/hooks/useVocabulary';
+import Style, {FONT_SIZE} from '@/fronted/styles/style';
 import hash from "object-hash";
 
 interface NormalLineParam {

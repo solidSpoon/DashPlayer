@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { shallow } from 'zustand/shallow';
 
-import VolumeSlider from '../components/VolumeSlider';
-import SpeedSlider from '../components/speed-slider';
+import VolumeSlider from '../VolumeSlider';
+import SpeedSlider from '../speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
-import FullscreenButton from '@/fronted/pages/player/playerSubtitle/FullscreenButton';
+import FullscreenButton from './FullscreenButton';
 import { Button } from '@/fronted/components/ui/button';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

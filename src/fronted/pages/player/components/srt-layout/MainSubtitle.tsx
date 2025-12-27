@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect , useMemo } from 'react';
-import TranslatableLine from '@/fronted/pages/player/pa-srt-cops/translatable-line-wrapper';
+import TranslatableLine from '@/fronted/pages/player/components/subtitles/translatable-line-wrapper';
 import NormalLine from './NormalLine';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/fronted/hooks/useTranslation';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
