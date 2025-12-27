@@ -1,12 +1,10 @@
 import { inject, injectable, postConstruct } from 'inversify';
 import LocationService, { LocationType } from '@/backend/services/LocationService';
 import TYPES from '@/backend/ioc/types';
-import { watchHistory, WatchHistory, WatchHistoryType } from '@/backend/db/tables/watchHistory';
+import { WatchHistory, WatchHistoryType } from '@/backend/db/tables/watchHistory';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
-import db from '@/backend/db';
 import fs from 'fs';
 import path from 'path';
-import { and, asc, desc, eq } from 'drizzle-orm';
 import MediaService from '@/backend/services/MediaService';
 import TimeUtil from '@/common/utils/TimeUtil';
 import CollUtil from '@/common/utils/CollUtil';
@@ -17,6 +15,7 @@ import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import SystemService from '@/backend/services/SystemService';
 import FileUtil from '@/backend/utils/FileUtil';
+import WatchHistoryRepository from '@/backend/db/repositories/WatchHistoryRepository';
 
 
 @injectable()
@@ -27,6 +26,8 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     private mediaService!: MediaService;
     @inject(TYPES.SystemService)
     private systemService!: SystemService;
+    @inject(TYPES.WatchHistoryRepository)
+    private watchHistoryRepository!: WatchHistoryRepository;
 
     private mapId(folder: string, name: string, type: WatchHistoryType) {
         return ObjUtil.hash(`${folder}-${name}-${type}`);
@@ -109,8 +110,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         await this.syncLibrary();
         if (StrUtil.isNotBlank(bathPath)) {
             if (ObjUtil.isHash(bathPath)) {
-                const [record] = await db.select().from(watchHistory)
-                    .where(eq(watchHistory.id, bathPath));
+                const record = await this.watchHistoryRepository.findById(bathPath);
                 if (!record || record.project_type !== WatchHistoryType.FILE) {
                     return [];
                 }
@@ -119,23 +119,15 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             if (!fs.existsSync(bathPath) || !fs.statSync(bathPath).isDirectory()) {
                 return [];
             }
-            const exist = await db.select().from(watchHistory).where(
-                and(
-                    eq(watchHistory.base_path, bathPath),
-                    eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
-                )
-            ).then(records => CollUtil.isNotEmpty(records));
+            const exist = await this.watchHistoryRepository.existsByBasePathAndProjectType(bathPath, WatchHistoryType.DIRECTORY);
             if (!exist) {
                 return [];
             }
             await this.tryCreateFromFolder(bathPath);
-            const records = await db.select().from(watchHistory)
-                .where(
-                    and(
-                        eq(watchHistory.base_path, bathPath),
-                        eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
-                    )
-                ).orderBy(asc(watchHistory.file_name));
+            const records = await this.watchHistoryRepository.listByBasePathAndProjectTypeOrderedByFileName(
+                bathPath,
+                WatchHistoryType.DIRECTORY,
+            );
             if (CollUtil.isEmpty(records)) {
                 return [];
             }
@@ -151,19 +143,15 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             return merged;
         }
         const result = [];
-        const files: WatchHistory[] = await db.select().from(watchHistory)
-            .where(eq(watchHistory.project_type, WatchHistoryType.FILE));
+        const files: WatchHistory[] = await this.watchHistoryRepository.listByProjectType(WatchHistoryType.FILE);
         for (const file of files) {
             const vo = await this.buildVoFromFile(file);
             if (vo) {
                 result.push(vo);
             }
         }
-        const folders: { folder: string }[] = await db.selectDistinct({
-            folder: watchHistory.base_path
-        }).from(watchHistory)
-            .where(eq(watchHistory.project_type, WatchHistoryType.DIRECTORY));
-        for (const { folder } of folders) {
+        const folders = await this.watchHistoryRepository.listDistinctFoldersByProjectType(WatchHistoryType.DIRECTORY);
+        for (const folder of folders) {
             const vo = await this.buildVoFromFolder(folder);
             if (vo) {
                 result.push(vo);
@@ -175,8 +163,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     public async detail(id: string): Promise<WatchHistoryVO | null> {
-        const [record] = await db.select().from(watchHistory)
-            .where(eq(watchHistory.id, id));
+        const record = await this.watchHistoryRepository.findById(id);
         if (!record) {
             return null;
         }
@@ -184,11 +171,11 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         const html5CandidatePath = this.html5VariantPathFromRecord(record);
         if (!this.isHtml5VariantFileName(record.file_name) && fs.existsSync(html5CandidatePath)) {
             await this.tryCreate(html5CandidatePath, record.project_type);
-            const [html5Record] = await db.select().from(watchHistory).where(and(
-                eq(watchHistory.base_path, record.base_path),
-                eq(watchHistory.file_name, path.basename(html5CandidatePath)),
-                eq(watchHistory.project_type, record.project_type)
-            ));
+            const html5Record = await this.watchHistoryRepository.findOneByBasePathFileNameType(
+                record.base_path,
+                path.basename(html5CandidatePath),
+                record.project_type,
+            );
             if (html5Record) {
                 const html5Vo = await this.buildVoFromFile(html5Record);
                 if (html5Vo) {
@@ -240,23 +227,22 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             ids.push(...sids);
         }
         for (const id of ids) {
-            await db.update(watchHistory).set({
-                updated_at: TimeUtil.timeUtc()
-            }).where(eq(watchHistory.id, id));
+            await this.watchHistoryRepository.updateById(id, { updated_at: TimeUtil.timeUtc() });
         }
         return ids;
     }
 
     public async groupDelete(id: string): Promise<void> {
         const toDeleteIds: string[] = [];
-        const [record] = await db.select().from(watchHistory)
-            .where(eq(watchHistory.id, id));
+        const record = await this.watchHistoryRepository.findById(id);
         if (!record) {
             return;
         }
         if (record.project_type === WatchHistoryType.DIRECTORY) {
-            const records = await db.select().from(watchHistory)
-                .where(and(eq(watchHistory.base_path, record.base_path), eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)));
+            const records = await this.watchHistoryRepository.listByBasePathAndProjectTypeOrderedByFileName(
+                record.base_path,
+                WatchHistoryType.DIRECTORY,
+            );
             toDeleteIds.push(...records.map(r => r.id));
         } else {
             toDeleteIds.push(record.id);
@@ -271,25 +257,17 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         file = this.preferHtml5VideoPath(file);
         const base_path = path.dirname(file);
         const file_name = path.basename(file);
-        await db.update(watchHistory).set({
+        await this.watchHistoryRepository.updateByBasePathFileName(base_path, file_name, {
             current_position: currentPosition,
-            updated_at: TimeUtil.timeUtc()
-        }).where(
-            and(
-                eq(watchHistory.base_path, base_path),
-                eq(watchHistory.file_name, file_name)
-            )
-        );
+            updated_at: TimeUtil.timeUtc(),
+        });
     }
 
     private async buildVoFromFolder(folder: string): Promise<WatchHistoryVO | null> {
-        const folderVideos: WatchHistory[] = await db.select().from(watchHistory)
-            .where(
-                and(
-                    eq(watchHistory.base_path, folder),
-                    eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
-                )
-            ).orderBy(desc(watchHistory.updated_at));
+        const folderVideos: WatchHistory[] = await this.watchHistoryRepository.listByBasePathAndProjectTypeOrderedByUpdatedAtDesc(
+            folder,
+            WatchHistoryType.DIRECTORY,
+        );
         if (CollUtil.isEmpty(folderVideos)) {
             return null;
         }
@@ -382,22 +360,15 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
         const folder = path.dirname(video);
         const name = path.basename(video);
-        const records: WatchHistory[] = await db.select().from(watchHistory)
-            .where(
-                and(
-                    eq(watchHistory.base_path, folder),
-                    eq(watchHistory.file_name, name),
-                    eq(watchHistory.project_type, type)
-                )
-            );
+        const records: WatchHistory[] = await this.watchHistoryRepository.findByBasePathFileNameType(folder, name, type);
         if (CollUtil.isEmpty(records)) {
-            const [record]: WatchHistory[] = await db.insert(watchHistory).values({
+            const record = await this.watchHistoryRepository.insert({
                 id: this.mapId(folder, name, type),
                 base_path: folder,
                 file_name: name,
                 project_type: type,
                 current_position: 0
-            }).returning();
+            });
             ids.push(record.id);
         }
         records.forEach(record => ids.push(record.id));
@@ -429,27 +400,14 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             return;
         }
 
-        const records: WatchHistory[] = await db.select().from(watchHistory)
-            .where(
-                and(
-                    eq(watchHistory.base_path, folder),
-                    eq(watchHistory.file_name, video)
-                )
-            );
+        const records: WatchHistory[] = await this.watchHistoryRepository.findByBasePathFileName(folder, video);
 
-        for (const record of records) {
-            if (record.srt_file === srtPath) {
-                continue;
-            }
-            await db.update(watchHistory).set({
+        const needsUpdate = records.some((record) => record.srt_file !== srtPath);
+        if (needsUpdate) {
+            await this.watchHistoryRepository.updateByBasePathFileName(folder, video, {
                 srt_file: srtPath,
-                updated_at: TimeUtil.timeUtc()
-            }).where(
-                and(
-                    eq(watchHistory.base_path, folder),
-                    eq(watchHistory.file_name, video)
-                )
-            );
+                updated_at: TimeUtil.timeUtc(),
+            });
         }
     }
 
@@ -489,20 +447,12 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
      * @private
      */
     private async cleanDeletedHistory() {
-        const files = await db.selectDistinct({
-            base_path: watchHistory.base_path,
-            file_name: watchHistory.file_name
-        }).from(watchHistory);
+        const files = await this.watchHistoryRepository.listDistinctBasePathFileName();
 
         const deletedFiles = files.filter(file => !fs.existsSync(path.join(file.base_path, file.file_name)));
 
         for (const { base_path, file_name } of deletedFiles) {
-            await db.delete(watchHistory).where(
-                and(
-                    eq(watchHistory.base_path, base_path),
-                    eq(watchHistory.file_name, file_name)
-                )
-            );
+            await this.watchHistoryRepository.deleteByBasePathFileName(base_path, file_name);
         }
     }
 
@@ -520,8 +470,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
      */
     private async deleteById(id: string) {
         const libraryPath = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
-        const [record]: WatchHistory[] = await db.select().from(watchHistory)
-            .where(eq(watchHistory.id, id));
+        const record = await this.watchHistoryRepository.findById(id);
         if (!record) {
             return;
         }
@@ -532,12 +481,10 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             await FileUtil.deleteFile(filePath);
             this.systemService.sendInfoToRenderer('该文件位于视频库中，已为您删除原文件');
         }
-        await db.delete(watchHistory)
-            .where(eq(watchHistory.id, id));
+        await this.watchHistoryRepository.deleteById(id);
         // 删除字幕文件
         if (record.srt_file && record.srt_file.startsWith(libraryPath)) {
-            const srtExists = await db.select().from(watchHistory)
-                .where(eq(watchHistory.srt_file, record.srt_file));
+            const srtExists = await this.watchHistoryRepository.findBySrtFile(record.srt_file);
             if (CollUtil.isEmpty(srtExists)) {
                 await FileUtil.deleteFile(record.srt_file);
             }
@@ -545,20 +492,16 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     public async getNextVideo(currentId: string): Promise<WatchHistoryVO | null> {
-        const [currentRecord] = await db.select().from(watchHistory)
-            .where(eq(watchHistory.id, currentId));
+        const currentRecord = await this.watchHistoryRepository.findById(currentId);
 
         if (!currentRecord) {
             return null;
         }
 
-        const folderVideos = await db.select().from(watchHistory)
-            .where(
-                and(
-                    eq(watchHistory.base_path, currentRecord.base_path),
-                    eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
-                )
-            ).orderBy(asc(watchHistory.file_name));
+        const folderVideos = await this.watchHistoryRepository.listByBasePathAndProjectTypeOrderedByFileName(
+            currentRecord.base_path,
+            WatchHistoryType.DIRECTORY,
+        );
 
         if (CollUtil.isEmpty(folderVideos)) {
             return null;
@@ -590,11 +533,11 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
                 const html5Path = this.html5VariantPathFromRecord(primary);
                 if (fs.existsSync(html5Path)) {
                     await this.tryCreate(html5Path, WatchHistoryType.DIRECTORY);
-                    const [html5Record] = await db.select().from(watchHistory).where(and(
-                        eq(watchHistory.base_path, primary.base_path),
-                        eq(watchHistory.file_name, path.basename(html5Path)),
-                        eq(watchHistory.project_type, WatchHistoryType.DIRECTORY)
-                    ));
+                    const html5Record = await this.watchHistoryRepository.findOneByBasePathFileNameType(
+                        primary.base_path,
+                        path.basename(html5Path),
+                        WatchHistoryType.DIRECTORY,
+                    );
                     if (html5Record) {
                         return await this.buildVoFromFile(html5Record);
                     }

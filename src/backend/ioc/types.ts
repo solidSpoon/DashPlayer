@@ -33,6 +33,7 @@ const TYPES = {
     DpTaskRepository: Symbol('DpTaskRepository'),
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
     VideoLearningClipWordRepository: Symbol('VideoLearningClipWordRepository'),
+    WatchHistoryRepository: Symbol('WatchHistoryRepository'),
     // Clients
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
