@@ -9,7 +9,7 @@ import * as base32 from 'hi-base32';
 import DpTaskServiceImpl from '@/backend/services/impl/DpTaskServiceImpl';
 
 // 导入日志 IPC 监听
-import '@/backend/ipc/renderer-log';
+import '@/backend/adapters/ipc/renderer-log';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
 
 const mainWindowRef = {

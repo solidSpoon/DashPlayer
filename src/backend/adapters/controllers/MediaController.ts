@@ -5,7 +5,7 @@ import { inject, injectable } from 'inversify';
 import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import SplitVideoService from '@/backend/services/SplitVideoService';
-import MediaService from '../services/MediaService';
+import MediaService from '../../services/MediaService';
 
 @injectable()
 export default class MediaController implements Controller {
