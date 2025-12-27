@@ -6,6 +6,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 import { SettingKey } from '@/common/types/store_schema';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
 
 // 每句话的翻译状态
 export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
@@ -281,7 +282,7 @@ const syncInitialSettings = () => {
 
 syncInitialSettings();
 
-window.electron.onStoreUpdate((key: SettingKey, value: string) => {
+storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
     if (key === 'translation.engine') {
         if (value === 'openai' || value === 'tencent') {
             useTranslation.getState().setEngine(value);

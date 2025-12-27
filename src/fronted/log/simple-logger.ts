@@ -1,5 +1,6 @@
 // src/fronted/log/simple-logger.ts
 import type { SimpleLevel } from '@/common/log/simple-types';
+import { logWriter } from '@/fronted/application/bootstrap/logWriter';
 
 type RendererLogger = {
   debug: (msg: string, data?: any) => void;
@@ -55,7 +56,7 @@ function write(processName: 'renderer', moduleName: string, level: SimpleLevel, 
 
   // 发给主进程落盘
   try {
-    window.electron.dpLogger.write({
+    logWriter.write({
       ts: new Date().toISOString(),
       level,
       process: processName,

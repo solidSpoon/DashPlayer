@@ -3,6 +3,7 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
 
 export type SettingState = {
     init: boolean;
@@ -47,7 +48,7 @@ for (const key in SettingKeyObj) {
     });
 }
 
-window.electron.onStoreUpdate((key: SettingKey, value: string) => {
+storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
     getRendererLogger('useSetting').debug('store update', { key, value });
     const oldValues = useSetting.getState().values.get(key);
     if (oldValues !== value) {
