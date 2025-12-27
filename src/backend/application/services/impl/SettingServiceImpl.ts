@@ -26,13 +26,13 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     private logger = getMainLogger('SettingServiceImpl');
 
-    public async set(key: SettingKey, value: string): Promise<void> {
+    private async setValue(key: SettingKey, value: string): Promise<void> {
         if (this.settingsStore.set(key, value)) {
             this.rendererEvents.storeUpdate(key, value);
         }
     }
 
-    public async get(key: SettingKey): Promise<string> {
+    private async getValue(key: SettingKey): Promise<string> {
         if (key === 'subtitleTranslation.engine') {
             return await this.getSubtitleTranslationEngine();
         }
@@ -67,10 +67,10 @@ export default class SettingServiceImpl implements SettingService {
 
         const settings: ApiSettingVO = {
             openai: {
-                key: await this.get('apiKeys.openAi.key'),
-                endpoint: await this.get('apiKeys.openAi.endpoint'),
-                model: await this.get('model.gpt.default'),
-                enableSentenceLearning: await this.get('services.openai.enableSentenceLearning') === 'true',
+                key: await this.getValue('apiKeys.openAi.key'),
+                endpoint: await this.getValue('apiKeys.openAi.endpoint'),
+                model: await this.getValue('model.gpt.default'),
+                enableSentenceLearning: await this.getValue('services.openai.enableSentenceLearning') === 'true',
                 enableSubtitleTranslation: subtitleTranslationEngine === 'openai',
                 subtitleTranslationMode: await this.getOpenAiSubtitleTranslationMode(),
                 subtitleCustomStyle: await this.getOpenAiSubtitleCustomStyle(),
@@ -78,19 +78,19 @@ export default class SettingServiceImpl implements SettingService {
                 enableTranscription: transcriptionEngine === 'openai',
             },
             tencent: {
-                secretId: await this.get('apiKeys.tencent.secretId'),
-                secretKey: await this.get('apiKeys.tencent.secretKey'),
+                secretId: await this.getValue('apiKeys.tencent.secretId'),
+                secretKey: await this.getValue('apiKeys.tencent.secretKey'),
                 enableSubtitleTranslation: subtitleTranslationEngine === 'tencent',
             },
             youdao: {
-                secretId: await this.get('apiKeys.youdao.secretId'),
-                secretKey: await this.get('apiKeys.youdao.secretKey'),
+                secretId: await this.getValue('apiKeys.youdao.secretId'),
+                secretKey: await this.getValue('apiKeys.youdao.secretKey'),
                 enableDictionary: dictionaryEngine === 'youdao',
             },
             whisper: {
-                enabled: await this.get('whisper.enabled') === 'true',
+                enabled: await this.getValue('whisper.enabled') === 'true',
                 enableTranscription: transcriptionEngine === 'whisper',
-                modelSize: (await this.get('whisper.modelSize')) === 'large' ? 'large' : 'base',
+                modelSize: (await this.getValue('whisper.modelSize')) === 'large' ? 'large' : 'base',
                 enableVad: true,
                 vadModel: 'silero-v6.2.0',
             }
@@ -100,63 +100,63 @@ export default class SettingServiceImpl implements SettingService {
 
     public async updateApiSettings(settings: ApiSettingVO, service?: string): Promise<void> {
         if (service === 'whisper') {
-            await this.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
+            await this.setValue('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
             const transcriptionEngine = settings.whisper.enableTranscription ? 'whisper' : 'openai';
-            await this.set('transcription.engine', transcriptionEngine);
-            await this.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
-            await this.set('whisper.enableVad', 'true');
-            await this.set('whisper.vadModel', 'silero-v6.2.0');
+            await this.setValue('transcription.engine', transcriptionEngine);
+            await this.setValue('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
+            await this.setValue('whisper.enableVad', 'true');
+            await this.setValue('whisper.vadModel', 'silero-v6.2.0');
             if (transcriptionEngine === 'whisper') {
-                await this.set('whisper.enabled', 'true');
+                await this.setValue('whisper.enabled', 'true');
             }
             return;
         }
 
         // Update OpenAI settings
-        await this.set('apiKeys.openAi.key', settings.openai.key);
-        await this.set('apiKeys.openAi.endpoint', settings.openai.endpoint);
-        await this.set('model.gpt.default', settings.openai.model);
-        await this.set('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
+        await this.setValue('apiKeys.openAi.key', settings.openai.key);
+        await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
+        await this.setValue('model.gpt.default', settings.openai.model);
+        await this.setValue('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
         const subtitleModeInput = settings.openai.subtitleTranslationMode;
         const subtitleMode: 'zh' | 'simple_en' | 'custom' =
             subtitleModeInput === 'simple_en' || subtitleModeInput === 'custom' ? subtitleModeInput : 'zh';
-        await this.set('services.openai.subtitleTranslationMode', subtitleMode);
+        await this.setValue('services.openai.subtitleTranslationMode', subtitleMode);
         const customStyleInput = settings.openai.subtitleCustomStyle ?? '';
         const styleToStore = customStyleInput.trim().length > 0 ? customStyleInput.trim() : getSubtitleDefaultStyle('custom');
         await this.systemConfigService.setValue(OPENAI_SUBTITLE_CUSTOM_STYLE_KEY, styleToStore);
 
         // Update Tencent settings
-        await this.set('apiKeys.tencent.secretId', settings.tencent.secretId);
-        await this.set('apiKeys.tencent.secretKey', settings.tencent.secretKey);
+        await this.setValue('apiKeys.tencent.secretId', settings.tencent.secretId);
+        await this.setValue('apiKeys.tencent.secretKey', settings.tencent.secretKey);
 
         // Update Youdao settings
-        await this.set('apiKeys.youdao.secretId', settings.youdao.secretId);
-        await this.set('apiKeys.youdao.secretKey', settings.youdao.secretKey);
+        await this.setValue('apiKeys.youdao.secretId', settings.youdao.secretId);
+        await this.setValue('apiKeys.youdao.secretKey', settings.youdao.secretKey);
 
         const subtitleTranslationEngine: 'openai' | 'tencent' =
             settings.tencent.enableSubtitleTranslation ? 'tencent' : 'openai';
-        await this.set('subtitleTranslation.engine', subtitleTranslationEngine);
+        await this.setValue('subtitleTranslation.engine', subtitleTranslationEngine);
 
         const dictionaryEngine: 'openai' | 'youdao' =
             settings.youdao.enableDictionary ? 'youdao' : 'openai';
-        await this.set('dictionary.engine', dictionaryEngine);
+        await this.setValue('dictionary.engine', dictionaryEngine);
 
         // Update Whisper settings
-        await this.set('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
-        await this.set('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
-        await this.set('whisper.enableVad', 'true');
-        await this.set('whisper.vadModel', 'silero-v6.2.0');
+        await this.setValue('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
+        await this.setValue('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
+        await this.setValue('whisper.enableVad', 'true');
+        await this.setValue('whisper.vadModel', 'silero-v6.2.0');
 
         const transcriptionEngine: 'openai' | 'whisper' =
             settings.whisper.enableTranscription ? 'whisper' : 'openai';
-        await this.set('transcription.engine', transcriptionEngine);
+        await this.setValue('transcription.engine', transcriptionEngine);
         if (transcriptionEngine === 'whisper') {
-            await this.set('whisper.enabled', 'true');
+            await this.setValue('whisper.enabled', 'true');
         }
     }
 
     public async getCurrentSentenceLearningProvider(): Promise<'openai' | null> {
-        const openaiEnabled = await this.get('services.openai.enableSentenceLearning') === 'true';
+        const openaiEnabled = await this.getValue('services.openai.enableSentenceLearning') === 'true';
         return openaiEnabled ? 'openai' : null;
     }
 
@@ -171,7 +171,7 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'> {
-        const mode = await this.get('services.openai.subtitleTranslationMode');
+        const mode = await this.getValue('services.openai.subtitleTranslationMode');
         if (mode === 'simple_en' || mode === 'custom') {
             return mode;
         }
@@ -197,7 +197,7 @@ export default class SettingServiceImpl implements SettingService {
             const openAi = this.openAiService.getOpenAi();
             // Test with a simple completion request
             const completion = await openAi.chat.completions.create({
-                model: await this.get('model.gpt.default') || 'gpt-4o-mini',
+                model: await this.getValue('model.gpt.default') || 'gpt-4o-mini',
                 messages: [{ role: 'user', content: 'Hello' }],
                 max_tokens: 5
             });

@@ -6,10 +6,12 @@ import SettingService from '@/backend/application/services/SettingService';
 import { ApiSettingVO } from "@/common/types/vo/api-setting-vo";
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { SettingKey } from '@/common/types/store_schema';
+import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
 
 @injectable()
 export default class SettingsController implements Controller {
     @inject(TYPES.SettingService) private settingService!: SettingService;
+    @inject(TYPES.SettingsKeyValueService) private settingsKeyValueService!: SettingsKeyValueService;
     private logger = getMainLogger('SettingsController');
 
     public async queryApiSettings(): Promise<ApiSettingVO> {
@@ -39,22 +41,22 @@ export default class SettingsController implements Controller {
     }
 
     public async updateAppearanceSettings(params: { theme: string; fontSize: string }): Promise<void> {
-        await this.settingService.set('appearance.theme', params.theme);
-        await this.settingService.set('appearance.fontSize', params.fontSize);
+        await this.settingsKeyValueService.set('appearance.theme', params.theme);
+        await this.settingsKeyValueService.set('appearance.fontSize', params.fontSize);
     }
 
     public async updateShortcutSettings(params: Partial<Record<SettingKey, string>>): Promise<void> {
         const entries = Object.entries(params) as [SettingKey, string | undefined][];
         for (const [key, value] of entries) {
             if (value !== undefined) {
-                await this.settingService.set(key, value);
+                await this.settingsKeyValueService.set(key, value);
             }
         }
     }
 
     public async updateStorageSettings(params: { path: string; collection: string }): Promise<void> {
-        await this.settingService.set('storage.path', params.path);
-        await this.settingService.set('storage.collection', params.collection);
+        await this.settingsKeyValueService.set('storage.path', params.path);
+        await this.settingsKeyValueService.set('storage.collection', params.collection);
     }
 
     public async updateTranslationSettings(params: {
@@ -62,18 +64,18 @@ export default class SettingsController implements Controller {
         tencentSecretId?: string;
         tencentSecretKey?: string;
     }): Promise<void> {
-        await this.settingService.set('translation.engine', params.engine);
+        await this.settingsKeyValueService.set('translation.engine', params.engine);
         if (params.tencentSecretId !== undefined) {
-            await this.settingService.set('apiKeys.tencent.secretId', params.tencentSecretId);
+            await this.settingsKeyValueService.set('apiKeys.tencent.secretId', params.tencentSecretId);
         }
         if (params.tencentSecretKey !== undefined) {
-            await this.settingService.set('apiKeys.tencent.secretKey', params.tencentSecretKey);
+            await this.settingsKeyValueService.set('apiKeys.tencent.secretKey', params.tencentSecretKey);
         }
     }
 
     public async updateYoudaoSettings(params: { secretId: string; secretKey: string }): Promise<void> {
-        await this.settingService.set('apiKeys.youdao.secretId', params.secretId);
-        await this.settingService.set('apiKeys.youdao.secretKey', params.secretKey);
+        await this.settingsKeyValueService.set('apiKeys.youdao.secretId', params.secretId);
+        await this.settingsKeyValueService.set('apiKeys.youdao.secretKey', params.secretKey);
     }
 
     registerRoutes(): void {

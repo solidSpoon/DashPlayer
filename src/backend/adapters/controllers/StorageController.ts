@@ -3,26 +3,26 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import Controller from '@/backend/interfaces/controller';
 import {inject, injectable} from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import SettingService from '@/backend/application/services/SettingService';
 import LocationService from '@/backend/application/services/LocationService';
 import FileUtil from '@/backend/utils/FileUtil';
 import SystemService from '@/backend/application/services/SystemService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
+import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
 
 @injectable()
 export default class StorageController implements Controller {
-    @inject(TYPES.SettingService) private settingService!: SettingService;
+    @inject(TYPES.SettingsKeyValueService) private settingsKeyValueService!: SettingsKeyValueService;
     @inject(TYPES.LocationService) private locationService!: LocationService;
         @inject(TYPES.SystemService) private systemService!: SystemService;
     private logger = getMainLogger('StorageController');
 
     public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
         this.logger.debug('store setting', {key, value});
-        await this.settingService.set(key, value);
+        await this.settingsKeyValueService.set(key, value);
     }
 
     public async storeGet(key: SettingKey): Promise<string> {
-        return this.settingService.get(key);
+        return this.settingsKeyValueService.get(key);
     }
 
     public async queryCacheSize(): Promise<string> {

@@ -2,6 +2,7 @@ import TtsService from '@/backend/application/services/TtsService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import SettingService from '@/backend/application/services/SettingService';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
+import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
@@ -33,6 +34,9 @@ export default class AiFuncService {
 
     @inject(TYPES.SettingService)
     private settingService!: SettingService;
+
+    @inject(TYPES.SettingsStore)
+    private settingsStore!: SettingsStore;
 
     @inject(TYPES.CloudTranscriptionService)
     private cloudTranscriptionService!: TranscriptionService;
@@ -130,7 +134,7 @@ export default class AiFuncService {
         });
 
         const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
-        const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
+        const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
         const modelTag = modelSize === 'large' ? 'large-v3' : 'base';
         const modelPath = path.join(LocationUtil.staticGetStoragePath('models'), 'whisper', `ggml-${modelTag}.bin`);
         const modelDownloaded = fs.existsSync(modelPath);

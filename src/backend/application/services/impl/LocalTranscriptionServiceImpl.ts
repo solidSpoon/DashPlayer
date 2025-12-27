@@ -4,6 +4,7 @@ import {TranscriptionService} from '@/backend/application/services/Transcription
 import SettingService from '@/backend/application/services/SettingService';
 import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
+import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
@@ -36,6 +37,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
+        @inject(TYPES.SettingsStore) private settingsStore: SettingsStore,
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
         @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
         @inject(TYPES.WhisperCppCli) private whisperCppCli: WhisperCppCli,
@@ -191,7 +193,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const executablePath = this.whisperCppCli.resolveExecutablePath();
         const help = await this.whisperCppCli.getHelpText(executablePath);
 
-        const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
+        const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
         const enableVad = true;
         const vadModel = 'silero-v6.2.0' as const;
 

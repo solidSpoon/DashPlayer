@@ -50,6 +50,7 @@ const TYPES = {
     AiProviderService: Symbol('AiProviderService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
+    SettingsKeyValueService: Symbol('SettingsKeyValueService'),
 };
 
 export default TYPES;

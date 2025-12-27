@@ -64,6 +64,7 @@ import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreF
 import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import SettingsStoreImpl from '@/backend/infrastructure/settings/SettingsStoreImpl';
+import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
 import WatchHistoryService from '@/backend/application/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/application/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/adapters/controllers/WatchHistoryController';
@@ -116,6 +117,7 @@ container.bind<ClientProviderService<YouDaoDictionaryClient>>(TYPES.YouDaoClient
 container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
 container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
+container.bind<SettingsKeyValueService>(TYPES.SettingsKeyValueService).to(SettingsKeyValueService).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
