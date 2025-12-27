@@ -1,6 +1,6 @@
 'use client';
 
-import {IconOpenAI, IconUser} from '@/fronted/pages/player/chat/components/icons';
+import {IconOpenAI, IconUser} from '@/fronted/pages/player/chat/components/ChatIcons';
 import {spinner} from './Spinner';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import {cn} from '@/fronted/lib/utils';

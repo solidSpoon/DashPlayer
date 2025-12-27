@@ -4,7 +4,7 @@ import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { Sentence } from '@/common/types/SentenceC';
-import TranslatableLinePodcast from './translatable-line-podcast';
+import TranslatableLinePodcast from './TranslatableLinePodcast';
 import PodcastControlBar from './PodcastControlBar';
 import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';

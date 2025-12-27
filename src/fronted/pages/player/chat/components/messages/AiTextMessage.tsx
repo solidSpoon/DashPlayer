@@ -1,6 +1,6 @@
 import React from 'react';
 import {cn} from "@/fronted/lib/utils";
-import {IconOpenAI} from "@/fronted/pages/player/chat/components/icons";
+import {IconOpenAI} from "@/fronted/pages/player/chat/components/ChatIcons";
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';

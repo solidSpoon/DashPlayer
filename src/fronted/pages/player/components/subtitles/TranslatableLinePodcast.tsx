@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
 import { Sentence } from '@/common/types/SentenceC';
-import TranslatableLineWrapper from './translatable-line-wrapper';
+import TranslatableLineWrapper from './TranslatableLineWrapper';
 
 interface TranslatableLinePodcastParam {
     sentence: Sentence;

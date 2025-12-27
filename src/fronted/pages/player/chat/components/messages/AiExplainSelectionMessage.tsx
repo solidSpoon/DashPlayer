@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
-import { IconOpenAI } from '@/fronted/pages/player/chat/components/icons';
+import { IconOpenAI } from '@/fronted/pages/player/chat/components/ChatIcons';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';

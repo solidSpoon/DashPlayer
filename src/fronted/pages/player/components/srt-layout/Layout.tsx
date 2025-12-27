@@ -1,7 +1,7 @@
 import {cn} from "@/fronted/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
 import PlaybackStage from './Stage';
-import PodcastViewer from '@/fronted/pages/player/components/subtitles/podcast-viewer';
+import PodcastViewer from '@/fronted/pages/player/components/subtitles/PodcastViewer';
 import MainSubtitle from './MainSubtitle';
 import Subtitle from './components/Subtitle';
 import React from 'react';

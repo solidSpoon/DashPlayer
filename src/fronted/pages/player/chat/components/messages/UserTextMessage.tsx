@@ -1,5 +1,5 @@
 import React from 'react';
-import {IconUser} from "@/fronted/pages/player/chat/components/icons";
+import {IconUser} from "@/fronted/pages/player/chat/components/ChatIcons";
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
 import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';

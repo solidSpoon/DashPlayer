@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect , useMemo } from 'react';
-import TranslatableLine from '@/fronted/pages/player/components/subtitles/translatable-line-wrapper';
+import TranslatableLine from '@/fronted/pages/player/components/subtitles/TranslatableLineWrapper';
 import NormalLine from './NormalLine';
 import useTranslation from '@/fronted/hooks/useTranslation';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

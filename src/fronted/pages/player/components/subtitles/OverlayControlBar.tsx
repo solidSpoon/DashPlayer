@@ -3,7 +3,7 @@ import { Pause, Play } from 'lucide-react';
 import { shallow } from 'zustand/shallow';
 
 import VolumeSlider from '../VolumeSlider';
-import SpeedSlider from '../speed-slider';
+import SpeedSlider from '../SpeedSlider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';

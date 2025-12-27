@@ -1,5 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
-import { IconOpenAI } from '@/fronted/pages/player/chat/components/icons';
+import { IconOpenAI } from '@/fronted/pages/player/chat/components/ChatIcons';
 import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';

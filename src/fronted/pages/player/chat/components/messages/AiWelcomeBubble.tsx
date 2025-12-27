@@ -1,4 +1,4 @@
-import { IconOpenAI } from '@/fronted/pages/player/chat/components/icons';
+import { IconOpenAI } from '@/fronted/pages/player/chat/components/ChatIcons';
 import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/shared/common/Playable';
