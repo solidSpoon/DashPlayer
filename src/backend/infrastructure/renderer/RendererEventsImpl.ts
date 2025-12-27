@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SystemService from '@/backend/services/SystemService';
-import RendererEvents from '@/backend/services/RendererEvents';
+import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
 import { SettingKey } from '@/common/types/store_schema';
 import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
 
@@ -34,4 +34,3 @@ export default class RendererEventsImpl implements RendererEvents {
         win.webContents.send('dp-task-update', task);
     }
 }
-

@@ -15,7 +15,7 @@ import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
 import { p } from '@/common/utils/Util';
 import { YdRes, OpenAIDictionaryResult, OpenAIDictionaryDefinition, OpenAIDictionaryExample } from '@/common/types/YdRes';
-import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import AiProviderService from '@/backend/services/AiProviderService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import SettingService from '@/backend/services/SettingService';

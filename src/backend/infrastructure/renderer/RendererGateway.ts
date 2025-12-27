@@ -11,4 +11,3 @@ export default interface RendererGateway {
         params: RendererApiDefinitions[K]['params'],
     ): void;
 }
-

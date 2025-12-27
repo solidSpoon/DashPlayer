@@ -16,7 +16,7 @@ import { ConfigTender } from '@/backend/objs/config-tender';
 import FileUtil from '@/backend/utils/FileUtil';
 import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
-import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 
 /**
  * 将 Whisper 的 API 响应转换成 SRT 文件格式

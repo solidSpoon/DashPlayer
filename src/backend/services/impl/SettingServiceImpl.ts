@@ -9,7 +9,7 @@ import { OpenAiService } from '@/backend/services/OpenAiService';
 import TencentProvider from '@/backend/services/impl/clients/TencentProvider';
 import YouDaoProvider from '@/backend/services/impl/clients/YouDaoProvider';
 import { getMainLogger } from '@/backend/ioc/simple-logger';
-import RendererEvents from '@/backend/services/RendererEvents';
+import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
 import {
     OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,
     getSubtitleDefaultStyle

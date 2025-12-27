@@ -15,7 +15,7 @@ import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import FileUtil from '@/backend/utils/FileUtil';
 import WatchHistoryRepository from '@/backend/infrastructure/db/repositories/WatchHistoryRepository';
-import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 
 
 @injectable()

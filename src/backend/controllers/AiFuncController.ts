@@ -8,7 +8,7 @@ import Controller from '@/backend/interfaces/controller';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import WhisperService from '@/backend/services/WhisperService';
-import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import { CoreMessage } from 'ai';
 import SettingService from "@/backend/services/SettingService";
 import { getMainLogger } from '@/backend/ioc/simple-logger';

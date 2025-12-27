@@ -10,7 +10,7 @@ import {Cancelable} from '@/common/interfaces';
 import {CancelByUserError} from '@/backend/errors/errors';
 import TYPES from "@/backend/ioc/types";
 import DpTaskRepository from '@/backend/infrastructure/db/repositories/DpTaskRepository';
-import RendererEvents from '@/backend/services/RendererEvents';
+import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
 
 @injectable()
 export default class DpTaskServiceImpl implements DpTaskService {

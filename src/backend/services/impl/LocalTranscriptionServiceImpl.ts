@@ -2,7 +2,7 @@
 import {injectable, inject} from 'inversify';
 import {TranscriptionService} from '@/backend/services/TranscriptionService';
 import SettingService from '@/backend/services/SettingService';
-import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';

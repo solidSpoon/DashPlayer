@@ -5,4 +5,3 @@ export default interface RendererEvents {
     storeUpdate(key: SettingKey, value: string): void;
     dpTaskUpdate(task: DpTask): void;
 }
-

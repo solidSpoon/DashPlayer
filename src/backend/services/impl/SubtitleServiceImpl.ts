@@ -16,7 +16,7 @@ import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import hash from 'object-hash';
 import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService';
-import RendererGateway from '@/backend/services/RendererGateway';
+import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 
 // 生成翻译key的工具函数 - hash(附近三行)
 function generateTranslationKey(sentences: Sentence[], centerIndex: number): string {
