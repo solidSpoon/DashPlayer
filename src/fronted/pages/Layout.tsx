@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import {cn} from "@/fronted/lib/utils";
 import useLayout, { cpW } from '@/fronted/hooks/useLayout';
-import SideBar from '@/fronted/components/SideBar';
+import SideBar from '@/fronted/components/layout/SideBar';
 
 const Layout = () => {
     const showSideBar = useLayout((s) => s.showSideBar) || true;

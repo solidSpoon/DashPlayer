@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import TitleBar from '@/fronted/components/TitleBar/TitleBar';
+import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
 import { cn } from '@/fronted/lib/utils';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
-import ProjectListCard from '@/fronted/components/fileBowser/project-list-card';
+import ProjectListCard from '@/fronted/components/feature/file-browser/project-list-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { Button } from '@/fronted/components/ui/button';
 import useSWR from 'swr';
 import { apiPath, SWR_KEY } from '@/fronted/lib/swr-util';
-import ProjectListItem from '@/fronted/components/fileBowser/project-list-item';
+import ProjectListItem from '@/fronted/components/feature/file-browser/project-list-item';
 import { ChevronsDown } from 'lucide-react';
-import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
-import FileSelector, { FileAction } from '@/fronted/components/fileBowser/FileSelector';
+import FolderSelector, { FolderSelectAction } from '@/fronted/components/feature/file-browser/FolderSelector';
+import FileSelector, { FileAction } from '@/fronted/components/feature/file-browser/FileSelector';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 

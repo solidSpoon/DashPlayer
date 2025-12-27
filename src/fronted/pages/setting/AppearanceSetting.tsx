@@ -4,9 +4,9 @@ import {
     Header,
     SliderInput,
     Title,
-} from '@/fronted/pages/setting/setting';
-import ThemePreview from '@/fronted/components/ThemePreview';
-import Separator from '@/fronted/components/Separtor';
+} from '@/fronted/pages/setting/components/form';
+import ThemePreview from '@/fronted/pages/setting/components/ThemePreview';
+import Separator from '@/fronted/components/shared/common/Separator';
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';

@@ -1,8 +1,8 @@
 import React from 'react';
 import {FaGithub} from 'react-icons/fa';
 import {cn} from "@/fronted/lib/utils";
-import AboutBg from '@/fronted/components/bg/AboutBg';
-import Separator from '@/fronted/components/Separtor';
+import AboutBg from '@/fronted/components/shared/background/AboutBg';
+import Separator from '@/fronted/components/shared/common/Separator';
 import logoLight from '../../../assets/logo-light.png';
 import useSWR from "swr";
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';

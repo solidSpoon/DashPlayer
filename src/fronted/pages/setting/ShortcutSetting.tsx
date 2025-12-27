@@ -1,7 +1,7 @@
 import * as React from 'react';
-import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
-import Header from '@/fronted/pages/setting/setting/Header';
-import Separator from '@/fronted/components/Separtor';
+import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
+import Header from '@/fronted/pages/setting/components/form/Header';
+import Separator from '@/fronted/components/shared/common/Separator';
 import { Button } from '@/fronted/components/ui/button';
 import { Label } from '@/fronted/components/ui/label';
 import { Input } from '@/fronted/components/ui/input';

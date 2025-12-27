@@ -1,18 +1,18 @@
 import React from 'react';
 import {cn} from '@/fronted/lib/utils';
-import ProjectListComp from '@/fronted/components/fileBowser/project-list-comp';
+import ProjectListComp from '@/fronted/components/feature/file-browser/project-list-comp';
 import useSplit from '@/fronted/hooks/useSplit';
 import {useShallow} from 'zustand/react/shallow';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {Folder, X} from 'lucide-react';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
-import FileSelector from "@/fronted/components/fileBowser/FileSelector";
-import FolderSelector, { FolderSelectAction } from '@/fronted/components/fileBowser/FolderSelector';
-import ProjItem2 from "@/fronted/components/fileBowser/ProjItem2";
-import VideoItem2 from "@/fronted/components/fileBowser/VideoItem2";
+import FileSelector from '@/fronted/components/feature/file-browser/FileSelector';
+import FolderSelector, { FolderSelectAction } from '@/fronted/components/feature/file-browser/FolderSelector';
+import ProjItem2 from '@/fronted/components/feature/file-browser/ProjItem2';
+import VideoItem2 from '@/fronted/components/feature/file-browser/VideoItem2';
 import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
-import BackNavItem from '@/fronted/components/fileBowser/BackNavItem';
+import BackNavItem from '@/fronted/components/feature/file-browser/BackNavItem';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const api = backendClient;

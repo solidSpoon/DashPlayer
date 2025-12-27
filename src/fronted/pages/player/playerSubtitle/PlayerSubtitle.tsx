@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 
-import { playerV2Actions } from '@/fronted/components/player-components';
+import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { useMemo } from 'react';
 import FullscreenTranslatableLine from '@/fronted/pages/player/pa-srt-cops/fullscreen-translatable-line';

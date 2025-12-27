@@ -3,7 +3,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/
 import Player from '@/fronted/pages/player/pa-player/Player';
 import PodcastViewer from '@/fronted/pages/player/pa-srt-cops/podcast-viewer';
 import MainSubtitle from '@/fronted/pages/player/pa-player/MainSubtitle';
-import Subtitle from '@/fronted/components/Subtitle';
+import Subtitle from '@/fronted/pages/player/pa-player/components/Subtitle';
 import React from 'react';
 import useFile from '@/fronted/hooks/useFile';
 import useLayout from '@/fronted/hooks/useLayout';

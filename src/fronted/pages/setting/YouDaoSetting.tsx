@@ -1,8 +1,8 @@
 import * as React from 'react';
-import SettingInput from '@/fronted/pages/setting/setting/SettingInput';
-import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
-import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
-import Header from '@/fronted/pages/setting/setting/Header';
+import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
+import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
+import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
+import Header from '@/fronted/pages/setting/components/form/Header';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { useForm, Controller } from 'react-hook-form';

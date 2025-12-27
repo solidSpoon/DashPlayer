@@ -1,0 +1,12 @@
+import React from 'react';
+import { cn } from '@/fronted/lib/utils';
+
+const Background = () => {
+    return <div className={cn('w-full h-full bg-stone-200')} />;
+};
+
+Background.defaultProps = {
+    className: '',
+};
+
+export default Background;

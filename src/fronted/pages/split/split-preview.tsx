@@ -11,7 +11,7 @@ import {
 import React from 'react';
 import useSplit, { TaskChapterParseResult } from '@/fronted/hooks/useSplit';
 import { ErrorBoundary } from 'react-error-boundary';
-import FallBack from '@/fronted/components/FallBack';
+import FallBack from '@/fronted/components/shared/common/FallBack';
 import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';

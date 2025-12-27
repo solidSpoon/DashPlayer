@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
 import { Captions } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import TooltippedButton from '@/fronted/components/common/TooltippedButton';
+import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';

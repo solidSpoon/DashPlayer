@@ -11,7 +11,7 @@ import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import useSetting from '@/fronted/hooks/useSetting';
 import useFavouriteClip, { mapClipKey } from '@/fronted/hooks/useFavouriteClip';
 import useFile from '@/fronted/hooks/useFile';
-import { TranslatableLine } from '@/fronted/components/player-translable-line';
+import { TranslatableLine } from '@/fronted/components/feature/player/translatable-line';
 
 
 interface TranslatableLineWrapperProps {

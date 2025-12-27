@@ -1,5 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
-import Separator from '@/fronted/components/Separtor';
+import Separator from '@/fronted/components/shared/common/Separator';
 import React, { useEffect } from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { Textarea } from '@/fronted/components/ui/textarea';

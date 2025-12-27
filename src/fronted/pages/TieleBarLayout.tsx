@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import {cn} from "@/fronted/lib/utils";
-import TitleBar from '@/fronted/components/TitleBar/TitleBar';
+import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
 
 const TitleBarLayout = () => {
     return (

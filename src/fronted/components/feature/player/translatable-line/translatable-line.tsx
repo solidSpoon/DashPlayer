@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import Word from './word';
+import useSetting from '@/fronted/hooks/useSetting';
+import { cn } from '@/fronted/lib/utils';
+import { FONT_SIZE } from '@/fronted/styles/style';
+import { Sentence } from '@/common/types/SentenceC';
+import hash from 'object-hash';
+import useCopyModeController from '@/fronted/hooks/useCopyModeController';
+import { useTransLineTheme } from './translatable-theme';
+
+interface TranslatableSubtitleLineCoreParam {
+    sentence: Sentence;
+    show: boolean;
+    hoverDark?: boolean;
+    className?: string; // 新增：root class
+    wordClassNames?: {
+        word?: string;
+        hover?: string;
+        vocab?: string;
+    }; // 新增：Word 的 classNames
+}
+
+const TranslatableLine = ({
+                                  sentence,
+                                  show,
+                                  hoverDark,
+                                  className,
+                                  wordClassNames
+                              }: TranslatableSubtitleLineCoreParam) => {
+    const theme = useTransLineTheme();
+
+    console.log('TranslatableLine render:', {
+        sentenceKey: sentence ? `${sentence.fileHash}-${sentence.index}` : null,
+        wordClassNames,
+        timestamp: Date.now()
+    });
+
+    const text = sentence.text;
+    const sentenceStruct = sentence.struct;
+    const fontSize = useSetting((state) =>
+        state.values.get('appearance.fontSize')
+    );
+    const [popELe, setPopEle] = useState<string | null>(null);
+    const textHash = hash(text);
+    const setCopyContent = useCopyModeController((s) => s.setCopyContent);
+    const isCopyMode = useCopyModeController((s) => s.isCopyMode);
+    const handleRequestPop = (k: string) => {
+        if (popELe !== k) {
+            setPopEle(k);
+        }
+    };
+    const handleLineClick = async (e: React.MouseEvent) => {
+        if (isCopyMode) {
+            e.stopPropagation();
+            setCopyContent(text);
+        }
+    };
+    return text === undefined ? (
+        <div />
+    ) : (
+        <div
+            className={cn(
+                theme.core.root,
+                FONT_SIZE['ms1-large'],
+                fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
+                fontSize === 'fontSizeMedium' && FONT_SIZE['ms1-medium'],
+                fontSize === 'fontSizeLarge' && FONT_SIZE['ms1-large'],
+                className
+            )}
+            onClick={(e) => handleLineClick(e)}
+        >
+            {text.split(/(\s+|[.,!?;:"()])/).filter(Boolean).map((part, partIndex) => {
+                const partId = `${textHash}:${partIndex}`;
+                const isWord = /^[a-zA-Z]+$/.test(part);
+
+                if (isWord) {
+                    return (
+                        <Word
+                            key={partId}
+                            word={part}
+                            original={part}
+                            pop={popELe === partId}
+                            requestPop={() =>
+                                handleRequestPop(partId)
+                            }
+                            show={show}
+                            alwaysDark={hoverDark}
+                            classNames={wordClassNames}
+                        />
+                    );
+                }
+                return (
+                    <div
+                        className={cn(
+                            'select-none whitespace-pre flex-shrink-0',
+                            !show && 'text-transparent'
+                        )}
+                        key={partId}
+                    >
+                        {part}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+export default TranslatableLine;
+
+TranslatableLine.defaultProps = {
+    hoverDark: false
+};

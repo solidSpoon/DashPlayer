@@ -1,7 +1,7 @@
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import React, {cloneElement, ReactElement} from 'react';
 import {cn} from "@/fronted/lib/utils";
-import Separator from '@/fronted/components/Separtor';
+import Separator from '@/fronted/components/shared/common/Separator';
 import {buttonVariants} from "@/fronted/components/ui/button";
 import { Bot, Command, Compass, Database, Palette } from 'lucide-react';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

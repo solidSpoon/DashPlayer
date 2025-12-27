@@ -1,5 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
-import Separator from '@/fronted/components/Separtor';
+import Separator from '@/fronted/components/shared/common/Separator';
 import React from 'react';
 import ConvertFileSelector from '@/fronted/pages/convert/ConvertFileSelector';
 import ConvertFolderSelector from '@/fronted/pages/convert/FolderSelector';
@@ -8,7 +8,7 @@ import useConvert from '@/fronted/hooks/useConvert';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/fronted/components/ui/button';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
-import Eb from '@/fronted/components/common/Eb';
+import Eb from '@/fronted/components/shared/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 

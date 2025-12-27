@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
-import { playerV2Actions } from '@/fronted/components/player-components';
+import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLinePodcast from '@/fronted/pages/player/pa-srt-cops/translatable-line-podcast';

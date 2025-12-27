@@ -1,7 +1,7 @@
 import React from 'react';
 import { Switch } from '@/fronted/components/ui/switch';
 import { Label } from '@/fronted/components/ui/label';
-import WithMarkdownTooltip from '@/fronted/components/common/WithMarkdownTooltip';
+import WithMarkdownTooltip from '@/fronted/components/shared/common/WithMarkdownTooltip';
 
 interface SettingToggleProps {
   id: string;

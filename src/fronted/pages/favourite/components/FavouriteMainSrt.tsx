@@ -1,7 +1,7 @@
 import React from 'react';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
-import { TranslatableLine } from "@/fronted/components/player-translable-line";
+import { TranslatableLine } from '@/fronted/components/feature/player/translatable-line';
 
 const FavouriteMainSrt = () => {
   const playInfo = useFavouriteClip((state) => state.playInfo);

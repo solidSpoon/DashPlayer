@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/fronted/lib/utils';
-import Separator from '@/fronted/components/Separtor';
+import Separator from '@/fronted/components/shared/common/Separator';
 import useSWR from 'swr';
 import { LoaderPinwheel } from 'lucide-react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/fronted/components/ui/hover-card';
 import FavouritePlayer from './components/FavouritePlayer';
 import FavouriteItem from './components/FavouriteItem';
-import DatePickerWithRange from '@/fronted/components/query/DatePickerWithRange';
-import StringQuery from '@/fronted/components/query/StringQuery';
-import TagQuery from '@/fronted/components/query/TagQuery';
+import DatePickerWithRange from '@/fronted/components/shared/query/DatePickerWithRange';
+import StringQuery from '@/fronted/components/shared/query/StringQuery';
+import TagQuery from '@/fronted/components/shared/query/TagQuery';
 import { DateRange } from 'react-day-picker';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';

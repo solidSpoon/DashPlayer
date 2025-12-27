@@ -3,12 +3,12 @@
 import * as React from 'react';
 import {cn} from "@/fronted/lib/utils";
 import {motion} from 'framer-motion';
-import ChatLeftWords from '@/fronted/pages/player/chat/ChatLeftWords';
-import ChatLeftPhrases from '@/fronted/pages/player/chat/ChatLeftPhrases';
-import ChatLeftGrammers from '@/fronted/pages/player/chat/ChatLeftGrammers';
-import ChatRightSentences from '@/fronted/pages/player/chat/ChatRightSentences';
-import ChatCenter from '@/fronted/pages/player/chat/ChatCenter';
-import ChatTopicSelector from '@/fronted/pages/player/chat/ChatTopicSelector';
+import ChatLeftWords from '@/fronted/pages/player/chat/components/ChatLeftWords';
+import ChatLeftPhrases from '@/fronted/pages/player/chat/components/ChatLeftPhrases';
+import ChatLeftGrammers from '@/fronted/pages/player/chat/components/ChatLeftGrammers';
+import ChatRightSentences from '@/fronted/pages/player/chat/components/ChatRightSentences';
+import ChatCenter from '@/fronted/pages/player/chat/components/ChatCenter';
+import ChatTopicSelector from '@/fronted/pages/player/chat/components/ChatTopicSelector';
 
 import {
     ContextMenu,

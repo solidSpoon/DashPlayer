@@ -4,7 +4,7 @@ import SubtitleList from './SubtitleList';
 import { VideoClip } from '@/fronted/hooks/useClipTender';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
-import { PlayerEngineV2 } from '@/fronted/components/player-components';
+import { PlayerEngineV2 } from '@/fronted/components/feature/player/player-v2';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 import { useVocabularyState } from '@/fronted/hooks/useVocabulary';

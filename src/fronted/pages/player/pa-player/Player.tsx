@@ -1,14 +1,14 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
-import { PlayerEngineV2, playerV2Actions } from '@/fronted/components/player-components';
+import { PlayerEngineV2, playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useLayout from '@/fronted/hooks/useLayout';
 import PlayerControlPanel from './PlayerControlPanel';
 import PlayerSubtitlePanel from '@/fronted/pages/player/playerSubtitle/PlayerSubtitlePanel';
-import PlaySpeedToaster from '@/fronted/pages/player/PlaySpeedToaster';
-import PlayerToaster from '@/fronted/pages/player/PlayerToaster';
+import PlaySpeedToaster from '@/fronted/pages/player/components/PlaySpeedToaster';
+import PlayerToaster from '@/fronted/pages/player/components/PlayerToaster';
 import { cn } from '@/fronted/lib/utils';
 
 const logger = getRendererLogger('Player');

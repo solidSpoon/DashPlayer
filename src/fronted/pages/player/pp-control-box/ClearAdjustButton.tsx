@@ -1,7 +1,7 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
-import TooltippedButton from '@/fronted/components/common/TooltippedButton';
+import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';

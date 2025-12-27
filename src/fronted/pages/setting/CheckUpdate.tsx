@@ -1,13 +1,13 @@
 import React from 'react';
-import Header from '@/fronted/pages/setting/setting/Header';
-import ItemWrapper from '@/fronted/pages/setting/setting/ItemWrapper';
-import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
+import Header from '@/fronted/pages/setting/components/form/Header';
+import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
+import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
 import { Button } from '@/fronted/components/ui/button';
-import Md from '@/fronted/pages/player/chat/markdown';
+import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
 import useSWR from 'swr';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
-import NewTips from '@/fronted/components/NewTips';
+import NewTips from '@/fronted/pages/setting/components/NewTips';
 import { cn } from '@/fronted/lib/utils';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 

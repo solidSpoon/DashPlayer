@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
 import { Scissors } from 'lucide-react';
-import TooltippedButton from '@/fronted/components/common/TooltippedButton';
+import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import useFile from '@/fronted/hooks/useFile';
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

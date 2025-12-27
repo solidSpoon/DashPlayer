@@ -10,10 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fro
 import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
-import Separator from '@/fronted/components/Separtor';
+import Separator from '@/fronted/components/shared/common/Separator';
 import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, ChevronDown } from 'lucide-react';
-import Header from '@/fronted/pages/setting/setting/Header';
-import FooterWrapper from '@/fronted/pages/setting/setting/FooterWrapper';
+import Header from '@/fronted/pages/setting/components/form/Header';
+import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

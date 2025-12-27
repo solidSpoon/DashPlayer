@@ -4,7 +4,7 @@ import NormalLine from './NormalLine';
 import useTranslation from '../../../hooks/useTranslation';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
-import { playerV2Actions } from '@/fronted/components/player-components';
+import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');

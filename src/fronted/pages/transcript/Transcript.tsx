@@ -1,6 +1,6 @@
 import React from 'react';
 import {cn} from "@/fronted/lib/utils";
-import Separator from '@/fronted/components/Separtor';
+import Separator from '@/fronted/components/shared/common/Separator';
 import TranscriptFile from './TranscriptFile';
 import TranscriptTable from '@/fronted/pages/transcript/TranscriptTable';
 

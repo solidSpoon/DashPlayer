@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { playerV2Actions } from '@/fronted/components/player-components';
+import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';

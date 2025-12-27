@@ -15,14 +15,14 @@ import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
 import ServiceManagementSetting from '@/fronted/pages/setting/ServiceManagementSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
 import toast, { Toaster as HotToaster } from 'react-hot-toast';
-import RendererToastHost from '@/fronted/components/toasts/RendererToastHost';
+import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
 
 import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
 import Split from '@/fronted/pages/split/Split';
-import GlobalShortCut from '@/fronted/components/short-cut/GlobalShortCut';
+import GlobalShortCut from '@/fronted/components/shared/shortcuts/GlobalShortCut';
 import Convert from '@/fronted/pages/convert/Convert';
-import Eb from '@/fronted/components/common/Eb';
+import Eb from '@/fronted/components/shared/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
 import {startListeningToDpTasks} from "@/fronted/hooks/useDpTaskCenter";
