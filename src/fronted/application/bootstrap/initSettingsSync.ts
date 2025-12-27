@@ -2,7 +2,8 @@ import { SettingKey, SettingKeyObj } from '@/common/types/store_schema';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
 import useSetting from '@/fronted/hooks/useSetting';
-import useTranslation, { TranslationMode } from '@/fronted/hooks/useTranslation';
+import useTranslation from '@/fronted/hooks/useTranslation';
+import type { TranslationMode } from '@/common/types/TranslationResult';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 let cleanupFn: (() => void) | null = null;
@@ -66,4 +67,3 @@ export function initSettingsSync(): () => void {
     logger.info('settings sync started');
     return cleanupFn;
 }
-
