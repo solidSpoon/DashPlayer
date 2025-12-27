@@ -1,16 +1,14 @@
-import {storeGet} from '@/backend/infrastructure/settings/store';
+import { storeGet } from '@/backend/infrastructure/settings/store';
 import { injectable } from 'inversify';
 import ClientProviderService from '@/backend/application/services/ClientProviderService';
 import StrUtil from '@/common/utils/str-util';
-import TencentClient from '@/backend/objs/TencentClient';
-
+import TencentClient from '@/backend/infrastructure/translate/clients/TencentClient';
 
 @injectable()
 export default class TencentProvider implements ClientProviderService<TencentClient> {
     private client: TencentClient | null = null;
     private localSecretId: string | null = null;
     private localSecretKey: string | null = null;
-
 
     private initClient(): void {
         if (StrUtil.isBlank(this.localSecretId) || StrUtil.isBlank(this.localSecretKey)) {
@@ -19,9 +17,9 @@ export default class TencentProvider implements ClientProviderService<TencentCli
         const clientConfig = {
             credential: {
                 secretId: this.localSecretId,
-                secretKey: this.localSecretKey
+                secretKey: this.localSecretKey,
             },
-            region: 'ap-shanghai'
+            region: 'ap-shanghai',
         };
         this.client = new TencentClient(clientConfig);
     }
@@ -41,3 +39,4 @@ export default class TencentProvider implements ClientProviderService<TencentCli
         return this.client;
     }
 }
+

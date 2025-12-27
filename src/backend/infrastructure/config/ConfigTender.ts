@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
+import { ConfigStore } from '@/backend/application/ports/gateways/ConfigStore';
 
 /**
  * 配置文件托管类
  * @template T 配置类型
  * @template S Zod Schema 类型
  */
-export class ConfigTender<T, S extends z.ZodType<T>> {
+export class ConfigTender<T, S extends z.ZodType<T>> implements ConfigStore<T> {
     private readonly configPath: string;
     private readonly schema: S;
 

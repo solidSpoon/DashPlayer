@@ -10,7 +10,7 @@ import dpLog from '@/backend/infrastructure/logger';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
-import { ConfigTender } from '@/backend/objs/config-tender';
+import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigStore';
 import FileUtil from '@/backend/utils/FileUtil';
 import { CancelByUserError, WhisperResponseFormatError } from '@/backend/errors/errors';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
@@ -62,6 +62,9 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
 
+    @inject(TYPES.ConfigStoreFactory)
+    private configStoreFactory!: ConfigStoreFactory;
+
     private static readonly INFO_FILE = 'info.json';
 
     private sendProgress(taskId: number, filePath: string, status: string, progress: number, result?: any) {
@@ -98,7 +101,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             };
 
             const infoPath = path.join(folder, CloudTranscriptionServiceImpl.INFO_FILE);
-            const configTender = new ConfigTender<WhisperContext, typeof WhisperContextSchema>(
+            const configTender = this.configStoreFactory.create<WhisperContext, typeof WhisperContextSchema>(
                 infoPath,
                 WhisperContextSchema,
                 defaultContext

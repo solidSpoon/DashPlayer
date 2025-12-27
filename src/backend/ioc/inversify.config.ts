@@ -52,13 +52,15 @@ import SplitVideoServiceImpl from '@/backend/application/services/impl/SplitVide
 import MediaService from '@/backend/application/services/MediaService';
 import MediaServiceImpl from '@/backend/application/services/impl/MediaServiceImpl';
 import ClientProviderService from '@/backend/application/services/ClientProviderService';
-import YouDaoProvider from '@/backend/application/services/impl/clients/YouDaoProvider';
-import TencentProvider from '@/backend/application/services/impl/clients/TencentProvider';
+import YouDaoProvider from '@/backend/infrastructure/translate/providers/YouDaoProvider';
+import TencentProvider from '@/backend/infrastructure/translate/providers/TencentProvider';
 import TranslateServiceImpl from '@/backend/application/services/impl/TranslateServiceImpl';
 import TranslateService from '@/backend/application/services/AiTransServiceImpl';
 import TagServiceImpl from '@/backend/application/services/impl/TagServiceImpl';
-import YouDaoClient from '@/backend/objs/YouDaoClient';
-import TencentClient from '@/backend/objs/TencentClient';
+import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
+import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
+import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreFactoryImpl';
+import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigStore';
 import WatchHistoryService from '@/backend/application/services/WatchHistoryService';
 import WatchHistoryServiceImpl from '@/backend/application/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/adapters/controllers/WatchHistoryController';
@@ -106,8 +108,9 @@ import SubtitleTimestampAdjustmentsRepositoryImpl from '@/backend/infrastructure
 
 const container = new Container();
 // Clients
-container.bind<ClientProviderService<YouDaoClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
-container.bind<ClientProviderService<TencentClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
+container.bind<ClientProviderService<YouDaoDictionaryClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
+container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
+container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();

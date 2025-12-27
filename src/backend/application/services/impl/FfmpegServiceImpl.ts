@@ -9,7 +9,7 @@ import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import LocationService, {ProgramType} from '@/backend/application/services/LocationService';
-import FfmpegTask from '@/backend/objs/FfmpegTask';
+import FfmpegTask from '@/backend/infrastructure/media/ffmpeg/FfmpegTask';
 import dpLog from '@/backend/infrastructure/logger';
 import {VideoInfo} from '@/common/types/video-info';
 import {CancelByUserError} from '@/backend/errors/errors';

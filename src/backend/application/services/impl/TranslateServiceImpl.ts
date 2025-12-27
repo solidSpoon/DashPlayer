@@ -19,8 +19,8 @@ import RendererGateway from '@/backend/infrastructure/renderer/RendererGateway';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import ClientProviderService from '@/backend/application/services/ClientProviderService';
 import SettingService from '@/backend/application/services/SettingService';
-import YouDaoClient from '@/backend/objs/YouDaoClient';
-import TencentClient from '@/backend/objs/TencentClient';
+import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
+import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
 import dpLog from '@/backend/infrastructure/logger';
 import TranslateService from "@/backend/application/services/AiTransServiceImpl";
 import {Sentence} from "@/common/types/SentenceC";
@@ -266,9 +266,9 @@ const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSO
 @injectable()
 export default class TranslateServiceImpl implements TranslateService {
     @inject(TYPES.YouDaoClientProvider)
-    private youDaoProvider!: ClientProviderService<YouDaoClient>;
+    private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.TencentClientProvider)
-    private tencentProvider!: ClientProviderService<TencentClient>;
+    private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
     @inject(TYPES.AiProviderService)

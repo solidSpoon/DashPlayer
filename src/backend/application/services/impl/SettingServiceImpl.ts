@@ -6,8 +6,9 @@ import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/application/services/SettingService';
 import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
-import TencentProvider from '@/backend/application/services/impl/clients/TencentProvider';
-import YouDaoProvider from '@/backend/application/services/impl/clients/YouDaoProvider';
+import ClientProviderService from '@/backend/application/services/ClientProviderService';
+import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
+import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/infrastructure/renderer/RendererEvents';
 import {
@@ -20,8 +21,8 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
     @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
-    @inject(TYPES.TencentClientProvider) private tencentProvider!: TencentProvider;
-    @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: YouDaoProvider;
+    @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
+    @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     private logger = getMainLogger('SettingServiceImpl');
 
     public async set(key: SettingKey, value: string): Promise<void> {
