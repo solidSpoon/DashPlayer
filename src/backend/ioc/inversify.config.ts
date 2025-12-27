@@ -70,6 +70,7 @@ import AiProviderService from '@/backend/services/AiProviderService';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
 import { CloudTranscriptionServiceImpl } from '@/backend/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/services/impl/LocalTranscriptionServiceImpl';
+import {WhisperCppCli} from '@/backend/infrastructure/media/whisper/WhisperCppCli';
 import {WordMatchService} from '@/backend/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/services/impl/WordMatchServiceImpl';
 import VocabularyController from '@/backend/controllers/VocabularyController';
@@ -126,6 +127,7 @@ container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSi
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();
+container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();

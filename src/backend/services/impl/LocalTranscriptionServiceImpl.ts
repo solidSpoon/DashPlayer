@@ -7,7 +7,6 @@ import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
-import { spawn, ChildProcess } from 'child_process';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/services/LocationService';
 import FfmpegService from '@/backend/services/FfmpegService';
@@ -15,6 +14,8 @@ import {getMainLogger} from '@/backend/ioc/simple-logger';
 import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
 import {DpTaskState} from "@/backend/infrastructure/db/tables/dpTask";
+import {WhisperCppCli} from '@/backend/infrastructure/media/whisper/WhisperCppCli';
+import {WhisperCppArgsBuilder} from '@/backend/infrastructure/media/whisper/WhisperCppArgsBuilder';
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -32,13 +33,12 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private deferred = new Map<string, { resolve: () => void; reject: (e: any) => void }>();
 
     private logger = getMainLogger('LocalTranscriptionService');
-    private activeWhisperProcess: ChildProcess | null = null;
-    private whisperHelpCache: string | null = null;
 
     constructor(
         @inject(TYPES.SettingService) private settingService: SettingService,
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
-        @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway
+        @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
+        @inject(TYPES.WhisperCppCli) private whisperCppCli: WhisperCppCli,
     ) {}
 
     private async ensureWavFormat(inputPath: string): Promise<string> {
@@ -173,7 +173,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             throw error;
         } finally {
             this.activeFilePath = null;
-            this.activeWhisperProcess = null;
 
             // 清理临时文件
             try {
@@ -186,178 +185,52 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         }
     }
 
-    private resolveWhisperCppExecutablePath(): string {
-        const isDev = process.env.NODE_ENV === 'development';
-        const basePath = isDev ? path.resolve('lib', 'whisper.cpp') : path.join(process.resourcesPath, 'lib', 'whisper.cpp');
-
-        const platform = process.platform;
-        const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';
-        const archDir = process.arch === 'arm64' ? 'arm64' : 'x64';
-
-        const candidates: string[] = [];
-        if (platform === 'win32') {
-            candidates.push(
-                path.join(basePath, archDir, platformDir, 'whisper-cli.exe'),
-                path.join(basePath, archDir, platformDir, 'main.exe'),
-            );
-        } else {
-            candidates.push(
-                path.join(basePath, archDir, platformDir, 'whisper-cli'),
-                path.join(basePath, archDir, platformDir, 'main'),
-            );
-        }
-
-        for (const p of candidates) {
-            if (fs.existsSync(p)) return p;
-        }
-
-        throw new Error(`whisper.cpp executable not found: ${candidates.join(', ')}`);
-    }
-
-    private async getWhisperCppHelp(executablePath: string): Promise<string> {
-        if (this.whisperHelpCache) return this.whisperHelpCache;
-
-        const helpText = await new Promise<string>((resolve) => {
-            const child = spawn(executablePath, ['-h'], { stdio: ['ignore', 'pipe', 'pipe'] });
-            let stdout = '';
-            let stderr = '';
-            child.stdout.on('data', (d) => (stdout += String(d)));
-            child.stderr.on('data', (d) => (stderr += String(d)));
-            child.on('close', () => resolve((stdout || stderr || '').toString()));
-        });
-
-        this.whisperHelpCache = helpText;
-        return helpText;
-    }
-
     private async transcribeWithWhisperCppCli(opts: { filePath: string; processedAudioPath: string; tempFolder: string }): Promise<void> {
         const { filePath, processedAudioPath, tempFolder } = opts;
 
-        const executablePath = this.resolveWhisperCppExecutablePath();
-        const help = await this.getWhisperCppHelp(executablePath);
-        const supportsVadFlag = /--vad\b/.test(help);
-        const supportsVadModelFlag = /\s-vm\b/.test(help) || /--vad-model\b/.test(help);
+        const executablePath = this.whisperCppCli.resolveExecutablePath();
+        const help = await this.whisperCppCli.getHelpText(executablePath);
 
         const modelSize = (await this.settingService.get('whisper.modelSize')) === 'large' ? 'large' : 'base';
         const enableVad = true;
         const vadModel = 'silero-v6.2.0' as const;
 
-        const whisperModelTag = modelSize === 'large' ? 'large-v3' : 'base';
         const modelsRoot = LocationUtil.staticGetStoragePath('models');
-        const modelPath = path.join(modelsRoot, 'whisper', `ggml-${whisperModelTag}.bin`);
-        if (!fs.existsSync(modelPath)) {
-            throw new Error(`本地 Whisper 模型未下载：${modelSize}。请在【设置 → 服务配置 → Whisper 本地字幕识别】中下载模型后再转录。`);
-        }
-
-        let vadModelPath: string | null = null;
-        if (enableVad) {
-            if (!supportsVadFlag) {
-                this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
-                this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, { message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测' });
-            } else if (supportsVadModelFlag) {
-                vadModelPath = path.join(modelsRoot, 'whisper-vad', `ggml-${vadModel}.bin`);
-                if (!fs.existsSync(vadModelPath)) {
-                    throw new Error(`静音检测模型未下载。请在【设置 → 服务配置 → Whisper 本地字幕识别】中下载静音检测模型后再转录。`);
-                }
-            }
-        }
 
         if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
 
-        const outPrefix = path.join(tempFolder, 'whispercpp_out');
-        const outSrt = `${outPrefix}.srt`;
-
-        const args: string[] = [
-            '-m', modelPath,
-            '-f', processedAudioPath,
-            '-l', 'auto',
-            '-osrt',
-            '-of', outPrefix,
-            ...(help.includes('--print-progress') || help.includes('-pp') ? ['-pp'] : []),
-        ];
-
-        if (enableVad && supportsVadFlag) {
-            args.push('--vad');
-            if (vadModelPath && supportsVadModelFlag) {
-                args.push('-vm', vadModelPath);
-            }
+        const {args, outSrt, vadSkippedBecauseUnsupported} = WhisperCppArgsBuilder.build({
+            helpText: help,
+            modelSize,
+            enableVad,
+            vadModel,
+            modelsRoot,
+            processedAudioPath,
+            tempFolder,
+        });
+        if (vadSkippedBecauseUnsupported) {
+            this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, {message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测'});
         }
 
         this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 10, { message: 'whisper.cpp 正在识别...' });
         const progressFromWhisperPercent = (p: number) => Math.max(10, Math.min(90, Math.floor(10 + p * 0.8)));
         let lastReportedProgress = 10;
-        let lastProgressUpdateAt = 0;
-        let hasSeenWhisperPercent = false;
-        const maybeReportProgress = (percent: number) => {
-            const now = Date.now();
+        const maybeReportProgress = (percent: number, heartbeat: boolean) => {
             if (!Number.isFinite(percent)) return;
             const boundedPercent = Math.max(0, Math.min(100, Math.floor(percent)));
             const progress = progressFromWhisperPercent(boundedPercent);
-            const shouldUpdate =
-                progress > lastReportedProgress ||
-                (now - lastProgressUpdateAt > 1500 && progress >= lastReportedProgress);
-            if (!shouldUpdate) return;
-            hasSeenWhisperPercent = true;
-            lastReportedProgress = progress;
-            lastProgressUpdateAt = now;
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress, { message: 'whisper.cpp 正在识别...' });
+            if (!heartbeat && progress <= lastReportedProgress) return;
+            lastReportedProgress = Math.max(lastReportedProgress, progress);
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, lastReportedProgress, { message: 'whisper.cpp 正在识别...' });
         };
 
-        try {
-            await new Promise<void>((resolve, reject) => {
-                const child = spawn(executablePath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
-                this.activeWhisperProcess = child;
-
-                let stderr = '';
-                // eslint-disable-next-line no-control-regex
-                const ansiRegex = new RegExp('\\x1b\\[[0-9;]*m', 'g');
-                const stripAnsi = (s: string) => s.replace(ansiRegex, '');
-                const percentRegexGlobal = /(\d{1,3})%/g;
-                const floatProgressRegexGlobal = /\bprogress\s*=\s*(\d*\.\d+)\b/gi;
-
-                const scanForPercent = (text: string) => {
-                    const clean = stripAnsi(text);
-                    let m: RegExpExecArray | null;
-                    while ((m = percentRegexGlobal.exec(clean)) !== null) {
-                        maybeReportProgress(Number(m[1]));
-                    }
-                    while ((m = floatProgressRegexGlobal.exec(clean)) !== null) {
-                        const v = Number(m[1]);
-                        if (!Number.isFinite(v)) continue;
-                        if (v >= 0 && v <= 1.01) {
-                            maybeReportProgress(v * 100);
-                        }
-                    }
-                };
-
-                child.stdout.on('data', (d) => {
-                    scanForPercent(String(d));
-                });
-                child.stderr.on('data', (d) => {
-                    const chunk = String(d);
-                    stderr += chunk;
-                    scanForPercent(chunk);
-                });
-
-                const heartbeat = setInterval(() => {
-                    if (this.isCancelled(filePath)) return;
-                    if (hasSeenWhisperPercent) return;
-                    const now = Date.now();
-                    if (now - lastProgressUpdateAt < 8000) return;
-                    lastProgressUpdateAt = now;
-                    this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, lastReportedProgress, { message: 'whisper.cpp 正在识别...' });
-                }, 4000);
-
-                child.on('error', reject);
-                child.on('close', (code) => {
-                    clearInterval(heartbeat);
-                    if (code === 0) resolve();
-                    else reject(new Error(`whisper.cpp exit code ${code}: ${stderr.slice(-2000)}`));
-                });
-            });
-        } finally {
-            this.activeWhisperProcess = null;
-        }
+        await this.whisperCppCli.run({
+            executablePath,
+            args,
+            isCancelled: () => this.isCancelled(filePath),
+            onProgressEvent: (evt) => maybeReportProgress(evt.percent, evt.heartbeat),
+        });
 
         if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
         if (!fs.existsSync(outSrt)) {
@@ -408,11 +281,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         // 如果是当前任务，doTranscribe 会在检查点自行退出
         if (this.activeFilePath === filePath) {
-            try {
-                this.activeWhisperProcess?.kill('SIGKILL');
-            } catch {
-                //
-            }
+            this.whisperCppCli.killActive('SIGKILL');
             return true;
         }
 
