@@ -11,15 +11,15 @@ import {Button} from "@/fronted/components/ui/button";
 import TimeUtil from "@/common/utils/TimeUtil";
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
-export interface PlayerControlPanelProps {
+export interface PodcastControlBarProps {
     className?: string;
 
 }
 
-const ViewerControlPanel = ({
+const PodcastControlBar = ({
                                  className
-                             }: PlayerControlPanelProps) => {
-    const logger = getRendererLogger('ViewerControlPanel');
+                             }: PodcastControlBarProps) => {
+    const logger = getRendererLogger('PodcastControlBar');
     const playTime = usePlayerV2((s) => s.internal.exactPlayTime);
     const duration = usePlayerV2((s) => s.duration);
     const volume = usePlayerV2((s) => s.volume);
@@ -116,7 +116,7 @@ const ViewerControlPanel = ({
                         </div>
                         <div className="h-full flex-1" />
                         <div className="flex justify-center items-end gap-4">
-                            {/* <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} /> */}
+                            {/* Fullscreen toggle lives in the normal playback control bar */}
                             <SpeedSlider
                                 speed={playbackRate}
                                 onSpeedChange={setPlaybackRate}
@@ -136,7 +136,7 @@ const ViewerControlPanel = ({
 
     );
 };
-ViewerControlPanel.defaultProps = {
+PodcastControlBar.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
@@ -150,4 +150,4 @@ ViewerControlPanel.defaultProps = {
     playing: false
 };
 
-export default ViewerControlPanel;
+export default PodcastControlBar;

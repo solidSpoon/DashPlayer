@@ -1,11 +1,10 @@
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
-import {Toggle} from '@/fronted/components/ui/toggle';
 import React from 'react';
 import {cn} from '@/fronted/lib/utils';
 import {Maximize, Minimize} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
 
-const FullscreenButton = ({fullScreen, changeFullScreen}: {
+const FullscreenToggleButton = ({fullScreen, changeFullScreen}: {
     fullScreen: boolean;
     changeFullScreen: (v: boolean) => void;
 }) => {
@@ -42,4 +41,4 @@ const FullscreenButton = ({fullScreen, changeFullScreen}: {
 };
 
 
-export default FullscreenButton;
+export default FullscreenToggleButton;

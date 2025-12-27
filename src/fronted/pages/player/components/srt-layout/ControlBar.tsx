@@ -13,11 +13,11 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
-import FullscreenButton from '@/fronted/pages/player/components/subtitles/FullscreenButton';
+import FullscreenToggleButton from '@/fronted/pages/player/components/subtitles/FullscreenToggleButton';
 
-const logger = getRendererLogger('PlayerControlPanel');
+const logger = getRendererLogger('PlaybackControlBar');
 
-export interface PlayerControlPanelProps {
+export interface PlaybackControlBarProps {
     className?: string;
     onPause?: () => void;
     onPlay?: () => void;
@@ -25,13 +25,13 @@ export interface PlayerControlPanelProps {
     onTimeChange?: (time: number) => void;
 }
 
-const PlayerControlPanel = ({
+const PlaybackControlBar = ({
     className,
     onTimeChange,
     onPause,
     onPlay,
     playing
-}: PlayerControlPanelProps) => {
+}: PlaybackControlBarProps) => {
     const {
         playTime,
         duration,
@@ -169,7 +169,7 @@ const PlayerControlPanel = ({
                                         volume={volume}
                                         onVolumeChange={(nextVolume) => playerV2Actions.setVolume(nextVolume)}
                                     />
-                                    <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
+                                    <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                                 </div>
                             </div>
                         </>
@@ -180,7 +180,7 @@ const PlayerControlPanel = ({
     );
 };
 
-PlayerControlPanel.defaultProps = {
+PlaybackControlBar.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
@@ -194,4 +194,4 @@ PlayerControlPanel.defaultProps = {
     playing: false
 };
 
-export default PlayerControlPanel;
+export default PlaybackControlBar;

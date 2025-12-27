@@ -7,7 +7,7 @@ import {FONT_SIZE} from "@/fronted/styles/style";
 import hash from "object-hash";
 
 
-interface PlayerNormalLineParam {
+interface SubtitleLineProps {
     text: string;
     order: 'second' | 'third';
 }
@@ -18,7 +18,7 @@ interface Part {
 }
 export const SPLIT_REGEX =
     /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
-const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
+const SubtitleLine = ({ text, order }: SubtitleLineProps) => {
     const show = usePlayerUi((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
     const vocabularyStore = useVocabulary();
@@ -81,4 +81,4 @@ const PlayerNormalLine = ({ text, order }: PlayerNormalLineParam) => {
     );
 };
 
-export default PlayerNormalLine;
+export default SubtitleLine;

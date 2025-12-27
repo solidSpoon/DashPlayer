@@ -7,7 +7,7 @@ import SpeedSlider from '../speed-slider';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import useLayout from '@/fronted/hooks/useLayout';
-import FullscreenButton from './FullscreenButton';
+import FullscreenToggleButton from './FullscreenToggleButton';
 import { Button } from '@/fronted/components/ui/button';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -15,7 +15,7 @@ import { cn } from '@/fronted/lib/utils';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 
-export interface PlayerControlPannelProps {
+export interface OverlayControlBarProps {
     className?: string;
     onPause?: () => void;
     onPlay?: () => void;
@@ -23,14 +23,14 @@ export interface PlayerControlPannelProps {
     onTimeChange?: (time: number) => void;
 }
 
-const PlayerControlPannel = ({
+const OverlayControlBar = ({
     className,
     onTimeChange,
     onPause,
     onPlay,
     playing
-}: PlayerControlPannelProps) => {
-    const logger = getRendererLogger('PlayerControlPannel');
+}: OverlayControlBarProps) => {
+    const logger = getRendererLogger('OverlayControlBar');
     const {
         playTime,
         duration,
@@ -138,7 +138,7 @@ const PlayerControlPannel = ({
                             volume={volume}
                             onVolumeChange={(nextVolume) => playerV2Actions.setVolume(nextVolume)}
                         />
-                        <FullscreenButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
+                        <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                     </div>
                 </div>
             </Card>
@@ -146,7 +146,7 @@ const PlayerControlPannel = ({
     );
 };
 
-PlayerControlPannel.defaultProps = {
+OverlayControlBar.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
@@ -160,4 +160,4 @@ PlayerControlPannel.defaultProps = {
     playing: false
 };
 
-export default PlayerControlPannel;
+export default OverlayControlBar;

@@ -4,11 +4,11 @@ import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { useMemo } from 'react';
 import FullscreenTranslatableLine from './fullscreen-translatable-line';
-import PlayerNormalLine from './PlayerNormalLine';
+import SubtitleLine from './SubtitleLine';
 import StrUtil from '@/common/utils/str-util';
 import useTranslation from '@/fronted/hooks/useTranslation';
 
-const PlayerSubtitle = () => {
+const SubtitleStack = () => {
     const sentence = usePlayerV2State((state) => state.currentSentence);
     const srtTender = usePlayerV2State((state) => state.srtTender);
     const adjusted = useMemo(() => (sentence && srtTender ? (srtTender.adjusted(sentence) ?? false) : false), [sentence, srtTender]);
@@ -43,7 +43,7 @@ const PlayerSubtitle = () => {
             }
             if (index === 1) {
                 return (
-                    <PlayerNormalLine
+                    <SubtitleLine
                         key={`second-${sentence.key}`}
                         text={item}
                         order="second"
@@ -52,7 +52,7 @@ const PlayerSubtitle = () => {
             }
 
             return (
-                <PlayerNormalLine
+                <SubtitleLine
                     key={`third-${sentence.key}`}
                     text={item}
                     order="third"
@@ -75,4 +75,4 @@ const PlayerSubtitle = () => {
     );
 };
 
-export default PlayerSubtitle;
+export default SubtitleStack;

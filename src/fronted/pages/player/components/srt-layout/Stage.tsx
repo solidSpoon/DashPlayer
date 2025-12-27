@@ -5,21 +5,21 @@ import { PlayerEngineV2, playerV2Actions } from '@/fronted/components/feature/pl
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useLayout from '@/fronted/hooks/useLayout';
-import PlayerControlPanel from './PlayerControlPanel';
-import PlayerSubtitlePanel from '@/fronted/pages/player/components/subtitles/PlayerSubtitlePanel';
+import PlaybackControlBar from './ControlBar';
+import FullscreenSubtitleOverlay from '@/fronted/pages/player/components/subtitles/FullscreenSubtitleOverlay';
 import PlaySpeedToaster from '@/fronted/pages/player/components/PlaySpeedToaster';
 import PlayerToaster from '@/fronted/pages/player/components/PlayerToaster';
 import { cn } from '@/fronted/lib/utils';
 
-const logger = getRendererLogger('Player');
+const logger = getRendererLogger('PlaybackStage');
 
-type PlayerProps = {
+type PlaybackStageProps = {
     className?: string;
     onReady?: () => void;
     onEnded?: () => void;
 };
 
-export default function Player({ className, onReady, onEnded }: PlayerProps): ReactElement {
+export default function PlaybackStage({ className, onReady, onEnded }: PlaybackStageProps): ReactElement {
     const {
         playing,
         playbackRate,
@@ -129,7 +129,7 @@ export default function Player({ className, onReady, onEnded }: PlayerProps): Re
                     }}
                 />
                 {!fullScreen && !podcastMode && (
-                    <PlayerControlPanel
+                    <PlaybackControlBar
                         onTimeChange={(time) => playerV2Actions.seekTo({ time })}
                         className="absolute bottom-0 left-0 z-20"
                         onPause={() => playerV2Actions.pause()}
@@ -137,7 +137,7 @@ export default function Player({ className, onReady, onEnded }: PlayerProps): Re
                         playing={playing}
                     />
                 )}
-                {fullScreen && <PlayerSubtitlePanel />}
+                {fullScreen && <FullscreenSubtitleOverlay />}
                 <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
                 <PlayerToaster className="absolute top-3 left-3" />
             </div>
@@ -145,6 +145,6 @@ export default function Player({ className, onReady, onEnded }: PlayerProps): Re
     );
 }
 
-Player.defaultProps = {
+PlaybackStage.defaultProps = {
     className: ''
 };

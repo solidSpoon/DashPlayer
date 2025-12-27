@@ -5,7 +5,7 @@ import { playerV2Actions } from '@/fronted/components/feature/player/player-v2';
 import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLinePodcast from './translatable-line-podcast';
-import ViewerControlPanel from './viewer-control-panel';
+import PodcastControlBar from './PodcastControlBar';
 import StrUtil from '@/common/utils/str-util';
 import FuncUtil from '@/common/utils/func-util';
 import useTranslation from '@/fronted/hooks/useTranslation';
@@ -94,7 +94,7 @@ const PodcastViewer = ({ className }: { className?: string }) => {
                 </div>
             </div>
 
-            <ViewerControlPanel className="absolute left-0 bottom-0" />
+            <PodcastControlBar className="absolute left-0 bottom-0" />
         </div>
     );
 

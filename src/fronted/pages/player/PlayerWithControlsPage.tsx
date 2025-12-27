@@ -12,7 +12,7 @@ import SideBar from '@/fronted/components/layout/SideBar';
 import Chat from '@/fronted/pages/player/chat/Chat';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
-import PlayerSrtLayout from '@/fronted/pages/player/components/srt-layout/PlayerSrtLayout';
+import PlaybackLayout from '@/fronted/pages/player/components/srt-layout/Layout';
 import {SWR_KEY} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
 // removed old controller usage; player v2 actions used instead
@@ -348,7 +348,7 @@ const PlayerWithControlsPage = () => {
                         transformOrigin: 'top left'
                     }}
                 >
-                    <PlayerSrtLayout/>
+                    <PlaybackLayout/>
                 </div>
                 {chatTopic === 'offscreen' && (
                     <>

@@ -13,13 +13,13 @@ import {getRendererLogger} from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const api = backendClient;
-const logger = getRendererLogger('PlayerEmptyState');
+const logger = getRendererLogger('PlaybackEmptyState');
 
-type PlayerEmptyStateProps = {
+type PlaybackEmptyStateProps = {
     className?: string;
 };
 
-const PlayerEmptyState: React.FC<PlayerEmptyStateProps> = ({className}) => {
+const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
     const navigate = useNavigate();
     const {data: history} = useSWR<WatchHistoryVO[]>(
         apiPath('watch-history/list'),
@@ -161,4 +161,4 @@ const PlayerEmptyState: React.FC<PlayerEmptyStateProps> = ({className}) => {
     );
 };
 
-export default PlayerEmptyState;
+export default PlaybackEmptyState;

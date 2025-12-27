@@ -1,6 +1,6 @@
 import {cn} from "@/fronted/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/fronted/components/ui/resizable';
-import Player from './Player';
+import PlaybackStage from './Stage';
 import PodcastViewer from '@/fronted/pages/player/components/subtitles/podcast-viewer';
 import MainSubtitle from './MainSubtitle';
 import Subtitle from './components/Subtitle';
@@ -13,11 +13,11 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerV2Bridge } from '@/fronted/hooks/usePlayerV2Bridge';
 import { useNavigate } from 'react-router-dom';
 import { usePlayerV2State } from '@/fronted/hooks/usePlayerV2State';
-import PlayerEmptyState from './PlayerEmptyState';
+import PlaybackEmptyState from './EmptyState';
 
-const logger = getRendererLogger('PlayerSrtLayout');
+const logger = getRendererLogger('PlaybackLayout');
 
-const PlayerSrtLayout = () => {
+const PlaybackLayout = () => {
     const hasSubTitle = useFile((s) => StrUtil.isNotBlank(s.subtitlePath));
     const showSideBar = useLayout((state) => state.showSideBar);
     const fullScreen = useLayout((s) => s.fullScreen);
@@ -38,7 +38,7 @@ const PlayerSrtLayout = () => {
     if (!hasSource) {
         return (
             <div className={containerClass}>
-                <PlayerEmptyState className="w-full" />
+                <PlaybackEmptyState className="w-full" />
             </div>
         );
     }
@@ -73,7 +73,7 @@ const PlayerSrtLayout = () => {
                         >
                             <div
                                 className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
-                                <Player
+                                <PlaybackStage
                                     className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}
                                     onReady={handlePlayerReady}
                                     onEnded={handleAutoPlayNext}
@@ -121,4 +121,4 @@ const PlayerSrtLayout = () => {
     )
 }
 
-export default PlayerSrtLayout;
+export default PlaybackLayout;
