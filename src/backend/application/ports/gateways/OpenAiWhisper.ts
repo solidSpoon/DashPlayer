@@ -5,7 +5,6 @@ export interface CancelableRequest<T> extends Cancelable {
     invoke(): Promise<T>;
 }
 
-export interface OpenAiWhisperGateway {
+export interface OpenAiWhisper {
     createRequest(filePath: string): CancelableRequest<WhisperResponse>;
 }
-

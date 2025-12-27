@@ -7,7 +7,7 @@ import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import dpLog from '@/backend/infrastructure/logger';
-import { OpenAiWhisperGateway } from '@/backend/application/ports/gateways/OpenAiWhisperGateway';
+import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
 import { ConfigTender } from '@/backend/objs/config-tender';
@@ -56,8 +56,8 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
 
-    @inject(TYPES.OpenAiWhisperGateway)
-    private openAiWhisperGateway!: OpenAiWhisperGateway;
+    @inject(TYPES.OpenAiWhisper)
+    private openAiWhisperGateway!: OpenAiWhisper;
 
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
