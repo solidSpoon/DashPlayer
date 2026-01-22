@@ -17,6 +17,7 @@ import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import SystemService from '@/backend/services/SystemService';
 import FileUtil from '@/backend/utils/FileUtil';
+import AssUtil from '@/common/utils/AssUtil';
 
 
 @injectable()
@@ -211,17 +212,47 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (!fs.existsSync(filePath)) {
             return null;
         }
+
         let srtFile = history.srt_file;
+
+        // 1. Check for existing and valid SRT file in history
         if (StrUtil.isNotBlank(srtFile)) {
             const exists = await FileUtil.fileExists(srtFile);
             if (!exists) {
                 srtFile = '';
             }
         }
+
+        // 2. If no valid SRT in history, try to find a matching subtitle file
         if (StrUtil.isBlank(srtFile)) {
+            // First, try to find a matching .srt file
             const srtFiles = await this.listSrtFiles(base_path);
-            srtFile = MatchSrt.matchOne(filePath, srtFiles);
+            let subtitleFile = MatchSrt.matchOne(filePath, srtFiles);
+
+            // If no .srt file is found, try to find and convert an .ass file
+            if (!subtitleFile) {
+                const assFiles = await this.listAssFiles(base_path);
+                const matchedAssFile = MatchSrt.matchOne(filePath, assFiles);
+
+                if (matchedAssFile) {
+                    try {
+                        const assContent = await fs.promises.readFile(matchedAssFile, 'utf-8');
+                        const srtContent = AssUtil.assToSrt(assContent);
+                        
+                        const newSrtPath = matchedAssFile.replace(/\.ass$/i, '.srt');
+                        await fs.promises.writeFile(newSrtPath, srtContent);
+                        
+                        subtitleFile = newSrtPath;
+                        // Persist this new association for future use
+                        await this.attachSrt(filePath, subtitleFile);
+                    } catch (e) {
+                        console.error(`Failed to convert ASS file ${matchedAssFile} to SRT:`, e);
+                    }
+                }
+            }
+            srtFile = subtitleFile;
         }
+
         const duration = await this.mediaService.duration(filePath);
         return {
             id: history.id,
@@ -240,6 +271,12 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     private async listSrtFiles(folder: string): Promise<string[]> {
         const files = await FileUtil.listFiles(folder);
         return files.filter(file => MediaUtil.isSrt(file))
+            .map(file => path.join(folder, file));
+    }
+
+    private async listAssFiles(folder: string): Promise<string[]> {
+        const files = await FileUtil.listFiles(folder);
+        return files.filter(file => MediaUtil.isAss(file))
             .map(file => path.join(folder, file));
     }
 

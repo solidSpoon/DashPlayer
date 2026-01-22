@@ -16,6 +16,13 @@ export default class MediaUtil {
         return path.endsWith('.srt');
     }
 
+    public static isAss(path: string): boolean {
+        if (StrUtil.isBlank(path)) {
+            return false;
+        }
+        return path.endsWith('.ass');
+    }
+
     public static supported(path: string): boolean {
         if (StrUtil.isBlank(path)) {
             return false;
