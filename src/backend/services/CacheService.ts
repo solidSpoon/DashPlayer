@@ -1,7 +1,9 @@
 import { SrtSentence } from '@/common/types/SentenceC';
+import { YdRes } from '@/common/types/YdRes';
 
-export type CacheType ={
+export type CacheType = {
     'cache:srt': SrtSentence;
+    'cache:translation': YdRes;
 }
 
 export default interface CacheService {

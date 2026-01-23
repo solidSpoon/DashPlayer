@@ -20,6 +20,7 @@ export const SettingKeyObj = {
     'shortcut.toggleCopyMode': 'shift+y',
     'shortcut.addClip': 'shift+l',
     'shortcut.openControlPanel': 'shift+p',
+    'shortcut.toggleWordList': 'shift+k',
     'userSelect.playbackRateStack':'',
     'apiKeys.youdao.secretId': '',
     'apiKeys.youdao.secretKey': '',

@@ -10,6 +10,7 @@ import useFile from '@/fronted/hooks/useFile';
 import useLayout from '@/fronted/hooks/useLayout';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import StrUtil from '@/common/utils/str-util';
+import WordList from '@/fronted/components/word-list/WordList';
 
 const PlayerSrtLayout = () => {
     const hasSubTitle = useFile((s) => StrUtil.isNotBlank(s.subtitlePath));
@@ -20,6 +21,9 @@ const PlayerSrtLayout = () => {
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
+    const showWordList = useLayout((s) => s.showWordList);
+    const [sizeRight, setSizeRight] = useLocalStorage<number[]>('split-size-right', [50, 50]); // Moved to local usage or removed if not needed
+
     return (
         <div
             className={cn(
@@ -83,7 +87,7 @@ const PlayerSrtLayout = () => {
                         )}
                     </ResizablePanelGroup>
                 </ResizablePanel>
-                {!fullScreen && (
+                {(!fullScreen && hasSubTitle) && (
                     <>
                         <ResizableHandle withHandle className={cn('gutter-style w-2 dark:bg-zinc-700')} />
                         <ResizablePanel
@@ -95,7 +99,19 @@ const PlayerSrtLayout = () => {
                                 setSizeOb(e);
                             }}
                         >
-                            <Subtitle />
+                            {showWordList ? (
+                                <ResizablePanelGroup direction="vertical" onResize={setSizeRight} sizes={sizeRight}>
+                                    <ResizablePanel>
+                                        <Subtitle />
+                                    </ResizablePanel>
+                                    <ResizableHandle withHandle className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')} />
+                                    <ResizablePanel>
+                                        <WordList />
+                                    </ResizablePanel>
+                                </ResizablePanelGroup>
+                            ) : (
+                                <Subtitle />
+                            )}
                         </ResizablePanel>
                     </>)}
             </ResizablePanelGroup>

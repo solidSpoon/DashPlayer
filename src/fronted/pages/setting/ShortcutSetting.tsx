@@ -171,7 +171,8 @@ const ShortcutSetting = () => {
         'shortcut.aiChat',
         'shortcut.toggleCopyMode',
         'shortcut.addClip',
-        'shortcut.openControlPanel'
+        'shortcut.openControlPanel',
+        'shortcut.toggleWordList'
     ]);
     return (
         <form className="h-full overflow-y-auto flex flex-col gap-4">
@@ -318,6 +319,13 @@ const ShortcutSetting = () => {
                     defaultValue={SettingKeyObj['shortcut.openControlPanel']}
                     value={setting('shortcut.openControlPanel')}
                     setValue={setSettingFunc('shortcut.openControlPanel')}
+                />
+                <ShortCutRecorder
+                    title="展示/隐藏单词列表"
+                    description="在播放器右侧展示或隐藏单词列表面板"
+                    defaultValue={SettingKeyObj['shortcut.toggleWordList']}
+                    value={setting('shortcut.toggleWordList')}
+                    setValue={setSettingFunc('shortcut.toggleWordList')}
                 />
             </ItemWrapper>
 

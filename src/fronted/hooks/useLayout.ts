@@ -12,6 +12,7 @@ export type UseLayoutState = {
     fullScreen: boolean;
     podcastMode: boolean;
     chatting: boolean;
+    showWordList: boolean;
 };
 
 export type UseLayoutActions = {
@@ -19,6 +20,7 @@ export type UseLayoutActions = {
     changeFullScreen: (full: boolean) => void;
     setPodcastMode: (mode: boolean) => void;
     changeChatting: (chatting: boolean) => void;
+    toggleWordList: () => void;
 };
 
 const useLayout = create<UseLayoutState & UseLayoutActions>()(
@@ -29,6 +31,7 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         width: '2xl',
         height: '2xl',
         fullScreen: false,
+        showWordList: true,
         changeSideBar: (show: boolean) => {
             set({showSideBar: show});
         },
@@ -41,6 +44,9 @@ const useLayout = create<UseLayoutState & UseLayoutActions>()(
         },
         changeChatting: (chatting: boolean) => {
             set({chatting});
+        },
+        toggleWordList: () => {
+            set((state) => ({showWordList: !state.showWordList}));
         }
     }))
 );
