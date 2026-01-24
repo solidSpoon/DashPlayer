@@ -99,6 +99,11 @@ export function initRendererApis(): () => void {
         useChatPanel.getState().receiveChatStream(params);
     });
 
+    register('analysis/stream', async (params) => {
+        logger.debug('Analysis stream update', { params });
+        useChatPanel.getState().receiveAnalysisStream(params);
+    });
+
     logger.info('renderer apis registered', { count: unregisters.length });
 
     return () => {

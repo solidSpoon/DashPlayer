@@ -12,15 +12,15 @@ import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
 import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
 import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { getDpTaskResult, registerDpTask } from '@/fronted/hooks/useDpTaskCenter';
-import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
-import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
+import { registerDpTask } from '@/fronted/hooks/useDpTaskCenter';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
 import { ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
+import { AnalysisStreamEvent } from '@/common/types/analysis';
+import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
 const api = backendClient;
 
@@ -38,13 +38,6 @@ export type Topic = {
 
 } | 'offscreen';
 
-export type Tasks = {
-    vocabularyTask: number | null;
-    phraseTask: number | null;
-    grammarTask: number | null;
-    sentenceTask: number[];
-}
-
 const undoRedo = new UndoRedo<ChatPanelState>();
 export type ChatPanelState = {
     internal: {
@@ -56,7 +49,10 @@ export type ChatPanelState = {
     }
     chatSessionId: string;
     streamingMessageId: string | null;
-    tasks: Tasks;
+    analysis: Partial<AiUnifiedAnalysisRes> | null;
+    analysisMessageId: string | null;
+    analysisStatus: 'idle' | 'streaming' | 'done' | 'error';
+    analysisError: string | null;
     topic: Topic
     messages: CustomMessage<any>[];
     streamingMessage: CustomMessage<any> | null;
@@ -73,9 +69,10 @@ export type ChatPanelActions = {
     createFromSelect: (text?: string) => void;
     createFromCurrent: () => void;
     clear: () => void;
-    setTask: (tasks: Tasks) => void;
     sent: (msg: string) => void;
     receiveChatStream: (event: ChatStreamEvent) => void;
+    receiveAnalysisStream: (event: AnalysisStreamEvent) => void;
+    startAnalysis: () => Promise<void>;
     updateInternalContext: (value: string) => void;
     ctxMenuOpened: () => void;
     ctxMenuExplain: () => void;
@@ -84,7 +81,7 @@ export type ChatPanelActions = {
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
     deleteMessage: (msg: CustomMessage<any>) => void;
-    retry: (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' | 'welcome') => void;
+    retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
 };
 
@@ -105,12 +102,10 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         },
         chatSessionId: state.chatSessionId,
         streamingMessageId: state.streamingMessageId,
-        tasks: {
-            vocabularyTask: state.tasks.vocabularyTask,
-            phraseTask: state.tasks.phraseTask,
-            grammarTask: state.tasks.grammarTask,
-            sentenceTask: state.tasks.sentenceTask
-        },
+        analysis: state.analysis,
+        analysisMessageId: state.analysisMessageId,
+        analysisStatus: state.analysisStatus,
+        analysisError: state.analysisError,
         topic: state.topic,
         messages: state.messages,
         streamingMessage: state.streamingMessage,
@@ -132,12 +127,10 @@ const empty = (): ChatPanelState => {
         },
         chatSessionId: createChatSessionId(),
         streamingMessageId: null,
-        tasks: {
-            vocabularyTask: null,
-            phraseTask: null,
-            grammarTask: null,
-            sentenceTask: []
-        },
+        analysis: null,
+        analysisMessageId: null,
+        analysisStatus: 'idle',
+        analysisError: null,
         topic: 'offscreen',
         messages: [],
         streamingMessage: null,
@@ -194,8 +187,7 @@ const useChatPanel = create(
             api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
-            const phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', text));
-            const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
+            const tt = new HumanTopicMessage(get().topic, text);
             const topic = { content: text };
             const currentSentence = usePlayerV2.getState().currentSentence;
             const sentences = usePlayerV2.getState().sentences;
@@ -215,10 +207,6 @@ const useChatPanel = create(
                 messages: [
                     tt
                 ],
-                tasks: {
-                    ...empty().tasks
-                    // chatTask: mt
-                },
                 canRedo: undoRedo.canRedo(),
                 canUndo: undoRedo.canUndo()
             });
@@ -233,8 +221,7 @@ const useChatPanel = create(
             undoRedo.add(copy(get()));
             const ct = usePlayerV2.getState().currentSentence;
             if (!ct) return;
-            const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text ?? '');
-            const tt = new HumanTopicMessage(get().topic, ct.text ?? '', phraseGroupTask);
+            const tt = new HumanTopicMessage(get().topic, ct.text ?? '');
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitlePath ?? '';
             getRendererLogger('useChatPanel').debug('subtitle file url', { url });
@@ -266,11 +253,7 @@ const useChatPanel = create(
                 topic,
                 messages: [
                     tt
-                ],
-                tasks: {
-                    ...empty().tasks
-                    // chatTask: mt
-                }
+                ]
             });
             scheduleWelcomeMessage({
                 sessionId: get().chatSessionId,
@@ -282,13 +265,6 @@ const useChatPanel = create(
             undoRedo.clear();
             api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             set(empty());
-        },
-        setTask: (tasks: Tasks) => {
-            set({
-                tasks: {
-                    ...tasks
-                }
-            });
         },
         sent: async (msg: string) => {
             if (StrUtil.isBlank(msg)) return;
@@ -355,6 +331,60 @@ const useChatPanel = create(
                 });
             }
         },
+        receiveAnalysisStream: (event: AnalysisStreamEvent) => {
+            if (event.sessionId !== get().chatSessionId) {
+                return;
+            }
+            if (event.event === 'start') {
+                set({
+                    analysis: {},
+                    analysisMessageId: event.messageId,
+                    analysisStatus: 'streaming',
+                    analysisError: null,
+                });
+                return;
+            }
+
+            if (event.messageId !== get().analysisMessageId) {
+                return;
+            }
+
+            if (event.event === 'chunk' && event.partial) {
+                set({
+                    analysis: mergeAnalysisPartial(get().analysis ?? {}, event.partial),
+                    analysisStatus: 'streaming',
+                });
+                return;
+            }
+            if (event.event === 'done') {
+                set({
+                    analysisStatus: 'done',
+                });
+                return;
+            }
+            if (event.event === 'error') {
+                set({
+                    analysisStatus: 'error',
+                    analysisError: event.error ?? 'analysis error',
+                });
+            }
+        },
+        startAnalysis: async () => {
+            const text = extractTopic(get().topic);
+            if (StrUtil.isBlank(text) || text === 'offscreen') {
+                return;
+            }
+            const { messageId } = await api.call('analysis/start', {
+                sessionId: get().chatSessionId,
+                text,
+            });
+            set({
+                analysis: {},
+                analysisMessageId: messageId,
+                analysisStatus: 'streaming',
+                analysisError: null,
+            });
+        },
         updateInternalContext: (value: string) => {
             get().internal.context.value = value;
             get().internal.context.time = Date.now();
@@ -406,28 +436,9 @@ const useChatPanel = create(
                 messages: get().messages.filter(e => e !== msg)
             });
         },
-        retry: async (type: 'vocabulary' | 'phrase' | 'grammar' | 'sentence' | 'topic' | 'welcome') => {
-            if (type === 'vocabulary') {
-                runVocabulary().then();
-            }
-            if (type === 'phrase') {
-                runPhrase().then();
-            }
-            if (type === 'grammar') {
-                runGrammar().then();
-            }
-            if (type === 'topic') {
-                const msg = get().messages[0].copy() as HumanTopicMessage;
-                msg.phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', msg.content));
-                // set 0
-                const newMessages = [...get().messages];
-                newMessages[0] = msg;
-                set({
-                    messages: newMessages
-                });
-            }
-            if (type === 'sentence') {
-                runSentence(true).then();
+        retry: async (type: 'analysis' | 'topic') => {
+            if (type === 'analysis' || type === 'topic') {
+                get().startAnalysis();
             }
         },
         ctxMenuQuote: () => {
@@ -470,6 +481,25 @@ export function getInternalContext(): string | null {
     }
     return context.value;
 }
+
+const mergeAnalysisPartial = (
+    current: Partial<AiUnifiedAnalysisRes>,
+    partial: Partial<AiUnifiedAnalysisRes>
+): Partial<AiUnifiedAnalysisRes> => {
+    const next: Partial<AiUnifiedAnalysisRes> = { ...current };
+    Object.entries(partial).forEach(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            const prev = (current as Record<string, unknown>)[key];
+            next[key as keyof AiUnifiedAnalysisRes] = {
+                ...(prev as Record<string, unknown>),
+                ...(value as Record<string, unknown>),
+            } as AiUnifiedAnalysisRes[keyof AiUnifiedAnalysisRes];
+        } else {
+            next[key as keyof AiUnifiedAnalysisRes] = value as AiUnifiedAnalysisRes[keyof AiUnifiedAnalysisRes];
+        }
+    });
+    return next;
+};
 
 
 const extractTopic = (t: Topic): string => {
@@ -520,69 +550,6 @@ const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic) => {
 };
 
 
-const runVocabulary = async () => {
-    const tId = await registerDpTask(() => api.call('ai-func/analyze-new-words', extractTopic(useChatPanel.getState().topic)), {
-        onFinish: (res) => {
-            runSentence().then();
-        }
-    });
-    useChatPanel.getState().setTask({
-        ...useChatPanel.getState().tasks,
-        vocabularyTask: tId
-    });
-};
-
-const runPhrase = async () => {
-    const tId = await registerDpTask(() => api.call('ai-func/analyze-new-phrases', extractTopic(useChatPanel.getState().topic)), {
-        onFinish: (res) => {
-            runSentence().then();
-        }
-    });
-    useChatPanel.getState().setTask({
-        ...useChatPanel.getState().tasks,
-        phraseTask: tId
-    });
-
-};
-
-const runGrammar = async () => {
-    const tId = await registerDpTask(() => api.call('ai-func/analyze-grammars', extractTopic(useChatPanel.getState().topic)));
-    useChatPanel.getState().setTask({
-        ...useChatPanel.getState().tasks,
-        grammarTask: tId
-    });
-
-};
-
-let runSentenceLock = 0;
-
-const runSentence = async (force = false) => {
-    const state = useChatPanel.getState();
-    const wtId = state.tasks.vocabularyTask;
-    const ptId = state.tasks.phraseTask;
-    const wr = await getDpTaskResult<AiAnalyseNewWordsRes>(typeof wtId === 'number' ? wtId : null);
-    const pr = await getDpTaskResult<AiAnalyseNewPhrasesRes>(typeof ptId === 'number' ? ptId : null);
-    getRendererLogger('useChatPanel').debug('run sentence', { wordRegex: wr, phraseRegex: pr });
-    if (!wr || !pr) return;
-    const points = [
-        ...(wr?.words ?? []).map(w => w.word),
-        ...(pr?.phrases ?? []).map(p => p.phrase)
-    ];
-    getRendererLogger('useChatPanel').debug('extracted points', { count: points.length });
-    const newLock = (typeof wtId === 'number' ? wtId : 0) + (typeof ptId === 'number' ? ptId : 0);
-    if (runSentenceLock !== newLock || force) {
-        runSentenceLock = newLock;
-        const tId = await registerDpTask(() => api.call('ai-func/make-example-sentences', {
-            sentence: extractTopic(useChatPanel.getState().topic),
-            point: points
-        }));
-        useChatPanel.getState().setTask({
-            ...useChatPanel.getState().tasks,
-            sentenceTask: [...useChatPanel.getState().tasks.sentenceTask, tId]
-        });
-    }
-};
-
 let running = false;
 useChatPanel.subscribe(
     (s) => s.topic,
@@ -592,16 +559,7 @@ useChatPanel.subscribe(
         }
         if (running) return;
         running = true;
-        const tasks = useChatPanel.getState().tasks;
-        if (!tasks.vocabularyTask) {
-            await runVocabulary();
-        }
-        if (!tasks.phraseTask) {
-            await runPhrase();
-        }
-        if (!tasks.grammarTask) {
-            await runGrammar();
-        }
+        await useChatPanel.getState().startAnalysis();
         running = false;
     }
 );

@@ -1,6 +1,7 @@
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import { RendererTranslationItem } from '@/common/types/TranslationResult';
 import { ChatStreamEvent } from '@/common/types/chat';
+import { AnalysisStreamEvent } from '@/common/types/analysis';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -100,6 +101,10 @@ interface ChatRendererDef {
     'chat/stream': { params: ChatStreamEvent, return: void };
 }
 
+interface AnalysisRendererDef {
+    'analysis/stream': { params: AnalysisStreamEvent, return: void };
+}
+
 
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
@@ -109,7 +114,8 @@ export type RendererApiDefinitions = RendererApiDefinition
     & TranscriptRendererDef
     & VocabularyRendererDef
     & VideoLearningRendererDef
-    & ChatRendererDef;
+    & ChatRendererDef
+    & AnalysisRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;

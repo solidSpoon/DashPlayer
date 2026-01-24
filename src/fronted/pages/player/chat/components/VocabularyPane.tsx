@@ -6,17 +6,15 @@ import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { Button } from '@/fronted/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
-import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const VocabularyPane = ({ className }: {
     className: string,
 }) => {
     const logger = getRendererLogger('VocabularyPane');
-    const tid = useChatPanel(state => state.tasks.vocabularyTask);
-
-    const { detail } = useDpTaskViewer<AiAnalyseNewWordsRes>(typeof tid === 'number' ? tid : null);
+    const analysis = useChatPanel(state => state.analysis);
+    const status = useChatPanel(state => state.analysisStatus);
+    const detail = analysis?.vocab;
     const retry = useChatPanel(state => state.retry);
     logger.debug('AI analysis detail loaded', { detail });
     return (
@@ -25,7 +23,7 @@ const VocabularyPane = ({ className }: {
             <Card className={'shadow-none relative'}>
                 <CardHeader>
                     <CardTitle>本句生词</CardTitle>
-                    <Button variant={'ghost'} size={'icon'} onClick={() => retry('vocabulary')}
+                    <Button variant={'ghost'} size={'icon'} onClick={() => retry('analysis')}
                             className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
                         <RefreshCcw className={'w-3 h-3'} />
                     </Button>
@@ -46,8 +44,13 @@ const VocabularyPane = ({ className }: {
                             </div>
                         </div>
                     ))}
-                    {!detail && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
-                        className={'h-6 mt-2'} /></>}
+                    {(!detail && status === 'streaming') && (
+                        <>
+                            <Skeleton className={'h-6'} />
+                            <Skeleton className={'h-6 mt-2'} />
+                            <Skeleton className={'h-6 mt-2'} />
+                        </>
+                    )}
                     {detail && !detail.hasNewWord && <div className="text-lg text-gray-700">没有生词</div>}
                 </CardContent>
             </Card>

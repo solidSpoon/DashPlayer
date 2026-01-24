@@ -1,11 +1,13 @@
 import { inject, injectable } from 'inversify';
-import { CoreMessage, streamText } from 'ai';
+import { CoreMessage, streamObject, streamText } from 'ai';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import ChatSessionService from '@/backend/application/services/ChatSessionService';
 import { ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
+import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import { AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 
 type ChatSession = {
@@ -57,6 +59,43 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 error: error instanceof Error ? error.message : String(error),
             });
             this.rendererGateway.fireAndForget('chat/stream', {
+                sessionId,
+                messageId,
+                event: 'error',
+                error: error instanceof Error ? error.message : String(error),
+            });
+        });
+
+        return { messageId };
+    }
+
+    @WaitRateLimit('gpt')
+    public async startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult> {
+        const messageId = this.createMessageId();
+        const sessionId = params.sessionId;
+        this.rendererGateway.fireAndForget('analysis/stream', {
+            sessionId,
+            messageId,
+            event: 'start',
+        });
+
+        const model = this.aiProviderService.getModel();
+        if (!model) {
+            this.rendererGateway.fireAndForget('analysis/stream', {
+                sessionId,
+                messageId,
+                event: 'error',
+                error: 'OpenAI api key or endpoint is empty',
+            });
+            return { messageId };
+        }
+
+        const prompt = this.buildAnalysisPrompt(params.text);
+        this.runAnalysisStream(sessionId, messageId, prompt).catch((error) => {
+            this.logger.error('analysis stream failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            this.rendererGateway.fireAndForget('analysis/stream', {
                 sessionId,
                 messageId,
                 event: 'error',
@@ -169,7 +208,13 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             '  - 即使是在解释中顺带提到的英文词汇，也建议加上 [[tts:...]]',
             '- 句子原文和中文翻译之间应该换行，让格式更清晰',
             '- 同义句建议使用 Markdown 列表格式（-），每个一行',
-            '- 如果句子看起来被截断了，判断完整版本后用 [[switch:完整句子|切换到完整版]] 提供切换选项',
+            '- **关于 [[switch:...]] 标记**（用于切换到完整句子）：',
+            '  - 字幕文件通常会把长句子按固定宽度换行，导致一句话被拆成多行',
+            '  - 如果提供了"完整段落"，用它来判断目标句子是否只是某个完整句子的一部分',
+            '  - 如果确实被截断了，用 [[switch:完整句子原文|显示文字]] 让用户切换',
+            '  - switch 冒号后面跟完整句子的英文原文，竖线后面是显示给用户的提示文字（如"点击查看完整句"）',
+            '  - 如果原文包含 | 或 ] 可能导致解析问题，可微调避免',
+            '  - 如果没有提供完整段落，或者无法确定是否被截断，就不要输出 switch 标记',
             '- 除了以上标记，不要引入其他自定义标记',
             '',
             '# 重要约束',
@@ -183,10 +228,22 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             '- 如果无法确定句子是否完整，就不要提供 switch 标记',
         ].join('\n');
 
-        const user = [
+        const userLines = [
             '用户选择了这句话来学习：',
             '',
             params.originalTopic,
+        ];
+
+        if (params.fullText && params.fullText.trim() !== params.originalTopic.trim()) {
+            userLines.push(
+                '',
+                '完整段落（用于判断句子是否被字幕换行截断）：',
+                '',
+                params.fullText,
+            );
+        }
+
+        userLines.push(
             '',
             '请生成一段开场消息，像和朋友聊天那样自然地引导他开始学习这句话。',
             '',
@@ -241,7 +298,9 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             '  - [[tts:同义句2]]',
             '  ```',
             '- 在解释中提到英文短语、单词时，也建议用 [[tts:...]] 包裹，方便用户朗读',
-        ].join('\n');
+        );
+
+        const user = userLines.join('\n');
 
         return [
             {
@@ -253,5 +312,48 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 content: user,
             },
         ];
+    }
+
+    private buildAnalysisPrompt(text: string): string {
+        return [
+            '你是一个专业、冷静的英语学习助手。',
+            '请严格输出 JSON，内容必须与给定 schema 字段一致，且不要包含多余字段。',
+            '所有中文内容使用简体中文。',
+            '',
+            '分析目标句子:',
+            text,
+            '',
+            '要求:',
+            '- structure: 句子意群拆解，phraseGroups 按原句顺序排列，并给出中文翻译与必要标签。',
+            '- vocab: 提取对中级学习者可能生僻的新词，给出音标与中文释义；没有就返回空数组并 hasNewWord=false。',
+            '- phrases: 提取常用词组/固定搭配，给出中文释义；没有就返回空数组并 hasPhrase=false。',
+            '- grammar: 用中文 Markdown 简洁解释语法点，段落精炼但不要遗漏重点。',
+            '- examples: 给出 2-3 个例句，尽量使用 vocab/phrases 中的点，points 列出用到的词或短语。',
+        ].join('\n');
+    }
+
+    private async runAnalysisStream(sessionId: string, messageId: string, prompt: string): Promise<void> {
+        const model = this.aiProviderService.getModel();
+        if (!model) {
+            return;
+        }
+        const { partialObjectStream } = streamObject({
+            model,
+            schema: AiUnifiedAnalysisSchema,
+            prompt,
+        });
+        for await (const partial of partialObjectStream) {
+            this.rendererGateway.fireAndForget('analysis/stream', {
+                sessionId,
+                messageId,
+                event: 'chunk',
+                partial,
+            });
+        }
+        this.rendererGateway.fireAndForget('analysis/stream', {
+            sessionId,
+            messageId,
+            event: 'done',
+        });
     }
 }

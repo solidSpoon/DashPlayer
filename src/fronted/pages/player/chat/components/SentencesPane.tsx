@@ -5,15 +5,16 @@ import useChatPanel from '@/fronted/hooks/useChatPanel';
 import { Button } from '@/fronted/components/ui/button';
 import { ChevronsDown } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
-import { AiMakeExampleSentencesRes } from '@/common/types/aiRes/AiMakeExampleSentencesRes';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
-const SentencesPart = ({ tid }: { tid: number }) => {
-    const { detail } = useDpTaskViewer<AiMakeExampleSentencesRes>(typeof tid === 'number' ? tid : null);
+const SentencesPart = ({ sentences }: { sentences: {
+    sentence: string;
+    meaning: string;
+    points: string[];
+}[] }) => {
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
     return <>
-        {detail?.sentences?.map((s, i) => (
+        {sentences.map((s, i) => (
             <div key={s.sentence + i}
                  onContextMenu={() => updateInternalContext(s?.sentence)}
                  className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">
@@ -37,8 +38,6 @@ const SentencesPart = ({ tid }: { tid: number }) => {
                 </div>
             </div>
         ))}
-        {!detail && <><Skeleton className={'h-6'} /><Skeleton className={'h-6 mt-2'} /><Skeleton
-            className={'h-6 mt-2'} /></>}
     </>;
 };
 const SentencesPane = ({ className }: {
@@ -46,16 +45,25 @@ const SentencesPane = ({ className }: {
 }) => {
 
     const logger = getRendererLogger('SentencesPane');
-    const tids = useChatPanel(state => state.tasks.sentenceTask);
-    logger.debug('Sentence task IDs loaded', { tids });
+    const analysis = useChatPanel(state => state.analysis);
+    const status = useChatPanel(state => state.analysisStatus);
+    const sentences = analysis?.examples?.sentences ?? [];
+    logger.debug('Sentence analysis loaded', { count: sentences.length });
     const retry = useChatPanel(state => state.retry);
     return (
 
         <div className={cn('flex flex-col gap-2', className)}>
-            {tids?.map((tid, i) => (
-                <SentencesPart key={tid + i} tid={tid} />
-            ))}
-            <Button variant={'ghost'} onClick={() => retry('sentence')}
+            {sentences.length > 0 && (
+                <SentencesPart sentences={sentences} />
+            )}
+            {sentences.length === 0 && status === 'streaming' && (
+                <>
+                    <Skeleton className={'h-6'} />
+                    <Skeleton className={'h-6 mt-2'} />
+                    <Skeleton className={'h-6 mt-2'} />
+                </>
+            )}
+            <Button variant={'ghost'} onClick={() => retry('analysis')}
                     className={' text-gray-400 dark:text-gray-200'}>
                 <ChevronsDown className={'w-4 h-4'} />
             </Button>

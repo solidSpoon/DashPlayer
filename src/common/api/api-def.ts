@@ -18,6 +18,7 @@ import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import {CoreMessage} from 'ai';
 import { ChatResetParams, ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
+import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
@@ -122,6 +123,10 @@ interface ChatDef {
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
     'chat/welcome': { params: ChatWelcomeParams, return: ChatStartResult };
     'chat/reset': { params: ChatResetParams, return: void };
+}
+
+interface AnalysisDef {
+    'analysis/start': { params: AnalysisStartParams, return: AnalysisStartResult };
 }
 
 interface WatchHistoryDef {
@@ -278,6 +283,7 @@ export type ApiDefinitions = ApiDefinition
     & SystemDef
     & AiTransDef
     & ChatDef
+    & AnalysisDef
     & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef

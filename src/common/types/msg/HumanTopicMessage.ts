@@ -6,12 +6,10 @@ import { CoreMessage } from 'ai';
 class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     private readonly topic: Topic;
     public content: string;
-    public phraseGroupTask: number;
 
-    constructor(topic: Topic, text: string, phraseGroupTask: number) {
+    constructor(topic: Topic, text: string) {
         this.topic = topic;
         this.content = text;
-        this.phraseGroupTask = phraseGroupTask;
     }
 
     async toMsg(): Promise<CoreMessage[]> {
@@ -29,7 +27,7 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     msgType: MsgType = 'human-topic';
 
     copy(): HumanTopicMessage {
-        return new HumanTopicMessage(this.topic, this.content, this.phraseGroupTask);
+        return new HumanTopicMessage(this.topic, this.content);
     }
 
     getTopic(): Topic {
@@ -37,7 +35,7 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     }
 
     getTaskIds(): number[] {
-        return [this.phraseGroupTask];
+        return [];
     }
 }
 
