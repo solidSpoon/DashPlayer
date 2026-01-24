@@ -3,15 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/fronted/components/u
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import React from 'react';
 import Md from '@/fronted/components/shared/markdown/Markdown';
-import { Button } from '@/fronted/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import StrUtil from '@/common/utils/str-util';
 
 const GrammarPane = ({ className }: {
     className: string,
 }) => {
-    const retry = useChatPanel(state => state.retry);
     const analysis = useChatPanel(state => state.analysis);
     const status = useChatPanel(state => state.analysisStatus);
     const detail = analysis?.grammar;
@@ -20,10 +17,6 @@ const GrammarPane = ({ className }: {
             <Card className={'shadow-none relative'}>
                 <CardHeader>
                     <CardTitle>本句语法</CardTitle>
-                    <Button variant={'ghost'} size={'icon'} onClick={() => retry('analysis')}
-                            className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
-                        <RefreshCcw className={'w-3 h-3'} />
-                    </Button>
                     {/*<CardDescription>Manage pa-player settings and behavior</CardDescription>*/}
                 </CardHeader>
                 <CardContent>

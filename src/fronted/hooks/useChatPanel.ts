@@ -21,6 +21,7 @@ import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
 import { ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import { DeepPartial } from '@/common/types/analysis';
 
 const api = backendClient;
 
@@ -484,21 +485,34 @@ export function getInternalContext(): string | null {
 
 const mergeAnalysisPartial = (
     current: Partial<AiUnifiedAnalysisRes>,
-    partial: Partial<AiUnifiedAnalysisRes>
+    partial: DeepPartial<AiUnifiedAnalysisRes>
 ): Partial<AiUnifiedAnalysisRes> => {
-    const next: Partial<AiUnifiedAnalysisRes> = { ...current };
-    Object.entries(partial).forEach(([key, value]) => {
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-            const prev = (current as Record<string, unknown>)[key];
-            next[key as keyof AiUnifiedAnalysisRes] = {
-                ...(prev as Record<string, unknown>),
-                ...(value as Record<string, unknown>),
-            } as AiUnifiedAnalysisRes[keyof AiUnifiedAnalysisRes];
-        } else {
-            next[key as keyof AiUnifiedAnalysisRes] = value as AiUnifiedAnalysisRes[keyof AiUnifiedAnalysisRes];
+    const mergeValue = (base: unknown, update: unknown): unknown => {
+        if (Array.isArray(base) || Array.isArray(update)) {
+            const baseArr = Array.isArray(base) ? base : [];
+            const updateArr = Array.isArray(update) ? update : [];
+            const length = Math.max(baseArr.length, updateArr.length);
+            return Array.from({ length }).map((_, index) => {
+                if (index in updateArr) {
+                    return mergeValue(baseArr[index], updateArr[index]);
+                }
+                return baseArr[index];
+            });
         }
-    });
-    return next;
+        if (base && typeof base === 'object' && update && typeof update === 'object') {
+            const result: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+            Object.entries(update as Record<string, unknown>).forEach(([key, value]) => {
+                result[key] = mergeValue(result[key], value);
+            });
+            return result;
+        }
+        if (update !== undefined) {
+            return update;
+        }
+        return base;
+    };
+
+    return mergeValue(current, partial) as Partial<AiUnifiedAnalysisRes>;
 };
 
 

@@ -2,8 +2,6 @@ import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import { Button } from '@/fronted/components/ui/button';
-import { ChevronsDown } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
@@ -15,7 +13,7 @@ const SentencesPart = ({ sentences }: { sentences: {
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
     return <>
         {sentences.map((s, i) => (
-            <div key={s.sentence + i}
+            <div key={`${i}-${s.sentence ?? ''}`}
                  onContextMenu={() => updateInternalContext(s?.sentence)}
                  className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">
                 <Playable
@@ -49,7 +47,6 @@ const SentencesPane = ({ className }: {
     const status = useChatPanel(state => state.analysisStatus);
     const sentences = analysis?.examples?.sentences ?? [];
     logger.debug('Sentence analysis loaded', { count: sentences.length });
-    const retry = useChatPanel(state => state.retry);
     return (
 
         <div className={cn('flex flex-col gap-2', className)}>
@@ -63,10 +60,6 @@ const SentencesPane = ({ className }: {
                     <Skeleton className={'h-6 mt-2'} />
                 </>
             )}
-            <Button variant={'ghost'} onClick={() => retry('analysis')}
-                    className={' text-gray-400 dark:text-gray-200'}>
-                <ChevronsDown className={'w-4 h-4'} />
-            </Button>
         </div>
 
     );

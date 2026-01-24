@@ -3,8 +3,6 @@ import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
-import { Button } from '@/fronted/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
@@ -15,7 +13,6 @@ const VocabularyPane = ({ className }: {
     const analysis = useChatPanel(state => state.analysis);
     const status = useChatPanel(state => state.analysisStatus);
     const detail = analysis?.vocab;
-    const retry = useChatPanel(state => state.retry);
     logger.debug('AI analysis detail loaded', { detail });
     return (
 
@@ -23,10 +20,6 @@ const VocabularyPane = ({ className }: {
             <Card className={'shadow-none relative'}>
                 <CardHeader>
                     <CardTitle>本句生词</CardTitle>
-                    <Button variant={'ghost'} size={'icon'} onClick={() => retry('analysis')}
-                            className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
-                        <RefreshCcw className={'w-3 h-3'} />
-                    </Button>
                     {/*<CardDescription>分析本句中的生词</CardDescription>*/}
                 </CardHeader>
                 <CardContent>

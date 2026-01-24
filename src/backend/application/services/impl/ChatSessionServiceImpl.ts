@@ -328,7 +328,8 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             '- vocab: 提取对中级学习者可能生僻的新词，给出音标与中文释义；没有就返回空数组并 hasNewWord=false。',
             '- phrases: 提取常用词组/固定搭配，给出中文释义；没有就返回空数组并 hasPhrase=false。',
             '- grammar: 用中文 Markdown 简洁解释语法点，段落精炼但不要遗漏重点。',
-            '- examples: 给出 2-3 个例句，尽量使用 vocab/phrases 中的点，points 列出用到的词或短语。',
+            '- examples: 必须给出 5 个例句，sentences 数组长度必须为 5。',
+            '- examples: 尽量使用 vocab/phrases 中的点，points 列出用到的词或短语；如果没有合适的点，points 返回空数组但例句仍必须给出。',
         ].join('\n');
     }
 

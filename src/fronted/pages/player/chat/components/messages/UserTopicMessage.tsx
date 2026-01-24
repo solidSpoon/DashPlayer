@@ -4,8 +4,6 @@ import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes'
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import StrUtil from '@/common/utils/str-util';
-import { Button } from '@/fronted/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
 import '@/fronted/styles/topic.css';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
@@ -42,7 +40,6 @@ const process = (
     return res;
 };
 const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
-    const retry = useChatPanel(state => state.retry);
     const analysis = useChatPanel(state => state.analysis);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     // const res = JSON.parse(dpTask?.result ?? '{}') as AiPhraseGroupRes;
@@ -76,10 +73,6 @@ const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
                 updateInternalContext(msg.content);
             }}
             className={cn('text-lg flex flex-wrap gap-2 mb-4 pl-12 pr-8 relative')}>
-            <Button variant={'ghost'} size={'icon'} onClick={() => retry('analysis')}
-                    className={'absolute right-2 top-2 w-8 h-8 text-gray-400 dark:text-gray-200'}>
-                <RefreshCcw className={'w-3 h-3'} />
-            </Button>
             <div className="flex flex-row flex-wrap pt-4 text-foreground">
                 <div className="inline">
                     {content.map((group, i) => {
