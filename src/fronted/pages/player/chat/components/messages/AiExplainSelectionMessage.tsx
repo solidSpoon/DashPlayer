@@ -13,13 +13,8 @@ export function AiExplainSelectionMessage({ msg }: { msg: AiCtxMenuExplainSelect
     const { detail: resp } = useDpTaskViewer<AiFuncExplainSelectRes>(msg.taskId);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
     return (
-        <div className={cn('group relative flex items-start')}>
-            <MessageDeleteButton msg={msg} />
-            <div
-                className="flex size-[24px] shrink-0 select-none items-center justify-center rounded-md border bg-primary text-primary-foreground shadow-sm">
-                <IconOpenAI />
-            </div>
-            <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1 prose dark:prose-invert">
+        <div className={cn('group flex flex-col items-start gap-1')}>
+            <div className="flex-1 space-y-2 overflow-hidden px-1 prose dark:prose-invert">
                 <h2>解释</h2>
                 <p><b className={'text-lg text-foreground'}><Playable>{resp?.word?.word}</Playable></b> <span
                     className={'text-foreground/50'}>[{resp?.word?.phonetic?.replace(/[[\]/]/g, '')}]</span></p>
@@ -46,6 +41,9 @@ export function AiExplainSelectionMessage({ msg }: { msg: AiCtxMenuExplainSelect
                         updateInternalContext(resp.examplesSentence3);
                     }}
                 ><Playable>{resp?.examplesSentence3}</Playable><br />{resp?.examplesSentenceMeaning3}</p>}
+            </div>
+            <div className="opacity-0 transition-opacity group-hover:opacity-100 px-1">
+                <MessageDeleteButton msg={msg} />
             </div>
         </div>
     );

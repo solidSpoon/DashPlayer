@@ -154,41 +154,41 @@ const ConversationPane = () => {
     };
 
     return (
-        <div className="flex h-full flex-col rounded-2xl border border-border/60 bg-background/80 shadow-sm">
+        <div className="flex h-full flex-col rounded-2xl bg-muted/30">
             <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
                 className={cn(
-                    'w-full flex-1 overflow-y-auto px-4 pb-4 pt-6',
+                    'w-full flex-1 overflow-y-auto px-6 pb-8 pt-10',
                     'scrollbar-none'
                 )}
             >
                 <div className="space-y-6">
                     {messages.map((message, index) => (
                         <React.Fragment key={index}>
-                            {index > 0 && <Separator className={cn('opacity-40')} />}
+                            {index > 0 && <Separator className={cn('opacity-10')} />}
                             {mapping(message)}
                         </React.Fragment>
                     ))}
                     {streamingMessage && (
                         <>
-                            <Separator className={cn('opacity-40')} />
+                            <Separator className={cn('opacity-10')} />
                             {mapping(streamingMessage)}
                         </>
                     )}
                 </div>
             </div>
-            <div className="border-t border-border/60 bg-background/90 px-4 pb-4 pt-3">
+            <div className="bg-muted/10 px-4 pb-4 pt-2">
                 <form
                     ref={formRef}
-                    className="relative flex items-end gap-2"
+                    className="relative flex items-end gap-2 rounded-[26px] bg-secondary p-1.5 shadow-sm transition-colors"
                     onSubmit={handleSubmit}
                 >
                     <Textarea
                         ref={inputRef}
                         className={cn(
-                            'min-h-12 resize-none rounded-2xl border-border/70 pr-12',
-                            'bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/40'
+                            'min-h-[44px] w-full resize-none border-0 bg-transparent px-4 py-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+                            'placeholder:text-muted-foreground/60'
                         )}
                         value={input}
                         onChange={(e) => {
@@ -197,20 +197,18 @@ const ConversationPane = () => {
                         onKeyDown={handleKeyDown}
                         onCompositionStart={handleCompositionStart}
                         onCompositionEnd={handleCompositionEnd}
-                        placeholder="Ask about this sentence or start a new topic..."
+                        placeholder="Ask anything..."
                     />
                     <Button
-                        className="absolute bottom-2 right-2 h-9 w-9 rounded-full"
+                        className="mb-1 mr-1 h-8 w-8 rounded-full shadow-none"
                         type="submit"
                         size="icon"
+                        variant={input.trim() ? "default" : "ghost"}
                         disabled={isBusy || !input.trim()}
                     >
                         <Send className="size-4" />
                     </Button>
                 </form>
-                <div className="mt-2 text-xs text-muted-foreground">
-                    Enter to send, Shift+Enter for a new line.
-                </div>
             </div>
         </div>
     )
