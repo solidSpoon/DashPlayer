@@ -4,7 +4,6 @@ import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes'
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import StrUtil from '@/common/utils/str-util';
-import '@/fronted/styles/topic.css';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('UserTopicMessage');
@@ -42,68 +41,76 @@ const process = (
 const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
     const analysis = useChatPanel(state => state.analysis);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
-    // const res = JSON.parse(dpTask?.result ?? '{}') as AiPhraseGroupRes;
-    const mapColor = (tags: string[]): string => {
-        //判空
-        if (!tags) return 'bg-secondary';
-        const comment = tags.join(',');
-        if (StrUtil.isBlank(comment)) return 'bg-secondary';
-        // 为包含 主语、谓语、宾语、表语 的词组添加颜色
-        if (comment.includes('主语')) {
-            return 'bg-red-100';
-        }
-        if (comment.includes('谓语')) {
-            return 'bg-green-100';
-        }
-        if (comment.includes('宾语')) {
-            return 'bg-blue-100';
-        }
-        if (comment.includes('表语')) {
-            return 'bg-yellow-100';
-        }
 
-        return 'bg-secondary';
+    const mapColor = (tags: string[]): string => {
+        if (!tags || tags.length === 0) return 'bg-secondary/50';
+        const comment = tags.join(',');
+        if (StrUtil.isBlank(comment)) return 'bg-secondary/50';
+        
+        if (comment.includes('主语')) return 'bg-red-100 dark:bg-red-900/30';
+        if (comment.includes('谓语')) return 'bg-green-100 dark:bg-green-900/30';
+        if (comment.includes('宾语')) return 'bg-blue-100 dark:bg-blue-900/30';
+        if (comment.includes('表语')) return 'bg-yellow-100 dark:bg-yellow-900/30';
+
+        return 'bg-secondary/50';
     };
 
-
     const content = process(msg.content, analysis?.structure?.phraseGroups);
+    
     return (
         <div
             onContextMenu={(e) => {
                 updateInternalContext(msg.content);
             }}
-            className={cn('text-lg flex flex-wrap gap-2 mb-4 pl-12 pr-8 relative')}>
-            <div className="flex flex-row flex-wrap pt-4 text-foreground">
-                <div className="inline">
-                    {content.map((group, i) => {
-                        if (typeof group === 'string') {
-                            return (
+            className="flex flex-wrap items-start gap-x-2 gap-y-6 px-4 py-1 relative"
+        >
+            {content.map((group, i) => {
+                if (typeof group === 'string') {
+                    // Plain text (punctuation, connectors)
+                    const isPunctuation = /^[.,!?;:]+$/.test(group.trim());
+                    return (
+                        <div key={`text:${i}`} className={cn(
+                            "flex flex-col justify-center self-stretch pt-4",
+                            isPunctuation && "-ml-2" // Pull punctuation closer to the previous bubble
+                        )}>
+                             <span className="text-xl font-medium text-foreground/80">{group}</span>
+                        </div>
+                    );
+                } else {
+                    // Phrase Group
+                    const tags = group.tags ?? [];
+                    return (
+                        <div key={`group:${i}:${group.original}`} className="flex flex-col group cursor-default">
+                            {/* Top: Tags */}
+                            <div className="flex items-end px-1 -mb-3 relative z-10">
+                                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight leading-none whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
+                                    {tags.join(', ')}
+                                </span>
+                            </div>
+                            
+                            {/* Middle: Text Bubble */}
+                            <div 
+                                className={cn(
+                                    "px-2 py-1 pt-2.5 pb-1.5 rounded-md text-lg font-medium transition-colors relative z-0",
+                                    "border border-transparent hover:border-border/50", 
+                                    mapColor(tags)
+                                )}
+                            >
+                                <span className="text-foreground">
+                                    {group.original}
+                                </span>
+                            </div>
 
-                                <span
-                                    key={`text:${i}`}
-                                    className={cn('px-2 py-1 rounded word')}>{group}</span>
-                            );
-                        } else {
-                            const words = group.original.split(' ');
-                            return (
-                                <span
-                                    key={`group:${i}:${group.original}`}
-                                    className={
-                                        cn('word-group relative rounded-md mr-1 p-1 pl-2 pr-1 leading-[42px] last:pr-2'
-                                            , mapColor(group?.tags ?? [])
-                                        )}>
-                                    {words.map((word, wordIndex) => {
-                                        return <span key={`${i}:${wordIndex}:${word}`} data-tags={group.tags} data-trans={group.translation}
-                                                     className="word">
-                                    {word}
-                                    </span>;
-                                    })}
-                    </span>
-                            );
-                        }
-                    })}
-                </div>
-            </div>
+                            {/* Bottom: Translation */}
+                            <div className="flex items-start px-1 -mt-2.5 relative z-10">
+                                <span className="text-[10px] text-muted-foreground dark:text-muted-foreground/90 font-normal leading-tight whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
+                                    {group.translation}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                }
+            })}
         </div>
     );
 };

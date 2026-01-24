@@ -158,7 +158,7 @@ const ConversationPane = () => {
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
                 className={cn(
-                    'w-full flex-1 overflow-y-auto px-6 pb-8 pt-10',
+                    'w-full flex-1 overflow-y-auto px-6 pb-8 pt-4',
                     'scrollbar-none'
                 )}
             >

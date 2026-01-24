@@ -11,24 +11,24 @@ const SentencesPart = ({ sentences }: { sentences: {
     points: string[];
 }[] }) => {
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
-    return <>
+    return <div className="flex flex-col gap-3">
         {sentences.map((s, i) => (
             <div key={`${i}-${s.sentence ?? ''}`}
                  onContextMenu={() => updateInternalContext(s?.sentence)}
-                 className="bg-secondary flex flex-col justify-between px-4 py-2 rounded">
+                 className="bg-secondary/30 flex flex-col justify-between px-4 py-3 rounded-xl transition-colors hover:bg-secondary/50">
                 <Playable
-                    className="text-base text-gray-700 text-secondary-foreground">{s?.sentence}</Playable>
+                    className="text-base font-medium text-foreground/90">{s?.sentence}</Playable>
                 <div
                     tabIndex={0}
-                    className=" text-sm text-gray-500">{s?.meaning}</div>
-                <div className={'flex flex-wrap gap-2 mt-2'}>
+                    className="text-sm text-muted-foreground mt-1">{s?.meaning}</div>
+                <div className={'flex flex-wrap gap-2 mt-3'}>
                     {
                         s?.points?.map((p, j) => (
                             <div
                                 key={j}
                                 className={
-                                    cn('text-xs border p-1 py-0 bg-red-50 border-red-500 text-primary-foreground rounded-full',
-                                        'dark:bg-red-900 dark:border-red-700 dark:text-red-100 dark:shadow-inner'
+                                    cn('text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-md',
+                                        'dark:bg-primary/20 dark:text-primary-foreground/90'
                                     )}
                             >{p}</div>
                         ))
@@ -36,7 +36,7 @@ const SentencesPart = ({ sentences }: { sentences: {
                 </div>
             </div>
         ))}
-    </>;
+    </div>;
 };
 const SentencesPane = ({ className }: {
     className: string,
