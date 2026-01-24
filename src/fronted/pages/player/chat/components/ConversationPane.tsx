@@ -24,6 +24,8 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { Send } from 'lucide-react';
 import AiCtxMenuPolishMessage from "@/common/types/msg/AiCtxMenuPolishMessage";
+import AiStreamingMessage from '@/fronted/pages/player/chat/components/messages/AiStreamingMessage';
+import AiStreamingMessageModel from '@/common/types/msg/AiStreamingMessage';
 
 const ConversationPane = () => {
     const logger = getRendererLogger('ConversationPane');
@@ -87,6 +89,8 @@ const ConversationPane = () => {
                 return <AiExplainSelectionWithContextMessage msg={msg as AiCtxMenuExplainSelectWithContextMessage}/>;
             case 'ai-func-polish':
                 return <AiPolishMessage msg={msg as AiCtxMenuPolishMessage}/>;
+            case 'ai-streaming':
+                return <AiStreamingMessage msg={msg as AiStreamingMessageModel}/>;
             default:
                 return <></>
         }
@@ -105,10 +109,12 @@ const ConversationPane = () => {
 
     logger.debug('unfinished task status', { hasUnFinishedTask });
 
+    const isBusy = hasUnFinishedTask || !!streamingMessage;
+
     // 发送消息的统一处理函数
     const handleSendMessage = async () => {
         const trimmedInput = input.trim();
-        if (!trimmedInput || hasUnFinishedTask) return;
+        if (!trimmedInput || isBusy) return;
 
         // 发送消息前强制设置自动滚动为 true
         setShouldAutoScroll(true);
@@ -132,7 +138,7 @@ const ConversationPane = () => {
             }
 
             e.preventDefault();
-            if (hasUnFinishedTask || !input.trim()) return;
+            if (isBusy || !input.trim()) return;
             handleSendMessage();
         }
     };
@@ -148,69 +154,62 @@ const ConversationPane = () => {
     };
 
     return (
-        <div
-            ref={messagesContainerRef}
-            onScroll={handleScroll}
-            className={cn('w-full grow-0 flex flex-col px-2 overflow-y-auto gap-4',
-                'scrollbar-none',
-            )}
-        >
-            {
-                messages.map((message, index) => {
-                    if (index > 0) {
-                        return (
-                            <React.Fragment key={index}>
-                                <Separator className={cn('pl-12 pr-4')}/>
-                                {mapping(message)}
-                            </React.Fragment>
-                        );
-                    } else {
-                        return (
-                            <React.Fragment key={index}>
-                                {mapping(message)}
-                            </React.Fragment>
-                        );
-                    }
-                })
-            }
-            {streamingMessage && (
-                <>
-                    <Separator className={cn('pl-12 pr-4')}/>
-                    {mapping(streamingMessage)}
-                </>
-            )}
-
-            <div className="grid w-full mt-auto sticky bottom-0">
-                <div
-                    className={cn('w-full h-12 bg-gradient-to-b from-transparent to-background')}
-                />
-                <div className={cn('w-full bg-background pb-2')}>
-                    <form
-                        ref={formRef}
-                        className="flex relative gap-2"
-                        onSubmit={handleSubmit}
+        <div className="flex h-full flex-col rounded-2xl border border-border/60 bg-background/80 shadow-sm">
+            <div
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className={cn(
+                    'w-full flex-1 overflow-y-auto px-4 pb-4 pt-6',
+                    'scrollbar-none'
+                )}
+            >
+                <div className="space-y-6">
+                    {messages.map((message, index) => (
+                        <React.Fragment key={index}>
+                            {index > 0 && <Separator className={cn('opacity-40')} />}
+                            {mapping(message)}
+                        </React.Fragment>
+                    ))}
+                    {streamingMessage && (
+                        <>
+                            <Separator className={cn('opacity-40')} />
+                            {mapping(streamingMessage)}
+                        </>
+                    )}
+                </div>
+            </div>
+            <div className="border-t border-border/60 bg-background/90 px-4 pb-4 pt-3">
+                <form
+                    ref={formRef}
+                    className="relative flex items-end gap-2"
+                    onSubmit={handleSubmit}
+                >
+                    <Textarea
+                        ref={inputRef}
+                        className={cn(
+                            'min-h-12 resize-none rounded-2xl border-border/70 pr-12',
+                            'bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/40'
+                        )}
+                        value={input}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onCompositionStart={handleCompositionStart}
+                        onCompositionEnd={handleCompositionEnd}
+                        placeholder="Ask about this sentence or start a new topic..."
+                    />
+                    <Button
+                        className="absolute bottom-2 right-2 h-9 w-9 rounded-full"
+                        type="submit"
+                        size="icon"
+                        disabled={isBusy || !input.trim()}
                     >
-                        <Textarea
-                            ref={inputRef}
-                            className={cn('resize-none min-h-12 pr-12')}
-                            value={input}
-                            onChange={(e) => {
-                                setInput(e.target.value);
-                            }}
-                            onKeyDown={handleKeyDown}
-                            onCompositionStart={handleCompositionStart}
-                            onCompositionEnd={handleCompositionEnd}
-                            placeholder="Type your message here..."
-                        />
-                        <Button
-                            className="absolute top-1/2 right-2 transform -translate-y-1/2"
-                            type="submit"
-                            size="icon"
-                            disabled={hasUnFinishedTask || !input.trim()}
-                        >
-                            <Send className="size-4" />
-                        </Button>
-                    </form>
+                        <Send className="size-4" />
+                    </Button>
+                </form>
+                <div className="mt-2 text-xs text-muted-foreground">
+                    Enter to send, Shift+Enter for a new line.
                 </div>
             </div>
         </div>

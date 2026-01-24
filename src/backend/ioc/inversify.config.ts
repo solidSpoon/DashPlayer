@@ -10,6 +10,7 @@ import SubtitleService from '@/backend/application/services/SubtitleService';
 import SrtTimeAdjustServiceImpl from '@/backend/application/services/impl/SrtTimeAdjustServiceImpl';
 import SrtTimeAdjustController from '@/backend/adapters/controllers/SrtTimeAdjustController';
 import AiFuncController from '@/backend/adapters/controllers/AiFuncController';
+import ChatStreamController from '@/backend/adapters/controllers/ChatStreamController';
 import AiTransController from '@/backend/adapters/controllers/AiTransController';
 import ConvertController from '@/backend/adapters/controllers/ConvertController';
 import DpTaskController from '@/backend/adapters/controllers/DpTaskController';
@@ -41,7 +42,9 @@ import FfmpegServiceImpl from '@/backend/application/services/impl/FfmpegService
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 import ChatService from '@/backend/application/services/ChatService';
+import ChatSessionService from '@/backend/application/services/ChatSessionService';
 import ChatServiceImpl from '@/backend/application/services/impl/ChatServiceImpl';
+import ChatSessionServiceImpl from '@/backend/application/services/impl/ChatSessionServiceImpl';
 import AiProviderServiceImpl from '@/backend/application/services/impl/clients/AiProviderServiceImpl';
 import AiServiceImpl, { AiService } from '@/backend/application/services/AiServiceImpl';
 import WhisperService from '@/backend/application/services/WhisperService';
@@ -126,6 +129,7 @@ container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingl
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SrtTimeAdjustController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(AiFuncController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(ChatStreamController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(AiTransController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(ConvertController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(DpTaskController).inSingletonScope();
@@ -170,6 +174,7 @@ container.bind<LocationService>(TYPES.LocationService).to(LocationServiceImpl).i
 container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingletonScope();
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
+container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
 container.bind<AiService>(TYPES.AiService).to(AiServiceImpl).inSingletonScope();
 container.bind<WhisperService>(TYPES.WhisperService).to(WhisperServiceImpl).inSingletonScope();
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();

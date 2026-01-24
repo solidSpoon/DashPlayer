@@ -1,5 +1,6 @@
 import { RendererApiMap } from '@/common/api/renderer-api-def';
 import useDictionaryStream from '@/fronted/hooks/useDictionaryStream';
+import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import useTranslation from '@/fronted/hooks/useTranslation';
 import useVocabulary from '@/fronted/hooks/useVocabulary';
@@ -93,6 +94,11 @@ export function initRendererApis(): () => void {
         useDictionaryStream.getState().receiveUpdate(requestId, word, data, isComplete);
     });
 
+    register('chat/stream', async (params) => {
+        logger.debug('Chat stream update', { params });
+        useChatPanel.getState().receiveChatStream(params);
+    });
+
     logger.info('renderer apis registered', { count: unregisters.length });
 
     return () => {
@@ -100,4 +106,3 @@ export function initRendererApis(): () => void {
         logger.info('renderer apis unregistered');
     };
 }
-

@@ -17,6 +17,7 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import {CoreMessage} from 'ai';
+import { ChatResetParams, ChatStartParams, ChatStartResult } from '@/common/types/chat';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
@@ -115,6 +116,11 @@ interface AiTransDef {
     'ai-trans/test-tencent': { params: void, return: void };
     // 测试新的翻译流程
     'ai-trans/test-new-flow': { params: void, return: void };
+}
+
+interface ChatDef {
+    'chat/start': { params: ChatStartParams, return: ChatStartResult };
+    'chat/reset': { params: ChatResetParams, return: void };
 }
 
 interface WatchHistoryDef {
@@ -270,6 +276,7 @@ export type ApiDefinitions = ApiDefinition
     & DpTaskDef
     & SystemDef
     & AiTransDef
+    & ChatDef
     & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef

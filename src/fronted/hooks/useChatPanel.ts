@@ -16,11 +16,12 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { getDpTaskResult, registerDpTask } from '@/fronted/hooks/useDpTaskCenter';
 import { AiAnalyseNewWordsRes } from '@/common/types/aiRes/AiAnalyseNewWordsRes';
 import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrasesRes';
-import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
+import { ChatStreamEvent } from '@/common/types/chat';
 
 const api = backendClient;
 
@@ -54,6 +55,8 @@ export type ChatPanelState = {
         }
         chatTaskQueue: CustomMessage<any>[];
     }
+    chatSessionId: string;
+    streamingMessageId: string | null;
     tasks: Tasks;
     topic: Topic
     messages: CustomMessage<any>[];
@@ -73,6 +76,7 @@ export type ChatPanelActions = {
     clear: () => void;
     setTask: (tasks: Tasks) => void;
     sent: (msg: string) => void;
+    receiveChatStream: (event: ChatStreamEvent) => void;
     updateInternalContext: (value: string) => void;
     ctxMenuOpened: () => void;
     ctxMenuExplain: () => void;
@@ -85,6 +89,13 @@ export type ChatPanelActions = {
     setInput: (input: string) => void;
 };
 
+const createChatSessionId = (): string => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+        return crypto.randomUUID();
+    }
+    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 const copy = (state: ChatPanelState): ChatPanelState => {
     return {
         internal: {
@@ -93,6 +104,8 @@ const copy = (state: ChatPanelState): ChatPanelState => {
             },
             chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy())
         },
+        chatSessionId: state.chatSessionId,
+        streamingMessageId: state.streamingMessageId,
         tasks: {
             vocabularyTask: state.tasks.vocabularyTask,
             phraseTask: state.tasks.phraseTask,
@@ -118,6 +131,8 @@ const empty = (): ChatPanelState => {
             },
             chatTaskQueue: []
         },
+        chatSessionId: createChatSessionId(),
+        streamingMessageId: null,
         tasks: {
             vocabularyTask: null,
             phraseTask: null,
@@ -177,6 +192,7 @@ const useChatPanel = create(
                     return;
                 }
             }
+            api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
             const synTask = await registerDpTask(() => api.call('ai-func/polish', text));
@@ -222,6 +238,7 @@ const useChatPanel = create(
             });
         },
         createFromCurrent: async () => {
+            api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.add(copy(get()));
             const ct = usePlayerV2.getState().currentSentence;
             if (!ct) return;
@@ -284,6 +301,7 @@ const useChatPanel = create(
         },
         clear: () => {
             undoRedo.clear();
+            api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             set(empty());
         },
         setTask: (tasks: Tasks) => {
@@ -300,14 +318,63 @@ const useChatPanel = create(
                 get().messages.concat(requestMsg).map(e => e.toMsg())
             ).then(results => results.flat());
             getRendererLogger('useChatPanel').debug('chat history', { messageCount: history.length });
-            const taskID = await registerDpTask(() => api.call('ai-func/chat', { msgs: history }));
+            const { messageId } = await api.call('chat/start', {
+                sessionId: get().chatSessionId,
+                messages: history
+            });
             set({
                 messages: [
                     ...get().messages,
-                    requestMsg,
-                    new AiNormalMessage(get().topic, taskID)
-                ]
+                    requestMsg
+                ],
+                streamingMessage: new AiStreamingMessage(get().topic, messageId, '', true),
+                streamingMessageId: messageId
             });
+        },
+        receiveChatStream: (event: ChatStreamEvent) => {
+            if (event.sessionId !== get().chatSessionId) {
+                return;
+            }
+            const currentStreaming = get().streamingMessage;
+            if (event.event === 'start') {
+                if (!currentStreaming || (currentStreaming as AiStreamingMessage).messageId !== event.messageId) {
+                    set({
+                        streamingMessage: new AiStreamingMessage(get().topic, event.messageId, '', true),
+                        streamingMessageId: event.messageId
+                    });
+                }
+                return;
+            }
+
+            if (!currentStreaming || (currentStreaming as AiStreamingMessage).messageId !== event.messageId) {
+                return;
+            }
+
+            const streaming = currentStreaming as AiStreamingMessage;
+            if (event.event === 'chunk') {
+                set({
+                    streamingMessage: streaming.withUpdate(`${streaming.content}${event.chunk ?? ''}`, true)
+                });
+                return;
+            }
+            if (event.event === 'done') {
+                const finished = streaming.withUpdate(streaming.content, false);
+                set({
+                    messages: [...get().messages, finished],
+                    streamingMessage: null,
+                    streamingMessageId: null
+                });
+                return;
+            }
+            if (event.event === 'error') {
+                const errorMsg = event.error ? `\n\n[Error] ${event.error}` : '\n\n[Error]';
+                const failed = streaming.withUpdate(`${streaming.content}${errorMsg}`, false);
+                set({
+                    messages: [...get().messages, failed],
+                    streamingMessage: null,
+                    streamingMessageId: null
+                });
+            }
         },
         updateInternalContext: (value: string) => {
             get().internal.context.value = value;
