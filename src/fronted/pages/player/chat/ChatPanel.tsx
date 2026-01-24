@@ -3,9 +3,7 @@
 import * as React from 'react';
 import {cn} from "@/fronted/lib/utils";
 import {motion} from 'framer-motion';
-import VocabularyPane from '@/fronted/pages/player/chat/components/VocabularyPane';
-import PhrasesPane from '@/fronted/pages/player/chat/components/PhrasesPane';
-import GrammarPane from '@/fronted/pages/player/chat/components/GrammarPane';
+import UnifiedAnalysisPane from '@/fronted/pages/player/chat/components/UnifiedAnalysisPane';
 import SentencesPane from '@/fronted/pages/player/chat/components/SentencesPane';
 import ConversationPane from '@/fronted/pages/player/chat/components/ConversationPane';
 import TopicSelector from '@/fronted/pages/player/chat/components/TopicSelector';
@@ -145,10 +143,7 @@ const ChatPanel = () => {
                         >
                             <div
                                 className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
-
-                                <VocabularyPane className={cn('flex-shrink-0')}/>
-                                <PhrasesPane className={cn('flex-shrink-0')}/>
-                                <GrammarPane className={cn('flex-shrink-0')}/>
+                                <UnifiedAnalysisPane className={cn('flex-shrink-0 py-2')}/>
                             </div>
                             <ConversationPane/>
                             <div

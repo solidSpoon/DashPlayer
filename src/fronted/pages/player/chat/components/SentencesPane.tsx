@@ -45,7 +45,9 @@ const SentencesPane = ({ className }: {
     const logger = getRendererLogger('SentencesPane');
     const analysis = useChatPanel(state => state.analysis);
     const status = useChatPanel(state => state.analysisStatus);
-    const sentences = analysis?.examples?.sentences ?? [];
+    const sentences = (analysis?.examples?.sentences ?? []).filter((sentence) => {
+        return Boolean(sentence?.sentence || sentence?.meaning);
+    });
     logger.debug('Sentence analysis loaded', { count: sentences.length });
     return (
 

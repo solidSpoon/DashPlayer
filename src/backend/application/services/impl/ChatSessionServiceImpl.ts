@@ -338,12 +338,12 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         if (!model) {
             return;
         }
-        const { partialObjectStream } = streamObject({
+        const result = streamObject({
             model,
             schema: AiUnifiedAnalysisSchema,
             prompt,
         });
-        for await (const partial of partialObjectStream) {
+        for await (const partial of result.partialObjectStream) {
             this.rendererGateway.fireAndForget('analysis/stream', {
                 sessionId,
                 messageId,
@@ -351,6 +351,13 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 partial,
             });
         }
+        const finalObject = await result.object;
+        this.rendererGateway.fireAndForget('analysis/stream', {
+            sessionId,
+            messageId,
+            event: 'chunk',
+            partial: finalObject,
+        });
         this.rendererGateway.fireAndForget('analysis/stream', {
             sessionId,
             messageId,
