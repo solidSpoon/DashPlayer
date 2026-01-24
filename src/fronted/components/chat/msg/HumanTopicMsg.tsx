@@ -78,7 +78,7 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
                 <RefreshCcw className={'w-3 h-3'} />
             </Button>
             <div className="flex flex-row flex-wrap pt-4 text-foreground">
-                <div className="inline">
+                <div className="flex items-end flex-wrap gap-3">
                     {content.map((group, i) => {
                         if (typeof group === 'string') {
                             return (
@@ -89,18 +89,30 @@ const HumanTopicMsg = ({ msg }: { msg: HumanTopicMessage }) => {
                         } else {
                             const words = group.original.split(' ');
                             return (
-                                <span
-                                    className={
-                                        cn('word-group relative rounded-md mr-1 p-1 pl-2 pr-1 leading-[42px] last:pr-2'
-                                            , mapColor(group?.tags ?? [])
-                                        )}>
-                                    {words.map((word, i) => {
-                                        return <span data-tags={group.tags} data-trans={group.translation}
-                                                     className="word">
-                                    {word}
-                                    </span>;
-                                    })}
-                    </span>
+                                <span className='inline-flex flex-col'>
+                                    <span className="wordBefore ml-3 mr-3 mb-1">{group.tags}</span>
+                                    <span
+                                        className={cn(
+                                            "word-group relative rounded-md mr-1 p-1 pl-2 pr-1 leading-[42px] last:pr-2 text-center",
+                                            mapColor(group?.tags ?? []),
+                                        )}
+                                    >
+                                        {words.map((word, i) => {
+                                            return (
+                                                <span
+                                                    data-tags={group.tags}
+                                                    data-trans={
+                                                        group.translation
+                                                    }
+                                                    className="word"
+                                                >
+                                                    {word}
+                                                </span>
+                                            );
+                                        })}
+                                    </span>
+                                    <span className="wordAfter text-center mt-1">{group.translation}</span>
+                                </span>
                             );
                         }
                     })}

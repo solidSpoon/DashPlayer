@@ -64,11 +64,15 @@ import { OpenAiService } from '@/backend/services/OpenAiService';
 import AiProviderService from '@/backend/services/AiProviderService';
 
 
+import dpLog from '@/backend/ioc/logger';
+
+
 const container = new Container();
 // Clients
 container.bind<ClientProviderService<YouDaoClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
 container.bind<ClientProviderService<TencentClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
+container.bind(TYPES.Logger).toConstantValue(dpLog);
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(DownloadVideoController).inSingletonScope();

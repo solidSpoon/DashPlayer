@@ -19,16 +19,17 @@ const useSetting = create(
         init: false,
         values: new Map<SettingKey, string>(),
         setSetting: async (key: SettingKey, value: string) => {
+            const stringValue = String(value ?? ''); // Ensure value is a string, even if null/undefined
             set((state) => {
                 return {
                     ...state,
-                    values: new Map(state.values).set(key, value),
+                    values: new Map(state.values).set(key, stringValue),
                     setting: (key: SettingKey) => {
                         return get().values.get(key) ?? '';
                     },
                 };
             });
-            await api.call('storage/put', {key, value});
+            await api.call('storage/put', {key, value: stringValue});
         },
         setting: (key: SettingKey) => {
             return get().values.get(key) ?? '';
@@ -38,15 +39,21 @@ const useSetting = create(
 
 for (const key in SettingKeyObj) {
     const k = key as SettingKey;
+    if (k === 'aiProviderConfigs' || k === 'activeAiProviderId') {
+        continue;
+    }
     console.log('setting init', k);
     api.call('storage/get', k).then((value: string) => {
-        console.log('setting init', k, value);
+        console.log('setting init', k, JSON.stringify(value));
         useSetting.getState().setSetting(k, value);
     });
 }
 
 api.onStoreUpdate((key: SettingKey, value: string) => {
-    console.log('onStoreUpdate', key, value);
+    if (key === 'aiProviderConfigs' || key === 'activeAiProviderId') {
+        return;
+    }
+    console.log('onStoreUpdate', key, JSON.stringify(value));
     const oldValues = useSetting.getState().values.get(key);
     if (oldValues !== value) {
         useSetting.getState().setSetting(key, value);

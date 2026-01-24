@@ -1,12 +1,4 @@
-import { DpTask } from '@/backend/db/tables/dpTask';
-import { YdRes } from '@/common/types/YdRes';
-import { ChapterParseResult } from '@/common/types/chapter-result';
-import { SrtSentence } from '@/common/types/SentenceC';
-import { WindowState } from '@/common/types/Types';
-import {
-    InsertSubtitleTimestampAdjustment
-} from '@/backend/db/tables/subtitleTimestampAdjustment';
-import { SettingKey } from '@/common/types/store_schema';
+import { AiProviderConfig, SettingKey } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
 
@@ -16,6 +8,16 @@ import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import { COOKIE } from '@/common/types/DlVideoType';
 import { CoreMessage } from 'ai';
+
+interface AiProviderDef {
+    'setting/ai-providers/get': { params: void, return: AiProviderConfig[] };
+    'setting/ai-providers/add': { params: AiProviderConfig, return: AiProviderConfig[] };
+    'setting/ai-providers/update': { params: AiProviderConfig, return: AiProviderConfig[] };
+    'setting/ai-providers/delete': { params: string, return: AiProviderConfig[] };
+    'setting/ai-providers/set-active': { params: string, return: void };
+    'setting/ai-providers/get-active': { params: void, return: string | null };
+    'setting/ai-providers/update-all': { params: AiProviderConfig[], return: void };
+}
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -180,7 +182,8 @@ export type ApiDefinitions = ApiDefinition
     & DownloadVideoDef
     & ConvertDef
     & FavoriteClipsDef
-    & TagDef;
+    & TagDef
+    & AiProviderDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

@@ -2,17 +2,26 @@
     position: relative;
     display: inline-block;
     font-weight: 500;
-    margin-bottom: 10px
+    /* margin-bottom: 10px */
 }
 
 .word,.word:last-child {
     margin-right: .25rem;
 }
 
-.word:first-child:before {
+/* .word:first-child:before {
     position: absolute;
     left: 0;
     top: -6px;
+    white-space: nowrap;
+    font-size: .70rem;
+    line-height: 1rem;
+    font-weight: 500;
+    --tw-text-opacity: 1;
+    color: #dc2626;
+    content: attr(data-tags)
+}  */
+.wordBefore {
     white-space: nowrap;
     font-size: .70rem;
     line-height: 1rem;
@@ -20,22 +29,26 @@
     font-weight: 500;
     --tw-text-opacity: 1;
     color: #dc2626;
-    content: attr(data-tags)
 }
 .dark .word:first-child:before {
     color: #b91c1c;
 }
 
-.word:first-child:after {
+/* .word:first-child:after {
     position: absolute;
     left: 0;
     bottom: -10px;
     white-space: nowrap;
     font-size: .75rem;
     line-height: 1rem;
-    /*font-size: 10px;*/
     font-weight: 500;
     --tw-text-opacity: 1;
-    /*color: rgb(0 0 0/var(--tw-text-opacity));*/
     content: attr(data-trans);
+} */
+.wordAfter {
+    white-space: nowrap;
+    font-size: .75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    --tw-text-opacity: 1;
 }

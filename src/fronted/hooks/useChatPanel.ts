@@ -19,6 +19,7 @@ import { AiAnalyseNewPhrasesRes } from '@/common/types/aiRes/AiAnalyseNewPhrases
 import AiNormalMessage from '@/common/types/msg/AiNormalMessage';
 import StrUtil from '@/common/utils/str-util';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
+import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 
 const api = window.electron;
 
@@ -163,109 +164,125 @@ const useChatPanel = create(
 
         },
         createFromSelect: async (str?: string) => {
-            let text = str;
-            if (StrUtil.isBlank(text)) {
-                text = p(window.getSelection()?.toString());
-                // 去除换行符
-                text = text?.replace(/\n/g, '');
+            try {
+                let text = str;
                 if (StrUtil.isBlank(text)) {
-                    text = useChatPanel.getState().context ?? '';
-                }
-                if (StrUtil.isBlank(text)) {
-                    return;
-                }
-            }
-            undoRedo.update(copy(get()));
-            undoRedo.add(empty());
-            const synTask = await registerDpTask(() => api.call('ai-func/polish', text));
-            const phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', text));
-            const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
-            const topic = { content: text };
-            const currentSentence = usePlayerController.getState().currentSentence;
-            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence?.index ?? 0, 5);
-            const context: string[] = subtitles
-                .filter(TypeGuards.isNotNull)
-                .map(e => e.text ?? '');
-            const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
-                sentence: text??'',
-                context: context
-            }));
-            const mt = new AiWelcomeMessage({
-                originalTopic: text,
-                synonymousSentenceTask: synTask,
-                punctuationTask: null,
-                topic: topic,
-                translateTask: transTask
-            });
-            set({
-                ...empty(),
-                topic: topic,
-                messages: [
-                    tt,
-                    mt
-                ],
-                tasks: {
-                    ...empty().tasks
-                    // chatTask: mt
-                },
-                canRedo: undoRedo.canRedo(),
-                canUndo: undoRedo.canUndo()
-            });
-        },
-        createFromCurrent: async () => {
-            undoRedo.add(copy(get()));
-            const ct = usePlayerController.getState().currentSentence;
-            if (!ct) return;
-            const synTask = await registerDpTask(() => api.call('ai-func/polish', ct.text ?? ''));
-            const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text ?? '');
-            const tt = new HumanTopicMessage(get().topic, ct.text ?? '', phraseGroupTask);
-            // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const url = useFile.getState().subtitlePath ?? '';
-            console.log(url);
-            const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
-            console.log('text', text);
-            const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
-                no: ct.index,
-                srt: text
-            }));
-            const topic = {
-                content: {
-                    start: {
-                        sIndex: ct.index,
-                        cIndex: 0
-                    },
-                    end: {
-                        sIndex: ct.index,
-                        cIndex: ct.text.length
+                    text = p(window.getSelection()?.toString());
+                    // 去除换行符
+                    text = text?.replace(/\n/g, '');
+                    if (StrUtil.isBlank(text)) {
+                        text = useChatPanel.getState().context ?? '';
+                    }
+                    if (StrUtil.isBlank(text)) {
+                        return;
                     }
                 }
-            };
-            const currentSentence = usePlayerController.getState().currentSentence;
-            if (!currentSentence) return;
-            const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
-            const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
-                sentence: currentSentence.text,
-                context: subtitles.map(e => e.text)
-            }));
-            const mt = new AiWelcomeMessage({
-                originalTopic: ct.text,
-                synonymousSentenceTask: synTask,
-                punctuationTask: punctuationTask,
-                topic: topic,
-                translateTask: transTask
-            });
-            set({
-                ...empty(),
-                topic,
-                messages: [
-                    tt,
-                    mt
-                ],
-                tasks: {
-                    ...empty().tasks
-                    // chatTask: mt
-                }
-            });
+                undoRedo.update(copy(get()));
+                undoRedo.add(empty());
+                const synTask = await registerDpTask(() => api.call('ai-func/polish', text));
+                const phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', text));
+                const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
+                const topic = { content: text };
+                const currentSentence = usePlayerController.getState().currentSentence;
+                const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence?.index ?? 0, 5);
+                const context: string[] = subtitles
+                    .filter(TypeGuards.isNotNull)
+                    .map(e => e.text ?? '');
+                const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
+                    sentence: text??'',
+                    context: context
+                }));
+                const mt = new AiWelcomeMessage({
+                    originalTopic: text,
+                    synonymousSentenceTask: synTask,
+                    punctuationTask: null,
+                    topic: topic,
+                    translateTask: transTask
+                });
+                set({
+                    ...empty(),
+                    topic: topic,
+                    messages: [
+                        tt,
+                        mt
+                    ],
+                    tasks: {
+                        ...empty().tasks
+                        // chatTask: mt
+                    },
+                    canRedo: undoRedo.canRedo(),
+                    canUndo: undoRedo.canUndo()
+                });
+            } catch (error: any) {
+                usePlayerToaster.getState().setNotification({
+                    type: 'error',
+                    text: `AI sentence analysis failed: ${error.message}`
+                });
+            }
+        },
+        
+
+        createFromCurrent: async () => {
+            try {
+                undoRedo.add(copy(get()));
+                const ct = usePlayerController.getState().currentSentence;
+                if (!ct) return;
+                const synTask = await registerDpTask(() => api.call('ai-func/polish', ct.text ?? ''));
+                const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text ?? '');
+                const tt = new HumanTopicMessage(get().topic, ct.text ?? '', phraseGroupTask);
+                // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
+                const url = useFile.getState().subtitlePath ?? '';
+                console.log(url);
+                const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
+                console.log('text', text);
+                const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
+                    no: ct.index,
+                    srt: text
+                }));
+                const topic = {
+                    content: {
+                        start: {
+                            sIndex: ct.index,
+                            cIndex: 0
+                        },
+                        end: {
+                            sIndex: ct.index,
+                            cIndex: ct.text.length
+                        }
+                    }
+                };
+                const currentSentence = usePlayerController.getState().currentSentence;
+                if (!currentSentence) return;
+                const subtitles = usePlayerController.getState().getSubtitleAround(currentSentence.index, 5);
+                const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
+                    sentence: currentSentence.text,
+                    context: subtitles.map(e => e.text)
+                }));
+                const mt = new AiWelcomeMessage({
+                    originalTopic: ct.text,
+                    synonymousSentenceTask: synTask,
+                    punctuationTask: punctuationTask,
+                    topic: topic,
+                    translateTask: transTask
+                });
+                set({
+                    ...empty(),
+                    topic,
+                    messages: [
+                        tt,
+                        mt
+                    ],
+                    tasks: {
+                        ...empty().tasks
+                        // chatTask: mt
+                    }
+                });
+            } catch (error: any) {
+                usePlayerToaster.getState().setNotification({
+                    type: 'error',
+                    text: `AI sentence analysis failed: ${error.message}`
+                });
+            }
         },
         clear: () => {
             undoRedo.clear();

@@ -37,6 +37,28 @@ export default class Util {
     static arrayChanged = arrayChanged;
     static joinUrl = joinUrl;
 
+    public static extractBaseUrl(url: string): string {
+        if (!url) {
+            return '';
+        }
+        // 查找已知的API端点后缀
+        const knownSuffixes = [
+            '/chat/completions',
+            // 未来可以添加其他已知后缀
+        ];
+
+        let baseUrl = url;
+        for (const suffix of knownSuffixes) {
+            if (baseUrl.endsWith(suffix)) {
+                baseUrl = baseUrl.substring(0, baseUrl.length - suffix.length);
+                break; // 找到并移除第一个匹配的后缀后即停止
+            }
+        }
+
+        // 移除末尾的所有斜杠
+        return baseUrl.replace(/\/+$/, '');
+    }
+
     public static isNull(obj: any): boolean {
         return obj === null || obj === undefined;
     }

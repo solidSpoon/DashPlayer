@@ -143,6 +143,7 @@ export const getDpTaskResult = async <T>(taskId: number | null | undefined, isSt
         if (isString) {
             return task.result as unknown as T;
         }
+        console.log('Parsing task result', task);
         return JSON.parse(task.result);
     } catch (e) {
         console.error(e);

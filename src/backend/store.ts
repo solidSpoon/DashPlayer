@@ -21,3 +21,13 @@ export const storeGet = (key: SettingKey): string => {
     return store.get(key, SettingKeyObj[key]) as string;
 }
 
+export const storeSetObject = (key: SettingKey, value: any): void => {
+    store.set(key, value);
+}
+
+export const storeGetObject = <T>(key: SettingKey, defaultValue?: T): T => {
+    let retrievedValue = store.get(key, defaultValue) as T;
+    return retrievedValue;
+}
+
+

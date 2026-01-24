@@ -1,3 +1,11 @@
+export interface AiProviderConfig {
+    id: string;
+    name: string;
+    apiKey: string;
+    endpoint: string;
+    model: string;
+}
+
 export const SettingKeyObj = {
     'shortcut.previousSentence': 'left,a',
     'shortcut.nextSentence': 'right,d',
@@ -34,5 +42,7 @@ export const SettingKeyObj = {
     'appearance.fontSize': 'fontSizeLarge',
     'storage.path': '',
     'storage.collection': 'default',
+    'aiProviderConfigs': '', // JSON string of AiProviderConfig[]
+    'activeAiProviderId': '', // id of the active AiProviderConfig
 }
 export type SettingKey = keyof typeof SettingKeyObj;
