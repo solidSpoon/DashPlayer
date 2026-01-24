@@ -5,7 +5,6 @@ import { engEqual, p } from '@/common/utils/Util';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
-import AiWelcomeMessage from '@/common/types/msg/AiWelcomeMessage';
 import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import useFile from '@/fronted/hooks/useFile';
 import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
@@ -224,9 +223,10 @@ const useChatPanel = create(
                 canUndo: undoRedo.canUndo()
             });
             scheduleWelcomeMessage({
+                sessionId: get().chatSessionId,
                 originalTopic: text,
                 fullText: context.join(' '),
-            }, topic, get().chatSessionId);
+            }, topic);
         },
         createFromCurrent: async () => {
             api.call('chat/reset', { sessionId: get().chatSessionId }).then();
@@ -273,9 +273,10 @@ const useChatPanel = create(
                 }
             });
             scheduleWelcomeMessage({
+                sessionId: get().chatSessionId,
                 originalTopic: ct.text,
                 fullText: subtitles.map(e => e.text).join(' '),
-            }, topic, get().chatSessionId);
+            }, topic);
         },
         clear: () => {
             undoRedo.clear();
@@ -499,19 +500,22 @@ const extractTopic = (t: Topic): string => {
     return `${st} ${et}`;
 };
 
-const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic, sessionId: string) => {
+const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic) => {
     api.call('chat/welcome', params)
-        .then(({ display, context }) => {
-            if (useChatPanel.getState().chatSessionId !== sessionId) {
+        .then(({ messageId }) => {
+            if (useChatPanel.getState().chatSessionId !== params.sessionId) {
                 return;
             }
-            const nextMessages = useChatPanel.getState().messages.filter(msg => msg.msgType !== 'ai-welcome');
+            const nextMessages = useChatPanel.getState().messages
+                .filter(msg => msg.msgType !== 'ai-welcome' && msg.msgType !== 'ai-streaming');
             useChatPanel.setState({
-                messages: [...nextMessages, new AiWelcomeMessage(topic, display, context)]
+                messages: nextMessages,
+                streamingMessage: new AiStreamingMessage(topic, messageId, '', true),
+                streamingMessageId: messageId,
             });
         })
         .catch((error) => {
-            getRendererLogger('useChatPanel').error('failed to build welcome message', { error });
+            getRendererLogger('useChatPanel').error('failed to stream welcome message', { error });
         });
 };
 

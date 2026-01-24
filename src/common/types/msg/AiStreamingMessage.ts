@@ -16,9 +16,10 @@ class AiStreamingMessage implements CustomMessage<AiStreamingMessage> {
     }
 
     async toMsg(): Promise<CoreMessage[]> {
+        const content = this.content.replace(/\[\[switch:[\s\S]*?\]\]/g, '');
         return [{
             role: 'assistant',
-            content: this.content,
+            content,
         }];
     }
 

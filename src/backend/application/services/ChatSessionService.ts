@@ -1,8 +1,8 @@
 import { CoreMessage } from 'ai';
-import { ChatStartResult, ChatWelcomeParams, ChatWelcomeResult } from '@/common/types/chat';
+import { ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 
 export default interface ChatSessionService {
     start(sessionId: string, messages: CoreMessage[]): Promise<ChatStartResult>;
-    buildWelcome(params: ChatWelcomeParams): Promise<ChatWelcomeResult>;
+    startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult>;
     reset(sessionId: string): void;
 }

@@ -10,13 +10,9 @@ export type ChatStartResult = {
 };
 
 export type ChatWelcomeParams = {
+    sessionId: string;
     originalTopic: string;
     fullText?: string;
-};
-
-export type ChatWelcomeResult = {
-    display: string;
-    context: string;
 };
 
 export type ChatResetParams = {
