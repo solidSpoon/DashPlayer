@@ -21,7 +21,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
-import { ChatStreamEvent } from '@/common/types/chat';
+import { ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
 
 const api = backendClient;
 
@@ -195,7 +195,6 @@ const useChatPanel = create(
             api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
-            const synTask = await registerDpTask(() => api.call('ai-func/polish', text));
             const phraseGroupTask = await registerDpTask(() => api.call('ai-func/phrase-group', text));
             const tt = new HumanTopicMessage(get().topic, text, phraseGroupTask);
             const topic = { content: text };
@@ -211,23 +210,11 @@ const useChatPanel = create(
             const context: string[] = subtitles
                 .filter(TypeGuards.isNotNull)
                 .map(e => e.text ?? '');
-            const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
-                sentence: text??'',
-                context: context
-            }));
-            const mt = new AiWelcomeMessage({
-                originalTopic: text,
-                synonymousSentenceTask: synTask,
-                punctuationTask: null,
-                topic: topic,
-                translateTask: transTask
-            });
             set({
                 ...empty(),
                 topic: topic,
                 messages: [
-                    tt,
-                    mt
+                    tt
                 ],
                 tasks: {
                     ...empty().tasks
@@ -236,13 +223,16 @@ const useChatPanel = create(
                 canRedo: undoRedo.canRedo(),
                 canUndo: undoRedo.canUndo()
             });
+            scheduleWelcomeMessage({
+                originalTopic: text,
+                fullText: context.join(' '),
+            }, topic, get().chatSessionId);
         },
         createFromCurrent: async () => {
             api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.add(copy(get()));
             const ct = usePlayerV2.getState().currentSentence;
             if (!ct) return;
-            const synTask = await registerDpTask(() => api.call('ai-func/polish', ct.text ?? ''));
             const phraseGroupTask = await api.call('ai-func/phrase-group', ct.text ?? '');
             const tt = new HumanTopicMessage(get().topic, ct.text ?? '', phraseGroupTask);
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
@@ -250,10 +240,6 @@ const useChatPanel = create(
             getRendererLogger('useChatPanel').debug('subtitle file url', { url });
             const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
             getRendererLogger('useChatPanel').debug('subtitle file content', { length: text.length });
-            const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
-                no: ct.index,
-                srt: text
-            }));
             const topic = {
                 content: {
                     start: {
@@ -275,29 +261,21 @@ const useChatPanel = create(
                 const right = Math.min(sentences.length - 1, idx + 5);
                 return sentences.slice(left, right + 1);
             })();
-            const transTask = await registerDpTask(() => api.call('ai-func/translate-with-context', {
-                sentence: currentSentence.text,
-                context: subtitles.map(e => e.text)
-            }));
-            const mt = new AiWelcomeMessage({
-                originalTopic: ct.text,
-                synonymousSentenceTask: synTask,
-                punctuationTask: punctuationTask,
-                topic: topic,
-                translateTask: transTask
-            });
             set({
                 ...empty(),
                 topic,
                 messages: [
-                    tt,
-                    mt
+                    tt
                 ],
                 tasks: {
                     ...empty().tasks
                     // chatTask: mt
                 }
             });
+            scheduleWelcomeMessage({
+                originalTopic: ct.text,
+                fullText: subtitles.map(e => e.text).join(' '),
+            }, topic, get().chatSessionId);
         },
         clear: () => {
             undoRedo.clear();
@@ -447,19 +425,6 @@ const useChatPanel = create(
                     messages: newMessages
                 });
             }
-            if (type === 'welcome') {
-                const msg = get().messages[1].copy() as AiWelcomeMessage;
-                const ct = usePlayerV2.getState().currentSentence;
-                if (!ct) return;
-                const polishTask = await registerDpTask(() => api.call('ai-func/polish', msg.originalTopic));
-                const punctuationTask = await registerDpTask(() => api.call('ai-func/punctuation', {
-                    no: ct.index,
-                    srt: msg.originalTopic
-                }));
-                msg.polishTask = polishTask;
-                msg.punctuationTask = punctuationTask;
-                // todo
-            }
             if (type === 'sentence') {
                 runSentence(true).then();
             }
@@ -532,6 +497,22 @@ const extractTopic = (t: Topic): string => {
         et = et.slice(0, content.end.cIndex);
     }
     return `${st} ${et}`;
+};
+
+const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic, sessionId: string) => {
+    api.call('chat/welcome', params)
+        .then(({ display, context }) => {
+            if (useChatPanel.getState().chatSessionId !== sessionId) {
+                return;
+            }
+            const nextMessages = useChatPanel.getState().messages.filter(msg => msg.msgType !== 'ai-welcome');
+            useChatPanel.setState({
+                messages: [...nextMessages, new AiWelcomeMessage(topic, display, context)]
+            });
+        })
+        .catch((error) => {
+            getRendererLogger('useChatPanel').error('failed to build welcome message', { error });
+        });
 };
 
 

@@ -17,7 +17,7 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import {CoreMessage} from 'ai';
-import { ChatResetParams, ChatStartParams, ChatStartResult } from '@/common/types/chat';
+import { ChatResetParams, ChatStartParams, ChatStartResult, ChatWelcomeParams, ChatWelcomeResult } from '@/common/types/chat';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
@@ -120,6 +120,7 @@ interface AiTransDef {
 
 interface ChatDef {
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
+    'chat/welcome': { params: ChatWelcomeParams, return: ChatWelcomeResult };
     'chat/reset': { params: ChatResetParams, return: void };
 }
 

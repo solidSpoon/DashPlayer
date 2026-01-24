@@ -3,7 +3,7 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import Controller from '@/backend/adapters/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
 import ChatSessionService from '@/backend/application/services/ChatSessionService';
-import { ChatResetParams, ChatStartParams, ChatStartResult } from '@/common/types/chat';
+import { ChatResetParams, ChatStartParams, ChatStartResult, ChatWelcomeParams, ChatWelcomeResult } from '@/common/types/chat';
 
 @injectable()
 export default class ChatStreamController implements Controller {
@@ -13,6 +13,10 @@ export default class ChatStreamController implements Controller {
     registerRoutes(): void {
         registerRoute('chat/start', async (params: ChatStartParams): Promise<ChatStartResult> => {
             return this.chatSessionService.start(params.sessionId, params.messages);
+        });
+
+        registerRoute('chat/welcome', async (params: ChatWelcomeParams): Promise<ChatWelcomeResult> => {
+            return this.chatSessionService.buildWelcome(params);
         });
 
         registerRoute('chat/reset', async (params: ChatResetParams): Promise<void> => {

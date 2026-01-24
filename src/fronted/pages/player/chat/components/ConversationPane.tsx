@@ -7,7 +7,6 @@ import useChatPanel from "@/fronted/hooks/useChatPanel";
 import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import UserTopicMessage from "@/fronted/pages/player/chat/components/messages/UserTopicMessage";
-import AiWelcomeBubble from "@/fronted/pages/player/chat/components/messages/AiWelcomeBubble";
 import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
 import {AiTextMessage} from "@/fronted/pages/player/chat/components/messages/AiTextMessage";
 import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
@@ -78,7 +77,7 @@ const ConversationPane = () => {
             case "human-topic":
                 return <UserTopicMessage msg={msg as HumanTopicMessage}/>;
             case "ai-welcome":
-                return <AiWelcomeBubble msg={msg as AiWelcomeMessage}/>;
+                return <AiTextMessage msg={msg as AiWelcomeMessage}/>;
             case "ai-normal":
                 return <AiTextMessage msg={msg as AiNormalMessage}/>;
             case "human-normal":

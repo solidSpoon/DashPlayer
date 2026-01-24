@@ -14,16 +14,35 @@ const Playable = ({ className, children }: PlayableProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <span
+            onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }}
             onMouseUp={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const selectedText = window.getSelection()?.toString() || '';
-                if (selectedText.length === 0) {
-                    setLoading(true);
-                    const str = children || '';
+                if (selectedText.length > 0) {
+                    return;
+                }
+                const str = children || '';
+                if (!str.trim()) {
+                    return;
+                }
+                setLoading(true);
+                try {
                     logger.debug('Generating TTS for text', { text: str });
                     const ttsUrl = await getTtsUrl(str);
-                    setLoading(false);
                     logger.debug('TTS URL generated', { ttsUrl });
                     await playAudioUrl(ttsUrl);
+                } catch (error) {
+                    logger.error('TTS playback failed', { error });
+                } finally {
+                    setLoading(false);
                 }
             }}
             className={cn(' cursor-pointer hover:underline', className)}>
