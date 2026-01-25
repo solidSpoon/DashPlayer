@@ -1,7 +1,7 @@
 {
   "name": "dash-player",
   "productName": "DashPlayer",
-  "version": "5.9.0",
+  "version": "6.0.0-rc.1",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
   "scripts": {
