@@ -18,6 +18,7 @@ import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/components/feature/file-browser/music-card';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useInView from '@/fronted/hooks/useInView';
 
 const api = backendClient;
 
@@ -28,9 +29,12 @@ const ProjectListItem = ({ video, onSelected }: {
 }) => {
     // 判断是否为 MP3 文件
     const isAudio = MediaUtil.isAudio(video.fileName);
+    const showDuration = !video.isFolder && video.duration > 0;
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const inView = useInView(containerRef);
 
     const { data: url } = useSWR(
-        !isAudio ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] : null,
+        inView && !isAudio ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] : null,
         async ([key, path, file, time]) => {
             return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
@@ -47,6 +51,7 @@ const ProjectListItem = ({ video, onSelected }: {
         >
             <ContextMenuTrigger>
                 <div
+                    ref={containerRef}
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
                     onClick={onSelected}
@@ -72,15 +77,19 @@ const ProjectListItem = ({ video, onSelected }: {
                                 <Film />
                             </div>
                         )}
-                        <div
-                            className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
-                            {!video.isFolder ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
-                                <ListVideo className={'w-4 h-4'} /></>}
-                        </div>
-                        <Progress
-                            className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
-                            value={Math.floor((video?.current_position || 0) / (video?.duration || 1) * 100)}
-                        />
+                        {(showDuration || video.isFolder) && (
+                            <div
+                                className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
+                                {!video.isFolder ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
+                                    <ListVideo className={'w-4 h-4'} /></>}
+                            </div>
+                        )}
+                        {showDuration && (
+                            <Progress
+                                className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
+                                value={Math.floor((video?.current_position || 0) / (video?.duration || 1) * 100)}
+                            />
+                        )}
                     </div>
 
                     <div className={'flex-1 w-0'}>

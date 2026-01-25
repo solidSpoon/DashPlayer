@@ -26,6 +26,7 @@ import {
     DropdownMenuTrigger
 } from '@/fronted/components/ui/dropdown-menu';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useInView from '@/fronted/hooks/useInView';
 
 const api = backendClient;
 const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
@@ -35,12 +36,14 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
     ctxMenus: CtxMenu[]
 }) => {
     const [contextMenu, setContextMenu] = React.useState(false);
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const inView = useInView(containerRef);
     const isFolder = v.isFolder;
     const isAudio = !isFolder && MediaUtil.isAudio(v?.fileName);
     const isVideo = !isFolder && MediaUtil.isVideo(v?.fileName);
     const shouldLoadThumbnail = isVideo;
     const { data: thumbnail, isLoading: thumbnailLoading } = useSWR(
-        shouldLoadThumbnail
+        inView && shouldLoadThumbnail
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, v.basePath, v.fileName, v.current_position]
             : null,
         async ([_key, path, file, time]) => {
@@ -68,6 +71,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                 <TooltipProvider>
                     <Tooltip>
                         <div
+                            ref={containerRef}
                             className={cn(
                                 'group/file-item w-full flex items-center gap-4 rounded-lg border border-transparent bg-background/60 px-3 py-2 transition-colors hover:bg-muted/70 dark:bg-muted/20 dark:hover:bg-muted/30',
                                 variant === 'highlight' && 'border-primary bg-primary/10 text-primary-foreground/90 hover:bg-primary/20',

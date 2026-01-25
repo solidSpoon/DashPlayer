@@ -24,8 +24,35 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
     const [basePath, setBasePath] = React.useState<string|null>(null);
     const finalPath = basePath ?? enterProj;
     logger.debug('Project list final path', { finalPath });
-    const { data } = useSWR([apiPath('watch-history/list'), finalPath], ([p, bp]) => api.call('watch-history/list', bp));
+    const { data: basicData } = useSWR(
+        [apiPath('watch-history/list/basic'), finalPath],
+        ([p, bp]) => api.call('watch-history/list/basic', bp)
+    );
+    const [fullData, setFullData] = React.useState<typeof basicData>(undefined);
+    const data = fullData ?? basicData;
     const isRoot = StrUtil.isBlank(finalPath);
+    React.useEffect(() => {
+        let cancelled = false;
+        setFullData(undefined);
+        const idleId = window.requestIdleCallback(() => {
+            api.call('watch-history/list', finalPath)
+                .then((result) => {
+                    if (!cancelled) {
+                        setFullData(result);
+                    }
+                })
+                .catch((error) => {
+                    logger.warn('failed to load full watch history list', {
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                });
+        }, { timeout: 1500 });
+
+        return () => {
+            cancelled = true;
+            window.cancelIdleCallback(idleId);
+        };
+    }, [finalPath]);
     const backNode = backEle?.(isRoot, finalPath, () => {
         setBasePath('');
     });

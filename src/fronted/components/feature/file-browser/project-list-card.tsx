@@ -19,12 +19,13 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/components/feature/file-browser/music-card';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useInView from '@/fronted/hooks/useInView';
 
-const logger = getRendererLogger('ProjectListCard');
+    const logger = getRendererLogger('ProjectListCard');
 
-const api = backendClient;
+    const api = backendClient;
 
-const ProjectListCard = ({
+    const ProjectListCard = ({
                              video,
                              onSelected
                          }: {
@@ -34,10 +35,13 @@ const ProjectListCard = ({
 }) => {
     // 1. 检测是否是 mp3
     const isAudio = MediaUtil.isAudio(video.fileName);
+    const showDuration = !video.isFolder && video.duration > 0;
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const inView = useInView(containerRef);
 
     // 2. 如果是 mp3，就不调用生成缩略图的接口，把 key 设为 null
     const { data: url } = useSWR(
-        !isAudio
+        inView && !isAudio
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position]
             : null,
         async ([_key, path, file, time]) => {
@@ -67,6 +71,7 @@ const ProjectListCard = ({
         >
             <ContextMenuTrigger>
                 <div
+                    ref={containerRef}
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
                     className={cn('')}
@@ -101,26 +106,30 @@ const ProjectListCard = ({
                             </div>
                         )}
 
-                        <div
-                            className={cn(
-                                'absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex'
-                            )}
-                        >
-                            {/* 如果是文件夹，就用 ListVideo 图标；如果不是文件夹，就展示时长 */}
-                            {!video.isFolder ? (
-                                TimeUtil.secondToTimeStrCompact(video?.duration)
-                            ) : (
-                                <ListVideo className="w-4 h-4" />
-                            )}
-                        </div>
+                        {(showDuration || video.isFolder) && (
+                            <div
+                                className={cn(
+                                    'absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex'
+                                )}
+                            >
+                                {/* 如果是文件夹，就用 ListVideo 图标；如果不是文件夹，就展示时长 */}
+                                {!video.isFolder ? (
+                                    TimeUtil.secondToTimeStrCompact(video?.duration)
+                                ) : (
+                                    <ListVideo className="w-4 h-4" />
+                                )}
+                            </div>
+                        )}
 
                         {/* 进度条 */}
-                        <Progress
-                            className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
-                            value={Math.floor(
-                                ((video?.current_position || 0) / (video?.duration || 1)) * 100
-                            )}
-                        />
+                        {showDuration && (
+                            <Progress
+                                className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
+                                value={Math.floor(
+                                    ((video?.current_position || 0) / (video?.duration || 1)) * 100
+                                )}
+                            />
+                        )}
 
                         {/* 悬浮时展示删除按钮 */}
                         {hover && (

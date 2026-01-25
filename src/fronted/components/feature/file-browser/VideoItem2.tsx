@@ -20,6 +20,7 @@ import { SWR_KEY } from '@/fronted/lib/swr-util';
 import MusicCard from '@/fronted/components/feature/file-browser/music-card';
 import { motion } from 'framer-motion';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useInView from '@/fronted/hooks/useInView';
 
 const api = backendClient;
 
@@ -41,11 +42,13 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
     const [contextMenu, setContextMenu] = React.useState(false);
     const [thumbnailReady, setThumbnailReady] = React.useState(false);
     const [thumbnailError, setThumbnailError] = React.useState(false);
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const inView = useInView(containerRef);
     const isAudio = MediaUtil.isAudio(pv.fileName);
     const isVideo = MediaUtil.isVideo(pv.fileName);
     const shouldLoadThumbnail = !pv?.isFolder && isVideo;
     const { data: thumbnail, isLoading: thumbnailLoading } = useSWR(
-        shouldLoadThumbnail
+        inView && shouldLoadThumbnail
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, pv.basePath, pv.fileName, pv.current_position]
             : null,
         async ([_key, path, file, time]) => {
@@ -80,6 +83,7 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div
+                                ref={containerRef}
                                 className={cn(
                                     'group/file-item w-full flex items-center gap-4 rounded-lg border border-transparent bg-background/60 px-3 py-2 transition-colors hover:bg-muted/70 dark:bg-muted/20 dark:hover:bg-muted/30',
                                     variant === 'highlight' && 'border-primary bg-primary/10 text-primary-foreground/90 hover:bg-primary/20',
