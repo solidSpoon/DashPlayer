@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import AiStreamingMessageModel from '@/common/types/msg/AiStreamingMessage';
-import { spinner } from '@/fronted/pages/player/chat/components/Spinner';
+import { spinner } from '@/fronted/pages/player/chat/components/spinner';
 
 const AiStreamingMessage = ({ msg }: { msg: AiStreamingMessageModel }) => {
     return (
