@@ -19,6 +19,45 @@ jobs:
     steps:
       - name: Github checkout
         uses: actions/checkout@v4
+      - name: Build whisper.cpp CLI (macOS only)
+        if: startsWith(matrix.os.name, 'macos')
+        run: |
+          set -euo pipefail
+          ARCH_DIR="x64"
+          CMAKE_ARCH="x86_64"
+          if [[ "${{ matrix.os.name }}" == "macos-arm64" ]]; then
+            ARCH_DIR="arm64"
+            CMAKE_ARCH="arm64"
+          fi
+
+          WORK_DIR="$(mktemp -d)"
+          git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git "$WORK_DIR/whisper.cpp"
+          cd "$WORK_DIR/whisper.cpp"
+          cmake -B build \
+            -DWHISPER_BUILD_EXAMPLES=ON \
+            -DWHISPER_BUILD_TESTS=OFF \
+            -DWHISPER_BUILD_SERVER=OFF \
+            -DWHISPER_SDL2=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="${CMAKE_ARCH}"
+          cmake --build build --config Release -j "$(sysctl -n hw.logicalcpu)"
+
+          WHISPER_BIN="$(find build -type f -name 'whisper-cli' | head -n 1)"
+          if [[ -z "${WHISPER_BIN}" ]]; then
+            echo "whisper-cli not found in build output" >&2
+            exit 1
+          fi
+
+          METAL_FILE="$(find build -type f -name 'ggml-metal.metal' | head -n 1 || true)"
+
+          DEST="${GITHUB_WORKSPACE}/lib/whisper.cpp/${ARCH_DIR}/darwin"
+          mkdir -p "${DEST}"
+          cp "${WHISPER_BIN}" "${DEST}/whisper-cli"
+          chmod +x "${DEST}/whisper-cli"
+          if [[ -n "${METAL_FILE}" ]]; then
+            cp "${METAL_FILE}" "${DEST}/ggml-metal.metal"
+          fi
+          ls -la "${DEST}"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
