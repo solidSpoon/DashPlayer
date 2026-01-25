@@ -46,7 +46,6 @@ import ChatSessionService from '@/backend/application/services/ChatSessionServic
 import ChatServiceImpl from '@/backend/application/services/impl/ChatServiceImpl';
 import ChatSessionServiceImpl from '@/backend/application/services/impl/ChatSessionServiceImpl';
 import AiProviderServiceImpl from '@/backend/application/services/impl/clients/AiProviderServiceImpl';
-import AiServiceImpl, { AiService } from '@/backend/application/services/AiServiceImpl';
 import WhisperService from '@/backend/application/services/WhisperService';
 import WhisperServiceImpl from '@/backend/application/services/impl/WhisperServiceImpl';
 import ConvertService from '@/backend/application/services/ConvertService';
@@ -175,7 +174,6 @@ container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingl
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
-container.bind<AiService>(TYPES.AiService).to(AiServiceImpl).inSingletonScope();
 container.bind<WhisperService>(TYPES.WhisperService).to(WhisperServiceImpl).inSingletonScope();
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();

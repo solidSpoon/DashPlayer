@@ -15,7 +15,6 @@ const TYPES = {
     SettingService: Symbol('SettingService'),
     LocationService: Symbol('LocationService'),
     DpTaskService: Symbol('DpTaskService'),
-    AiService: Symbol('AiService'),
     ChatService: Symbol('ChatService'),
     ChatSessionService: Symbol('ChatSessionService'),
     FfmpegService: Symbol('FfmpegService'),

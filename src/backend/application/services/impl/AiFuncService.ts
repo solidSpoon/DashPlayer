@@ -12,7 +12,8 @@ import { inject, injectable } from 'inversify';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
-import { AiService } from '@/backend/application/services/AiServiceImpl';
+import ChatService from '@/backend/application/services/ChatService';
+import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
 
 @injectable()
 export default class AiFuncService {
@@ -21,8 +22,8 @@ export default class AiFuncService {
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
 
-    @inject(TYPES.AiService)
-    private aiService!: AiService;
+    @inject(TYPES.ChatService)
+    private chatService!: ChatService;
 
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
@@ -41,7 +42,10 @@ export default class AiFuncService {
 
     public async formatSplit(text: string): Promise<number> {
         const taskId = await this.dpTaskService.create();
-        this.aiService.formatSplit(taskId, text).then();
+        this.chatService.chat(taskId, [{
+            role: 'user',
+            content: AiFuncFormatSplitPrompt.promptFunc(text),
+        }]).then();
         return taskId;
     }
 
