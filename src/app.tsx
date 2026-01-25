@@ -51,7 +51,7 @@ const App = () => {
                 sonnerToast(`发现新版本 ${latest.version}`, {
                     id: UPDATE_TOAST_ID,
                     duration: 8000,
-                    position: 'top-right',
+                    position: 'bottom-left',
                     action: {
                         label: '查看',
                         onClick: async () => {
