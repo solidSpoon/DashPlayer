@@ -9,6 +9,15 @@ import path from 'path';
 import chalk from 'chalk';
 import { $ } from 'zx';
 
+const getGithubToken = () => process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+
+const getGithubAuthHeaders = (url) => {
+    const token = getGithubToken();
+    if (!token) return {};
+    if (!/github\.com|api\.github\.com/i.test(url)) return {};
+    return {Authorization: `Bearer ${token}`};
+};
+
 /**
  * Calculate the hash of the file
  * @param path {string}
@@ -96,7 +105,10 @@ const download = async ({url, dir, file, sha}) => {
     const dest = path.join(dir, file);
     console.info(chalk.blue(`=> Start to download from ${url} to ${dest}`));
     try {
-        const response = await axios.get(url, {responseType: "stream"});
+        const response = await axios.get(url, {
+            responseType: "stream",
+            headers: getGithubAuthHeaders(url),
+        });
         const totalLength = response.headers["content-length"];
 
         const progressBar = new progress(`-> downloading [:bar] :percent :etas`, {
@@ -241,6 +253,7 @@ const getLatestReleaseAssetUrl = async ({owner, repo, nameRegex}) => {
         headers: {
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'DashPlayer-downloader',
+            ...getGithubAuthHeaders(apiUrl),
         }
     });
     const assets = res.data?.assets ?? [];
