@@ -16,9 +16,4 @@ export default interface CustomMessage<T> {
 export type MsgType =
     | 'human-topic'
     | 'human-normal'
-    | 'ai-welcome'
     | 'ai-streaming'
-    | 'ai-normal'
-    | 'ai-func-explain-select'
-    | 'ai-func-explain-select-with-context'
-    | 'ai-func-polish'

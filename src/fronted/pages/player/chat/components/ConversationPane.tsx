@@ -7,22 +7,13 @@ import useChatPanel from "@/fronted/hooks/useChatPanel";
 import CustomMessage from "@/common/types/msg/interfaces/CustomMessage";
 import HumanTopicMessage from "@/common/types/msg/HumanTopicMessage";
 import UserTopicMessage from "@/fronted/pages/player/chat/components/messages/UserTopicMessage";
-import AiWelcomeMessage from "@/common/types/msg/AiWelcomeMessage";
-import {AiTextMessage} from "@/fronted/pages/player/chat/components/messages/AiTextMessage";
-import AiNormalMessage from "@/common/types/msg/AiNormalMessage";
 import UserTextMessage from "@/fronted/pages/player/chat/components/messages/UserTextMessage";
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import { AiExplainSelectionWithContextMessage } from '@/fronted/pages/player/chat/components/messages/AiExplainSelectionWithContextMessage';
-import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
-import { AiPolishMessage } from '@/fronted/pages/player/chat/components/messages/AiPolishMessage';
-import { AiExplainSelectionMessage } from '@/fronted/pages/player/chat/components/messages/AiExplainSelectionMessage';
-import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import { useShallow } from 'zustand/react/shallow';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { Send } from 'lucide-react';
-import AiCtxMenuPolishMessage from "@/common/types/msg/AiCtxMenuPolishMessage";
 import AiStreamingMessage from '@/fronted/pages/player/chat/components/messages/AiStreamingMessage';
 import AiStreamingMessageModel from '@/common/types/msg/AiStreamingMessage';
 
@@ -76,18 +67,8 @@ const ConversationPane = () => {
         switch (msg.msgType) {
             case "human-topic":
                 return <UserTopicMessage msg={msg as HumanTopicMessage}/>;
-            case "ai-welcome":
-                return <AiTextMessage msg={msg as AiWelcomeMessage}/>;
-            case "ai-normal":
-                return <AiTextMessage msg={msg as AiNormalMessage}/>;
             case "human-normal":
                 return <UserTextMessage msg={msg as HumanNormalMessage}/>;
-            case 'ai-func-explain-select':
-                return <AiExplainSelectionMessage msg={msg as AiCtxMenuExplainSelectMessage}/>;
-            case 'ai-func-explain-select-with-context':
-                return <AiExplainSelectionWithContextMessage msg={msg as AiCtxMenuExplainSelectWithContextMessage}/>;
-            case 'ai-func-polish':
-                return <AiPolishMessage msg={msg as AiCtxMenuPolishMessage}/>;
             case 'ai-streaming':
                 return <AiStreamingMessage msg={msg as AiStreamingMessageModel}/>;
             default:

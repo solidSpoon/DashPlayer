@@ -574,7 +574,7 @@ const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic) => {
                 return;
             }
             const nextMessages = useChatPanel.getState().messages
-                .filter(msg => msg.msgType !== 'ai-welcome' && msg.msgType !== 'ai-streaming');
+                .filter(msg => msg.msgType !== 'ai-streaming');
             useChatPanel.setState({
                 messages: nextMessages,
                 streamingMessage: new AiStreamingMessage(topic, messageId, '', true),

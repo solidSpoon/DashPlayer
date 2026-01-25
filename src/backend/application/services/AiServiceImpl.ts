@@ -3,10 +3,7 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import exampleSentences from '@/backend/application/services/prompts/example-sentence';
 import analyzePhrasesPrompt from './prompts/analyze-phrases';
 import synonymousSentence from '@/backend/application/services/prompts/synonymous-sentence';
-import { AiFuncPolishPrompt } from '@/common/types/aiRes/AiFuncPolish';
 import { AiAnalyseGrammarsPrompt } from '@/common/types/aiRes/AiAnalyseGrammarsRes';
-import { AiFuncExplainSelectWithContextPrompt } from '@/common/types/aiRes/AiFuncExplainSelectWithContextRes';
-import { AiFuncExplainSelectPrompt } from '@/common/types/aiRes/AiFuncExplainSelectRes';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
 import { AiPhraseGroupPrompt } from '@/common/types/aiRes/AiPhraseGroupRes';
 import { AiFuncTranslateWithContextPrompt } from '@/common/types/aiRes/AiFuncTranslateWithContextRes';
@@ -19,8 +16,6 @@ import { pipe } from 'lodash/fp';
 import {z} from "zod";
 
 export interface AiService {
-    polish(taskId: number, sentence: string): Promise<void>;
-
     formatSplit(taskId: number, text: string): Promise<void>;
 
     analyzeWord(taskId: number, sentence: string): Promise<void>;
@@ -37,10 +32,6 @@ export interface AiService {
 
     punctuation(taskId: number, no: number, fullSrt: string): Promise<void>;
 
-    explainSelect(taskId: number, word: string): Promise<void>;
-
-    explainSelectWithContext(taskId: number, sentence: string, selectedWord: string): Promise<void>;
-
     translateWithContext(taskId: number, sentence: string, context: string[]): Promise<void>;
 }
 
@@ -50,10 +41,6 @@ export default class AiServiceImpl implements AiService {
     @inject(TYPES.ChatService)
     private chatService!: ChatService;
     private logger = getMainLogger('AiServiceImpl');
-
-    public async polish(taskId: number, sentence: string) {
-        await this.chatService.run(taskId, AiFuncPolishPrompt.schema, AiFuncPolishPrompt.promptFunc(sentence));
-    }
 
     public async formatSplit(taskId: number, text: string) {
         // await AiFunc.run(taskId, null, AiFuncFormatSplitPrompt.promptFunc(text));
@@ -146,14 +133,6 @@ export default class AiServiceImpl implements AiService {
         // 获取前后5行字幕
         const around = rangePipe(srtLines, no, 5);
         await this.chatService.run(taskId, AiFuncPunctuationPrompt.schema, AiFuncPunctuationPrompt.promptFunc(sentence, around));
-    }
-
-    public async explainSelect(taskId: number, word: string) {
-        await this.chatService.run(taskId, AiFuncExplainSelectPrompt.schema, AiFuncExplainSelectPrompt.promptFunc(word));
-    }
-
-    public async explainSelectWithContext(taskId: number, sentence: string, selectedWord: string) {
-        await this.chatService.run(taskId, AiFuncExplainSelectWithContextPrompt.schema, AiFuncExplainSelectWithContextPrompt.promptFunc(sentence, selectedWord));
     }
 
     public async translateWithContext(taskId: number, sentence: string, context: string[]) {

@@ -8,13 +8,11 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { CoreMessage } from 'ai';
 import { inject, injectable } from 'inversify';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { AiService } from '@/backend/application/services/AiServiceImpl';
-import ChatService from '@/backend/application/services/ChatService';
 
 @injectable()
 export default class AiFuncService {
@@ -22,9 +20,6 @@ export default class AiFuncService {
 
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
-
-    @inject(TYPES.ChatService)
-    private chatService!: ChatService;
 
     @inject(TYPES.AiService)
     private aiService!: AiService;
@@ -68,12 +63,6 @@ export default class AiFuncService {
         return taskId;
     }
 
-    public async polish(sentence: string): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.polish(taskId, sentence).then();
-        return taskId;
-    }
-
     public async formatSplit(text: string): Promise<number> {
         const taskId = await this.dpTaskService.create();
         this.aiService.formatSplit(taskId, text).then();
@@ -98,26 +87,8 @@ export default class AiFuncService {
         return taskId;
     }
 
-    public async explainSelectWithContext(params: { sentence: string, selectedWord: string }): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.explainSelectWithContext(taskId, params.sentence, params.selectedWord).then();
-        return taskId;
-    }
-
-    public async explainSelect(params: { word: string }): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.explainSelect(taskId, params.word).then();
-        return taskId;
-    }
-
     public async tts(text: string): Promise<string> {
         return UrlUtil.dp(await TtsService.tts(text));
-    }
-
-    public async chat(params: { msgs: CoreMessage[] }): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.chatService.chat(taskId, params.msgs).then();
-        return taskId;
     }
 
     public async transcript(params: { filePath: string }): Promise<void> {

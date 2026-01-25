@@ -16,8 +16,7 @@ import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
-import {CoreMessage} from 'ai';
-import { ChatResetParams, ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
+import { ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
@@ -31,19 +30,15 @@ interface ApiDefinition {
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string };
     'ai-func/phrase-group': { params: string, return: number };
-    'ai-func/polish': { params: string, return: number };
     'ai-func/format-split': { params: string, return: number };
     'ai-func/make-example-sentences': { params: { sentence: string, point: string[] }, return: number };
     'ai-func/punctuation': { params: { no: number, srt: string }, return: number };
     'ai-func/analyze-grammars': { params: string, return: number };
     'ai-func/analyze-new-phrases': { params: string, return: number };
     'ai-func/analyze-new-words': { params: string, return: number };
-    'ai-func/chat': { params: { msgs: CoreMessage[] }, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: void };
     'ai-func/cancel-transcription': { params: { filePath: string }, return: boolean };
     'ai-func/get-active-transcription-tasks': { params: void, return: unknown[] };
-    'ai-func/explain-select-with-context': { params: { sentence: string, selectedWord: string }, return: number };
-    'ai-func/explain-select': { params: { word: string }, return: number };
     'ai-func/translate-with-context': { params: { sentence: string, context: string[] }, return: number };
 }
 
