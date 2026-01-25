@@ -29,17 +29,10 @@ interface ApiDefinition {
 // 定义额外的接口
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string };
-    'ai-func/phrase-group': { params: string, return: number };
     'ai-func/format-split': { params: string, return: number };
-    'ai-func/make-example-sentences': { params: { sentence: string, point: string[] }, return: number };
-    'ai-func/punctuation': { params: { no: number, srt: string }, return: number };
-    'ai-func/analyze-grammars': { params: string, return: number };
-    'ai-func/analyze-new-phrases': { params: string, return: number };
-    'ai-func/analyze-new-words': { params: string, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: void };
     'ai-func/cancel-transcription': { params: { filePath: string }, return: boolean };
     'ai-func/get-active-transcription-tasks': { params: void, return: unknown[] };
-    'ai-func/translate-with-context': { params: { sentence: string, context: string[] }, return: number };
 }
 
 interface DpTaskDef {

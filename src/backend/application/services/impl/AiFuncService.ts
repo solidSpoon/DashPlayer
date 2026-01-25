@@ -39,51 +39,9 @@ export default class AiFuncService {
     @inject(TYPES.LocalTranscriptionService)
     private localTranscriptionService!: TranscriptionService;
 
-    public async analyzeNewWords(sentence: string): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.analyzeWord(taskId, sentence).then();
-        return taskId;
-    }
-
-    public async analyzeNewPhrases(sentence: string): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.analyzePhrase(taskId, sentence).then();
-        return taskId;
-    }
-
-    public async analyzeGrammars(sentence: string): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.analyzeGrammar(taskId, sentence).then();
-        return taskId;
-    }
-
-    public async makeSentences(params: { sentence: string, point: string[] }): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.makeSentences(taskId, params.sentence, params.point).then();
-        return taskId;
-    }
-
     public async formatSplit(text: string): Promise<number> {
         const taskId = await this.dpTaskService.create();
         this.aiService.formatSplit(taskId, text).then();
-        return taskId;
-    }
-
-    public async phraseGroup(sentence: string): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.phraseGroup(taskId, sentence).then();
-        return taskId;
-    }
-
-    public async punctuation(params: { no: number, srt: string }): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.punctuation(taskId, params.no, params.srt).then();
-        return taskId;
-    }
-
-    public async translateWithContext(params: { sentence: string, context: string[] }): Promise<number> {
-        const taskId = await this.dpTaskService.create();
-        this.aiService.translateWithContext(taskId, params.sentence, params.context).then();
         return taskId;
     }
 
