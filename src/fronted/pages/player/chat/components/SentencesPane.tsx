@@ -11,17 +11,17 @@ const SentencesPart = ({ sentences }: { sentences: {
     points: string[];
 }[] }) => {
     const updateInternalContext = useChatPanel(state => state.updateInternalContext);
-    return <div className="flex flex-col gap-3">
+    return <div className="flex flex-col gap-2">
         {sentences.map((s, i) => (
             <div key={`${i}-${s.sentence ?? ''}`}
                  onContextMenu={() => updateInternalContext(s?.sentence)}
-                 className="bg-secondary/30 flex flex-col justify-between px-4 py-3 rounded-xl transition-colors hover:bg-secondary/50">
+                 className="bg-secondary/30 flex flex-col justify-between px-4 py-2 rounded-xl transition-colors hover:bg-secondary/50">
                 <Playable
                     className="text-base font-medium text-foreground/90">{s?.sentence}</Playable>
                 <div
                     tabIndex={0}
-                    className="text-sm text-muted-foreground mt-1">{s?.meaning}</div>
-                <div className={'flex flex-wrap gap-x-3 gap-y-1 mt-3'}>
+                    className="text-sm text-muted-foreground mt-0.5">{s?.meaning}</div>
+                <div className={'flex flex-wrap gap-x-3 gap-y-0.5 mt-2'}>
                     {
                         s?.points?.map((p, j) => (
                             <div
