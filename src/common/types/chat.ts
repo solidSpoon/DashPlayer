@@ -22,10 +22,6 @@ export type ChatWelcomeParams = {
     fullText?: string;
 };
 
-export type ChatResetParams = {
-    sessionId: string;
-};
-
 export type ChatStreamEvent = {
     sessionId: string;
     messageId: string;

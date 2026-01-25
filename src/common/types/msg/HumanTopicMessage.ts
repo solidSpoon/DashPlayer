@@ -13,15 +13,10 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
     }
 
     async toMsg(): Promise<CoreMessage[]> {
-        return [
-            {
-                role: 'system',
-                content: 'You are an English teacher, specialized in teaching English.'
-            },
-            {
-                role: 'user',
-                content: `请帮我分析 "${this.content}"`
-            }];
+        return [{
+            role: 'user',
+            content: `请帮我分析 "${this.content}"`
+        }];
     }
 
     msgType: MsgType = 'human-topic';

@@ -7,22 +7,16 @@ import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import useFile from '@/fronted/hooks/useFile';
-import AiCtxMenuExplainSelectWithContextMessage from '@/common/types/msg/AiCtxMenuExplainSelectWithContextMessage';
 import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
-import AiCtxMenuPolishMessage from '@/common/types/msg/AiCtxMenuPolishMessage';
-import AiCtxMenuExplainSelectMessage from '@/common/types/msg/AiCtxMenuExplainSelectMessage';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { registerDpTask } from '@/fronted/hooks/useDpTaskCenter';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
-import { ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
-import { AnalysisStreamEvent } from '@/common/types/analysis';
+import { ChatBackgroundContext, ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
+import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
-import { DeepPartial } from '@/common/types/analysis';
-import { ChatBackgroundContext } from '@/common/types/chat';
 
 const api = backendClient;
 
@@ -65,7 +59,6 @@ export type ChatPanelState = {
 };
 
 export type ChatPanelActions = {
-    addChatTask: (task: CustomMessage<any>) => void;
     backward: () => void;
     forward: () => void;
     createFromSelect: (text?: string) => void;
@@ -146,14 +139,6 @@ const empty = (): ChatPanelState => {
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
         ...empty(),
-        addChatTask: (msg) => {
-            set({
-                messages: [
-                    ...get().messages,
-                    msg
-                ]
-            });
-        },
         backward: () => {
             undoRedo.update(copy(get()));
             if (!undoRedo.canUndo()) return;
@@ -186,7 +171,6 @@ const useChatPanel = create(
                     return;
                 }
             }
-            api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
             const tt = new HumanTopicMessage(get().topic, text);
@@ -219,7 +203,6 @@ const useChatPanel = create(
             }, topic);
         },
         createFromCurrent: async () => {
-            api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             undoRedo.add(copy(get()));
             const ct = usePlayerV2.getState().currentSentence;
             if (!ct) return;
@@ -265,7 +248,6 @@ const useChatPanel = create(
         },
         clear: () => {
             undoRedo.clear();
-            api.call('chat/reset', { sessionId: get().chatSessionId }).then();
             set(empty());
         },
         sent: async (msg: string) => {
@@ -415,16 +397,14 @@ const useChatPanel = create(
             if (StrUtil.isBlank(userSelect)) return;
             const context = get().context;
             if (StrUtil.isBlank(context) || engEqual(context, userSelect)) {
-                const taskId = await registerDpTask(() => api.call('ai-func/explain-select', {
-                    word: userSelect
-                }));
-                get().addChatTask(new AiCtxMenuExplainSelectMessage(taskId, get().topic, context ?? ''));
+                await get().sent(`这个词/短语 "${userSelect}" 是什么意思？`);
             } else {
-                const taskId = await registerDpTask(() => api.call('ai-func/explain-select-with-context', {
-                    sentence: context,
-                    selectedWord: userSelect
-                }));
-                get().addChatTask(new AiCtxMenuExplainSelectWithContextMessage(taskId, get().topic, context, userSelect));
+                await get().sent([
+                    `这句话里的 "${userSelect}" 是什么意思？`,
+                    '"""',
+                    context,
+                    '"""'
+                ].join('\n'));
             }
         },
         ctxMenuPlayAudio: async () => {
@@ -442,8 +422,7 @@ const useChatPanel = create(
                 text = get().context ?? '';
             }
             if (StrUtil.isBlank(text)) return;
-            const taskId = await registerDpTask(() => api.call('ai-func/polish', text));
-            get().addChatTask(new AiCtxMenuPolishMessage(taskId, get().topic, text));
+            await get().sent(`帮我把这句话改写得更地道一些：\n"""\n${text}\n"""`);
         },
         deleteMessage: (msg: CustomMessage<any>) => {
             set({

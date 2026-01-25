@@ -6,5 +6,4 @@ export default interface ChatSessionService {
     start(sessionId: string, messages: CoreMessage[], background?: ChatBackgroundContext): Promise<ChatStartResult>;
     startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult>;
     startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult>;
-    reset(sessionId: string): void;
 }

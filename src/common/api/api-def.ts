@@ -122,7 +122,6 @@ interface AiTransDef {
 interface ChatDef {
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
     'chat/welcome': { params: ChatWelcomeParams, return: ChatStartResult };
-    'chat/reset': { params: ChatResetParams, return: void };
 }
 
 interface ChatAnalysisDef {

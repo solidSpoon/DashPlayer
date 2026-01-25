@@ -25,9 +25,13 @@ const Playable = ({ className, children }: PlayableProps) => {
             onMouseUp={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const selectedText = window.getSelection()?.toString() || '';
-                if (selectedText.length > 0) {
-                    return;
+                const selection = window.getSelection();
+                if (selection && selection.toString().length > 0) {
+                    const target = e.currentTarget;
+                    if (selection.containsNode(target, true)) {
+                        return;
+                    }
+                    selection.removeAllRanges();
                 }
                 const str = children || '';
                 if (!str.trim()) {

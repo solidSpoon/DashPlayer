@@ -3,7 +3,7 @@ import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import Controller from '@/backend/adapters/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
 import ChatSessionService from '@/backend/application/services/ChatSessionService';
-import { ChatResetParams, ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
+import { ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 
 @injectable()
@@ -24,8 +24,5 @@ export default class ChatStreamController implements Controller {
             return this.chatSessionService.startAnalysis(params);
         });
 
-        registerRoute('chat/reset', async (params: ChatResetParams): Promise<void> => {
-            this.chatSessionService.reset(params.sessionId);
-        });
     }
 }

@@ -10,24 +10,15 @@ import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/
 import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 
-type ChatSession = {
-    messages: CoreMessage[];
-};
-
 @injectable()
 export default class ChatSessionServiceImpl implements ChatSessionService {
     private logger = getMainLogger('ChatSessionService');
-    private sessions = new Map<string, ChatSession>();
 
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
 
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
-
-    public reset(sessionId: string): void {
-        this.sessions.delete(sessionId);
-    }
 
     @WaitRateLimit('gpt')
     public async startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult> {
@@ -51,10 +42,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         }
 
         const messages = this.buildWelcomeMessages(params);
-        this.ensureSession(sessionId, messages);
-        this.runStream(sessionId, messageId, messages, {
-            contextTransform: (content) => this.stripSwitchMarkers(content),
-        }).catch((error) => {
+        this.runStream(sessionId, messageId, messages).catch((error) => {
             this.logger.error('welcome stream failed', {
                 error: error instanceof Error ? error.message : String(error),
             });
@@ -114,7 +102,6 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     ): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
         const enrichedMessages = this.appendBackgroundMessage(messages, background);
-        this.ensureSession(sessionId, enrichedMessages);
         this.rendererGateway.fireAndForget('chat/stream', {
             sessionId,
             messageId,
@@ -147,17 +134,10 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         return { messageId };
     }
 
-    private ensureSession(sessionId: string, messages: CoreMessage[]): void {
-        this.sessions.set(sessionId, { messages });
-    }
-
     private async runStream(
         sessionId: string,
         messageId: string,
-        messages: CoreMessage[],
-        options?: {
-            contextTransform?: (content: string) => string;
-        }
+        messages: CoreMessage[]
     ): Promise<void> {
         const model = this.aiProviderService.getModel();
         if (!model) {
@@ -167,9 +147,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             model,
             messages,
         });
-        let response = '';
         for await (const chunk of result.textStream) {
-            response += chunk;
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
                 messageId,
@@ -182,19 +160,10 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             messageId,
             event: 'done',
         });
-        const session = this.sessions.get(sessionId);
-        if (session) {
-            const content = options?.contextTransform ? options.contextTransform(response) : response;
-            session.messages = [...messages, { role: 'assistant', content }];
-        }
     }
 
     private createMessageId(): string {
         return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    }
-
-    private stripSwitchMarkers(content: string): string {
-        return content.replace(/\[\[switch:[\s\S]*?\]\]/g, '');
     }
 
     private buildWelcomeMessages(params: ChatWelcomeParams): CoreMessage[] {
@@ -382,6 +351,18 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                     '- 用中文回答，英文内容保持原样',
                     '- 不需要分太多小标题，自然地说就行',
                     '- 如果要举例，一两个就够了',
+                    '',
+                    '朗读功能（重要）：',
+                    '- 碰到英文就用 [[tts:...]] 包起来，里面只放英文，别加中文解释',
+                    '- 单词、短语、句子、例句都这样包，用户想听就能点',
+                    '- 英文只在 [[tts:...]] 里写一次，外面就不用重复了',
+                    '- 别在标记里用方括号 []、竖线 | 这些特殊符号，会出问题',
+                    '- 像这样：[[tts:This is a sample sentence.]]',
+                    '',
+                    '回答用户的常见问题：',
+                    '- 问单词/短语：音标、中文意思、英文解释、3 个例句（带中文），英文都用 [[tts:...]]',
+                    '- 问句子里的词：先说整句意思，再讲这个词在句子里的用法，给 3 个例句',
+                    '- 要同义句/润色：给 3 个改写，每个单独一行用 - 开头，英文用 [[tts:...]]',
                 ].join('\n'),
             },
             ...messages
