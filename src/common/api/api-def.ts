@@ -125,8 +125,8 @@ interface ChatDef {
     'chat/reset': { params: ChatResetParams, return: void };
 }
 
-interface AnalysisDef {
-    'analysis/start': { params: AnalysisStartParams, return: AnalysisStartResult };
+interface ChatAnalysisDef {
+    'chat/analysis/start': { params: AnalysisStartParams, return: AnalysisStartResult };
 }
 
 interface WatchHistoryDef {
@@ -283,7 +283,7 @@ export type ApiDefinitions = ApiDefinition
     & SystemDef
     & AiTransDef
     & ChatDef
-    & AnalysisDef
+    & ChatAnalysisDef
     & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef

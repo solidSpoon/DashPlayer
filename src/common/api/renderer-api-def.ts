@@ -102,7 +102,7 @@ interface ChatRendererDef {
 }
 
 interface AnalysisRendererDef {
-    'analysis/stream': { params: AnalysisStreamEvent, return: void };
+    'chat/analysis/stream': { params: AnalysisStreamEvent, return: void };
 }
 
 

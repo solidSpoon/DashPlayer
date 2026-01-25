@@ -5,7 +5,7 @@ import RendererGateway from '@/backend/application/ports/gateways/renderer/Rende
 import TYPES from '@/backend/ioc/types';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import ChatSessionService from '@/backend/application/services/ChatSessionService';
-import { ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
+import { ChatBackgroundContext, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
@@ -73,7 +73,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     public async startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult> {
         const messageId = this.createMessageId();
         const sessionId = params.sessionId;
-        this.rendererGateway.fireAndForget('analysis/stream', {
+        this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
             event: 'start',
@@ -81,7 +81,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
 
         const model = this.aiProviderService.getModel();
         if (!model) {
-            this.rendererGateway.fireAndForget('analysis/stream', {
+            this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
                 event: 'error',
@@ -95,7 +95,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             this.logger.error('analysis stream failed', {
                 error: error instanceof Error ? error.message : String(error),
             });
-            this.rendererGateway.fireAndForget('analysis/stream', {
+            this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
                 event: 'error',
@@ -107,9 +107,14 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     @WaitRateLimit('gpt')
-    public async start(sessionId: string, messages: CoreMessage[]): Promise<ChatStartResult> {
+    public async start(
+        sessionId: string,
+        messages: CoreMessage[],
+        background?: ChatBackgroundContext
+    ): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
-        this.ensureSession(sessionId, messages);
+        const enrichedMessages = this.appendBackgroundMessage(messages, background);
+        this.ensureSession(sessionId, enrichedMessages);
         this.rendererGateway.fireAndForget('chat/stream', {
             sessionId,
             messageId,
@@ -127,7 +132,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             return { messageId };
         }
 
-        this.runStream(sessionId, messageId, messages).catch((error) => {
+        this.runStream(sessionId, messageId, enrichedMessages).catch((error) => {
             this.logger.error('chat stream failed', {
                 error: error instanceof Error ? error.message : String(error),
             });
@@ -336,6 +341,128 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         ].join('\n');
     }
 
+    private appendBackgroundMessage(
+        messages: CoreMessage[],
+        background?: ChatBackgroundContext
+    ): CoreMessage[] {
+        const withRole = this.ensureChatRoleMessage(messages);
+        const backgroundMessage = this.buildChatBackgroundMessage(background);
+        if (!backgroundMessage) {
+            return withRole;
+        }
+        const insertIndex = withRole.findLastIndex((message) => message.role === 'user');
+        if (insertIndex < 0) {
+            return [...withRole, backgroundMessage];
+        }
+        return [
+            ...withRole.slice(0, insertIndex),
+            backgroundMessage,
+            ...withRole.slice(insertIndex)
+        ];
+    }
+
+    private ensureChatRoleMessage(messages: CoreMessage[]): CoreMessage[] {
+        if (messages.some((message) => message.role === 'system')) {
+            return messages;
+        }
+        return [
+            {
+                role: 'system',
+                content: [
+                    '你是用户的英语学习伙伴，帮他看剧学英语。',
+                    '',
+                    '说话风格：',
+                    '- 像朋友聊天一样自然，别太正式',
+                    '- 简洁直接，别啰嗦',
+                    '- 解释语法或词汇时举个例子就好，别长篇大论',
+                    '- 用户问什么答什么，别自作主张展开太多',
+                    '- 可以适当用"哈""啊""嗯"这类语气词，但别过度',
+                    '',
+                    '回答格式：',
+                    '- 用中文回答，英文内容保持原样',
+                    '- 不需要分太多小标题，自然地说就行',
+                    '- 如果要举例，一两个就够了',
+                ].join('\n'),
+            },
+            ...messages
+        ];
+    }
+
+    private buildChatBackgroundMessage(
+        background?: ChatBackgroundContext
+    ): CoreMessage | null {
+        const parts: string[] = [];
+        const paragraphLines = background?.paragraphLines ?? [];
+        if (paragraphLines.length > 0) {
+            parts.push([
+                '原始段落（上下文 11 句）:',
+                paragraphLines.map((line, index) => `${index + 1}. ${line}`).join('\n')
+            ].join('\n'));
+        }
+
+        const analysis = background?.analysis;
+        if (analysis?.structure?.phraseGroups?.length) {
+            const lines = analysis.structure.phraseGroups.map(
+                (group: AiUnifiedAnalysisRes['structure']['phraseGroups'][number]) => {
+                const tags = group.tags?.length ? ` (${group.tags.join('、')})` : '';
+                return `- ${group.original ?? ''} -> ${group.translation ?? ''}${tags}`;
+            });
+            parts.push(['知识点-意群拆解:', ...lines].join('\n'));
+        }
+
+        if (analysis?.vocab?.words?.length) {
+            const lines = analysis.vocab.words.map(
+                (word: AiUnifiedAnalysisRes['vocab']['words'][number]) => {
+                const phonetic = word.phonetic ? ` ${word.phonetic}` : '';
+                return `- ${word.word}${phonetic}: ${word.meaning ?? ''}`;
+            });
+            parts.push(['知识点-生词:', ...lines].join('\n'));
+        }
+
+        if (analysis?.phrases?.phrases?.length) {
+            const lines = analysis.phrases.phrases.map(
+                (phrase: AiUnifiedAnalysisRes['phrases']['phrases'][number]) => {
+                return `- ${phrase.phrase ?? ''}: ${phrase.meaning ?? ''}`;
+            });
+            parts.push(['知识点-短语:', ...lines].join('\n'));
+        }
+
+        if (analysis?.grammar?.grammarsMd) {
+            parts.push(['知识点-语法要点:', analysis.grammar.grammarsMd].join('\n'));
+        }
+
+        if (analysis?.examples?.sentences?.length) {
+            const lines = analysis.examples.sentences.map(
+                (example: AiUnifiedAnalysisRes['examples']['sentences'][number], index) => {
+                const sentence = example.sentence ?? '';
+                const meaning = example.meaning ?? '';
+                const points = example.points?.length ? ` [${example.points.join('、')}]` : '';
+                return `${index + 1}. ${sentence}${meaning ? ` / ${meaning}` : ''}${points}`;
+            });
+            parts.push(['右下角例句列表:', ...lines].join('\n'));
+        }
+
+        if (parts.length === 0) {
+            return null;
+        }
+
+        return {
+            role: 'system',
+            content: [
+                '以下是本次对话的背景信息，请在回答时参考：',
+                '页面元素位置说明:',
+                '- 顶部: 意群结构',
+                '- 左上: 本句生词',
+                '- 左中: 本句词组',
+                '- 左下: 本句语法',
+                '- 右上: 原始段落',
+                '- 右下: 例句',
+                '',
+                parts.join('\n\n')
+            ].join('\n'),
+        };
+    }
+
     private async runAnalysisStream(sessionId: string, messageId: string, prompt: string): Promise<void> {
         const model = this.aiProviderService.getModel();
         if (!model) {
@@ -347,7 +474,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             prompt,
         });
         for await (const partial of result.partialObjectStream) {
-            this.rendererGateway.fireAndForget('analysis/stream', {
+            this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
                 event: 'chunk',
@@ -355,13 +482,13 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             });
         }
         const finalObject = await result.object;
-        this.rendererGateway.fireAndForget('analysis/stream', {
+        this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
             event: 'chunk',
             partial: finalObject,
         });
-        this.rendererGateway.fireAndForget('analysis/stream', {
+        this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
             event: 'done',
@@ -384,17 +511,33 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
 
         const points = (examples as { points?: unknown }).points;
         const pointsList = Array.isArray(points) ? points : [];
-        const normalizedSentences = sentences.map((sentence, index) => {
-            if (sentence && typeof sentence === 'object' && 'sentence' in sentence) {
-                return sentence;
+        const normalizedSentences = sentences.map(
+            (sentence: unknown, index): DeepPartial<AiUnifiedAnalysisRes['examples']['sentences'][number]> => {
+                if (sentence && typeof sentence === 'object' && 'sentence' in sentence) {
+                    const sentenceObj = sentence as {
+                        sentence?: unknown;
+                        meaning?: unknown;
+                        points?: unknown;
+                    };
+                    const pointsValue = Array.isArray(sentenceObj.points)
+                        ? sentenceObj.points.filter((point): point is string => typeof point === 'string')
+                        : undefined;
+                    return {
+                        sentence: typeof sentenceObj.sentence === 'string' ? sentenceObj.sentence : undefined,
+                        meaning: typeof sentenceObj.meaning === 'string' ? sentenceObj.meaning : undefined,
+                        points: pointsValue,
+                    };
+                }
+                const sentencePoints = Array.isArray(pointsList[index])
+                    ? pointsList[index].filter((point): point is string => typeof point === 'string')
+                    : [];
+                return {
+                    sentence: typeof sentence === 'string' ? sentence : '',
+                    meaning: '',
+                    points: sentencePoints,
+                };
             }
-            const sentencePoints = Array.isArray(pointsList[index]) ? pointsList[index] : [];
-            return {
-                sentence: typeof sentence === 'string' ? sentence : '',
-                meaning: '',
-                points: sentencePoints,
-            };
-        });
+        );
 
         const { points: _ignoredPoints, ...restExamples } = examples as {
             points?: unknown;

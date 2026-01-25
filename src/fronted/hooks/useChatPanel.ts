@@ -22,6 +22,7 @@ import { ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { DeepPartial } from '@/common/types/analysis';
+import { ChatBackgroundContext } from '@/common/types/chat';
 
 const api = backendClient;
 
@@ -270,13 +271,17 @@ const useChatPanel = create(
         sent: async (msg: string) => {
             if (StrUtil.isBlank(msg)) return;
             const requestMsg = new HumanNormalMessage(get().topic, msg);
-            const history = await Promise.all(
-                get().messages.concat(requestMsg).map(e => e.toMsg())
+            const baseMessages = await Promise.all(
+                get().messages.map(e => e.toMsg())
             ).then(results => results.flat());
+            const requestMessages = await requestMsg.toMsg();
+            const background = buildChatBackgroundContext(get().analysis ?? null);
+            const history = [...baseMessages, ...requestMessages];
             getRendererLogger('useChatPanel').debug('chat history', { messageCount: history.length });
             const { messageId } = await api.call('chat/start', {
                 sessionId: get().chatSessionId,
-                messages: history
+                messages: history,
+                background: background ?? undefined,
             });
             set({
                 messages: [
@@ -383,7 +388,7 @@ const useChatPanel = create(
             if (StrUtil.isBlank(text) || text === 'offscreen') {
                 return;
             }
-            const { messageId } = await api.call('analysis/start', {
+            const { messageId } = await api.call('chat/analysis/start', {
                 sessionId: get().chatSessionId,
                 text,
             });
@@ -521,6 +526,37 @@ const mergeAnalysisPartial = (
     };
 
     return mergeValue(current, partial) as Partial<AiUnifiedAnalysisRes>;
+};
+
+const getCurrentParagraphLines = (): string[] => {
+    const currentSentence = usePlayerV2.getState().currentSentence;
+    const sentences = usePlayerV2.getState().sentences;
+    const subtitles = (() => {
+        if (!currentSentence) return [] as typeof sentences;
+        const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
+        if (idx < 0) return [];
+        const left = Math.max(0, idx - 5);
+        const right = Math.min(sentences.length - 1, idx + 5);
+        return sentences.slice(left, right + 1);
+    })();
+
+    return subtitles
+        .filter(TypeGuards.isNotNull)
+        .map(s => s.text ?? '')
+        .filter(text => text.trim().length > 0);
+};
+
+const buildChatBackgroundContext = (
+    analysis: Partial<AiUnifiedAnalysisRes> | null
+): ChatBackgroundContext | null => {
+    const paragraphLines = getCurrentParagraphLines();
+    if (paragraphLines.length === 0 && !analysis) {
+        return null;
+    }
+    return {
+        paragraphLines,
+        analysis: analysis ?? undefined,
+    };
 };
 
 

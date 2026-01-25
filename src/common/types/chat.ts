@@ -1,8 +1,15 @@
 import { CoreMessage } from 'ai';
+import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+
+export type ChatBackgroundContext = {
+    paragraphLines?: string[];
+    analysis?: Partial<AiUnifiedAnalysisRes>;
+};
 
 export type ChatStartParams = {
     sessionId: string;
     messages: CoreMessage[];
+    background?: ChatBackgroundContext;
 };
 
 export type ChatStartResult = {

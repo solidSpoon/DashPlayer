@@ -99,7 +99,7 @@ export function initRendererApis(): () => void {
         useChatPanel.getState().receiveChatStream(params);
     });
 
-    register('analysis/stream', async (params) => {
+    register('chat/analysis/stream', async (params) => {
         logger.debug('Analysis stream update', { params });
         useChatPanel.getState().receiveAnalysisStream(params);
     });
