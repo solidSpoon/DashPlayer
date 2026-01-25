@@ -118,6 +118,7 @@ interface ChatAnalysisDef {
 
 interface WatchHistoryDef {
     'watch-history/list': { params: string, return: WatchHistoryVO[] };
+    'watch-history/list/basic': { params: string, return: WatchHistoryVO[] };
     'watch-history/progress/update': {
         params: { file: string, currentPosition: number },
         return: void

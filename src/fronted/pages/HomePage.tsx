@@ -27,7 +27,9 @@ const HomePage = () => {
         navigate(`/player/${vId}`);
     }
 
-    const { data: vps } = useSWR(apiPath('watch-history/list'), () => backendClient.call('watch-history/list'));
+    const { data: vpsBasic } = useSWR(apiPath('watch-history/list/basic'), () => backendClient.call('watch-history/list/basic'));
+    const [vpsFull, setVpsFull] = React.useState<typeof vpsBasic>(undefined);
+    const vps = vpsFull ?? vpsBasic;
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
     // 从第四个开始截取num个
@@ -36,6 +38,32 @@ const HomePage = () => {
         backendClient.call('system/window-size/change', 'home').then();
         clear();
     }, [clear]);
+    useEffect(() => {
+        let cancelled = false;
+        let idleId: number | null = null;
+
+        const loadFullList = async () => {
+            try {
+                const full = await backendClient.call('watch-history/list');
+                if (!cancelled) {
+                    setVpsFull(full);
+                }
+            } catch (error) {
+                logger.warn('failed to load full watch history list', { error: error instanceof Error ? error.message : String(error) });
+            }
+        };
+
+        idleId = window.requestIdleCallback(() => {
+            void loadFullList();
+        }, { timeout: 1500 });
+
+        return () => {
+            cancelled = true;
+            if (idleId !== null && 'cancelIdleCallback' in window) {
+                window.cancelIdleCallback(idleId);
+            }
+        };
+    }, []);
     logger.debug('video project statistics', { vpsCount: vps?.length, restCount: rest?.length, num });
     return (
         <div className="flex h-screen w-full flex-col text-foreground bg-muted/40">

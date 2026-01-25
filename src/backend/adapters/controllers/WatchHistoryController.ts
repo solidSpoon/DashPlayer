@@ -36,6 +36,10 @@ export default class WatchHistoryController implements Controller {
         return this.watchHistoryService.list(p);
     }
 
+    public async listBasic(p: string): Promise<WatchHistoryVO[]> {
+        return this.watchHistoryService.listBasic(p);
+    }
+
     public async detail(id: string): Promise<WatchHistoryVO | null> {
         return this.watchHistoryService.detail(id);
     }
@@ -46,6 +50,7 @@ export default class WatchHistoryController implements Controller {
 
     registerRoutes(): void {
         registerRoute('watch-history/list', (p) => this.list(p));
+        registerRoute('watch-history/list/basic', (p) => this.listBasic(p));
         registerRoute('watch-history/progress/update', (p) => this.updateProgress(p));
         registerRoute('watch-history/create', (p) => this.create(p));
         registerRoute('watch-history/create/from-library', (p) => this.create(p, true));

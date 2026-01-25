@@ -162,6 +162,60 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return merged;
     }
 
+    public async listBasic(bathPath: string): Promise<WatchHistoryVO[]> {
+        if (StrUtil.isNotBlank(bathPath)) {
+            if (ObjUtil.isHash(bathPath)) {
+                const record = await this.watchHistoryRepository.findById(bathPath);
+                if (!record || record.project_type !== WatchHistoryType.FILE) {
+                    return [];
+                }
+                bathPath = record.base_path;
+            }
+            if (!fs.existsSync(bathPath) || !fs.statSync(bathPath).isDirectory()) {
+                return [];
+            }
+            const exist = await this.watchHistoryRepository.existsByBasePathAndProjectType(bathPath, WatchHistoryType.DIRECTORY);
+            if (!exist) {
+                return [];
+            }
+            const records = await this.watchHistoryRepository.listByBasePathAndProjectTypeOrderedByFileName(
+                bathPath,
+                WatchHistoryType.DIRECTORY,
+            );
+            if (CollUtil.isEmpty(records)) {
+                return [];
+            }
+            const result = [];
+            for (const record of records) {
+                const vo = this.buildBasicVoFromFile(record);
+                if (vo) {
+                    result.push(vo);
+                }
+            }
+            const merged = this.mergeHtml5Variants(result);
+            merged.sort((a, b) => (a.displayFileName ?? a.fileName).localeCompare(b.displayFileName ?? b.fileName));
+            return merged;
+        }
+        const result = [];
+        const files: WatchHistory[] = await this.watchHistoryRepository.listByProjectType(WatchHistoryType.FILE);
+        for (const file of files) {
+            const vo = this.buildBasicVoFromFile(file);
+            if (vo) {
+                result.push(vo);
+            }
+        }
+        const folders = await this.watchHistoryRepository.listDistinctFoldersByProjectType(WatchHistoryType.DIRECTORY);
+        for (const folder of folders) {
+            const vo = await this.buildBasicVoFromFolder(folder);
+            if (vo) {
+                result.push(vo);
+            }
+        }
+        const merged = this.mergeHtml5Variants(result);
+        merged.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        return merged;
+    }
+
     public async create(filePaths: string[], concatLibrary = false): Promise<string[]> {
         if (concatLibrary) {
             const lp = this.locationService.getDetailLibraryPath(LocationType.VIDEOS);
@@ -298,6 +352,26 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         return null;
     }
 
+    private async buildBasicVoFromFolder(folder: string): Promise<WatchHistoryVO | null> {
+        const folderVideos: WatchHistory[] = await this.watchHistoryRepository.listByBasePathAndProjectTypeOrderedByUpdatedAtDesc(
+            folder,
+            WatchHistoryType.DIRECTORY,
+        );
+        if (CollUtil.isEmpty(folderVideos)) {
+            return null;
+        }
+        for (const video of folderVideos) {
+            const vo = this.buildBasicVoFromFile(video);
+            if (vo) {
+                return {
+                    ...vo,
+                    isFolder: true
+                };
+            }
+        }
+        return null;
+    }
+
     private async buildVoFromFile(history: WatchHistory): Promise<WatchHistoryVO | null> {
         const { base_path, file_name } = history;
         const filePath = path.join(base_path, file_name);
@@ -325,6 +399,25 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             duration,
             current_position: history.current_position,
             srtFile: srtFile ?? '',
+            playing: false
+        };
+    }
+
+    private buildBasicVoFromFile(history: WatchHistory): WatchHistoryVO | null {
+        const { base_path, file_name } = history;
+        const filePath = path.join(base_path, file_name);
+        if (!fs.existsSync(filePath)) {
+            return null;
+        }
+        return {
+            id: history.id,
+            basePath: history.base_path,
+            fileName: history.file_name,
+            isFolder: false,
+            updatedAt: TimeUtil.isoToDate(history.updated_at),
+            duration: 0,
+            current_position: history.current_position,
+            srtFile: history.srt_file ?? '',
             playing: false
         };
     }

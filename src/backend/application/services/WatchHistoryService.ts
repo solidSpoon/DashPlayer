@@ -2,6 +2,7 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 interface WatchHistoryService {
     list(basePath: string): Promise<WatchHistoryVO[]>;
+    listBasic(basePath: string): Promise<WatchHistoryVO[]>;
 
     detail(folder: string): Promise<WatchHistoryVO | null>;
 
