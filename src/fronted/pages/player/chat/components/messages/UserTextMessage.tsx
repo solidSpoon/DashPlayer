@@ -1,7 +1,6 @@
 import React from 'react';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
-import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';
 import { cn } from '@/fronted/lib/utils';
 
 export default function UserTextMessage({msg}: { msg: HumanNormalMessage }) {
@@ -18,9 +17,6 @@ export default function UserTextMessage({msg}: { msg: HumanNormalMessage }) {
                         {msg.content}
                     </Md>
                 </div>
-            </div>
-            <div className="opacity-0 transition-opacity group-hover:opacity-100 px-2">
-                <MessageDeleteButton msg={msg} />
             </div>
         </div>
     );

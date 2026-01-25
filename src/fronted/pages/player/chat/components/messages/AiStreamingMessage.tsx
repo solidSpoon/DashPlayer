@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Md from '@/fronted/components/shared/markdown/Markdown';
-import MessageDeleteButton from '@/fronted/pages/player/chat/components/messages/MessageDeleteButton';
 import AiStreamingMessageModel from '@/common/types/msg/AiStreamingMessage';
 import { spinner } from '@/fronted/pages/player/chat/components/Spinner';
 
@@ -19,9 +18,6 @@ const AiStreamingMessage = ({ msg }: { msg: AiStreamingMessageModel }) => {
                         </div>
                     )}
                 </div>
-            </div>
-            <div className="opacity-0 transition-opacity group-hover:opacity-100 px-1">
-                <MessageDeleteButton msg={msg} />
             </div>
         </div>
     );
