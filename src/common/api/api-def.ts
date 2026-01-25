@@ -7,7 +7,7 @@ import {
     InsertSubtitleTimestampAdjustment
 } from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import {SettingKey} from '@/common/types/store_schema';
-import Release from '@/common/types/release';
+import { UpdateCheckResult } from '@/common/types/update-check';
 import {FolderVideos} from '@/common/types/tonvert-type';
 
 import {Tag} from '@/backend/infrastructure/db/tables/tag';
@@ -80,7 +80,7 @@ interface SystemDef {
     'system/window-size/change': { params: WindowState, return: void };
     'system/window-size': { params: void, return: WindowState };
     'system/window-buttons/visibility': { params: boolean, return: void };
-    'system/check-update': { params: void, return: Release[] };
+    'system/check-update': { params: { mode?: 'toast' }, return: UpdateCheckResult };
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
     'system/test-renderer-api': { params: void, return: void };

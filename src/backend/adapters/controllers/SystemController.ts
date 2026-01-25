@@ -4,7 +4,6 @@ import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/application/services/CheckUpdate';
-import Release from '@/common/types/release';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/adapters/controllers/Controller';
 import StrUtil from '@/common/utils/str-util';
@@ -12,6 +11,9 @@ import TYPES from '@/backend/ioc/types';
 import OpenDialogOptions = Electron.OpenDialogOptions;
 import LocationService from '@/backend/application/services/LocationService';
 import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
+import SystemConfigService from '@/backend/application/services/SystemConfigService';
+import { UPDATE_TOAST_LAST_SHOWN_AT_KEY } from '@/common/constants/systemConfigKeys';
+import { UpdateCheckResult } from '@/common/types/update-check';
 
 /**
  * eg: .mkv -> mkv
@@ -25,10 +27,14 @@ function processFilter(filter: string[]) {
 
 @injectable()
 export default class SystemController implements Controller {
+    private static readonly UPDATE_TOAST_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
     @inject(TYPES.WindowPort)
     private windowPort!: WindowPort;
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
+    @inject(TYPES.SystemConfigService)
+    private systemConfigService!: SystemConfigService;
 
     public async info() {
         const platform = process.platform;
@@ -101,8 +107,26 @@ export default class SystemController implements Controller {
         return this.windowPort.windowState();
     }
 
-    public async checkUpdate(): Promise<Release[]> {
-        return checkUpdate();
+    public async checkUpdate(params?: { mode?: 'toast' }): Promise<UpdateCheckResult> {
+        const result = await checkUpdate();
+        if (params?.mode !== 'toast' || result.status !== 'ok' || result.releases.length === 0) {
+            return result;
+        }
+
+        const now = Date.now();
+        const lastShownRaw = await this.systemConfigService.getValue(UPDATE_TOAST_LAST_SHOWN_AT_KEY);
+        const lastShownAt = lastShownRaw ? Number(lastShownRaw) : 0;
+        const shouldNotify =
+            Number.isNaN(lastShownAt) || now - lastShownAt >= SystemController.UPDATE_TOAST_MIN_INTERVAL_MS;
+
+        if (shouldNotify) {
+            await this.systemConfigService.setValue(UPDATE_TOAST_LAST_SHOWN_AT_KEY, String(now));
+        }
+
+        return {
+            ...result,
+            shouldNotify,
+        };
     }
 
     public async openUrl(url: string) {
@@ -128,7 +152,7 @@ export default class SystemController implements Controller {
         registerRoute('system/window-size/change', (p) => this.changeWindowSize(p));
         registerRoute('system/window-size', (p) => this.windowState());
         registerRoute('system/window-buttons/visibility', (p) => this.setWindowButtonsVisible(p));
-        registerRoute('system/check-update', (p) => this.checkUpdate());
+        registerRoute('system/check-update', (p) => this.checkUpdate(p));
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', (p) => this.appVersion());
     }

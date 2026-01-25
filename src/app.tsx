@@ -25,9 +25,13 @@ import Convert from '@/fronted/pages/convert/Convert';
 import Eb from '@/fronted/components/shared/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
-import {startListeningToDpTasks} from "@/fronted/hooks/useDpTaskCenter";
+import { startListeningToDpTasks } from '@/fronted/hooks/useDpTaskCenter';
+import { toast as sonnerToast } from 'sonner';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const api = window.electron;
+const UPDATE_CHECK_DELAY_MS = 6000;
+const UPDATE_TOAST_ID = 'update-available';
 const App = () => {
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     useEffect(() => {
@@ -36,6 +40,32 @@ const App = () => {
             document.documentElement.classList.remove(theme ?? 'dark');
         };
     }, [theme]);
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            (async () => {
+                const result = await backendClient.call('system/check-update', { mode: 'toast' });
+                if (result.status !== 'ok' || result.releases.length === 0 || !result.shouldNotify) {
+                    return;
+                }
+                const latest = result.releases[0];
+                sonnerToast(`发现新版本 ${latest.version}`, {
+                    id: UPDATE_TOAST_ID,
+                    duration: 8000,
+                    position: 'top-right',
+                    action: {
+                        label: '查看',
+                        onClick: async () => {
+                            await backendClient.call('system/open-url', latest.url);
+                        },
+                    },
+                });
+            })().catch(() => {
+                // ignore update check failures on startup
+            });
+        }, UPDATE_CHECK_DELAY_MS);
+
+        return () => window.clearTimeout(timer);
+    }, []);
     return (
         <>
             <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
