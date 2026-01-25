@@ -21,16 +21,15 @@ const SentencesPart = ({ sentences }: { sentences: {
                 <div
                     tabIndex={0}
                     className="text-sm text-muted-foreground mt-1">{s?.meaning}</div>
-                <div className={'flex flex-wrap gap-2 mt-3'}>
+                <div className={'flex flex-wrap gap-x-3 gap-y-1 mt-3'}>
                     {
                         s?.points?.map((p, j) => (
                             <div
                                 key={j}
                                 className={
-                                    cn('text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-md',
-                                        'dark:bg-primary/20 dark:text-primary-foreground/90'
+                                    cn('text-[10px] font-bold uppercase tracking-wider text-red-500/60 dark:text-red-400/60'
                                     )}
-                            >{p}</div>
+                            >#{p}</div>
                         ))
                     }
                 </div>
