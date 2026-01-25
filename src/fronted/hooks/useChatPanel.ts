@@ -351,6 +351,14 @@ const useChatPanel = create(
             }
 
             if (event.event === 'chunk' && event.partial) {
+                const logger = getRendererLogger('useChatPanel');
+                const partialExamples = event.partial.examples;
+                if (partialExamples) {
+                    logger.debug('analysis examples chunk', {
+                        sentencesCount: partialExamples.sentences?.length ?? 0,
+                        sampleSentence: partialExamples.sentences?.[0],
+                    });
+                }
                 set({
                     analysis: mergeAnalysisPartial(get().analysis ?? {}, event.partial),
                     analysisStatus: 'streaming',

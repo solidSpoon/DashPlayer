@@ -6,8 +6,8 @@ import TYPES from '@/backend/ioc/types';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import ChatSessionService from '@/backend/application/services/ChatSessionService';
 import { ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
-import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
-import { AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
+import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 
 type ChatSession = {
@@ -327,9 +327,12 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             '- structure: 句子意群拆解，phraseGroups 按原句顺序排列，并给出中文翻译与必要标签。',
             '- vocab: 提取对中级学习者可能生僻的新词，给出音标与中文释义；没有就返回空数组并 hasNewWord=false。',
             '- phrases: 提取常用词组/固定搭配，给出中文释义；没有就返回空数组并 hasPhrase=false。',
-            '- grammar: 用中文 Markdown 简洁解释语法点，段落精炼但不要遗漏重点。',
+            '- grammar: 用中文 Markdown 简洁解释语法点，避免使用标题语法（如 #/##/###），用加粗或列表代替。',
             '- examples: 必须给出 5 个例句，sentences 数组长度必须为 5。',
             '- examples: 尽量使用 vocab/phrases 中的点，points 列出用到的词或短语；如果没有合适的点，points 返回空数组但例句仍必须给出。',
+            '- examples 结构必须是 sentences 数组，每项包含 sentence/meaning/points，禁止额外字段。',
+            '- examples 结构示例:',
+            '{"examples":{"sentences":[{"sentence":"...","meaning":"...","points":["..."]}]}}',
         ].join('\n');
     }
 
@@ -348,7 +351,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 sessionId,
                 messageId,
                 event: 'chunk',
-                partial,
+                partial: this.normalizeAnalysisPartial(partial),
             });
         }
         const finalObject = await result.object;
@@ -363,5 +366,46 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             messageId,
             event: 'done',
         });
+    }
+
+    private normalizeAnalysisPartial(
+        partial: DeepPartial<AiUnifiedAnalysisRes>
+    ): DeepPartial<AiUnifiedAnalysisRes> {
+        const examples = partial.examples;
+        const sentences = examples?.sentences;
+        if (!examples || !Array.isArray(sentences)) {
+            return partial;
+        }
+
+        const shouldNormalize = sentences.some((sentence) => typeof sentence === 'string');
+        if (!shouldNormalize) {
+            return partial;
+        }
+
+        const points = (examples as { points?: unknown }).points;
+        const pointsList = Array.isArray(points) ? points : [];
+        const normalizedSentences = sentences.map((sentence, index) => {
+            if (sentence && typeof sentence === 'object' && 'sentence' in sentence) {
+                return sentence;
+            }
+            const sentencePoints = Array.isArray(pointsList[index]) ? pointsList[index] : [];
+            return {
+                sentence: typeof sentence === 'string' ? sentence : '',
+                meaning: '',
+                points: sentencePoints,
+            };
+        });
+
+        const { points: _ignoredPoints, ...restExamples } = examples as {
+            points?: unknown;
+        };
+
+        return {
+            ...partial,
+            examples: {
+                ...restExamples,
+                sentences: normalizedSentences,
+            },
+        };
     }
 }
