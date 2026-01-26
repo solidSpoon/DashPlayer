@@ -1,4 +1,4 @@
-import { AiProviderConfig, SettingKey } from '@/common/types/store_schema';
+import { AiProviderConfig, SettingKey, EdgeTtsVoice } from '@/common/types/store_schema';
 import Release from '@/common/types/release';
 import { FolderVideos } from '@/common/types/tonvert-type';
 
@@ -168,6 +168,10 @@ interface TagDef {
     'tag/search': { params: string, return: Tag[] };
 }
 
+interface TtsDef {
+    'tts/edge-tts/voices': { params: { forceRefresh?: boolean }, return: EdgeTtsVoice[] };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -183,7 +187,8 @@ export type ApiDefinitions = ApiDefinition
     & ConvertDef
     & FavoriteClipsDef
     & TagDef
-    & AiProviderDef;
+    & AiProviderDef
+    & TtsDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

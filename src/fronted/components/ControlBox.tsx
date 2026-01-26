@@ -14,7 +14,7 @@ import { SettingKey } from '@/common/types/store_schema';
 import useSWR from 'swr';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { Button } from '@/fronted/components/ui/button';
-import { Captions, Eraser } from 'lucide-react';
+import { Captions, Eraser, BookOpen } from 'lucide-react';
 import Md from '@/fronted/components/chat/markdown';
 import { codeBlock } from 'common-tags';
 import useTranscript from '@/fronted/hooks/useTranscript';
@@ -112,9 +112,11 @@ const ControlBox = () => {
     const setSetting = useSetting((s) => s.setSetting);
     const setting = useSetting((s) => s.setting);
     const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
-    const { podcstMode, setPodcastMode } = useLayout(useShallow(s => ({
+    const { podcstMode, setPodcastMode, showWordList, toggleWordList } = useLayout(useShallow(s => ({
         podcstMode: s.podcastMode,
-        setPodcastMode: s.setPodcastMode
+        setPodcastMode: s.setPodcastMode,
+        showWordList: s.showWordList,
+        toggleWordList: s.toggleWordList
     })));
     const changeFullScreen = useLayout(s => s.changeFullScreen);
 
@@ -239,6 +241,13 @@ const ControlBox = () => {
                     id: 'podcstMode',
                     label: '播客模式',
                     tooltip: '播放音频文件时请启用播客模式'
+                })}
+                {controlItem({
+                    checked: showWordList,
+                    onCheckedChange: toggleWordList,
+                    id: 'showWordList',
+                    label: '单词全览',
+                    tooltip: '显示/隐藏单词列表，查看字幕中提取的所有单词'
                 })}
                 <TooltipProvider>
                     <Tooltip>

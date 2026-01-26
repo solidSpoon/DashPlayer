@@ -20,6 +20,7 @@ import toast, { Toaster as HotToaster } from 'react-hot-toast';
 import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
 import OpenAiSetting from '@/fronted/pages/setting/OpenAiSetting';
+import {TtsSetting} from '@/fronted/pages/setting/TtsSetting';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from '@/fronted/components/short-cut/GlobalShortCut';
 import DownloadVideo from '@/fronted/pages/DownloadVideo';
@@ -106,6 +107,10 @@ const App = () => {
                                     <Route
                                         path="appearance"
                                         element={<Eb><AppearanceSetting /></Eb>}
+                                    />
+                                    <Route
+                                        path="tts"
+                                        element={<Eb><TtsSetting /></Eb>}
                                     />
                                 </Route>
                             </Route>

@@ -6,7 +6,7 @@
     "main": ".vite/build/main.js",
     "scripts": {
         "download": "zx ./scripts/download.mjs",
-        "start": "yarn run download && electron-forge start",
+        "start": "chcp 65001 && yarn run download && electron-forge start",
         "package": "yarn run download && electron-forge package",
         "make": "yarn run download && electron-forge make",
         "publish": "yarn run download && electron-forge publish",
@@ -124,6 +124,7 @@
         "moment": "^2.30.1",
         "monaco-editor": "^0.45.0",
         "next-themes": "^0.3.0",
+        "node-edge-tts": "^1.2.9",
         "node-sql-parser": "^4.17.0",
         "object-hash": "^3.0.0",
         "openai": "^4.32.1",

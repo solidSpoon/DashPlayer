@@ -6,6 +6,18 @@ export interface AiProviderConfig {
     model: string;
 }
 
+export interface EdgeTtsVoice {
+    Name: string;
+    ShortName: string;
+    Gender: string;
+    Locale: string;
+    SuggestedCodec: string;
+    FriendlyName: string;
+    Status: string;
+}
+
+export type TtsProvider = 'openai' | 'edge-tts';
+
 export const SettingKeyObj = {
     'shortcut.previousSentence': 'left,a',
     'shortcut.nextSentence': 'right,d',
@@ -44,5 +56,9 @@ export const SettingKeyObj = {
     'storage.collection': 'default',
     'aiProviderConfigs': '', // JSON string of AiProviderConfig[]
     'activeAiProviderId': '', // id of the active AiProviderConfig
+    'tts.provider': 'edge-tts', // tts provider: 'openai' or 'edge-tts'
+    'tts.edgeTts.voice': 'en-US-JennyNeural', // edge-tts voice name
+    'edgeTtsVoices': '', // cached edge-tts voices data (JSON string)
+    'edgeTtsVoicesTimestamp': '', // timestamp of last voices update
 }
 export type SettingKey = keyof typeof SettingKeyObj;

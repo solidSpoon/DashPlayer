@@ -6,12 +6,13 @@ import {
     MdKeyboard,
     MdOutlineGTranslate,
     MdStorage,
-    MdTranslate
+    MdTranslate,
+    MdVolumeUp
 } from 'react-icons/md';
 import {cn} from "@/fronted/lib/utils";
 import Separator from '@/fronted/components/Separtor';
 import {buttonVariants} from "@/fronted/components/ui/button";
-import { Bot, Command, Compass, Database, Languages, Palette, Server, WholeWord } from 'lucide-react';
+import { Bot, Command, Compass, Database, Languages, Palette, Server, Volume2, WholeWord } from 'lucide-react';
 
 export type SettingType =
     | 'you-dao'
@@ -20,7 +21,8 @@ export type SettingType =
     | 'shortcut'
     | 'storage'
     | 'update'
-    | 'appearance';
+    | 'appearance'
+    | 'tts';
 const Sidebar = () => {
     const location = useLocation();
     const ele = (name: string, key: SettingType, icon: ReactElement) => {
@@ -72,6 +74,7 @@ const Sidebar = () => {
             {ele('字幕翻译', 'tenant', <Languages />)}
             {ele('查单词', 'you-dao', <WholeWord />)}
             {ele('OpenAI', 'open-ai', <Bot />)}
+            {ele('TTS', 'tts', <Volume2 />)}
             {ele('存储', 'storage', <Database />)}
             {ele('版本更新', 'update', <Compass />)}
         </div>

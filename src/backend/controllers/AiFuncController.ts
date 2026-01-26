@@ -83,6 +83,10 @@ export default class AiFuncController implements Controller {
         return UrlUtil.dp(await TtsService.tts(string));
     }
 
+    public async getEdgeTtsVoices({ forceRefresh = false }: { forceRefresh?: boolean } = {}) {
+        return TtsService.getEdgeTtsVoices(forceRefresh);
+    }
+
     public async chat({ msgs }: { msgs: CoreMessage[] }): Promise<number> {
         const taskId = await this.dpTaskService.create();
         this.chatService.chat(taskId, msgs).then();
@@ -125,6 +129,7 @@ export default class AiFuncController implements Controller {
         registerRoute('ai-func/explain-select-with-context', (p) => this.explainSelectWithContext(p));
         registerRoute('ai-func/explain-select', (p) => this.explainSelect(p));
         registerRoute('ai-func/translate-with-context', (p) => this.translateWithContext(p));
+        registerRoute('tts/edge-tts/voices', () => this.getEdgeTtsVoices());
     }
 }
 
