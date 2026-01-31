@@ -1,6 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
+import { pathToFileURL } from 'node:url';
 import {SettingKey} from './common/types/store_schema';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
@@ -90,7 +91,8 @@ const electronHandler = {
     // 日志写入方法
     dpLogger: {
         write: (e: SimpleEvent) => ipcRenderer.send('dp-log/write', e),
-    }
+    },
+    pathToFileUrl: (filePath: string) => pathToFileURL(filePath).toString(),
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;
