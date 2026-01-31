@@ -72,6 +72,18 @@ jobs:
               ln -sf "${f}" "${short}"
             fi
           done
+          # Fix LC_RPATH so dyld resolves libs from the bundled directory.
+          for bin in whisper-cli lib*.dylib; do
+            [[ -f "${bin}" ]] || continue
+            install_name_tool -add_rpath "@loader_path" "${bin}" || true
+            rpaths=$(otool -l "${bin}" | awk '/cmd LC_RPATH/{getline; getline; print $2}')
+            while IFS= read -r rp; do
+              [[ -z "${rp}" ]] && continue
+              if [[ "${rp}" == /var/folders/* || "${rp}" == /tmp/* ]]; then
+                install_name_tool -delete_rpath "${rp}" "${bin}" || true
+              fi
+            done <<< "${rpaths}"
+          done
           popd >/dev/null
           ls -la "${DEST}"
       - name: Pack whisper.cpp (macOS arm64 only)
