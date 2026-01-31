@@ -1,17 +1,14 @@
 import 'reflect-metadata';
-import { app, BrowserWindow, protocol, net } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import path from 'path';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/infrastructure/db/migrate';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
-import { DP_FILE, DP } from '@/common/utils/UrlUtil';
-import * as base32 from 'hi-base32';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
-import { getMainLogger } from '@/backend/infrastructure/logger';
 
 if (squirrelStartup) {
     app.quit();
@@ -28,6 +25,8 @@ const createWindow = () => {
         height: 800,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
+            webSecurity: false,
+            allowRunningInsecureContent: true,
         },
         ...(isMac
             ? {
@@ -52,61 +51,11 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-protocol.registerSchemesAsPrivileged([
-    {
-        scheme: DP,
-        privileges: {
-            standard: true,
-            secure: true,
-            bypassCSP: true,
-            allowServiceWorkers: true,
-            supportFetchAPI: true,
-            stream: true,
-            codeCache: true,
-            corsEnabled: false
-        }
-    },
-    {
-        scheme: DP_FILE,
-        privileges: {
-            standard: true,
-            secure: true,
-            bypassCSP: true,
-            allowServiceWorkers: true,
-            supportFetchAPI: true,
-            stream: true,
-            codeCache: true,
-            corsEnabled: false
-        }
-    }
-]);
 app.on('ready', async () => {
     await runMigrate();
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     createWindow();
-    protocol.registerFileProtocol(DP_FILE, (request, callback) => {
-        const url: string = request.url.replace(`${DP_FILE}://`, '');
-        try {
-            return callback(decodeURIComponent(url));
-        } catch (error) {
-            getMainLogger('main').error('protocol decode error', { error });
-            return callback('');
-        }
-    });
-    protocol.handle(DP, (request) => {
-        let url = request.url.slice(`${DP}://`.length, request.url.length - 1)
-            .toUpperCase();
-        url = base32.decode(url);
-        if (url.startsWith('http')) {
-            return net.fetch(url);
-        } else {
-            const parts = url.split(path.sep);
-            const encodedParts = parts.map(part => encodeURIComponent(part));
-            const encodedUrl = encodedParts.join(path.sep);
-            return net.fetch(`file:///${encodedUrl}`);
-        }
-    });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
