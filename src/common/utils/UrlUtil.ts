@@ -23,9 +23,6 @@ export default class UrlUtil {
         if (!rawPath) {
             return '';
         }
-        if (typeof window !== 'undefined' && window.electron?.pathToFileUrl) {
-            return window.electron.pathToFileUrl(rawPath);
-        }
         // Normalize to URL-safe path separators and encode each segment.
         const normalized = rawPath.replace(/\\/g, '/');
         const isWindowsDrive = /^[A-Za-z]:\//.test(normalized) || /^\/[A-Za-z]:\//.test(normalized);
