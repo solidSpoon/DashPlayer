@@ -64,6 +64,15 @@ jobs:
               cp "${dylib}" "${DEST}/"
             done <<< "${WHISPER_LIBS}"
           fi
+          # Ensure rpath short-name dylibs exist (e.g., libwhisper.1.dylib).
+          pushd "${DEST}" >/dev/null
+          for f in lib*.dylib; do
+            if [[ "${f}" =~ ^(lib[^.]+)\.([0-9]+)\..*\.dylib$ ]]; then
+              short="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.dylib"
+              ln -sf "${f}" "${short}"
+            fi
+          done
+          popd >/dev/null
           ls -la "${DEST}"
       - name: Pack whisper.cpp (macOS arm64 only)
         if: matrix.os.name == 'macos-arm64'
