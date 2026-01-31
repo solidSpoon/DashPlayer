@@ -118,6 +118,13 @@ const errorToBriefMessage = (error: unknown): string | undefined => {
     }
 };
 
+const shouldTranslateSubtitleText = (text: string): boolean => {
+    if (StrUtil.isBlank(text)) {
+        return false;
+    }
+    return /[\p{L}\p{N}]/u.test(text);
+};
+
 const truncate = (value: string, maxLength: number): string => {
     if (value.length <= maxLength) {
         return value;
@@ -334,6 +341,7 @@ export default class TranslateServiceImpl implements TranslateService {
             promptConfig = await this.resolveOpenAiPromptConfig(openAiMode);
             storageMode = mapOpenAiModeToStorage(openAiMode, promptConfig.styleSignature);
         }
+        const rendererMeta = mapStorageModeToRendererFields(storageMode);
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData || !srtData.sentences) {
@@ -352,7 +360,6 @@ export default class TranslateServiceImpl implements TranslateService {
             const keysToLookup = sentencesToTranslate.map(s => s.translationKey);
             const cachedResults = await this.getTranslationsByKeys(keysToLookup, storageMode);
             if (cachedResults.size > 0) {
-                const rendererMeta = mapStorageModeToRendererFields(storageMode);
                 const cachedTranslations: RendererTranslationItem[] = Array.from(cachedResults.entries()).map(([key, translation]) => ({
                     key,
                     translation,
@@ -368,6 +375,25 @@ export default class TranslateServiceImpl implements TranslateService {
 
                 sentencesToTranslate = sentencesToTranslate.filter(s => !cachedResults.has(s.translationKey));
             }
+        }
+
+        const skippedSentences = sentencesToTranslate.filter(sentence => !shouldTranslateSubtitleText(sentence.text));
+        if (skippedSentences.length > 0) {
+            const fallbackTranslations: RendererTranslationItem[] = skippedSentences.map(sentence => ({
+                key: sentence.translationKey,
+                translation: sentence.text,
+                provider: rendererMeta.provider,
+                mode: rendererMeta.mode,
+                isComplete: true
+            }));
+            const fallbackMap = new Map<string, string>();
+            skippedSentences.forEach(sentence => fallbackMap.set(sentence.translationKey, sentence.text));
+            await this.saveTranslationsByKeys(fallbackMap, storageMode);
+            this.rendererGateway.fireAndForget('translation/batch-result', {
+                translations: fallbackTranslations
+            });
+            dpLog.log(`跳过 ${fallbackTranslations.length} 条无需翻译的字幕并回传结果`);
+            sentencesToTranslate = sentencesToTranslate.filter(sentence => shouldTranslateSubtitleText(sentence.text));
         }
 
         if (sentencesToTranslate.length === 0) {
@@ -418,7 +444,6 @@ export default class TranslateServiceImpl implements TranslateService {
             const resultsToSave: Map<string, string> = new Map();
             const resultsToRender: RendererTranslationItem[] = [];
             const rendererMeta = mapStorageModeToRendererFields(storageMode);
-
             tasks.forEach(task => {
                 const translation = translationMap.get(task.text) || '';
                 // 仅当翻译结果非空时才处理

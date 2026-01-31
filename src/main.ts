@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { app, BrowserWindow, protocol, net } from 'electron';
+import squirrelStartup from 'electron-squirrel-startup';
 import path from 'path';
 import registerHandler from '@/backend/dispatcher';
 import runMigrate from '@/backend/infrastructure/db/migrate';
@@ -11,6 +12,10 @@ import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskService
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+
+if (squirrelStartup) {
+    app.quit();
+}
 
 const mainWindowRef = {
     current: null as BrowserWindow | null
