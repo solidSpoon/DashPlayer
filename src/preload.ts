@@ -1,7 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
-import { pathToFileURL } from 'node:url';
+import path from 'path';
 import {SettingKey} from './common/types/store_schema';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
@@ -92,7 +92,31 @@ const electronHandler = {
     dpLogger: {
         write: (e: SimpleEvent) => ipcRenderer.send('dp-log/write', e),
     },
-    pathToFileUrl: (filePath: string) => pathToFileURL(filePath).toString(),
+    pathToFileUrl: (filePath: string) => {
+        if (!filePath) {
+            return '';
+        }
+        if (/^file:\/\//i.test(filePath)) {
+            return filePath;
+        }
+        const resolved = path.resolve(filePath);
+        const normalized = resolved.replace(/\\/g, '/');
+        const needsLeadingSlash = /^[A-Za-z]:\//.test(normalized);
+        const pathForUrl = needsLeadingSlash ? `/${normalized}` : normalized;
+        const segments = pathForUrl.split('/');
+        const encoded = segments
+            .map((segment, index) => {
+                if (segment === '') {
+                    return segment;
+                }
+                if (needsLeadingSlash && index === 1 && /^[A-Za-z]:$/.test(segment)) {
+                    return segment;
+                }
+                return encodeURIComponent(segment);
+            })
+            .join('/');
+        return `file://${encoded}`;
+    },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;

@@ -122,6 +122,10 @@ const PlayerEngineV2: React.FC<PlayerEngineV2Props> = ({
           const internal = playerRef.current?.getInternalPlayer() as HTMLVideoElement | null;
           onProvideVideoElement(internal ?? null);
         }
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.debug('[PlayerEngineV2] ready', { src, playing, muted, volume, playbackRate });
+        }
         onReady?.();
       }}
       onEnded={onEnded}

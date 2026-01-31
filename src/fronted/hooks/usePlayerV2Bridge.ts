@@ -38,6 +38,7 @@ export function usePlayerV2Bridge(navigate: (path: string) => void) {
             return;
         }
         const fileUrl = UrlUtil.file(videoPath!);
+        logger.debug('player source updated', { videoPath, fileUrl });
         playerV2Actions.setSource(fileUrl);
     }, [videoPath]);
 
@@ -110,9 +111,11 @@ export function usePlayerV2Bridge(navigate: (path: string) => void) {
         const file = useFile.getState().videoPath;
         const currentVideoId = useFile.getState().videoId;
         if (StrUtil.isBlank(file) || StrUtil.isBlank(currentVideoId)) {
+            logger.debug('handlePlayerReady skipped', { file, currentVideoId });
             return;
         }
         if (lastLoadedFileRef.current === file) {
+            logger.debug('handlePlayerReady ignored (already loaded)', { file });
             return;
         }
         try {
@@ -120,7 +123,7 @@ export function usePlayerV2Bridge(navigate: (path: string) => void) {
             const progress = result?.current_position ?? 0;
             const duration = await waitForPlayerDuration();
             const resumeTime = computeResumeTime({ progress, duration });
-            logger.debug('jumping to history progress', { progress, duration, resumeTime });
+            logger.debug('jumping to history progress', { progress, duration, resumeTime, file, currentVideoId });
 
             if (resumeTime === 0 && progress > 0) {
                 await api.call('watch-history/progress/update', { file, currentPosition: 0 });
