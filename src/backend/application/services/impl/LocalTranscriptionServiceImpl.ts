@@ -191,6 +191,29 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const { filePath, processedAudioPath, tempFolder } = opts;
 
         const executablePath = this.whisperCppCli.resolveExecutablePath();
+        const executableDir = path.dirname(executablePath);
+        const platform = process.platform;
+        const arch = process.arch;
+        let libs: string[] = [];
+        try {
+            if (platform === 'darwin') {
+                libs = fs.readdirSync(executableDir).filter((name) => name.endsWith('.dylib'));
+            } else if (platform === 'linux') {
+                libs = fs.readdirSync(executableDir).filter((name) => /\.so(\.|$)/.test(name));
+            }
+        } catch (e) {
+            this.logger.warn('whisper.cpp probe failed to read executable dir', {executableDir, error: e});
+        }
+        const metalFile = platform === 'darwin' ? path.join(executableDir, 'ggml-metal.metal') : null;
+        this.logger.info('whisper.cpp runtime probe', {
+            executablePath,
+            executableDir,
+            platform,
+            arch,
+            libsCount: libs.length,
+            libs: libs.slice(0, 20),
+            metalFileExists: metalFile ? fs.existsSync(metalFile) : undefined,
+        });
         const help = await this.whisperCppCli.getHelpText(executablePath);
 
         const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
@@ -210,6 +233,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             processedAudioPath,
             tempFolder,
         });
+        this.logger.info('whisper.cpp cli args', {args});
         if (vadSkippedBecauseUnsupported) {
             this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
             this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, {message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测'});

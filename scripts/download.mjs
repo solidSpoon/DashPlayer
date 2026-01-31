@@ -261,10 +261,16 @@ const getLatestReleaseAssetUrl = async ({owner, repo, nameRegex}) => {
     return match?.browser_download_url || null;
 };
 
-const downloadAndExtractBinaryFromArchive = async ({url, outputPath, binaryNameCandidates}) => {
+const downloadAndExtractBinaryFromArchive = async ({
+    url,
+    outputPath,
+    binaryNameCandidates,
+    extraCopyPatterns = [],
+}) => {
     const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-download-'));
     const nameFromUrl = String(url).split('/').pop() || 'asset';
     const archivePath = path.join(tmpRoot, nameFromUrl);
+    console.info(chalk.blue(`=> whisper.cpp archive: ${url}`));
     await download({url, dir: tmpRoot, file: nameFromUrl});
 
     const extractDir = path.join(tmpRoot, 'extract');
@@ -282,6 +288,34 @@ const downloadAndExtractBinaryFromArchive = async ({url, outputPath, binaryNameC
     mkdirp(path.dirname(outputPath));
     fs.copyFileSync(found, outputPath);
     fs.chmodSync(outputPath, 0o755);
+    console.info(chalk.green(`✅ whisper.cpp binary: ${found} -> ${outputPath}`));
+
+    if (extraCopyPatterns.length > 0) {
+        for (const pattern of extraCopyPatterns) {
+            const matches = [];
+            const collect = (dir, maxDepth = 10, depth = 0) => {
+                if (depth > maxDepth) return;
+                const entries = fs.readdirSync(dir, {withFileTypes: true});
+                for (const ent of entries) {
+                    const p = path.join(dir, ent.name);
+                    if (ent.isFile() && pattern.test(ent.name)) {
+                        matches.push(p);
+                    }
+                }
+                for (const ent of entries) {
+                    if (!ent.isDirectory()) continue;
+                    collect(path.join(dir, ent.name), maxDepth, depth + 1);
+                }
+            };
+            collect(extractDir);
+            for (const src of matches) {
+                const dest = path.join(path.dirname(outputPath), path.basename(src));
+                fs.copyFileSync(src, dest);
+                fs.chmodSync(dest, 0o755);
+                console.info(chalk.green(`✅ whisper.cpp extra: ${src} -> ${dest}`));
+            }
+        }
+    }
 };
 
 const ffmpegUrls = {
@@ -387,10 +421,18 @@ const arch = process.env.npm_config_arch || os.arch()
             if (!assetUrl) {
                 console.warn(chalk.yellow(`⚠️  whisper.cpp release asset not found for ${platform}/${arch}, skip download`));
             } else {
+                const extraCopyPatterns = [];
+                if (platform === 'darwin') {
+                    extraCopyPatterns.push(/^(libwhisper|libggml).*\.dylib$/i);
+                } else if (platform === 'linux') {
+                    extraCopyPatterns.push(/^(libwhisper|libggml).*\.so(\.\d+)?$/i);
+                }
+                console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
                 await downloadAndExtractBinaryFromArchive({
                     url: assetUrl,
                     outputPath: exePath,
                     binaryNameCandidates: platform === 'win32' ? ['whisper-cli.exe', 'main.exe'] : ['whisper-cli', 'main'],
+                    extraCopyPatterns,
                 });
             }
         } catch (e) {

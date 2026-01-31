@@ -49,6 +49,7 @@ jobs:
           fi
 
           METAL_FILE="$(find build -type f -name 'ggml-metal.metal' | head -n 1 || true)"
+          WHISPER_LIBS="$(find build -type f \( -name 'libwhisper*.dylib' -o -name 'libggml*.dylib' \) || true)"
 
           DEST="${GITHUB_WORKSPACE}/lib/whisper.cpp/${ARCH_DIR}/darwin"
           mkdir -p "${DEST}"
@@ -57,7 +58,25 @@ jobs:
           if [[ -n "${METAL_FILE}" ]]; then
             cp "${METAL_FILE}" "${DEST}/ggml-metal.metal"
           fi
+          if [[ -n "${WHISPER_LIBS}" ]]; then
+            while IFS= read -r dylib; do
+              [[ -z "${dylib}" ]] && continue
+              cp "${dylib}" "${DEST}/"
+            done <<< "${WHISPER_LIBS}"
+          fi
           ls -la "${DEST}"
+      - name: Pack whisper.cpp (macOS arm64 only)
+        if: matrix.os.name == 'macos-arm64'
+        run: |
+          set -euo pipefail
+          DEST="${GITHUB_WORKSPACE}/lib/whisper.cpp/arm64/darwin"
+          ARCHIVE="${GITHUB_WORKSPACE}/whisper.cpp-macos-arm64.tar.gz"
+          if [[ ! -d "${DEST}" ]]; then
+            echo "whisper.cpp output not found at ${DEST}" >&2
+            exit 1
+          fi
+          tar -czf "${ARCHIVE}" -C "${GITHUB_WORKSPACE}/lib" "whisper.cpp/arm64/darwin"
+          ls -la "${ARCHIVE}"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -73,3 +92,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run publish
+      - name: Upload whisper.cpp to Release (macOS arm64 only)
+        if: matrix.os.name == 'macos-arm64'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+          ARCHIVE="${GITHUB_WORKSPACE}/whisper.cpp-macos-arm64.tar.gz"
+          if [[ ! -f "${ARCHIVE}" ]]; then
+            echo "whisper.cpp archive not found at ${ARCHIVE}" >&2
+            exit 1
+          fi
+          gh release upload "${TAG}" "${ARCHIVE}" --clobber
