@@ -1,4 +1,5 @@
 import PathUtil from '@/common/utils/PathUtil';
+import { pathToFileURL } from 'node:url';
 
 export const DP = 'dp';
 export const DP_FILE = 'dp-file';
@@ -23,23 +24,8 @@ export default class UrlUtil {
         if (!rawPath) {
             return '';
         }
-        // Normalize to URL-safe path separators and encode each segment.
-        const normalized = rawPath.replace(/\\/g, '/');
-        const needsLeadingSlash = /^[A-Za-z]:\//.test(normalized);
-        const pathForUrl = needsLeadingSlash ? `/${normalized}` : normalized;
-        const segments = pathForUrl.split('/');
-        const encoded = segments
-            .map((segment, index) => {
-                if (segment === '') {
-                    return segment;
-                }
-                if (needsLeadingSlash && index === 1 && /^[A-Za-z]:$/.test(segment)) {
-                    return segment;
-                }
-                return encodeURIComponent(segment);
-            })
-            .join('/');
-        return `file://${encoded}`;
+        // Use Node's canonical conversion to avoid Windows drive/path encoding pitfalls.
+        return pathToFileURL(rawPath).toString();
     }
 
     public static joinWebUrl(...paths: string[]): string {
