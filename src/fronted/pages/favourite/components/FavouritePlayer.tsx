@@ -87,7 +87,7 @@ const FavouritePlayer = () => {
     }
 
     const { video, time, sentenceIndex } = playInfo;
-    const videoUrl = video?.baseDir && video?.clip_file ? UrlUtil.file(video.baseDir, video.clip_file) : '';
+    const videoUrl = video?.baseDir && video?.clip_file ? UrlUtil.toUrl(video.baseDir, video.clip_file) : '';
     const videoKey = video.key;
     const isSameClip = loadedKeyRef.current === videoKey;
 

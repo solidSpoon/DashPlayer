@@ -50,7 +50,7 @@ export default class AiFuncService {
     }
 
     public async tts(text: string): Promise<string> {
-        return UrlUtil.dp(await TtsService.tts(text));
+        return UrlUtil.toUrl(await TtsService.tts(text));
     }
 
     public async transcript(params: { filePath: string }): Promise<void> {

@@ -61,7 +61,7 @@ const ProjectListItem = ({ video, onSelected }: {
                             <MusicCard fileName={video.fileName}/>
                         ) : url ? (
                             <img
-                                src={UrlUtil.file(url)}
+                                src={UrlUtil.toUrl(url)}
                                 style={{
                                     aspectRatio: '16/9'
                                 }}

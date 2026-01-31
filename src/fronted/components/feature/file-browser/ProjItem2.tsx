@@ -96,7 +96,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                         ) : shouldLoadThumbnail ? (
                                             thumbnail ? (
                                                 <img
-                                                    src={UrlUtil.file(thumbnail)}
+                                                    src={UrlUtil.toUrl(thumbnail)}
                                                     alt={v.fileName}
                                                     className="absolute inset-0 h-full w-full object-cover"
                                                 />

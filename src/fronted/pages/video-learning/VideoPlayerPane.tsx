@@ -152,7 +152,7 @@ export default function VideoPlayerPane({
   // 当clip或forcePlayKey发生变化时，加载新的视频和字幕
   useEffect(() => {
     if (clip) {
-      const videoUrl = clip.videoPath ? UrlUtil.file(clip.videoPath) : '';
+      const videoUrl = clip.videoPath ? UrlUtil.toUrl(clip.videoPath) : '';
       setSource(videoUrl);
 
       const sentencesConverted = convertClipSrtLinesToSentences(clip.clipContent, clip.videoPath, clip.key);

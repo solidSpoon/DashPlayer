@@ -106,8 +106,8 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                                                     <div className="absolute inset-0 bg-white pointer-events-none" />
                                                 )}
                                                 <motion.img
-                                                    key={UrlUtil.file(thumbnail)}
-                                                    src={UrlUtil.file(thumbnail)}
+                                                    key={UrlUtil.toUrl(thumbnail)}
+                                                    src={UrlUtil.toUrl(thumbnail)}
                                                     alt={pv.fileName}
                                                     className="absolute inset-0 h-full w-full object-cover"
                                                     initial={{ opacity: 0 }}

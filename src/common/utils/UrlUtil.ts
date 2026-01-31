@@ -1,10 +1,7 @@
 import PathUtil from '@/common/utils/PathUtil';
 
-export const DP = 'dp';
-export const DP_FILE = 'dp-file';
-
 export default class UrlUtil {
-    public static dp(...paths: string[]) {
+    public static toUrl(...paths: string[]) {
         const url = PathUtil.join(...paths);
         if (!url) {
             return '';
@@ -15,7 +12,7 @@ export default class UrlUtil {
         return UrlUtil.file(url);
     }
 
-    public static file(...paths: string[]) {
+    private static file(...paths: string[]) {
         if (paths.length === 1 && /^file:\/\//i.test(paths[0])) {
             return paths[0];
         }
