@@ -204,9 +204,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          WORKSPACE="${GITHUB_WORKSPACE}"
+          if command -v cygpath >/dev/null 2>&1; then
+            WORKSPACE="$(cygpath -u "${GITHUB_WORKSPACE}")"
+          fi
           VERSION="$(node -p "require('./package.json').version")"
           TAG="v${VERSION}"
-          ARCHIVE="$(ls -1 ${GITHUB_WORKSPACE}/whisper.cpp-* | head -n 1)"
+          ARCHIVE="$(ls -1 "${WORKSPACE}"/whisper.cpp-* | head -n 1)"
           if [[ -z "${ARCHIVE}" || ! -f "${ARCHIVE}" ]]; then
             echo "whisper.cpp archive not found in workspace" >&2
             exit 1
