@@ -42,6 +42,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.10",
     "@types/common-tags": "^1.8.4",
+    "@types/electron-squirrel-startup": "^1.0.2",
     "@types/ffprobe-static": "^2.0.3",
     "@types/lodash": "^4.17.20",
     "@types/object-hash": "^3.0.6",
