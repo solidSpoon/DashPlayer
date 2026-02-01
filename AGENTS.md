@@ -19,7 +19,10 @@ Use Conventional Commits for commit messages (e.g., `feat: ...`, `fix: ...`, `ch
 External integrations drive key features: Youdao, Tencent, OpenAI, Sherpa ONNX. Configure credentials through the in-app Settings UI or local secure storage—never commit keys or generated data. Ensure `lib/` binaries match the branch (rerun `yarn run download` after upgrades) and review `forge.config.ts` plus `drizzle.config.ts` whenever changing build or database behavior.
 
 ## Logging & Debug Filters
-Use log tags to reduce noise during debugging. Set `DP_LOG_TAGS` (comma-separated, or `*`/`all` to disable filtering) in `.env` to only emit tagged logs. Add tags via `getMainLogger('Module').withTags('tag').info(...)` or `dpLog.withTags('tag').info(...)`. When troubleshooting, suggest filtering to relevant tags/modules to reduce unrelated log spam.
+Use log tags to reduce noise during debugging. Set `DP_LOG_TAGS` (comma-separated, or `*`/`all` to disable filtering) in `.env` to only emit tagged logs. Add tags via `getMainLogger('Module').withTags('tag').info(...)`. When troubleshooting, suggest filtering to relevant tags/modules to reduce unrelated log spam. Prefer top-level `const logger = getMainLogger('Module')` in main and `const logger = getRendererLogger('Module')` in renderer. Tags are for coarse feature filtering only (1-2 tags, e.g. subtitle/whisper/translate/ipc), and only when you need to filter. Dev-time log level and filters must be set in env: `DP_LOG_LEVEL=debug`, `VITE_DP_LOG_LEVEL=debug`, `DP_LOG_TAGS=subtitle,whisper`.
 
 ## Agent Notes
 - Drizzle migrations under `drizzle/migrations/` are auto-generated; never edit them manually. Change the schema in `src/backend/db/tables/` and run `yarn drizzle-kit generate` afterwards.
+- This is a personal open-source project. Favor simple, pragmatic designs; avoid over-engineering architecture.
+- Avoid compatibility shims; remove dead/legacy code thoroughly when refactoring.
+- If you notice a potential new guideline worth adding to this file, ask before adding it.

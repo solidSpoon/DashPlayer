@@ -1,11 +1,13 @@
 import { injectable, postConstruct } from 'inversify';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 
 @injectable()
 export class ScheduleServiceImpl {
+    private readonly logger = getMainLogger('ScheduleServiceImpl');
+
     @postConstruct()
     init() {
-        dpLog.info('ScheduleServiceImpl init');
+        this.logger.info('ScheduleServiceImpl init');
     }
 }

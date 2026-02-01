@@ -7,7 +7,7 @@ import axios from 'axios';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 export type OpenAiTtsConfig = {
     apiKey: string;
@@ -15,6 +15,7 @@ export type OpenAiTtsConfig = {
 };
 
 class OpenAiTtsRequest {
+    private readonly logger = getMainLogger('OpenAiTtsRequest');
     private readonly apiKey: string;
     private readonly endpoint: string;
     private readonly str: string;
@@ -52,11 +53,10 @@ class OpenAiTtsRequest {
             fs.writeFileSync(outputPath, Buffer.from(response.data), 'binary');
             return outputPath;
         } catch (error) {
-            dpLog.error(error);
+            this.logger.error('openai tts request failed', { error });
             throw new Error('Failed to generate TTS');
         }
     }
 }
 
 export default OpenAiTtsRequest;
-

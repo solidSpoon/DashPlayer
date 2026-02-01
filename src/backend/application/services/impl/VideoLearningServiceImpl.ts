@@ -17,7 +17,7 @@ import { and, desc, eq, gte, inArray, like, lte, sql } from 'drizzle-orm';
 import { inject, injectable, postConstruct } from 'inversify';
 
 import TYPES from '@/backend/ioc/types';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 import { ClipQuery, SimpleClipQuery } from '@/common/api/dto';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
@@ -55,6 +55,7 @@ type ClipCandidate = {
 
 @injectable()
 export default class VideoLearningServiceImpl implements VideoLearningService {
+    private readonly logger = getMainLogger('VideoLearningServiceImpl');
     @inject(TYPES.VideoLearningOssService)
     private videoLearningOssService!: ClipOssService;
 
@@ -221,7 +222,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         try {
             await this.subtitleService.parseSrt(srtPath);
         } catch (error) {
-            dpLog.error('[VideoLearningServiceImpl] failed to parse srt for cache', {
+            this.logger.error('[VideoLearningServiceImpl] failed to parse srt for cache', {
                 srtKey,
                 srtPath,
                 error
@@ -267,7 +268,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             }
             const task = snapshot.get(key);
             if (!task) {
-                dpLog.error('[checkQueue] task not found for key:', key);
+                this.logger.error('[checkQueue] task not found for key:', key);
                 continue;
             }
             if (task.operation === 'add') {
@@ -353,7 +354,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         try {
             fs.rmSync(tempName, { force: true });
         } catch (e) {
-            dpLog.warn('[taskAddOperation] failed to remove temp file:', tempName, e);
+            this.logger.warn('[taskAddOperation] failed to remove temp file:', tempName, e);
         }
     }
 
@@ -726,7 +727,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     const vocabulary = this.buildVocabularyEntriesFromMatchedWords(task.matchedWords);
                     paginatedInProgress.push(this.convertToVideoLearningClipVO(clipEntry, vocabulary));
                 } catch (error) {
-                    dpLog.error('Failed to process in-progress task:', error);
+                    this.logger.error('Failed to process in-progress task:', error);
                 }
             }
         }
@@ -837,13 +838,13 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             try {
                 await this.checkQueue();
             } catch (e) {
-                dpLog.error('[VideoLearningServiceImpl] checkQueue error:', e);
+                this.logger.error('[VideoLearningServiceImpl] checkQueue error:', e);
             } finally {
                 setTimeout(loop, 1000);
             }
         };
         // fire-and-forget
-        loop().catch((e) => dpLog.error(e));
+        loop().catch((e) => this.logger.error('VideoLearningServiceImpl loop failed', { error: e }));
     }
 
     public async detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO> {
@@ -868,7 +869,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 yieldMs: 20,
             });
         } catch (error) {
-            dpLog.error('分析裁切状态失败:', error);
+            this.logger.error('分析裁切状态失败:', error);
             await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
             return { status: 'completed' };
         }
@@ -982,7 +983,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 analyzingProgress
             });
         } catch (error) {
-            dpLog.error('Failed to notify clip status:', error);
+            this.logger.error('Failed to notify clip status:', error);
         }
     }
 }

@@ -6,7 +6,7 @@ import { TranscriptionService } from '../TranscriptionService';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
@@ -49,6 +49,7 @@ const EXPIRATION_THRESHOLD = 3 * 60 * 60 * 1000;
 export class CloudTranscriptionServiceImpl implements TranscriptionService {
     private currentFilePath: string | null = null;
     private cancelRequested = false;
+    private readonly logger = getMainLogger('CloudTranscriptionServiceImpl');
 
     @inject(TYPES.FfmpegService)
     private ffmpegService!: FfmpegService;
@@ -166,7 +167,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
 
             // 整理结果，生成 SRT 文件
             const srtName = filePath.replace(path.extname(filePath), '.srt');
-            dpLog.info(`[CloudTranscriptionService] 生成 SRT 文件: ${srtName}`);
+            this.logger.info(`[CloudTranscriptionService] 生成 SRT 文件: ${srtName}`);
             fs.writeFileSync(srtName, toSrt(context.chunks));
 
             // 完成任务，并保存状态
@@ -174,7 +175,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             configTender.save(context);
             this.sendProgress(0, filePath, 'completed', 100, { srtPath: srtName });
         } catch (error) {
-            dpLog.error(error);
+            this.logger.error('cloud transcription failed', { error });
             if (this.cancelRequested) {
                 this.sendProgress(0, filePath, 'cancelled', 0, { message: '转录任务已取消' });
             } else {
@@ -206,7 +207,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
                 if (this.cancelRequested) {
                     throw new Error('Transcription cancelled by user');
                 }
-                dpLog.info(`[CloudTranscriptionService] Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
+                this.logger.info(`[CloudTranscriptionService] Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
                 chunk.response = await this.whisper(chunk);
                 return;
             } catch (err) {
@@ -239,7 +240,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             try {
                 fs.unlinkSync(path.join(context.folder, file));
             } catch (err) {
-                dpLog.warn(`[CloudTranscriptionService] 忽略删除文件 ${file} 的错误：${err}`);
+                this.logger.warn(`[CloudTranscriptionService] 忽略删除文件 ${file} 的错误：${err}`);
             }
         }
         // 执行分割操作
@@ -302,7 +303,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
                             folderExpired = true;
                         }
                     } catch (err) {
-                        dpLog.warn(
+                        this.logger.warn(
                             `[CloudTranscriptionService] 解析${infoPath}失败：${err}，将直接删除此目录`
                         );
                         folderExpired = true;
@@ -312,13 +313,13 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
                     folderExpired = true;
                 }
                 if (folderExpired) {
-                    dpLog.info(`[CloudTranscriptionService] 删除过期目录: ${folderPath}`);
+                    this.logger.info(`[CloudTranscriptionService] 删除过期目录: ${folderPath}`);
                     // 删除整个文件夹（包括目录下的所有内容）
                     fs.rmSync(folderPath, { recursive: true, force: true });
                 }
             }
         } catch (err) {
-            dpLog.error(`[CloudTranscriptionService] 清理过期目录失败：${err}`);
+            this.logger.error(`[CloudTranscriptionService] 清理过期目录失败：${err}`);
         }
     }
 }
