@@ -7,38 +7,46 @@ type DpLog = {
     warn: (...args: any[]) => void;
     error: (...args: any[]) => void;
     log: (...args: any[]) => void;
+    withTags: (tags: string | string[]) => DpLog;
 };
 
 const base = getMainLogger('dpLog');
 
-function logWithLevel(level: SimpleLevel | 'log', ...args: any[]) {
+function logWithLevel(
+    logger: ReturnType<typeof getMainLogger>,
+    level: SimpleLevel | 'log',
+    ...args: any[]
+) {
     const [first, ...rest] = args;
     const msg = typeof first === 'string' ? first : String(first);
     const data = rest.length > 0 ? { args: rest } : undefined;
 
     switch (level) {
         case 'debug':
-            base.debug(msg, data);
+            logger.debug(msg, data);
             break;
         case 'info':
         case 'log':
-            base.info(msg, data);
+            logger.info(msg, data);
             break;
         case 'warn':
-            base.warn(msg, data);
+            logger.warn(msg, data);
             break;
         case 'error':
-            base.error(msg, data);
+            logger.error(msg, data);
             break;
     }
 }
 
-const dpLog: DpLog = {
-    debug: (...args) => logWithLevel('debug', ...args),
-    info: (...args) => logWithLevel('info', ...args),
-    warn: (...args) => logWithLevel('warn', ...args),
-    error: (...args) => logWithLevel('error', ...args),
-    log: (...args) => logWithLevel('log', ...args),
-};
+const createDpLog = (logger: ReturnType<typeof getMainLogger>): DpLog => ({
+    debug: (...args) => logWithLevel(logger, 'debug', ...args),
+    info: (...args) => logWithLevel(logger, 'info', ...args),
+    warn: (...args) => logWithLevel(logger, 'warn', ...args),
+    error: (...args) => logWithLevel(logger, 'error', ...args),
+    log: (...args) => logWithLevel(logger, 'log', ...args),
+    withTags: (tags) => createDpLog(logger.withTags(tags)),
+});
+
+const dpLog: DpLog = createDpLog(base);
 
 export default dpLog;

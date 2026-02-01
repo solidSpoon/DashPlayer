@@ -8,4 +8,5 @@ export interface SimpleEvent {
   module: string;     // 组件或文件名
   msg: string;
   data?: any;         // 结构化对象（可选）
+  tags?: string[];    // 日志标签（可选）
 }

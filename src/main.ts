@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import 'reflect-metadata';
 import { app, BrowserWindow } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
