@@ -4,10 +4,13 @@ import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';
 import fs from 'fs';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 
+const logger = getMainLogger('TtsService');
+
 class TtsService {
+
     static joinUrl = (base: string, path2: string) => {
         return base.replace(/\/+$/, '') + '/' + path2.replace(/^\/+/, '');
     };
@@ -42,7 +45,7 @@ class TtsService {
             fs.writeFileSync(outputPath, Buffer.from(response.data), 'binary');
             return outputPath;
         } catch (error) {
-            dpLog.error(error);
+            logger.error('tts request failed', { error });
             throw new Error('Failed to generate TTS');
         }
     }

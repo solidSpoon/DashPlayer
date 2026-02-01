@@ -90,7 +90,7 @@ const electronHandler = {
     // 日志写入方法
     dpLogger: {
         write: (e: SimpleEvent) => ipcRenderer.send('dp-log/write', e),
-    }
+    },
 };
 contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;

@@ -10,7 +10,7 @@ import FfmpegService from '@/backend/application/services/FfmpegService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import LocationService, {ProgramType} from '@/backend/application/services/LocationService';
 import FfmpegTask from '@/backend/infrastructure/media/ffmpeg/FfmpegTask';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import {VideoInfo} from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/application/errors/errors';
 import {FfmpegCommands} from '@/backend/infrastructure/media/ffmpeg/FfmpegCommands';
@@ -21,6 +21,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     private dpTaskService!: DpTaskService;
     @inject(TYPES.LocationService)
     private locationService!: LocationService;
+    private readonly logger = getMainLogger('FfmpegServiceImpl');
 
     /**
      * 分割视频
@@ -254,20 +255,20 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 .audioCodec('pcm_s16le') // 强制 16-bit PCM (小端序)
                 .audioBitrate('128k')    // 音频比特率
                 .on('start', (commandLine) => {
-                    dpLog.log('Converting audio to WAV (16kHz, mono, 16-bit PCM):', commandLine);
+                    this.logger.info('Converting audio to WAV (16kHz, mono, 16-bit PCM):', commandLine);
                 })
                 .on('progress', (progress) => {
                     if (progress.percent) {
-                        dpLog.log(`Audio conversion progress: ${Math.floor(progress.percent)}%`);
+                        this.logger.info(`Audio conversion progress: ${Math.floor(progress.percent)}%`);
                     }
                 })
                 .on('end', () => {
-                    dpLog.log('Audio conversion to WAV completed successfully');
+                    this.logger.info('Audio conversion to WAV completed successfully');
                     resolve();
                 })
                 .on('error', (error) => {
                     const enhanced = this.enhanceFfmpegError(error, getStderrLines());
-                    dpLog.error('Audio conversion to WAV failed:', enhanced);
+                    this.logger.error('Audio conversion to WAV failed:', enhanced);
                     reject(this.processError(enhanced));
                 })
                 .save(outputPath);
@@ -294,7 +295,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
 
             command
                 .on('start', (commandLine) => {
-                    dpLog.log('Spawned Ffmpeg with command:', commandLine);
+                    this.logger.info('Spawned Ffmpeg with command:', commandLine);
                 })
                 .on('progress', (progress) => {
                     if (progress.percent && onProgress) {
@@ -302,12 +303,12 @@ export default class FfmpegServiceImpl implements FfmpegService {
                     }
                 })
                 .on('end', () => {
-                    dpLog.log('Ffmpeg command completed successfully');
+                    this.logger.info('Ffmpeg command completed successfully');
                     resolve();
                 })
                 .on('error', (error) => {
                     const enhanced = this.enhanceFfmpegError(error, getStderrLines());
-                    dpLog.error('An error occurred while executing ffmpeg command:', enhanced);
+                    this.logger.error('An error occurred while executing ffmpeg command:', enhanced);
                     reject(this.processError(enhanced));
                 })
                 .run();
@@ -329,7 +330,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 }
             });
             ff.on('close', (code) => {
-                dpLog.log(`child process exited with code ${code}`);
+                this.logger.info(`child process exited with code ${code}`);
                 if (code === 0) {
                     resolve();
                 } else {
@@ -338,7 +339,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 }
             });
             ff.on('error', (error) => {
-                dpLog.error('An error occurred while executing ffmpeg command:', error);
+                this.logger.error('An error occurred while executing ffmpeg command:', error);
                 reject(error);
             });
         });
@@ -398,11 +399,11 @@ export default class FfmpegServiceImpl implements FfmpegService {
                 .duration(duration)
                 .audioCodec('libmp3lame')
                 .audioBitrate('192k')
-                .on('start', (cmd) => dpLog.log('Trim audio start:', cmd))
+                .on('start', (cmd) => this.logger.info('Trim audio start:', cmd))
                 .on('end', () => resolve())
                 .on('error', (error) => {
                     const enhanced = this.enhanceFfmpegError(error, getStderrLines());
-                    dpLog.error('Trim audio failed:', enhanced);
+                    this.logger.error('Trim audio failed:', enhanced);
                     reject(this.processError(enhanced));
                 })
                 .save(outputPath);

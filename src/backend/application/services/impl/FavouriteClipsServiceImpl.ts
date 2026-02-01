@@ -10,7 +10,7 @@ import StrUtil from '@/common/utils/str-util';
 
 import { SrtSentence } from '@/common/types/SentenceC';
 import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import CacheService from '@/backend/application/services/CacheService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import { ClipOssService } from '@/backend/application/services/OssService';
@@ -30,6 +30,7 @@ type ClipTask = {
 };
 @injectable()
 export default class FavouriteClipsServiceImpl implements FavouriteClipsService {
+    private readonly logger = getMainLogger('FavouriteClipsServiceImpl');
     @inject(TYPES.ClipOssService)
     private clipOssService!: ClipOssService;
 
@@ -102,7 +103,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         for (const k of notExistKeys) {
             const task = tempMapping.get(k);
             if (!task) {
-                dpLog.error('task not found');
+                this.logger.error('task not found');
                 continue;
             }
             if (task.operation === 'add') {
@@ -115,7 +116,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         for (const k of existsKeys) {
             const task = tempMapping.get(k);
             if (!task) {
-                dpLog.error('task not found');
+                this.logger.error('task not found');
                 continue;
             }
             if (task.operation === 'cancel') {
@@ -317,7 +318,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             setTimeout(func, 1000);
         };
         func().catch((e) => {
-            dpLog.error(e);
+            this.logger.error('FavouriteClipsServiceImpl loop failed', { error: e });
         });
     }
 

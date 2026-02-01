@@ -6,10 +6,11 @@ import { Cancelable } from '@/common/interfaces';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
 import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
 
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { WhisperResponseFormatError } from '@/backend/application/errors/errors';
 
 class OpenAiWhisperRequest implements Cancelable {
+    private readonly logger = getMainLogger('OpenAiWhisperRequest');
     private readonly file: string;
     private abortController: AbortController | null = null;
     public readonly openAi: OpenAI;
@@ -25,7 +26,7 @@ class OpenAiWhisperRequest implements Cancelable {
         const transcription = await this.doTranscription();
         const parseRes = WhisperResponseVerifySchema.safeParse(transcription);
         if (!parseRes.success) {
-            dpLog.error('Invalid response from OpenAI', parseRes.error.issues);
+            this.logger.error('Invalid response from OpenAI', parseRes.error.issues);
             throw new WhisperResponseFormatError();
         }
         return {
@@ -54,7 +55,7 @@ class OpenAiWhisperRequest implements Cancelable {
                 { signal: this.abortController.signal },
             );
         } catch (error) {
-            dpLog.error(error);
+            this.logger.error('openai whisper request failed', { error });
             throw error;
         }
     }

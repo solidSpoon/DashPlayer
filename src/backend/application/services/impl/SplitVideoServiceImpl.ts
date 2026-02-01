@@ -1,4 +1,4 @@
-import dpLog, { getMainLogger } from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import parseChapter from '@/common/utils/praser/chapter-parser';
 import path from 'path';
 import fs from 'fs';
@@ -38,7 +38,7 @@ class SplitVideoServiceImpl implements SplitVideoService {
         const folderName = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)));
         const splitVideos = await this.splitVideoPart(videoPath, chapters, folderName);
         if (StrUtil.isBlank(srtPath) || !fs.existsSync(srtPath)) {
-            dpLog.error('srtPath is blank or not exists');
+            this.logger.error('srtPath is blank or not exists');
             return folderName;
         }
         const srtSplit: {
@@ -62,7 +62,7 @@ class SplitVideoServiceImpl implements SplitVideoService {
 
         const content = await FileUtil.read(srtPath);
         if (content === null) {
-            dpLog.error('read srt file failed');
+            this.logger.error('read srt file failed');
             return folderName;
         }
         const srt = SrtUtil.parseSrt(content);

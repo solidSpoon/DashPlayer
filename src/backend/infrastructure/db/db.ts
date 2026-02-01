@@ -14,13 +14,14 @@ import LocationUtil from '@/backend/utils/LocationUtil';
 // );
 const file = path.join(LocationUtil.staticGetStoragePath(LocationType.DATA), 'dp_db.sqlite3');
 const isDev = process.env.NODE_ENV === 'development';
+const enableDbLog = process.env.DP_DB_LOG === 'true';
 const dir = path.dirname(file);
 
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
 }
 const sqlite = new Database(file);
-const db = drizzle(sqlite, { logger: isDev });
+const db = drizzle(sqlite, { logger: isDev && enableDbLog });
 
 // 清空数据库
 export async function clearDB() {

@@ -261,6 +261,24 @@ const getLatestReleaseAssetUrl = async ({owner, repo, nameRegex}) => {
     return match?.browser_download_url || null;
 };
 
+const getLatestReleaseAssetUrlIncludingPrerelease = async ({owner, repo, nameRegex}) => {
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=10`;
+    const res = await axios.get(apiUrl, {
+        headers: {
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'DashPlayer-downloader',
+            ...getGithubAuthHeaders(apiUrl),
+        }
+    });
+    const releases = res.data ?? [];
+    for (const release of releases) {
+        const assets = release?.assets ?? [];
+        const match = assets.find((a) => nameRegex.test(a?.name || ''));
+        if (match?.browser_download_url) return match.browser_download_url;
+    }
+    return null;
+};
+
 const downloadAndExtractBinaryFromArchive = async ({
     url,
     outputPath,
@@ -410,13 +428,13 @@ const arch = process.env.npm_config_arch || os.arch()
 
     if (res === 'need_download') {
         try {
-            const archKey = arch === 'arm64' ? '(arm64|aarch64)' : '(x64|amd64|x86_64)';
-            const platKey = platform === 'darwin' ? '(macos|darwin|osx)' : platform === 'win32' ? '(win|windows)' : '(linux)';
-            const nameRegex = new RegExp(`whisper.*cli.*${platKey}.*${archKey}.*\\.(zip|tar\\.gz|tgz)$`, 'i');
+            const platKey = platform === 'darwin' ? 'macos' : platform === 'win32' ? 'windows' : 'linux';
+            const archKey = arch === 'arm64' ? 'arm64' : 'x64';
+            const nameRegex = new RegExp(`^whisper\\.cpp-${platKey}-${archKey}\\.(zip|tar\\.gz|tgz)$`, 'i');
 
-            let assetUrl = await getLatestReleaseAssetUrl({ owner: 'ggml-org', repo: 'whisper.cpp', nameRegex });
+            let assetUrl = await getLatestReleaseAssetUrl({ owner: 'solidSpoon', repo: 'DashPlayer', nameRegex });
             if (!assetUrl) {
-                assetUrl = await getLatestReleaseAssetUrl({ owner: 'ggerganov', repo: 'whisper.cpp', nameRegex });
+                assetUrl = await getLatestReleaseAssetUrlIncludingPrerelease({ owner: 'solidSpoon', repo: 'DashPlayer', nameRegex });
             }
             if (!assetUrl) {
                 console.warn(chalk.yellow(`⚠️  whisper.cpp release asset not found for ${platform}/${arch}, skip download`));

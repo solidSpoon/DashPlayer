@@ -37,7 +37,7 @@ export function usePlayerV2Bridge(navigate: (path: string) => void) {
             playerV2Actions.setSource(null);
             return;
         }
-        const fileUrl = UrlUtil.file(videoPath!);
+        const fileUrl = UrlUtil.toUrl(videoPath!);
         playerV2Actions.setSource(fileUrl);
     }, [videoPath]);
 

@@ -1,12 +1,13 @@
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
 import { ClientConfig } from 'tencentcloud-sdk-nodejs/tencentcloud/common/interface';
 import TransHolder from '@/common/utils/TransHolder';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import {WaitRateLimit} from "@/common/utils/RateLimiter";
 
 class TencentClient extends Client {
     private readonly SIZE_LIMIT: number;
+    private readonly logger = getMainLogger('TencentClient');
 
     constructor(clientConfig: ClientConfig) {
         super(clientConfig);
@@ -50,7 +51,7 @@ class TencentClient extends Client {
             ProjectId: 0,
             SourceTextList: source
         };
-        dpLog.info('do-trans:', source);
+        this.logger.info('do-trans:', source);
         const transResult: string[] | undefined = await super
           .TextTranslateBatch(param)
           .then((resp: TextTranslateBatchResponse) => resp.TargetTextList);

@@ -1,6 +1,6 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
 import { Topic } from '@/fronted/hooks/useChatPanel';
-import { CoreMessage } from 'ai';
+import { ModelMessage } from 'ai';
 
 
 class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
@@ -12,7 +12,7 @@ class HumanTopicMessage implements CustomMessage<HumanTopicMessage> {
         this.content = text;
     }
 
-    async toMsg(): Promise<CoreMessage[]> {
+    async toMsg(): Promise<ModelMessage[]> {
         return [{
             role: 'user',
             content: `请帮我分析 "${this.content}"`

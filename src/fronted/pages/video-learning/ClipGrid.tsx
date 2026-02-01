@@ -26,7 +26,7 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, e
     if (raw.startsWith('file://') || raw.startsWith('data:') || raw.startsWith('http://') || raw.startsWith('https://')) {
       return raw;
     }
-    return UrlUtil.file(raw);
+    return UrlUtil.toUrl(raw);
   };
 
   // 计算当前播放项的索引，避免每次 render 都 O(n)

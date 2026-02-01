@@ -11,7 +11,7 @@ let player: HTMLAudioElement | null = null;
 async function getAudioUrl(outURl: string) {
     let audioUrl = cache.get(outURl);
     if (!audioUrl) {
-        const data = await fetch(UrlUtil.dp(outURl));
+        const data = await fetch(UrlUtil.toUrl(outURl));
         const blob = new Blob([await data.arrayBuffer()]);
         audioUrl = URL.createObjectURL(blob);
         cache.set(outURl, audioUrl);

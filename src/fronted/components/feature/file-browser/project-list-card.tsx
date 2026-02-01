@@ -85,7 +85,7 @@ import useInView from '@/fronted/hooks/useInView';
                             <MusicCard fileName={video.fileName}/>
                         ) : url ? (
                             <img
-                                src={UrlUtil.file(url)}
+                                src={UrlUtil.toUrl(url)}
                                 style={{
                                     aspectRatio: '16/9'
                                 }}

@@ -58,6 +58,5 @@ export default class VideoLearningApiController implements Controller {
             const data = await this.videoLearningService.countClipsGroupedByWord();
             return { success: true, data };
         });
-
-            }
+    }
 }

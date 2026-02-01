@@ -58,4 +58,9 @@ export interface VideoLearningService {
      * @returns Promise<{status: 'pending' | 'in_progress' | 'completed', pendingCount?: number, inProgressCount?: number, completedCount?: number}>
      */
     detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO>;
+
+    /**
+     * 词库更新后清理分析缓存
+     */
+    invalidateClipAnalysisCache(): void;
 }

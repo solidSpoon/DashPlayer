@@ -2,7 +2,7 @@
 
 import { inject, injectable } from 'inversify';
 import { z } from 'zod';
-import { streamObject } from 'ai';
+import { Output, streamText } from 'ai';
 
 import TYPES from '@/backend/ioc/types';
 import { SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
@@ -21,13 +21,14 @@ import ClientProviderService from '@/backend/application/services/ClientProvider
 import SettingService from '@/backend/application/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
-import dpLog from '@/backend/infrastructure/logger';
-import TranslateService from "@/backend/application/services/AiTransServiceImpl";
-import {Sentence} from "@/common/types/SentenceC";
-import CacheService from "@/backend/application/services/CacheService";
+import { getMainLogger } from '@/backend/infrastructure/logger';
+import TranslateService from '@/backend/application/services/AiTransServiceImpl';
+import { Sentence } from '@/common/types/SentenceC';
+import CacheService from '@/backend/application/services/CacheService';
 import {
     fillSubtitlePrompt,
     getSubtitlePromptTemplate,
+    OPENAI_SUBTITLE_PLAIN_PROMPT,
     resolveSubtitleStyleWithSignature
 } from '@/common/constants/openaiSubtitlePrompts';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
@@ -272,6 +273,7 @@ const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSO
 
 @injectable()
 export default class TranslateServiceImpl implements TranslateService {
+    private readonly logger = getMainLogger('TranslateServiceImpl');
     @inject(TYPES.YouDaoClientProvider)
     private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.TencentClientProvider)
@@ -324,7 +326,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const engine = await this.settingService.getCurrentTranslationProvider();
         if (!engine) {
-            dpLog.error('没有启用的翻译服务');
+            this.logger.error('没有启用的翻译服务');
             this.showSubtitleTranslationToast({
                 message: '未启用字幕翻译服务，请在设置中配置后重试',
                 dedupeKey: 'subtitle-translation:engine-not-enabled',
@@ -345,7 +347,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData || !srtData.sentences) {
-            dpLog.error(`未找到 Hash 为 ${fileHash} 的字幕缓存`);
+            this.logger.error(`未找到 Hash 为 ${fileHash} 的字幕缓存`);
             this.showSubtitleTranslationToast({
                 message: '未找到字幕缓存，请重新加载字幕或重新打开视频后再试',
                 dedupeKey: `subtitle-translation:missing-srt-cache:${fileHash}`,
@@ -371,7 +373,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 this.rendererGateway.fireAndForget('translation/batch-result', {
                     translations: cachedTranslations
                 });
-                dpLog.log(`命中缓存并将 ${cachedTranslations.length} 条结果回传前端`);
+                this.logger.info(`命中缓存并将 ${cachedTranslations.length} 条结果回传前端`);
 
                 sentencesToTranslate = sentencesToTranslate.filter(s => !cachedResults.has(s.translationKey));
             }
@@ -392,21 +394,21 @@ export default class TranslateServiceImpl implements TranslateService {
             this.rendererGateway.fireAndForget('translation/batch-result', {
                 translations: fallbackTranslations
             });
-            dpLog.log(`跳过 ${fallbackTranslations.length} 条无需翻译的字幕并回传结果`);
+            this.logger.info(`跳过 ${fallbackTranslations.length} 条无需翻译的字幕并回传结果`);
             sentencesToTranslate = sentencesToTranslate.filter(sentence => shouldTranslateSubtitleText(sentence.text));
         }
 
         if (sentencesToTranslate.length === 0) {
-            dpLog.log('所有请求的句子均已处理（或命中缓存），任务完成。');
+            this.logger.info('所有请求的句子均已处理（或命中缓存），任务完成。');
             return;
         }
 
-        dpLog.log(`准备使用 ${engine} 翻译 ${sentencesToTranslate.length} 条句子`);
+        this.logger.info(`准备使用 ${engine} 翻译 ${sentencesToTranslate.length} 条句子`);
         if (engine === 'tencent') {
             await this.processTencentBatch(sentencesToTranslate, storageMode);
         } else if (engine === 'openai') {
             if (!openAiMode || !promptConfig) {
-                dpLog.error('OpenAI 翻译配置缺失，无法执行翻译');
+                this.logger.error('OpenAI 翻译配置缺失，无法执行翻译');
                 this.showSubtitleTranslationToast({
                     message: 'OpenAI 字幕翻译配置缺失，请检查设置',
                     dedupeKey: 'subtitle-translation:openai-config-missing',
@@ -420,7 +422,7 @@ export default class TranslateServiceImpl implements TranslateService {
     private async processTencentBatch(tasks: Sentence[], storageMode: SubtitleTranslationStorageMode): Promise<void> {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'tencent') {
-            dpLog.error('腾讯翻译服务未启用');
+            this.logger.error('腾讯翻译服务未启用');
             this.showSubtitleTranslationToast({
                 message: '腾讯字幕翻译未启用，请检查设置',
                 dedupeKey: 'subtitle-translation:tencent-not-enabled',
@@ -430,7 +432,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const tencentClient = this.tencentProvider.getClient();
         if (!tencentClient) {
-            dpLog.error('Tencent 翻译客户端未初始化');
+            this.logger.error('Tencent 翻译客户端未初始化');
             this.showSubtitleTranslationToast({
                 message: '腾讯翻译客户端未初始化，请检查密钥配置',
                 dedupeKey: 'subtitle-translation:tencent-client-not-ready',
@@ -464,7 +466,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 this.rendererGateway.fireAndForget('translation/batch-result', {
                     translations: resultsToRender
                 });
-                dpLog.log(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
+                this.logger.info(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
             } else {
                 this.showSubtitleTranslationToast({
                     message: '腾讯字幕翻译未返回有效结果，请稍后重试或检查服务配置',
@@ -472,7 +474,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 });
             }
         } catch (error) {
-            dpLog.error('腾讯批量翻译失败:', error);
+            this.logger.error('腾讯批量翻译失败:', error);
             this.showSubtitleTranslationToast({
                 message: '腾讯字幕翻译请求失败',
                 dedupeKey: 'subtitle-translation:tencent-request-failed',
@@ -490,7 +492,7 @@ export default class TranslateServiceImpl implements TranslateService {
     ): Promise<void> {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'openai') {
-            dpLog.error('OpenAI 翻译服务未启用');
+            this.logger.error('OpenAI 翻译服务未启用');
             this.showSubtitleTranslationToast({
                 message: 'OpenAI 字幕翻译未启用，请检查设置',
                 dedupeKey: 'subtitle-translation:openai-not-enabled',
@@ -500,7 +502,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const model = this.aiProviderService.getModel();
         if (!model) {
-            dpLog.error('OpenAI 模型未配置');
+            this.logger.error('OpenAI 模型未配置');
             this.showSubtitleTranslationToast({
                 message: 'OpenAI 模型未配置，请在设置中选择模型/填写 Key',
                 dedupeKey: 'subtitle-translation:openai-model-missing',
@@ -512,6 +514,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         let failedCount = 0;
         let firstError: unknown = null;
+        const taggedLog = this.logger.withTags(['subtitle', 'ai-json']);
         const translationPromises = tasks.map(async (task) => {
             try {
                 const currentIndex = task.index;
@@ -519,12 +522,21 @@ export default class TranslateServiceImpl implements TranslateService {
                 const nextSentence = allSentences[currentIndex + 1]?.text || '';
                 const prompt = this.buildOpenAIPrompt(task.text, prevSentence, nextSentence, promptConfig);
 
-                const { partialObjectStream } = streamObject({ model, schema, prompt });
+                const { partialOutputStream } = streamText({
+                    model,
+                    output: Output.object({ schema }),
+                    prompt,
+                });
 
                 let finalTranslation = '';
-                for await (const partialObject of partialObjectStream) {
-                    if (partialObject.translation) {
-                        finalTranslation = partialObject.translation;
+                for await (const partialObject of partialOutputStream) {
+                    taggedLog.debug('subtitle json chunk', {
+                        key: task.translationKey,
+                        keys: Object.keys(partialObject ?? {}),
+                    });
+                    const sanitized = sanitizeString(partialObject.translation);
+                    if (sanitized) {
+                        finalTranslation = sanitized;
                         this.rendererGateway.fireAndForget('translation/batch-result', {
                             translations: [{
                                 key: task.translationKey,
@@ -534,6 +546,28 @@ export default class TranslateServiceImpl implements TranslateService {
                                 isComplete: false
                             }]
                         });
+                    }
+                }
+
+                if (!finalTranslation) {
+                    const plainPrompt = this.buildOpenAIPlainPrompt(task.text, prevSentence, nextSentence, promptConfig);
+                    const textStream = streamText({ model, prompt: plainPrompt });
+                    let collected = '';
+                    for await (const chunk of textStream.textStream) {
+                        collected += chunk;
+                        const sanitized = sanitizeString(collected);
+                        if (sanitized) {
+                            finalTranslation = sanitized;
+                            this.rendererGateway.fireAndForget('translation/batch-result', {
+                                translations: [{
+                                    key: task.translationKey,
+                                    translation: finalTranslation,
+                                    provider: 'openai',
+                                    mode: openAiMode,
+                                    isComplete: false
+                                }]
+                            });
+                        }
                     }
                 }
 
@@ -554,7 +588,7 @@ export default class TranslateServiceImpl implements TranslateService {
                     firstError = new Error('empty translation');
                 }
             } catch (error) {
-                dpLog.error(`OpenAI 翻译句子失败 (key: ${task.translationKey}):`, error);
+                this.logger.error(`OpenAI 翻译句子失败 (key: ${task.translationKey}):`, error);
                 failedCount += 1;
                 if (!firstError) {
                     firstError = error;
@@ -573,7 +607,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         if (resultsToSave.size > 0) {
             await this.saveTranslationsByKeys(resultsToSave, storageMode);
-            dpLog.log(`OpenAI 翻译流程结束，已保存 ${resultsToSave.size} 条结果。`);
+            this.logger.info(`OpenAI 翻译流程结束，已保存 ${resultsToSave.size} 条结果。`);
         }
 
         if (failedCount > 0) {
@@ -623,6 +657,15 @@ export default class TranslateServiceImpl implements TranslateService {
         });
     }
 
+    private buildOpenAIPlainPrompt(current: string, prev: string, next: string, config: SubtitlePromptConfig): string {
+        return fillSubtitlePrompt(OPENAI_SUBTITLE_PLAIN_PROMPT, {
+            current,
+            prev,
+            next,
+            style: config.style
+        });
+    }
+
     // --- 数据库与缓存操作 ---
 
     public async getTranslationsByKeys(keys: string[], mode: SubtitleTranslationStorageMode): Promise<Map<string, string>> {
@@ -638,7 +681,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 }
             });
         } catch (error) {
-            dpLog.error('批量获取翻译缓存失败:', error);
+            this.logger.error('批量获取翻译缓存失败:', error);
         }
         return result;
     }
@@ -656,7 +699,7 @@ export default class TranslateServiceImpl implements TranslateService {
         try {
             await this.sentenceTranslatesRepository.upsertMany(params);
         } catch (error) {
-            dpLog.error('批量保存翻译结果失败:', error);
+            this.logger.error('批量保存翻译结果失败:', error);
         }
     }
 
@@ -671,7 +714,7 @@ export default class TranslateServiceImpl implements TranslateService {
         const currentProvider = await this.settingService.getCurrentDictionaryProvider();
 
         if (!currentProvider) {
-            dpLog.log('没有启用的字典服务');
+            this.logger.info('没有启用的字典服务');
             return null;
         }
 
@@ -679,11 +722,11 @@ export default class TranslateServiceImpl implements TranslateService {
         if (!forceRefresh) {
             const cacheRes = await this.wordLoad(str, currentProvider);
             if (cacheRes) {
-                dpLog.log(`命中${currentProvider}单词缓存:`, cacheRes);
+                this.logger.info(`命中${currentProvider}单词缓存:`, cacheRes);
                 return cacheRes;
             }
         } else {
-            dpLog.log(`强制刷新${currentProvider}单词:`, str);
+            this.logger.info(`强制刷新${currentProvider}单词:`, str);
         }
 
         if (currentProvider === 'youdao') {
@@ -709,11 +752,12 @@ export default class TranslateServiceImpl implements TranslateService {
 
     private async translateWordWithOpenAI(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
         const streamId = requestId ?? `openai-dict-${Date.now()}-${word}`;
+        const taggedLog = this.logger.withTags(['dictionary', 'ai-json']);
 
         try {
             const model = this.aiProviderService.getModel();
             if (!model) {
-                dpLog.error('OpenAI 模型未配置');
+                this.logger.error('OpenAI 模型未配置');
                 return null;
             }
 
@@ -728,10 +772,10 @@ Requirements:
 
 Ensure the response strictly matches the provided JSON schema.`;
 
-            const { partialObjectStream } = streamObject({
+            const { partialOutputStream } = streamText({
                 model,
-                schema: openAIDictionaryResultSchema,
-                prompt
+                output: Output.object({ schema: openAIDictionaryResultSchema }),
+                prompt,
             });
 
             const aggregated: OpenAIDictionaryResult = {
@@ -740,7 +784,11 @@ Ensure the response strictly matches the provided JSON schema.`;
             };
             let hasStreamed = false;
 
-            for await (const partialObject of partialObjectStream) {
+            for await (const partialObject of partialOutputStream) {
+                taggedLog.debug('dictionary json chunk', {
+                    word,
+                    keys: Object.keys(partialObject ?? {}),
+                });
                 let changed = false;
 
                 if (partialObject.word !== undefined) {
@@ -821,7 +869,7 @@ Ensure the response strictly matches the provided JSON schema.`;
 
             return null;
         } catch (error) {
-            dpLog.error(`OpenAI 字典查询失败 (word: ${word}):`, error);
+            this.logger.error(`OpenAI 字典查询失败 (word: ${word}):`, error);
             if (requestId) {
                 try {
                     await this.emitOpenAIDictionaryUpdate(
@@ -831,7 +879,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                         true
                     );
                 } catch (emitError) {
-                    dpLog.error('Failed to notify renderer about OpenAI dictionary error', emitError);
+                    this.logger.error('Failed to notify renderer about OpenAI dictionary error', emitError);
                 }
             }
             return null;
@@ -882,7 +930,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                 isComplete
             });
         } catch (error) {
-            dpLog.error('发送 OpenAI 字典流式更新失败', { requestId, word, error });
+            this.logger.error('发送 OpenAI 字典流式更新失败', { requestId, word, error });
         }
     }
 
@@ -907,10 +955,10 @@ Ensure the response strictly matches the provided JSON schema.`;
         }
 
         const cache: TransHolder<string> = await this.sentenceLoadBatch(processedSentences, storageMode);
-        dpLog.log('旧版句子翻译-缓存命中:', cache.getMapping());
+        this.logger.info('旧版句子翻译-缓存命中:', cache.getMapping());
 
         const retries = processedSentences.filter((e) => !cache.get(e));
-        dpLog.log('旧版句子翻译-需要在线翻译:', retries);
+        this.logger.info('旧版句子翻译-需要在线翻译:', retries);
 
         if (retries.length === 0) {
             return cache.getMapping();
@@ -918,7 +966,7 @@ Ensure the response strictly matches the provided JSON schema.`;
 
         try {
             if (!currentProvider) {
-                dpLog.log('没有启用的翻译服务');
+                this.logger.info('没有启用的翻译服务');
                 return cache.getMapping();
             }
 
@@ -932,7 +980,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                 return cache.merge(transResult).getMapping();
             } else if (currentProvider === 'openai') {
                 if (!openAiMode || !promptConfig) {
-                    dpLog.error('OpenAI 翻译配置缺失，无法执行旧版翻译流程');
+                    this.logger.error('OpenAI 翻译配置缺失，无法执行旧版翻译流程');
                     return cache.getMapping();
                 }
                 const transResult = await this.processOpenAIBatchLegacy(retries, openAiMode, promptConfig);
@@ -940,7 +988,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                 return cache.merge(transResult).getMapping();
             }
         } catch (e) {
-            dpLog.error('旧版 transSentences 失败:', e);
+            this.logger.error('旧版 transSentences 失败:', e);
             return cache.getMapping();
         }
         return cache.getMapping();
@@ -954,29 +1002,49 @@ Ensure the response strictly matches the provided JSON schema.`;
         const result = new TransHolder<string>();
         const model = this.aiProviderService.getModel();
         if (!model) {
-            dpLog.error('OpenAI 模型未配置');
+            this.logger.error('OpenAI 模型未配置');
             return result;
         }
 
         const schema = this.buildOpenAISchema(openAiMode);
 
+        const taggedLog = this.logger.withTags(['subtitle', 'ai-json']);
         const translationPromises = sentences.map(async (sentence) => {
             try {
                 const prompt = this.buildOpenAIPrompt(sentence, '', '', promptConfig);
-                const { partialObjectStream } = streamObject({ model, schema, prompt });
+                const { partialOutputStream } = streamText({
+                    model,
+                    output: Output.object({ schema }),
+                    prompt,
+                });
 
                 let finalTranslation = '';
-                for await (const partialObject of partialObjectStream) {
-                    if (partialObject.translation) {
-                        finalTranslation = partialObject.translation;
+                for await (const partialObject of partialOutputStream) {
+                    taggedLog.debug('subtitle legacy json chunk', {
+                        sentence: sentence.slice(0, 40),
+                        keys: Object.keys(partialObject ?? {}),
+                    });
+                    const sanitized = sanitizeString(partialObject.translation);
+                    if (sanitized) {
+                        finalTranslation = sanitized;
                     }
+                }
+
+                if (!finalTranslation) {
+                    const plainPrompt = this.buildOpenAIPlainPrompt(sentence, '', '', promptConfig);
+                    const textStream = streamText({ model, prompt: plainPrompt });
+                    let collected = '';
+                    for await (const chunk of textStream.textStream) {
+                        collected += chunk;
+                    }
+                    finalTranslation = sanitizeString(collected) ?? '';
                 }
 
                 if (finalTranslation) {
                     return { sentence, translation: finalTranslation };
                 }
             } catch (error) {
-                dpLog.error(`OpenAI 翻译句子失败 (sentence: ${sentence}):`, error);
+                this.logger.error(`OpenAI 翻译句子失败 (sentence: ${sentence}):`, error);
             }
             return null;
         });
@@ -1005,7 +1073,7 @@ Ensure the response strictly matches the provided JSON schema.`;
             if (provider === 'openai') {
                 const parsedResult = openAIDictionaryResultSchema.safeParse(parsed);
                 if (!parsedResult.success) {
-                    dpLog.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
+                    this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
                         word,
                         issues: parsedResult.error.issues
                     });
@@ -1013,7 +1081,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                 }
                 const sanitized = sanitizeDictionaryResult(parsedResult.data as OpenAIDictionaryResult);
                 if (!sanitized.definitions.length) {
-                    dpLog.warn('OpenAI 字典缓存缺少有效释义，忽略本地缓存', { word });
+                    this.logger.warn('OpenAI 字典缓存缺少有效释义，忽略本地缓存', { word });
                     return undefined;
                 }
                 return sanitized;
@@ -1021,7 +1089,7 @@ Ensure the response strictly matches the provided JSON schema.`;
 
             return parsed as YdRes;
         } catch (error) {
-            dpLog.error(`解析字典缓存失败 (provider: ${provider}, word: ${word})`, error);
+            this.logger.error(`解析字典缓存失败 (provider: ${provider}, word: ${word})`, error);
             return undefined;
         }
     }

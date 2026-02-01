@@ -17,7 +17,27 @@ Use the surrounding context to keep the tone, intent, and terminology aligned.
 Previous sentence: "{{prev}}"
 Next sentence: "{{next}}"
 
-Only output the processed form of this sentence:
+Translate or rewrite the current sentence according to the style.
+Respond with JSON only in the following format:
+{"translation":"..."}
+
+Current sentence:
+"{{current}}"`;
+
+export const OPENAI_SUBTITLE_PLAIN_PROMPT = `You are a professional subtitle assistant.
+
+Follow these style guidelines closely:
+{{style}}
+
+Use the surrounding context to keep the tone, intent, and terminology aligned.
+
+Previous sentence: "{{prev}}"
+Next sentence: "{{next}}"
+
+Translate or rewrite the current sentence according to the style.
+Only output the processed sentence, without quotes or extra commentary.
+
+Current sentence:
 "{{current}}"`;
 
 export const OPENAI_SUBTITLE_DEFAULT_STYLES: Record<TranslationMode, string> = {

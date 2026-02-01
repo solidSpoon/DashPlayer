@@ -210,7 +210,7 @@ const useChatPanel = create(
             // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
             const url = useFile.getState().subtitlePath ?? '';
             getRendererLogger('useChatPanel').debug('subtitle file url', { url });
-            const text = await fetch(UrlUtil.dp(url)).then((res) => res.text());
+            const text = await fetch(UrlUtil.toUrl(url)).then((res) => res.text());
             getRendererLogger('useChatPanel').debug('subtitle file content', { length: text.length });
             const topic = {
                 content: {

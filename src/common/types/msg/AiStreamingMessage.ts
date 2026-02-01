@@ -1,6 +1,6 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
 import { Topic } from '@/fronted/hooks/useChatPanel';
-import { CoreMessage } from 'ai';
+import { ModelMessage } from 'ai';
 
 class AiStreamingMessage implements CustomMessage<AiStreamingMessage> {
     private readonly topic: Topic;
@@ -15,7 +15,7 @@ class AiStreamingMessage implements CustomMessage<AiStreamingMessage> {
         this.isStreaming = isStreaming;
     }
 
-    async toMsg(): Promise<CoreMessage[]> {
+    async toMsg(): Promise<ModelMessage[]> {
         const content = this.content.replace(/\[\[switch:[\s\S]*?\]\]/g, '');
         return [{
             role: 'assistant',

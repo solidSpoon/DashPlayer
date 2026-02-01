@@ -1,8 +1,8 @@
-import { CoreMessage } from 'ai';
+import { ModelMessage } from 'ai';
 import { ChatBackgroundContext, ChatWelcomeParams } from '@/common/types/chat';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
-export const buildWelcomeMessages = (params: ChatWelcomeParams): CoreMessage[] => {
+export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] => {
     const system = [
         '你是用户的英语学习伙伴，帮助他们理解和掌握英语表达。',
         '',
@@ -135,6 +135,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         '',
         '要求:',
         '- structure: 句子意群拆解，phraseGroups 按原句顺序排列，并给出中文翻译与必要标签。',
+        '- structure: phraseGroups 的 tags 字段必须存在；没有标签时返回空数组。',
         '- vocab: 提取对中级学习者可能生僻的新词，给出音标与中文释义；没有就返回空数组并 hasNewWord=false。',
         '- phrases: 提取常用词组/固定搭配，给出中文释义；没有就返回空数组并 hasPhrase=false。',
         '- grammar: 用中文 Markdown 简洁解释语法点，避免使用标题语法（如 #/##/###），用加粗或列表代替。',
@@ -147,9 +148,9 @@ export const buildAnalysisPrompt = (text: string): string => {
 };
 
 export const appendBackgroundMessage = (
-    messages: CoreMessage[],
+    messages: ModelMessage[],
     background?: ChatBackgroundContext
-): CoreMessage[] => {
+): ModelMessage[] => {
     const withRole = ensureChatRoleMessage(messages);
     const backgroundMessage = buildChatBackgroundMessage(background);
     if (!backgroundMessage) {
@@ -166,7 +167,7 @@ export const appendBackgroundMessage = (
     ];
 };
 
-export const ensureChatRoleMessage = (messages: CoreMessage[]): CoreMessage[] => {
+export const ensureChatRoleMessage = (messages: ModelMessage[]): ModelMessage[] => {
     if (messages.some((message) => message.role === 'system')) {
         return messages;
     }
@@ -207,7 +208,7 @@ export const ensureChatRoleMessage = (messages: CoreMessage[]): CoreMessage[] =>
 
 export const buildChatBackgroundMessage = (
     background?: ChatBackgroundContext
-): CoreMessage | null => {
+): ModelMessage | null => {
     const parts: string[] = [];
     const paragraphLines = background?.paragraphLines ?? [];
     if (paragraphLines.length > 0) {

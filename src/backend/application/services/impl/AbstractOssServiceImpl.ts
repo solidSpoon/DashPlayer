@@ -2,11 +2,12 @@ import { injectable } from 'inversify';
 import path from 'path';
 import fs from 'fs';
 import { OssService } from '@/backend/application/services/OssService';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OssBaseMeta } from '@/common/types/clipMeta';
 
 @injectable()
 export default abstract class AbstractOssServiceImpl<T> implements OssService<T> {
+    private readonly logger = getMainLogger('AbstractOssServiceImpl');
 
     private readonly METADATA_FILE = 'metadata.json';
 
@@ -39,7 +40,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             const destPath = path.join(clipDir, fileName);
             fs.copyFileSync(sourcePath, destPath);
         } catch (error) {
-            dpLog.error(`Error adding file ${fileName}`, error);
+            this.logger.error(`Error adding file ${fileName}`, error);
             throw error;
         }
     }
@@ -49,7 +50,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
         try {
             fs.rmSync(clipDir, { recursive: true, force: true });
         } catch (error) {
-            dpLog.error(`Error deleting file`, error);
+            this.logger.error(`Error deleting file`, error);
             throw error;
         }
     }
@@ -69,7 +70,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             };
             return this.parseMetadata(res);
         } catch (error) {
-            dpLog.error(`Error retrieving file`, error);
+            this.logger.error(`Error retrieving file`, error);
             return null;
         }
     }
@@ -94,7 +95,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             }
             fs.writeFileSync(metadataPath, JSON.stringify(updatedMetadata, null, 2));
         } catch (error) {
-            dpLog.error(`Error updating metadata `, error);
+            this.logger.error(`Error updating metadata `, error);
             throw error;
         }
     }
@@ -110,7 +111,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
                 .filter(item => item.isDirectory())
                 .map(item => item.name);
         } catch (error) {
-            dpLog.error(`Error listing objects`, error);
+            this.logger.error(`Error listing objects`, error);
             throw error;
         }
     }

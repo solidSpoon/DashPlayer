@@ -119,7 +119,7 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
             <div className="absolute inset-0">
                 {thumbnail ? (
                     <img
-                        src={UrlUtil.file(thumbnail)}
+                        src={UrlUtil.toUrl(thumbnail)}
                         alt={featured.fileName}
                         className="h-full w-full object-cover"
                     />

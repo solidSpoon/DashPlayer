@@ -8,7 +8,7 @@ import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import WhisperService from '@/backend/application/services/WhisperService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
-import dpLog from '@/backend/infrastructure/logger';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import { WaitLock } from '@/common/utils/Lock';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
@@ -62,6 +62,7 @@ class WhisperServiceImpl implements WhisperService {
 
     @inject(TYPES.ConfigStoreFactory)
     private configStoreFactory!: ConfigStoreFactory;
+    private readonly logger = getMainLogger('WhisperServiceImpl');
 
     private static readonly INFO_FILE = 'info.json';
 
@@ -147,7 +148,7 @@ class WhisperServiceImpl implements WhisperService {
 
             // 整理结果，生成 SRT 文件
             const srtName = filePath.replace(path.extname(filePath), '.srt');
-            dpLog.info(`[WhisperService] Task ID: ${taskId} - 生成 SRT 文件: ${srtName}`);
+            this.logger.info(`[WhisperService] Task ID: ${taskId} - 生成 SRT 文件: ${srtName}`);
             fs.writeFileSync(srtName, toSrt(context.chunks));
 
             // 完成任务，并保存状态
@@ -155,7 +156,7 @@ class WhisperServiceImpl implements WhisperService {
             configTender.save(context);
             this.dpTaskService.finish(taskId, { progress: '转录完成' });
         } catch (error) {
-            dpLog.error(error);
+            this.logger.error('whisper task failed', { error });
             if (!(error instanceof Error)) throw error;
             const cancel = error instanceof CancelByUserError;
             this.dpTaskService.update({
@@ -174,7 +175,7 @@ class WhisperServiceImpl implements WhisperService {
         let lastError: unknown = null;
         for (let attempt = 0; attempt < 3; attempt++) {
             try {
-                dpLog.info(`[WhisperService] Task ID: ${taskId} - Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
+                this.logger.info(`[WhisperService] Task ID: ${taskId} - Attempt ${attempt + 1} to invoke Whisper API for chunk offset ${chunk.offset}`);
                 chunk.response = await this.whisper(taskId, chunk);
                 return;
             } catch (err) {
@@ -215,7 +216,7 @@ class WhisperServiceImpl implements WhisperService {
             try {
                 fs.unlinkSync(path.join(context.folder, file));
             } catch (err) {
-                dpLog.warn(`[WhisperService] 忽略删除文件 ${file} 的错误：${err}`);
+                this.logger.warn(`[WhisperService] 忽略删除文件 ${file} 的错误：${err}`);
             }
         }
         // 执行分割操作
@@ -281,7 +282,7 @@ class WhisperServiceImpl implements WhisperService {
                             folderExpired = true;
                         }
                     } catch (err) {
-                        dpLog.warn(
+                        this.logger.warn(
                             `[WhisperService] 解析${infoPath}失败：${err}，将直接删除此目录`
                         );
                         folderExpired = true;
@@ -291,13 +292,13 @@ class WhisperServiceImpl implements WhisperService {
                     folderExpired = true;
                 }
                 if (folderExpired) {
-                    dpLog.info(`[WhisperService] 删除过期目录: ${folderPath}`);
+                    this.logger.info(`[WhisperService] 删除过期目录: ${folderPath}`);
                     // 删除整个文件夹（包括目录下的所有内容）
                     fs.rmSync(folderPath, { recursive: true, force: true });
                 }
             }
         } catch (err) {
-            dpLog.error(`[WhisperService] 清理过期目录失败：${err}`);
+            this.logger.error(`[WhisperService] 清理过期目录失败：${err}`);
         }
     }
 }

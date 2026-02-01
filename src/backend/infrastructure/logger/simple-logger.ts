@@ -32,6 +32,8 @@ const levelOrder: Record<SimpleLevel, number> = {
     error: 50,
 };
 
+type LogTagsInput = string | string[] | undefined | null;
+
 function normalizeLevel(level: string | undefined): SimpleLevel | null {
     if (level === 'debug' || level === 'info' || level === 'warn' || level === 'error') {
         return level;
@@ -57,6 +59,52 @@ function shouldLog(level: SimpleLevel) {
     return levelOrder[level] >= levelOrder[CURRENT_LEVEL];
 }
 
+function normalizeTagsInput(tags: LogTagsInput): string[] {
+    if (!tags) return [];
+    if (Array.isArray(tags)) {
+        return tags.map(tag => tag.trim()).filter(Boolean);
+    }
+    return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+}
+
+function isTagsFilterDisabled(tags: string[]): boolean {
+    return tags.some(tag => tag === '*' || tag.toLowerCase() === 'all');
+}
+
+let TAG_FILTER: Set<string> | null = (() => {
+    const envTags = normalizeTagsInput(process.env.DP_LOG_TAGS);
+    if (envTags.length === 0) {
+        return null;
+    }
+    if (isTagsFilterDisabled(envTags)) {
+        return null;
+    }
+    return new Set(envTags);
+})();
+
+export function setLogTags(tags?: string[]) {
+    if (!tags || tags.length === 0) {
+        TAG_FILTER = null;
+        return;
+    }
+    TAG_FILTER = isTagsFilterDisabled(tags) ? null : new Set(tags);
+}
+
+function normalizeEventTags(tags?: LogTagsInput): string[] | undefined {
+    const normalized = normalizeTagsInput(tags);
+    return normalized.length > 0 ? normalized : undefined;
+}
+
+function shouldLogTags(tags?: string[]): boolean {
+    if (!TAG_FILTER) {
+        return true;
+    }
+    if (!tags || tags.length === 0) {
+        return false;
+    }
+    return tags.some(tag => TAG_FILTER?.has(tag));
+}
+
 function normalizeData(data: unknown): string {
     if (data === undefined) return '';
     if (data instanceof Error) {
@@ -80,7 +128,8 @@ function truncate(text: string, maxLen = 1200) {
 }
 
 function formatLine(event: SimpleEvent) {
-    const prefix = `[${event.process}|${event.module}]`;
+    const tagLabel = event.tags && event.tags.length > 0 ? `|${event.tags.join(',')}` : '';
+    const prefix = `[${event.process}|${event.module}${tagLabel}]`;
     const msg = event.msg ? toSingleLine(event.msg) : '';
     const isPrimitiveData = event.data === null || ['string', 'number', 'boolean'].includes(typeof event.data);
     const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData;
@@ -91,6 +140,9 @@ function formatLine(event: SimpleEvent) {
 
 export function writeEvent(event: SimpleEvent) {
     if (!shouldLog(event.level)) {
+        return;
+    }
+    if (!shouldLogTags(event.tags)) {
         return;
     }
     const line = formatLine({
@@ -114,7 +166,7 @@ export function writeEvent(event: SimpleEvent) {
     }
 }
 
-function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) {
+function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any, tags?: LogTagsInput) {
     writeEvent({
         ts: new Date().toISOString(),
         level,
@@ -122,16 +174,41 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) 
         module: moduleName,
         msg,
         data,
+        tags: normalizeEventTags(tags),
     });
 }
 
-export function getMainLogger(moduleName: string) {
+function mergeTags(base?: string[], extra?: LogTagsInput): string[] | undefined {
+    const normalizedExtra = normalizeEventTags(extra);
+    if (!base || base.length === 0) {
+        return normalizedExtra;
+    }
+    if (!normalizedExtra || normalizedExtra.length === 0) {
+        return base;
+    }
+    return Array.from(new Set([...base, ...normalizedExtra]));
+}
+
+type MainLogger = {
+    debug: (msg: string, data?: any, tags?: LogTagsInput) => void;
+    info: (msg: string, data?: any, tags?: LogTagsInput) => void;
+    warn: (msg: string, data?: any, tags?: LogTagsInput) => void;
+    error: (msg: string, data?: any, tags?: LogTagsInput) => void;
+    withTags: (tags: LogTagsInput) => MainLogger;
+};
+
+function createLogger(moduleName: string, baseTags?: string[]): MainLogger {
     return {
-        debug: (msg: string, data?: any) => logAt(moduleName, 'debug', msg, data),
-        info: (msg: string, data?: any) => logAt(moduleName, 'info', msg, data),
-        warn: (msg: string, data?: any) => logAt(moduleName, 'warn', msg, data),
-        error: (msg: string, data?: any) => logAt(moduleName, 'error', msg, data),
+        debug: (msg, data, tags) => logAt(moduleName, 'debug', msg, data, mergeTags(baseTags, tags)),
+        info: (msg, data, tags) => logAt(moduleName, 'info', msg, data, mergeTags(baseTags, tags)),
+        warn: (msg, data, tags) => logAt(moduleName, 'warn', msg, data, mergeTags(baseTags, tags)),
+        error: (msg, data, tags) => logAt(moduleName, 'error', msg, data, mergeTags(baseTags, tags)),
+        withTags: (tags) => createLogger(moduleName, mergeTags(baseTags, tags)),
     };
+}
+
+export function getMainLogger(moduleName: string, tags?: LogTagsInput): MainLogger {
+    return createLogger(moduleName, normalizeEventTags(tags));
 }
 
 export function pruneOldLogs(days = 14) {

@@ -57,6 +57,7 @@
     "autoprefixer": "^10.4.17",
     "babel-plugin-react-compiler": "^1.0.0",
     "electron": "39.2.7",
+    "electron-devtools-installer": "^4.0.0",
     "eslint": "^8.0.1",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-import": "^2.25.0",
@@ -76,7 +77,7 @@
     "vitest": "^4.0.15"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.52",
+    "@ai-sdk/openai": "^3.0.23",
     "@electron-forge/publisher-github": "^7.10.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@floating-ui/react": "^0.26.9",
@@ -112,7 +113,7 @@
     "@types/fluent-ffmpeg": "^2.1.24",
     "@uidotdev/usehooks": "^2.4.1",
     "@vitejs/plugin-react": "^5.1.2",
-    "ai": "^5.0.76",
+    "ai": "^6.0.64",
     "axios": "^1.6.8",
     "better-sqlite3": "^12.5.0",
     "class-variance-authority": "^0.7.1",
@@ -122,6 +123,7 @@
     "compare-versions": "^6.1.0",
     "compromise": "^14.12.0",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "drizzle-kit": "^0.26.2",
     "drizzle-orm": "^0.35.2",
     "electron-log": "^5.2.0",

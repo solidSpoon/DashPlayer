@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
@@ -28,9 +28,10 @@ export default function AutoClipButton() {
   const markClipTaskRequested = useFile((state) => state.markClipTaskRequested);
   const clearClipTaskRequested = useFile((state) => state.clearClipTaskRequested);
   const clipRequested = clipTaskKey ? !!clipTaskRequestedAtByKey[clipTaskKey] : false;
+  const canQuery = !!(videoPath && srtHash && subtitlePath);
 
   // 使用 SWR 获取裁切状态
-  const { data: clipStatusData } = useSWR(
+  const { data: clipStatus, mutate: mutateClipStatus } = useSWR(
     videoPath && srtHash && subtitlePath
       ? ['video-learning/detect-clip-status', videoPath, srtHash, subtitlePath]
       : null,
@@ -43,9 +44,18 @@ export default function AutoClipButton() {
       return result as ClipStatusState;
     },
     {
+      // 切回已访问过的视频时，SWR 默认可能直接复用旧 cache（比如初始 0%），这里强制重新拉一次
+      revalidateOnMount: true,
       revalidateIfStale: false,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      // 更激进的兜底：分析/裁切进行中时每 1s 拉一次，避免错过 push 导致进度停住
+      refreshInterval: (data) => {
+        if (data?.status === 'analyzing' || data?.status === 'in_progress') {
+          return 1000;
+        }
+        return 0;
+      },
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1500,
@@ -54,41 +64,6 @@ export default function AutoClipButton() {
       }
     }
   );
-
-  const [clipStatus, setClipStatus] = useState<ClipStatusState | null>(null);
-
-  useEffect(() => {
-    if (videoPath && srtHash && subtitlePath) {
-      setClipStatus({ status: 'analyzing', analyzingProgress: 0 });
-    } else {
-      setClipStatus(null);
-    }
-  }, [videoPath, srtHash, subtitlePath]);
-
-  // 同步 SWR 数据到本地状态
-  useEffect(() => {
-    if (clipStatusData) {
-      setClipStatus((prev) => {
-        const isAnalyzing = clipStatusData.status === 'analyzing';
-        const analyzingProgress = isAnalyzing
-          ? clipStatusData.analyzingProgress ?? prev?.analyzingProgress ?? 0
-          : clipStatusData.analyzingProgress;
-
-        return {
-          ...clipStatusData,
-          pendingCount:
-            clipStatusData.status === 'pending'
-              ? clipStatusData.pendingCount ?? 0
-              : clipStatusData.pendingCount,
-          inProgressCount:
-            clipStatusData.status === 'in_progress'
-              ? clipStatusData.inProgressCount ?? 0
-              : clipStatusData.inProgressCount,
-          analyzingProgress
-        };
-      });
-    }
-  }, [clipStatusData]);
 
   useEffect(() => {
     if (clipStatus?.status === 'completed' && clipTaskKey) {
@@ -109,9 +84,14 @@ export default function AutoClipButton() {
         completedCount?: number;
         message?: string;
         analyzingProgress?: number;
+        seq?: number;
       }) => {
-        if (params.videoPath === videoPath && params.srtKey === srtHash) {
-          setClipStatus((prev) => {
+        if (params.srtKey === srtHash) {
+          const applyUpdate = (prev: ClipStatusState | undefined): ClipStatusState | undefined => {
+            if (prev?.seq !== undefined && params.seq !== undefined && params.seq <= prev.seq) {
+              return prev;
+            }
+
             const isAnalyzing = params.status === 'analyzing';
             const analyzingProgress = isAnalyzing
               ? params.analyzingProgress ?? prev?.analyzingProgress ?? 0
@@ -129,14 +109,18 @@ export default function AutoClipButton() {
                   : params.inProgressCount,
               completedCount: params.completedCount,
               message: params.message,
-              analyzingProgress
+              analyzingProgress,
+              seq: params.seq ?? prev?.seq,
             };
-          });
+          };
+
+          // 单一真相源：SWR cache。push 直接写回 cache，避免“切回复用旧 0%”问题。
+          void mutateClipStatus((prev) => applyUpdate(prev), { revalidate: false });
         }
       }
     );
     return () => unregister();
-  }, [videoPath, srtHash]);
+  }, [srtHash, mutateClipStatus]);
 
   const pendingCount = clipStatus?.pendingCount ?? 0;
   const inProgressCount = clipStatus?.inProgressCount ?? 0;
@@ -146,7 +130,7 @@ export default function AutoClipButton() {
   const canClip = clipStatus?.status === 'pending' && pendingCount > 0 && !hasExistingClipTask;
 
   const getButtonText = () => {
-    if (!clipStatus?.status) return '裁切生词视频';
+    if (!clipStatus?.status) return canQuery ? '检测中...' : '裁切生词视频';
     switch (clipStatus.status) {
       case 'analyzing':
         return `分析中 ${analyzingProgress}%`;
@@ -165,7 +149,7 @@ export default function AutoClipButton() {
   const isDisabled = !canClip;
 
   const disabledReason = (() => {
-    if (!clipStatus?.status) return '等待字幕分析完成';
+    if (!clipStatus?.status) return canQuery ? '正在检测裁切状态' : '等待字幕分析完成';
     if (clipStatus.status === 'analyzing') return '正在分析视频内容，请等待完成';
     if (clipStatus.status === 'in_progress') return '正在裁切生词视频中，请等待完成';
     if (clipRequested) return '已创建裁切任务，等待后端开始处理';

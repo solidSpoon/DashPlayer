@@ -66,7 +66,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                     className={cn('flex gap-6  p-4 relative rounded-xl overflow-hidden', className)}>
                     <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
                         {url ? <img
-                            src={UrlUtil.file(url)}
+                            src={UrlUtil.toUrl(url)}
                             style={{
                                 aspectRatio: '16/9'
                             }}

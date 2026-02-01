@@ -45,7 +45,7 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
       <div className="flex flex-col w-44 gap-1 h-full overflow-hidden p-2 select-text">
         <img
           className={cn('w-full rounded-lg')}
-          src={UrlUtil.dp(item.baseDir, item.thumbnail_file)}
+          src={UrlUtil.toUrl(item.baseDir, item.thumbnail_file)}
           style={{ aspectRatio: '16/9' }}
           alt=""
         />
