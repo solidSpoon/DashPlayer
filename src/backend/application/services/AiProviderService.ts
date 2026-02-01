@@ -1,5 +1,5 @@
-import { LanguageModelV1 } from 'ai';
+import { LanguageModel } from 'ai';
 
 export default interface AiProviderService {
-    getModel(): LanguageModelV1 | null;
+    getModel(): LanguageModel | null;
 }

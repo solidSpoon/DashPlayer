@@ -2,7 +2,7 @@
 
 import { inject, injectable } from 'inversify';
 import { z } from 'zod';
-import { streamObject } from 'ai';
+import { Output, streamText } from 'ai';
 
 import TYPES from '@/backend/ioc/types';
 import { SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
@@ -22,12 +22,13 @@ import SettingService from '@/backend/application/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
 import dpLog from '@/backend/infrastructure/logger';
-import TranslateService from "@/backend/application/services/AiTransServiceImpl";
-import {Sentence} from "@/common/types/SentenceC";
-import CacheService from "@/backend/application/services/CacheService";
+import TranslateService from '@/backend/application/services/AiTransServiceImpl';
+import { Sentence } from '@/common/types/SentenceC';
+import CacheService from '@/backend/application/services/CacheService';
 import {
     fillSubtitlePrompt,
     getSubtitlePromptTemplate,
+    OPENAI_SUBTITLE_PLAIN_PROMPT,
     resolveSubtitleStyleWithSignature
 } from '@/common/constants/openaiSubtitlePrompts';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
@@ -512,6 +513,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         let failedCount = 0;
         let firstError: unknown = null;
+        const taggedLog = dpLog.withTags(['subtitle', 'ai-json']);
         const translationPromises = tasks.map(async (task) => {
             try {
                 const currentIndex = task.index;
@@ -519,12 +521,26 @@ export default class TranslateServiceImpl implements TranslateService {
                 const nextSentence = allSentences[currentIndex + 1]?.text || '';
                 const prompt = this.buildOpenAIPrompt(task.text, prevSentence, nextSentence, promptConfig);
 
-                const { partialObjectStream } = streamObject({ model, schema, prompt });
+                const { partialOutputStream } = streamText({
+                    model,
+                    output: Output.object({ schema }),
+                    prompt,
+                    providerOptions: {
+                        openai: {
+                            strictJsonSchema: false,
+                        },
+                    },
+                });
 
                 let finalTranslation = '';
-                for await (const partialObject of partialObjectStream) {
-                    if (partialObject.translation) {
-                        finalTranslation = partialObject.translation;
+                for await (const partialObject of partialOutputStream) {
+                    taggedLog.debug('subtitle json chunk', {
+                        key: task.translationKey,
+                        keys: Object.keys(partialObject ?? {}),
+                    });
+                    const sanitized = sanitizeString(partialObject.translation);
+                    if (sanitized) {
+                        finalTranslation = sanitized;
                         this.rendererGateway.fireAndForget('translation/batch-result', {
                             translations: [{
                                 key: task.translationKey,
@@ -534,6 +550,28 @@ export default class TranslateServiceImpl implements TranslateService {
                                 isComplete: false
                             }]
                         });
+                    }
+                }
+
+                if (!finalTranslation) {
+                    const plainPrompt = this.buildOpenAIPlainPrompt(task.text, prevSentence, nextSentence, promptConfig);
+                    const textStream = streamText({ model, prompt: plainPrompt });
+                    let collected = '';
+                    for await (const chunk of textStream.textStream) {
+                        collected += chunk;
+                        const sanitized = sanitizeString(collected);
+                        if (sanitized) {
+                            finalTranslation = sanitized;
+                            this.rendererGateway.fireAndForget('translation/batch-result', {
+                                translations: [{
+                                    key: task.translationKey,
+                                    translation: finalTranslation,
+                                    provider: 'openai',
+                                    mode: openAiMode,
+                                    isComplete: false
+                                }]
+                            });
+                        }
                     }
                 }
 
@@ -616,6 +654,15 @@ export default class TranslateServiceImpl implements TranslateService {
 
     private buildOpenAIPrompt(current: string, prev: string, next: string, config: SubtitlePromptConfig): string {
         return fillSubtitlePrompt(config.template, {
+            current,
+            prev,
+            next,
+            style: config.style
+        });
+    }
+
+    private buildOpenAIPlainPrompt(current: string, prev: string, next: string, config: SubtitlePromptConfig): string {
+        return fillSubtitlePrompt(OPENAI_SUBTITLE_PLAIN_PROMPT, {
             current,
             prev,
             next,
@@ -709,6 +756,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
     private async translateWordWithOpenAI(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
         const streamId = requestId ?? `openai-dict-${Date.now()}-${word}`;
+        const taggedLog = dpLog.withTags(['dictionary', 'ai-json']);
 
         try {
             const model = this.aiProviderService.getModel();
@@ -728,10 +776,15 @@ Requirements:
 
 Ensure the response strictly matches the provided JSON schema.`;
 
-            const { partialObjectStream } = streamObject({
+            const { partialOutputStream } = streamText({
                 model,
-                schema: openAIDictionaryResultSchema,
-                prompt
+                output: Output.object({ schema: openAIDictionaryResultSchema }),
+                prompt,
+                providerOptions: {
+                    openai: {
+                        strictJsonSchema: false,
+                    },
+                },
             });
 
             const aggregated: OpenAIDictionaryResult = {
@@ -740,7 +793,11 @@ Ensure the response strictly matches the provided JSON schema.`;
             };
             let hasStreamed = false;
 
-            for await (const partialObject of partialObjectStream) {
+            for await (const partialObject of partialOutputStream) {
+                taggedLog.debug('dictionary json chunk', {
+                    word,
+                    keys: Object.keys(partialObject ?? {}),
+                });
                 let changed = false;
 
                 if (partialObject.word !== undefined) {
@@ -960,16 +1017,41 @@ Ensure the response strictly matches the provided JSON schema.`;
 
         const schema = this.buildOpenAISchema(openAiMode);
 
+        const taggedLog = dpLog.withTags(['subtitle', 'ai-json']);
         const translationPromises = sentences.map(async (sentence) => {
             try {
                 const prompt = this.buildOpenAIPrompt(sentence, '', '', promptConfig);
-                const { partialObjectStream } = streamObject({ model, schema, prompt });
+                const { partialOutputStream } = streamText({
+                    model,
+                    output: Output.object({ schema }),
+                    prompt,
+                    providerOptions: {
+                        openai: {
+                            strictJsonSchema: false,
+                        },
+                    },
+                });
 
                 let finalTranslation = '';
-                for await (const partialObject of partialObjectStream) {
-                    if (partialObject.translation) {
-                        finalTranslation = partialObject.translation;
+                for await (const partialObject of partialOutputStream) {
+                    taggedLog.debug('subtitle legacy json chunk', {
+                        sentence: sentence.slice(0, 40),
+                        keys: Object.keys(partialObject ?? {}),
+                    });
+                    const sanitized = sanitizeString(partialObject.translation);
+                    if (sanitized) {
+                        finalTranslation = sanitized;
                     }
+                }
+
+                if (!finalTranslation) {
+                    const plainPrompt = this.buildOpenAIPlainPrompt(sentence, '', '', promptConfig);
+                    const textStream = streamText({ model, prompt: plainPrompt });
+                    let collected = '';
+                    for await (const chunk of textStream.textStream) {
+                        collected += chunk;
+                    }
+                    finalTranslation = sanitizeString(collected) ?? '';
                 }
 
                 if (finalTranslation) {

@@ -3,10 +3,11 @@ import DpTaskService from '@/backend/application/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/application/services/ChatService';
 import { ZodObject } from 'zod';
-import { CoreMessage, streamObject, streamText } from 'ai';
+import { ModelMessage, Output, streamText } from 'ai';
 import AiProviderService from '@/backend/application/services/AiProviderService';
-import {AiStringResponse} from "@/common/types/aiRes/AiStringResponse";
+import { AiStringResponse } from '@/common/types/aiRes/AiStringResponse';
 import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 @injectable()
 export default class ChatServiceImpl implements ChatService {
 
@@ -16,9 +17,10 @@ export default class ChatServiceImpl implements ChatService {
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
 
+    private logger = getMainLogger('ChatService').withTags('ai-json');
 
     @WaitRateLimit('gpt')
-    public async chat(taskId: number, msgs: CoreMessage[]) {
+    public async chat(taskId: number, msgs: ModelMessage[]) {
         const model = this.aiProviderService.getModel();
         if (!model) {
             this.dpTaskService.fail(taskId, {
@@ -34,9 +36,9 @@ export default class ChatServiceImpl implements ChatService {
             model: model,
             messages: msgs
         });
-        const response : AiStringResponse = {
+        const response: AiStringResponse = {
             str: ''
-        }
+        };
         for await (const chunk of result.textStream) {
             response.str += chunk;
             this.dpTaskService.process(taskId, {
@@ -60,23 +62,33 @@ export default class ChatServiceImpl implements ChatService {
             });
             return;
         }
-        const { partialObjectStream } = streamObject({
-            model: model,
-            schema: resultSchema,
+        this.logger.debug('stream json start', { taskId });
+        const { partialOutputStream } = streamText({
+            model,
+            output: Output.object({ schema: resultSchema }),
             prompt: promptStr,
+            providerOptions: {
+                openai: {
+                    strictJsonSchema: false,
+                },
+            },
         });
         this.dpTaskService.process(taskId, {
             progress: 'AI is analyzing...'
         });
-        for await (const partialObject of partialObjectStream) {
+        for await (const partialObject of partialOutputStream) {
+            this.logger.debug('stream json chunk', {
+                taskId,
+                keys: Object.keys(partialObject ?? {}),
+            });
             this.dpTaskService.process(taskId, {
                 progress: 'AI is analyzing...',
                 result: JSON.stringify(partialObject)
             });
         }
+        this.logger.debug('stream json done', { taskId });
         this.dpTaskService.finish(taskId, {
             progress: 'AI has responded'
         });
     }
 }
-

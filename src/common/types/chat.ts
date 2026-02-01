@@ -1,4 +1,4 @@
-import { CoreMessage } from 'ai';
+import { ModelMessage } from 'ai';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
 export type ChatBackgroundContext = {
@@ -8,7 +8,7 @@ export type ChatBackgroundContext = {
 
 export type ChatStartParams = {
     sessionId: string;
-    messages: CoreMessage[];
+    messages: ModelMessage[];
     background?: ChatBackgroundContext;
 };
 

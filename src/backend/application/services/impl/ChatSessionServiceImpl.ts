@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { CoreMessage, streamObject, streamText } from 'ai';
+import { ModelMessage, Output, streamText } from 'ai';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
@@ -102,7 +102,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     @WaitRateLimit('gpt')
     public async start(
         sessionId: string,
-        messages: CoreMessage[],
+        messages: ModelMessage[],
         background?: ChatBackgroundContext
     ): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
@@ -142,7 +142,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     private async runStream(
         sessionId: string,
         messageId: string,
-        messages: CoreMessage[]
+        messages: ModelMessage[]
     ): Promise<void> {
         const model = this.aiProviderService.getModel();
         if (!model) {
@@ -177,12 +177,24 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         if (!model) {
             return;
         }
-        const result = streamObject({
+        const taggedLogger = this.logger.withTags('ai-json');
+        taggedLogger.debug('analysis stream start', { sessionId, messageId });
+        const result = streamText({
             model,
-            schema: AiUnifiedAnalysisSchema,
+            output: Output.object({ schema: AiUnifiedAnalysisSchema }),
             prompt,
+            providerOptions: {
+                openai: {
+                    strictJsonSchema: false,
+                },
+            },
         });
-        for await (const partial of result.partialObjectStream) {
+        for await (const partial of result.partialOutputStream) {
+            taggedLogger.debug('analysis stream chunk', {
+                sessionId,
+                messageId,
+                keys: Object.keys(partial ?? {}),
+            });
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
@@ -190,7 +202,8 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 partial: this.normalizeAnalysisPartial(partial),
             });
         }
-        const finalObject = await result.object;
+        const finalObject = await result.output;
+        taggedLogger.debug('analysis stream done', { sessionId, messageId });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
