@@ -1,7 +1,5 @@
 import * as React from 'react';
 import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
-import Header from '@/fronted/pages/setting/components/form/Header';
-import Separator from '@/fronted/components/shared/common/Separator';
 import { Button } from '@/fronted/components/ui/button';
 import { Label } from '@/fronted/components/ui/label';
 import { Input } from '@/fronted/components/ui/input';
@@ -29,6 +27,7 @@ import { useForm, Controller } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import SettingsPage from '@/fronted/pages/setting/components/SettingsPage';
 
 const api = backendClient;
 
@@ -338,38 +337,37 @@ const ShortcutSetting = () => {
     }, [getValues, runSave, watch, formState.isDirty]);
 
     return (
-        <form className="h-full overflow-y-auto flex flex-col gap-4">
-            <Header title="快捷键" description="多个快捷键用 , 分割" />
-            <Separator orientation="horizontal" className="px-0" />
-            <ItemWrapper>
-                <Controller
-                    name="shortcut.previousSentence"
-                    control={control}
-                    render={({ field }) => (
-                        <ShortCutRecorder
-                            title="上一句"
-                            description="跳转到上一句"
-                            defaultValue={SettingKeyObj['shortcut.previousSentence']}
-                            value={field.value ?? ''}
-                            onChange={(value) => field.onChange(value)}
-                            onBlur={field.onBlur}
-                        />
-                    )}
-                />
-                <Controller
-                    name="shortcut.nextSentence"
-                    control={control}
-                    render={({ field }) => (
-                        <ShortCutRecorder
-                            title="下一句"
-                            description="跳转到下一句"
-                            defaultValue={SettingKeyObj['shortcut.nextSentence']}
-                            value={field.value ?? ''}
-                            onChange={(value) => field.onChange(value)}
-                            onBlur={field.onBlur}
-                        />
-                    )}
-                />
+        <form className="flex flex-col">
+            <SettingsPage title="快捷键" description="多个快捷键用 , 分割">
+                <ItemWrapper>
+                    <Controller
+                        name="shortcut.previousSentence"
+                        control={control}
+                        render={({ field }) => (
+                            <ShortCutRecorder
+                                title="上一句"
+                                description="跳转到上一句"
+                                defaultValue={SettingKeyObj['shortcut.previousSentence']}
+                                value={field.value ?? ''}
+                                onChange={(value) => field.onChange(value)}
+                                onBlur={field.onBlur}
+                            />
+                        )}
+                    />
+                    <Controller
+                        name="shortcut.nextSentence"
+                        control={control}
+                        render={({ field }) => (
+                            <ShortCutRecorder
+                                title="下一句"
+                                description="跳转到下一句"
+                                defaultValue={SettingKeyObj['shortcut.nextSentence']}
+                                value={field.value ?? ''}
+                                onChange={(value) => field.onChange(value)}
+                                onBlur={field.onBlur}
+                            />
+                        )}
+                    />
                 <Controller
                     name="shortcut.repeatSentence"
                     control={control}
@@ -636,7 +634,8 @@ const ShortcutSetting = () => {
                         />
                     )}
                 />
-            </ItemWrapper>
+                </ItemWrapper>
+            </SettingsPage>
         </form>
     );
 };

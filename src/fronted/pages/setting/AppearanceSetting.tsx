@@ -1,17 +1,16 @@
 import React from 'react';
 import {
     ItemWrapper,
-    Header,
     SliderInput,
     Title,
 } from '@/fronted/pages/setting/components/form';
 import ThemePreview from '@/fronted/pages/setting/components/ThemePreview';
-import Separator from '@/fronted/components/shared/common/Separator';
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import SettingsPage from '@/fronted/pages/setting/components/SettingsPage';
 
 const logger = getRendererLogger('AppearanceSetting');
 const api = backendClient;
@@ -188,9 +187,8 @@ const AppearanceSetting = () => {
     logger.debug('Current fontSize setting', { fontSize: currentFontSize });
 
     return (
-        <form className="w-full h-full flex flex-col gap-5">
-            <Header title="外观" description="设置主题与字号" />
-            <Separator orientation="horizontal" className="px-0" />
+        <form className="w-full flex flex-col">
+            <SettingsPage title="外观" description="设置主题与字号">
             <ItemWrapper>
                 <Title title="Theme" description="设置主题" />
                 <div className="px-3 py-2 h-60 flex-shrink-0 flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
@@ -245,6 +243,7 @@ const AppearanceSetting = () => {
                     }}
                 />
             </ItemWrapper>
+            </SettingsPage>
         </form>
     );
 };

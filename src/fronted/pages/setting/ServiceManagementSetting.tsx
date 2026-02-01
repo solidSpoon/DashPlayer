@@ -10,17 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fro
 import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/fronted/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
 import Separator from '@/fronted/components/shared/common/Separator';
 import { Bot, Languages, Book, TestTube, CheckCircle, XCircle, Cpu, ChevronDown } from 'lucide-react';
-import Header from '@/fronted/pages/setting/components/form/Header';
 import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
 import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
-import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import SettingsPage from '@/fronted/pages/setting/components/SettingsPage';
 
 const api = backendClient;
 
@@ -32,7 +32,6 @@ const OPENAI_MODEL_PRESETS = [
 
 const ServiceManagementSetting = () => {
     const logger = getRendererLogger('ServiceManagementSetting');
-    const setSetting = useSetting((s) => s.setSetting);
 
     // Fetch settings with SWR
     const { data: settings, mutate } = useSWR('settings/services/get-all', () =>
@@ -507,13 +506,22 @@ const ServiceManagementSetting = () => {
                     logger.error('manual submit failed', { error });
                 });
             }}
-            className="w-full h-full flex flex-col gap-6"
+            className="w-full h-full min-h-0 flex flex-col"
         >
-            <Header title="服务配置" description="配置 API 服务和本地服务的功能设置" />
+            <SettingsPage
+                title="服务配置"
+                description="配置 API 服务和本地服务的功能设置"
+            >
+                <Tabs defaultValue="openai" className="flex flex-col gap-4">
+                    <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="openai">OpenAI</TabsTrigger>
+                        <TabsTrigger value="tencent">腾讯云</TabsTrigger>
+                        <TabsTrigger value="youdao">有道</TabsTrigger>
+                        <TabsTrigger value="whisper">Whisper</TabsTrigger>
+                    </TabsList>
 
-            <div className="flex flex-col gap-6 h-0 flex-1 overflow-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
-                {/* OpenAI Service */}
-                <Card>
+                    <TabsContent value="openai" className="mt-0">
+                            <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Bot className="h-5 w-5" />
@@ -700,10 +708,11 @@ const ServiceManagementSetting = () => {
                             </Button>
                         </div>
                     </CardContent>
-                </Card>
+                            </Card>
+                    </TabsContent>
 
-                {/* Tencent Service */}
-                <Card>
+                    <TabsContent value="tencent" className="mt-0">
+                            <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Languages className="h-5 w-5" />
@@ -781,10 +790,11 @@ const ServiceManagementSetting = () => {
                             </Button>
                         </div>
                     </CardContent>
-                </Card>
+                            </Card>
+                    </TabsContent>
 
-                {/* Youdao Service */}
-                <Card>
+                    <TabsContent value="youdao" className="mt-0">
+                            <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Book className="h-5 w-5" />
@@ -862,10 +872,11 @@ const ServiceManagementSetting = () => {
                             </Button>
                         </div>
                     </CardContent>
-                </Card>
+                            </Card>
+                    </TabsContent>
 
-                {/* Whisper Local Service */}
-                <Card>
+                    <TabsContent value="whisper" className="mt-0">
+                            <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Cpu className="h-5 w-5" />
@@ -1033,20 +1044,21 @@ const ServiceManagementSetting = () => {
 	                        </div>
 
                     </CardContent>
-                </Card>
+                            </Card>
+                    </TabsContent>
+                </Tabs>
 
-            </div>
-
-            <FooterWrapper>
-                <Button
-                    onClick={async () => {
-                        await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
-                    }}
-            variant="secondary"
-        >
-            查看文档
-        </Button>
-            </FooterWrapper>
+                <FooterWrapper>
+                    <Button
+                        onClick={async () => {
+                            await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
+                        }}
+                        variant="secondary"
+                    >
+                        查看文档
+                    </Button>
+                </FooterWrapper>
+            </SettingsPage>
         </form>
     );
 };

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import Header from '@/fronted/pages/setting/components/form/Header';
 import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
 import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
 import { Button } from '@/fronted/components/ui/button';
@@ -21,6 +20,7 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { Input } from '@/fronted/components/ui/input';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import SettingsPage from '@/fronted/pages/setting/components/SettingsPage';
 
 const api = backendClient;
 
@@ -207,17 +207,17 @@ const StorageSetting = () => {
     const canSyncCollections = !formState.isDirty && autoSaveStatus !== 'saving';
 
     return (
-        <div className="w-full h-full flex flex-col gap-4">
-            <Header
-                title="存储"
-                description={
-                    <span>
-                        DashPlayer 会缓存翻译结果，以降低 API 调用成本。
-                        <br />
-                        缓存文件由数据库软件维护，请不要编辑缓存文件。
-                    </span>
-                }
-            />
+        <SettingsPage
+            title="存储"
+            description={
+                <span>
+                    DashPlayer 会缓存翻译结果，以降低 API 调用成本。
+                    <br />
+                    缓存文件由数据库软件维护，请不要编辑缓存文件。
+                </span>
+            }
+            className="w-full"
+        >
             <ItemWrapper>
                 <div className="mt-4 flex text-lg flex-row items-center gap-2">
                     <span>占用空间</span>
@@ -372,7 +372,7 @@ const StorageSetting = () => {
                     打开 Library 文件夹
                 </Button>
             </FooterWrapper>
-        </div>
+        </SettingsPage>
     );
 };
 

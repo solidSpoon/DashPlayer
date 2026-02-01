@@ -1,16 +1,15 @@
 import React from 'react';
-import Header from '@/fronted/pages/setting/components/form/Header';
 import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
 import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
 import { Button } from '@/fronted/components/ui/button';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
 import useSWR from 'swr';
-import { Skeleton } from '@/fronted/components/ui/skeleton';
 import NewTips from '@/fronted/pages/setting/components/NewTips';
 import { cn } from '@/fronted/lib/utils';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { UpdateCheckResult } from '@/common/types/update-check';
+import SettingsPage from '@/fronted/pages/setting/components/SettingsPage';
 
 const api = backendClient;
 
@@ -24,20 +23,15 @@ const CheckUpdate = () => {
     const hasError = updateResult?.status === 'error';
 
     return (
-        <div className="w-full h-full flex flex-col gap-4">
-            <Header title="版本更新" />
+        <SettingsPage title="版本更新" className="w-full h-full">
             <ItemWrapper>
-                {checking && <div className={'flex w-full flex-col gap-4 pr-40'}>
-                    <Skeleton className="w-52 h-12 rounded-lg" />
-                    <Skeleton className=" h-8 rounded" />
-                    <Skeleton className=" h-8 rounded" />
-                    <Skeleton className=" h-8 rounded" />
-                    <Skeleton className="h-8 rounded" />
-                </div>}
-                {!checking && (
+                {checking ? (
+                    <div className="text-sm text-muted-foreground">
+                        检查更新中...
+                    </div>
+                ) : (
                     <div
-                        className={cn('p-4 bg-muted/40 rounded border overflow-y-auto scrollbar-thin select-text h-0 flex-1 '
-                        )}>
+                        className={cn('p-4 bg-muted/40 rounded border select-text')}>
 
                         {hasError ? (
                             <div className={'w-full h-full flex flex-col gap-3'}>
@@ -58,7 +52,7 @@ const CheckUpdate = () => {
                             <h1>
                                 已是最新版本，看看 Tips 吧
                             </h1>
-                            <div className={'w-full flex h-0 flex-1 justify-center items-center'}>
+                            <div className={'w-full flex justify-center items-center mt-4'}>
                                 <NewTips />
                             </div>
                         </div>}
@@ -76,7 +70,7 @@ const CheckUpdate = () => {
                     前往发布页
                 </Button>
             </FooterWrapper>
-        </div>
+        </SettingsPage>
     );
 };
 
