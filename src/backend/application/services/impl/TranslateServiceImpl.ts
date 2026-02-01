@@ -525,11 +525,6 @@ export default class TranslateServiceImpl implements TranslateService {
                     model,
                     output: Output.object({ schema }),
                     prompt,
-                    providerOptions: {
-                        openai: {
-                            strictJsonSchema: false,
-                        },
-                    },
                 });
 
                 let finalTranslation = '';
@@ -780,11 +775,6 @@ Ensure the response strictly matches the provided JSON schema.`;
                 model,
                 output: Output.object({ schema: openAIDictionaryResultSchema }),
                 prompt,
-                providerOptions: {
-                    openai: {
-                        strictJsonSchema: false,
-                    },
-                },
             });
 
             const aggregated: OpenAIDictionaryResult = {
@@ -1025,11 +1015,6 @@ Ensure the response strictly matches the provided JSON schema.`;
                     model,
                     output: Output.object({ schema }),
                     prompt,
-                    providerOptions: {
-                        openai: {
-                            strictJsonSchema: false,
-                        },
-                    },
                 });
 
                 let finalTranslation = '';

@@ -67,11 +67,6 @@ export default class ChatServiceImpl implements ChatService {
             model,
             output: Output.object({ schema: resultSchema }),
             prompt: promptStr,
-            providerOptions: {
-                openai: {
-                    strictJsonSchema: false,
-                },
-            },
         });
         this.dpTaskService.process(taskId, {
             progress: 'AI is analyzing...'

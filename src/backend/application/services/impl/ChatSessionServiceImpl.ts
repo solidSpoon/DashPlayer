@@ -183,11 +183,6 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             model,
             output: Output.object({ schema: AiUnifiedAnalysisSchema }),
             prompt,
-            providerOptions: {
-                openai: {
-                    strictJsonSchema: false,
-                },
-            },
         });
         for await (const partial of result.partialOutputStream) {
             taggedLogger.debug('analysis stream chunk', {
