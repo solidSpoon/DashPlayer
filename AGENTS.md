@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Architecture
-DashPlayer uses Electron 29 with Vite splitting the app into main (`src/main.ts`), preload (`src/preload.ts`), and renderer (`src/app.tsx`) targets. `src/backend/` holds services, IPC handlers, and SQLite access under `db/`. React UI lives in `src/fronted/` with `components/`, `pages/`, and `hooks/`, while shared contracts and utilities stay in `src/common/`. Database migrations reside in `drizzle/`, packaged binaries (ffmpeg, whisper, yt-dlp) in `lib/`, and deeper design notes in `dev-docs/` or `docs/`.
+DashPlayer uses Electron 39 with Vite splitting the app into main (`src/main.ts`), preload (`src/preload.ts`), and renderer (`src/app.tsx`/`src/renderer.ts`) targets. `src/backend/` holds services, IPC handlers, and SQLite access under `infrastructure/db/`. React UI lives in `src/fronted/` with `components/`, `pages/`, and `hooks/`, while shared contracts and utilities stay in `src/common/`. Database migrations reside in `drizzle/`, packaged binaries (ffmpeg, whisper) in `lib/`, and documentation lives in `Writerside/` (no `docs/` or `dev-docs/` directory today).
 
 ## Build, Test, and Development Commands
 Run `yarn run download` once to fetch bundled binaries before development. `yarn start` wires Vite and Electron Forge for live reload, `yarn make`/`yarn package` produce distributables, and `yarn publish` releases artifacts. Use `yarn lint` for ESLint checks. Testing flows rely on Vitest: `yarn test` or `yarn test:watch` for iteration, `yarn test:coverage` before PRs, and `yarn test:ui` for the graphical dashboard.
