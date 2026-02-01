@@ -57,6 +57,7 @@
     "autoprefixer": "^10.4.17",
     "babel-plugin-react-compiler": "^1.0.0",
     "electron": "39.2.7",
+    "electron-devtools-installer": "^4.0.0",
     "eslint": "^8.0.1",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-import": "^2.25.0",
