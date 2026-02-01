@@ -1,4 +1,3 @@
-import hash from 'object-hash';
 import path from 'path';
 import fs from 'fs';
 
@@ -89,13 +88,16 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private taskQueue: Map<string, LearningClipTask> = new Map();
 
     // todo 改用 cacheService 存储, 无需过期时间，我会在其他业务逻辑中主动清理
-    private clipAnalysisCache: Map<string, { generatedAt: number; candidates: ClipCandidate[] }> = new Map();
+    private clipAnalysisCache: Map<string, ClipCandidate[]> = new Map();
+    private clipAnalysisChunkCache: Map<
+        string,
+        { totalChunks: number; chunks: Map<number, MatchedWord[][]> }
+    > = new Map();
     private clipAnalysisPromises: Map<string, Promise<ClipCandidate[]>> = new Map();
     private clipAnalysisProgress: Map<string, number> = new Map();
-    private clipAnalysisExecution: Promise<void> = Promise.resolve();
-
-    // todo 改用 cacheService 存储, 无需过期时间，我会在其他业务逻辑中主动清理
-    private readonly clipAnalysisCacheTtl = 2 * 60 * 1000; // 2 minutes
+    private clipStatusCache: Map<string, VideoLearningClipStatusVO> = new Map();
+    private clipStatusSeq: Map<string, number> = new Map();
+    private currentAnalysisKey: string | null = null;
     private readonly maxClipTasksPerTick = 1;
 
     private getSrtFromCache(srtKey: string): SrtCache | null {
@@ -110,7 +112,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const resolvedSrtPath = srt.filePath || srtPath || undefined;
 
-        const analysisKey = this.mapAnalysisKey(videoPath, srtKey);
         const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath, yieldMs: 20 });
 
         if (candidates.length === 0) {
@@ -153,9 +154,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             });
         }
 
-        // 清理旧的分析缓存，确保下一次分析使用最新结果
-        this.clipAnalysisCache.delete(analysisKey);
-
         const inProgressCount = Array.from(this.taskQueue.values()).filter(
             (task) => task.operation === 'add' && task.srtKey === srtKey,
         ).length;
@@ -186,27 +184,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             operation: 'cancel',
             srtPath: existingTask?.srtPath ?? cachedSrt?.filePath,
         });
+
     }
 
     private mapToClipKey(srtKey: string, indexInSrt: number): string {
-        const srt = this.getSrtFromCache(srtKey);
-        if (!srt) {
-            throw new Error(ErrorConstants.CACHE_NOT_FOUND);
-        }
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
-        return hash(contentSrtStr);
+        return `${srtKey}__${indexInSrt}`;
     }
 
-    private mapAnalysisKey(videoPath: string, srtKey: string): string {
-        return `${videoPath}::${srtKey}`;
-    }
-
-    private mapToClipKeyFromLines(srtLines: SrtLine[], indexInSrt: number): string {
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
-        return hash(contentSrtStr);
+    private mapAnalysisKey(srtKey: string): string {
+        return srtKey;
     }
 
     private async ensureSrtCached(srtKey: string, srtPath?: string): Promise<SrtCache | null> {
@@ -329,7 +315,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         if (!srt) return;
 
         const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
-        const key = this.mapToMetaKey(srt, task.indexInSrt);
+        const key = task.clipKey;
 
         const folder = this.locationService.getDetailLibraryPath(LocationType.TEMP);
         if (!fs.existsSync(folder)) {
@@ -359,10 +345,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     public async taskCancelOperation(task: LearningClipTask): Promise<void> {
-        const srt = await this.ensureSrtCached(task.srtKey, task.srtPath);
-        if (!srt) return;
-        const key = this.mapToMetaKey(srt, task.indexInSrt);
-        await this.deleteLearningClip(key);
+        await this.deleteLearningClip(task.clipKey);
     }
 
     private mapTrimRange(srt: SrtCache, indexInSrt: number): [number, number] {
@@ -373,24 +356,16 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return [startTime, endTime];
     }
 
-    private mapToMetaKey(srt: SrtCache, indexInSrt: number): string {
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
-        return hash(contentSrtStr);
-    }
-
     private async collectClipCandidates(
-        videoPath: string,
+        _videoPath: string,
         srtKey: string,
         options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string; yieldMs?: number }
     ): Promise<ClipCandidate[]> {
-        const analysisKey = this.mapAnalysisKey(videoPath, srtKey);
-        const now = Date.now();
+        const analysisKey = this.mapAnalysisKey(srtKey);
 
         const cached = this.clipAnalysisCache.get(analysisKey);
-        if (cached && now - cached.generatedAt <= this.clipAnalysisCacheTtl) {
-            return cached.candidates;
+        if (cached) {
+            return cached;
         }
 
         const existingPromise = this.clipAnalysisPromises.get(analysisKey);
@@ -413,18 +388,56 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             }
 
             const CHUNK_SIZE = 50;
-            const matchResults: MatchedWord[][] = [];
+            const totalChunks = Math.ceil(contents.length / CHUNK_SIZE);
+            const matchResults: MatchedWord[][] = new Array(contents.length);
 
-            if (options?.onProgress) {
-                this.clipAnalysisProgress.set(analysisKey, 0);
+            const chunkCache =
+                this.clipAnalysisChunkCache.get(analysisKey) ??
+                { totalChunks, chunks: new Map<number, MatchedWord[][]>() };
+            if (chunkCache.totalChunks !== totalChunks) {
+                chunkCache.totalChunks = totalChunks;
+                chunkCache.chunks.clear();
+            }
+            this.clipAnalysisChunkCache.set(analysisKey, chunkCache);
+
+            let completedChunks = 0;
+            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                const cachedChunk = chunkCache.chunks.get(chunkIndex);
+                if (cachedChunk) {
+                    const start = chunkIndex * CHUNK_SIZE;
+                    for (let j = 0; j < cachedChunk.length; j++) {
+                        matchResults[start + j] = cachedChunk[j];
+                    }
+                    completedChunks++;
+                }
             }
 
-            for (let i = 0; i < contents.length; i += CHUNK_SIZE) {
-                const chunk = contents.slice(i, i + CHUNK_SIZE);
-                const chunkResults = await this.wordMatchService.matchWordsInTexts(chunk);
-                matchResults.push(...chunkResults);
+            if (options?.onProgress) {
+                const progress = Math.min(99, Math.round((completedChunks / totalChunks) * 100));
+                this.clipAnalysisProgress.set(analysisKey, progress);
+                await options.onProgress(progress);
+            }
+            this.logger.withTags('clip-analysis').debug(
+                `chunk cache state ${JSON.stringify({ srtKey, totalChunks, completedChunks })}`
+            );
 
-                const progress = Math.min(99, Math.round(((i + chunk.length) / contents.length) * 100));
+            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                if (this.currentAnalysisKey !== analysisKey) {
+                    throw new Error('ANALYSIS_CANCELLED');
+                }
+                if (chunkCache.chunks.has(chunkIndex)) {
+                    continue;
+                }
+                const start = chunkIndex * CHUNK_SIZE;
+                const chunk = contents.slice(start, start + CHUNK_SIZE);
+                const chunkResults = await this.wordMatchService.matchWordsInTexts(chunk);
+                chunkCache.chunks.set(chunkIndex, chunkResults);
+                for (let j = 0; j < chunkResults.length; j++) {
+                    matchResults[start + j] = chunkResults[j];
+                }
+
+                completedChunks++;
+                const progress = Math.min(99, Math.round((completedChunks / totalChunks) * 100));
                 if (options?.onProgress) {
                     this.clipAnalysisProgress.set(analysisKey, progress);
                     await options.onProgress(progress);
@@ -436,6 +449,9 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             const candidates: ClipCandidate[] = [];
 
             for (let i = 0; i < srtLines.length; i++) {
+                if (this.currentAnalysisKey !== analysisKey) {
+                    throw new Error('ANALYSIS_CANCELLED');
+                }
                 const matches = matchResults[i] || [];
                 if (!matches || matches.length === 0) {
                     continue;
@@ -453,7 +469,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     continue;
                 }
 
-                const clipKey = this.mapToClipKeyFromLines(srtLines, i);
+                const clipKey = this.mapToClipKey(srtKey, i);
                 candidates.push({
                     indexInSrt: i,
                     clipKey,
@@ -469,17 +485,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             return candidates;
         };
 
-        const scheduled = this.clipAnalysisExecution.then(compute);
-        this.clipAnalysisExecution = scheduled.then(
-            () => undefined,
-            () => undefined
-        );
-
+        const scheduled = compute();
         this.clipAnalysisPromises.set(analysisKey, scheduled);
 
         try {
             const candidates = await scheduled;
-            this.clipAnalysisCache.set(analysisKey, { generatedAt: Date.now(), candidates });
+            this.clipAnalysisCache.set(analysisKey, candidates);
             return candidates;
         } finally {
             this.clipAnalysisPromises.delete(analysisKey);
@@ -710,7 +721,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     }
 
                     const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
-                    const key = this.mapToMetaKey(srt, task.indexInSrt);
+                    const key = this.mapToClipKey(task.srtKey, task.indexInSrt);
                     const [clipBeginAt] = this.mapTrimRange(srt, task.indexInSrt);
 
                     const clipEntry = {
@@ -832,6 +843,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return await this.videoLearningClipWordRepository.countGroupedByWord();
     }
 
+    public invalidateClipAnalysisCache(): void {
+        this.clipAnalysisCache.clear();
+        this.clipAnalysisChunkCache.clear();
+        this.clipAnalysisPromises.clear();
+        this.clipAnalysisProgress.clear();
+        this.clipStatusCache.clear();
+        this.currentAnalysisKey = null;
+    }
+
     @postConstruct()
     public postConstruct() {
         const loop = async () => {
@@ -848,32 +868,145 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     public async detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO> {
+        this.logger.withTags('clip-status').debug(
+            `detect ${JSON.stringify({
+                videoPath,
+                srtKey,
+                hasSrtPath: !!srtPath,
+                currentAnalysisKey: this.currentAnalysisKey,
+                cachedStatus: this.clipStatusCache.get(srtKey)?.status ?? null,
+                cachedCandidates: this.clipAnalysisCache.has(srtKey),
+                chunkCache: this.clipAnalysisChunkCache.has(srtKey),
+                inFlight: this.clipAnalysisPromises.has(srtKey),
+                progress: this.clipAnalysisProgress.get(srtKey) ?? null,
+            })}`
+        );
         const srt = await this.ensureSrtCached(srtKey, srtPath);
         if (!srt) {
+            this.logger.withTags('clip-status').debug(`srt cache miss ${JSON.stringify({ srtKey, videoPath })}`);
             await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
             return { status: 'completed' };
+        }
+
+        const cachedStatus = this.clipStatusCache.get(srtKey);
+        if (cachedStatus && cachedStatus.status !== 'analyzing') {
+            this.logger.withTags('clip-status').debug(
+                `status cache hit ${JSON.stringify({
+                    srtKey,
+                    status: cachedStatus.status,
+                    pendingCount: cachedStatus.pendingCount ?? null,
+                    inProgressCount: cachedStatus.inProgressCount ?? null,
+                    completedCount: cachedStatus.completedCount ?? null,
+                })}`
+            );
+            return this.ensureSeq(srtKey, cachedStatus);
+        }
+
+        const analysisKey = this.mapAnalysisKey(srtKey);
+        const cachedCandidates = this.clipAnalysisCache.get(analysisKey);
+        if (cachedCandidates) {
+            this.logger.withTags('clip-status').debug(`candidates cache hit ${JSON.stringify({ srtKey, count: cachedCandidates.length })}`);
+            return await this.computeStatusFromCandidates(videoPath, srtKey, cachedCandidates);
+        }
+
+        const chunkCache = this.clipAnalysisChunkCache.get(analysisKey);
+        if (chunkCache && chunkCache.totalChunks > 0) {
+            const completedChunks = chunkCache.chunks.size;
+            const progress = Math.min(99, Math.round((completedChunks / chunkCache.totalChunks) * 100));
+            if (progress > 0) {
+                this.logger.withTags('clip-status').debug(
+                    `chunk progress hit ${JSON.stringify({
+                        srtKey,
+                        completedChunks,
+                        totalChunks: chunkCache.totalChunks,
+                        progress,
+                    })}`
+                );
+                this.clipAnalysisProgress.set(analysisKey, progress);
+                await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
+                if (!this.clipAnalysisPromises.has(analysisKey)) {
+                    const resolvedSrtPath = srt.filePath || srtPath || undefined;
+                    this.startClipAnalysis(videoPath, srtKey, resolvedSrtPath);
+                }
+                return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
+            }
+        }
+
+        if (this.clipAnalysisPromises.has(analysisKey)) {
+            this.logger.withTags('clip-status').debug(`analysis in progress ${JSON.stringify({ srtKey })}`);
+            const progress = this.clipAnalysisProgress.get(analysisKey) ?? 0;
+            await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
+            return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
+        }
+
+        const progress = this.clipAnalysisProgress.get(analysisKey);
+        if (typeof progress === 'number') {
+            await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
+            return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
         }
 
         const resolvedSrtPath = srt.filePath || srtPath || undefined;
-
+        this.startClipAnalysis(videoPath, srtKey, resolvedSrtPath);
+        this.logger.withTags('clip-status').debug(`start analysis ${JSON.stringify({ srtKey, videoPath })}`);
         await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, 0);
+        return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: 0 });
+    }
 
-        let candidates: ClipCandidate[] = [];
+    private ensureSeq(srtKey: string, status: VideoLearningClipStatusVO): VideoLearningClipStatusVO {
+        if (status.seq !== undefined) {
+            return status;
+        }
+        const nextSeq = this.clipStatusSeq.get(srtKey) ?? 1;
+        this.clipStatusSeq.set(srtKey, nextSeq);
+        return { ...status, seq: nextSeq };
+    }
 
-        try {
-            candidates = await this.collectClipCandidates(videoPath, srtKey, {
-                onProgress: async (progress) => {
-                    await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
-                },
-                srtPath: resolvedSrtPath,
-                yieldMs: 20,
-            });
-        } catch (error) {
-            this.logger.error('分析裁切状态失败:', error);
-            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
-            return { status: 'completed' };
+    private startClipAnalysis(videoPath: string, srtKey: string, srtPath?: string): void {
+        const analysisKey = this.mapAnalysisKey(srtKey);
+        this.currentAnalysisKey = analysisKey;
+        if (this.clipAnalysisPromises.has(analysisKey)) {
+            return;
         }
 
+        this.logger.withTags('clip-analysis').debug(
+            `start ${JSON.stringify({ srtKey, videoPath, srtPath: srtPath ?? null })}`
+        );
+        void this.collectClipCandidates(videoPath, srtKey, {
+            onProgress: async (progress) => {
+                await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
+            },
+            srtPath,
+            yieldMs: 20,
+            })
+            .then(async (candidates) => {
+                if (this.currentAnalysisKey !== analysisKey) {
+                    this.logger.withTags('clip-analysis').debug(`cancelled after compute ${JSON.stringify({ srtKey })}`);
+                    return;
+                }
+                if (candidates.length === 0) {
+                    this.logger.withTags('clip-analysis').debug(`no candidates ${JSON.stringify({ srtKey })}`);
+                    await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
+                    return;
+                }
+                this.logger.withTags('clip-analysis').debug(`candidates ready ${JSON.stringify({ srtKey, count: candidates.length })}`);
+                await this.computeStatusFromCandidates(videoPath, srtKey, candidates);
+            })
+            .catch(async (error) => {
+                if (error instanceof Error && error.message === 'ANALYSIS_CANCELLED') {
+                    this.logger.withTags('clip-analysis').debug(`cancelled ${JSON.stringify({ srtKey })}`);
+                    this.clipAnalysisProgress.delete(analysisKey);
+                    return;
+                }
+                this.logger.error('分析裁切状态失败:', error);
+                await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
+            });
+    }
+
+    private async computeStatusFromCandidates(
+        videoPath: string,
+        srtKey: string,
+        candidates: ClipCandidate[]
+    ): Promise<VideoLearningClipStatusVO> {
         if (candidates.length === 0) {
             await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
             return { status: 'completed' };
@@ -912,6 +1045,17 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             status = 'pending';
         }
 
+        this.logger.withTags('clip-status').debug(
+            `computed ${JSON.stringify({
+                srtKey,
+                status,
+                pendingCount,
+                inProgressCount,
+                completedCount,
+                candidates: candidates.length,
+            })}`
+        );
+
         await this.notifyClipStatus(
             videoPath,
             srtKey,
@@ -927,6 +1071,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             pendingCount: pendingCount || undefined,
             inProgressCount: inProgressCount || undefined,
             completedCount: completedCount || undefined,
+            seq: this.clipStatusSeq.get(srtKey),
         };
     }
 
@@ -940,6 +1085,18 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         analyzingProgress?: number
     ): Promise<void> {
         try {
+            this.logger.withTags('clip-status').debug(
+                `notify ${JSON.stringify({
+                    videoPath,
+                    srtKey,
+                    status,
+                    pendingCount: pendingCount ?? null,
+                    inProgressCount: inProgressCount ?? null,
+                    completedCount: completedCount ?? null,
+                    analyzingProgress: analyzingProgress ?? null,
+                })}`
+            );
+
             let message = '';
             if (status === 'pending') {
                 message = `发现 ${pendingCount ?? 0} 个需要裁切的学习片段`;
@@ -968,20 +1125,33 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 cachePayload.analyzingProgress = analyzingProgress;
             }
 
-            const cacheKey = `clip-status:${videoPath}:${srtKey}`;
-            const cacheTtl = status === 'analyzing' ? 30 * 1000 : this.clipAnalysisCacheTtl;
-            this.cacheService.set('cache:clip-status', cacheKey, cachePayload, cacheTtl);
+            const cacheKey = srtKey;
+            const prev = this.clipStatusCache.get(cacheKey);
+            const sameStatus =
+                prev?.status === cachePayload.status &&
+                prev?.pendingCount === cachePayload.pendingCount &&
+                prev?.inProgressCount === cachePayload.inProgressCount &&
+                prev?.completedCount === cachePayload.completedCount &&
+                prev?.analyzingProgress === cachePayload.analyzingProgress;
 
-            await this.rendererGateway.call('video-learning/clip-status-update', {
-                videoPath,
-                srtKey,
-                status,
-                pendingCount,
-                inProgressCount,
-                completedCount,
-                message,
-                analyzingProgress
-            });
+            const nextSeq = sameStatus ? (prev?.seq ?? 0) : (this.clipStatusSeq.get(cacheKey) ?? prev?.seq ?? 0) + 1;
+            this.clipStatusSeq.set(cacheKey, nextSeq);
+            cachePayload.seq = nextSeq;
+            this.clipStatusCache.set(cacheKey, cachePayload);
+
+            if (!sameStatus) {
+                await this.rendererGateway.call('video-learning/clip-status-update', {
+                    videoPath,
+                    srtKey,
+                    status,
+                    pendingCount,
+                    inProgressCount,
+                    completedCount,
+                    message,
+                    analyzingProgress,
+                    seq: nextSeq
+                });
+            }
         } catch (error) {
             this.logger.error('Failed to notify clip status:', error);
         }

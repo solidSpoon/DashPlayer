@@ -91,6 +91,7 @@ interface VideoLearningRendererDef {
             completedCount?: number;
             message?: string;
             analyzingProgress?: number;
+            seq?: number;
         },
         return: void
     };

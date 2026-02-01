@@ -147,6 +147,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
 
             try {
                 await this.videoLearningService.syncFromOss();
+                this.videoLearningService.invalidateClipAnalysisCache();
             } catch (syncError) {
                 this.logger.error('同步单词管理片段失败', { error: syncError });
                 return {
