@@ -3,8 +3,8 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
-import { useIsMobile } from "@/fronted/components/hooks/use-mobile"
-import { cn } from "@/fronted/components/lib/utils"
+import { useIsMobile } from "@/fronted/hooks/use-mobile"
+import { cn } from "@/fronted/lib/utils"
 import { Button } from "@/fronted/components/ui/button"
 import { Input } from "@/fronted/components/ui/input"
 import { Separator } from "@/fronted/components/ui/separator"
@@ -28,6 +28,7 @@ const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_TOP = "0px"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextProps = {
@@ -141,6 +142,7 @@ const SidebarProvider = React.forwardRef<
               {
                 "--sidebar-width": SIDEBAR_WIDTH,
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+                "--sidebar-top": SIDEBAR_TOP,
                 ...style,
               } as React.CSSProperties
             }
@@ -252,6 +254,11 @@ const Sidebar = React.forwardRef<
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className
           )}
+          style={
+            {
+              top: "var(--sidebar-top, 0px)",
+            } as React.CSSProperties
+          }
           {...props}
         >
           <div
