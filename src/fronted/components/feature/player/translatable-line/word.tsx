@@ -71,17 +71,17 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
     const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
     const setting = useSetting((state) => state.setting);
-    const dictionaryEngineRaw = setting('dictionary.engine');
-    const dictionaryEngine =
-        dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
-            ? dictionaryEngineRaw
-            : 'openai';
-    const openaiDictionaryEnabled = dictionaryEngine === 'openai';
-    const dictionaryMode = dictionaryEngine;
+    const dictionaryProviderRaw = setting('feature.dictionary.provider');
+    const dictionaryProvider =
+        dictionaryProviderRaw === 'youdao' || dictionaryProviderRaw === 'openai' || dictionaryProviderRaw === 'disabled'
+            ? dictionaryProviderRaw
+            : 'disabled';
+    const openaiDictionaryEnabled = dictionaryProvider === 'openai';
+    const dictionaryMode = dictionaryProvider;
 
     const dictionaryEntry = useDictionaryStream((state) => state.getActiveEntry(original));
 
-    const shouldFetch = hovered && !isCopyMode;
+    const shouldFetch = hovered && !isCopyMode && dictionaryProvider !== 'disabled';
 
     const {
         data: dictionaryResponse,

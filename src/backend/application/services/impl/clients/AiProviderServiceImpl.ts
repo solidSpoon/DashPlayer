@@ -11,9 +11,9 @@ import { LanguageModel } from 'ai';
 export default class AiProviderServiceImpl implements AiProviderService {
 
     public getModel(): LanguageModel | null {
-        const apiKey = storeGet('apiKeys.openAi.key');
-        const endpoint = storeGet('apiKeys.openAi.endpoint');
-        let model = storeGet('model.gpt.default');
+        const apiKey = storeGet('credentials.openai.apiKey');
+        const endpoint = storeGet('credentials.openai.endpoint');
+        let model = storeGet('credentials.openai.model');
         if (StrUtil.isBlank(model)) {
             model = 'gpt-4o-mini';
         }

@@ -15,7 +15,8 @@ export default class StorageController implements Controller {
     private logger = getMainLogger('StorageController');
 
     public async storeSet({key, value}: { key: SettingKey, value: string }): Promise<void> {
-        this.logger.debug('store setting', {key, value});
+        const redactedValue = /(\.apiKey$|\.secretKey$|password|token)/i.test(key) ? '***' : value;
+        this.logger.debug('store setting', { key, value: redactedValue });
         await this.settingsKeyValueService.set(key, value);
     }
 

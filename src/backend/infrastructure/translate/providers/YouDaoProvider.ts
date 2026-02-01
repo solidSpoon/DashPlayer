@@ -14,8 +14,8 @@ export default class YouDaoProvider implements ClientProviderService<YouDaoClien
     });
 
     public getClient(): YouDaoClient | null {
-        const secretId = storeGet('apiKeys.youdao.secretId');
-        const secretKey = storeGet('apiKeys.youdao.secretKey');
+        const secretId = storeGet('credentials.youdao.secretId');
+        const secretKey = storeGet('credentials.youdao.secretKey');
         if (StrUtil.hasBlank(secretId, secretKey)) {
             return null;
         }
@@ -29,4 +29,3 @@ export default class YouDaoProvider implements ClientProviderService<YouDaoClien
         return this.youDao;
     }
 }
-

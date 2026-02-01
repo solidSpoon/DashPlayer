@@ -49,12 +49,12 @@ const WordPop = React.forwardRef(
 
         const theme = useTransLineTheme();
         const setting = useSetting((state) => state.setting);
-        const dictionaryEngineRaw = setting('dictionary.engine');
-        const dictionaryEngine =
-            dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
-                ? dictionaryEngineRaw
-                : 'openai';
-        const openaiDictionaryEnabled = dictionaryEngine === 'openai';
+        const dictionaryProviderRaw = setting('feature.dictionary.provider');
+        const dictionaryProvider =
+            dictionaryProviderRaw === 'youdao' || dictionaryProviderRaw === 'openai' || dictionaryProviderRaw === 'disabled'
+                ? dictionaryProviderRaw
+                : 'disabled';
+        const openaiDictionaryEnabled = dictionaryProvider === 'openai';
         const vocabularyStore = useVocabulary();
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
         

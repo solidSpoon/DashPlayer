@@ -17,12 +17,12 @@ class TtsService {
 
     @WaitRateLimit('tts')
     public static async tts(str: string) {
-        if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
+        if (StrUtil.isBlank(storeGet('credentials.openai.apiKey')) || StrUtil.isBlank(storeGet('credentials.openai.endpoint'))) {
             throw new Error('OpenAI API key or endpoint is not set');
         }
-        const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
+        const url = this.joinUrl(storeGet('credentials.openai.endpoint'), '/v1/audio/speech');
         const headers = {
-            'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
+            'Authorization': `Bearer ${storeGet('credentials.openai.apiKey')}`,
             'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
             'Content-Type': 'application/json',
             responseType: 'arraybuffer'

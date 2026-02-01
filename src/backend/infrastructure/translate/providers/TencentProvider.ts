@@ -25,8 +25,8 @@ export default class TencentProvider implements ClientProviderService<TencentCli
     }
 
     public getClient(): TencentClient | null {
-        const secretId = storeGet('apiKeys.tencent.secretId');
-        const secretKey = storeGet('apiKeys.tencent.secretKey');
+        const secretId = storeGet('credentials.tencent.secretId');
+        const secretKey = storeGet('credentials.tencent.secretKey');
         if (StrUtil.hasBlank(secretId, secretKey)) {
             return null;
         }
@@ -39,4 +39,3 @@ export default class TencentProvider implements ClientProviderService<TencentCli
         return this.client;
     }
 }
-

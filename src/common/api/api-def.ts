@@ -18,7 +18,8 @@ import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import { ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
-import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
+import { FeatureServiceRoutingVO } from '@/common/types/vo/feature-service-routing-vo';
+import { ServiceCredentialsVO } from '@/common/types/vo/service-credentials-vo';
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 
@@ -150,16 +151,16 @@ interface StorageDef {
 }
 
 interface SettingsDef {
-    'settings/services/get-all': { params: void, return: ApiSettingVO };
-    'settings/services/update': { params: { service: string, settings: ApiSettingVO }, return: void };
     'settings/services/test-openai': { params: void, return: { success: boolean, message: string } };
     'settings/services/test-tencent': { params: void, return: { success: boolean, message: string } };
     'settings/services/test-youdao': { params: void, return: { success: boolean, message: string } };
+    'settings/credentials/get': { params: void, return: ServiceCredentialsVO };
+    'settings/credentials/update': { params: { patch: Partial<ServiceCredentialsVO> }, return: void };
+    'settings/features/get': { params: void, return: FeatureServiceRoutingVO };
+    'settings/features/update': { params: { patch: Partial<FeatureServiceRoutingVO> }, return: void };
     'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
     'settings/shortcuts/update': { params: Partial<Record<SettingKey, string>>, return: void };
     'settings/storage/update': { params: { path: string; collection: string }, return: void };
-    'settings/translation/update': { params: { engine: 'tencent' | 'openai'; tencentSecretId?: string; tencentSecretKey?: string }, return: void };
-    'settings/youdao/update': { params: { secretId: string; secretKey: string }, return: void };
 }
 
 interface WhisperModelDef {

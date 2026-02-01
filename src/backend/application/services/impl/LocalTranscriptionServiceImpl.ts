@@ -216,8 +216,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
         const help = await this.whisperCppCli.getHelpText(executablePath);
 
-        const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
-        const enableVad = true;
+        const modelSize = this.settingsStore.get('local.whisper.modelSize') === 'large' ? 'large' : 'base';
+        const enableVad = this.settingsStore.get('local.whisper.enableVad') === 'true';
         const vadModel = 'silero-v6.2.0' as const;
 
         const modelsRoot = LocationUtil.staticGetStoragePath('models');

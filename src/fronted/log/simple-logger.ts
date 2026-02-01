@@ -25,7 +25,7 @@ function getDefaultLevel(): SimpleLevel {
   return envLevel ?? 'info';
 }
 
-let CURRENT_LEVEL: SimpleLevel = getDefaultLevel();
+const CURRENT_LEVEL: SimpleLevel = getDefaultLevel();
 
 const RENDERER_LOGGER_CACHE = new Map<string, RendererLogger>();
 

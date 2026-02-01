@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-    Bot,
     Command,
     Compass,
     Database,
+    KeyRound,
     Palette,
     Settings,
+    WandSparkles,
 } from 'lucide-react';
 
 import { cn } from '@/fronted/lib/utils';
@@ -23,7 +24,8 @@ import {
 } from '@/fronted/components/ui/sidebar';
 
 export type SettingRouteKey =
-    | 'services'
+    | 'credentials'
+    | 'features'
     | 'shortcut'
     | 'storage'
     | 'update'
@@ -38,7 +40,8 @@ type NavItem = {
 const navItems: NavItem[] = [
     { key: 'shortcut', label: '快捷键', icon: <Command /> },
     { key: 'appearance', label: '外观', icon: <Palette /> },
-    { key: 'services', label: '服务配置', icon: <Bot /> },
+    { key: 'credentials', label: '密钥与模型', icon: <KeyRound /> },
+    { key: 'features', label: '功能服务', icon: <WandSparkles /> },
     { key: 'storage', label: '存储', icon: <Database /> },
     { key: 'update', label: '版本更新', icon: <Compass /> },
 ];
@@ -113,4 +116,3 @@ export default function SettingsSidebar() {
         </Sidebar>
     );
 }
-

@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import React, { useEffect } from 'react';
 import useSetting from '@/fronted/hooks/useSetting';
-import { HashRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import HomePage from '@/fronted/pages/HomePage';
 import TitleBarLayout from '@/fronted/pages/TieleBarLayout';
 import PlayerWithControlsPage from '@/fronted/pages/player/PlayerWithControlsPage';
@@ -12,7 +12,8 @@ import ShortcutSetting from '@/fronted/pages/setting/ShortcutSetting';
 import StorageSetting from '@/fronted/pages/setting/StorageSetting';
 import CheckUpdate from '@/fronted/pages/setting/CheckUpdate';
 import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
-import ServiceManagementSetting from '@/fronted/pages/setting/ServiceManagementSetting';
+import ServiceCredentialsSetting from '@/fronted/pages/setting/ServiceCredentialsSetting';
+import FeatureServiceRoutingSetting from '@/fronted/pages/setting/FeatureServiceRoutingSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
 import toast, { Toaster as HotToaster } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
@@ -114,7 +115,15 @@ const App = () => {
                                     />
                                     <Route
                                         path="services"
-                                        element={<Eb><ServiceManagementSetting /></Eb>}
+                                        element={<Navigate to="/settings/credentials" replace />}
+                                    />
+                                    <Route
+                                        path="credentials"
+                                        element={<Eb><ServiceCredentialsSetting /></Eb>}
+                                    />
+                                    <Route
+                                        path="features"
+                                        element={<Eb><FeatureServiceRoutingSetting /></Eb>}
                                     />
                                     <Route
                                         path="storage"

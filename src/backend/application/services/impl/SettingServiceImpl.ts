@@ -1,9 +1,9 @@
 import { SettingKey } from '@/common/types/store_schema';
-import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/application/services/SettingService';
-import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
+import { FeatureServiceRoutingVO } from '@/common/types/vo/feature-service-routing-vo';
+import { ServiceCredentialsVO } from '@/common/types/vo/service-credentials-vo';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import ClientProviderService from '@/backend/application/services/ClientProviderService';
 import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
@@ -11,184 +11,194 @@ import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/tra
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
-import {
-    OPENAI_SUBTITLE_CUSTOM_STYLE_KEY,
-    getSubtitleDefaultStyle
-} from '@/common/constants/openaiSubtitlePrompts';
+import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
-    @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     private logger = getMainLogger('SettingServiceImpl');
 
-    private async setValue(key: SettingKey, value: string): Promise<void> {
+    private setValue(key: SettingKey, value: string): void {
         if (this.settingsStore.set(key, value)) {
             this.rendererEvents.storeUpdate(key, value);
         }
     }
 
-    private async getValue(key: SettingKey): Promise<string> {
-        if (key === 'subtitleTranslation.engine') {
-            return await this.getSubtitleTranslationEngine();
-        }
-        if (key === 'dictionary.engine') {
-            return await this.getDictionaryEngine();
-        }
-        if (key === 'transcription.engine') {
-            return await this.getTranscriptionEngine();
-        }
+    private getValue(key: SettingKey): string {
         return this.settingsStore.get(key);
     }
 
-    private async getSubtitleTranslationEngine(): Promise<'openai' | 'tencent'> {
-        const stored = this.settingsStore.get('subtitleTranslation.engine');
-        return stored === 'tencent' || stored === 'openai' ? stored : 'openai';
+    private normalizeSubtitleProvider(value: string): FeatureServiceRoutingVO['subtitleTranslation']['provider'] {
+        return value === 'openai' || value === 'tencent' || value === 'disabled' ? value : 'disabled';
     }
 
-    private async getDictionaryEngine(): Promise<'openai' | 'youdao'> {
-        const stored = this.settingsStore.get('dictionary.engine');
-        return stored === 'youdao' || stored === 'openai' ? stored : 'openai';
+    private normalizeDictionaryProvider(value: string): FeatureServiceRoutingVO['dictionary']['provider'] {
+        return value === 'openai' || value === 'youdao' || value === 'disabled' ? value : 'disabled';
     }
 
-    private async getTranscriptionEngine(): Promise<'openai' | 'whisper'> {
-        const stored = this.settingsStore.get('transcription.engine');
-        return stored === 'whisper' || stored === 'openai' ? stored : 'openai';
+    private normalizeTranscriptionProvider(value: string): FeatureServiceRoutingVO['transcription']['provider'] {
+        return value === 'openai' || value === 'whisper' || value === 'disabled' ? value : 'disabled';
     }
 
-    public async queryApiSettings(): Promise<ApiSettingVO> {
-        const subtitleTranslationEngine = await this.getSubtitleTranslationEngine();
-        const dictionaryEngine = await this.getDictionaryEngine();
-        const transcriptionEngine = await this.getTranscriptionEngine();
+    public async getCredentials(): Promise<ServiceCredentialsVO> {
+        const modelSizeRaw = this.getValue('local.whisper.modelSize');
+        const modelSize = modelSizeRaw === 'large' ? 'large' : 'base';
+        const enableVad = this.getValue('local.whisper.enableVad') === 'true';
+        const vadModel = 'silero-v6.2.0' as const;
 
-        const settings: ApiSettingVO = {
+        return {
             openai: {
-                key: await this.getValue('apiKeys.openAi.key'),
-                endpoint: await this.getValue('apiKeys.openAi.endpoint'),
-                model: await this.getValue('model.gpt.default'),
-                enableSentenceLearning: await this.getValue('services.openai.enableSentenceLearning') === 'true',
-                enableSubtitleTranslation: subtitleTranslationEngine === 'openai',
-                subtitleTranslationMode: await this.getOpenAiSubtitleTranslationMode(),
-                subtitleCustomStyle: await this.getOpenAiSubtitleCustomStyle(),
-                enableDictionary: dictionaryEngine === 'openai',
-                enableTranscription: transcriptionEngine === 'openai',
+                apiKey: this.getValue('credentials.openai.apiKey'),
+                endpoint: this.getValue('credentials.openai.endpoint'),
+                model: this.getValue('credentials.openai.model'),
             },
             tencent: {
-                secretId: await this.getValue('apiKeys.tencent.secretId'),
-                secretKey: await this.getValue('apiKeys.tencent.secretKey'),
-                enableSubtitleTranslation: subtitleTranslationEngine === 'tencent',
+                secretId: this.getValue('credentials.tencent.secretId'),
+                secretKey: this.getValue('credentials.tencent.secretKey'),
             },
             youdao: {
-                secretId: await this.getValue('apiKeys.youdao.secretId'),
-                secretKey: await this.getValue('apiKeys.youdao.secretKey'),
-                enableDictionary: dictionaryEngine === 'youdao',
+                secretId: this.getValue('credentials.youdao.secretId'),
+                secretKey: this.getValue('credentials.youdao.secretKey'),
             },
-            whisper: {
-                enabled: await this.getValue('whisper.enabled') === 'true',
-                enableTranscription: transcriptionEngine === 'whisper',
-                modelSize: (await this.getValue('whisper.modelSize')) === 'large' ? 'large' : 'base',
-                enableVad: true,
-                vadModel: 'silero-v6.2.0',
-            }
+            local: {
+                whisper: {
+                    modelSize,
+                    enableVad,
+                    vadModel,
+                },
+            },
         };
-        return settings;
     }
 
-    public async updateApiSettings(settings: ApiSettingVO, service?: string): Promise<void> {
-        if (service === 'whisper') {
-            await this.setValue('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
-            const transcriptionEngine = settings.whisper.enableTranscription ? 'whisper' : 'openai';
-            await this.setValue('transcription.engine', transcriptionEngine);
-            await this.setValue('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
-            await this.setValue('whisper.enableVad', 'true');
-            await this.setValue('whisper.vadModel', 'silero-v6.2.0');
-            if (transcriptionEngine === 'whisper') {
-                await this.setValue('whisper.enabled', 'true');
-            }
-            return;
+    public async updateCredentials(patch: Partial<ServiceCredentialsVO>): Promise<void> {
+        if (patch.openai?.apiKey !== undefined) {
+            this.setValue('credentials.openai.apiKey', patch.openai.apiKey);
+        }
+        if (patch.openai?.endpoint !== undefined) {
+            this.setValue('credentials.openai.endpoint', patch.openai.endpoint);
+        }
+        if (patch.openai?.model !== undefined) {
+            this.setValue('credentials.openai.model', patch.openai.model);
         }
 
-        // Update OpenAI settings
-        await this.setValue('apiKeys.openAi.key', settings.openai.key);
-        await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
-        await this.setValue('model.gpt.default', settings.openai.model);
-        await this.setValue('services.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
-        const subtitleModeInput = settings.openai.subtitleTranslationMode;
-        const subtitleMode: 'zh' | 'simple_en' | 'custom' =
-            subtitleModeInput === 'simple_en' || subtitleModeInput === 'custom' ? subtitleModeInput : 'zh';
-        await this.setValue('services.openai.subtitleTranslationMode', subtitleMode);
-        const customStyleInput = settings.openai.subtitleCustomStyle ?? '';
-        const styleToStore = customStyleInput.trim().length > 0 ? customStyleInput.trim() : getSubtitleDefaultStyle('custom');
-        await this.systemConfigService.setValue(OPENAI_SUBTITLE_CUSTOM_STYLE_KEY, styleToStore);
+        if (patch.tencent?.secretId !== undefined) {
+            this.setValue('credentials.tencent.secretId', patch.tencent.secretId);
+        }
+        if (patch.tencent?.secretKey !== undefined) {
+            this.setValue('credentials.tencent.secretKey', patch.tencent.secretKey);
+        }
 
-        // Update Tencent settings
-        await this.setValue('apiKeys.tencent.secretId', settings.tencent.secretId);
-        await this.setValue('apiKeys.tencent.secretKey', settings.tencent.secretKey);
+        if (patch.youdao?.secretId !== undefined) {
+            this.setValue('credentials.youdao.secretId', patch.youdao.secretId);
+        }
+        if (patch.youdao?.secretKey !== undefined) {
+            this.setValue('credentials.youdao.secretKey', patch.youdao.secretKey);
+        }
 
-        // Update Youdao settings
-        await this.setValue('apiKeys.youdao.secretId', settings.youdao.secretId);
-        await this.setValue('apiKeys.youdao.secretKey', settings.youdao.secretKey);
-
-        const subtitleTranslationEngine: 'openai' | 'tencent' =
-            settings.tencent.enableSubtitleTranslation ? 'tencent' : 'openai';
-        await this.setValue('subtitleTranslation.engine', subtitleTranslationEngine);
-
-        const dictionaryEngine: 'openai' | 'youdao' =
-            settings.youdao.enableDictionary ? 'youdao' : 'openai';
-        await this.setValue('dictionary.engine', dictionaryEngine);
-
-        // Update Whisper settings
-        await this.setValue('whisper.enabled', settings.whisper.enabled ? 'true' : 'false');
-        await this.setValue('whisper.modelSize', settings.whisper.modelSize === 'large' ? 'large' : 'base');
-        await this.setValue('whisper.enableVad', 'true');
-        await this.setValue('whisper.vadModel', 'silero-v6.2.0');
-
-        const transcriptionEngine: 'openai' | 'whisper' =
-            settings.whisper.enableTranscription ? 'whisper' : 'openai';
-        await this.setValue('transcription.engine', transcriptionEngine);
-        if (transcriptionEngine === 'whisper') {
-            await this.setValue('whisper.enabled', 'true');
+        if (patch.local?.whisper?.modelSize !== undefined) {
+            this.setValue('local.whisper.modelSize', patch.local.whisper.modelSize === 'large' ? 'large' : 'base');
+        }
+        if (patch.local?.whisper?.enableVad !== undefined) {
+            this.setValue('local.whisper.enableVad', patch.local.whisper.enableVad ? 'true' : 'false');
+        }
+        if (patch.local?.whisper?.vadModel !== undefined) {
+            this.setValue('local.whisper.vadModel', 'silero-v6.2.0');
         }
     }
 
     public async getCurrentSentenceLearningProvider(): Promise<'openai' | null> {
-        const openaiEnabled = await this.getValue('services.openai.enableSentenceLearning') === 'true';
+        const openaiEnabled = this.getValue('feature.sentenceLearning.enabled') === 'true';
         return openaiEnabled ? 'openai' : null;
     }
 
     public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
-        const engine = await this.getSubtitleTranslationEngine();
-        return engine === 'openai' || engine === 'tencent' ? engine : null;
+        const provider = this.normalizeSubtitleProvider(this.getValue('feature.subtitleTranslation.provider'));
+        if (provider === 'openai' || provider === 'tencent') {
+            return provider;
+        }
+        return null;
     }
 
     public async getCurrentTranscriptionProvider(): Promise<'openai' | 'whisper' | null> {
-        const engine = await this.getTranscriptionEngine();
-        return engine === 'openai' || engine === 'whisper' ? engine : null;
+        const provider = this.normalizeTranscriptionProvider(this.getValue('feature.transcription.provider'));
+        if (provider === 'openai' || provider === 'whisper') {
+            return provider;
+        }
+        return null;
     }
 
     public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'> {
-        const mode = await this.getValue('services.openai.subtitleTranslationMode');
-        if (mode === 'simple_en' || mode === 'custom') {
-            return mode;
-        }
-        return 'zh';
+        const mode = this.getValue('feature.subtitleTranslation.openai.mode');
+        return mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
     }
 
     public async getOpenAiSubtitleCustomStyle(): Promise<string> {
-        const stored = await this.systemConfigService.getValue(OPENAI_SUBTITLE_CUSTOM_STYLE_KEY);
-        if (stored && stored.trim().length > 0) {
-            return stored.trim();
-        }
+        const stored = this.getValue('feature.subtitleTranslation.openai.customStyle');
+        if (stored && stored.trim().length > 0) return stored.trim();
         return getSubtitleDefaultStyle('custom');
     }
 
     public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
-        const engine = await this.getDictionaryEngine();
-        return engine === 'openai' || engine === 'youdao' ? engine : null;
+        const provider = this.normalizeDictionaryProvider(this.getValue('feature.dictionary.provider'));
+        if (provider === 'openai' || provider === 'youdao') {
+            return provider;
+        }
+        return null;
+    }
+
+    public async getFeatureRouting(): Promise<FeatureServiceRoutingVO> {
+        const subtitleProvider = this.normalizeSubtitleProvider(this.getValue('feature.subtitleTranslation.provider'));
+        const dictionaryProvider = this.normalizeDictionaryProvider(this.getValue('feature.dictionary.provider'));
+        const transcriptionProvider = this.normalizeTranscriptionProvider(this.getValue('feature.transcription.provider'));
+
+        const mode = await this.getOpenAiSubtitleTranslationMode();
+        const customStyle = this.getValue('feature.subtitleTranslation.openai.customStyle');
+
+        return {
+            subtitleTranslation: {
+                provider: subtitleProvider,
+                openai: {
+                    mode,
+                    customStyle,
+                },
+            },
+            dictionary: {
+                provider: dictionaryProvider,
+            },
+            transcription: {
+                provider: transcriptionProvider,
+            },
+            sentenceLearning: {
+                enabled: this.getValue('feature.sentenceLearning.enabled') === 'true',
+            },
+        };
+    }
+
+    public async updateFeatureRouting(patch: Partial<FeatureServiceRoutingVO>): Promise<void> {
+        if (patch.subtitleTranslation?.provider !== undefined) {
+            this.setValue('feature.subtitleTranslation.provider', patch.subtitleTranslation.provider);
+        }
+        if (patch.subtitleTranslation?.openai?.mode !== undefined) {
+            const mode = patch.subtitleTranslation.openai.mode;
+            const normalized = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
+            this.setValue('feature.subtitleTranslation.openai.mode', normalized);
+        }
+        if (patch.subtitleTranslation?.openai?.customStyle !== undefined) {
+            this.setValue('feature.subtitleTranslation.openai.customStyle', patch.subtitleTranslation.openai.customStyle ?? '');
+        }
+        if (patch.dictionary?.provider !== undefined) {
+            this.setValue('feature.dictionary.provider', patch.dictionary.provider);
+        }
+        if (patch.transcription?.provider !== undefined) {
+            this.setValue('feature.transcription.provider', patch.transcription.provider);
+        }
+        if (patch.sentenceLearning?.enabled !== undefined) {
+            this.setValue('feature.sentenceLearning.enabled', patch.sentenceLearning.enabled ? 'true' : 'false');
+        }
     }
 
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {
@@ -197,7 +207,7 @@ export default class SettingServiceImpl implements SettingService {
             const openAi = this.openAiService.getOpenAi();
             // Test with a simple completion request
             const completion = await openAi.chat.completions.create({
-                model: await this.getValue('model.gpt.default') || 'gpt-4o-mini',
+                model: this.getValue('credentials.openai.model') || 'gpt-4o-mini',
                 messages: [{ role: 'user', content: 'Hello' }],
                 max_tokens: 5
             });

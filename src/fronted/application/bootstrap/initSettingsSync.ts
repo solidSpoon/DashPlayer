@@ -25,19 +25,18 @@ export function initSettingsSync(): () => void {
         });
     }
 
-    backendClient.call('storage/get', 'translation.engine').then((engine: string) => {
-        if (engine === 'openai' || engine === 'tencent') {
-            useTranslation.getState().setEngine(engine);
-        }
+    backendClient.call('storage/get', 'feature.subtitleTranslation.provider').then((provider: string) => {
+        const normalized = provider === 'openai' || provider === 'tencent' ? provider : 'disabled';
+        useTranslation.getState().setEngine(normalized);
     }).catch((error) => {
-        logger.error('failed to sync translation.engine', { error });
+        logger.error('failed to sync feature.subtitleTranslation.provider', { error });
     });
 
-    backendClient.call('storage/get', 'services.openai.subtitleTranslationMode').then((mode: string) => {
+    backendClient.call('storage/get', 'feature.subtitleTranslation.openai.mode').then((mode: string) => {
         const normalized: TranslationMode = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
         useTranslation.getState().setOpenAiMode(normalized);
     }).catch((error) => {
-        logger.error('failed to sync services.openai.subtitleTranslationMode', { error });
+        logger.error('failed to sync feature.subtitleTranslation.openai.mode', { error });
     });
 
     const unsubscribe = storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
@@ -46,13 +45,12 @@ export function initSettingsSync(): () => void {
             useSetting.getState().setLocalSetting(key, value);
         }
 
-        if (key === 'translation.engine') {
-            if (value === 'openai' || value === 'tencent') {
-                useTranslation.getState().setEngine(value);
-            }
+        if (key === 'feature.subtitleTranslation.provider') {
+            const normalized = value === 'openai' || value === 'tencent' ? value : 'disabled';
+            useTranslation.getState().setEngine(normalized);
         }
 
-        if (key === 'services.openai.subtitleTranslationMode') {
+        if (key === 'feature.subtitleTranslation.openai.mode') {
             const normalized: TranslationMode = value === 'simple_en' || value === 'custom' ? value : 'zh';
             useTranslation.getState().setOpenAiMode(normalized);
         }

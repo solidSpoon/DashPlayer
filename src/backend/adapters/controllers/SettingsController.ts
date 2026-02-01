@@ -3,10 +3,11 @@ import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/application/services/SettingService';
-import { ApiSettingVO } from "@/common/types/vo/api-setting-vo";
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { SettingKey } from '@/common/types/store_schema';
 import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
+import { FeatureServiceRoutingVO } from '@/common/types/vo/feature-service-routing-vo';
+import { ServiceCredentialsVO } from '@/common/types/vo/service-credentials-vo';
 
 @injectable()
 export default class SettingsController implements Controller {
@@ -14,15 +15,35 @@ export default class SettingsController implements Controller {
     @inject(TYPES.SettingsKeyValueService) private settingsKeyValueService!: SettingsKeyValueService;
     private logger = getMainLogger('SettingsController');
 
-    public async queryApiSettings(): Promise<ApiSettingVO> {
-        return this.settingService.queryApiSettings();
+    public async getCredentials(): Promise<ServiceCredentialsVO> {
+        return this.settingService.getCredentials();
     }
 
-    public async updateApiSettings(params: { service: string, settings: ApiSettingVO }): Promise<void> {
-        const { service, settings } = params;
+    public async updateCredentials(params: { patch: Partial<ServiceCredentialsVO> }): Promise<void> {
+        const patch = params.patch ?? {};
+        const redacted = {
+            ...patch,
+            openai: patch.openai
+                ? { ...patch.openai, apiKey: patch.openai.apiKey ? '***' : patch.openai.apiKey }
+                : undefined,
+            tencent: patch.tencent
+                ? { ...patch.tencent, secretKey: patch.tencent.secretKey ? '***' : patch.tencent.secretKey }
+                : undefined,
+            youdao: patch.youdao
+                ? { ...patch.youdao, secretKey: patch.youdao.secretKey ? '***' : patch.youdao.secretKey }
+                : undefined,
+        };
+        this.logger.info('update credentials', { patch: redacted });
+        await this.settingService.updateCredentials(patch);
+    }
 
-        this.logger.info('update api settings', { service, settings: { ...settings, openai: { ...settings.openai, key: '***' } } });
-        await this.settingService.updateApiSettings(settings, service);
+    public async getFeatures(): Promise<FeatureServiceRoutingVO> {
+        return this.settingService.getFeatureRouting();
+    }
+
+    public async updateFeatures(params: { patch: Partial<FeatureServiceRoutingVO> }): Promise<void> {
+        this.logger.info('update feature routing', { patch: params.patch });
+        await this.settingService.updateFeatureRouting(params.patch ?? {});
     }
 
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {
@@ -59,35 +80,16 @@ export default class SettingsController implements Controller {
         await this.settingsKeyValueService.set('storage.collection', params.collection);
     }
 
-    public async updateTranslationSettings(params: {
-        engine: 'tencent' | 'openai';
-        tencentSecretId?: string;
-        tencentSecretKey?: string;
-    }): Promise<void> {
-        await this.settingsKeyValueService.set('translation.engine', params.engine);
-        if (params.tencentSecretId !== undefined) {
-            await this.settingsKeyValueService.set('apiKeys.tencent.secretId', params.tencentSecretId);
-        }
-        if (params.tencentSecretKey !== undefined) {
-            await this.settingsKeyValueService.set('apiKeys.tencent.secretKey', params.tencentSecretKey);
-        }
-    }
-
-    public async updateYoudaoSettings(params: { secretId: string; secretKey: string }): Promise<void> {
-        await this.settingsKeyValueService.set('apiKeys.youdao.secretId', params.secretId);
-        await this.settingsKeyValueService.set('apiKeys.youdao.secretKey', params.secretKey);
-    }
-
     registerRoutes(): void {
-        registerRoute('settings/services/get-all', () => this.queryApiSettings());
-        registerRoute('settings/services/update', (p) => this.updateApiSettings(p));
         registerRoute('settings/services/test-openai', () => this.testOpenAi());
         registerRoute('settings/services/test-tencent', () => this.testTencent());
         registerRoute('settings/services/test-youdao', () => this.testYoudao());
+        registerRoute('settings/credentials/get', () => this.getCredentials());
+        registerRoute('settings/credentials/update', (p) => this.updateCredentials(p));
+        registerRoute('settings/features/get', () => this.getFeatures());
+        registerRoute('settings/features/update', (p) => this.updateFeatures(p));
         registerRoute('settings/appearance/update', (p) => this.updateAppearanceSettings(p));
         registerRoute('settings/shortcuts/update', (p) => this.updateShortcutSettings(p));
         registerRoute('settings/storage/update', (p) => this.updateStorageSettings(p));
-        registerRoute('settings/translation/update', (p) => this.updateTranslationSettings(p));
-        registerRoute('settings/youdao/update', (p) => this.updateYoudaoSettings(p));
     }
 }

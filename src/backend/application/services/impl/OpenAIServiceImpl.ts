@@ -12,8 +12,8 @@ export class OpenAIServiceImpl implements OpenAiService {
 
 
     public getOpenAi(): OpenAI {
-        const ak = storeGet('apiKeys.openAi.key');
-        const ep = storeGet('apiKeys.openAi.endpoint');
+        const ak = storeGet('credentials.openai.apiKey');
+        const ep = storeGet('credentials.openai.endpoint');
         if (StrUtil.hasBlank(ak, ep)) {
             throw new Error('未设置 OpenAI 密钥');
         }

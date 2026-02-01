@@ -67,7 +67,7 @@ export default class AiFuncService {
         });
 
         const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
-        const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
+        const modelSize = this.settingsStore.get('local.whisper.modelSize') === 'large' ? 'large' : 'base';
         const modelTag = modelSize === 'large' ? 'large-v3' : 'base';
         const modelPath = path.join(LocationUtil.staticGetStoragePath('models'), 'whisper', `ggml-${modelTag}.bin`);
         const modelDownloaded = fs.existsSync(modelPath);

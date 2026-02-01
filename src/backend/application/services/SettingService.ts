@@ -1,10 +1,13 @@
-import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
+import { FeatureServiceRoutingVO } from '@/common/types/vo/feature-service-routing-vo';
+import { ServiceCredentialsVO } from '@/common/types/vo/service-credentials-vo';
 
 export default interface SettingService {
-    // API Settings management
-    queryApiSettings(): Promise<ApiSettingVO>;
-    updateApiSettings(settings: ApiSettingVO, service?: string): Promise<void>;
-    
+    // v2 settings
+    getCredentials(): Promise<ServiceCredentialsVO>;
+    updateCredentials(patch: Partial<ServiceCredentialsVO>): Promise<void>;
+    getFeatureRouting(): Promise<FeatureServiceRoutingVO>;
+    updateFeatureRouting(patch: Partial<FeatureServiceRoutingVO>): Promise<void>;
+
     // Service provider queries
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;
     getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
@@ -12,7 +15,7 @@ export default interface SettingService {
     getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'>;
     getOpenAiSubtitleCustomStyle(): Promise<string>;
     getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null>;
-    
+
     // Test service connections
     testOpenAi(): Promise<{ success: boolean, message: string }>;
     testTencent(): Promise<{ success: boolean, message: string }>;
