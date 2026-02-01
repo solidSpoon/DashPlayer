@@ -1,22 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/fronted/lib/utils';
-import {Slider} from "@/fronted/components/ui/slider";
+import { Slider } from '@/fronted/components/ui/slider';
+
+export type SliderOption = {
+    value: string;
+    label: string;
+};
 
 export interface SliderInputProps {
     title: string;
-    values: string[];
+    options: SliderOption[];
     defaultValue: string;
     setValue: (value: string) => void;
     inputWidth?: string;
 }
+
 const SliderInput = ({
     title,
-    values,
+    options,
     defaultValue,
     setValue,
     inputWidth,
 }: SliderInputProps) => {
     const [localValue, setLocalValue] = useState<string>(defaultValue);
+
+    const localLabel = useMemo(() => {
+        return options.find((o) => o.value === localValue)?.label ?? localValue;
+    }, [localValue, options]);
+
+    const selectedIndex = useMemo(() => {
+        const idx = options.findIndex((o) => o.value === localValue);
+        return idx >= 0 ? idx : 0;
+    }, [localValue, options]);
+
     useEffect(() => {
         setLocalValue(defaultValue);
     }, [defaultValue]);
@@ -26,17 +42,17 @@ const SliderInput = ({
             <Slider
                 step={1}
                 min={0}
-                max={values.length - 1}
+                max={Math.max(0, options.length - 1)}
                 className={cn('w-44', inputWidth)}
-                value={[values.indexOf(localValue)]}
+                value={[selectedIndex]}
                 onValueChange={(value) => {
-                    setLocalValue(values[value[0]]);
+                    setLocalValue(options[value[0]]?.value ?? options[0]?.value ?? '');
                 }}
                 onValueCommit={(value) => {
-                    setValue(values[value[0]]);
+                    setValue(options[value[0]]?.value ?? options[0]?.value ?? '');
                 }}
             />
-            <div className="text-sm text-left w-10">{localValue}</div>
+            <div className="text-sm text-left w-10">{localLabel}</div>
         </div>
     );
 };

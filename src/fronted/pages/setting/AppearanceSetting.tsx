@@ -11,6 +11,14 @@ import { useForm } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import SettingsPage from '@/fronted/pages/setting/components/SettingsPage';
+import useI18n from '@/fronted/i18n/useI18n';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/fronted/components/ui/select';
 
 const logger = getRendererLogger('AppearanceSetting');
 const api = backendClient;
@@ -18,6 +26,7 @@ const api = backendClient;
 type AppearanceFormValues = {
     theme: 'dark' | 'light';
     fontSize: 'fontSizeSmall' | 'fontSizeMedium' | 'fontSizeLarge';
+    uiLanguage: 'system' | 'zh-CN' | 'en-US';
 };
 
 const normalizeTheme = (value: string | undefined): AppearanceFormValues['theme'] => {
@@ -31,28 +40,30 @@ const normalizeFontSize = (value: string | undefined): AppearanceFormValues['fon
     return 'fontSizeMedium';
 };
 
-const fontSizeToLabel = (fontSize: AppearanceFormValues['fontSize']) => {
-    if (fontSize === 'fontSizeSmall') {
-        return '小';
+const normalizeUiLanguage = (value: string | undefined): AppearanceFormValues['uiLanguage'] => {
+    if (value === 'zh-CN' || value === 'en-US' || value === 'system') {
+        return value;
     }
-    if (fontSize === 'fontSizeLarge') {
-        return '大';
-    }
-    return '中';
+    return 'system';
 };
 
 const AppearanceSetting = () => {
+    const { t } = useI18n();
     const themeSetting = useSetting((state) =>
         state.values.get('appearance.theme')
     );
     const fontSizeSetting = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
+    const uiLanguageSetting = useSetting((state) =>
+        state.values.get('appearance.uiLanguage')
+    );
 
     const form = useForm<AppearanceFormValues>({
         defaultValues: {
             theme: normalizeTheme(themeSetting),
             fontSize: normalizeFontSize(fontSizeSetting),
+            uiLanguage: normalizeUiLanguage(uiLanguageSetting),
         },
     });
 
@@ -75,21 +86,24 @@ const AppearanceSetting = () => {
     React.useEffect(() => {
         const normalizedTheme = normalizeTheme(themeSetting);
         const normalizedFontSize = normalizeFontSize(fontSizeSetting);
+        const normalizedUiLanguage = normalizeUiLanguage(uiLanguageSetting);
         if (!isDirty) {
             reset({
                 theme: normalizedTheme,
                 fontSize: normalizedFontSize,
+                uiLanguage: normalizedUiLanguage,
             }, {
                 keepValues: true,
             });
         }
-    }, [themeSetting, fontSizeSetting, reset, isDirty]);
+    }, [themeSetting, fontSizeSetting, uiLanguageSetting, reset, isDirty]);
 
     const saveSettings = React.useCallback(async (values: AppearanceFormValues) => {
         logger.debug('saving appearance settings', values);
         await api.call('settings/appearance/update', {
             theme: values.theme,
             fontSize: values.fontSize,
+            uiLanguage: values.uiLanguage,
         });
     }, []);
 
@@ -183,22 +197,29 @@ const AppearanceSetting = () => {
 
     const currentTheme = normalizeTheme(watch('theme'));
     const currentFontSize = normalizeFontSize(watch('fontSize'));
+    const currentUiLanguage = normalizeUiLanguage(watch('uiLanguage'));
 
     logger.debug('Current fontSize setting', { fontSize: currentFontSize });
 
     return (
         <form className="w-full flex flex-col">
-            <SettingsPage title="外观" description="设置主题与字号">
+            <SettingsPage
+                title={t('settings.appearance.title')}
+                description={t('settings.appearance.description')}
+            >
             <ItemWrapper>
-                <Title title="Theme" description="设置主题" />
+                <Title
+                    title={t('settings.appearance.theme.title')}
+                    description={t('settings.appearance.theme.description')}
+                />
                 <div className="px-3 py-2 h-60 flex-shrink-0 flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
-                    {['dark', 'light'].map((t) => {
+                    {['dark', 'light'].map((theme) => {
                         return (
                             <div
-                                key={t}
+                                key={theme}
                                 className={cn('h-full flex flex-col gap-2 cursor-pointer')}
                                 onClick={() => {
-                                    setValue('theme', t as AppearanceFormValues['theme'], {
+                                    setValue('theme', theme as AppearanceFormValues['theme'], {
                                         shouldDirty: true,
                                         shouldTouch: true,
                                     });
@@ -207,41 +228,68 @@ const AppearanceSetting = () => {
                                 <div
                                     className={cn(
                                         'p-1 h-full rounded-lg',
-                                        currentTheme === t
+                                        currentTheme === theme
                                             ? 'border-2 border-primary'
                                             : 'border-2 border-secondary'
                                     )}
                                 >
                                     <ThemePreview
-                                        theme={t}
+                                        theme={theme}
                                         className={cn(
-                                            `${t} w-80 flex-1 flex-shrink-0 rounded overflow-hidden h-full`
+                                            `${theme} w-80 flex-1 flex-shrink-0 rounded overflow-hidden h-full`
                                         )}
                                     />
                                 </div>
-                                <div className="text-center">{t}</div>
+                                <div className="text-center">
+                                    {theme === 'dark'
+                                        ? t('settings.appearance.theme.dark')
+                                        : t('settings.appearance.theme.light')}
+                                </div>
                             </div>
                         );
                     })}
                 </div>
-                <Title title="Font Size" description="设置字号" />
+                <Title
+                    title={t('settings.appearance.fontSize.title')}
+                    description={t('settings.appearance.fontSize.description')}
+                />
                 <SliderInput
-                    title="字体大小"
-                    values={['小', '中', '大']}
-                    defaultValue={fontSizeToLabel(currentFontSize)}
+                    title={t('settings.appearance.fontSize.label')}
+                    options={[
+                        { value: 'fontSizeSmall', label: t('settings.appearance.fontSize.small') },
+                        { value: 'fontSizeMedium', label: t('settings.appearance.fontSize.medium') },
+                        { value: 'fontSizeLarge', label: t('settings.appearance.fontSize.large') },
+                    ]}
+                    defaultValue={currentFontSize}
                     inputWidth="w-56"
                     setValue={(v) => {
-                        if (v === '小') {
-                            setValue('fontSize', 'fontSizeSmall', { shouldDirty: true, shouldTouch: true });
-                        }
-                        if (v === '中') {
-                            setValue('fontSize', 'fontSizeMedium', { shouldDirty: true, shouldTouch: true });
-                        }
-                        if (v === '大') {
-                            setValue('fontSize', 'fontSizeLarge', { shouldDirty: true, shouldTouch: true });
-                        }
+                        setValue('fontSize', normalizeFontSize(v), { shouldDirty: true, shouldTouch: true });
                     }}
                 />
+                <Title
+                    title={t('settings.appearance.uiLanguage.title')}
+                    description={t('settings.appearance.uiLanguage.description')}
+                />
+                <div className="flex items-center gap-4 text-gray-700 select-none">
+                    <div className="text-right w-28">{t('settings.appearance.uiLanguage.title')} :</div>
+                    <div className="w-56">
+                        <Select
+                            value={currentUiLanguage}
+                            onValueChange={(value) => {
+                                setValue('uiLanguage', normalizeUiLanguage(value), { shouldDirty: true, shouldTouch: true });
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('settings.appearance.uiLanguage.system')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="system">{t('settings.appearance.uiLanguage.system')}</SelectItem>
+                                <SelectItem value="zh-CN">{t('settings.appearance.uiLanguage.zhCN')}</SelectItem>
+                                <SelectItem value="en-US">{t('settings.appearance.uiLanguage.enUS')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </ItemWrapper>
             </SettingsPage>
         </form>

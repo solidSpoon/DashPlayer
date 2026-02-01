@@ -9,6 +9,7 @@ import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipSt
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { rendererApiRegistry } from '@/fronted/application/bootstrap/rendererApiRegistry';
+import useI18n from '@/fronted/i18n/useI18n';
 
 const logger = getRendererLogger('AutoClipButton');
 
@@ -19,6 +20,7 @@ interface ClipStatusState extends VideoLearningClipStatusVO {
 }
 
 export default function AutoClipButton() {
+  const { t } = useI18n();
   const videoPath = useFile((state) => state.videoPath);
   const srtHash = useFile((state) => state.srtHash);
   const subtitlePath = useFile((state) => state.subtitlePath);
@@ -130,19 +132,21 @@ export default function AutoClipButton() {
   const canClip = clipStatus?.status === 'pending' && pendingCount > 0 && !hasExistingClipTask;
 
   const getButtonText = () => {
-    if (!clipStatus?.status) return canQuery ? '检测中...' : '裁切生词视频';
+    if (!clipStatus?.status) return canQuery ? t('player.autoClip.checking') : t('player.autoClip.title');
     switch (clipStatus.status) {
       case 'analyzing':
-        return `分析中 ${analyzingProgress}%`;
+        return t('player.autoClip.analyzing', { percent: analyzingProgress });
       case 'in_progress':
-        return `裁切中 (${inProgressCount})`;
+        return t('player.autoClip.inProgress', { count: inProgressCount });
       case 'pending':
         return pendingCount > 0
-          ? (hasExistingClipTask ? `裁切中 (${inProgressCount || pendingCount})` : `裁切 ${pendingCount} 个生词片段`)
-          : '暂无可裁切片段';
+          ? (hasExistingClipTask
+            ? t('player.autoClip.inProgress', { count: inProgressCount || pendingCount })
+            : t('player.autoClip.clipPending', { count: pendingCount }))
+          : t('player.autoClip.none');
       case 'completed':
       default:
-        return '暂无可裁切片段';
+        return t('player.autoClip.none');
     }
   };
 
@@ -159,19 +163,19 @@ export default function AutoClipButton() {
 
   const handleClick = async () => {
     if (!videoPath || !srtHash || !subtitlePath) {
-      toast.error('请先加载视频和字幕');
+      toast.error(t('toast.missingVideoSubtitle'));
       return;
     }
     if (hasExistingClipTask) {
-      toast('已存在裁切任务，请等待完成', { icon: 'ℹ️' });
+      toast(t('toast.clipTaskExists'), { icon: 'ℹ️' });
       return;
     }
     if (!canClip) {
-      toast('暂无可裁切的生词片段', { icon: 'ℹ️' });
+      toast(t('toast.noClips'), { icon: 'ℹ️' });
       return;
     }
     try {
-      toast('开始裁切生词视频...', { icon: '✂️' });
+      toast(t('toast.clipStart'), { icon: '✂️' });
       if (clipTaskKey) {
         markClipTaskRequested(clipTaskKey);
       }
@@ -185,7 +189,7 @@ export default function AutoClipButton() {
       if (clipTaskKey) {
         clearClipTaskRequested(clipTaskKey);
       }
-      toast.error('生词视频裁切失败，请重试');
+      toast.error(t('toast.clipFailed'));
     }
   };
 

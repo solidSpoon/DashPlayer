@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/fronted/lib/utils';
+import useI18n from '@/fronted/i18n/useI18n';
+import { i18n } from '@/fronted/i18n/i18n';
 import {
     Sidebar,
     SidebarContent,
@@ -33,17 +35,17 @@ export type SettingRouteKey =
 
 type NavItem = {
     key: SettingRouteKey;
-    label: string;
+    labelKey: string;
     icon: React.ReactNode;
 };
 
 const navItems: NavItem[] = [
-    { key: 'shortcut', label: '快捷键', icon: <Command /> },
-    { key: 'appearance', label: '外观', icon: <Palette /> },
-    { key: 'credentials', label: '密钥与模型', icon: <KeyRound /> },
-    { key: 'features', label: '功能服务', icon: <WandSparkles /> },
-    { key: 'storage', label: '存储', icon: <Database /> },
-    { key: 'update', label: '版本更新', icon: <Compass /> },
+    { key: 'shortcut', labelKey: 'settings.sidebar.shortcut', icon: <Command /> },
+    { key: 'appearance', labelKey: 'settings.sidebar.appearance', icon: <Palette /> },
+    { key: 'credentials', labelKey: 'settings.sidebar.credentials', icon: <KeyRound /> },
+    { key: 'features', labelKey: 'settings.sidebar.features', icon: <WandSparkles /> },
+    { key: 'storage', labelKey: 'settings.sidebar.storage', icon: <Database /> },
+    { key: 'update', labelKey: 'settings.sidebar.update', icon: <Compass /> },
 ];
 
 function normalizePathname(pathname: string): string {
@@ -59,10 +61,12 @@ export function getActiveSettingRouteKey(pathname: string): SettingRouteKey {
 }
 
 export function getSettingRouteLabel(key: SettingRouteKey): string {
-    return navItems.find((item) => item.key === key)?.label ?? '快捷键';
+    const labelKey = navItems.find((item) => item.key === key)?.labelKey ?? 'settings.sidebar.shortcut';
+    return i18n.t(labelKey);
 }
 
 export default function SettingsSidebar() {
+    const { t } = useI18n();
     const location = useLocation();
     const activeKey = getActiveSettingRouteKey(location.pathname);
 
@@ -75,7 +79,7 @@ export default function SettingsSidebar() {
                     </div>
                     <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">
-                            Settings
+                            {t('settings.sidebar.headerTitle')}
                         </div>
                         <div className="truncate text-xs text-sidebar-foreground/70">
                             DashPlayer
@@ -86,7 +90,7 @@ export default function SettingsSidebar() {
 
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>设置</SidebarGroupLabel>
+                    <SidebarGroupLabel>{t('settings.sidebar.groupLabel')}</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {navItems.map((item) => (
@@ -94,7 +98,7 @@ export default function SettingsSidebar() {
                                     <SidebarMenuButton
                                         asChild
                                         isActive={activeKey === item.key}
-                                        tooltip={item.label}
+                                        tooltip={t(item.labelKey)}
                                     >
                                         <Link
                                             to={`/settings/${item.key}`}
@@ -104,7 +108,7 @@ export default function SettingsSidebar() {
                                             )}
                                         >
                                             {item.icon}
-                                            <span>{item.label}</span>
+                                            <span>{t(item.labelKey)}</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

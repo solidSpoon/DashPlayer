@@ -8,10 +8,12 @@ import useTranscript from '@/fronted/hooks/useTranscript';
 import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import useI18n from '@/fronted/i18n/useI18n';
 
 const logger = getRendererLogger('TranscriptButton');
 
 export default function TranscriptButton() {
+  const { t } = useI18n();
   const videoPath = useFile((s) => s.videoPath);
   const { files, onTranscript } = useTranscript(
     useShallow((s) => ({
@@ -25,17 +27,17 @@ export default function TranscriptButton() {
     currentVideoTask?.status === 'in_progress' || currentVideoTask?.status === 'init';
 
   const getStatusText = () => {
-    if (!currentVideoTask || !currentVideoTask.status) return '生成字幕';
+    if (!currentVideoTask || !currentVideoTask.status) return t('player.transcript.title');
     switch (currentVideoTask.status) {
       case 'init':
-        return '初始化中...';
+        return t('player.transcript.init');
       case 'in_progress': {
-        const message = currentVideoTask.result?.message || '转录中...';
+        const message = currentVideoTask.result?.message || t('player.transcript.inProgress');
         return message.length > 10 ? message.substring(0, 10) + '...' : message;
       }
       case 'done':
       default:
-        return '生成字幕';
+        return t('player.transcript.title');
     }
   };
 
@@ -54,10 +56,10 @@ export default function TranscriptButton() {
   const handleClick = async () => {
     const srtPath = videoPath;
     if (StrUtil.isBlank(srtPath)) {
-      toast.error('请先选择一个视频文件');
+      toast.error(t('toast.selectVideoFirst'));
       return;
     }
-    toast('已添加到转录队列', { icon: '👏' });
+    toast(t('toast.transcriptQueued'), { icon: '👏' });
     await onTranscript(srtPath);
   };
 

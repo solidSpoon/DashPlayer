@@ -6,10 +6,12 @@ import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useI18n from '@/fronted/i18n/useI18n';
 
 const getShortcut = (key: string) => useSetting.getState().setting(key as any);
 
 export default function ClearAdjustButton() {
+  const { t } = useI18n();
   const tooltipMd = codeBlock`
   #### 清除时间调整
   _清除当前视频的所有时间调整_
@@ -31,13 +33,13 @@ export default function ClearAdjustButton() {
     setTimeout(() => {
       if (path) useFile.setState({ subtitlePath: path });
     }, 0);
-    toast('清除了', { icon: '👏' });
+    toast(t('toast.adjustCleared'), { icon: '👏' });
   };
 
   return (
     <TooltippedButton
       icon={Eraser}
-      text="清除时间调整"
+      text={t('player.clearAdjust')}
       onClick={handleClick}
       tooltipMd={tooltipMd}
       tooltipClassName="p-8 pb-6 rounded-md shadow-lg"

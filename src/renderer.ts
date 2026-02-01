@@ -27,6 +27,8 @@
  */
 
 import './index.css';
+// i18n must be initialized before bootstrap controllers emit UI toasts.
+import './fronted/i18n/i18n';
 // 初始化前端（renderer apis、settings sync等）
 import './fronted/init-controllers';
 

@@ -14,6 +14,7 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import { Progress } from '@/fronted/components/ui/progress';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import useI18n from '@/fronted/i18n/useI18n';
 
 import { ServiceCredentialsVO } from '@/common/types/vo/service-credentials-vo';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
@@ -29,6 +30,7 @@ const OPENAI_MODEL_PRESETS = [
 export default function ServiceCredentialsSetting() {
     const logger = getRendererLogger('ServiceCredentialsSetting');
     const { toast } = useToast();
+    const { t } = useI18n();
 
     const { data: credentials, mutate } = useSWR('settings/credentials/get', () => api.call('settings/credentials/get'));
 
@@ -219,11 +221,11 @@ export default function ServiceCredentialsSetting() {
         setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
         try {
             await api.call('whisper/models/download', { modelSize: size });
-            toast({ title: '下载完成', description: `Whisper 模型已下载：${size}` });
+            toast({ title: t('toast.downloadSuccessTitle'), description: t('toast.whisperDownloaded', { size }) });
             await refreshWhisperModelStatus();
         } catch (error) {
             toast({
-                title: '下载失败',
+                title: t('toast.downloadFailedTitle'),
                 description: error instanceof Error ? error.message : String(error),
                 variant: 'destructive',
             });
@@ -238,11 +240,11 @@ export default function ServiceCredentialsSetting() {
         setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
         try {
             await api.call('whisper/models/download-vad', { vadModel: forcedVadModel });
-            toast({ title: '下载完成', description: '静音检测模型已下载' });
+            toast({ title: t('toast.downloadSuccessTitle'), description: t('toast.vadDownloaded') });
             await refreshWhisperModelStatus();
         } catch (error) {
             toast({
-                title: '下载失败',
+                title: t('toast.downloadFailedTitle'),
                 description: error instanceof Error ? error.message : String(error),
                 variant: 'destructive',
             });
@@ -512,4 +514,3 @@ export default function ServiceCredentialsSetting() {
         </form>
     );
 }
-

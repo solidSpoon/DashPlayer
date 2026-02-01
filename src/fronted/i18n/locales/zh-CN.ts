@@ -1,0 +1,96 @@
+const zhCN = {
+    common: {
+        loading: '加载中...',
+        errorTitle: '错误',
+        infoTitle: '提示',
+        unknownError: '未知错误',
+    },
+    nav: {
+        player: '播放器',
+        favorite: '收藏',
+        transcript: '字幕',
+        split: '分割',
+        convert: '转换',
+        vocabulary: '生词',
+        settings: '设置',
+        about: '关于',
+    },
+    update: {
+        available: '发现新版本 {{version}}',
+        action: {
+            view: '查看',
+        },
+    },
+    player: {
+        clearAdjust: '清除时间调整',
+        autoClip: {
+            title: '裁切生词视频',
+            checking: '检测中...',
+            analyzing: '分析中 {{percent}}%',
+            inProgress: '裁切中 ({{count}})',
+            clipPending: '裁切 {{count}} 个生词片段',
+            none: '暂无可裁切片段',
+        },
+        transcript: {
+            title: '生成字幕',
+            init: '初始化中...',
+            inProgress: '转录中...',
+        },
+    },
+    settings: {
+        sidebar: {
+            groupLabel: '设置',
+            shortcut: '快捷键',
+            appearance: '外观',
+            credentials: '密钥与模型',
+            features: '功能服务',
+            storage: '存储',
+            update: '版本更新',
+            headerTitle: '设置',
+        },
+        appearance: {
+            title: '外观',
+            description: '设置主题、字号与语言',
+            theme: {
+                title: '主题',
+                description: '设置主题',
+                dark: '深色',
+                light: '浅色',
+            },
+            fontSize: {
+                title: '字号',
+                description: '设置字号',
+                label: '字体大小',
+                small: '小',
+                medium: '中',
+                large: '大',
+            },
+            uiLanguage: {
+                title: '语言',
+                description: '设置界面语言',
+                system: '跟随系统',
+                zhCN: '中文',
+                enUS: 'English',
+            },
+        },
+    },
+    toast: {
+        adjustCleared: '已清除',
+        missingVideoSubtitle: '请先加载视频和字幕',
+        clipTaskExists: '已存在裁切任务，请等待完成',
+        noClips: '暂无可裁切的生词片段',
+        clipStart: '开始裁切生词视频...',
+        clipFailed: '生词视频裁切失败，请重试',
+        selectVideoFirst: '请先选择一个视频文件',
+        transcriptQueued: '已添加到转录队列',
+        downloadSuccessTitle: '下载完成',
+        downloadFailedTitle: '下载失败',
+        whisperDownloaded: 'Whisper 模型已下载：{{size}}',
+        vadDownloaded: '静音检测模型已下载',
+        silentVideoTitle: '该视频可能在播放器里无声',
+        silentVideoDescription: '如果遇到无声/无法播放，建议生成“兼容播放版本”',
+        silentVideoAction: '生成兼容版本',
+    },
+} as const;
+
+export default zhCN;

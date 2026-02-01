@@ -2,8 +2,10 @@ import React, { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import {cn} from "@/fronted/lib/utils";
 import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
+import useI18n from '@/fronted/i18n/useI18n';
 
 const TitleBarLayout = () => {
+    const { t } = useI18n();
     return (
         <div
             className={cn(
@@ -12,7 +14,7 @@ const TitleBarLayout = () => {
             )}
         >
             <TitleBar className="" />
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div>{t('common.loading')}</div>}>
                 <div className={cn('flex-1 h-0 w-full')}>
                     <Outlet />
                 </div>

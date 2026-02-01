@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import React, { useEffect } from 'react';
 import useSetting from '@/fronted/hooks/useSetting';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { I18nextProvider } from 'react-i18next';
 import HomePage from '@/fronted/pages/HomePage';
 import TitleBarLayout from '@/fronted/pages/TieleBarLayout';
 import PlayerWithControlsPage from '@/fronted/pages/player/PlayerWithControlsPage';
@@ -29,18 +30,30 @@ import VideoLearningPage from '@/fronted/pages/video-learning';
 import { startListeningToDpTasks } from '@/fronted/hooks/useDpTaskCenter';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { i18n } from '@/fronted/i18n/i18n';
+import { resolveUiLanguage } from '@/fronted/i18n/resolveUiLanguage';
 
 const api = window.electron;
 const UPDATE_CHECK_DELAY_MS = 6000;
 const UPDATE_TOAST_ID = 'update-available';
 const App = () => {
     const theme = useSetting((s) => s.values.get('appearance.theme'));
+    const uiLanguageSetting = useSetting((s) => s.values.get('appearance.uiLanguage'));
     useEffect(() => {
         document.documentElement.classList.add(theme ?? 'dark');
         return () => {
             document.documentElement.classList.remove(theme ?? 'dark');
         };
     }, [theme]);
+    useEffect(() => {
+        const resolved = resolveUiLanguage(
+            (uiLanguageSetting === 'zh-CN' || uiLanguageSetting === 'en-US' || uiLanguageSetting === 'system')
+                ? uiLanguageSetting
+                : 'system',
+            navigator.language ?? 'en-US',
+        );
+        i18n.changeLanguage(resolved).catch(() => undefined);
+    }, [uiLanguageSetting]);
     useEffect(() => {
         const timer = window.setTimeout(() => {
             (async () => {
@@ -49,12 +62,12 @@ const App = () => {
                     return;
                 }
                 const latest = result.releases[0];
-                sonnerToast(`发现新版本 ${latest.version}`, {
+                sonnerToast(i18n.t('update.available', { version: latest.version }), {
                     id: UPDATE_TOAST_ID,
                     duration: 8000,
                     position: 'bottom-left',
                     action: {
-                        label: '查看',
+                        label: i18n.t('update.action.view'),
                         onClick: async () => {
                             await backendClient.call('system/open-url', latest.url);
                         },
@@ -156,7 +169,11 @@ if (!rootElement) {
     throw new Error('Root element not found');
 }
 const root = createRoot(rootElement);
-root.render(<App />);
+root.render(
+    <I18nextProvider i18n={i18n}>
+        <App />
+    </I18nextProvider>
+);
 syncStatus();
 api.onErrorMsg((error: Error) => {
     toast.error(error.message);

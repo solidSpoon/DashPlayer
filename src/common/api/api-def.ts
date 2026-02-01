@@ -158,7 +158,7 @@ interface SettingsDef {
     'settings/credentials/update': { params: { patch: Partial<ServiceCredentialsVO> }, return: void };
     'settings/features/get': { params: void, return: FeatureServiceRoutingVO };
     'settings/features/update': { params: { patch: Partial<FeatureServiceRoutingVO> }, return: void };
-    'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
+    'settings/appearance/update': { params: { theme: string; fontSize: string; uiLanguage?: string }, return: void };
     'settings/shortcuts/update': { params: Partial<Record<SettingKey, string>>, return: void };
     'settings/storage/update': { params: { path: string; collection: string }, return: void };
 }

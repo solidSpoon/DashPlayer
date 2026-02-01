@@ -27,6 +27,7 @@ import useSystem from '@/fronted/hooks/useSystem';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { i18n } from '@/fronted/i18n/i18n';
 
 const api = backendClient;
 const logger = getRendererLogger('PlayerWithControlsPage');
@@ -162,12 +163,12 @@ const PlayerWithControlsPage = () => {
                         if (audioCodec.length > 0 && !suspiciousAudioCodecs.has(audioCodec)) {
                             return;
                         }
-                        sonnerToast('该视频可能在播放器里无声', {
+                        sonnerToast(i18n.t('toast.silentVideoTitle'), {
                             id: COMPAT_TOAST_ID,
                             duration: 6000,
                             position: 'top-right',
                             action: {
-                                label: '生成兼容版本',
+                                label: i18n.t('toast.silentVideoAction'),
                                 onClick: () => {
                                     useConvert.getState().addFiles([videoPath]);
                                     navigate('/convert');

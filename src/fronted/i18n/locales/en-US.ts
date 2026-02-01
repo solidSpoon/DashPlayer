@@ -1,0 +1,96 @@
+const enUS = {
+    common: {
+        loading: 'Loading...',
+        errorTitle: 'Error',
+        infoTitle: 'Info',
+        unknownError: 'Unknown error',
+    },
+    nav: {
+        player: 'Player',
+        favorite: 'Favorite',
+        transcript: 'Transcript',
+        split: 'Split',
+        convert: 'Convert',
+        vocabulary: 'Vocabulary',
+        settings: 'Settings',
+        about: 'About',
+    },
+    update: {
+        available: 'New version {{version}} available',
+        action: {
+            view: 'View',
+        },
+    },
+    player: {
+        clearAdjust: 'Clear timestamp adjustments',
+        autoClip: {
+            title: 'Auto-clip vocabulary',
+            checking: 'Checking...',
+            analyzing: 'Analyzing {{percent}}%',
+            inProgress: 'Clipping ({{count}})',
+            clipPending: 'Clip {{count}} vocabulary segments',
+            none: 'No clips available',
+        },
+        transcript: {
+            title: 'Generate subtitles',
+            init: 'Initializing...',
+            inProgress: 'Transcribing...',
+        },
+    },
+    settings: {
+        sidebar: {
+            groupLabel: 'Settings',
+            shortcut: 'Shortcuts',
+            appearance: 'Appearance',
+            credentials: 'Keys & Models',
+            features: 'Feature Routing',
+            storage: 'Storage',
+            update: 'Updates',
+            headerTitle: 'Settings',
+        },
+        appearance: {
+            title: 'Appearance',
+            description: 'Theme, font size, and language',
+            theme: {
+                title: 'Theme',
+                description: 'Choose theme',
+                dark: 'Dark',
+                light: 'Light',
+            },
+            fontSize: {
+                title: 'Font Size',
+                description: 'Choose font size',
+                label: 'Font size',
+                small: 'Small',
+                medium: 'Medium',
+                large: 'Large',
+            },
+            uiLanguage: {
+                title: 'Language',
+                description: 'UI language',
+                system: 'System',
+                zhCN: '中文',
+                enUS: 'English',
+            },
+        },
+    },
+    toast: {
+        adjustCleared: 'Cleared',
+        missingVideoSubtitle: 'Please load a video and subtitles first',
+        clipTaskExists: 'A clip task already exists. Please wait for it to finish.',
+        noClips: 'No vocabulary clips available',
+        clipStart: 'Starting vocabulary auto-clip...',
+        clipFailed: 'Auto-clip failed. Please try again.',
+        selectVideoFirst: 'Please select a video file first',
+        transcriptQueued: 'Added to transcription queue',
+        downloadSuccessTitle: 'Download complete',
+        downloadFailedTitle: 'Download failed',
+        whisperDownloaded: 'Whisper model downloaded: {{size}}',
+        vadDownloaded: 'VAD model downloaded',
+        silentVideoTitle: 'This video may be silent in the player',
+        silentVideoDescription: 'If audio is missing, generate a compatible playback version.',
+        silentVideoAction: 'Generate compatible version',
+    },
+} as const;
+
+export default enUS;

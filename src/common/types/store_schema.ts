@@ -42,6 +42,7 @@ export const SettingKeyObj = {
     'feature.sentenceLearning.enabled': 'false',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
+    'appearance.uiLanguage': 'system',
     'player.autoPlayNext': 'false',
     'storage.path': '',
     'storage.collection': 'default',

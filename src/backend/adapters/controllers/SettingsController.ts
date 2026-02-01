@@ -61,9 +61,12 @@ export default class SettingsController implements Controller {
         return this.settingService.testYoudao();
     }
 
-    public async updateAppearanceSettings(params: { theme: string; fontSize: string }): Promise<void> {
+    public async updateAppearanceSettings(params: { theme: string; fontSize: string; uiLanguage?: string }): Promise<void> {
         await this.settingsKeyValueService.set('appearance.theme', params.theme);
         await this.settingsKeyValueService.set('appearance.fontSize', params.fontSize);
+        if (params.uiLanguage !== undefined) {
+            await this.settingsKeyValueService.set('appearance.uiLanguage', params.uiLanguage);
+        }
     }
 
     public async updateShortcutSettings(params: Partial<Record<SettingKey, string>>): Promise<void> {

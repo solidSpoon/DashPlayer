@@ -5,6 +5,7 @@ import logoLight from '../../../../assets/logo-light.png';
 import logoDark from '../../../../assets/logo-dark.png';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
+import useI18n from '@/fronted/i18n/useI18n';
 import { BookOpen, Captions, Rotate3D, Settings, SquareSplitHorizontal, Star, User, Video } from 'lucide-react';
 
 export interface SideBarProps {
@@ -12,6 +13,7 @@ export interface SideBarProps {
 }
 
 const SideBar = ({ compact }: SideBarProps) => {
+    const { t } = useI18n();
     const navigate = useNavigate();
     const location = useLocation();
     const videoId = useFile((s) => s.videoId);
@@ -67,43 +69,43 @@ const SideBar = ({ compact }: SideBarProps) => {
             <div className={cn('basis-3/4 flex flex-col p-3 gap-1')}>
                 {/* {item('Home', '/home', 'home', <HiOutlineHome />)} */}
                 {item(
-                    'Player',
+                    t('nav.player'),
                     `/player/${videoId}?sideBarAnimation=false`,
                     'pa-player',
                     <Video />
                 )}
                 {item(
-                    'Favorite',
+                    t('nav.favorite'),
                     '/favorite',
                     'favorite',
                     <Star />
                 )}
                 {item(
-                    'Transcript',
+                    t('nav.transcript'),
                     '/transcript',
                     'transcript',
                     <Captions />
                 )}
                 {item(
-                    'Split',
+                    t('nav.split'),
                     '/split',
                     'split',
                     <SquareSplitHorizontal />
                 )}
                 {item(
-                    'Convert',
+                    t('nav.convert'),
                     '/convert',
                     'convert',
                     <Rotate3D />
                 )}
                 {item(
-                    'Vocabulary',
+                    t('nav.vocabulary'),
                     '/vocabulary',
                     'vocabulary',
                     <BookOpen />
                 )}
-                {item('Setting', '/settings', 'settings', <Settings />)}
-                {item('About', '/about', 'about', <User />)}
+                {item(t('nav.settings'), '/settings', 'settings', <Settings />)}
+                {item(t('nav.about'), '/about', 'about', <User />)}
             </div>
         </div>
     );
