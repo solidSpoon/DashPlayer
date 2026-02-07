@@ -116,6 +116,17 @@ export interface ConcurrencyKernel {
 }
 
 /**
+ * 创建新的并发调用链上下文。
+ * @returns 并发上下文。
+ */
+function createConcurrencyContext(): ConcurrencyContext {
+    return {
+        heldLocks: [],
+        reentrantPermits: new Map(),
+    };
+}
+
+/**
  * 深度合并并发配置。
  * @param base 基础配置。
  * @param override 覆盖配置。
@@ -169,20 +180,28 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
         .map((key, index) => [key, index]));
 
     /**
-     * 获取当前调用链上下文；若不存在则初始化。
-     * @returns 调用链上下文。
+     * 在并发上下文中运行任务；若当前无上下文则创建隔离上下文。
+     * @param task 需要执行的任务。
+     * @returns 任务结果。
      */
-    function getOrCreateContext(): ConcurrencyContext {
+    function runWithContext<T>(task: () => Promise<T>): Promise<T> {
         const existing = contextStorage.getStore();
         if (existing) {
-            return existing;
+            return task();
         }
-        const created: ConcurrencyContext = {
-            heldLocks: [],
-            reentrantPermits: new Map(),
-        };
-        contextStorage.enterWith(created);
-        return created;
+        return contextStorage.run(createConcurrencyContext(), task);
+    }
+
+    /**
+     * 读取当前并发上下文；若不存在则抛错。
+     * @returns 当前上下文。
+     */
+    function getContextOrThrow(): ConcurrencyContext {
+        const context = contextStorage.getStore();
+        if (!context) {
+            throw new Error('并发上下文不存在，请通过 withSemaphore/acquire 进入并发上下文');
+        }
+        return context;
     }
 
     /**
@@ -190,11 +209,10 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
      * @param key 目标锁键。
      * @param options 获取选项。
      */
-    function assertLockOrder(key: string, options?: KernelAcquireOptions): void {
+    function assertLockOrder(context: ConcurrencyContext, key: string, options?: KernelAcquireOptions): void {
         if (options?.skipOrderCheck) {
             return;
         }
-        const context = getOrCreateContext();
         const order = resolveLockOrder(key, semaphoreOrder);
         const currentMaxOrder = context.heldLocks.reduce((maxValue, lock) => Math.max(maxValue, lock.order), -1);
         if (currentMaxOrder > order) {
@@ -209,8 +227,7 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
      * 在上下文中登记已持有锁。
      * @param key 锁键。
      */
-    function pushHeldLock(key: string): void {
-        const context = getOrCreateContext();
+    function pushHeldLock(context: ConcurrencyContext, key: string): void {
         context.heldLocks.push({
             key,
             order: resolveLockOrder(key, semaphoreOrder),
@@ -221,8 +238,7 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
      * 在上下文中移除一条已持有锁记录。
      * @param key 锁键。
      */
-    function popHeldLock(key: string): void {
-        const context = getOrCreateContext();
+    function popHeldLock(context: ConcurrencyContext, key: string): void {
         for (let index = context.heldLocks.length - 1; index >= 0; index--) {
             if (context.heldLocks[index].key === key) {
                 context.heldLocks.splice(index, 1);
@@ -237,16 +253,16 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
      * @param permit 底层许可。
      * @returns 包装许可。
      */
-    function wrapPermitWithContext(key: string, permit: Permit): Permit {
+    function wrapPermitWithContext(context: ConcurrencyContext, key: string, permit: Permit): Permit {
         let released = false;
-        pushHeldLock(key);
+        pushHeldLock(context, key);
         return {
             release: () => {
                 if (released) {
                     return;
                 }
                 released = true;
-                popHeldLock(key);
+                popHeldLock(context, key);
                 permit.release();
             },
         };
@@ -344,52 +360,56 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
         },
 
         async withSemaphore<T>(key: string, task: () => Promise<T>, options?: KernelAcquireOptions): Promise<T> {
-            const permit = await this.acquire(key, options);
-            try {
-                return await task();
-            } finally {
-                permit.release();
-            }
+            return await runWithContext(async () => {
+                const permit = await this.acquire(key, options);
+                try {
+                    return await task();
+                } finally {
+                    permit.release();
+                }
+            });
         },
 
         async acquire(key: string, options?: KernelAcquireOptions): Promise<Permit> {
-            const context = getOrCreateContext();
+            return await runWithContext(async () => {
+                const context = getContextOrThrow();
 
-            if (options?.reentrant) {
-                const current = context.reentrantPermits.get(key);
-                if (current) {
-                    current.depth += 1;
-                    pushHeldLock(key);
-                    let released = false;
-                    return {
-                        release: () => {
-                            if (released) {
-                                return;
-                            }
-                            released = true;
-                            popHeldLock(key);
-                            current.depth -= 1;
-                            if (current.depth <= 0) {
-                                context.reentrantPermits.delete(key);
-                                current.basePermit.release();
-                            }
-                        },
-                    };
+                if (options?.reentrant) {
+                    const current = context.reentrantPermits.get(key);
+                    if (current) {
+                        current.depth += 1;
+                        pushHeldLock(context, key);
+                        let released = false;
+                        return {
+                            release: () => {
+                                if (released) {
+                                    return;
+                                }
+                                released = true;
+                                popHeldLock(context, key);
+                                current.depth -= 1;
+                                if (current.depth <= 0) {
+                                    context.reentrantPermits.delete(key);
+                                    current.basePermit.release();
+                                }
+                            },
+                        };
+                    }
                 }
-            }
 
-            assertLockOrder(key, options);
-            const permit = await this.semaphore(key).acquire(options);
-            const wrapped = wrapPermitWithContext(key, permit);
+                assertLockOrder(context, key, options);
+                const permit = await this.semaphore(key).acquire(options);
+                const wrapped = wrapPermitWithContext(context, key, permit);
 
-            if (options?.reentrant) {
-                context.reentrantPermits.set(key, {
-                    depth: 1,
-                    basePermit: permit,
-                });
-            }
+                if (options?.reentrant) {
+                    context.reentrantPermits.set(key, {
+                        depth: 1,
+                        basePermit: permit,
+                    });
+                }
 
-            return wrapped;
+                return wrapped;
+            });
         },
 
         withMutex<T>(key: string, task: () => Promise<T>, options?: AcquireOptions): Promise<T> {

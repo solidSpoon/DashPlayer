@@ -75,4 +75,30 @@ describe('并发内核门面', () => {
             }),
         ).rejects.toBeInstanceOf(LockOrderViolationError);
     });
+
+    it('在默认顺序下先拿 ffprobe 再拿 ffmpeg 应触发违规', async () => {
+        const kernel = createConcurrencyKernel();
+
+        await expect(
+            kernel.withSemaphore('ffprobe', async () => {
+                await kernel.withSemaphore('ffmpeg', async () => {
+                    return;
+                });
+            }),
+        ).rejects.toBeInstanceOf(LockOrderViolationError);
+    });
+
+    it('并发调用链之间不应共享持锁上下文', async () => {
+        const kernel = createConcurrencyKernel();
+
+        const first = kernel.withSemaphore('ffprobe', async () => {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        });
+
+        const second = kernel.withSemaphore('ffmpeg', async () => {
+            return;
+        });
+
+        await expect(Promise.all([first, second])).resolves.toBeDefined();
+    });
 });
