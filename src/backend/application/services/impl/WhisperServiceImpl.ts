@@ -15,33 +15,7 @@ import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } fro
 import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigStore';
 import FileUtil from '@/backend/utils/FileUtil';
 import { CancelByUserError, WhisperResponseFormatError } from '@/backend/application/errors/errors';
-import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
-
-/**
- * 将 Whisper 的 API 响应转换成 SRT 文件格式
- */
-function toSrt(chunks: SplitChunk[]): string {
-    // 按 offset 排序确保顺序正确
-    chunks.sort((a, b) => a.offset - b.offset);
-    let counter = 1;
-    const lines: SrtLine[] = [];
-    for (const c of chunks) {
-        const segments = c.response?.segments ?? [];
-        for (const segment of segments) {
-            lines.push({
-                index: counter,
-                start: segment.start + c.offset,
-                end: segment.end + c.offset,
-                contentEn: segment.text,
-                contentZh: ''
-            });
-            counter++;
-        }
-    }
-    return SrtUtil.srtLinesToSrt(lines, {
-        reindex: true,
-    });
-}
+import SrtUtil from '@/common/utils/SrtUtil';
 
 // 设置过期时间阈值，单位毫秒（此处示例为 3 小时）
 const EXPIRATION_THRESHOLD = 3 * 60 * 60 * 1000;
@@ -157,7 +131,7 @@ class WhisperServiceImpl implements WhisperService {
             // 整理结果，生成 SRT 文件
             const srtName = filePath.replace(path.extname(filePath), '.srt');
             this.logger.info(`[WhisperService] Task ID: ${taskId} - 生成 SRT 文件: ${srtName}`);
-            fs.writeFileSync(srtName, toSrt(context.chunks));
+            fs.writeFileSync(srtName, SrtUtil.whisperChunksToSrt(context.chunks));
 
             // 完成任务，并保存状态
             context.state = 'done';
