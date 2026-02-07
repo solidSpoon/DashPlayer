@@ -50,6 +50,7 @@ src/
 
     application/
       services/               # 业务用例（按领域分组）
+      kernel/                 # 纯内存策略/算法内核（无外部副作用）
       ports/
         repositories/         # 持久化端口接口
         gateways/             # 外部能力端口接口（renderer/settings/media/http）
@@ -102,6 +103,7 @@ src/
 
 - `backend/adapters -> backend/application`
 - `backend/application -> backend/application/ports`
+- `backend/application/services -> backend/application/kernel -> backend/application/ports`
 - `backend/infrastructure -> backend/application/ports`
 - `backend/ioc -> backend/adapters + backend/application + backend/infrastructure`
 - `fronted/application -> common`
@@ -147,6 +149,14 @@ src/
 - 后端内部命令对象：`src/backend/application/contracts/**`
 - ORM 行类型：只在 `src/backend/infrastructure/db/**`
 
+### 5.4 纯策略/算法代码放哪里
+
+以“并发调度内核”为例：
+
+- 策略与状态机（纯内存、可单测）：`src/backend/application/kernel/concurrency/**`
+- 外部采样与系统能力（如 CPU 负载采样、定时器适配）：`src/backend/infrastructure/concurrency/**`
+- 业务用例编排：`src/backend/application/services/**`
+
 ## 6. 命名规范
 
 - Controller：`<Domain>Controller`
@@ -180,6 +190,13 @@ src/
 - Repository：数据持久化细节。
 - Gateway：系统能力和第三方能力适配。
 - 实现层负责“脏活”，application 只感知接口。
+
+### 7.4 Application Kernel（策略内核）
+
+- 承载纯内存、可复用、可测试的策略逻辑（如调度策略、优先级规则、状态机）。
+- 可依赖 `application/ports` 抽象，不可依赖 `infrastructure/**` 实现。
+- 不直接访问 DB、文件系统、Electron API、第三方 SDK。
+- 需要环境数据时通过 ports 输入，保持可替换与可测试。
 
 ## 8. IPC 规范
 
