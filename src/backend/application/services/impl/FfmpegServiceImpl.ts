@@ -1,109 +1,95 @@
-// @/backend/services/impl/FfmpegServiceImpl.ts
-import {inject, injectable, postConstruct} from 'inversify';
-import {WaitLock} from '@/common/utils/Lock';
-import {spawn} from 'child_process';
+import { inject, injectable } from 'inversify';
+import { WaitLock } from '@/common/utils/Lock';
 import path from 'path';
 import fs from 'fs';
-import ffmpeg from 'fluent-ffmpeg';
 import TYPES from '@/backend/ioc/types';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
-import LocationService, {ProgramType} from '@/backend/application/services/LocationService';
-import FfmpegTask from '@/backend/infrastructure/media/ffmpeg/FfmpegTask';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import {VideoInfo} from '@/common/types/video-info';
+import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/application/errors/errors';
-import {FfmpegCommands} from '@/backend/infrastructure/media/ffmpeg/FfmpegCommands';
+import FfmpegGateway from '@/backend/application/ports/gateways/media/FfmpegGateway';
 
+/**
+ * FFmpeg 业务服务实现。
+ */
 @injectable()
 export default class FfmpegServiceImpl implements FfmpegService {
     @inject(TYPES.DpTaskService)
     private dpTaskService!: DpTaskService;
-    @inject(TYPES.LocationService)
-    private locationService!: LocationService;
+
+    @inject(TYPES.FfmpegGateway)
+    private ffmpegGateway!: FfmpegGateway;
+
     private readonly logger = getMainLogger('FfmpegServiceImpl');
 
     /**
-     * 分割视频
+     * 分割视频。
      */
     @WaitLock('ffmpeg')
     public async splitVideo({
                                 inputFile,
                                 startSecond,
                                 endSecond,
-                                outputFile
+                                outputFile,
                             }: {
         inputFile: string,
         startSecond: number,
         endSecond: number,
-        outputFile: string
+        outputFile: string,
     }): Promise<void> {
-        const args = FfmpegCommands.buildSplitVideoArgs(inputFile, startSecond, endSecond, outputFile);
-        await this.executeRawCommand(args);
+        await this.ffmpegGateway.splitVideo({
+            inputFile,
+            startSecond,
+            endSecond,
+            outputFile,
+        });
     }
 
     /**
-     * 按时间点分割视频
+     * 按时间点分割视频。
      */
     @WaitLock('ffmpeg')
     public async splitVideoByTimes({
                                        inputFile,
                                        times,
                                        outputFolder,
-                                       outputFilePrefix
+                                       outputFilePrefix,
                                    }: {
         inputFile: string,
         times: number[],
         outputFolder: string,
-        outputFilePrefix: string
+        outputFilePrefix: string,
     }): Promise<string[]> {
-        const outputFormat = path.join(outputFolder, `${outputFilePrefix}_%03d${path.extname(inputFile)}`);
-        const command = FfmpegCommands.buildSplitVideoByTimes(inputFile, times, outputFormat);
+        const outputPattern = path.join(outputFolder, `${outputFilePrefix}_%03d${path.extname(inputFile)}`);
 
-        await this.executeFluentCommand(command);
+        await this.ffmpegGateway.splitVideoByTimes({
+            inputFile,
+            times,
+            outputPattern,
+        });
+
         return await this.getOutputFiles(outputFolder, outputFilePrefix);
     }
 
     /**
-     * 获取视频时长
+     * 获取视频时长。
      */
     @WaitLock('ffprobe')
     public async duration(filePath: string): Promise<number> {
-        return new Promise<number>((resolve, reject) => {
-            ffmpeg.ffprobe(filePath, (err, metadata) => {
-                if (err) reject(err);
-                else resolve(metadata.format.duration ?? 0);
-            });
-        });
+        return await this.ffmpegGateway.duration(filePath);
     }
 
     /**
-     * 获取视频信息
+     * 获取视频信息。
      */
     @WaitLock('ffprobe')
     public async getVideoInfo(filePath: string): Promise<VideoInfo> {
-        const stats = await fs.promises.stat(filePath);
-        const probeData = await new Promise<any>((resolve, reject) => {
-            ffmpeg.ffprobe(filePath, (err, metadata) => {
-                if (err) reject(err);
-                else resolve(metadata);
-            });
-        });
-
-        return {
-            filename: path.basename(filePath),
-            duration: probeData.format.duration || 0,
-            size: stats.size,
-            modifiedTime: stats.mtimeMs,
-            createdTime: stats.ctimeMs,
-            bitrate: probeData.format.bit_rate ? parseInt(probeData.format.bit_rate) : undefined,
-            videoCodec: probeData.streams.find((s: any) => s.codec_type === 'video')?.codec_name,
-            audioCodec: probeData.streams.find((s: any) => s.codec_type === 'audio')?.codec_name
-        };
+        return await this.ffmpegGateway.getVideoInfo(filePath);
     }
 
     /**
-     * 生成缩略图
+     * 生成缩略图。
      */
     @WaitLock('ffmpeg')
     public async thumbnail({
@@ -112,7 +98,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
                                outputFolder,
                                time,
                                inputDuration,
-                               options = {}
+                               options = {},
                            }: {
         inputFile: string,
         outputFileName: string,
@@ -123,21 +109,42 @@ export default class FfmpegServiceImpl implements FfmpegService {
             quality?: 'low' | 'medium' | 'high' | 'ultra';
             width?: number;
             format?: 'jpg' | 'png';
-        }
+        },
     }): Promise<void> {
-        const totalDuration = typeof inputDuration === 'number' ? inputDuration : await this.duration(inputFile);
+        const totalDuration = Number.isFinite(inputDuration) ? Number(inputDuration) : await this.duration(inputFile);
         const actualTime = Math.min(time, totalDuration);
 
         if (!fs.existsSync(outputFolder)) {
-            fs.mkdirSync(outputFolder, {recursive: true});
+            fs.mkdirSync(outputFolder, { recursive: true });
         }
 
-        const command = FfmpegCommands.buildThumbnail(inputFile, outputFolder, outputFileName, actualTime, options);
-        await this.executeFluentCommand(command);
+        const outputFile = path.join(outputFolder, outputFileName);
+        const qualitySettings: Record<'low' | 'medium' | 'high' | 'ultra', { width: number; jpgQScale: number }> = {
+            low: { width: 320, jpgQScale: 6 },
+            medium: { width: 640, jpgQScale: 4 },
+            high: { width: 1280, jpgQScale: 3 },
+            ultra: { width: 1920, jpgQScale: 2 },
+        };
+        const quality = options.quality ?? 'medium';
+        const preset = qualitySettings[quality];
+
+        await this.ffmpegGateway.createThumbnail(
+            {
+                inputFile,
+                outputFile,
+                timeSecond: actualTime,
+                width: options.width ?? preset.width,
+                format: options.format ?? 'jpg',
+                jpgQScale: preset.jpgQScale,
+            },
+            {
+                inputDurationSecond: totalDuration,
+            },
+        );
     }
 
     /**
-     * 分割为音频文件
+     * 分割为音频文件。
      */
     @WaitLock('ffmpeg')
     public async splitToAudio({
@@ -145,65 +152,102 @@ export default class FfmpegServiceImpl implements FfmpegService {
                                   inputFile,
                                   outputFolder,
                                   segmentTime,
-                                  onProgress
+                                  onProgress,
                               }: {
         taskId?: number,
         inputFile: string,
         outputFolder: string,
         segmentTime: number,
-        onProgress?: (percent: number) => void
+        onProgress?: (percent: number) => void,
     }): Promise<string[]> {
-        const outputFormat = path.join(outputFolder, 'output_%03d.mp3');
-        const command = FfmpegCommands.buildSplitToAudio(inputFile, segmentTime, outputFormat);
-        await this.executeFluentCommand(command, {
-            taskId: taskId,
-            onProgress: onProgress ? onProgress : undefined
-        });
+        const outputPattern = path.join(outputFolder, 'output_%03d.mp3');
+        const inputDurationSecond = await this.duration(inputFile);
+
+        await this.runCancelableTask(
+            taskId,
+            {
+                inputDurationSecond,
+                onProgress,
+            },
+            async (onCancelable) => {
+                await this.ffmpegGateway.splitAudio(
+                    {
+                        inputFile,
+                        segmentSecond: segmentTime,
+                        outputPattern,
+                    },
+                    {
+                        inputDurationSecond,
+                        onProgress,
+                        onCancelable,
+                    },
+                );
+            },
+        );
+
         return await this.getOutputFiles(outputFolder, 'output_', '.mp3');
     }
 
     /**
-     * 转换为 MP4
+     * 转换为 MP4。
      */
     @WaitLock('ffmpeg')
     public async toMp4({
                            inputFile,
-                           onProgress
+                           onProgress,
                        }: {
         inputFile: string,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
     }): Promise<string> {
         const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
-        const command = FfmpegCommands.buildToMp4(inputFile, outputFile);
+        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.executeFluentCommand(command, {onProgress});
+        await this.ffmpegGateway.toMp4(inputFile, outputFile, {
+            onProgress,
+            inputDurationSecond,
+        });
+
         return outputFile;
     }
 
     /**
-     * MKV 转 MP4
+     * MKV 转 MP4。
      */
     @WaitLock('ffmpeg')
     public async mkvToMp4({
                               taskId,
                               inputFile,
                               outputFile,
-                              onProgress
+                              onProgress,
                           }: {
         taskId: number,
         inputFile: string,
         outputFile?: string,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
     }): Promise<string> {
         const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.mp4');
-        const command = FfmpegCommands.buildMkvToMp4(inputFile, finalOutputFile);
+        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.executeFluentCommand(command, {taskId, onProgress});
+        await this.runCancelableTask(
+            taskId,
+            {
+                inputDurationSecond,
+                onProgress,
+            },
+            async (onCancelable) => {
+                await this.ffmpegGateway.mkvToMp4(inputFile, finalOutputFile, {
+                    inputDurationSecond,
+                    onProgress,
+                    onCancelable,
+                });
+            },
+        );
+
         return finalOutputFile;
     }
 
     /**
-     * 提取字幕
+     * 提取字幕。
      */
     @WaitLock('ffmpeg')
     public async extractSubtitles({
@@ -211,214 +255,109 @@ export default class FfmpegServiceImpl implements FfmpegService {
                                       inputFile,
                                       outputFile,
                                       onProgress,
-                                      en
+                                      en,
                                   }: {
         taskId: number,
         inputFile: string,
         outputFile?: string,
         onProgress?: (progress: number) => void,
-        en: boolean
+        en: boolean,
     }): Promise<string> {
         const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.srt');
-        const command = FfmpegCommands.buildExtractSubtitles(inputFile, finalOutputFile, en);
+        const mapRule = en ? '0:s:m:language:eng?' : '0:s:0?';
 
-        await this.executeFluentCommand(command, {taskId, onProgress});
+        await this.runCancelableTask(
+            taskId,
+            { onProgress },
+            async (onCancelable) => {
+                await this.ffmpegGateway.extractSubtitles(
+                    {
+                        inputFile,
+                        outputFile: finalOutputFile,
+                        mapRule,
+                    },
+                    {
+                        onProgress,
+                        onCancelable,
+                    },
+                );
+            },
+        );
+
         return finalOutputFile;
     }
 
     /**
-     * 裁剪视频
+     * 裁剪视频。
      */
     @WaitLock('ffmpeg')
     public async trimVideo(
         inputPath: string,
         startTime: number,
         endTime: number,
-        outputPath: string
+        outputPath: string,
     ): Promise<void> {
-        const command = FfmpegCommands.buildTrimVideo(inputPath, startTime, endTime, outputPath);
-        await this.executeFluentCommand(command);
+        await this.ffmpegGateway.trimVideo({
+            inputFile: inputPath,
+            outputFile: outputPath,
+            startSecond: startTime,
+            endSecond: endTime,
+            videoCodec: 'libx265',
+            audioCodec: 'aac',
+            outputWidth: 640,
+            crf: 28,
+            audioChannels: 1,
+            audioBitrate: '64k',
+        });
     }
 
     /**
-     * 转换音频文件为 WAV 格式 (强制 16kHz, 单声道, 16-bit PCM)
+     * 转换音频文件为 WAV 格式（强制 16kHz、单声道、16-bit PCM）。
      */
     @WaitLock('ffmpeg')
     public async convertToWav(inputPath: string, outputPath: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const command = ffmpeg(inputPath);
-            const getStderrLines = this.attachFfmpegStderr(command, { maxLines: 120 });
-
-            command
-                .audioChannels(1)        // 强制单声道
-                .audioFrequency(16000)   // 强制采样率 16kHz
-                .audioCodec('pcm_s16le') // 强制 16-bit PCM (小端序)
-                .audioBitrate('128k')    // 音频比特率
-                .on('start', (commandLine) => {
-                    this.logger.info('Converting audio to WAV (16kHz, mono, 16-bit PCM):', commandLine);
-                })
-                .on('progress', (progress) => {
-                    if (progress.percent) {
-                        this.logger.info(`Audio conversion progress: ${Math.floor(progress.percent)}%`);
-                    }
-                })
-                .on('end', () => {
-                    this.logger.info('Audio conversion to WAV completed successfully');
-                    resolve();
-                })
-                .on('error', (error) => {
-                    const enhanced = this.enhanceFfmpegError(error, getStderrLines());
-                    this.logger.error('Audio conversion to WAV failed:', enhanced);
-                    reject(this.processError(enhanced));
-                })
-                .save(outputPath);
+        await this.ffmpegGateway.convertToWav({
+            inputFile: inputPath,
+            outputFile: outputPath,
+            sampleRate: 16000,
+            channels: 1,
         });
     }
 
     /**
-     * 统一的 fluent-ffmpeg 执行方法
-     */
-    private async executeFluentCommand(
-        command: ffmpeg.FfmpegCommand,
-        options: {
-            taskId?: number,
-            onProgress?: (progress: number) => void
-        } = {}
-    ): Promise<void> {
-        const {taskId, onProgress} = options;
-
-        return new Promise<void>((resolve, reject) => {
-            const getStderrLines = this.attachFfmpegStderr(command, { maxLines: 120 });
-            if (taskId) {
-                this.dpTaskService.registerTask(taskId, new FfmpegTask(command));
-            }
-
-            command
-                .on('start', (commandLine) => {
-                    this.logger.info('Spawned Ffmpeg with command:', commandLine);
-                })
-                .on('progress', (progress) => {
-                    if (progress.percent && onProgress) {
-                        onProgress(Math.floor(Math.max(progress.percent, 0)));
-                    }
-                })
-                .on('end', () => {
-                    this.logger.info('Ffmpeg command completed successfully');
-                    resolve();
-                })
-                .on('error', (error) => {
-                    const enhanced = this.enhanceFfmpegError(error, getStderrLines());
-                    this.logger.error('An error occurred while executing ffmpeg command:', enhanced);
-                    reject(this.processError(enhanced));
-                })
-                .run();
-        });
-    }
-
-    /**
-     * 统一的原生命令执行方法
-     */
-    private async executeRawCommand(args: string[]): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const ff = spawn(this.locationService.getThirdLibPath(ProgramType.FFMPEG), args);
-            const stderrLines: string[] = [];
-            ff.stderr?.on('data', (chunk: Buffer | string) => {
-                const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
-                for (const line of text.split(/\r?\n/).filter(Boolean)) {
-                    stderrLines.push(line);
-                    if (stderrLines.length > 120) stderrLines.shift();
-                }
-            });
-            ff.on('close', (code) => {
-                this.logger.info(`child process exited with code ${code}`);
-                if (code === 0) {
-                    resolve();
-                } else {
-                    const suffix = stderrLines.length ? `\nFFmpeg stderr:\n${stderrLines.join('\n')}` : '';
-                    reject(new Error(`FFmpeg process exited with code ${code}${suffix}`));
-                }
-            });
-            ff.on('error', (error) => {
-                this.logger.error('An error occurred while executing ffmpeg command:', error);
-                reject(error);
-            });
-        });
-    }
-
-    /**
-     * 统一的错误处理
-     */
-    private processError(error: Error): Error {
-        if (error.message === 'ffmpeg was killed with signal SIGKILL') {
-            return new CancelByUserError();
-        }
-        return error;
-    }
-
-    private attachFfmpegStderr(
-        command: ffmpeg.FfmpegCommand,
-        options: { maxLines?: number } = {}
-    ): () => string[] {
-        const maxLines = options.maxLines ?? 120;
-        const lines: string[] = [];
-
-        command.on('stderr', (stderrLine: string) => {
-            if (!stderrLine) return;
-            lines.push(stderrLine);
-            if (lines.length > maxLines) lines.shift();
-        });
-
-        return () => lines.slice();
-    }
-
-    private enhanceFfmpegError(error: Error, stderrLines: string[]): Error {
-        if (!stderrLines.length) return error;
-        const enhanced = new Error(`${error.message}\nFFmpeg stderr:\n${stderrLines.join('\n')}`);
-        enhanced.stack = error.stack;
-        return enhanced;
-    }
-
-    /**
-     * NEW: 裁剪音频（按时间，转码为 mp3 以保证兼容）
+     * 裁剪音频（按时间，转码为 MP3 以保证兼容）。
      */
     @WaitLock('ffmpeg')
     public async trimAudio(
         inputPath: string,
         startTime: number,
         endTime: number,
-        outputPath: string
+        outputPath: string,
     ): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const duration = Math.max(endTime - startTime, 0);
-            if (duration <= 0) return resolve();
-            const command = ffmpeg(inputPath);
-            const getStderrLines = this.attachFfmpegStderr(command, { maxLines: 120 });
+        const duration = endTime - startTime;
+        if (!Number.isFinite(duration) || duration <= 0) {
+            return;
+        }
 
-            command
-                .setStartTime(startTime)
-                .duration(duration)
-                .audioCodec('libmp3lame')
-                .audioBitrate('192k')
-                .on('start', (cmd) => this.logger.info('Trim audio start:', cmd))
-                .on('end', () => resolve())
-                .on('error', (error) => {
-                    const enhanced = this.enhanceFfmpegError(error, getStderrLines());
-                    this.logger.error('Trim audio failed:', enhanced);
-                    reject(this.processError(enhanced));
-                })
-                .save(outputPath);
+        await this.ffmpegGateway.trimAudio({
+            inputFile: inputPath,
+            outputFile: outputPath,
+            startSecond: startTime,
+            endSecond: endTime,
+            audioCodec: 'libmp3lame',
+            audioBitrate: '192k',
         });
     }
 
     /**
-     * NEW: 基于时间线批量切段音频
+     * 基于时间线批量切段音频。
      */
     @WaitLock('ffmpeg')
     public async splitAudioByTimeline(args: {
         inputFile: string,
         ranges: Array<{ start: number, end: number }>,
         outputFolder: string,
-        outputFilePrefix?: string
+        outputFilePrefix?: string,
     }): Promise<string[]> {
         const { inputFile, ranges } = args;
         const prefix = args.outputFilePrefix ?? 'segment_';
@@ -428,17 +367,75 @@ export default class FfmpegServiceImpl implements FfmpegService {
         }
 
         const outputs: string[] = [];
-        for (let i = 0; i < ranges.length; i++) {
-            const { start, end } = ranges[i];
-            const out = path.join(args.outputFolder, `${prefix}${String(i + 1).padStart(3, '0')}.mp3`);
-            await this.trimAudio(inputFile, start, end, out);
-            outputs.push(out);
+        for (let index = 0; index < ranges.length; index++) {
+            const range = ranges[index];
+            const outputPath = path.join(args.outputFolder, `${prefix}${String(index + 1).padStart(3, '0')}.mp3`);
+            await this.trimAudio(inputFile, range.start, range.end, outputPath);
+            outputs.push(outputPath);
         }
+
         return outputs;
     }
 
     /**
-     * 获取输出文件列表
+     * 执行支持取消的任务，并统一处理取消异常。
+     */
+    private async runCancelableTask(
+        taskId: number | undefined,
+        context: {
+            inputDurationSecond?: number;
+            onProgress?: (progress: number) => void;
+        },
+        runner: (onCancelable: (cancel: () => void) => void) => Promise<void>,
+    ): Promise<void> {
+        let cancelledByUser = false;
+        let hasCancelable = false;
+
+        const onCancelable = (cancel: () => void): void => {
+            hasCancelable = true;
+            if (!taskId) return;
+            this.dpTaskService.registerTask(taskId, {
+                cancel(): void {
+                    cancelledByUser = true;
+                    cancel();
+                },
+            });
+        };
+
+        try {
+            await runner(onCancelable);
+            return;
+        } catch (error) {
+            const normalized = error instanceof Error ? error : new Error(String(error));
+            this.logger.error('An error occurred while executing ffmpeg command:', {
+                error: normalized,
+                context,
+            });
+            throw this.processError(normalized, cancelledByUser);
+        } finally {
+            if (taskId && !hasCancelable) {
+                this.logger.debug('ffmpeg task finished without cancel handle', { taskId });
+            }
+        }
+    }
+
+    /**
+     * 统一错误处理。
+     */
+    private processError(error: Error, cancelledByUser = false): Error {
+        if (cancelledByUser) {
+            return new CancelByUserError();
+        }
+
+        if (/SIGKILL|SIGTERM|killed/i.test(error.message)) {
+            return new CancelByUserError();
+        }
+
+        return error;
+    }
+
+    /**
+     * 获取输出文件列表。
      */
     private async getOutputFiles(outputFolder: string, prefix: string, ext?: string): Promise<string[]> {
         const files = await fs.promises.readdir(outputFolder);
@@ -446,11 +443,5 @@ export default class FfmpegServiceImpl implements FfmpegService {
             .filter(file => file.startsWith(prefix) && (ext ? file.endsWith(ext) : true))
             .sort()
             .map(file => path.join(outputFolder, file));
-    }
-
-    @postConstruct()
-    private init() {
-        ffmpeg.setFfmpegPath(this.locationService.getThirdLibPath(ProgramType.FFMPEG));
-        ffmpeg.setFfprobePath(this.locationService.getThirdLibPath(ProgramType.FFPROBE));
     }
 }

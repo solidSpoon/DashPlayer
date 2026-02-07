@@ -17,6 +17,7 @@ const TYPES = {
     DpTaskService: Symbol('DpTaskService'),
     ChatService: Symbol('ChatService'),
     ChatSessionService: Symbol('ChatSessionService'),
+    FfmpegGateway: Symbol('FfmpegGateway'),
     FfmpegService: Symbol('FfmpegService'),
     SplitVideoService: Symbol('SplitVideoService'),
     WhisperService: Symbol('WhisperService'),
