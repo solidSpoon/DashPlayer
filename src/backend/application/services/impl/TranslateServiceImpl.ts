@@ -35,29 +35,41 @@ import { RendererTranslationItem, TranslationMode } from '@/common/types/Transla
 
 const openAIDictionaryExampleSchema = z.object({
     sentence: z.string().describe('Example sentence in English'),
-    translation: z.string().optional().describe('Translation of the example sentence in Simplified Chinese'),
-    explanation: z.string().optional().describe('Usage notes or explanation in Simplified Chinese')
+    translation: z.string().describe('Translation of the example sentence in Simplified Chinese')
 });
 
 const openAIDictionaryDefinitionSchema = z.object({
-    partOfSpeech: z.string().optional().describe('Part of speech, e.g. noun, verb, adjective'),
-    meaning: z.string().optional().describe('Meaning or translation in Simplified Chinese'),
-    explanation: z.string().optional().describe('Additional clarification in Simplified Chinese'),
-    translationNote: z.string().optional().describe('Extra translation notes or nuances in Simplified Chinese'),
-    synonyms: z.array(z.string()).optional().describe('Synonyms in English'),
-    antonyms: z.array(z.string()).optional().describe('Antonyms in English'),
-    relatedPhrases: z.array(z.string()).optional().describe('Common related phrases or collocations'),
-    examples: z.array(openAIDictionaryExampleSchema).optional().describe('Examples illustrating this specific meaning')
+    partOfSpeech: z.string().describe('Part of speech, e.g. noun, verb, adjective; empty string when unavailable'),
+    meaning: z.string().describe('Meaning or translation in Simplified Chinese'),
+    examples: z.array(openAIDictionaryExampleSchema).describe('Examples illustrating this specific meaning')
 });
 
 const openAIDictionaryResultSchema = z.object({
     word: z.string().describe('The input word'),
-    phonetic: z.string().optional().describe('International phonetic alphabet pronunciation'),
-    ukPhonetic: z.string().optional().describe('UK pronunciation in IPA'),
-    usPhonetic: z.string().optional().describe('US pronunciation in IPA'),
-    definitions: z.array(openAIDictionaryDefinitionSchema).optional().describe('Array of structured definitions'),
-    examples: z.array(openAIDictionaryExampleSchema).optional().describe('General example sentences with translations'),
-    pronunciation: z.string().optional().describe('Pronunciation audio URL if available')
+    phonetic: z.string().describe('International phonetic alphabet pronunciation; empty string when unavailable'),
+    definitions: z.array(openAIDictionaryDefinitionSchema).describe('Array of structured definitions'),
+});
+
+const openAIDictionaryCacheExampleSchema = z.object({
+    sentence: z.string().describe('Example sentence in English'),
+    translation: z.string().optional().describe('Translation of the example sentence in Simplified Chinese'),
+    explanation: z.string().optional().describe('Usage notes or explanation in Simplified Chinese')
+});
+
+const openAIDictionaryCacheDefinitionSchema = z.object({
+    partOfSpeech: z.string().optional().describe('Part of speech, e.g. noun, verb, adjective'),
+    meaning: z.string().optional().describe('Meaning or translation in Simplified Chinese'),
+    examples: z.array(openAIDictionaryCacheExampleSchema).optional().describe('Examples illustrating this specific meaning')
+});
+
+const openAIDictionaryCacheSchema = z.object({
+    word: z.string().describe('The input word'),
+    phonetic: z.string().optional().nullable().describe('International phonetic alphabet pronunciation'),
+    ukPhonetic: z.string().optional().nullable().describe('UK pronunciation in IPA'),
+    usPhonetic: z.string().optional().nullable().describe('US pronunciation in IPA'),
+    definitions: z.array(openAIDictionaryCacheDefinitionSchema).optional().describe('Array of structured definitions'),
+    examples: z.array(openAIDictionaryCacheExampleSchema).optional().describe('General example sentences with translations'),
+    pronunciation: z.string().optional().nullable().describe('Pronunciation audio URL if available')
 });
 
 type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}`;
@@ -150,25 +162,12 @@ const sanitizePhonetic = (value?: unknown): string | undefined => {
     return core.length > 0 ? core : undefined;
 };
 
-const sanitizeStringArray = (value?: unknown): string[] | undefined => {
+/**
+ * 清洗例句数组并补齐必填字段；非法项会被过滤。
+ */
+const sanitizeExamples = (value?: unknown): OpenAIDictionaryExample[] => {
     if (!Array.isArray(value)) {
-        return undefined;
-    }
-    const uniqueValues = new Set<string>();
-    value.forEach((item) => {
-        if (typeof item === 'string') {
-            const trimmed = item.trim();
-            if (trimmed) {
-                uniqueValues.add(trimmed);
-            }
-        }
-    });
-    return uniqueValues.size > 0 ? Array.from(uniqueValues) : undefined;
-};
-
-const sanitizeExamples = (value?: unknown): OpenAIDictionaryExample[] | undefined => {
-    if (!Array.isArray(value)) {
-        return undefined;
+        return [];
     }
 
     const normalized: OpenAIDictionaryExample[] = value
@@ -181,23 +180,16 @@ const sanitizeExamples = (value?: unknown): OpenAIDictionaryExample[] | undefine
             if (!sentence) {
                 return null;
             }
-            const translation = sanitizeString(record.translation);
-            const explanation = sanitizeString(record.explanation);
-
-            const normalizedExample: OpenAIDictionaryExample = { sentence };
-            if (translation) {
-                normalizedExample.translation = translation;
-            }
-            if (explanation) {
-                normalizedExample.explanation = explanation;
-            }
-            return normalizedExample;
+            const translation = sanitizeString(record.translation) ?? '';
+            return { sentence, translation };
         })
         .filter((example): example is OpenAIDictionaryExample => example !== null);
-
-    return normalized.length > 0 ? normalized : undefined;
+    return normalized;
 };
 
+/**
+ * 清洗释义数组并补齐必填字段；无效释义会被过滤。
+ */
 const sanitizeDefinitions = (value?: unknown): OpenAIDictionaryDefinition[] => {
     if (!Array.isArray(value)) {
         return [];
@@ -215,58 +207,24 @@ const sanitizeDefinitions = (value?: unknown): OpenAIDictionaryDefinition[] => {
                 return null;
             }
 
-            const normalizedDefinition: OpenAIDictionaryDefinition = { meaning };
-
-            const partOfSpeech = sanitizeString(record.partOfSpeech);
-            if (partOfSpeech) {
-                normalizedDefinition.partOfSpeech = partOfSpeech;
-            }
-
-            const explanation = sanitizeString(record.explanation);
-            if (explanation) {
-                normalizedDefinition.explanation = explanation;
-            }
-
-            const translationNote = sanitizeString(record.translationNote);
-            if (translationNote) {
-                normalizedDefinition.translationNote = translationNote;
-            }
-
-            const synonyms = sanitizeStringArray(record.synonyms);
-            if (synonyms) {
-                normalizedDefinition.synonyms = synonyms;
-            }
-
-            const antonyms = sanitizeStringArray(record.antonyms);
-            if (antonyms) {
-                normalizedDefinition.antonyms = antonyms;
-            }
-
-            const relatedPhrases = sanitizeStringArray(record.relatedPhrases);
-            if (relatedPhrases) {
-                normalizedDefinition.relatedPhrases = relatedPhrases;
-            }
-
-            const examples = sanitizeExamples(record.examples);
-            if (examples) {
-                normalizedDefinition.examples = examples;
-            }
-
-            return normalizedDefinition;
+            return {
+                partOfSpeech: sanitizeString(record.partOfSpeech) ?? '',
+                meaning,
+                examples: sanitizeExamples(record.examples)
+            };
         })
         .filter((definition): definition is OpenAIDictionaryDefinition => definition !== null);
 };
 
-type OpenAIDictionaryResultLike = z.infer<typeof openAIDictionaryResultSchema> | OpenAIDictionaryResult;
+type OpenAIDictionaryResultLike = z.infer<typeof openAIDictionaryCacheSchema> | OpenAIDictionaryResult;
 
+/**
+ * 将 OpenAI 原始/缓存字典结果归一化为前端约定的简化必填结构。
+ */
 const sanitizeDictionaryResult = (value: OpenAIDictionaryResultLike): OpenAIDictionaryResult => ({
     word: sanitizeString(value.word) ?? '',
-    phonetic: sanitizePhonetic(value.phonetic),
-    ukPhonetic: sanitizePhonetic(value.ukPhonetic),
-    usPhonetic: sanitizePhonetic(value.usPhonetic),
+    phonetic: sanitizePhonetic(value.phonetic) ?? sanitizePhonetic(value.ukPhonetic) ?? sanitizePhonetic(value.usPhonetic) ?? '',
     definitions: sanitizeDefinitions(value.definitions),
-    examples: sanitizeExamples(value.examples),
-    pronunciation: sanitizeString(value.pronunciation)
 });
 
 const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
@@ -750,6 +708,12 @@ export default class TranslateServiceImpl implements TranslateService {
         return null;
     }
 
+    /**
+     * 使用 OpenAI 生成简化单词卡并在需要时推送流式更新。
+     * @param word 查询单词。
+     * @param requestId 渲染层流式请求 id；为空时仅返回最终结果。
+     * @returns 生成成功返回简化词典结果；无有效释义或异常时返回 null。
+     */
     private async translateWordWithOpenAI(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
         const streamId = requestId ?? `openai-dict-${Date.now()}-${word}`;
         const streamLogger = this.logger;
@@ -761,14 +725,15 @@ export default class TranslateServiceImpl implements TranslateService {
                 return null;
             }
 
-            const prompt = `You are a professional English-Chinese dictionary. Provide thorough, structured dictionary information for the word "${word}".
+            const prompt = `You are a professional English-Chinese dictionary. Provide concise, structured dictionary information for the word "${word}".
 
 Requirements:
-1. Always respond in Simplified Chinese where appropriate (meanings, explanations, translations).
-2. Provide phonetic transcription (IPA) and UK/US variations if they differ.
-3. For each sense, include part of speech (if known), concise meaning (Simplified Chinese), optional explanation, helpful translation notes, and any useful synonyms/antonyms/related phrases (in English).
-4. Attach up to 2 short example sentences for each sense. Each example must include the original English sentence AND a natural Simplified Chinese translation. Add a brief Chinese explanation if helpful.
-5. Optionally provide up to 2 additional overall usage examples with translations if they add value.
+1. Use this exact compact shape only: { word, phonetic, definitions }.
+2. Every field is required; do not omit any field.
+3. definitions item shape: { partOfSpeech, meaning, examples }.
+4. examples item shape: { sentence, translation }.
+5. If unavailable, use empty string for text fields and empty array for list fields.
+6. Keep output concise and practical for a word popup.
 
 Ensure the response strictly matches the provided JSON schema.`;
 
@@ -780,6 +745,7 @@ Ensure the response strictly matches the provided JSON schema.`;
 
             const aggregated: OpenAIDictionaryResult = {
                 word: sanitizeString(word) ?? word,
+                phonetic: '',
                 definitions: []
             };
             let hasStreamed = false;
@@ -802,31 +768,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                 if (partialObject.phonetic !== undefined) {
                     const sanitizedPhoneticValue = sanitizePhonetic(partialObject.phonetic);
                     if (sanitizedPhoneticValue !== aggregated.phonetic) {
-                        aggregated.phonetic = sanitizedPhoneticValue;
-                        changed = true;
-                    }
-                }
-
-                if (partialObject.ukPhonetic !== undefined) {
-                    const sanitizedUkPhonetic = sanitizePhonetic(partialObject.ukPhonetic);
-                    if (sanitizedUkPhonetic !== aggregated.ukPhonetic) {
-                        aggregated.ukPhonetic = sanitizedUkPhonetic;
-                        changed = true;
-                    }
-                }
-
-                if (partialObject.usPhonetic !== undefined) {
-                    const sanitizedUsPhonetic = sanitizePhonetic(partialObject.usPhonetic);
-                    if (sanitizedUsPhonetic !== aggregated.usPhonetic) {
-                        aggregated.usPhonetic = sanitizedUsPhonetic;
-                        changed = true;
-                    }
-                }
-
-                if (partialObject.pronunciation !== undefined) {
-                    const sanitizedPronunciation = sanitizeString(partialObject.pronunciation);
-                    if (sanitizedPronunciation !== aggregated.pronunciation) {
-                        aggregated.pronunciation = sanitizedPronunciation;
+                        aggregated.phonetic = sanitizedPhoneticValue ?? '';
                         changed = true;
                     }
                 }
@@ -835,14 +777,6 @@ Ensure the response strictly matches the provided JSON schema.`;
                     const sanitizedDefinitions = sanitizeDefinitions(partialObject.definitions);
                     if (!deepEqual(sanitizedDefinitions, aggregated.definitions)) {
                         aggregated.definitions = sanitizedDefinitions;
-                        changed = true;
-                    }
-                }
-
-                if (partialObject.examples !== undefined) {
-                    const sanitizedExamples = sanitizeExamples(partialObject.examples);
-                    if (!deepEqual(sanitizedExamples, aggregated.examples)) {
-                        aggregated.examples = sanitizedExamples;
                         changed = true;
                     }
                 }
@@ -875,7 +809,7 @@ Ensure the response strictly matches the provided JSON schema.`;
                     await this.emitOpenAIDictionaryUpdate(
                         streamId,
                         sanitizeString(word) ?? word,
-                        { word: sanitizeString(word) ?? word, definitions: [] },
+                        { word: sanitizeString(word) ?? word, phonetic: '', definitions: [] },
                         true
                     );
                 } catch (emitError) {
@@ -886,40 +820,37 @@ Ensure the response strictly matches the provided JSON schema.`;
         }
     }
 
+    /**
+     * 将简化词典结果推送到渲染层，供弹窗实时刷新。
+     * @param requestId 当前流式请求 id。
+     * @param word 查询单词。
+     * @param data 已归一化的词典数据。
+     * @param isComplete 是否已完成本次流式推送。
+     */
     private async emitOpenAIDictionaryUpdate(
         requestId: string,
         word: string,
         data: OpenAIDictionaryResult,
         isComplete: boolean
     ): Promise<void> {
-        const cloneExamples = (examples?: OpenAIDictionaryExample[]): OpenAIDictionaryExample[] | undefined => {
-            if (!examples) {
-                return undefined;
-            }
+        /**
+         * 深拷贝例句数组，避免渲染层误改后端持有对象。
+         */
+        const cloneExamples = (examples: OpenAIDictionaryExample[]): OpenAIDictionaryExample[] => {
             return examples.map(example => ({
                 sentence: example.sentence,
-                translation: example.translation,
-                explanation: example.explanation
+                translation: example.translation
             }));
         };
 
         const payload: OpenAIDictionaryResult = {
             word: data.word,
             phonetic: data.phonetic,
-            ukPhonetic: data.ukPhonetic,
-            usPhonetic: data.usPhonetic,
             definitions: data.definitions.map(def => ({
                 partOfSpeech: def.partOfSpeech,
                 meaning: def.meaning,
-                explanation: def.explanation,
-                translationNote: def.translationNote,
-                synonyms: def.synonyms ? [...def.synonyms] : undefined,
-                antonyms: def.antonyms ? [...def.antonyms] : undefined,
-                relatedPhrases: def.relatedPhrases ? [...def.relatedPhrases] : undefined,
                 examples: cloneExamples(def.examples)
-            })),
-            examples: cloneExamples(data.examples),
-            pronunciation: data.pronunciation
+            }))
         };
 
         try {
@@ -1071,7 +1002,7 @@ Ensure the response strictly matches the provided JSON schema.`;
         try {
             const parsed = JSON.parse(trans ?? '');
             if (provider === 'openai') {
-                const parsedResult = openAIDictionaryResultSchema.safeParse(parsed);
+                const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
                 if (!parsedResult.success) {
                     this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
                         word,

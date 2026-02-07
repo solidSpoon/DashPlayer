@@ -4,7 +4,10 @@ import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Playable from '@/fronted/components/shared/common/Playable';
 import { cn } from '@/fronted/lib/utils';
 
-const formatPhonetic = (value?: string) => {
+/**
+ * 统一音标显示格式，自动补齐首尾斜杠。
+ */
+const formatPhonetic = (value: string) => {
     if (!value) {
         return null;
     }
@@ -25,8 +28,7 @@ interface OpenAIWordPopProps {
 
 const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, isStreaming = false, onRefresh, className }) => {
     const hasDefinitions = !!data && Array.isArray(data.definitions) && data.definitions.length > 0;
-    const hasExamples = !!data && Array.isArray(data.examples) && data.examples.length > 0;
-    const hasContent = !!data && (Boolean(data.word) || hasDefinitions || hasExamples);
+    const hasContent = !!data && (Boolean(data.word) || hasDefinitions);
 
     const renderSkeleton = () => (
         <div className="p-4 h-full overflow-y-auto scrollbar-none space-y-3">
@@ -67,11 +69,8 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
         }
 
         const phonetic = formatPhonetic(data.phonetic);
-        const ukPhonetic = formatPhonetic(data.ukPhonetic);
-        const usPhonetic = formatPhonetic(data.usPhonetic);
-
-        const renderDefinitionExamples = (examples?: OpenAIDictionaryResult['definitions'][number]['examples']) => {
-            if (!examples || examples.length === 0) {
+        const renderDefinitionExamples = (examples: OpenAIDictionaryResult['definitions'][number]['examples']) => {
+            if (examples.length === 0) {
                 return null;
             }
 
@@ -85,52 +84,11 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                             <div className="text-xs text-gray-800">
                                 <Playable>{example.sentence}</Playable>
                             </div>
-                        {example.translation && (
                             <div className="text-xs text-gray-600">
                                 {example.translation}
                             </div>
-                        )}
-                            {example.explanation && (
-                                <div className="text-xs text-gray-500">
-                                    {example.explanation}
-                                </div>
-                            )}
                         </div>
                     ))}
-                </div>
-            );
-        };
-
-        const renderGlobalExamples = () => {
-            if (!hasExamples || !data.examples) {
-                return null;
-            }
-
-            return (
-                <div>
-                    <h4 className="text-sm font-medium text-gray-600 mb-2">更多例句</h4>
-                    <div className="space-y-2">
-                        {data.examples.map((example, index) => (
-                            <div
-                                key={`global-example-${index}-${example.sentence}`}
-                                className="rounded-md border border-gray-200 px-3 py-2 space-y-1 bg-white/70"
-                            >
-                                <div className="text-xs text-gray-800">
-                                    <Playable>{example.sentence}</Playable>
-                                </div>
-                                {example.translation && (
-                                    <div className="text-xs text-gray-600">
-                                        {example.translation}
-                                    </div>
-                                )}
-                                {example.explanation && (
-                                    <div className="text-xs text-gray-500">
-                                        {example.explanation}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
                 </div>
             );
         };
@@ -143,11 +101,9 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                         <h3 className="text-lg font-semibold text-gray-800">
                             <Playable>{data.word}</Playable>
                         </h3>
-                        {(phonetic || ukPhonetic || usPhonetic) && (
+                        {phonetic && (
                             <div className="text-sm text-gray-500 mt-1 space-x-3 select-text">
-                                {phonetic && <span>{phonetic}</span>}
-                                {ukPhonetic && <span>UK: {ukPhonetic}</span>}
-                                {usPhonetic && <span>US: {usPhonetic}</span>}
+                                <span>{phonetic}</span>
                             </div>
                         )}
                         {isStreaming && (
@@ -164,7 +120,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                             <span>
                                 {data.definitions
                                     .slice(0, 3)
-                                    .map((definition, index) => {
+                                    .map((definition) => {
                                         const prefix = definition.partOfSpeech ? `${definition.partOfSpeech}. ` : '';
                                         return `${prefix}${definition.meaning}`;
                                     })
@@ -193,22 +149,6 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                                             <span className="leading-relaxed">{definition.meaning}</span>
                                         </div>
 
-                                        {definition.explanation && (
-                                            <div className="text-xs text-gray-500">
-                                                {definition.explanation}
-                                            </div>
-                                        )}
-                                        {definition.translationNote && (
-                                            <div className="text-xs text-amber-600">
-                                                译注：{definition.translationNote}
-                                            </div>
-                                        )}
-                                        {definition.relatedPhrases && definition.relatedPhrases.length > 0 && (
-                                            <div className="text-xs text-purple-600">
-                                                搭配：{definition.relatedPhrases.join('、')}
-                                            </div>
-                                        )}
-
                                         {renderDefinitionExamples(definition.examples)}
                                     </div>
                                 ))
@@ -219,9 +159,6 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                             )}
                         </div>
                     </div>
-
-                    {/* 额外例句 */}
-                    {renderGlobalExamples()}
                 </div>
             </div>
         );
