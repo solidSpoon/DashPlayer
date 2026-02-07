@@ -1,0 +1,7 @@
+{
+    "updateAvailableTitle": "发现新版本 {{version}}",
+    "updateAvailableAction": "查看详情",
+    "audioCompatibilityTitle": "部分视频在播放器中可能没有声音",
+    "audioCompatibilityDescription": "若遇到无声或无法播放，建议先生成“兼容播放版本”，再继续学习流程。",
+    "audioCompatibilityAction": "立即生成"
+}

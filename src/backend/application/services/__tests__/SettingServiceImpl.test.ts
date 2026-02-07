@@ -143,4 +143,8 @@ describe('SettingServiceImpl', () => {
             },
         })).rejects.toThrow('Whisper 模型未下载');
     });
+
+    it('contains i18n language setting default', () => {
+        expect(SettingKeyObj['i18n.language']).toBe('system');
+    });
 });

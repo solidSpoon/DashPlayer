@@ -54,6 +54,7 @@ export const SettingKeyObj = {
     'whisper.vadModel': 'silero-v6.2.0',
     'appearance.theme': 'light',
     'appearance.fontSize': 'fontSizeLarge',
+    'i18n.language': 'system',
     'player.autoPlayNext': 'false',
     'storage.path': '',
     'storage.collection': 'default',

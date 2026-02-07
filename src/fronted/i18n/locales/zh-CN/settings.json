@@ -1,0 +1,29 @@
+{
+    "layoutTitle": "设置",
+    "layoutSubtitle": "统一管理快捷键、外观偏好、服务凭据与本地存储策略。",
+    "sections": {
+        "shortcut": "快捷键",
+        "appearance": "外观",
+        "serviceCredentials": "服务凭据",
+        "engineSelection": "功能设置",
+        "storage": "存储",
+        "update": "版本更新"
+    },
+    "appearance": {
+        "title": "外观",
+        "description": "配置主题、界面字号与语言偏好，让播放器更贴合你的使用习惯。",
+        "themeTitle": "主题风格",
+        "themeDescription": "选择你偏好的视觉主题，切换后会立即应用到整个界面。",
+        "fontSizeTitle": "界面字号",
+        "fontSizeDescription": "调整主要界面的文字尺寸，兼顾阅读舒适度与信息密度。",
+        "fontSizeLabel": "字体大小",
+        "fontSizeSmall": "小",
+        "fontSizeMedium": "中",
+        "fontSizeLarge": "大",
+        "languageTitle": "界面语言",
+        "languageDescription": "默认跟随系统语言，也可以固定为中文或英文以保持术语一致。",
+        "languageSystem": "跟随系统",
+        "languageZhCN": "简体中文",
+        "languageEnUS": "English"
+    }
+}

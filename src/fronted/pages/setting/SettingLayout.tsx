@@ -3,6 +3,7 @@ import React, {cloneElement, ReactElement} from 'react';
 import {cn} from "@/fronted/lib/utils";
 import {buttonVariants} from "@/fronted/components/ui/button";
 import { Bot, Command, Compass, Database, Palette, ToggleLeft } from 'lucide-react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export type SettingType =
     | 'service-credentials'
@@ -12,6 +13,7 @@ export type SettingType =
     | 'update'
     | 'appearance';
 const Sidebar = () => {
+    const { t } = useI18nTranslation('settings');
     const location = useLocation();
     const ele = (name: string, key: SettingType, icon: ReactElement) => {
         const pathname =
@@ -40,17 +42,18 @@ const Sidebar = () => {
     };
     return (
         <div className="w-full h-full flex flex-col gap-1.5 p-2 rounded-xl border border-border/60 bg-card">
-            {ele('快捷键', 'shortcut', <Command />)}
-            {ele('外观', 'appearance', <Palette />)}
-            {ele('服务凭据', 'service-credentials', <Bot />)}
-            {ele('功能设置', 'engine-selection', <ToggleLeft />)}
-            {ele('存储', 'storage', <Database />)}
-            {ele('版本更新', 'update', <Compass />)}
+            {ele(t('sections.shortcut'), 'shortcut', <Command />)}
+            {ele(t('sections.appearance'), 'appearance', <Palette />)}
+            {ele(t('sections.serviceCredentials'), 'service-credentials', <Bot />)}
+            {ele(t('sections.engineSelection'), 'engine-selection', <ToggleLeft />)}
+            {ele(t('sections.storage'), 'storage', <Database />)}
+            {ele(t('sections.update'), 'update', <Compass />)}
         </div>
     );
 };
 
 const SettingLayout = () => {
+    const { t } = useI18nTranslation('settings');
     return (
         <div
             className={cn(
@@ -60,10 +63,10 @@ const SettingLayout = () => {
             <div className={cn('px-2 py-1')}>
                 <div className="flex items-baseline gap-3">
                     <h1 className={cn('text-2xl font-semibold tracking-tight')}>
-                        Settings
+                        {t('layoutTitle')}
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Manage shortcuts, appearance, credentials, and storage.
+                        {t('layoutSubtitle')}
                     </p>
                 </div>
             </div>

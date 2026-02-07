@@ -29,18 +29,27 @@ import VideoLearningPage from '@/fronted/pages/video-learning';
 import { startListeningToDpTasks } from '@/fronted/hooks/useDpTaskCenter';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { applyLanguageSetting } from '@/fronted/i18n';
 
 const api = window.electron;
 const UPDATE_CHECK_DELAY_MS = 6000;
 const UPDATE_TOAST_ID = 'update-available';
 const App = () => {
+    const { t } = useI18nTranslation('toast');
     const theme = useSetting((s) => s.values.get('appearance.theme'));
+    const languageSetting = useSetting((s) => s.values.get('i18n.language'));
     useEffect(() => {
         document.documentElement.classList.add(theme ?? 'dark');
         return () => {
             document.documentElement.classList.remove(theme ?? 'dark');
         };
     }, [theme]);
+
+    useEffect(() => {
+        applyLanguageSetting(languageSetting).catch(() => undefined);
+    }, [languageSetting]);
+
     useEffect(() => {
         const timer = window.setTimeout(() => {
             (async () => {
@@ -49,12 +58,12 @@ const App = () => {
                     return;
                 }
                 const latest = result.releases[0];
-                sonnerToast(`发现新版本 ${latest.version}`, {
+                sonnerToast(t('updateAvailableTitle', { version: latest.version }), {
                     id: UPDATE_TOAST_ID,
                     duration: 8000,
                     position: 'bottom-left',
                     action: {
-                        label: '查看',
+                        label: t('updateAvailableAction'),
                         onClick: async () => {
                             await backendClient.call('system/open-url', latest.url);
                         },
@@ -66,7 +75,7 @@ const App = () => {
         }, UPDATE_CHECK_DELAY_MS);
 
         return () => window.clearTimeout(timer);
-    }, []);
+    }, [t]);
     return (
         <>
             <div className="w-full h-screen text-black overflow-hidden select-none font-sans">

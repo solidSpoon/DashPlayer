@@ -6,12 +6,14 @@ import logoDark from '../../../../assets/logo-dark.png';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 import { BookOpen, Captions, Rotate3D, Settings, SquareSplitHorizontal, Star, User, Video } from 'lucide-react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export interface SideBarProps {
     compact?: boolean;
 }
 
 const SideBar = ({ compact }: SideBarProps) => {
+    const { t } = useI18nTranslation('nav');
     const navigate = useNavigate();
     const location = useLocation();
     const videoId = useFile((s) => s.videoId);
@@ -67,43 +69,43 @@ const SideBar = ({ compact }: SideBarProps) => {
             <div className={cn('basis-3/4 flex flex-col p-3 gap-1')}>
                 {/* {item('Home', '/home', 'home', <HiOutlineHome />)} */}
                 {item(
-                    'Player',
+                    t('playbackLab'),
                     `/player/${videoId}?sideBarAnimation=false`,
                     'pa-player',
                     <Video />
                 )}
                 {item(
-                    'Favorite',
+                    t('savedMoments'),
                     '/favorite',
                     'favorite',
                     <Star />
                 )}
                 {item(
-                    'Transcript',
+                    t('subtitleWorkspace'),
                     '/transcript',
                     'transcript',
                     <Captions />
                 )}
                 {item(
-                    'Split',
+                    t('sentenceSplitter'),
                     '/split',
                     'split',
                     <SquareSplitHorizontal />
                 )}
                 {item(
-                    'Convert',
+                    t('formatConverter'),
                     '/convert',
                     'convert',
                     <Rotate3D />
                 )}
                 {item(
-                    'Vocabulary',
+                    t('vocabularyStudio'),
                     '/vocabulary',
                     'vocabulary',
                     <BookOpen />
                 )}
-                {item('Setting', '/settings', 'settings', <Settings />)}
-                {item('About', '/about', 'about', <User />)}
+                {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
+                {item(t('productStory'), '/about', 'about', <User />)}
             </div>
         </div>
     );

@@ -1,0 +1,29 @@
+{
+    "layoutTitle": "Settings",
+    "layoutSubtitle": "Manage shortcuts, appearance preferences, credentials, and local storage policies in one place.",
+    "sections": {
+        "shortcut": "Shortcut Controls",
+        "appearance": "Appearance Settings",
+        "serviceCredentials": "Service Credentials",
+        "engineSelection": "Feature Controls",
+        "storage": "Storage Management",
+        "update": "Version Updates"
+    },
+    "appearance": {
+        "title": "Appearance",
+        "description": "Configure theme, UI text size, and language preference so DashPlayer fits your workflow.",
+        "themeTitle": "Theme Style",
+        "themeDescription": "Pick the visual style you prefer. The selected theme is applied immediately.",
+        "fontSizeTitle": "UI Text Size",
+        "fontSizeDescription": "Adjust interface text size to balance reading comfort and information density.",
+        "fontSizeLabel": "Font Size",
+        "fontSizeSmall": "Small",
+        "fontSizeMedium": "Medium",
+        "fontSizeLarge": "Large",
+        "languageTitle": "Interface Language",
+        "languageDescription": "Follow your system language by default, or lock to Chinese/English for stable terminology.",
+        "languageSystem": "Follow System",
+        "languageZhCN": "Simplified Chinese",
+        "languageEnUS": "English"
+    }
+}
