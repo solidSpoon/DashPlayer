@@ -71,7 +71,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
     const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
     const setting = useSetting((state) => state.setting);
-    const dictionaryEngineRaw = setting('dictionary.engine');
+    const dictionaryEngineRaw = setting('providers.dictionary');
     const dictionaryEngine =
         dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
             ? dictionaryEngineRaw

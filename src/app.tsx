@@ -12,7 +12,8 @@ import ShortcutSetting from '@/fronted/pages/setting/ShortcutSetting';
 import StorageSetting from '@/fronted/pages/setting/StorageSetting';
 import CheckUpdate from '@/fronted/pages/setting/CheckUpdate';
 import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
-import ServiceManagementSetting from '@/fronted/pages/setting/ServiceManagementSetting';
+import ServiceCredentialSetting from '@/fronted/pages/setting/ServiceCredentialSetting';
+import EngineSelectionSetting from '@/fronted/pages/setting/EngineSelectionSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
 import toast, { Toaster as HotToaster } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
@@ -113,8 +114,12 @@ const App = () => {
                                         element={<Eb><ShortcutSetting /></Eb>}
                                     />
                                     <Route
-                                        path="services"
-                                        element={<Eb><ServiceManagementSetting /></Eb>}
+                                        path="service-credentials"
+                                        element={<Eb><ServiceCredentialSetting /></Eb>}
+                                    />
+                                    <Route
+                                        path="engine-selection"
+                                        element={<Eb><EngineSelectionSetting /></Eb>}
                                     />
                                     <Route
                                         path="storage"

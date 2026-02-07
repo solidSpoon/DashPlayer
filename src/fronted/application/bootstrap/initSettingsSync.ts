@@ -25,19 +25,19 @@ export function initSettingsSync(): () => void {
         });
     }
 
-    backendClient.call('storage/get', 'subtitleTranslation.engine').then((engine: string) => {
-        if (engine === 'openai' || engine === 'tencent') {
+    backendClient.call('storage/get', 'providers.subtitleTranslation').then((engine: string) => {
+        if (engine === 'openai' || engine === 'tencent' || engine === 'none') {
             useTranslation.getState().setEngine(engine);
         }
     }).catch((error) => {
-        logger.error('failed to sync subtitleTranslation.engine', { error });
+        logger.error('failed to sync providers.subtitleTranslation', { error });
     });
 
-    backendClient.call('storage/get', 'services.openai.subtitleTranslationMode').then((mode: string) => {
+    backendClient.call('storage/get', 'features.openai.subtitleTranslationMode').then((mode: string) => {
         const normalized: TranslationMode = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
         useTranslation.getState().setOpenAiMode(normalized);
     }).catch((error) => {
-        logger.error('failed to sync services.openai.subtitleTranslationMode', { error });
+        logger.error('failed to sync features.openai.subtitleTranslationMode', { error });
     });
 
     const unsubscribe = storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
@@ -46,13 +46,13 @@ export function initSettingsSync(): () => void {
             useSetting.getState().setLocalSetting(key, value);
         }
 
-        if (key === 'subtitleTranslation.engine') {
-            if (value === 'openai' || value === 'tencent') {
+        if (key === 'providers.subtitleTranslation') {
+            if (value === 'openai' || value === 'tencent' || value === 'none') {
                 useTranslation.getState().setEngine(value);
             }
         }
 
-        if (key === 'services.openai.subtitleTranslationMode') {
+        if (key === 'features.openai.subtitleTranslationMode') {
             const normalized: TranslationMode = value === 'simple_en' || value === 'custom' ? value : 'zh';
             useTranslation.getState().setOpenAiMode(normalized);
         }

@@ -12,7 +12,7 @@ export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
 // 翻译状态
 export interface TranslationState {
     // 翻译引擎
-    engine: 'tencent' | 'openai';
+    engine: 'tencent' | 'openai' | 'none';
     openAiMode: TranslationMode;
 
     // 翻译缓存 - key为translationKey，value为翻译结果
@@ -56,7 +56,7 @@ export interface TranslationActions {
     clearTranslations: () => void;
 
     // 设置翻译引擎
-    setEngine: (engine: 'tencent' | 'openai') => void;
+    setEngine: (engine: 'tencent' | 'openai' | 'none') => void;
 
     // 更新 OpenAI 字幕模式
     setOpenAiMode: (mode: TranslationMode) => void;
@@ -66,7 +66,7 @@ export interface TranslationActions {
 const useTranslation = create(
     subscribeWithSelector<TranslationState & TranslationActions>((set, get) => ({
         // 初始状态
-        engine: 'tencent',
+        engine: 'none',
         openAiMode: 'zh',
         translations: new Map(),
         translationStatus: new Map(),
@@ -212,7 +212,7 @@ const useTranslation = create(
         },
 
         // 设置翻译引擎
-        setEngine: (engine: 'tencent' | 'openai') => {
+        setEngine: (engine: 'tencent' | 'openai' | 'none') => {
             set(state => {
                 if (state.engine === engine) {
                     return state;

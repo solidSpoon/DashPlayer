@@ -1,9 +1,12 @@
-import { ApiSettingVO } from '@/common/types/vo/api-setting-vo';
+import { ServiceCredentialSettingVO } from '@/common/types/vo/service-credentials-setting-vo';
+import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 
 export default interface SettingService {
-    // API Settings management
-    queryApiSettings(): Promise<ApiSettingVO>;
-    updateApiSettings(settings: ApiSettingVO, service?: string): Promise<void>;
+    queryServiceCredentials(): Promise<ServiceCredentialSettingVO>;
+    updateServiceCredentials(settings: ServiceCredentialSettingVO): Promise<void>;
+    queryEngineSelection(): Promise<EngineSelectionSettingVO>;
+    updateEngineSelection(settings: EngineSelectionSettingVO): Promise<void>;
+    migrateProviderSettings(): Promise<void>;
     
     // Service provider queries
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;

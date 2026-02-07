@@ -3,13 +3,14 @@ import React, {cloneElement, ReactElement} from 'react';
 import {cn} from "@/fronted/lib/utils";
 import Separator from '@/fronted/components/shared/common/Separator';
 import {buttonVariants} from "@/fronted/components/ui/button";
-import { Bot, Command, Compass, Database, Palette } from 'lucide-react';
+import { Bot, Command, Compass, Database, Palette, ToggleLeft } from 'lucide-react';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('SettingLayout');
 
 export type SettingType =
-    | 'services'
+    | 'service-credentials'
+    | 'engine-selection'
     | 'shortcut'
     | 'storage'
     | 'update'
@@ -45,7 +46,8 @@ const Sidebar = () => {
         <div className="w-full h-full flex flex-col gap-2">
             {ele('快捷键', 'shortcut', <Command />)}
             {ele('外观', 'appearance', <Palette />)}
-            {ele('服务配置', 'services', <Bot />)}
+            {ele('服务凭据', 'service-credentials', <Bot />)}
+            {ele('功能设置', 'engine-selection', <ToggleLeft />)}
             {ele('存储', 'storage', <Database />)}
             {ele('版本更新', 'update', <Compass />)}
         </div>
