@@ -12,6 +12,8 @@
         "favoriteHint": "Select your common speeds, then press {{shortcut}} to cycle through them."
     },
     "controlBox": {
+        "title": "Player Controls",
+        "description": "Manage player settings and behavior.",
         "showEnglish": "Show English subtitles",
         "showChinese": "Show Chinese subtitles",
         "syncSideSubtitles": "Sync side subtitles",

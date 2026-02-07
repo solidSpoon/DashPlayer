@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useSWR from 'swr';
 import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
-import { Card, CardContent } from '@/fronted/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import { usePlayerV2 } from '@/fronted/hooks/usePlayerV2';
 import useLayout from '@/fronted/hooks/useLayout';
@@ -17,6 +17,12 @@ const getShortcut = (key: SettingKey) => {
   return useSetting.getState().setting(key);
 };
 
+/**
+ * 渲染播放器控制面板。
+ *
+ * 该面板聚合字幕显示、播放行为和窗口模式等控制项，
+ * 并通过 i18n 文案展示标题与说明，便于快速识别面板用途。
+ */
 export default function ControlBox() {
   const { t } = useI18nTranslation('player');
   const { showEn, showCn, syncSide, changeShowEn, changeShowCn, changeSyncSide } = usePlayerUi(
@@ -63,9 +69,13 @@ export default function ControlBox() {
 
   return (
     <Card className={cn('w-full h-full flex flex-col')}>
+      <CardHeader className="px-3 pt-3 pb-2">
+        <CardTitle>{t('controlBox.title')}</CardTitle>
+        <CardDescription>{t('controlBox.description')}</CardDescription>
+      </CardHeader>
       <CardContent
         className={cn(
-          'w-full flex-1 min-h-0 overflow-y-auto p-3',
+          'w-full flex-1 min-h-0 overflow-y-auto p-3 pt-2',
           'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-thumb-rounded scrollbar-track-gray-100 scrollbar-track-rounded'
         )}
       >

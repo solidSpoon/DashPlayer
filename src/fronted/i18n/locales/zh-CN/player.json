@@ -12,6 +12,8 @@
         "favoriteHint": "勾选常用速度，然后用快捷键 {{shortcut}} 在这些速度中切换。"
     },
     "controlBox": {
+        "title": "播放器控制",
+        "description": "管理播放器设置与播放行为。",
         "showEnglish": "展示英文字幕",
         "showChinese": "展示中文字幕",
         "syncSideSubtitles": "同步侧边字幕",
