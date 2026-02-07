@@ -1,6 +1,18 @@
 {
     "layoutTitle": "设置",
     "layoutSubtitle": "统一管理快捷键、外观偏好、服务凭据与本地存储策略。",
+    "common": {
+        "viewDocs": "查看文档",
+        "docs": "文档",
+        "saveFailed": "保存失败",
+        "testSuccess": "测试成功",
+        "testFailed": "测试失败",
+        "testConnection": "测试连接",
+        "testing": "测试中...",
+        "downloadDone": "下载完成",
+        "downloadFailed": "下载失败",
+        "downloading": "下载中..."
+    },
     "sections": {
         "shortcut": "快捷键",
         "appearance": "外观",
@@ -25,5 +37,178 @@
         "languageSystem": "跟随系统",
         "languageZhCN": "简体中文",
         "languageEnUS": "English"
+    },
+    "checkUpdate": {
+        "title": "版本更新",
+        "openReleases": "前往发布页",
+        "failedTitle": "检查更新失败",
+        "failedDescription": "暂时无法获取更新信息，请稍后重试。",
+        "latestTitle": "已是最新版本，看看 Tips 吧",
+        "tips": {
+            "transcriptionBackground": "转录时，你可以离开当前页面，继续观看视频，转录会在后台进行。转录完成后会自动更新对应视频的字幕。",
+            "slideCounter": "第 {{current}} / {{count}} 条"
+        }
+    },
+    "shortcut": {
+        "title": "快捷键",
+        "description": "多个快捷键用 , 分割",
+        "record": "录制快捷键",
+        "resetDefault": "重置为默认值",
+        "dialogTitle": "录入快捷键",
+        "dialogDescription": "点击下面的输入框，然后按下你想要的快捷键。",
+        "saveChanges": "保存修改",
+        "items": {
+            "previousSentence": { "title": "上一句", "description": "跳转到上一句" },
+            "nextSentence": { "title": "下一句", "description": "跳转到下一句" },
+            "repeatSentence": { "title": "重复当前句（循环）", "description": "重复播放当前句" },
+            "playPause": { "title": "播放/暂停", "description": "播放或暂停" },
+            "repeatSingleSentence": { "title": "单句循环", "description": "重复播放当前句子一次" },
+            "autoPause": { "title": "自动暂停", "description": "播放一句后自动暂停" },
+            "toggleEnglishDisplay": { "title": "显示英语字幕", "description": "切换是否显示英语字幕" },
+            "toggleChineseDisplay": { "title": "显示中文字幕", "description": "切换是否显示中文字幕" },
+            "toggleBilingualDisplay": { "title": "显示双语字幕", "description": "切换是否显示双语字幕" },
+            "toggleWordLevelDisplay": { "title": "显示逐词字幕", "description": "切换逐词字幕" },
+            "nextTheme": { "title": "切换主题", "description": "在不同主题之间切换" },
+            "adjustBeginMinus": { "title": "字幕开始时间提前", "description": "将字幕开始时间提前" },
+            "adjustBeginPlus": { "title": "字幕开始时间延后", "description": "将字幕开始时间延后" },
+            "adjustEndMinus": { "title": "字幕结束时间提前", "description": "将字幕结束时间提前" },
+            "adjustEndPlus": { "title": "字幕结束时间延后", "description": "将字幕结束时间延后" },
+            "clearAdjust": { "title": "清除字幕偏移", "description": "恢复字幕时间到默认值" },
+            "nextPlaybackRate": { "title": "切换播放速度", "description": "在常用播放速度之间循环切换" },
+            "aiChat": { "title": "打开 AI 对话", "description": "唤起 AI 对话窗口" },
+            "toggleCopyMode": { "title": "切换复制模式", "description": "切换字幕复制模式" },
+            "addClip": { "title": "添加收藏片段", "description": "将当前字幕加入收藏夹" },
+            "openControlPanel": { "title": "打开控制面板", "description": "打开播放器控制面板" }
+        }
+    },
+    "storage": {
+        "title": "存储",
+        "descriptionLine1": "DashPlayer 会缓存翻译结果，以降低 API 调用成本。",
+        "descriptionLine2": "缓存文件由数据库软件维护，请不要编辑缓存文件。",
+        "resetDatabase": "重置数据库",
+        "openLibraryFolder": "打开 Library 文件夹",
+        "occupiedSpace": "占用空间",
+        "libraryPathTitle": "存储路径（Library Path）",
+        "libraryPathDescription": "切换存储路径后请完全退出 DashPlayer 并重新打开。",
+        "switchCollection": "切换收藏夹",
+        "saveSettingsFailed": "保存设置失败，请稍后重试：{{message}}",
+        "syncWordClipsFailed": "同步单词管理片段失败，请稍后再试。",
+        "collectionSync": {
+            "loading": "正在加载本地收藏夹",
+            "success": "本地收藏夹加载成功",
+            "error": "本地收藏夹加载失败",
+            "button": "重新同步收藏夹数据",
+            "tooltipTitle": "重新同步收藏夹数据",
+            "tooltipDescription": "将该文件夹中的数据同步到 DashPlayer 中，遇到问题可以尝试使用此功能。"
+        },
+        "collectionHint": "favourite_clips 文件夹下的子文件夹会被视为收藏夹，如有需求你可以在该文件夹下创建新的收藏夹。",
+        "wordClipsTitle": "单词管理片段",
+        "wordClipsSync": {
+            "loading": "正在同步单词管理片段",
+            "success": "单词管理片段已同步",
+            "error": "同步单词管理片段失败",
+            "button": "重新同步单词管理数据",
+            "tooltipTitle": "重新同步单词管理数据",
+            "tooltipDescription": "将 word_video 文件夹中的自动匹配片段重新写入数据库，数据丢失或异常时可尝试使用。"
+        },
+        "wordClipsHint": "word_video 文件夹保存生词自动匹配生成的片段，数据库缺失时可在此重新写入。"
+    },
+    "youdao": {
+        "title": "查单词",
+        "description": "配置有道密钥以启用查词功能。",
+        "secretId": "应用 ID",
+        "secretKey": "应用密钥",
+        "docHintPrefix": "你需要有道智云密钥才能使用查词功能，详见"
+    },
+    "tenant": {
+        "title": "字幕翻译",
+        "description": "配置翻译引擎和相关密钥。",
+        "translationEngineLabel": "翻译引擎",
+        "selectEnginePlaceholder": "选择翻译引擎",
+        "engineTencent": "腾讯翻译",
+        "engineOpenAi": "OpenAI 翻译",
+        "engineHelp": "选择翻译引擎。腾讯翻译响应更快，OpenAI 在复杂语境下通常更准确。",
+        "tencentSecretId": "腾讯云 SecretId",
+        "tencentSecretKey": "腾讯云 SecretKey",
+        "tencentHintPrefix": "你需要腾讯云密钥才能使用字幕翻译，详见",
+        "openaiHintLine1": "OpenAI 翻译使用你在“服务凭据”页面配置的密钥和端点。",
+        "openaiHintLine2": "请先确认 OpenAI 配置完整且可用。"
+    },
+    "engineSelection": {
+        "title": "功能设置",
+        "description": "按功能选择服务来源，可独立关闭。",
+        "intro": "不同功能可以独立选择服务来源。选择“关闭”后，该功能在播放器侧将不再执行。",
+        "featureSwitches": "功能开关",
+        "engineTencent": "腾讯翻译",
+        "engineYoudao": "有道词典",
+        "engineWhisperLocal": "Whisper 本地",
+        "engineNone": "关闭",
+        "subtitleTranslation": {
+            "title": "字幕翻译",
+            "description": "控制字幕翻译服务来源。",
+            "modelLabel": "字幕翻译模型",
+            "styleLabel": "OpenAI 字幕输出风格",
+            "styleZh": "中文直译",
+            "styleSimpleEn": "简化英文",
+            "styleCustom": "自定义",
+            "hiddenHint": "当前未使用 OpenAI 字幕翻译，风格设置已自动隐藏。"
+        },
+        "dictionary": {
+            "title": "词典查询",
+            "description": "用于单词释义与例句查询。",
+            "modelLabel": "词典查询模型"
+        },
+        "transcription": {
+            "title": "字幕转录",
+            "description": "控制语音转字幕所使用的服务。",
+            "modelLabel": "转录模型",
+            "whisperHint": "本地转录尚未配置完成（模型未下载），请先去“服务凭据”页面下载对应 Whisper 模型。",
+            "goConfigure": "去配置"
+        },
+        "sentenceLearning": {
+            "title": "整句学习",
+            "description": "用于句子解析、学习提示等增强功能。",
+            "enable": "启用 OpenAI 整句学习",
+            "modelLabel": "整句学习模型"
+        }
+    },
+    "serviceCredentials": {
+        "title": "服务凭据",
+        "description": "管理云端 API 凭据与本地模型资源。",
+        "intro": "凭据只负责连接能力，功能开关请在“功能设置”页面调整。",
+        "downloadWhisperDone": "Whisper 模型已下载：{{size}}",
+        "downloadVadDone": "静音检测模型已下载。",
+        "openai": {
+            "description": "用于字幕翻译、词典与云端转录能力。",
+            "modelsLabel": "可用模型列表（每行一个）",
+            "modelsHint": "支持换行或逗号分隔。功能设置页会按这里的列表给各功能选模型。"
+        },
+        "tencent": {
+            "title": "腾讯翻译",
+            "description": "用于字幕翻译能力。"
+        },
+        "youdao": {
+            "title": "有道词典",
+            "description": "用于词典查询能力。",
+            "appId": "应用 ID",
+            "appKey": "应用密钥"
+        },
+        "whisper": {
+            "title": "Whisper 本地模型",
+            "description": "管理本地转录模型与静音检测模型资源。",
+            "modelSize": "Whisper 模型大小",
+            "vadModel": "VAD 模型",
+            "enableVad": "启用静音检测（VAD）",
+            "statusPrefix": "Whisper 状态：",
+            "baseReady": " base 已下载；",
+            "baseMissing": " base 未下载；",
+            "largeReady": " large 已下载；",
+            "largeMissing": " large 未下载；",
+            "downloadCurrent": "下载当前 Whisper 模型",
+            "vadStatusPrefix": "VAD 状态：",
+            "vadReady": "已下载",
+            "vadMissing": "未下载",
+            "downloadVad": "下载 VAD 模型"
+        }
     }
 }

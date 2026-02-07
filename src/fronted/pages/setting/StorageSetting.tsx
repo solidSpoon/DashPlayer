@@ -19,6 +19,7 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { Input } from '@/fronted/components/ui/input';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 
@@ -28,6 +29,7 @@ type StorageFormValues = {
 };
 
 const StorageSetting = () => {
+    const { t } = useI18nTranslation('settings');
     const [size, setSize] = React.useState<string>('0 KB');
     const storeValues = useSetting(
         useShallow((state) => ({
@@ -169,7 +171,7 @@ const StorageSetting = () => {
             await flushPendingSave();
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`保存设置失败，请稍后重试：${message}`);
+            throw new Error(t('storage.saveSettingsFailed', { message }));
         }
         await api.call('favorite-clips/sync-from-oss');
         await swrApiMutate('favorite-clips/search');
@@ -183,11 +185,11 @@ const StorageSetting = () => {
             await flushPendingSave();
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`保存设置失败，请稍后重试：${message}`);
+            throw new Error(t('storage.saveSettingsFailed', { message }));
         }
         const result = await api.call('video-learning/sync-from-oss');
         if (!result?.success) {
-            throw new Error('同步单词管理片段失败，请稍后再试');
+            throw new Error(t('storage.syncWordClipsFailed'));
         }
         await swrApiMutate('video-learning/search');
     }
@@ -207,12 +209,12 @@ const StorageSetting = () => {
     return (
         <div className="w-full h-full min-h-0">
             <SettingsPageShell
-                title="存储"
+                title={t('storage.title')}
                 description={
                     <span>
-                        DashPlayer 会缓存翻译结果，以降低 API 调用成本。
+                        {t('storage.descriptionLine1')}
                         <br />
-                        缓存文件由数据库软件维护，请不要编辑缓存文件。
+                        {t('storage.descriptionLine2')}
                     </span>
                 }
                 contentClassName="space-y-6"
@@ -223,20 +225,20 @@ const StorageSetting = () => {
                             variant="secondary"
                             type="button"
                         >
-                            重置数据库
+                            {t('storage.resetDatabase')}
                         </Button>
                         <Button
                             onClick={handleOpen}
                             variant="secondary"
                             type="button"
                         >
-                            打开 Library 文件夹
+                            {t('storage.openLibraryFolder')}
                         </Button>
                     </>
                 )}
             >
                 <div className="mt-4 flex text-lg flex-row items-center gap-2">
-                    <span>占用空间</span>
+                    <span>{t('storage.occupiedSpace')}</span>
                     <span>{size}</span>
                 </div>
 
@@ -252,9 +254,9 @@ const StorageSetting = () => {
                                 placeHolder="Documents/DashPlayer"
                                 setValue={(value) => field.onChange(value)}
                                 onBlur={field.onBlur}
-                                title="存储路径（Library Path）"
+                                title={t('storage.libraryPathTitle')}
                                 value={field.value ?? ''}
-                                description="切换存储路径后请完全退出 DashPlayer 并重新打开"
+                                description={t('storage.libraryPathDescription')}
                             />
                         )}
                     />
@@ -276,7 +278,7 @@ const StorageSetting = () => {
                 </div>
                 <div className="flex gap-2 items-end">
                     <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
-                        <Label>切换收藏夹</Label>
+                        <Label>{t('storage.switchCollection')}</Label>
                         <div className="flex gap-2">
                             <Controller
                                 name="collection"
@@ -300,22 +302,22 @@ const StorageSetting = () => {
                                             disabled={!canSyncCollections}
                                             onClick={async () => {
                                                 await toast.promise(reloadOss(), {
-                                                    loading: '正在加载本地收藏夹',
-                                                    success: '本地收藏夹加载成功',
-                                                    error: '本地收藏夹加载失败',
+                                                    loading: t('storage.collectionSync.loading'),
+                                                    success: t('storage.collectionSync.success'),
+                                                    error: t('storage.collectionSync.error'),
                                                 });
                                             }}
                                             variant="outline"
                                             type="button"
                                         >
-                                            重新同步收藏夹数据
+                                            {t('storage.collectionSync.button')}
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
                                         <Md>
                                             {codeBlock`
-                                            #### 重新同步收藏夹数据
-                                            将该文件夹中的数据同步到 DashPlayer 中，遇到问题可以尝试使用此功能。
+                                            #### ${t('storage.collectionSync.tooltipTitle')}
+                                            ${t('storage.collectionSync.tooltipDescription')}
                                             `}
                                         </Md>
                                     </TooltipContent>
@@ -324,13 +326,13 @@ const StorageSetting = () => {
                         </div>
 
                         <p className="text-sm text-muted-foreground">
-                            favourite_clips 文件夹下的子文件夹会被视为收藏夹，如有需求您可以去该文件夹下创建新的收藏夹。
+                            {t('storage.collectionHint')}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-2 items-end">
                     <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
-                        <Label>单词管理片段</Label>
+                        <Label>{t('storage.wordClipsTitle')}</Label>
                         <div className="flex gap-2 items-center">
                             <Input
                                 value="word_video"
@@ -344,22 +346,22 @@ const StorageSetting = () => {
                                             disabled={!canSyncCollections}
                                             onClick={async () => {
                                                 await toast.promise(reloadWordLearningClips(), {
-                                                    loading: '正在同步单词管理片段',
-                                                    success: '单词管理片段已同步',
-                                                    error: '同步单词管理片段失败',
+                                                    loading: t('storage.wordClipsSync.loading'),
+                                                    success: t('storage.wordClipsSync.success'),
+                                                    error: t('storage.wordClipsSync.error'),
                                                 });
                                             }}
                                             variant="outline"
                                             type="button"
                                         >
-                                            重新同步单词管理数据
+                                            {t('storage.wordClipsSync.button')}
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
                                         <Md>
                                             {codeBlock`
-                                            #### 重新同步单词管理数据
-                                            将 word_video 文件夹中的自动匹配片段重新写入数据库，数据丢失或异常时可尝试使用。
+                                            #### ${t('storage.wordClipsSync.tooltipTitle')}
+                                            ${t('storage.wordClipsSync.tooltipDescription')}
                                             `}
                                         </Md>
                                     </TooltipContent>
@@ -367,7 +369,7 @@ const StorageSetting = () => {
                             </TooltipProvider>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            word_video 文件夹保存生词自动匹配生成的片段，数据库缺失时可在此重新写入。
+                            {t('storage.wordClipsHint')}
                         </p>
                     </div>
                 </div>

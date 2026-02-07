@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 
@@ -16,6 +17,7 @@ type YouDaoFormValues = {
 };
 
 const YouDaoSetting = () => {
+    const { t } = useI18nTranslation('settings');
     const storeValues = useSetting(
         useShallow((state) => ({
             secretId: state.values.get('apiKeys.youdao.secretId') ?? '',
@@ -146,8 +148,8 @@ const YouDaoSetting = () => {
     return (
         <form className="w-full h-full min-h-0">
             <SettingsPageShell
-                title="查单词"
-                description="配置有道密钥以启用查词功能"
+                title={t('youdao.title')}
+                description={t('youdao.description')}
                 contentClassName="space-y-6"
                 actions={(
                     <Button
@@ -157,7 +159,7 @@ const YouDaoSetting = () => {
                         variant="secondary"
                         type="button"
                     >
-                        查看文档
+                        {t('common.viewDocs')}
                     </Button>
                 )}
             >
@@ -169,7 +171,7 @@ const YouDaoSetting = () => {
                             inputWidth="w-64"
                             setValue={(value) => field.onChange(value)}
                             onBlur={field.onBlur}
-                            title="secretId"
+                            title={t('youdao.secretId')}
                             value={field.value ?? ''}
                         />
                     )}
@@ -182,14 +184,14 @@ const YouDaoSetting = () => {
                             inputWidth="w-64"
                             setValue={(value) => field.onChange(value)}
                             onBlur={field.onBlur}
-                            title="secretKey"
+                            title={t('youdao.secretKey')}
                             value={field.value ?? ''}
                             type="password"
                         />
                     )}
                 />
                 <div className={cn('text-sm text-gray-500 mt-2 flex flex-row gap-2')}>
-                    你需要有道智云的密钥才能使用查单词功能，详见
+                    {t('youdao.docHintPrefix')}
                     <a
                         className={cn('underline')}
                         onClick={async () => {
@@ -198,7 +200,7 @@ const YouDaoSetting = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                     >
-                        文档
+                        {t('common.docs')}
                     </a>
                 </div>
             </SettingsPageShell>

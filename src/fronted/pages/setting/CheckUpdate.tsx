@@ -9,10 +9,12 @@ import NewTips from '@/fronted/pages/setting/components/NewTips';
 import { cn } from '@/fronted/lib/utils';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { UpdateCheckResult } from '@/common/types/update-check';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 
 const CheckUpdate = () => {
+    const { t } = useI18nTranslation('settings');
 
     const { data: updateResult, isLoading: checking } = useSWR<UpdateCheckResult>('system/check-update', async () => {
         return await api.call('system/check-update');
@@ -23,7 +25,7 @@ const CheckUpdate = () => {
 
     return (
         <SettingsPageShell
-            title="版本更新"
+            title={t('checkUpdate.title')}
             contentClassName="space-y-4"
             actions={(
                 <Button
@@ -33,7 +35,7 @@ const CheckUpdate = () => {
                         );
                     }}
                 >
-                    前往发布页
+                    {t('checkUpdate.openReleases')}
                 </Button>
             )}
         >
@@ -51,9 +53,9 @@ const CheckUpdate = () => {
 
                         {hasError ? (
                             <div className={'w-full h-full flex flex-col gap-3'}>
-                                <h1>检查更新失败</h1>
+                                <h1>{t('checkUpdate.failedTitle')}</h1>
                                 <p className="text-muted-foreground text-sm">
-                                    {updateResult?.error ?? '暂时无法获取更新信息，请稍后重试。'}
+                                    {updateResult?.error ?? t('checkUpdate.failedDescription')}
                                 </p>
                             </div>
                         ) : hasNewRelease ? <Md>
@@ -66,7 +68,7 @@ const CheckUpdate = () => {
                             )).join('\n---\n')}
                         </Md> : <div className={'w-full min-h-[220px] flex flex-col'}>
                             <h1>
-                                已是最新版本，看看 Tips 吧
+                                {t('checkUpdate.latestTitle')}
                             </h1>
                             <div className={'w-full flex flex-1 justify-center items-center'}>
                                 <NewTips />
