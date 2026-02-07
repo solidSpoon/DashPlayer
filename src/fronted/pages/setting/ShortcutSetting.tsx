@@ -1,7 +1,5 @@
 import * as React from 'react';
-import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
-import Header from '@/fronted/pages/setting/components/form/Header';
-import Separator from '@/fronted/components/shared/common/Separator';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { Button } from '@/fronted/components/ui/button';
 import { Label } from '@/fronted/components/ui/label';
 import { Input } from '@/fronted/components/ui/input';
@@ -338,10 +336,12 @@ const ShortcutSetting = () => {
     }, [getValues, runSave, watch, formState.isDirty]);
 
     return (
-        <form className="h-full overflow-y-auto flex flex-col gap-4">
-            <Header title="快捷键" description="多个快捷键用 , 分割" />
-            <Separator orientation="horizontal" className="px-0" />
-            <ItemWrapper>
+        <form className="w-full h-full min-h-0">
+            <SettingsPageShell
+                title="快捷键"
+                description="多个快捷键用 , 分割"
+                contentClassName="space-y-8"
+            >
                 <Controller
                     name="shortcut.previousSentence"
                     control={control}
@@ -636,7 +636,7 @@ const ShortcutSetting = () => {
                         />
                     )}
                 />
-            </ItemWrapper>
+            </SettingsPageShell>
         </form>
     );
 };

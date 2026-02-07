@@ -1,7 +1,5 @@
 import * as React from 'react';
-import Header from '@/fronted/pages/setting/components/form/Header';
-import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
-import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { Button } from '@/fronted/components/ui/button';
 import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
 import { cn } from '@/fronted/lib/utils';
@@ -207,8 +205,8 @@ const StorageSetting = () => {
     const canSyncCollections = !formState.isDirty && autoSaveStatus !== 'saving';
 
     return (
-        <div className="w-full h-full flex flex-col gap-4">
-            <Header
+        <div className="w-full h-full min-h-0">
+            <SettingsPageShell
                 title="存储"
                 description={
                     <span>
@@ -217,8 +215,26 @@ const StorageSetting = () => {
                         缓存文件由数据库软件维护，请不要编辑缓存文件。
                     </span>
                 }
-            />
-            <ItemWrapper>
+                contentClassName="space-y-6"
+                actions={(
+                    <>
+                        <Button
+                            onClick={handleClear}
+                            variant="secondary"
+                            type="button"
+                        >
+                            重置数据库
+                        </Button>
+                        <Button
+                            onClick={handleOpen}
+                            variant="secondary"
+                            type="button"
+                        >
+                            打开 Library 文件夹
+                        </Button>
+                    </>
+                )}
+            >
                 <div className="mt-4 flex text-lg flex-row items-center gap-2">
                     <span>占用空间</span>
                     <span>{size}</span>
@@ -355,23 +371,7 @@ const StorageSetting = () => {
                         </p>
                     </div>
                 </div>
-            </ItemWrapper>
-            <FooterWrapper>
-                <Button
-                    onClick={handleClear}
-                    variant="secondary"
-                    type="button"
-                >
-                    重置数据库
-                </Button>
-                <Button
-                    onClick={handleOpen}
-                    variant="secondary"
-                    type="button"
-                >
-                    打开 Library 文件夹
-                </Button>
-            </FooterWrapper>
+            </SettingsPageShell>
         </div>
     );
 };

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Progress } from '@/fronted/components/ui/progress';
 import { Textarea } from '@/fronted/components/ui/textarea';
-import Header from '@/fronted/pages/setting/components/form/Header';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { ServiceCredentialSettingVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
@@ -193,15 +193,17 @@ const ServiceCredentialSetting = () => {
 
     return (
         <form
-            className="w-full h-full flex flex-col gap-6"
+            className="w-full h-full min-h-0"
             onSubmit={(event) => {
                 event.preventDefault();
                 onSave().catch(() => null);
             }}
         >
-            <Header title="服务凭据" description="管理云端 API 凭据与本地模型资源" />
-
-            <div className="flex flex-col gap-6 h-0 flex-1 overflow-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
+            <SettingsPageShell
+                title="服务凭据"
+                description="管理云端 API 凭据与本地模型资源"
+                contentClassName="space-y-6"
+            >
                 <div className="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
                     <div className="flex items-start gap-2">
                         <ShieldCheck className="w-4 h-4 mt-0.5" />
@@ -362,8 +364,7 @@ const ServiceCredentialSetting = () => {
                         </Button>
                     </div>
                 </div>
-            </div>
-
+            </SettingsPageShell>
         </form>
     );
 };

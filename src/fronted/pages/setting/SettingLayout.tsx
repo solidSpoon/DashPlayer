@@ -1,12 +1,8 @@
-import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
+import {Link, Outlet, useLocation} from 'react-router-dom';
 import React, {cloneElement, ReactElement} from 'react';
 import {cn} from "@/fronted/lib/utils";
-import Separator from '@/fronted/components/shared/common/Separator';
 import {buttonVariants} from "@/fronted/components/ui/button";
 import { Bot, Command, Compass, Database, Palette, ToggleLeft } from 'lucide-react';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
-
-const logger = getRendererLogger('SettingLayout');
 
 export type SettingType =
     | 'service-credentials'
@@ -28,22 +24,22 @@ const Sidebar = () => {
                 to={`/settings/${key}`}
                 className={cn(
                     buttonVariants({variant: "ghost"}),
-                    'gap-2 text-base',
+                    'gap-2 text-sm h-10',
                     isCurrent
-                        ? "bg-muted hover:bg-muted"
-                        : "hover:bg-transparent hover:underline",
+                        ? 'bg-muted hover:bg-muted text-foreground'
+                        : 'hover:bg-muted/60 text-muted-foreground hover:text-foreground',
                     "justify-start"
                 )}
             >
                 {cloneElement(icon, {
-                    className: cn('w-6 h-6 text-foreground/80'),
+                    className: cn('w-4 h-4 text-foreground/80'),
                 })}
                 {name}
             </Link>
         );
     };
     return (
-        <div className="w-full h-full flex flex-col gap-2">
+        <div className="w-full h-full flex flex-col gap-1.5 p-2 rounded-xl border border-border/60 bg-card">
             {ele('快捷键', 'shortcut', <Command />)}
             {ele('外观', 'appearance', <Palette />)}
             {ele('服务凭据', 'service-credentials', <Bot />)}
@@ -58,25 +54,28 @@ const SettingLayout = () => {
     return (
         <div
             className={cn(
-                'w-full h-screen flex flex-col overflow-hidden select-none bg-background p-6 pt-12 gap-4 text-foreground'
+                'w-full h-screen flex flex-col overflow-hidden select-none bg-background px-6 py-4 gap-4 text-foreground'
             )}
         >
-            <div className={cn('p-4')}>
-                <h1 className={cn('text-4xl font-bold font-serif')}>
-                    Settings
-                </h1>
-                <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                    Dash Player
-                </h2>
-                <Separator orientation="horizontal" className="px-0"/>
+            <div className={cn('px-2 py-1')}>
+                <div className="flex items-baseline gap-3">
+                    <h1 className={cn('text-2xl font-semibold tracking-tight')}>
+                        Settings
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Manage shortcuts, appearance, credentials, and storage.
+                    </p>
+                </div>
             </div>
 
-            <div className="flex flex-1 h-0 gap-8">
-                <aside className="w-56 flex-shrink-0">
+            <div className="flex flex-1 h-0 gap-4 min-h-0">
+                <aside className="w-56 flex-shrink-0 min-h-0">
                     <Sidebar/>
                 </aside>
-                <main role="main" className="w-[1000px] overflow-hidden h-full">
-                    <Outlet/>
+                <main role="main" className="min-w-0 flex-1 overflow-hidden h-full">
+                    <div className="h-full min-h-0 rounded-xl border border-border/60 bg-card p-6">
+                        <Outlet/>
+                    </div>
                 </main>
             </div>
         </div>

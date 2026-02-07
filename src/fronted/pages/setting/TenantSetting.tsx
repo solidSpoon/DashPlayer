@@ -1,8 +1,6 @@
 import * as React from 'react';
 import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
-import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
-import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
-import Header from '@/fronted/pages/setting/components/form/Header';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
@@ -180,10 +178,23 @@ const TenantSetting = () => {
     const translationEngine = normalizeEngine(currentEngine);
 
     return (
-        <form className="w-full h-full flex flex-col gap-4">
-            <Header title="字幕翻译" description="配置翻译引擎和相关密钥" />
-
-            <ItemWrapper>
+        <form className="w-full h-full min-h-0">
+            <SettingsPageShell
+                title="字幕翻译"
+                description="配置翻译引擎和相关密钥"
+                contentClassName="space-y-6"
+                actions={(
+                    <Button
+                        onClick={async () => {
+                            await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
+                        }}
+                        variant="secondary"
+                        type="button"
+                    >
+                        查看文档
+                    </Button>
+                )}
+            >
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium">翻译引擎</label>
@@ -264,21 +275,9 @@ const TenantSetting = () => {
                         </div>
                     )}
                 </div>
-            </ItemWrapper>
-
-            <FooterWrapper>
-                <Button
-                    onClick={async () => {
-                        await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
-                    }}
-            variant="secondary"
-            type="button"
-        >
-            查看文档
-        </Button>
-        </FooterWrapper>
-    </form>
-);
+            </SettingsPageShell>
+        </form>
+    );
 };
 
 export default TenantSetting;

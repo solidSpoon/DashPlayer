@@ -8,7 +8,7 @@ import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Textarea } from '@/fronted/components/ui/textarea';
-import Header from '@/fronted/pages/setting/components/form/Header';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
@@ -120,13 +120,15 @@ const EngineSelectionSetting = () => {
     }, [watch, onSave]);
 
     return (
-        <form className="w-full h-full flex flex-col gap-6" onSubmit={(event) => {
+        <form className="w-full h-full min-h-0" onSubmit={(event) => {
             event.preventDefault();
             onSave().catch(() => null);
         }}>
-            <Header title="功能设置" description="按功能选择服务来源，可独立关闭" />
-
-            <div className="flex flex-col gap-6 h-0 flex-1 overflow-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
+            <SettingsPageShell
+                title="功能设置"
+                description="按功能选择服务来源，可独立关闭"
+                contentClassName="space-y-6"
+            >
                 <div className="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
                     不同功能可以独立选择服务来源。选择“关闭”后，该功能在播放器侧将不再执行。
                 </div>
@@ -343,7 +345,7 @@ const EngineSelectionSetting = () => {
                         </div>
                     )}
                 </div>
-            </div>
+            </SettingsPageShell>
 
         </form>
     );

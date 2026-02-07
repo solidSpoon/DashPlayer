@@ -1,8 +1,6 @@
 import * as React from 'react';
 import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
-import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
-import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
-import Header from '@/fronted/pages/setting/components/form/Header';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { useForm, Controller } from 'react-hook-form';
@@ -146,9 +144,23 @@ const YouDaoSetting = () => {
     }, [getValues, runSave, watch, formState.isDirty]);
 
     return (
-        <form className="w-full h-full flex flex-col gap-4">
-            <Header title="查单词" description="配置有道密钥以启用查词功能" />
-            <ItemWrapper>
+        <form className="w-full h-full min-h-0">
+            <SettingsPageShell
+                title="查单词"
+                description="配置有道密钥以启用查词功能"
+                contentClassName="space-y-6"
+                actions={(
+                    <Button
+                        onClick={async () => {
+                            await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
+                        }}
+                        variant="secondary"
+                        type="button"
+                    >
+                        查看文档
+                    </Button>
+                )}
+            >
                 <Controller
                     name="secretId"
                     control={control}
@@ -189,20 +201,9 @@ const YouDaoSetting = () => {
                         文档
                     </a>
                 </div>
-            </ItemWrapper>
-            <FooterWrapper>
-                <Button
-                    onClick={async () => {
-                        await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
-                    }}
-            variant="secondary"
-            type="button"
-        >
-            查看文档
-        </Button>
-        </FooterWrapper>
-    </form>
-);
+            </SettingsPageShell>
+        </form>
+    );
 };
 
 export default YouDaoSetting;
