@@ -29,7 +29,9 @@ const TenantSetting = () => {
     const storeValues = useSetting(
         useShallow((state) => {
             return {
-                translationEngine: state.values.get('translation.engine') ?? SettingKeyObj['translation.engine'],
+                translationEngine:
+                    state.values.get('subtitleTranslation.engine')
+                    ?? SettingKeyObj['subtitleTranslation.engine'],
                 tencentSecretId: state.values.get('apiKeys.tencent.secretId') ?? '',
                 tencentSecretKey: state.values.get('apiKeys.tencent.secretKey') ?? '',
             };

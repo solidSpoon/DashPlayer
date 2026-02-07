@@ -25,12 +25,12 @@ export function initSettingsSync(): () => void {
         });
     }
 
-    backendClient.call('storage/get', 'translation.engine').then((engine: string) => {
+    backendClient.call('storage/get', 'subtitleTranslation.engine').then((engine: string) => {
         if (engine === 'openai' || engine === 'tencent') {
             useTranslation.getState().setEngine(engine);
         }
     }).catch((error) => {
-        logger.error('failed to sync translation.engine', { error });
+        logger.error('failed to sync subtitleTranslation.engine', { error });
     });
 
     backendClient.call('storage/get', 'services.openai.subtitleTranslationMode').then((mode: string) => {
@@ -46,7 +46,7 @@ export function initSettingsSync(): () => void {
             useSetting.getState().setLocalSetting(key, value);
         }
 
-        if (key === 'translation.engine') {
+        if (key === 'subtitleTranslation.engine') {
             if (value === 'openai' || value === 'tencent') {
                 useTranslation.getState().setEngine(value);
             }

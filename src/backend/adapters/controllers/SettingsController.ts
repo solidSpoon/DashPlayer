@@ -64,7 +64,7 @@ export default class SettingsController implements Controller {
         tencentSecretId?: string;
         tencentSecretKey?: string;
     }): Promise<void> {
-        await this.settingsKeyValueService.set('translation.engine', params.engine);
+        await this.settingsKeyValueService.set('subtitleTranslation.engine', params.engine);
         if (params.tencentSecretId !== undefined) {
             await this.settingsKeyValueService.set('apiKeys.tencent.secretId', params.tencentSecretId);
         }
