@@ -6,7 +6,7 @@ import {
 } from '@/backend/application/kernel/concurrency/types';
 import { createRateLimiter } from '@/backend/application/kernel/concurrency/primitives/RateLimiter';
 
-describe('RateLimiter', () => {
+describe('速率限制器行为', () => {
     it('窗口内请求数不应超过 maxRequests', async () => {
         const limiter = createRateLimiter({ maxRequests: 2, windowMs: 50, name: 'cap' });
 
@@ -69,4 +69,3 @@ describe('RateLimiter', () => {
         await expect(limiter.schedule(async () => 'ok')).resolves.toBe('ok');
     });
 });
-

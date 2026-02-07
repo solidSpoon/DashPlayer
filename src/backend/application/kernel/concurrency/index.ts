@@ -26,11 +26,13 @@ export type {
 
 export {
     ConcurrencyCancelledError,
+    LockOrderViolationError,
     ConcurrencyTimeoutError,
 } from '@/backend/application/kernel/concurrency/types';
 
 export type {
     AcquireOptions,
+    KernelAcquireOptions,
     Permit,
     RateLimiterOptions,
     RateLimiterSnapshot,
@@ -50,4 +52,3 @@ export type {
 } from '@/backend/application/kernel/concurrency/config/ConcurrencyProfiles';
 
 export { defaultConcurrencyProfiles } from '@/backend/application/kernel/concurrency/config/ConcurrencyProfiles';
-

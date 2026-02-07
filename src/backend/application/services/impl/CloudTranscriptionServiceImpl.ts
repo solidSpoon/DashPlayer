@@ -8,7 +8,7 @@ import FfmpegService from '@/backend/application/services/FfmpegService';
 import LocationService, { LocationType } from '@/backend/application/services/LocationService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
-import { WaitLock } from '@/common/utils/Lock';
+import { WithSemaphore } from '@/backend/application/kernel/concurrency/decorators';
 import { SplitChunk, WhisperContext, WhisperContextSchema, WhisperResponse } from '@/common/types/video-info';
 import { ConfigStoreFactory } from '@/backend/application/ports/gateways/ConfigStore';
 import FileUtil from '@/backend/utils/FileUtil';
@@ -232,7 +232,7 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
     /**
      * 调用 Whisper API
      */
-    @WaitLock('whisper')
+    @WithSemaphore('whisper')
     private async whisper(chunk: SplitChunk): Promise<WhisperResponse> {
         const req = this.openAiWhisperGateway.createRequest(chunk.filePath);
         const response = await req.invoke();

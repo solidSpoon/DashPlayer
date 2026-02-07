@@ -5,6 +5,7 @@ import {
     SchedulerProfile,
     SemaphoreProfile,
 } from '@/backend/application/kernel/concurrency/config/ConcurrencyProfiles';
+import { AsyncLocalStorage } from 'async_hooks';
 import {
     CooperativeScheduler,
     createCooperativeScheduler,
@@ -12,7 +13,29 @@ import {
 import { createMutex, Mutex } from '@/backend/application/kernel/concurrency/primitives/Mutex';
 import { createRateLimiter, RateLimiter } from '@/backend/application/kernel/concurrency/primitives/RateLimiter';
 import { createSemaphore, Semaphore } from '@/backend/application/kernel/concurrency/primitives/Semaphore';
-import { AcquireOptions, Permit, SchedulerSnapshot, WaitTurnOptions } from '@/backend/application/kernel/concurrency/types';
+import {
+    AcquireOptions,
+    KernelAcquireOptions,
+    LockOrderViolationError,
+    Permit,
+    SchedulerSnapshot,
+    WaitTurnOptions,
+} from '@/backend/application/kernel/concurrency/types';
+
+type HeldLock = {
+    key: string;
+    order: number;
+};
+
+type ReentrantEntry = {
+    depth: number;
+    basePermit: Permit;
+};
+
+type ConcurrencyContext = {
+    heldLocks: HeldLock[];
+    reentrantPermits: Map<string, ReentrantEntry>;
+};
 
 /**
  * 并发内核对外接口。
@@ -48,13 +71,13 @@ export interface ConcurrencyKernel {
      * @param task 任务函数。
      * @param options 获取许可选项。
      */
-    withSemaphore<T>(key: string, task: () => Promise<T>, options?: AcquireOptions): Promise<T>;
+    withSemaphore<T>(key: string, task: () => Promise<T>, options?: KernelAcquireOptions): Promise<T>;
     /**
      * 获取信号量许可。
      * @param key 信号量键。
      * @param options 获取许可选项。
      */
-    acquire(key: string, options?: AcquireOptions): Promise<Permit>;
+    acquire(key: string, options?: KernelAcquireOptions): Promise<Permit>;
     /**
      * 在互斥锁保护下执行任务。
      * @param key 互斥锁键。
@@ -116,6 +139,20 @@ function mergeProfiles(base: ConcurrencyProfiles, override?: Partial<Concurrency
 }
 
 /**
+ * 返回 key 的顺序值；未配置时使用稳定兜底顺序。
+ * @param key 锁键。
+ * @param orderMap 顺序映射。
+ * @returns 顺序值。
+ */
+function resolveLockOrder(key: string, orderMap: Map<string, number>): number {
+    const configured = orderMap.get(key);
+    if (configured !== undefined) {
+        return configured;
+    }
+    return Number.MAX_SAFE_INTEGER;
+}
+
+/**
  * 创建全局并发内核实例。
  * @param overrideProfiles 可选覆盖配置。
  * @returns 并发内核实例。
@@ -126,6 +163,94 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
     const mutexInstances = new Map<string, Mutex>();
     const rateLimiterInstances = new Map<string, RateLimiter>();
     const schedulerInstances = new Map<string, CooperativeScheduler>();
+    const contextStorage = new AsyncLocalStorage<ConcurrencyContext>();
+    const semaphoreOrder = new Map<string, number>(Object.keys(profiles.semaphore)
+        .sort((a, b) => a.localeCompare(b))
+        .map((key, index) => [key, index]));
+
+    /**
+     * 获取当前调用链上下文；若不存在则初始化。
+     * @returns 调用链上下文。
+     */
+    function getOrCreateContext(): ConcurrencyContext {
+        const existing = contextStorage.getStore();
+        if (existing) {
+            return existing;
+        }
+        const created: ConcurrencyContext = {
+            heldLocks: [],
+            reentrantPermits: new Map(),
+        };
+        contextStorage.enterWith(created);
+        return created;
+    }
+
+    /**
+     * 对信号量获取执行锁顺序校验。
+     * @param key 目标锁键。
+     * @param options 获取选项。
+     */
+    function assertLockOrder(key: string, options?: KernelAcquireOptions): void {
+        if (options?.skipOrderCheck) {
+            return;
+        }
+        const context = getOrCreateContext();
+        const order = resolveLockOrder(key, semaphoreOrder);
+        const currentMaxOrder = context.heldLocks.reduce((maxValue, lock) => Math.max(maxValue, lock.order), -1);
+        if (currentMaxOrder > order) {
+            const heldKeys = context.heldLocks.map((lock) => lock.key).join(', ');
+            throw new LockOrderViolationError(
+                `锁顺序违规：尝试获取 ${key}，当前已持有 [${heldKeys}]，请按预定义顺序获取`,
+            );
+        }
+    }
+
+    /**
+     * 在上下文中登记已持有锁。
+     * @param key 锁键。
+     */
+    function pushHeldLock(key: string): void {
+        const context = getOrCreateContext();
+        context.heldLocks.push({
+            key,
+            order: resolveLockOrder(key, semaphoreOrder),
+        });
+    }
+
+    /**
+     * 在上下文中移除一条已持有锁记录。
+     * @param key 锁键。
+     */
+    function popHeldLock(key: string): void {
+        const context = getOrCreateContext();
+        for (let index = context.heldLocks.length - 1; index >= 0; index--) {
+            if (context.heldLocks[index].key === key) {
+                context.heldLocks.splice(index, 1);
+                return;
+            }
+        }
+    }
+
+    /**
+     * 构造带上下文出栈逻辑的许可包装。
+     * @param key 锁键。
+     * @param permit 底层许可。
+     * @returns 包装许可。
+     */
+    function wrapPermitWithContext(key: string, permit: Permit): Permit {
+        let released = false;
+        pushHeldLock(key);
+        return {
+            release: () => {
+                if (released) {
+                    return;
+                }
+                released = true;
+                popHeldLock(key);
+                permit.release();
+            },
+        };
+    }
 
     /**
      * 读取信号量配置，若缺失则抛错。
@@ -218,12 +343,53 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
             return created;
         },
 
-        withSemaphore<T>(key: string, task: () => Promise<T>, options?: AcquireOptions): Promise<T> {
-            return this.semaphore(key).runExclusive(task, options);
+        async withSemaphore<T>(key: string, task: () => Promise<T>, options?: KernelAcquireOptions): Promise<T> {
+            const permit = await this.acquire(key, options);
+            try {
+                return await task();
+            } finally {
+                permit.release();
+            }
         },
 
-        acquire(key: string, options?: AcquireOptions): Promise<Permit> {
-            return this.semaphore(key).acquire(options);
+        async acquire(key: string, options?: KernelAcquireOptions): Promise<Permit> {
+            const context = getOrCreateContext();
+
+            if (options?.reentrant) {
+                const current = context.reentrantPermits.get(key);
+                if (current) {
+                    current.depth += 1;
+                    pushHeldLock(key);
+                    let released = false;
+                    return {
+                        release: () => {
+                            if (released) {
+                                return;
+                            }
+                            released = true;
+                            popHeldLock(key);
+                            current.depth -= 1;
+                            if (current.depth <= 0) {
+                                context.reentrantPermits.delete(key);
+                                current.basePermit.release();
+                            }
+                        },
+                    };
+                }
+            }
+
+            assertLockOrder(key, options);
+            const permit = await this.semaphore(key).acquire(options);
+            const wrapped = wrapPermitWithContext(key, permit);
+
+            if (options?.reentrant) {
+                context.reentrantPermits.set(key, {
+                    depth: 1,
+                    basePermit: permit,
+                });
+            }
+
+            return wrapped;
         },
 
         withMutex<T>(key: string, task: () => Promise<T>, options?: AcquireOptions): Promise<T> {
@@ -270,4 +436,3 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
         },
     };
 }
-

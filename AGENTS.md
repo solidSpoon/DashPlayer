@@ -33,4 +33,5 @@ Use module and focus-token filters to reduce noise during debugging. Set `DP_LOG
 - This is a personal open-source project. Favor simple, pragmatic designs; avoid over-engineering architecture.
 - Avoid compatibility shims; remove dead/legacy code thoroughly when refactoring.
 - Before implementing new features or refactors, read `docs/architecture-guidelines.md` and follow its file placement/layering rules.
+- 遇到并发控制、限流、让步调度、锁顺序或重入相关需求时（例如 ffmpeg/ffprobe/whisper 任务并发、gpt/tts/tencent 请求限流、视频分析让步调度），先阅读 `docs/concurrency-kernel-usage.md`，按该文档的约定实现。
 - If you notice a potential new guideline worth adding to this file, ask before adding it.

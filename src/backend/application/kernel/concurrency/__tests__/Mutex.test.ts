@@ -5,7 +5,7 @@ import {
 } from '@/backend/application/kernel/concurrency/types';
 import { createMutex } from '@/backend/application/kernel/concurrency/primitives/Mutex';
 
-describe('Mutex', () => {
+describe('互斥锁行为', () => {
     it('同一时刻只允许一个任务进入临界区', async () => {
         const mutex = createMutex({ name: 'single' });
         let active = 0;
@@ -53,4 +53,3 @@ describe('Mutex', () => {
         expect(mutex.snapshot().locked).toBe(false);
     });
 });
-

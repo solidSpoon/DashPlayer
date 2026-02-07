@@ -3,7 +3,7 @@ import fs from 'fs';
 import OpenAI from 'openai';
 
 import { Cancelable } from '@/common/interfaces';
-import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 import { WhisperResponse, WhisperResponseVerifySchema } from '@/common/types/video-info';
 
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -20,7 +20,7 @@ class OpenAiWhisperRequest implements Cancelable {
         this.openAi = openAi;
     }
 
-    @WaitRateLimit('whisper')
+    @WithRateLimit('whisper')
     public async invoke(): Promise<WhisperResponse> {
         this.cancel();
         const transcription = await this.doTranscription();

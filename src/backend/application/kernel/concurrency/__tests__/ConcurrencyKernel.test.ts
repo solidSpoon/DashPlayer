@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { createConcurrencyKernel } from '@/backend/application/kernel/concurrency/ConcurrencyKernel';
+import { LockOrderViolationError } from '@/backend/application/kernel/concurrency/types';
 
-describe('ConcurrencyKernel', () => {
+describe('并发内核门面', () => {
     it('应按 key 复用同一个信号量实例', () => {
         const kernel = createConcurrencyKernel();
         const first = kernel.semaphore('ffmpeg');
@@ -50,5 +51,28 @@ describe('ConcurrencyKernel', () => {
         expect(() => kernel.rateLimiter('unknown')).toThrow('未找到 rateLimiter 配置');
         expect(() => kernel.scheduler('unknown')).toThrow('未找到 scheduler 配置');
     });
-});
 
+    it('同调用链启用重入时应允许重复获取同一把锁', async () => {
+        const kernel = createConcurrencyKernel();
+
+        await kernel.withSemaphore('ffmpeg', async () => {
+            await kernel.withSemaphore('ffmpeg', async () => {
+                return;
+            }, { reentrant: true });
+        }, { reentrant: true });
+
+        expect(kernel.snapshot().semaphore.ffmpeg.inUse).toBe(0);
+    });
+
+    it('锁顺序逆序获取应抛出违规错误', async () => {
+        const kernel = createConcurrencyKernel();
+
+        await expect(
+            kernel.withSemaphore('whisper', async () => {
+                await kernel.withSemaphore('ffmpeg', async () => {
+                    return;
+                });
+            }),
+        ).rejects.toBeInstanceOf(LockOrderViolationError);
+    });
+});

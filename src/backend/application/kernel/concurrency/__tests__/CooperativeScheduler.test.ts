@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createCooperativeScheduler } from '@/backend/application/kernel/concurrency/primitives/CooperativeScheduler';
 
-describe('CooperativeScheduler', () => {
+describe('合作式调度器', () => {
     it('超过时间片预算时应发生让步', async () => {
         let now = 0;
         const sleeper = vi.fn(async () => {
@@ -72,4 +72,3 @@ describe('CooperativeScheduler', () => {
         expect(sleeper).toHaveBeenCalled();
     });
 });
-

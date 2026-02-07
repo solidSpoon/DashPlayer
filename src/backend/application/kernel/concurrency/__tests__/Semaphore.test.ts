@@ -6,7 +6,7 @@ import {
 } from '@/backend/application/kernel/concurrency/types';
 import { createSemaphore } from '@/backend/application/kernel/concurrency/primitives/Semaphore';
 
-describe('Semaphore', () => {
+describe('信号量并发控制', () => {
     it('达到并发上限后应进入等待队列并按 FIFO 唤醒', async () => {
         const semaphore = createSemaphore({ capacity: 1, name: 'fifo' });
         const first = await semaphore.acquire();
@@ -155,4 +155,3 @@ describe('Semaphore', () => {
         expect(spy).toHaveBeenCalledTimes(1);
     });
 });
-

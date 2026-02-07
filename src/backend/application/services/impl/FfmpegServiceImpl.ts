@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { WaitLock } from '@/common/utils/Lock';
+import { WithSemaphore } from '@/backend/application/kernel/concurrency/decorators';
 import path from 'path';
 import fs from 'fs';
 import TYPES from '@/backend/ioc/types';
@@ -26,7 +26,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 分割视频。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async splitVideo({
                                 inputFile,
                                 startSecond,
@@ -49,7 +49,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 按时间点分割视频。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async splitVideoByTimes({
                                        inputFile,
                                        times,
@@ -75,7 +75,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 获取视频时长。
      */
-    @WaitLock('ffprobe')
+    @WithSemaphore('ffprobe')
     public async duration(filePath: string): Promise<number> {
         return await this.ffmpegGateway.duration(filePath);
     }
@@ -83,7 +83,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 获取视频信息。
      */
-    @WaitLock('ffprobe')
+    @WithSemaphore('ffprobe')
     public async getVideoInfo(filePath: string): Promise<VideoInfo> {
         return await this.ffmpegGateway.getVideoInfo(filePath);
     }
@@ -91,7 +91,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 生成缩略图。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async thumbnail({
                                inputFile,
                                outputFileName,
@@ -146,7 +146,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 分割为音频文件。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async splitToAudio({
                                   taskId,
                                   inputFile,
@@ -191,7 +191,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 转换为 MP4。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async toMp4({
                            inputFile,
                            onProgress,
@@ -213,7 +213,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * MKV 转 MP4。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async mkvToMp4({
                               taskId,
                               inputFile,
@@ -249,7 +249,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 提取字幕。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async extractSubtitles({
                                       taskId,
                                       inputFile,
@@ -290,7 +290,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 裁剪视频。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async trimVideo(
         inputPath: string,
         startTime: number,
@@ -314,7 +314,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 转换音频文件为 WAV 格式（强制 16kHz、单声道、16-bit PCM）。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async convertToWav(inputPath: string, outputPath: string): Promise<void> {
         await this.ffmpegGateway.convertToWav({
             inputFile: inputPath,
@@ -327,7 +327,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 裁剪音频（按时间，转码为 MP3 以保证兼容）。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async trimAudio(
         inputPath: string,
         startTime: number,
@@ -352,7 +352,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
     /**
      * 基于时间线批量切段音频。
      */
-    @WaitLock('ffmpeg')
+    @WithSemaphore('ffmpeg')
     public async splitAudioByTimeline(args: {
         inputFile: string,
         ranges: Array<{ start: number, end: number }>,

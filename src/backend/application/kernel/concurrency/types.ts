@@ -13,6 +13,20 @@ export interface AcquireOptions {
 }
 
 /**
+ * 并发内核获取许可时的扩展选项。
+ */
+export interface KernelAcquireOptions extends AcquireOptions {
+    /**
+     * 是否启用同调用链重入；启用后同 key 再次进入不会重复占用底层许可。
+     */
+    reentrant?: boolean;
+    /**
+     * 是否跳过锁顺序校验，仅用于极少数受控场景。
+     */
+    skipOrderCheck?: boolean;
+}
+
+/**
  * 速率限制等待时的通用选项。
  */
 export interface WaitTurnOptions {
@@ -211,3 +225,16 @@ export class ConcurrencyCancelledError extends Error {
     }
 }
 
+/**
+ * 锁顺序违规错误。
+ */
+export class LockOrderViolationError extends Error {
+    /**
+     * 构造锁顺序违规错误。
+     * @param message 错误描述。
+     */
+    public constructor(message: string) {
+        super(message);
+        this.name = 'LockOrderViolationError';
+    }
+}

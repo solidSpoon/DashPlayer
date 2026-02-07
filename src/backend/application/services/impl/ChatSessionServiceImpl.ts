@@ -8,7 +8,7 @@ import ChatSessionService from '@/backend/application/services/ChatSessionServic
 import { ChatBackgroundContext, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
-import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 import {
     appendBackgroundMessage,
     buildAnalysisPrompt,
@@ -25,7 +25,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
         const sessionId = params.sessionId;
@@ -62,7 +62,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         return { messageId };
     }
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult> {
         const messageId = this.createMessageId();
         const sessionId = params.sessionId;
@@ -99,7 +99,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         return { messageId };
     }
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async start(
         sessionId: string,
         messages: ModelMessage[],

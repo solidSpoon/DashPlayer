@@ -32,7 +32,7 @@ import { ClipVocabularyEntry, VideoLearningClipVO, VideoLearningClipPage } from 
 import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { WordMatchService, MatchedWord } from '@/backend/application/services/WordMatchService';
 import { SrtSentence } from '@/common/types/SentenceC';
-import Lock from '@/common/utils/Lock';
+import { concurrency } from '@/backend/application/kernel/concurrency';
 
 type SrtCache = SrtSentence;
 
@@ -99,6 +99,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private clipStatusSeq: Map<string, number> = new Map();
     private currentAnalysisKey: string | null = null;
     private readonly maxClipTasksPerTick = 1;
+    private readonly analysisScheduler = concurrency.scheduler('default');
 
     private getSrtFromCache(srtKey: string): SrtCache | null {
         return (this.cacheService.get('cache:srt', srtKey) as SrtCache) ?? null;
@@ -112,7 +113,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const resolvedSrtPath = srt.filePath || srtPath || undefined;
 
-        const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath, yieldMs: 20 });
+        const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath });
 
         if (candidates.length === 0) {
             await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
@@ -228,8 +229,9 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             return;
         }
 
-        const ffprobeStatus = Lock.status('ffprobe');
-        const ffmpegStatus = Lock.status('ffmpeg');
+        const concurrencySnapshot = concurrency.snapshot();
+        const ffprobeStatus = concurrencySnapshot.semaphore.ffprobe ?? { waiting: 0 };
+        const ffmpegStatus = concurrencySnapshot.semaphore.ffmpeg ?? { waiting: 0 };
         if (ffprobeStatus.waiting > 0 || ffmpegStatus.waiting > 0) {
             return;
         }
@@ -359,7 +361,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private async collectClipCandidates(
         _videoPath: string,
         srtKey: string,
-        options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string; yieldMs?: number }
+        options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string }
     ): Promise<ClipCandidate[]> {
         const analysisKey = this.mapAnalysisKey(srtKey);
 
@@ -379,7 +381,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 throw new Error(ErrorConstants.CACHE_NOT_FOUND);
             }
 
-            const yieldMs = options?.yieldMs ?? 0;
+            this.analysisScheduler.beginFrame();
             const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
             const contents = srtLines.map((line) => (line?.contentEn || '').toLowerCase());
 
@@ -443,7 +445,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     await options.onProgress(progress);
                 }
 
-                await new Promise((resolve) => setTimeout(resolve, yieldMs));
+                await this.analysisScheduler.yieldIfNeeded();
             }
 
             const candidates: ClipCandidate[] = [];
@@ -988,7 +990,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
             },
             srtPath,
-            yieldMs: 20,
             })
             .then(async (candidates) => {
                 if (this.currentAnalysisKey !== analysisKey) {
