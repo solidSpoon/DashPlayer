@@ -10,6 +10,8 @@ import zhErrors from '@/fronted/i18n/locales/zh-CN/errors.json';
 import enErrors from '@/fronted/i18n/locales/en-US/errors.json';
 import zhPlayer from '@/fronted/i18n/locales/zh-CN/player.json';
 import enPlayer from '@/fronted/i18n/locales/en-US/player.json';
+import zhPages from '@/fronted/i18n/locales/zh-CN/pages.json';
+import enPages from '@/fronted/i18n/locales/en-US/pages.json';
 
 export type AppLocale = 'zh-CN' | 'en-US';
 export type AppLanguageSetting = 'system' | AppLocale;
@@ -23,6 +25,7 @@ export const resources = {
         toast: zhToast,
         errors: zhErrors,
         player: zhPlayer,
+        pages: zhPages,
     },
     'en-US': {
         nav: enNav,
@@ -30,6 +33,7 @@ export const resources = {
         toast: enToast,
         errors: enErrors,
         player: enPlayer,
+        pages: enPages,
     },
 };
 
@@ -82,7 +86,7 @@ void i18n
         interpolation: {
             escapeValue: false,
         },
-        ns: ['nav', 'settings', 'toast', 'errors', 'player'],
+        ns: ['nav', 'settings', 'toast', 'errors', 'player', 'pages'],
         defaultNS: 'settings',
         returnNull: false,
         debug: import.meta.env.DEV,

@@ -16,6 +16,10 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/fronted/components/ui/pagination';
+import { Button } from '@/fronted/components/ui/button';
+import toast from 'react-hot-toast';
+import PageHeader from '@/fronted/components/shared/common/PageHeader';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface WordItem {
   id: number;
@@ -46,6 +50,7 @@ const DEFAULT_LEARNING_RESPONSE: { success: true; data: VideoLearningClipPage } 
 };
 
 export default function VideoLearningPage() {
+  const { t } = useI18nTranslation('pages');
   const [selectedWord, setSelectedWord] = useState<WordItem | null>(null);
   const [words, setWords] = useState<WordItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -82,6 +87,7 @@ export default function VideoLearningPage() {
     return [];
   }, [learningClips]);
   const totalClips = learningClips?.success ? learningClips.data.total : 0;
+
   const totalPages = totalClips > 0 ? Math.ceil(totalClips / PAGE_SIZE) : 1;
   const loadedPage = learningClips?.success ? learningClips.data.page : page;
   const displayedPage = page;
@@ -246,6 +252,31 @@ export default function VideoLearningPage() {
     }
   }, []);
 
+  /**
+   * 从本地 Vocabulary Studio 文件夹重建片段索引。
+   *
+   * 行为说明：
+   * - 以 `word_video` 目录内元数据为准回灌数据库。
+   * - 完成后刷新词汇与片段列表。
+   */
+  const recoverVocabularyStudio = useCallback(async (): Promise<void> => {
+    await toast.promise(
+      (async () => {
+        const result = await backendClient.call('video-learning/sync-from-oss');
+        if (!result?.success) {
+          throw new Error('sync failed');
+        }
+        await mutate(searchKey);
+        await fetchWords();
+      })(),
+      {
+        loading: t('vocabularyStudio.recover.loading'),
+        success: t('vocabularyStudio.recover.success'),
+        error: t('vocabularyStudio.recover.error'),
+      }
+    );
+  }, [fetchWords, mutate, searchKey, t]);
+
   // 导出模板
   const exportTemplate = useCallback(async () => {
     try {
@@ -401,17 +432,11 @@ export default function VideoLearningPage() {
   }, [handlePageChange, setSelectedWord]);
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 pt-12 pb-6 gap-6 text-foreground">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-semibold leading-tight">Vocabulary Clip</h1>
-            <p className="text-sm text-muted-foreground">
-              聚焦生词视频片段，快速定位并回看关键句子
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 py-4 gap-4 text-foreground">
+      <PageHeader
+        title={t('vocabularyStudio.title')}
+        description={t('vocabularyStudio.description')}
+      />
 
       {/* 主体内容区域 */}
       <div className="flex-1 flex gap-6 overflow-hidden">
@@ -431,22 +456,41 @@ export default function VideoLearningPage() {
 
         <div className="flex-1 flex flex-col gap-4 min-h-0">
           <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card/80 shadow-sm backdrop-blur p-4">
-            <ClipGrid
-              clips={clips}
-              playingKey={playingKey}
-              thumbnails={thumbnailUrls}
-              onClickClip={(idx) => {
-                playClip(idx);
-              }}
-              ensureThumbnails={ensureThumbnails}
-            />
+            {clips.length === 0 ? (
+              <div className="h-full w-full rounded-xl border border-dashed border-border p-8 flex flex-col gap-4 items-start justify-center">
+                <h3 className="text-xl font-semibold">{t('vocabularyStudio.empty.title')}</h3>
+                <p className="text-sm text-muted-foreground leading-6">
+                  {t('vocabularyStudio.empty.guideAdd')}
+                </p>
+                <p className="text-sm text-muted-foreground leading-6">
+                  {t('vocabularyStudio.empty.guideRecover')}
+                </p>
+                <Button type="button" variant="outline" onClick={recoverVocabularyStudio}>
+                  {t('vocabularyStudio.recover.button')}
+                </Button>
+              </div>
+            ) : (
+              <ClipGrid
+                clips={clips}
+                playingKey={playingKey}
+                thumbnails={thumbnailUrls}
+                onClickClip={(idx) => {
+                  playClip(idx);
+                }}
+                ensureThumbnails={ensureThumbnails}
+              />
+            )}
           </div>
           <div className="rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
             <div className="flex flex-nowrap items-center justify-between gap-3">
               <div className="text-sm text-muted-foreground tabular-nums">
                 {totalClips > 0
-                  ? `显示第 ${clipRangeStart}-${clipRangeEnd} 个片段，共 ${totalClips} 个`
-                  : '暂无视频片段'}
+                  ? t('vocabularyStudio.pagination.summary', {
+                    start: clipRangeStart,
+                    end: clipRangeEnd,
+                    total: totalClips,
+                  })
+                  : t('vocabularyStudio.pagination.empty')}
               </div>
               <Pagination className="ml-auto w-auto tabular-nums">
                 <PaginationContent>

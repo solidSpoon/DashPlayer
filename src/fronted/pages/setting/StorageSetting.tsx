@@ -4,13 +4,10 @@ import { Button } from '@/fronted/components/ui/button';
 import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
 import { cn } from '@/fronted/lib/utils';
 import { FolderOpen } from 'lucide-react';
-import Combobox from '@/fronted/pages/setting/components/form/Combobox';
-import useSWR from 'swr';
-import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
+import { swrApiMutate } from '@/fronted/lib/swr-util';
 import { Label } from '@/fronted/components/ui/label';
 import useFile from '@/fronted/hooks/useFile';
 import toast from 'react-hot-toast';
-import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
@@ -202,8 +199,6 @@ const StorageSetting = () => {
         await api.call('system/open-folder/cache');
     };
 
-    const { data: collectionPaths } = useSWR(apiPath('storage/collection/paths'), (url) => api.call(url));
-
     const canSyncCollections = !formState.isDirty && autoSaveStatus !== 'saving';
 
     return (
@@ -280,20 +275,10 @@ const StorageSetting = () => {
                     <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
                         <Label>{t('storage.switchCollection')}</Label>
                         <div className="flex gap-2">
-                            <Controller
-                                name="collection"
-                                control={control}
-                                render={({ field }) => (
-                                    <Combobox
-                                        options={collectionPaths?.map((p) => ({ value: p, label: p })) ?? []}
-                                        value={field.value ?? ''}
-                                        onSelect={(value) => {
-                                            if (StrUtil.isNotBlank(value)) {
-                                                field.onChange(value);
-                                            }
-                                        }}
-                                    />
-                                )}
+                            <Input
+                                value="default"
+                                readOnly
+                                className="w-48"
                             />
                             <TooltipProvider>
                                 <Tooltip>

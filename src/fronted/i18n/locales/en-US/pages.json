@@ -1,0 +1,49 @@
+{
+    "savedMoments": {
+        "title": "Saved Moments",
+        "description": "Manage and revisit the clips you marked as important",
+        "recover": {
+            "loading": "Restoring Saved Moments from local files...",
+            "success": "Saved Moments restored successfully",
+            "error": "Restore failed. Please try again later.",
+            "button": "Restore Saved Moments from local"
+        },
+        "empty": {
+            "title": "No Saved Moments yet",
+            "guideAdd": "Use \"Add favorite clip\" in the player to save the current sentence, then manage and replay it here.",
+            "guideRecover": "If local files already exist but this list is empty, use the button below to rebuild the index from local storage."
+        }
+    },
+    "vocabularyStudio": {
+        "title": "Vocabulary Studio",
+        "description": "Focus on vocabulary clips and quickly revisit key contexts",
+        "recover": {
+            "loading": "Restoring Vocabulary Studio clips from local files...",
+            "success": "Vocabulary Studio clips restored successfully",
+            "error": "Restore failed. Please try again later.",
+            "button": "Restore Vocabulary Studio clips from local"
+        },
+        "empty": {
+            "title": "No Vocabulary Studio clips yet",
+            "guideAdd": "Use vocabulary clipping in the player to generate study clips that contain your target words, then review them here.",
+            "guideRecover": "If word_video files already exist but this page is empty, use the button below to rebuild records from local storage."
+        },
+        "pagination": {
+            "summary": "Showing clips {{start}}-{{end}} of {{total}}",
+            "empty": "No clips yet"
+        }
+    },
+    "formatConverter": {
+        "title": "Generate compatible playback versions",
+        "description": "Fix silent or unplayable media by converting to a more compatible format"
+    },
+    "sentenceSplitter": {
+        "title": "Split long videos",
+        "description": "Split long videos and subtitles into smaller segments by timestamps"
+    },
+    "subtitleWorkspace": {
+        "title": "Subtitle transcription",
+        "description": "Generate subtitles for videos with AI speech recognition"
+    }
+}
+

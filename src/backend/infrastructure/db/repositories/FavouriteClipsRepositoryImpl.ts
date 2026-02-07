@@ -51,36 +51,47 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             });
     }
 
+    /**
+     * 删除指定片段，并清理不再被任何片段引用的标签。
+     *
+     * 注意：better-sqlite3 使用同步事务，事务回调不可返回 Promise。
+     * @param clipKey 片段 key。
+     */
     public async deleteClipAndPruneTags(clipKey: string): Promise<void> {
-        await db.transaction(async (tx) => {
-            const tagIds: { tag_id: number | null }[] = await tx
+        await db.transaction((tx) => {
+            const tagIds: { tag_id: number | null }[] = tx
                 .select({ tag_id: clipTagRelation.tag_id })
                 .from(clipTagRelation)
                 .where(eq(clipTagRelation.clip_key, clipKey));
 
-            await tx.delete(clipTagRelation).where(eq(clipTagRelation.clip_key, clipKey));
-            await tx.delete(videoClip).where(eq(videoClip.key, clipKey));
+            tx.delete(clipTagRelation).where(eq(clipTagRelation.clip_key, clipKey));
+            tx.delete(videoClip).where(eq(videoClip.key, clipKey));
 
             for (const { tag_id } of tagIds) {
                 if (!tag_id) {
                     continue;
                 }
-                const r = await tx
+                const r = tx
                     .select({ c: count() })
                     .from(clipTagRelation)
                     .where(eq(clipTagRelation.tag_id, tag_id));
                 if ((r[0]?.c ?? 0) === 0) {
-                    await tx.delete(tag).where(eq(tag.id, tag_id));
+                    tx.delete(tag).where(eq(tag.id, tag_id));
                 }
             }
         });
     }
 
+    /**
+     * 清空收藏相关表数据。
+     *
+     * 注意：better-sqlite3 使用同步事务，事务回调不可返回 Promise。
+     */
     public async deleteAll(): Promise<void> {
-        await db.transaction(async (tx) => {
-            await tx.delete(videoClip).where(sql`1=1`);
-            await tx.delete(clipTagRelation).where(sql`1=1`);
-            await tx.delete(tag).where(sql`1=1`);
+        await db.transaction((tx) => {
+            tx.delete(videoClip).where(sql`1=1`);
+            tx.delete(clipTagRelation).where(sql`1=1`);
+            tx.delete(tag).where(sql`1=1`);
         });
     }
 
@@ -191,20 +202,27 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             .onConflictDoNothing();
     }
 
+    /**
+     * 删除片段与标签关系，并在标签无引用时回收标签。
+     *
+     * 注意：better-sqlite3 使用同步事务，事务回调不可返回 Promise。
+     * @param clipKey 片段 key。
+     * @param tagId 标签 id。
+     */
     public async deleteClipTagAndPruneTag(clipKey: string, tagId: number): Promise<void> {
-        await db.transaction(async (tx) => {
-            await tx.delete(clipTagRelation).where(
+        await db.transaction((tx) => {
+            tx.delete(clipTagRelation).where(
                 and(
                     eq(clipTagRelation.clip_key, clipKey),
                     eq(clipTagRelation.tag_id, tagId),
                 ),
             );
-            const r = await tx
+            const r = tx
                 .select({ c: count() })
                 .from(clipTagRelation)
                 .where(eq(clipTagRelation.tag_id, tagId));
             if ((r[0]?.c ?? 0) === 0) {
-                await tx.delete(tag).where(eq(tag.id, tagId));
+                tx.delete(tag).where(eq(tag.id, tagId));
             }
         });
     }
@@ -224,4 +242,3 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             .filter((k): k is string => k !== null);
     }
 }
-

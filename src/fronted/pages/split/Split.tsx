@@ -1,5 +1,4 @@
 import { cn } from '@/fronted/lib/utils';
-import Separator from '@/fronted/components/shared/common/Separator';
 import React, { useEffect } from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { Textarea } from '@/fronted/components/ui/textarea';
@@ -15,6 +14,8 @@ import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { AllFormats } from '@/common/utils/MediaUtil';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import PageHeader from '@/fronted/components/shared/common/PageHeader';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 
@@ -26,6 +27,7 @@ const example = `
 `;
 
 const Split = () => {
+    const { t } = useI18nTranslation('pages');
     const {
         userInput,
         setUseInput,
@@ -61,18 +63,13 @@ const Split = () => {
     return (
         <div
             className={cn(
-                'w-full h-full flex flex-col overflow-hidden select-none bg-background p-6 pt-12 text-foreground'
+                'w-full h-full flex flex-col overflow-hidden select-none bg-background px-6 py-4 text-foreground'
             )}
         >
-            <div className={cn('p-4')}>
-                <h1 className={cn('text-4xl font-bold font-serif')}>
-                    Split Long Video
-                </h1>
-                <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                    Split long video & subtitle files into smaller parts
-                </h2>
-                <Separator orientation="horizontal" className="px-0" />
-            </div>
+            <PageHeader
+                title={t('sentenceSplitter.title')}
+                description={t('sentenceSplitter.description')}
+            />
             <div className={cn('grid grid-rows-3 grid-cols-2 gap-2 gap-x-20 w-full h-0 flex-1 px-10 pr-16')}
                  style={{
                      gridTemplateRows: '1fr auto auto',

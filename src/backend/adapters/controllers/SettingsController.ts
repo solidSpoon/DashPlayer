@@ -67,9 +67,16 @@ export default class SettingsController implements Controller {
         }
     }
 
+    /**
+     * 更新存储设置。
+     *
+     * 约束说明：
+     * - 收藏集合固定使用 `default`，不再允许外部自定义集合名。
+     * - `params.collection` 会被忽略，仅保留以兼容现有 IPC 参数结构。
+     */
     public async updateStorageSettings(params: { path: string; collection: string }): Promise<void> {
         await this.settingsKeyValueService.set('storage.path', params.path);
-        await this.settingsKeyValueService.set('storage.collection', params.collection);
+        await this.settingsKeyValueService.set('storage.collection', 'default');
     }
 
     public async updateTranslationSettings(params: {

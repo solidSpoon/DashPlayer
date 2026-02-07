@@ -1,0 +1,49 @@
+{
+    "savedMoments": {
+        "title": "收藏时刻",
+        "description": "统一管理和回看你保存的重点片段",
+        "recover": {
+            "loading": "正在从本地恢复收藏时刻...",
+            "success": "收藏时刻恢复完成",
+            "error": "恢复失败，请稍后重试",
+            "button": "从本地恢复收藏时刻"
+        },
+        "empty": {
+            "title": "还没有收藏时刻",
+            "guideAdd": "你可以在播放器中使用“添加收藏片段”把当前句子加入收藏，之后会在这里统一管理与回看。",
+            "guideRecover": "如果你已经有本地文件但列表为空，可点击下面按钮从本地文件夹重新恢复索引。"
+        }
+    },
+    "vocabularyStudio": {
+        "title": "词汇工坊",
+        "description": "聚焦生词片段，快速定位并回看关键语境",
+        "recover": {
+            "loading": "正在从本地恢复词汇工坊片段...",
+            "success": "词汇工坊片段恢复完成",
+            "error": "恢复失败，请稍后重试",
+            "button": "从本地恢复词汇工坊片段"
+        },
+        "empty": {
+            "title": "还没有词汇工坊片段",
+            "guideAdd": "你可以在播放器中使用词汇裁切功能，自动生成包含目标单词的学习片段，并在这里集中复习。",
+            "guideRecover": "如果本地已有 word_video 文件但页面为空，可点击下面按钮从本地重新恢复记录。"
+        },
+        "pagination": {
+            "summary": "显示第 {{start}}-{{end}} 个片段，共 {{total}} 个",
+            "empty": "暂无视频片段"
+        }
+    },
+    "formatConverter": {
+        "title": "生成兼容播放版本",
+        "description": "解决无声或无法播放等问题（必要时仅转音频，并尝试提取字幕）"
+    },
+    "sentenceSplitter": {
+        "title": "切分长视频",
+        "description": "将长视频与字幕按时间点拆分为更小片段"
+    },
+    "subtitleWorkspace": {
+        "title": "字幕转录",
+        "description": "使用 AI 语音识别为视频自动生成字幕"
+    }
+}
+

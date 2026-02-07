@@ -90,28 +90,28 @@
         "occupiedSpace": "Storage used",
         "libraryPathTitle": "Storage path (Library Path)",
         "libraryPathDescription": "After changing storage path, fully quit DashPlayer and relaunch it.",
-        "switchCollection": "Switch collection",
+        "switchCollection": "Saved Moments folder",
         "saveSettingsFailed": "Failed to save settings. Please try again later: {{message}}",
         "syncWordClipsFailed": "Failed to sync word-learning clips. Please try again later.",
         "collectionSync": {
-            "loading": "Loading local collections...",
-            "success": "Local collections synced successfully.",
-            "error": "Failed to sync local collections.",
-            "button": "Resync collection data",
-            "tooltipTitle": "Resync collection data",
-            "tooltipDescription": "Sync data from this folder into DashPlayer. If data looks inconsistent, try this action first."
+            "loading": "Syncing Saved Moments...",
+            "success": "Saved Moments synced successfully.",
+            "error": "Failed to sync Saved Moments.",
+            "button": "Resync Saved Moments",
+            "tooltipTitle": "Resync Saved Moments",
+            "tooltipDescription": "Rebuild the Saved Moments index from local files when items look missing or inconsistent."
         },
-        "collectionHint": "Subfolders under favourite_clips are treated as collections. Create additional subfolders there when needed.",
-        "wordClipsTitle": "Word-learning clips",
+        "collectionHint": "Saved Moments are fixed to favourite_clips/default. Switching collection names is no longer supported.",
+        "wordClipsTitle": "Vocabulary Studio clips",
         "wordClipsSync": {
-            "loading": "Syncing word-learning clips...",
-            "success": "Word-learning clips synced successfully.",
-            "error": "Failed to sync word-learning clips.",
-            "button": "Resync word-learning data",
-            "tooltipTitle": "Resync word-learning data",
-            "tooltipDescription": "Re-import auto-matched clips from the word_video folder into the database when data is missing or abnormal."
+            "loading": "Syncing Vocabulary Studio clips...",
+            "success": "Vocabulary Studio clips synced successfully.",
+            "error": "Failed to sync Vocabulary Studio clips.",
+            "button": "Resync Vocabulary Studio",
+            "tooltipTitle": "Resync Vocabulary Studio",
+            "tooltipDescription": "Rebuild Vocabulary Studio clip records from the word_video folder when data is missing or abnormal."
         },
-        "wordClipsHint": "The word_video folder stores auto-matched vocabulary clips. Re-import from here if database records are missing."
+        "wordClipsHint": "Vocabulary Studio clips are stored under word_video. Use this action to rebuild database records when needed."
     },
     "youdao": {
         "title": "Dictionary Lookup",

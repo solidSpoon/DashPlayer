@@ -90,28 +90,28 @@
         "occupiedSpace": "占用空间",
         "libraryPathTitle": "存储路径（Library Path）",
         "libraryPathDescription": "切换存储路径后请完全退出 DashPlayer 并重新打开。",
-        "switchCollection": "切换收藏夹",
+        "switchCollection": "收藏时刻文件夹",
         "saveSettingsFailed": "保存设置失败，请稍后重试：{{message}}",
         "syncWordClipsFailed": "同步单词管理片段失败，请稍后再试。",
         "collectionSync": {
-            "loading": "正在加载本地收藏夹",
-            "success": "本地收藏夹加载成功",
-            "error": "本地收藏夹加载失败",
-            "button": "重新同步收藏夹数据",
-            "tooltipTitle": "重新同步收藏夹数据",
-            "tooltipDescription": "将该文件夹中的数据同步到 DashPlayer 中，遇到问题可以尝试使用此功能。"
+            "loading": "正在同步收藏时刻...",
+            "success": "收藏时刻同步成功",
+            "error": "收藏时刻同步失败",
+            "button": "重新同步收藏时刻",
+            "tooltipTitle": "重新同步收藏时刻",
+            "tooltipDescription": "当条目缺失或显示异常时，可从本地文件重新构建收藏时刻索引。"
         },
-        "collectionHint": "favourite_clips 文件夹下的子文件夹会被视为收藏夹，如有需求你可以在该文件夹下创建新的收藏夹。",
-        "wordClipsTitle": "单词管理片段",
+        "collectionHint": "收藏时刻固定保存到 favourite_clips/default，当前版本不支持切换名称。",
+        "wordClipsTitle": "词汇工坊片段",
         "wordClipsSync": {
-            "loading": "正在同步单词管理片段",
-            "success": "单词管理片段已同步",
-            "error": "同步单词管理片段失败",
-            "button": "重新同步单词管理数据",
-            "tooltipTitle": "重新同步单词管理数据",
-            "tooltipDescription": "将 word_video 文件夹中的自动匹配片段重新写入数据库，数据丢失或异常时可尝试使用。"
+            "loading": "正在同步词汇工坊片段...",
+            "success": "词汇工坊片段同步成功",
+            "error": "词汇工坊片段同步失败",
+            "button": "重新同步词汇工坊",
+            "tooltipTitle": "重新同步词汇工坊",
+            "tooltipDescription": "当数据丢失或异常时，可从 word_video 文件夹重新构建词汇工坊片段记录。"
         },
-        "wordClipsHint": "word_video 文件夹保存生词自动匹配生成的片段，数据库缺失时可在此重新写入。"
+        "wordClipsHint": "词汇工坊片段存储在 word_video 目录，需要时可在此重建数据库记录。"
     },
     "youdao": {
         "title": "查单词",
