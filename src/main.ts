@@ -6,9 +6,9 @@ import fs from 'fs';
 import path from 'path';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
-import runMigrate from '@/backend/infrastructure/db/migrate';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
+import runStartupMigrations from '@/backend/startup/runStartupMigrations';
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
@@ -129,7 +129,7 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-    await runMigrate();
+    await runStartupMigrations();
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     createWindow();

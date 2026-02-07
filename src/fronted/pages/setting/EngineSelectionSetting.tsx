@@ -42,9 +42,9 @@ const EngineSelectionSetting = () => {
                 subtitleTranslationMode: 'zh',
                 subtitleCustomStyle: getSubtitleDefaultStyle('custom'),
                 featureModels: {
-                    sentenceLearning: 'gpt-4o-mini',
-                    subtitleTranslation: 'gpt-4o-mini',
-                    dictionary: 'gpt-4o-mini',
+                    sentenceLearning: 'gpt-5.2',
+                    subtitleTranslation: 'gpt-5.2',
+                    dictionary: 'gpt-5.2',
                 },
             },
             providers: {
@@ -77,7 +77,7 @@ const EngineSelectionSetting = () => {
     const transcriptionEngine = watch('providers.transcriptionEngine');
     const availableModels = credentialSettings?.openai.models?.length
         ? credentialSettings.openai.models
-        : ['gpt-4o-mini'];
+        : ['gpt-5.2'];
 
     const whisperSelectedModelSize = credentialSettings?.whisper.modelSize === 'large' ? 'large' : 'base';
     const whisperModelReady = whisperStatus?.whisper?.[whisperSelectedModelSize]?.exists === true;

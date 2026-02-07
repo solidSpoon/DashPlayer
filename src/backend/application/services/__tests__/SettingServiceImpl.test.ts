@@ -28,7 +28,6 @@ describe('SettingServiceImpl', () => {
     let store: Map<SettingKey, string>;
     let mutableService: {
         rendererEvents: { storeUpdate: ReturnType<typeof vi.fn> };
-        systemConfigService: { getValue: ReturnType<typeof vi.fn> };
         settingsStore: {
             get: (key: SettingKey) => string;
             set: (key: SettingKey, value: string) => boolean;
@@ -41,9 +40,6 @@ describe('SettingServiceImpl', () => {
         mutableService = service as unknown as typeof mutableService;
 
         mutableService.rendererEvents = { storeUpdate: vi.fn() };
-        mutableService.systemConfigService = {
-            getValue: vi.fn().mockResolvedValue('legacy style'),
-        };
         mutableService.settingsStore = {
             get: vi.fn((key: SettingKey) => store.get(key) ?? SettingKeyObj[key]),
             set: vi.fn((key: SettingKey, value: string) => {
@@ -59,21 +55,13 @@ describe('SettingServiceImpl', () => {
         vi.spyOn(fs, 'existsSync').mockReturnValue(true);
     });
 
-    it('migrates legacy keys into provider keys once', async () => {
-        store.set('subtitleTranslation.engine', 'tencent');
-        store.set('dictionary.engine', 'youdao');
-        store.set('transcription.engine', 'whisper');
-
+    it('keeps migrateProviderSettings as no-op for compatibility', async () => {
         await service.migrateProviderSettings();
 
-        expect(mutableService.settingsStore.get('providers.subtitleTranslation')).toBe('tencent');
-        expect(mutableService.settingsStore.get('providers.dictionary')).toBe('youdao');
-        expect(mutableService.settingsStore.get('providers.transcription')).toBe('whisper');
-        expect(mutableService.settingsStore.get('settings.providers.migrated')).toBe('true');
+        expect(mutableService.settingsStore.set).not.toHaveBeenCalled();
     });
 
     it('normalizes invalid provider values to none when querying', async () => {
-        store.set('settings.providers.migrated', 'true');
         store.set('providers.subtitleTranslation', 'invalid');
         store.set('providers.dictionary', 'invalid');
         store.set('providers.transcription', 'invalid');
@@ -83,12 +71,11 @@ describe('SettingServiceImpl', () => {
         expect(result.providers.subtitleTranslationEngine).toBe('none');
         expect(result.providers.dictionaryEngine).toBe('none');
         expect(result.providers.transcriptionEngine).toBe('none');
-        expect(result.openai.featureModels.sentenceLearning).toBe('gpt-4o-mini');
+        expect(result.openai.featureModels.sentenceLearning).toBe('gpt-5.2');
     });
 
     it('keeps feature models inside available models list', async () => {
-        store.set('settings.providers.migrated', 'true');
-        store.set('models.openai.available', 'gpt-4o-mini,gpt-4.1-mini');
+        store.set('models.openai.available', 'gpt-5.2,gpt-4.1-mini');
 
         await service.updateEngineSelection({
             openai: {
@@ -98,7 +85,7 @@ describe('SettingServiceImpl', () => {
                 featureModels: {
                     sentenceLearning: 'gpt-4.1-mini',
                     subtitleTranslation: 'not-exist',
-                    dictionary: 'gpt-4o-mini',
+                    dictionary: 'gpt-5.2',
                 },
             },
             providers: {
@@ -109,12 +96,11 @@ describe('SettingServiceImpl', () => {
         });
 
         expect(mutableService.settingsStore.get('models.openai.sentenceLearning')).toBe('gpt-4.1-mini');
-        expect(mutableService.settingsStore.get('models.openai.subtitleTranslation')).toBe('gpt-4o-mini');
-        expect(mutableService.settingsStore.get('models.openai.dictionary')).toBe('gpt-4o-mini');
+        expect(mutableService.settingsStore.get('models.openai.subtitleTranslation')).toBe('gpt-5.2');
+        expect(mutableService.settingsStore.get('models.openai.dictionary')).toBe('gpt-5.2');
     });
 
     it('returns null provider when engine is none', async () => {
-        store.set('settings.providers.migrated', 'true');
         store.set('providers.subtitleTranslation', 'none');
         store.set('providers.dictionary', 'none');
         store.set('providers.transcription', 'none');
@@ -125,7 +111,6 @@ describe('SettingServiceImpl', () => {
     });
 
     it('rejects enabling whisper transcription when model missing', async () => {
-        store.set('settings.providers.migrated', 'true');
         vi.spyOn(fs, 'existsSync').mockReturnValue(false);
 
         await expect(service.updateEngineSelection({
@@ -133,6 +118,11 @@ describe('SettingServiceImpl', () => {
                 enableSentenceLearning: true,
                 subtitleTranslationMode: 'zh',
                 subtitleCustomStyle: 'style',
+                featureModels: {
+                    sentenceLearning: 'gpt-5.2',
+                    subtitleTranslation: 'gpt-5.2',
+                    dictionary: 'gpt-5.2',
+                },
             },
             providers: {
                 subtitleTranslationEngine: 'none',

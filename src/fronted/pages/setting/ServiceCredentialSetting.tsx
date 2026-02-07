@@ -27,7 +27,7 @@ const ServiceCredentialSetting = () => {
 
     const { register, setValue, handleSubmit, watch, reset } = useForm<ServiceCredentialSettingVO>({
         defaultValues: {
-            openai: { key: '', endpoint: 'https://api.openai.com', models: ['gpt-4o-mini'] },
+            openai: { key: '', endpoint: 'https://api.openai.com', models: ['gpt-5.2'] },
             tencent: { secretId: '', secretKey: '' },
             youdao: { secretId: '', secretKey: '' },
             whisper: { modelSize: 'base', enableVad: true, vadModel: 'silero-v6.2.0' },
@@ -49,7 +49,7 @@ const ServiceCredentialSetting = () => {
     const [downloadProgressByKey, setDownloadProgressByKey] = React.useState<Record<string, { percent: number }>>({});
 
     const whisperModelSize = watch('whisper.modelSize');
-    const openAiModelsText = watch('openai.models')?.join('\n') ?? 'gpt-4o-mini';
+    const openAiModelsText = watch('openai.models')?.join('\n') ?? 'gpt-5.2';
 
     const refreshWhisperModelStatus = React.useCallback(async () => {
         const status = await api.call('whisper/models/status');
@@ -243,10 +243,10 @@ const ServiceCredentialSetting = () => {
                                         .split(/[\n,]/)
                                         .map((item) => item.trim())
                                         .filter((item) => item.length > 0);
-                                    setValue('openai.models', models.length > 0 ? Array.from(new Set(models)) : ['gpt-4o-mini'], { shouldDirty: true });
+                                    setValue('openai.models', models.length > 0 ? Array.from(new Set(models)) : ['gpt-5.2'], { shouldDirty: true });
                                 }}
                                 className="min-h-[120px]"
-                                placeholder={'gpt-4o-mini\ngpt-4o\no3-mini'}
+                                placeholder={'gpt-5.2\ngpt-4o\no3-mini'}
                             />
                             <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.modelsHint')}</div>
                         </div>

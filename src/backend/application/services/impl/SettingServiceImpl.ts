@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { SettingKey } from '@/common/types/store_schema';
-import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/application/services/SettingService';
@@ -14,14 +13,13 @@ import RendererEvents from '@/backend/application/ports/gateways/renderer/Render
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import { ServiceCredentialSettingVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
-import { OPENAI_SUBTITLE_CUSTOM_STYLE_KEY, getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
+import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
-    @inject(TYPES.SystemConfigService) private systemConfigService!: SystemConfigService;
     @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
@@ -68,7 +66,7 @@ export default class SettingServiceImpl implements SettingService {
 
         const deduped = Array.from(new Set(parsed));
         if (deduped.length === 0) {
-            return ['gpt-4o-mini'];
+            return ['gpt-5.2'];
         }
         return deduped;
     }
@@ -82,7 +80,7 @@ export default class SettingServiceImpl implements SettingService {
         if (availableModels.includes(candidate)) {
             return candidate;
         }
-        return availableModels[0] ?? 'gpt-4o-mini';
+        return availableModels[0] ?? 'gpt-5.2';
     }
 
     private whisperModelPathForCurrentSize(): { modelSize: 'base' | 'large'; modelPath: string } {
@@ -102,48 +100,10 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async migrateProviderSettings(): Promise<void> {
-        if (this.getValue('settings.providers.migrated') === 'true') {
-            return;
-        }
-
-        const subtitleEngine = this.getValue('subtitleTranslation.engine') === 'tencent' ? 'tencent' : 'openai';
-        const dictionaryEngine = this.getValue('dictionary.engine') === 'youdao' ? 'youdao' : 'openai';
-        const transcriptionEngine = this.getValue('transcription.engine') === 'whisper' ? 'whisper' : 'openai';
-
-        await this.setValue('providers.subtitleTranslation', subtitleEngine);
-        await this.setValue('providers.dictionary', dictionaryEngine);
-        await this.setValue('providers.transcription', transcriptionEngine);
-
-        await this.setValue(
-            'features.openai.enableSentenceLearning',
-            this.getValue('services.openai.enableSentenceLearning') === 'false' ? 'false' : 'true',
-        );
-
-        const subtitleMode = this.getValue('services.openai.subtitleTranslationMode');
-        await this.setValue(
-            'features.openai.subtitleTranslationMode',
-            subtitleMode === 'simple_en' || subtitleMode === 'custom' ? subtitleMode : 'zh',
-        );
-
-        const legacyCustomStyle = (await this.systemConfigService.getValue(OPENAI_SUBTITLE_CUSTOM_STYLE_KEY))?.trim();
-        const customStyle = legacyCustomStyle && legacyCustomStyle.length > 0
-            ? legacyCustomStyle
-            : getSubtitleDefaultStyle('custom');
-        await this.setValue('features.openai.subtitleCustomStyle', customStyle);
-
-        const defaultModel = this.parseOpenAiModels(this.getValue('models.openai.available'))[0] || 'gpt-4o-mini';
-        await this.setValue('models.openai.available', defaultModel);
-        await this.setValue('models.openai.sentenceLearning', defaultModel);
-        await this.setValue('models.openai.subtitleTranslation', defaultModel);
-        await this.setValue('models.openai.dictionary', defaultModel);
-
-        await this.setValue('settings.providers.migrated', 'true');
-
-        this.logger.info('provider settings migrated to new keys');
+        return Promise.resolve();
     }
 
     public async queryServiceCredentials(): Promise<ServiceCredentialSettingVO> {
-        await this.migrateProviderSettings();
         return {
             openai: {
                 key: this.getValue('apiKeys.openAi.key'),
@@ -167,7 +127,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async updateServiceCredentials(settings: ServiceCredentialSettingVO): Promise<void> {
-        await this.migrateProviderSettings();
         const models = this.parseOpenAiModels((settings.openai.models ?? []).join(','));
         await this.setValue('apiKeys.openAi.key', settings.openai.key);
         await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
@@ -195,8 +154,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async queryEngineSelection(): Promise<EngineSelectionSettingVO> {
-        await this.migrateProviderSettings();
-
         const subtitleTranslationEngine = this.normalizeSubtitleEngine(this.getValue('providers.subtitleTranslation'));
         const dictionaryEngine = this.normalizeDictionaryEngine(this.getValue('providers.dictionary'));
         const transcriptionEngine = this.normalizeTranscriptionEngine(this.getValue('providers.transcription'));
@@ -228,8 +185,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async updateEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
-        await this.migrateProviderSettings();
-
         const subtitleTranslationEngine = this.normalizeSubtitleEngine(settings.providers.subtitleTranslationEngine);
         const dictionaryEngine = this.normalizeDictionaryEngine(settings.providers.dictionaryEngine);
         const transcriptionEngine = this.normalizeTranscriptionEngine(settings.providers.transcriptionEngine);
@@ -275,13 +230,11 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getCurrentSentenceLearningProvider(): Promise<'openai' | null> {
-        await this.migrateProviderSettings();
         const openaiEnabled = this.getValue('features.openai.enableSentenceLearning') === 'true';
         return openaiEnabled ? 'openai' : null;
     }
 
     public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
-        await this.migrateProviderSettings();
         const engine = this.normalizeSubtitleEngine(this.getValue('providers.subtitleTranslation'));
         if (engine === 'openai' || engine === 'tencent') {
             return engine;
@@ -290,7 +243,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getCurrentTranscriptionProvider(): Promise<'openai' | 'whisper' | null> {
-        await this.migrateProviderSettings();
         const engine = this.normalizeTranscriptionEngine(this.getValue('providers.transcription'));
         if (engine === 'openai' || engine === 'whisper') {
             return engine;
@@ -299,7 +251,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'> {
-        await this.migrateProviderSettings();
         const mode = this.getValue('features.openai.subtitleTranslationMode');
         if (mode === 'simple_en' || mode === 'custom') {
             return mode;
@@ -308,7 +259,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getOpenAiSubtitleCustomStyle(): Promise<string> {
-        await this.migrateProviderSettings();
         const stored = this.getValue('features.openai.subtitleCustomStyle');
         if (stored && stored.trim().length > 0) {
             return stored.trim();
@@ -317,7 +267,6 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
-        await this.migrateProviderSettings();
         const engine = this.normalizeDictionaryEngine(this.getValue('providers.dictionary'));
         if (engine === 'openai' || engine === 'youdao') {
             return engine;
