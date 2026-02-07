@@ -11,12 +11,14 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { SettingKey } from '@/common/types/store_schema';
 import { SettingToggle, TranscriptButton, AutoClipButton, ClearAdjustButton } from './index';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const getShortcut = (key: SettingKey) => {
   return useSetting.getState().setting(key);
 };
 
 export default function ControlBox() {
+  const { t } = useI18nTranslation('player');
   const { showEn, showCn, syncSide, changeShowEn, changeShowCn, changeSyncSide } = usePlayerUi(
     useShallow((s) => ({
       showEn: s.showEn,
@@ -73,76 +75,76 @@ export default function ControlBox() {
         >
           <SettingToggle
             id="showEn"
-            label="展示英文字幕"
+            label={t('controlBox.showEnglish')}
             checked={showEn}
             onCheckedChange={() => changeShowEn()}
-            tooltipMd={`快捷键为 ${getShortcut('shortcut.toggleEnglishDisplay')}`}
+            tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="showCn"
-            label="展示中文字幕"
+            label={t('controlBox.showChinese')}
             checked={showCn}
             onCheckedChange={() => changeShowCn()}
-            tooltipMd={`快捷键为 ${getShortcut('shortcut.toggleChineseDisplay')}`}
+            tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="syncSide"
-            label="同步侧边字幕"
+            label={t('controlBox.syncSideSubtitles')}
             checked={syncSide}
             onCheckedChange={() => changeSyncSide()}
-            tooltipMd="隐藏英文字幕时也隐藏侧边字幕，鼠标移动到侧边时显示"
+            tooltipMd={t('controlBox.syncSideHint')}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="singleRepeat"
-            label="单句循环"
+            label={t('controlBox.singleRepeat')}
             checked={singleRepeat}
             onCheckedChange={() => setSingleRepeat(!singleRepeat)}
-            tooltipMd={`快捷键为 ${getShortcut('shortcut.repeatSentence')}`}
+            tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.repeatSentence') })}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="autoPause"
-            label="自动暂停"
+            label={t('controlBox.autoPause')}
             checked={autoPause}
             onCheckedChange={() => setAutoPause(!autoPause)}
-            tooltipMd={`当前句子结束自动暂停 快捷键为 ${getShortcut('shortcut.autoPause')}`}
+            tooltipMd={t('controlBox.autoPauseHint', { shortcut: getShortcut('shortcut.autoPause') })}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="autoPlayNext"
-            label="自动播放下一个"
+            label={t('controlBox.autoPlayNext')}
             checked={autoPlayNext}
             onCheckedChange={async () => {
               const next = !autoPlayNext;
               setAutoPlayNext(next);
               await setSetting('player.autoPlayNext', next ? 'true' : 'false');
             }}
-            tooltipMd="文件夹模式下视频结束后自动播放下一个视频"
+            tooltipMd={t('controlBox.autoPlayNextHint')}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="nightMode"
-            label="夜间模式"
+            label={t('controlBox.nightMode')}
             checked={setting('appearance.theme') === 'dark'}
             onCheckedChange={() => {
               setSetting('appearance.theme', setting('appearance.theme') === 'dark' ? 'light' : 'dark');
             }}
-            tooltipMd={`快捷键为 ${getShortcut('shortcut.nextTheme')}`}
+            tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.nextTheme') })}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="fullScreen"
-            label="全屏模式"
+            label={t('controlBox.fullScreen')}
             checked={windowState === 'fullscreen'}
             onCheckedChange={async () => {
               if (windowState === 'fullscreen') {
@@ -152,19 +154,19 @@ export default function ControlBox() {
               }
               await swrMutate(SWR_KEY.WINDOW_SIZE);
             }}
-            tooltipMd="点击进入/退出全屏"
+            tooltipMd={t('controlBox.fullScreenHint')}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />
           <SettingToggle
             id="podcstMode"
-            label="播客模式"
+            label={t('controlBox.podcastMode')}
             checked={podcstMode}
             onCheckedChange={() => {
               setPodcastMode(!podcstMode);
               changeFullScreen(false);
             }}
-            tooltipMd="播放音频文件时请启用播客模式"
+            tooltipMd={t('controlBox.podcastModeHint')}
             className="h-11 px-3 py-2"
             labelClassName="text-sm"
           />

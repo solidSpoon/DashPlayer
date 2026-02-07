@@ -8,6 +8,7 @@ import useTranscript from '@/fronted/hooks/useTranscript';
 import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('TranscriptButton');
 
@@ -16,6 +17,7 @@ interface TranscriptButtonProps {
 }
 
 export default function TranscriptButton({ className }: TranscriptButtonProps) {
+  const { t } = useI18nTranslation('player');
   const videoPath = useFile((s) => s.videoPath);
   const { files, onTranscript } = useTranscript(
     useShallow((s) => ({
@@ -29,17 +31,17 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
     currentVideoTask?.status === 'in_progress' || currentVideoTask?.status === 'init';
 
   const getStatusText = () => {
-    if (!currentVideoTask || !currentVideoTask.status) return '生成字幕';
+    if (!currentVideoTask || !currentVideoTask.status) return t('transcript.button');
     switch (currentVideoTask.status) {
       case 'init':
-        return '初始化中...';
+        return t('transcript.statusInit');
       case 'in_progress': {
-        const message = currentVideoTask.result?.message || '转录中...';
+        const message = currentVideoTask.result?.message || t('transcript.statusInProgress');
         return message.length > 10 ? message.substring(0, 10) + '...' : message;
       }
       case 'done':
       default:
-        return '生成字幕';
+        return t('transcript.button');
     }
   };
 
@@ -51,17 +53,17 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
   });
 
   const tooltipMd = codeBlock`
-  #### 生成字幕
-  使用人工智能为当前视频生成字幕，保存在视频文件夹中，完成时自动加载。
+  #### ${t('transcript.tooltipTitle')}
+  ${t('transcript.tooltipBody')}
   `;
 
   const handleClick = async () => {
     const srtPath = videoPath;
     if (StrUtil.isBlank(srtPath)) {
-      toast.error('请先选择一个视频文件');
+      toast.error(t('transcript.noVideoSelected'));
       return;
     }
-    toast('已添加到转录队列', { icon: '👏' });
+    toast(t('transcript.addedToQueue'), { icon: '👏' });
     await onTranscript(srtPath);
   };
 

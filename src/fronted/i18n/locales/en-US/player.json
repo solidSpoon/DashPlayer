@@ -1,1 +1,81 @@
-{}
+{
+    "compatToastTitle": "This video may play without audio in the current player.",
+    "compatToastAction": "Generate compatible version",
+    "emptyState": {
+        "heroTitle": "Start your English learning journey",
+        "heroDescription": "Pick a video and improve your English with bilingual subtitles and smart learning tools.",
+        "ready": "Ready to go",
+        "continueWatching": "Continue",
+        "restartWatching": "Restart"
+    },
+    "speedSlider": {
+        "favoriteHint": "Select your common speeds, then press {{shortcut}} to cycle through them."
+    },
+    "controlBox": {
+        "showEnglish": "Show English subtitles",
+        "showChinese": "Show Chinese subtitles",
+        "syncSideSubtitles": "Sync side subtitles",
+        "singleRepeat": "Single-line repeat",
+        "autoPause": "Auto pause",
+        "autoPlayNext": "Auto play next",
+        "nightMode": "Night mode",
+        "fullScreen": "Fullscreen mode",
+        "podcastMode": "Podcast mode",
+        "shortcutHint": "Shortcut: {{shortcut}}",
+        "syncSideHint": "Hide side subtitles when English subtitles are hidden, and show them when hovering on the side area.",
+        "autoPauseHint": "Automatically pause after the current subtitle line ends. Shortcut: {{shortcut}}",
+        "autoPlayNextHint": "In folder mode, automatically plays the next video after the current one ends.",
+        "fullScreenHint": "Click to enter or exit fullscreen.",
+        "podcastModeHint": "Enable podcast mode when playing audio files."
+    },
+    "clearAdjust": {
+        "button": "Clear timing adjustments",
+        "done": "Timing adjustments cleared",
+        "tooltipTitle": "Clear timing adjustments",
+        "tooltipSubtitle": "Remove all subtitle timing adjustments for the current video",
+        "shortcutIntro": "When subtitle timing is inaccurate, use these shortcuts for fine tuning:",
+        "shortcutBeginMinus": "Shortcut {{shortcut}}: shift current subtitle start 0.2s earlier",
+        "shortcutBeginPlus": "Shortcut {{shortcut}}: shift current subtitle start 0.2s later",
+        "shortcutEndMinus": "Shortcut {{shortcut}}: shift current subtitle end 0.2s earlier",
+        "shortcutEndPlus": "Shortcut {{shortcut}}: shift current subtitle end 0.2s later"
+    },
+    "transcript": {
+        "button": "Generate subtitles",
+        "statusInit": "Initializing...",
+        "statusInProgress": "Transcribing...",
+        "tooltipTitle": "Generate subtitles",
+        "tooltipBody": "Generate subtitles for the current video with AI. The subtitle file is saved to the video folder and auto-loaded when done.",
+        "noVideoSelected": "Please select a video file first.",
+        "addedToQueue": "Added to transcription queue"
+    },
+    "autoClip": {
+        "button": "Clip vocabulary videos",
+        "detecting": "Detecting...",
+        "analyzing": "Analyzing {{progress}}%",
+        "inProgress": "Clipping ({{count}})",
+        "pendingCount": "Clip {{count}} vocabulary segments",
+        "noneAvailable": "No clip-ready segments",
+        "disabledDetecting": "Checking clip status",
+        "disabledWaitingAnalysis": "Waiting for subtitle analysis",
+        "disabledAnalyzing": "Analyzing video content, please wait",
+        "disabledInProgress": "Vocabulary clipping is in progress, please wait",
+        "disabledRequested": "Clip task has been created and is waiting for backend processing",
+        "noVideoOrSubtitle": "Please load both video and subtitle first.",
+        "taskExists": "A clip task already exists. Please wait for completion.",
+        "starting": "Starting vocabulary video clipping...",
+        "failed": "Vocabulary video clipping failed. Please try again.",
+        "tooltipTitle": "Clip vocabulary videos",
+        "tooltipSubtitle": "Automatically clip video segments containing words from your vocabulary list",
+        "currentStatus": "Current status: {{status}}",
+        "statusWaiting": "Waiting for detection...",
+        "noticePrefix": "Note: {{reason}}",
+        "workflowTitle": "This feature will:",
+        "workflow1": "Read subtitle content from the current video",
+        "workflow2": "Match words in your vocabulary list",
+        "workflow3": "Automatically clip segments containing those words",
+        "workflow4": "Save clips into the learning library",
+        "suitableTitle": "Best for:",
+        "suitable1": "Quickly creating vocabulary-focused study videos",
+        "suitable2": "Batch-generating vocabulary learning clips"
+    }
+}

@@ -27,12 +27,14 @@ import useSystem from '@/fronted/hooks/useSystem';
 import useConvert from '@/fronted/hooks/useConvert';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const COMPAT_TOAST_ID = 'compat-playback-toast';
 const PlayerWithControlsPage = () => {
+    const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
     const navigate = useNavigate();
     const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
@@ -162,12 +164,12 @@ const PlayerWithControlsPage = () => {
                         if (audioCodec.length > 0 && !suspiciousAudioCodecs.has(audioCodec)) {
                             return;
                         }
-                        sonnerToast('该视频可能在播放器里无声', {
+                        sonnerToast(t('compatToastTitle'), {
                             id: COMPAT_TOAST_ID,
                             duration: 6000,
                             position: 'top-right',
                             action: {
-                                label: '生成兼容版本',
+                                label: t('compatToastAction'),
                                 onClick: () => {
                                     useConvert.getState().addFiles([videoPath]);
                                     navigate('/convert');
