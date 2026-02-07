@@ -25,4 +25,5 @@ Use module and focus-token filters to reduce noise during debugging. Set `DP_LOG
 - Drizzle migrations under `drizzle/migrations/` are auto-generated; never edit them manually. Change the schema in `src/backend/infrastructure/db/tables/` and run `yarn drizzle-kit generate` afterwards.
 - This is a personal open-source project. Favor simple, pragmatic designs; avoid over-engineering architecture.
 - Avoid compatibility shims; remove dead/legacy code thoroughly when refactoring.
+- Before implementing new features or refactors, read `docs/architecture-guidelines.md` and follow its file placement/layering rules.
 - If you notice a potential new guideline worth adding to this file, ask before adding it.
