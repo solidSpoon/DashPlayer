@@ -84,6 +84,8 @@ import { TranscriptionService } from '@/backend/application/services/Transcripti
 import { CloudTranscriptionServiceImpl } from '@/backend/application/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/application/services/impl/LocalTranscriptionServiceImpl';
 import {WhisperCppCli} from '@/backend/infrastructure/media/whisper/WhisperCppCli';
+import WhisperGateway from '@/backend/application/ports/gateways/media/WhisperGateway';
+import WhisperGatewayImpl from '@/backend/infrastructure/media/whisper/WhisperGatewayImpl';
 import {WordMatchService} from '@/backend/application/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/application/services/impl/WordMatchServiceImpl';
 import VocabularyController from '@/backend/adapters/controllers/VocabularyController';
@@ -152,6 +154,7 @@ container.bind<WindowPort>(TYPES.WindowPort).to(WindowPortImpl).inSingletonScope
 container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncService).inSingletonScope();
 container.bind<WhisperModelService>(TYPES.WhisperModelService).to(WhisperModelService).inSingletonScope();
 container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
+container.bind<WhisperGateway>(TYPES.WhisperGateway).to(WhisperGatewayImpl).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();

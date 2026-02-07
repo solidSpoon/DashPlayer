@@ -6,7 +6,6 @@ import RendererGateway from '@/backend/application/ports/gateways/renderer/Rende
 import TYPES from '@/backend/ioc/types';
 import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import * as path from 'path';
-import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import {LocationType} from '@/backend/application/services/LocationService';
@@ -15,8 +14,7 @@ import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
 import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
 import {DpTaskState} from "@/backend/infrastructure/db/tables/dpTask";
-import {WhisperCppCli} from '@/backend/infrastructure/media/whisper/WhisperCppCli';
-import {WhisperCppArgsBuilder} from '@/backend/infrastructure/media/whisper/WhisperCppArgsBuilder';
+import WhisperGateway from '@/backend/application/ports/gateways/media/WhisperGateway';
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -40,7 +38,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         @inject(TYPES.SettingsStore) private settingsStore: SettingsStore,
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
         @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
-        @inject(TYPES.WhisperCppCli) private whisperCppCli: WhisperCppCli,
+        @inject(TYPES.WhisperGateway) private whisperGateway: WhisperGateway,
     ) {}
 
     private async ensureWavFormat(inputPath: string): Promise<string> {
@@ -187,57 +185,18 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         }
     }
 
+    /**
+     * 使用本地 whisper.cpp 网关执行转录，并在应用层完成进度映射与结果后处理。
+     * @param opts 转录所需的输入路径与临时目录。
+     */
     private async transcribeWithWhisperCppCli(opts: { filePath: string; processedAudioPath: string; tempFolder: string }): Promise<void> {
         const { filePath, processedAudioPath, tempFolder } = opts;
-
-        const executablePath = this.whisperCppCli.resolveExecutablePath();
-        const executableDir = path.dirname(executablePath);
-        const platform = process.platform;
-        const arch = process.arch;
-        let libs: string[] = [];
-        try {
-            if (platform === 'darwin') {
-                libs = fs.readdirSync(executableDir).filter((name) => name.endsWith('.dylib'));
-            } else if (platform === 'linux') {
-                libs = fs.readdirSync(executableDir).filter((name) => /\.so(\.|$)/.test(name));
-            }
-        } catch (e) {
-            this.logger.warn('whisper.cpp probe failed to read executable dir', {executableDir, error: e});
-        }
-        const metalFile = platform === 'darwin' ? path.join(executableDir, 'ggml-metal.metal') : null;
-        this.logger.info('whisper.cpp runtime probe', {
-            executablePath,
-            executableDir,
-            platform,
-            arch,
-            libsCount: libs.length,
-            libs: libs.slice(0, 20),
-            metalFileExists: metalFile ? fs.existsSync(metalFile) : undefined,
-        });
-        const help = await this.whisperCppCli.getHelpText(executablePath);
 
         const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
         const enableVad = true;
         const vadModel = 'silero-v6.2.0' as const;
 
         const modelsRoot = LocationUtil.staticGetStoragePath('models');
-
-        if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
-
-        const {args, outSrt, vadSkippedBecauseUnsupported} = WhisperCppArgsBuilder.build({
-            helpText: help,
-            modelSize,
-            enableVad,
-            vadModel,
-            modelsRoot,
-            processedAudioPath,
-            tempFolder,
-        });
-        this.logger.info('whisper.cpp cli args', {args});
-        if (vadSkippedBecauseUnsupported) {
-            this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, {message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测'});
-        }
 
         this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 10, { message: 'whisper.cpp 正在识别...' });
         const progressFromWhisperPercent = (p: number) => Math.max(10, Math.min(90, Math.floor(10 + p * 0.8)));
@@ -251,17 +210,25 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, lastReportedProgress, { message: 'whisper.cpp 正在识别...' });
         };
 
-        await this.whisperCppCli.run({
-            executablePath,
-            args,
+        if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
+
+        const {outSrt, warnings} = await this.whisperGateway.transcribe({
+            processedAudioPath,
+            tempFolder,
+            modelsRoot,
+            modelSize,
+            enableVad,
+            vadModel,
             isCancelled: () => this.isCancelled(filePath),
             onProgressEvent: (evt) => maybeReportProgress(evt.percent, evt.heartbeat),
         });
 
-        if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
-        if (!fs.existsSync(outSrt)) {
-            throw new Error(`whisper.cpp did not generate srt output: ${outSrt}`);
+        if (warnings.includes('VAD_UNSUPPORTED')) {
+            this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, {message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测'});
         }
+
+        if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
 
         this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
         const srtContentRaw = await fsPromises.readFile(outSrt, 'utf-8');
@@ -307,7 +274,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         // 如果是当前任务，doTranscribe 会在检查点自行退出
         if (this.activeFilePath === filePath) {
-            this.whisperCppCli.killActive('SIGKILL');
+            this.whisperGateway.cancelActive();
             return true;
         }
 
