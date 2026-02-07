@@ -867,7 +867,20 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         loop().catch((e) => this.logger.error('VideoLearningServiceImpl loop failed', { error: e }));
     }
 
+    /**
+     * 检测并返回指定字幕的学习片段状态。
+     *
+     * 行为说明：
+     * - 优先命中缓存与进行中的分析任务，避免重复计算。
+     * - 当字幕缓存缺失时，返回 completed 以避免前端长期等待。
+     *
+     * @param videoPath 视频路径，用于状态通知。
+     * @param srtKey 字幕缓存键。
+     * @param srtPath 可选字幕路径，用于缓存缺失时补充加载。
+     * @returns 当前片段状态快照。
+     */
     public async detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO> {
+        const analysisKey = this.mapAnalysisKey(srtKey);
         this.logger.debug(
             `detect ${JSON.stringify({
                 videoPath,
@@ -875,10 +888,10 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 hasSrtPath: !!srtPath,
                 currentAnalysisKey: this.currentAnalysisKey,
                 cachedStatus: this.clipStatusCache.get(srtKey)?.status ?? null,
-                cachedCandidates: this.clipAnalysisCache.has(srtKey),
-                chunkCache: this.clipAnalysisChunkCache.has(srtKey),
-                inFlight: this.clipAnalysisPromises.has(srtKey),
-                progress: this.clipAnalysisProgress.get(srtKey) ?? null,
+                cachedCandidates: this.clipAnalysisCache.has(analysisKey),
+                chunkCache: this.clipAnalysisChunkCache.has(analysisKey),
+                inFlight: this.clipAnalysisPromises.has(analysisKey),
+                progress: this.clipAnalysisProgress.get(analysisKey) ?? null,
             })}`
         );
         const srt = await this.ensureSrtCached(srtKey, srtPath);
@@ -902,7 +915,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             return this.ensureSeq(srtKey, cachedStatus);
         }
 
-        const analysisKey = this.mapAnalysisKey(srtKey);
         const cachedCandidates = this.clipAnalysisCache.get(analysisKey);
         if (cachedCandidates) {
             this.logger.debug(`candidates cache hit ${JSON.stringify({ srtKey, count: cachedCandidates.length })}`);
