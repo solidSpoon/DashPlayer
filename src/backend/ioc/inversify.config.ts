@@ -97,6 +97,8 @@ import RendererEvents from '@/backend/application/ports/gateways/renderer/Render
 import RendererEventsImpl from '@/backend/infrastructure/renderer/RendererEventsImpl';
 import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
 import WindowPortImpl from '@/backend/infrastructure/window/WindowPortImpl';
+import FfmpegGateway from '@/backend/application/ports/gateways/media/FfmpegGateway';
+import FfmpegGatewayImpl from '@/backend/infrastructure/media/ffmpeg/FfmpegGatewayImpl';
 import WordsRepository from '@/backend/application/ports/repositories/WordsRepository';
 import WordsRepositoryImpl from '@/backend/infrastructure/db/repositories/WordsRepositoryImpl';
 import DpTaskRepository from '@/backend/application/ports/repositories/DpTaskRepository';
@@ -176,6 +178,7 @@ container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigSe
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
 container.bind<LocationService>(TYPES.LocationService).to(LocationServiceImpl).inSingletonScope();
+container.bind<FfmpegGateway>(TYPES.FfmpegGateway).to(FfmpegGatewayImpl).inSingletonScope();
 container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingletonScope();
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
