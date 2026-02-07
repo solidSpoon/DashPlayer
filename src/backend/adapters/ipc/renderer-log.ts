@@ -11,6 +11,6 @@ ipcMain.on('dp-log/write', (_event, e: SimpleEvent) => {
         module: e.module || 'unknown',
         msg: e.msg || '',
         data: e.data,
-        tags: e.tags,
+        focus: e.focus,
     });
 });

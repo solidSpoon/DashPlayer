@@ -33,7 +33,7 @@ const levelOrder: Record<SimpleLevel, number> = {
     error: 50,
 };
 
-type LogTagsInput = string | string[] | undefined | null;
+const FOCUS_PREFIX_PATTERN = /^\[FOCUS:([^\]]+)\]\s*/;
 
 function normalizeLevel(level: string | undefined): SimpleLevel | null {
     if (level === 'debug' || level === 'info' || level === 'warn' || level === 'error') {
@@ -60,50 +60,48 @@ function shouldLog(level: SimpleLevel) {
     return levelOrder[level] >= levelOrder[CURRENT_LEVEL];
 }
 
-function normalizeTagsInput(tags: LogTagsInput): string[] {
-    if (!tags) return [];
-    if (Array.isArray(tags)) {
-        return tags.map(tag => tag.trim()).filter(Boolean);
-    }
-    return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+function normalizeCsvInput(input?: string): string[] {
+    if (!input) return [];
+    return input.split(',').map(item => item.trim()).filter(Boolean);
 }
 
-function isTagsFilterDisabled(tags: string[]): boolean {
-    return tags.some(tag => tag === '*' || tag.toLowerCase() === 'all');
-}
-
-let TAG_FILTER: Set<string> | null = (() => {
-    const envTags = normalizeTagsInput(process.env.DP_LOG_TAGS);
-    if (envTags.length === 0) {
+function createModuleFilterSet(input?: string): Set<string> | null {
+    const modules = normalizeCsvInput(input);
+    if (modules.length === 0) {
         return null;
     }
-    if (isTagsFilterDisabled(envTags)) {
-        return null;
-    }
-    return new Set(envTags);
-})();
-
-export function setLogTags(tags?: string[]) {
-    if (!tags || tags.length === 0) {
-        TAG_FILTER = null;
-        return;
-    }
-    TAG_FILTER = isTagsFilterDisabled(tags) ? null : new Set(tags);
+    return new Set(modules);
 }
 
-function normalizeEventTags(tags?: LogTagsInput): string[] | undefined {
-    const normalized = normalizeTagsInput(tags);
-    return normalized.length > 0 ? normalized : undefined;
+function normalizeFocusToken(input?: string): string | null {
+    const token = input?.trim();
+    return token ? token : null;
 }
 
-function shouldLogTags(tags?: string[]): boolean {
-    if (!TAG_FILTER) {
-        return true;
-    }
-    if (!tags || tags.length === 0) {
+const INCLUDE_MODULE_FILTER: Set<string> | null = createModuleFilterSet(process.env.DP_LOG_INCLUDE_MODULES);
+const EXCLUDE_MODULE_FILTER: Set<string> | null = createModuleFilterSet(process.env.DP_LOG_EXCLUDE_MODULES);
+const FOCUS_TOKEN_FILTER: string | null = normalizeFocusToken(process.env.DP_LOG_FOCUS_TOKEN);
+
+function shouldLogModule(moduleName: string): boolean {
+    if (INCLUDE_MODULE_FILTER && !INCLUDE_MODULE_FILTER.has(moduleName)) {
         return false;
     }
-    return tags.some(tag => TAG_FILTER?.has(tag));
+    if (EXCLUDE_MODULE_FILTER && EXCLUDE_MODULE_FILTER.has(moduleName)) {
+        return false;
+    }
+    return true;
+}
+
+function extractFocusToken(msg: string): string | undefined {
+    const matched = msg.match(FOCUS_PREFIX_PATTERN);
+    return matched?.[1]?.trim() || undefined;
+}
+
+function shouldLogFocus(msg: string, focus?: string): boolean {
+    if (!FOCUS_TOKEN_FILTER) {
+        return true;
+    }
+    return (focus || extractFocusToken(msg)) === FOCUS_TOKEN_FILTER;
 }
 
 function normalizeData(data: unknown): string {
@@ -129,9 +127,9 @@ function truncate(text: string, maxLen = 1200) {
 }
 
 function formatLine(event: SimpleEvent) {
-    const tagLabel = event.tags && event.tags.length > 0 ? `|${event.tags.join(',')}` : '';
-    const prefix = `[${event.process}|${event.module}${tagLabel}]`;
-    const msg = event.msg ? toSingleLine(event.msg) : '';
+    const focusLabel = event.focus ? `|focus:${event.focus}` : '';
+    const prefix = `[${event.process}|${event.module}${focusLabel}]`;
+    const msg = event.msg ? toSingleLine(event.msg.replace(FOCUS_PREFIX_PATTERN, '')) : '';
     const isPrimitiveData = event.data === null || ['string', 'number', 'boolean'].includes(typeof event.data);
     const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData;
     const data = includeData ? normalizeData(event.data) : '';
@@ -143,12 +141,16 @@ export function writeEvent(event: SimpleEvent) {
     if (!shouldLog(event.level)) {
         return;
     }
-    if (!shouldLogTags(event.tags)) {
+    if (!shouldLogModule(event.module)) {
+        return;
+    }
+    if (!shouldLogFocus(event.msg, event.focus)) {
         return;
     }
     const line = formatLine({
         ...event,
         ts: event.ts || new Date().toISOString(),
+        focus: event.focus || extractFocusToken(event.msg),
     });
 
     switch (event.level) {
@@ -167,7 +169,7 @@ export function writeEvent(event: SimpleEvent) {
     }
 }
 
-function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any, tags?: LogTagsInput) {
+function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) {
     writeEvent({
         ts: new Date().toISOString(),
         level,
@@ -175,41 +177,35 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any, 
         module: moduleName,
         msg,
         data,
-        tags: normalizeEventTags(tags),
     });
 }
 
-function mergeTags(base?: string[], extra?: LogTagsInput): string[] | undefined {
-    const normalizedExtra = normalizeEventTags(extra);
-    if (!base || base.length === 0) {
-        return normalizedExtra;
-    }
-    if (!normalizedExtra || normalizedExtra.length === 0) {
-        return base;
-    }
-    return Array.from(new Set([...base, ...normalizedExtra]));
-}
-
 type MainLogger = {
-    debug: (msg: string, data?: any, tags?: LogTagsInput) => void;
-    info: (msg: string, data?: any, tags?: LogTagsInput) => void;
-    warn: (msg: string, data?: any, tags?: LogTagsInput) => void;
-    error: (msg: string, data?: any, tags?: LogTagsInput) => void;
-    withTags: (tags: LogTagsInput) => MainLogger;
+    debug: (msg: string, data?: any) => void;
+    info: (msg: string, data?: any) => void;
+    warn: (msg: string, data?: any) => void;
+    error: (msg: string, data?: any) => void;
+    withFocus: (focusToken: string) => MainLogger;
 };
 
-function createLogger(moduleName: string, baseTags?: string[]): MainLogger {
+function prependFocusToken(msg: string, focusToken?: string) {
+    if (!focusToken) return msg;
+    if (FOCUS_PREFIX_PATTERN.test(msg)) return msg;
+    return `[FOCUS:${focusToken}] ${msg}`;
+}
+
+function createLogger(moduleName: string, focusToken?: string): MainLogger {
     return {
-        debug: (msg, data, tags) => logAt(moduleName, 'debug', msg, data, mergeTags(baseTags, tags)),
-        info: (msg, data, tags) => logAt(moduleName, 'info', msg, data, mergeTags(baseTags, tags)),
-        warn: (msg, data, tags) => logAt(moduleName, 'warn', msg, data, mergeTags(baseTags, tags)),
-        error: (msg, data, tags) => logAt(moduleName, 'error', msg, data, mergeTags(baseTags, tags)),
-        withTags: (tags) => createLogger(moduleName, mergeTags(baseTags, tags)),
+        debug: (msg, data) => logAt(moduleName, 'debug', prependFocusToken(msg, focusToken), data),
+        info: (msg, data) => logAt(moduleName, 'info', prependFocusToken(msg, focusToken), data),
+        warn: (msg, data) => logAt(moduleName, 'warn', prependFocusToken(msg, focusToken), data),
+        error: (msg, data) => logAt(moduleName, 'error', prependFocusToken(msg, focusToken), data),
+        withFocus: (nextFocusToken) => createLogger(moduleName, nextFocusToken),
     };
 }
 
-export function getMainLogger(moduleName: string, tags?: LogTagsInput): MainLogger {
-    return createLogger(moduleName, normalizeEventTags(tags));
+export function getMainLogger(moduleName: string): MainLogger {
+    return createLogger(moduleName);
 }
 
 export function pruneOldLogs(days = 14) {

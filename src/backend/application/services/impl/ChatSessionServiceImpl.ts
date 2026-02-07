@@ -177,15 +177,15 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         if (!model) {
             return;
         }
-        const taggedLogger = this.logger.withTags('ai-json');
-        taggedLogger.debug('analysis stream start', { sessionId, messageId });
+        const streamLogger = this.logger;
+        streamLogger.debug('analysis stream start', { sessionId, messageId });
         const result = streamText({
             model,
             output: Output.object({ schema: AiUnifiedAnalysisSchema }),
             prompt,
         });
         for await (const partial of result.partialOutputStream) {
-            taggedLogger.debug('analysis stream chunk', {
+            streamLogger.debug('analysis stream chunk', {
                 sessionId,
                 messageId,
                 keys: Object.keys(partial ?? {}),
@@ -198,7 +198,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             });
         }
         const finalObject = await result.output;
-        taggedLogger.debug('analysis stream done', { sessionId, messageId });
+        streamLogger.debug('analysis stream done', { sessionId, messageId });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,

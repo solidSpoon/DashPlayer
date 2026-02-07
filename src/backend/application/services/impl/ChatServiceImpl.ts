@@ -17,7 +17,7 @@ export default class ChatServiceImpl implements ChatService {
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
 
-    private logger = getMainLogger('ChatService').withTags('ai-json');
+    private logger = getMainLogger('ChatService');
 
     @WaitRateLimit('gpt')
     public async chat(taskId: number, msgs: ModelMessage[]) {

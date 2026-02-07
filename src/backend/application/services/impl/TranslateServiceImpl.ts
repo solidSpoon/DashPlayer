@@ -514,7 +514,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         let failedCount = 0;
         let firstError: unknown = null;
-        const taggedLog = this.logger.withTags(['subtitle', 'ai-json']);
+        const streamLogger = this.logger;
         const translationPromises = tasks.map(async (task) => {
             try {
                 const currentIndex = task.index;
@@ -530,7 +530,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
                 let finalTranslation = '';
                 for await (const partialObject of partialOutputStream) {
-                    taggedLog.debug('subtitle json chunk', {
+                    streamLogger.debug('subtitle json chunk', {
                         key: task.translationKey,
                         keys: Object.keys(partialObject ?? {}),
                     });
@@ -752,7 +752,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
     private async translateWordWithOpenAI(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
         const streamId = requestId ?? `openai-dict-${Date.now()}-${word}`;
-        const taggedLog = this.logger.withTags(['dictionary', 'ai-json']);
+        const streamLogger = this.logger;
 
         try {
             const model = this.aiProviderService.getModel();
@@ -785,7 +785,7 @@ Ensure the response strictly matches the provided JSON schema.`;
             let hasStreamed = false;
 
             for await (const partialObject of partialOutputStream) {
-                taggedLog.debug('dictionary json chunk', {
+                streamLogger.debug('dictionary json chunk', {
                     word,
                     keys: Object.keys(partialObject ?? {}),
                 });
@@ -1008,7 +1008,7 @@ Ensure the response strictly matches the provided JSON schema.`;
 
         const schema = this.buildOpenAISchema(openAiMode);
 
-        const taggedLog = this.logger.withTags(['subtitle', 'ai-json']);
+        const streamLogger = this.logger;
         const translationPromises = sentences.map(async (sentence) => {
             try {
                 const prompt = this.buildOpenAIPrompt(sentence, '', '', promptConfig);
@@ -1020,7 +1020,7 @@ Ensure the response strictly matches the provided JSON schema.`;
 
                 let finalTranslation = '';
                 for await (const partialObject of partialOutputStream) {
-                    taggedLog.debug('subtitle legacy json chunk', {
+                    streamLogger.debug('subtitle legacy json chunk', {
                         sentence: sentence.slice(0, 40),
                         keys: Object.keys(partialObject ?? {}),
                     });
