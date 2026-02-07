@@ -12,6 +12,8 @@
     "publish": "yarn run download && electron-forge publish",
     "lint": "eslint -c .eslintrc.react-compiler.json --ext .ts,.tsx src",
     "test": "vitest",
+    "test:bdd": "vitest run bdd.test.ts --passWithNoTests",
+    "test:bdd:watch": "vitest bdd.test.ts",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
