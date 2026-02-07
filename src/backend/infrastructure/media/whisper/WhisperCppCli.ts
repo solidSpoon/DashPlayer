@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {injectable} from 'inversify';
 import {getMainLogger} from '@/backend/infrastructure/logger';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 export type WhisperCppCliProgressEvent = {
     percent: number;
@@ -25,8 +26,7 @@ export class WhisperCppCli {
     }
 
     public resolveExecutablePath(): string {
-        const isDev = process.env.NODE_ENV === 'development';
-        const basePath = isDev ? path.resolve('lib', 'whisper.cpp') : path.join(process.resourcesPath, 'lib', 'whisper.cpp');
+        const basePath = getRuntimeResourcePath('lib', 'whisper.cpp');
 
         const platform = process.platform;
         const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';

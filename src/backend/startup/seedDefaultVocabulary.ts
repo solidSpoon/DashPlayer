@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import { count } from 'drizzle-orm';
 
@@ -9,6 +8,7 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
 import container from '@/backend/ioc/inversify.config';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 export type DefaultVocabularyWord = {
     word: string;
@@ -21,10 +21,7 @@ export const DEFAULT_VOCABULARY_VERSION = '1';
 const SEED_VERSION_KEY = 'syssetup.vocabularySeedVersion';
 const DEFAULT_VOCABULARY_JSONL_FILE_NAME = 'default-vocabulary.jsonl';
 
-const isDev = process.env.NODE_ENV === 'development';
-const DEFAULT_VOCABULARY_JSONL_PATH = isDev
-    ? path.resolve('resources', DEFAULT_VOCABULARY_JSONL_FILE_NAME)
-    : path.join(process.resourcesPath, 'resources', DEFAULT_VOCABULARY_JSONL_FILE_NAME);
+const DEFAULT_VOCABULARY_JSONL_PATH = getRuntimeResourcePath('resources', DEFAULT_VOCABULARY_JSONL_FILE_NAME);
 
 const chunk = <T>(items: T[], size: number): T[][] => {
     if (size <= 0) return [items];

@@ -6,17 +6,16 @@ import { injectable } from 'inversify';
 
 import fs from 'fs';
 import LocationUtil from '@/backend/utils/LocationUtil';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 @injectable()
 export default class LocationServiceImpl implements LocationService {
-    private static readonly isDev = process.env.NODE_ENV === 'development';
-
     getDetailLibraryPath(type: LocationType): string {
         return LocationUtil.staticGetStoragePath(type);
     }
 
     getBaseLibraryPath(): string {
-        return LocationUtil.getStorageBathPath();
+        return LocationUtil.getStorageBasePath();
     }
 
     getBaseClipPath(): string {
@@ -27,11 +26,11 @@ export default class LocationServiceImpl implements LocationService {
     getThirdLibPath(type: ProgramType): string {
         switch (type) {
             case ProgramType.FFMPEG:
-                return LocationServiceImpl.isDev ? path.resolve('lib/ffmpeg') : `${process.resourcesPath}/lib/ffmpeg`;
+                return getRuntimeResourcePath('lib', 'ffmpeg');
             case ProgramType.FFPROBE:
-                return LocationServiceImpl.isDev ? path.resolve('lib/ffprobe') : `${process.resourcesPath}/lib/ffprobe`;
+                return getRuntimeResourcePath('lib', 'ffprobe');
             case ProgramType.LIB:
-                return LocationServiceImpl.isDev ? path.resolve('lib') : `${process.resourcesPath}/lib`;
+                return getRuntimeResourcePath('lib');
             default:
                 return '';
         }

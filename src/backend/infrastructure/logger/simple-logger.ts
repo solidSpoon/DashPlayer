@@ -5,6 +5,7 @@ import log from 'electron-log/main';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
 import LocationUtil from '@/backend/utils/LocationUtil';
 import { LocationType } from '@/backend/application/services/LocationService';
+import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 
 const logPath = LocationUtil.staticGetStoragePath(LocationType.LOGS);
 
@@ -22,7 +23,7 @@ log.initialize({ preload: true });
 log.transports.file.resolvePathFn = todayFile;
 log.transports.file.level = 'silly';
 log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
-log.transports.console.level = process.env.NODE_ENV === 'development' ? 'silly' : 'warn';
+log.transports.console.level = isDevelopmentMode() ? 'silly' : 'warn';
 log.errorHandler.startCatching();
 
 const levelOrder: Record<SimpleLevel, number> = {
@@ -46,7 +47,7 @@ function defaultLevel(): SimpleLevel {
     if (envLevel) {
         return envLevel;
     }
-    return process.env.NODE_ENV === 'development' ? 'debug' : 'info';
+    return isDevelopmentMode() ? 'debug' : 'info';
 }
 
 let CURRENT_LEVEL: SimpleLevel = defaultLevel();
