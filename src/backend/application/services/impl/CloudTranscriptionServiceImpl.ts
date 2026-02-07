@@ -105,7 +105,15 @@ export class CloudTranscriptionServiceImpl implements TranscriptionService {
             const configTender = this.configStoreFactory.create<WhisperContext, typeof WhisperContextSchema>(
                 infoPath,
                 WhisperContextSchema,
-                defaultContext
+                defaultContext,
+                {
+                    onInvalid: (error) => {
+                        this.logger.warn('cloud transcription context invalid, will try recover with default context', { error });
+                    },
+                    onAutoRepaired: () => {
+                        this.logger.info('cloud transcription context auto repaired with default context', { infoPath });
+                    },
+                },
             );
 
             // 读取当前上下文

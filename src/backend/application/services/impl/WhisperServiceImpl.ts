@@ -86,7 +86,15 @@ class WhisperServiceImpl implements WhisperService {
             const configTender = this.configStoreFactory.create<WhisperContext, typeof WhisperContextSchema>(
                 infoPath,
                 WhisperContextSchema,
-                defaultContext
+                defaultContext,
+                {
+                    onInvalid: (error) => {
+                        this.logger.warn('whisper context invalid, will try recover with default context', { error });
+                    },
+                    onAutoRepaired: () => {
+                        this.logger.info('whisper context auto repaired with default context', { infoPath });
+                    },
+                },
             );
 
             // 读取当前上下文

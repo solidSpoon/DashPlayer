@@ -9,6 +9,11 @@ DashPlayer uses Electron 39 with Vite splitting the app into main (`src/main.ts`
 ## Coding Style & Naming Conventions
 Write TypeScript/TSX with 4-space indentation, single quotes, and trailing commas on multiline lists. Components and classes use `PascalCase`, hooks begin with `use`, and services/utilities stay `camelCase`. Keep UI concerns in renderer folders and business logic in backend services. Follow Tailwind utility ordering from existing files, and use the configured path aliases (`@/fronted/...`, `@/backend/...`, `@/common/...`).
 
+- 注释语言：新增/修改的注释一律使用中文（避免中英混杂）。
+- 方法注释：对新增/修改的 function/method，必须在方法顶部写 JSDoc，说明意图、关键入参/出参，以及任何不直观的行为/边界条件。
+- 变量注释：如果变量含义/约束无法一眼看懂，在变量声明前写一行中文注释说明。
+- 类型注释：对新增/修改的 `type`/`interface`/`class`，必须写顶部 JSDoc；对关键字段写字段级注释（解释含义、单位/格式、约束）。
+
 ## Testing Guidelines
 Vitest with Testing Library and JSDOM powers unit and integration coverage. Place specs beside source in `__tests__/` directories or as `*.test.ts(x)` siblings (`src/fronted/components/__tests__/Button.test.tsx`). Import `src/test/setup.ts` when DOM globals are needed. Assert user-visible behavior and IPC contracts, and keep coverage healthy via `yarn test:coverage`.
 
