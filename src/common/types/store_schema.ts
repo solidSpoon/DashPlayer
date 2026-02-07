@@ -39,12 +39,10 @@ export const SettingKeyObj = {
     'models.openai.sentenceLearning': 'gpt-4o-mini',
     'models.openai.subtitleTranslation': 'gpt-4o-mini',
     'models.openai.dictionary': 'gpt-4o-mini',
-    'models.openai.transcription': 'gpt-4o-mini',
     'settings.providers.migrated': 'false',
     'subtitleTranslation.engine': 'openai',
     'dictionary.engine': 'openai',
     'transcription.engine': 'openai',
-    'model.gpt.default': 'gpt-4o-mini',
     // Service function enablement
     'services.openai.enableSentenceLearning': 'true',
     'services.openai.subtitleTranslationMode': 'zh',

@@ -500,7 +500,7 @@ export default class TranslateServiceImpl implements TranslateService {
             return;
         }
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('subtitleTranslation');
         if (!model) {
             this.logger.error('OpenAI 模型未配置');
             this.showSubtitleTranslationToast({
@@ -755,7 +755,7 @@ export default class TranslateServiceImpl implements TranslateService {
         const streamLogger = this.logger;
 
         try {
-            const model = this.aiProviderService.getModel();
+            const model = this.aiProviderService.getModel('dictionary');
             if (!model) {
                 this.logger.error('OpenAI 模型未配置');
                 return null;
@@ -1000,7 +1000,7 @@ Ensure the response strictly matches the provided JSON schema.`;
         promptConfig: SubtitlePromptConfig
     ): Promise<TransHolder<string>> {
         const result = new TransHolder<string>();
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('subtitleTranslation');
         if (!model) {
             this.logger.error('OpenAI 模型未配置');
             return result;

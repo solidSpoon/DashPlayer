@@ -49,6 +49,7 @@ const TYPES = {
     YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),
+    ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
     SettingsKeyValueService: Symbol('SettingsKeyValueService'),

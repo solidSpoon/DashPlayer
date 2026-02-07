@@ -21,7 +21,7 @@ export default class ChatServiceImpl implements ChatService {
 
     @WaitRateLimit('gpt')
     public async chat(taskId: number, msgs: ModelMessage[]) {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
@@ -55,7 +55,7 @@ export default class ChatServiceImpl implements ChatService {
 
     @WaitRateLimit('gpt')
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'

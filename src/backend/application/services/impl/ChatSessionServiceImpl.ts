@@ -35,7 +35,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             event: 'start',
         });
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
@@ -72,7 +72,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             event: 'start',
         });
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
@@ -113,7 +113,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             event: 'start',
         });
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
@@ -144,7 +144,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         messageId: string,
         messages: ModelMessage[]
     ): Promise<void> {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             return;
         }
@@ -173,7 +173,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
 
 
     private async runAnalysisStream(sessionId: string, messageId: string, prompt: string): Promise<void> {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             return;
         }

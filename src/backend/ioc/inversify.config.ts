@@ -46,6 +46,7 @@ import ChatSessionService from '@/backend/application/services/ChatSessionServic
 import ChatServiceImpl from '@/backend/application/services/impl/ChatServiceImpl';
 import ChatSessionServiceImpl from '@/backend/application/services/impl/ChatSessionServiceImpl';
 import AiProviderServiceImpl from '@/backend/application/services/impl/clients/AiProviderServiceImpl';
+import ModelRoutingServiceImpl from '@/backend/application/services/impl/clients/ModelRoutingServiceImpl';
 import WhisperService from '@/backend/application/services/WhisperService';
 import WhisperServiceImpl from '@/backend/application/services/impl/WhisperServiceImpl';
 import ConvertService from '@/backend/application/services/ConvertService';
@@ -77,6 +78,7 @@ import { OpenAIServiceImpl } from '@/backend/application/services/impl/OpenAISer
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import AiProviderService from '@/backend/application/services/AiProviderService';
+import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 import OpenAiWhisperGatewayImpl from '@/backend/infrastructure/openai/OpenAiWhisperGatewayImpl';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import { CloudTranscriptionServiceImpl } from '@/backend/application/services/impl/CloudTranscriptionServiceImpl';
@@ -122,6 +124,7 @@ container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClien
 container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<SettingsKeyValueService>(TYPES.SettingsKeyValueService).to(SettingsKeyValueService).inSingletonScope();
+container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();

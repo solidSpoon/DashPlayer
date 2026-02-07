@@ -99,7 +99,6 @@ describe('SettingServiceImpl', () => {
                     sentenceLearning: 'gpt-4.1-mini',
                     subtitleTranslation: 'not-exist',
                     dictionary: 'gpt-4o-mini',
-                    transcription: 'bad-model',
                 },
             },
             providers: {
@@ -112,7 +111,6 @@ describe('SettingServiceImpl', () => {
         expect(mutableService.settingsStore.get('models.openai.sentenceLearning')).toBe('gpt-4.1-mini');
         expect(mutableService.settingsStore.get('models.openai.subtitleTranslation')).toBe('gpt-4o-mini');
         expect(mutableService.settingsStore.get('models.openai.dictionary')).toBe('gpt-4o-mini');
-        expect(mutableService.settingsStore.get('models.openai.transcription')).toBe('gpt-4o-mini');
     });
 
     it('returns null provider when engine is none', async () => {

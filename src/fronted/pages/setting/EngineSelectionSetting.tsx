@@ -23,7 +23,7 @@ const EngineSelectionSetting = () => {
     const { t } = useI18nTranslation('settings');
     const navigate = useNavigate();
     const { toast } = useToast();
-    const { data: settings, mutate, isLoading } = useSWR('settings/engine-selection/get', () =>
+    const { data: settings, mutate } = useSWR('settings/engine-selection/get', () =>
         api.call('settings/engine-selection/get'),
     );
     const { data: credentialSettings } = useSWR<ServiceCredentialSettingVO>(
@@ -45,7 +45,6 @@ const EngineSelectionSetting = () => {
                     sentenceLearning: 'gpt-4o-mini',
                     subtitleTranslation: 'gpt-4o-mini',
                     dictionary: 'gpt-4o-mini',
-                    transcription: 'gpt-4o-mini',
                 },
             },
             providers: {
@@ -62,7 +61,6 @@ const EngineSelectionSetting = () => {
     register('openai.featureModels.sentenceLearning');
     register('openai.featureModels.subtitleTranslation');
     register('openai.featureModels.dictionary');
-    register('openai.featureModels.transcription');
     register('providers.subtitleTranslationEngine');
     register('providers.dictionaryEngine');
     register('providers.transcriptionEngine');
@@ -73,7 +71,6 @@ const EngineSelectionSetting = () => {
         }
     }, [settings, reset]);
 
-    const [saving, setSaving] = React.useState(false);
     const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const subtitleMode = watch('openai.subtitleTranslationMode');
     const subtitleEngine = watch('providers.subtitleTranslationEngine');
@@ -87,7 +84,6 @@ const EngineSelectionSetting = () => {
     const shouldShowWhisperConfigHint = transcriptionEngine === 'whisper' && !whisperModelReady;
 
     const onSave = handleSubmit(async (data) => {
-        setSaving(true);
         try {
             await api.call('settings/engine-selection/update', data);
             await mutate();
@@ -97,8 +93,6 @@ const EngineSelectionSetting = () => {
                 title: t('common.saveFailed'),
                 description: error instanceof Error ? error.message : String(error),
             });
-        } finally {
-            setSaving(false);
         }
     });
 
@@ -295,24 +289,6 @@ const EngineSelectionSetting = () => {
                         </div>
                     )}
 
-                    {watch('providers.transcriptionEngine') === 'openai' && (
-                        <div className="space-y-2 md:pl-6 md:border-l md:border-border">
-                            <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.transcription.modelLabel')}</div>
-                            <Select
-                                value={watch('openai.featureModels.transcription')}
-                                onValueChange={(value) => {
-                                    setValue('openai.featureModels.transcription', value, { shouldDirty: true });
-                                }}
-                            >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {availableModels.map((model) => (
-                                        <SelectItem key={`trans-${model}`} value={model}>{model}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
                 </div>
 
                 <div className="space-y-3 rounded-xl border border-border/70 bg-background p-5">

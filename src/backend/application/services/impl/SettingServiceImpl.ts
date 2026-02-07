@@ -16,6 +16,7 @@ import { ServiceCredentialSettingVO } from '@/common/types/vo/service-credential
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { OPENAI_SUBTITLE_CUSTOM_STYLE_KEY, getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import LocationUtil from '@/backend/utils/LocationUtil';
+import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
@@ -25,6 +26,7 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
+    @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
     private logger = getMainLogger('SettingServiceImpl');
 
     private async setValue(key: SettingKey, value: string): Promise<void> {
@@ -129,12 +131,11 @@ export default class SettingServiceImpl implements SettingService {
             : getSubtitleDefaultStyle('custom');
         await this.setValue('features.openai.subtitleCustomStyle', customStyle);
 
-        const defaultModel = this.getValue('model.gpt.default') || 'gpt-4o-mini';
+        const defaultModel = this.parseOpenAiModels(this.getValue('models.openai.available'))[0] || 'gpt-4o-mini';
         await this.setValue('models.openai.available', defaultModel);
         await this.setValue('models.openai.sentenceLearning', defaultModel);
         await this.setValue('models.openai.subtitleTranslation', defaultModel);
         await this.setValue('models.openai.dictionary', defaultModel);
-        await this.setValue('models.openai.transcription', defaultModel);
 
         await this.setValue('settings.providers.migrated', 'true');
 
@@ -168,22 +169,16 @@ export default class SettingServiceImpl implements SettingService {
     public async updateServiceCredentials(settings: ServiceCredentialSettingVO): Promise<void> {
         await this.migrateProviderSettings();
         const models = this.parseOpenAiModels((settings.openai.models ?? []).join(','));
-        const preferredModel = models[0] ?? 'gpt-4o-mini';
-
         await this.setValue('apiKeys.openAi.key', settings.openai.key);
         await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
         await this.setValue('models.openai.available', this.serializeOpenAiModels(models));
-        await this.setValue('model.gpt.default', preferredModel);
 
         const sentenceLearningModel = this.resolveFeatureModel(this.getValue('models.openai.sentenceLearning'), models);
         const subtitleTranslationModel = this.resolveFeatureModel(this.getValue('models.openai.subtitleTranslation'), models);
         const dictionaryModel = this.resolveFeatureModel(this.getValue('models.openai.dictionary'), models);
-        const transcriptionModel = this.resolveFeatureModel(this.getValue('models.openai.transcription'), models);
-
         await this.setValue('models.openai.sentenceLearning', sentenceLearningModel);
         await this.setValue('models.openai.subtitleTranslation', subtitleTranslationModel);
         await this.setValue('models.openai.dictionary', dictionaryModel);
-        await this.setValue('models.openai.transcription', transcriptionModel);
 
         await this.setValue('apiKeys.tencent.secretId', settings.tencent.secretId);
         await this.setValue('apiKeys.tencent.secretKey', settings.tencent.secretKey);
@@ -222,7 +217,6 @@ export default class SettingServiceImpl implements SettingService {
                     sentenceLearning: this.resolveFeatureModel(this.getValue('models.openai.sentenceLearning'), availableModels),
                     subtitleTranslation: this.resolveFeatureModel(this.getValue('models.openai.subtitleTranslation'), availableModels),
                     dictionary: this.resolveFeatureModel(this.getValue('models.openai.dictionary'), availableModels),
-                    transcription: this.resolveFeatureModel(this.getValue('models.openai.transcription'), availableModels),
                 },
             },
             providers: {
@@ -278,12 +272,6 @@ export default class SettingServiceImpl implements SettingService {
             'models.openai.dictionary',
             this.resolveFeatureModel(settings.openai.featureModels.dictionary, availableModels),
         );
-        await this.setValue(
-            'models.openai.transcription',
-            this.resolveFeatureModel(settings.openai.featureModels.transcription, availableModels),
-        );
-
-        await this.setValue('model.gpt.default', this.resolveFeatureModel(settings.openai.featureModels.sentenceLearning, availableModels));
     }
 
     public async getCurrentSentenceLearningProvider(): Promise<'openai' | null> {
@@ -341,8 +329,12 @@ export default class SettingServiceImpl implements SettingService {
         try {
             this.logger.info('testing openai connection');
             const openAi = this.openAiService.getOpenAi();
+            const routedModel = this.modelRoutingService.resolveOpenAiModel('sentenceLearning');
+            if (!routedModel) {
+                return { success: false, message: 'OpenAI 模型未配置，请先在功能设置中选择模型' };
+            }
             const completion = await openAi.chat.completions.create({
-                model: this.getValue('model.gpt.default') || 'gpt-4o-mini',
+                model: routedModel.modelId,
                 messages: [{ role: 'user', content: 'Hello' }],
                 max_tokens: 5,
             });
