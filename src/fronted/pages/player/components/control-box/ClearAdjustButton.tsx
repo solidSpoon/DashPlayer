@@ -9,7 +9,11 @@ import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const getShortcut = (key: string) => useSetting.getState().setting(key as any);
 
-export default function ClearAdjustButton() {
+interface ClearAdjustButtonProps {
+  className?: string;
+}
+
+export default function ClearAdjustButton({ className }: ClearAdjustButtonProps) {
   const tooltipMd = codeBlock`
   #### 清除时间调整
   _清除当前视频的所有时间调整_
@@ -42,6 +46,7 @@ export default function ClearAdjustButton() {
       tooltipMd={tooltipMd}
       tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
+      className={className}
     />
   );
 }

@@ -11,7 +11,11 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('TranscriptButton');
 
-export default function TranscriptButton() {
+interface TranscriptButtonProps {
+  className?: string;
+}
+
+export default function TranscriptButton({ className }: TranscriptButtonProps) {
   const videoPath = useFile((s) => s.videoPath);
   const { files, onTranscript } = useTranscript(
     useShallow((s) => ({
@@ -70,6 +74,7 @@ export default function TranscriptButton() {
       tooltipMd={tooltipMd}
       tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
+      className={className}
     />
   );
 }

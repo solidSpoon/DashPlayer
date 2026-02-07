@@ -18,7 +18,11 @@ interface ClipStatusState extends VideoLearningClipStatusVO {
   message?: string;
 }
 
-export default function AutoClipButton() {
+interface AutoClipButtonProps {
+  className?: string;
+}
+
+export default function AutoClipButton({ className }: AutoClipButtonProps) {
   const videoPath = useFile((state) => state.videoPath);
   const srtHash = useFile((state) => state.srtHash);
   const subtitlePath = useFile((state) => state.subtitlePath);
@@ -217,6 +221,7 @@ export default function AutoClipButton() {
       tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
       fullWidth
+      className={className}
     />
   );
 }
