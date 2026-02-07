@@ -22,19 +22,6 @@ export interface TranslationState {
     translationStatus: Map<string, TranslationStatus>;
 }
 
-// 生成翻译key的工具函数 - hash(附近三行)
-export function generateTranslationKey(sentences: Sentence[], centerIndex: number): string {
-    const startIndex = Math.max(0, centerIndex - 1);
-    const endIndex = Math.min(sentences.length - 1, centerIndex + 1);
-
-    const contextTexts = [];
-    for (let i = startIndex; i <= endIndex; i++) {
-        contextTexts.push(sentences[i]?.text || '');
-    }
-
-    return hash(contextTexts.join('|'));
-}
-
 // 注：现在直接使用 Sentence.transGroup 字段，不需要重新计算分组
 
 // 翻译动作

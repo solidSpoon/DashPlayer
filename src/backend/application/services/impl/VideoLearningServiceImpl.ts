@@ -83,7 +83,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private videoLearningClipWordRepository!: VideoLearningClipWordRepository;
 
     /**
-     * key: clipKey = hash(clip srt context)
+     * 任务队列主键：clipKey = srtKey + '__' + indexInSrt。
+     * 说明：这里不再使用字幕上下文哈希，确保同一字幕行的任务键稳定且可逆定位。
      */
     private taskQueue: Map<string, LearningClipTask> = new Map();
 
