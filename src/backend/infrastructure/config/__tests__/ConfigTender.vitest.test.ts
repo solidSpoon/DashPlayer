@@ -42,6 +42,20 @@ describe('ConfigTender（普通 Vitest 对照）', () => {
         expect(configTender.get()).toBe(0);
     });
 
+    it('当父目录不存在时，创建配置托管对象会自动创建目录并写入配置文件', () => {
+        const basePath = createTempConfigPath('nested');
+        const configPath = path.join(basePath, 'level-a', 'level-b', 'config.json');
+        const configDir = path.dirname(configPath);
+
+        expect(fs.existsSync(configDir)).toBe(false);
+
+        const configTender = new ConfigTender<number, z.ZodNumber>(configPath, z.number(), 1);
+
+        expect(fs.existsSync(configDir)).toBe(true);
+        expect(fs.existsSync(configPath)).toBe(true);
+        expect(configTender.get()).toBe(1);
+    });
+
     it('配置文件坏了时，读取配置会自动回退到默认值并修好文件', () => {
         const configPath = createTempConfigPath('broken-config.json');
         fs.writeFileSync(configPath, '{ invalid-json');
