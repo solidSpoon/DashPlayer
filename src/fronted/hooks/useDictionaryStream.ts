@@ -19,45 +19,45 @@ interface DictionaryState {
     getActiveEntry: (word: string) => DictionaryEntry | undefined;
 }
 
-const cloneExamples = (examples?: OpenAIDictionaryExample[]): OpenAIDictionaryExample[] | undefined => {
-    if (!examples) {
-        return undefined;
-    }
+/**
+ * 复制例句数组，确保 store 内部持有独立对象引用。
+ */
+const cloneExamples = (examples: OpenAIDictionaryExample[]): OpenAIDictionaryExample[] => {
     return examples.map(example => ({
         sentence: example.sentence,
-        translation: example.translation,
-        explanation: example.explanation
+        translation: example.translation
     }));
 };
 
+/**
+ * 复制释义数组，避免 UI 渲染时出现引用共享副作用。
+ */
 const cloneDefinitions = (definitions: OpenAIDictionaryDefinition[]): OpenAIDictionaryDefinition[] => {
     return definitions.map(definition => ({
         partOfSpeech: definition.partOfSpeech,
         meaning: definition.meaning,
-        explanation: definition.explanation,
-        translationNote: definition.translationNote,
-        synonyms: definition.synonyms ? [...definition.synonyms] : undefined,
-        antonyms: definition.antonyms ? [...definition.antonyms] : undefined,
-        relatedPhrases: definition.relatedPhrases ? [...definition.relatedPhrases] : undefined,
         examples: cloneExamples(definition.examples)
     }));
 };
 
+/**
+ * 复制单词卡数据，保证外部更新不会直接污染状态树。
+ */
 const cloneEntryData = (data: OpenAIDictionaryResult): OpenAIDictionaryResult => ({
     word: data.word,
     phonetic: data.phonetic,
-    ukPhonetic: data.ukPhonetic,
-    usPhonetic: data.usPhonetic,
-    definitions: cloneDefinitions(data.definitions ?? []),
-    examples: cloneExamples(data.examples),
-    pronunciation: data.pronunciation
+    definitions: cloneDefinitions(data.definitions)
 });
 
+/**
+ * 生成流式请求的初始空数据，所有字段均为必填默认值。
+ */
 const createEmptyEntry = (word: string, requestId: string): DictionaryEntry => ({
     requestId,
     word,
     data: {
         word,
+        phonetic: '',
         definitions: []
     },
     isComplete: false,
@@ -188,6 +188,9 @@ const useDictionaryStream = create<DictionaryState>((set, get) => ({
 
 export default useDictionaryStream;
 
+/**
+ * 生成字典流式请求 id，便于同词并发请求去重。
+ */
 export const createDictionaryRequestId = (word: string): string => {
     const normalized = word.trim().toLowerCase().replace(/\s+/g, '-');
     return `dict-${normalized}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;

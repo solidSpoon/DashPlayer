@@ -1,0 +1,7 @@
+{
+    "updateAvailableTitle": "New version {{version}} is available",
+    "updateAvailableAction": "View details",
+    "audioCompatibilityTitle": "Some videos may play without audio",
+    "audioCompatibilityDescription": "If playback is silent or fails, generate an HTML5-compatible version before continuing.",
+    "audioCompatibilityAction": "Generate now"
+}

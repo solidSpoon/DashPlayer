@@ -2,12 +2,10 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'fs';
 import db, { clearDB } from './db';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
-const isDev = process.env.NODE_ENV === 'development';
 const config = {
-    migrationsFolder: isDev
-        ? 'drizzle/migrations'
-        : `${process.resourcesPath}/drizzle/migrations`,
+    migrationsFolder: getRuntimeResourcePath('drizzle', 'migrations'),
 };
 const runMigrate = async () => {
     // migrate(db, config);

@@ -1,5 +1,4 @@
 import { cn } from '@/fronted/lib/utils';
-import Separator from '@/fronted/components/shared/common/Separator';
 import React from 'react';
 import ConvertFileSelector from '@/fronted/pages/convert/ConvertFileSelector';
 import ConvertFolderSelector from '@/fronted/pages/convert/FolderSelector';
@@ -11,12 +10,15 @@ import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import Eb from '@/fronted/components/shared/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import PageHeader from '@/fronted/components/shared/common/PageHeader';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('Convert');
 
 
 const api = backendClient;
 const Convert = () => {
+    const { t } = useI18nTranslation('pages');
     const {
         files,
         folders,
@@ -40,18 +42,13 @@ const Convert = () => {
     return (
         <div
             className={cn(
-                'w-full h-full flex flex-col overflow-hidden select-none bg-background p-6 pt-12 text-foreground'
+                'w-full h-full flex flex-col overflow-hidden select-none bg-background px-6 py-4 text-foreground'
             )}
         >
-            <div className={cn('p-4')}>
-                <h1 className={cn('text-4xl font-bold font-serif')}>
-                    生成兼容播放版本
-                </h1>
-                <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                    解决无声/无法播放等问题（必要时仅转音频，并尝试提取字幕）
-                </h2>
-                <Separator orientation="horizontal" className="px-0" />
-            </div>
+            <PageHeader
+                title={t('formatConverter.title')}
+                description={t('formatConverter.description')}
+            />
             <div className={cn('flex flex-col w-full h-0 flex-1 px-10 pr-16')}>
                 <div
                     className={cn('justify-self-end flex mb-10 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}

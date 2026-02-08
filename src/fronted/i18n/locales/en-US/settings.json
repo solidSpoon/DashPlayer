@@ -1,0 +1,214 @@
+{
+    "layoutTitle": "Settings",
+    "layoutSubtitle": "Manage shortcuts, appearance preferences, credentials, and local storage policies in one place.",
+    "common": {
+        "viewDocs": "View docs",
+        "docs": "Documentation",
+        "saveFailed": "Save failed",
+        "testSuccess": "Connection successful",
+        "testFailed": "Connection failed",
+        "testConnection": "Test connection",
+        "testing": "Testing...",
+        "downloadDone": "Download complete",
+        "downloadFailed": "Download failed",
+        "downloading": "Downloading..."
+    },
+    "sections": {
+        "shortcut": "Shortcut Controls",
+        "appearance": "Appearance Settings",
+        "serviceCredentials": "Service Credentials",
+        "engineSelection": "Feature Controls",
+        "storage": "Storage Management",
+        "update": "Version Updates"
+    },
+    "appearance": {
+        "title": "Appearance",
+        "description": "Configure theme, UI text size, and language preference so DashPlayer fits your workflow.",
+        "themeTitle": "Theme Style",
+        "themeDescription": "Pick the visual style you prefer. The selected theme is applied immediately.",
+        "fontSizeTitle": "UI Text Size",
+        "fontSizeDescription": "Adjust interface text size to balance reading comfort and information density.",
+        "fontSizeLabel": "Font Size",
+        "fontSizeSmall": "Small",
+        "fontSizeMedium": "Medium",
+        "fontSizeLarge": "Large",
+        "languageTitle": "Interface Language",
+        "languageDescription": "Follow your system language by default, or lock to Chinese/English for stable terminology.",
+        "languageSystem": "Follow System",
+        "languageZhCN": "Simplified Chinese",
+        "languageEnUS": "English"
+    },
+    "checkUpdate": {
+        "title": "Version Updates",
+        "openReleases": "Open release page",
+        "failedTitle": "Failed to check updates",
+        "failedDescription": "Unable to fetch release data right now. Please try again later.",
+        "latestTitle": "You are on the latest version. Here is a tip.",
+        "tips": {
+            "transcriptionBackground": "While transcription is running, you can leave this page and keep watching videos. The transcript updates automatically when processing finishes.",
+            "slideCounter": "Slide {{current}} of {{count}}"
+        }
+    },
+    "shortcut": {
+        "title": "Shortcuts",
+        "description": "Use commas to separate multiple shortcuts.",
+        "record": "Record shortcut",
+        "resetDefault": "Reset to default",
+        "dialogTitle": "Capture shortcut",
+        "dialogDescription": "Focus the input below, then press the shortcut you want to add.",
+        "saveChanges": "Save changes",
+        "items": {
+            "previousSentence": { "title": "Previous subtitle", "description": "Jump to the previous subtitle line." },
+            "nextSentence": { "title": "Next subtitle", "description": "Jump to the next subtitle line." },
+            "repeatSentence": { "title": "Loop current subtitle", "description": "Replay the current subtitle repeatedly." },
+            "playPause": { "title": "Play or pause", "description": "Toggle playback between play and pause." },
+            "repeatSingleSentence": { "title": "Single-line repeat", "description": "Replay the current subtitle once." },
+            "autoPause": { "title": "Auto pause", "description": "Pause automatically after each subtitle line." },
+            "toggleEnglishDisplay": { "title": "Toggle English subtitle", "description": "Show or hide the English subtitle layer." },
+            "toggleChineseDisplay": { "title": "Toggle Chinese subtitle", "description": "Show or hide the Chinese subtitle layer." },
+            "toggleBilingualDisplay": { "title": "Toggle bilingual subtitle", "description": "Switch bilingual subtitle display on or off." },
+            "toggleWordLevelDisplay": { "title": "Toggle word-level subtitle", "description": "Switch word-level subtitle display on or off." },
+            "nextTheme": { "title": "Switch theme", "description": "Cycle through available interface themes." },
+            "adjustBeginMinus": { "title": "Move subtitle start earlier", "description": "Shift subtitle start timing earlier." },
+            "adjustBeginPlus": { "title": "Move subtitle start later", "description": "Shift subtitle start timing later." },
+            "adjustEndMinus": { "title": "Move subtitle end earlier", "description": "Shift subtitle end timing earlier." },
+            "adjustEndPlus": { "title": "Move subtitle end later", "description": "Shift subtitle end timing later." },
+            "clearAdjust": { "title": "Reset subtitle timing offset", "description": "Restore subtitle timing to default." },
+            "nextPlaybackRate": { "title": "Cycle playback speed", "description": "Switch among your preset playback speeds." },
+            "aiChat": { "title": "Open AI chat", "description": "Open the AI chat panel." },
+            "toggleCopyMode": { "title": "Toggle copy mode", "description": "Switch subtitle copy mode." },
+            "addClip": { "title": "Add favorite clip", "description": "Save the current subtitle segment to favorites." },
+            "openControlPanel": { "title": "Open control panel", "description": "Open the player control panel." }
+        }
+    },
+    "storage": {
+        "title": "Storage",
+        "descriptionLine1": "DashPlayer caches translation results to reduce API usage costs.",
+        "descriptionLine2": "Cache files are managed by the database layer. Please do not edit them manually.",
+        "resetDatabase": "Reset database",
+        "openLibraryFolder": "Open Library folder",
+        "occupiedSpace": "Storage used",
+        "libraryPathTitle": "Storage path (Library Path)",
+        "libraryPathDescription": "After changing storage path, fully quit DashPlayer and relaunch it.",
+        "switchCollection": "Saved Moments folder",
+        "saveSettingsFailed": "Failed to save settings. Please try again later: {{message}}",
+        "syncWordClipsFailed": "Failed to sync word-learning clips. Please try again later.",
+        "collectionSync": {
+            "loading": "Syncing Saved Moments...",
+            "success": "Saved Moments synced successfully.",
+            "error": "Failed to sync Saved Moments.",
+            "button": "Resync Saved Moments",
+            "tooltipTitle": "Resync Saved Moments",
+            "tooltipDescription": "Rebuild the Saved Moments index from local files when items look missing or inconsistent."
+        },
+        "collectionHint": "Saved Moments are fixed to favourite_clips/default. Switching collection names is no longer supported.",
+        "wordClipsTitle": "Vocabulary Studio clips",
+        "wordClipsSync": {
+            "loading": "Syncing Vocabulary Studio clips...",
+            "success": "Vocabulary Studio clips synced successfully.",
+            "error": "Failed to sync Vocabulary Studio clips.",
+            "button": "Resync Vocabulary Studio",
+            "tooltipTitle": "Resync Vocabulary Studio",
+            "tooltipDescription": "Rebuild Vocabulary Studio clip records from the word_video folder when data is missing or abnormal."
+        },
+        "wordClipsHint": "Vocabulary Studio clips are stored under word_video. Use this action to rebuild database records when needed."
+    },
+    "youdao": {
+        "title": "Dictionary Lookup",
+        "description": "Configure Youdao credentials to enable dictionary lookup.",
+        "secretId": "App ID",
+        "secretKey": "App Key",
+        "docHintPrefix": "You need Youdao Cloud credentials to use dictionary lookup. See"
+    },
+    "tenant": {
+        "title": "Subtitle Translation",
+        "description": "Configure translation engines and related credentials.",
+        "translationEngineLabel": "Translation engine",
+        "selectEnginePlaceholder": "Select translation engine",
+        "engineTencent": "Tencent Translation",
+        "engineOpenAi": "OpenAI Translation",
+        "engineHelp": "Choose the translation engine. Tencent is typically faster, while OpenAI is often more accurate for complex context.",
+        "tencentSecretId": "Tencent SecretId",
+        "tencentSecretKey": "Tencent SecretKey",
+        "tencentHintPrefix": "Tencent credentials are required for subtitle translation. See",
+        "openaiHintLine1": "OpenAI translation uses the key and endpoint configured in Service Credentials.",
+        "openaiHintLine2": "Make sure your OpenAI configuration is complete and valid first."
+    },
+    "engineSelection": {
+        "title": "Feature Controls",
+        "description": "Choose a provider per feature and disable features independently.",
+        "intro": "Each feature can use a different provider. If you choose \"Disabled\", that feature is skipped in the player.",
+        "featureSwitches": "Feature switches",
+        "engineTencent": "Tencent Translation",
+        "engineYoudao": "Youdao Dictionary",
+        "engineWhisperLocal": "Local Whisper",
+        "engineNone": "Disabled",
+        "subtitleTranslation": {
+            "title": "Subtitle Translation",
+            "description": "Control which provider powers subtitle translation.",
+            "modelLabel": "Subtitle translation model",
+            "styleLabel": "OpenAI subtitle output style",
+            "styleZh": "Direct Chinese translation",
+            "styleSimpleEn": "Simplified English",
+            "styleCustom": "Custom",
+            "hiddenHint": "OpenAI subtitle translation is currently not selected, so style options are hidden."
+        },
+        "dictionary": {
+            "title": "Dictionary Lookup",
+            "description": "Used for word definitions and example lookups.",
+            "modelLabel": "Dictionary model"
+        },
+        "transcription": {
+            "title": "Speech-to-Subtitle",
+            "description": "Control which provider handles speech transcription.",
+            "modelLabel": "Transcription model",
+            "whisperHint": "Local transcription is not fully configured yet (model missing). Download the required Whisper model in Service Credentials first.",
+            "goConfigure": "Open settings"
+        },
+        "sentenceLearning": {
+            "title": "Sentence Learning",
+            "description": "Enhances sentence parsing and learning guidance features.",
+            "enable": "Enable OpenAI sentence learning",
+            "modelLabel": "Sentence learning model"
+        }
+    },
+    "serviceCredentials": {
+        "title": "Service Credentials",
+        "description": "Manage cloud API credentials and local model assets.",
+        "intro": "Credentials only control connectivity. Toggle feature behavior in the Feature Controls page.",
+        "downloadWhisperDone": "Whisper model downloaded: {{size}}",
+        "downloadVadDone": "VAD model downloaded.",
+        "openai": {
+            "description": "Used for subtitle translation, dictionary lookup, and cloud transcription.",
+            "modelsLabel": "Available models (one per line)",
+            "modelsHint": "Supports newline or comma separators. Feature Controls uses this list for model selection per feature."
+        },
+        "tencent": {
+            "title": "Tencent Translation",
+            "description": "Used for subtitle translation."
+        },
+        "youdao": {
+            "title": "Youdao Dictionary",
+            "description": "Used for dictionary lookups.",
+            "appId": "App ID",
+            "appKey": "App Key"
+        },
+        "whisper": {
+            "title": "Local Whisper Models",
+            "description": "Manage local transcription and silence-detection model assets.",
+            "modelSize": "Whisper model size",
+            "vadModel": "VAD model",
+            "enableVad": "Enable silence detection (VAD)",
+            "statusPrefix": "Whisper status:",
+            "baseReady": " base ready;",
+            "baseMissing": " base missing;",
+            "largeReady": " large ready;",
+            "largeMissing": " large missing;",
+            "downloadCurrent": "Download current Whisper model",
+            "vadStatusPrefix": "VAD status: ",
+            "vadReady": "ready",
+            "vadMissing": "missing",
+            "downloadVad": "Download VAD model"
+        }
+    }
+}

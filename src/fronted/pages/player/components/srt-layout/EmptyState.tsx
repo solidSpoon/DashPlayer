@@ -11,6 +11,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 const logger = getRendererLogger('PlaybackEmptyState');
@@ -20,6 +21,7 @@ type PlaybackEmptyStateProps = {
 };
 
 const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
+    const { t } = useI18nTranslation('player');
     const navigate = useNavigate();
     const {data: history} = useSWR<WatchHistoryVO[]>(
         apiPath('watch-history/list'),
@@ -98,15 +100,15 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
                     </div>
 
                     <h1 className="text-white font-bold leading-tight text-6xl sm:text-7xl md:text-8xl">
-                        开启英语学习之旅
+                        {t('emptyState.heroTitle')}
                     </h1>
                     <p className="mt-4 text-white/85 leading-snug text-2xl sm:text-3xl md:text-4xl">
-                        选择视频，通过双语字幕和智能功能提升英语水平
+                        {t('emptyState.heroDescription')}
                     </p>
 
                     <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xl text-white/80 ring-1 ring-white/10">
                         <span className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse" />
-                        准备就绪
+                        {t('emptyState.ready')}
                     </div>
                 </div>
             </div>
@@ -149,10 +151,10 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
                             "
                             size="lg"
                             onClick={hasProgress && !isNearEnd ? handleContinue : handleRestart}
-                            aria-label={hasProgress && !isNearEnd ? '继续观看' : '重新观看'}
+                            aria-label={hasProgress && !isNearEnd ? t('emptyState.continueWatching') : t('emptyState.restartWatching')}
                         >
                             <Play className="h-7 w-7 sm:h-8 sm:w-8 fill-black" />
-                            {hasProgress && !isNearEnd ? '继续观看' : '重新观看'}
+                            {hasProgress && !isNearEnd ? t('emptyState.continueWatching') : t('emptyState.restartWatching')}
                         </Button>
                     </div>
                 </div>

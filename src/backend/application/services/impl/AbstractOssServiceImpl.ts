@@ -75,14 +75,25 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
         }
     }
 
+    /**
+     * 原子更新片段元数据。
+     *
+     * 行为说明：
+     * - 先写入临时文件，再通过 rename 覆盖正式文件，尽量避免进程中断导致的半写入。
+     * - 当原文件不存在时，会基于空对象构建完整元数据。
+     *
+     * @param key 片段 key。
+     * @param newMetadata 需要合并的新元数据。
+     */
     public async updateMetadata(key: string, newMetadata: Partial<T>): Promise<void> {
         const clipDir = path.join(this.getBasePath(), key);
         const metadataPath = path.join(clipDir, this.METADATA_FILE);
+        const tempMetadataPath = `${metadataPath}.tmp`;
         try {
-            if (!fs.existsSync(metadataPath)) {
-                fs.writeFileSync(metadataPath, JSON.stringify(newMetadata, null, 2));
-            }
-            const existingMetadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+            fs.mkdirSync(clipDir, { recursive: true });
+            const existingMetadata = fs.existsSync(metadataPath)
+                ? JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+                : {};
             const updatedMetadata = {
                 ...existingMetadata,
                 version: this.getVersion(),
@@ -93,8 +104,16 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             if (!this.verifyNewMetadata(updatedMetadata)) {
                 throw new Error('Invalid metadata');
             }
-            fs.writeFileSync(metadataPath, JSON.stringify(updatedMetadata, null, 2));
+            fs.writeFileSync(tempMetadataPath, JSON.stringify(updatedMetadata, null, 2));
+            fs.renameSync(tempMetadataPath, metadataPath);
         } catch (error) {
+            try {
+                if (fs.existsSync(tempMetadataPath)) {
+                    fs.rmSync(tempMetadataPath, { force: true });
+                }
+            } catch {
+                // 清理临时文件失败时不阻断主流程
+            }
             this.logger.error(`Error updating metadata `, error);
             throw error;
         }

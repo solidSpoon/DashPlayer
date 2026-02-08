@@ -1,9 +1,14 @@
 import Store from 'electron-store';
 import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
 import StrUtil from '@/common/utils/str-util';
+import { getEnvironmentConfigName } from '@/backend/utils/runtimeEnv';
 
 
-const store = new Store();
+const buildStore = (name: string): Store<Record<string, unknown>> => {
+    return new Store({ name });
+};
+
+const store = buildStore(getEnvironmentConfigName('config'));
 
 export const storeSet = (key: SettingKey, value: string | undefined | null): boolean => {
     if (StrUtil.isBlank(value)) {

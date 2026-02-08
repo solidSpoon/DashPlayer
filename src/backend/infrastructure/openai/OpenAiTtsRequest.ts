@@ -5,7 +5,7 @@ import path from 'path';
 import axios from 'axios';
 
 import UrlUtil from '@/common/utils/UrlUtil';
-import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
@@ -26,7 +26,7 @@ class OpenAiTtsRequest {
         this.endpoint = config.endpoint;
     }
 
-    @WaitRateLimit('tts')
+    @WithRateLimit('tts')
     public async invoke(): Promise<string> {
         const url = UrlUtil.joinWebUrl(this.endpoint, '/v1/audio/speech');
         const headers = {

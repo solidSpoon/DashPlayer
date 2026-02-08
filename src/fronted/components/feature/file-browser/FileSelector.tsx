@@ -13,6 +13,7 @@ import useConvert from '@/fronted/hooks/useConvert';
 import { toast } from 'sonner';
 import StrUtil from '@/common/utils/str-util';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import i18n from '@/fronted/i18n';
 
 const api = backendClient;
 
@@ -58,11 +59,11 @@ export class FileAction {
                         return;
                     }
                     setTimeout(() => {
-                        toast('某些视频可能在播放器里无声', {
-                            description: '如果遇到无声/无法播放，建议生成“兼容播放版本”',
+                        toast(i18n.t('toast:audioCompatibilityTitle'), {
+                            description: i18n.t('toast:audioCompatibilityDescription'),
                             position: 'top-right',
                             action: {
-                                label: '去生成',
+                                label: i18n.t('toast:audioCompatibilityAction'),
                                 onClick: () => {
                                     useConvert.getState().addFiles(suspiciousFiles);
                                     navigate(`/convert`);
@@ -119,11 +120,11 @@ export class FileAction {
                         return;
                     }
                     setTimeout(() => {
-                        toast('某些视频可能在播放器里无声', {
-                            description: '如果遇到无声/无法播放，建议生成“兼容播放版本”',
+                        toast(i18n.t('toast:audioCompatibilityTitle'), {
+                            description: i18n.t('toast:audioCompatibilityDescription'),
                             position: 'top-right',
                             action: {
-                                label: '去生成',
+                                label: i18n.t('toast:audioCompatibilityAction'),
                                 onClick: () => {
                                     useConvert.getState().addFiles(suspiciousFiles);
                                     navigate(`/convert`);

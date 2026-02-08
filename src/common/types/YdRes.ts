@@ -22,29 +22,36 @@ export interface Basic {
     explains: string[];
 }
 
+/**
+ * OpenAI 字典中的例句项。
+ */
 export interface OpenAIDictionaryExample {
+    /** 英文例句原文。 */
     sentence: string;
-    translation?: string;
-    explanation?: string;
+    /** 例句中文翻译。 */
+    translation: string;
 }
 
+/**
+ * OpenAI 字典中的释义项。
+ */
 export interface OpenAIDictionaryDefinition {
-    partOfSpeech?: string;
+    /** 词性（如 noun/verb/adj），未知时为空字符串。 */
+    partOfSpeech: string;
+    /** 中文释义。 */
     meaning: string;
-    explanation?: string;
-    translationNote?: string;
-    synonyms?: string[];
-    antonyms?: string[];
-    relatedPhrases?: string[];
-    examples?: OpenAIDictionaryExample[];
+    /** 与该释义对应的例句列表。 */
+    examples: OpenAIDictionaryExample[];
 }
 
+/**
+ * OpenAI 单词卡返回结构（简化版）。
+ */
 export interface OpenAIDictionaryResult {
+    /** 查询词。 */
     word: string;
-    phonetic?: string;
-    ukPhonetic?: string;
-    usPhonetic?: string;
+    /** 音标（IPA），未知时为空字符串。 */
+    phonetic: string;
+    /** 释义列表，至少可能为空数组。 */
     definitions: OpenAIDictionaryDefinition[];
-    examples?: OpenAIDictionaryExample[];
-    pronunciation?: string;
 }

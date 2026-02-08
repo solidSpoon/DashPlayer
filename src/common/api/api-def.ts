@@ -18,7 +18,8 @@ import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import {VideoLearningClipStatusVO} from '@/common/types/vo/VideoLearningClipStatusVO';
 import { ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
-import {ApiSettingVO} from "@/common/types/vo/api-setting-vo";
+import { ServiceCredentialSettingVO } from '@/common/types/vo/service-credentials-setting-vo';
+import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 
@@ -150,11 +151,13 @@ interface StorageDef {
 }
 
 interface SettingsDef {
-    'settings/services/get-all': { params: void, return: ApiSettingVO };
-    'settings/services/update': { params: { service: string, settings: ApiSettingVO }, return: void };
-    'settings/services/test-openai': { params: void, return: { success: boolean, message: string } };
-    'settings/services/test-tencent': { params: void, return: { success: boolean, message: string } };
-    'settings/services/test-youdao': { params: void, return: { success: boolean, message: string } };
+    'settings/service-credentials/get': { params: void, return: ServiceCredentialSettingVO };
+    'settings/service-credentials/update': { params: ServiceCredentialSettingVO, return: void };
+    'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };
+    'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
+    'settings/service-credentials/test-youdao': { params: void, return: { success: boolean, message: string } };
+    'settings/engine-selection/get': { params: void, return: EngineSelectionSettingVO };
+    'settings/engine-selection/update': { params: EngineSelectionSettingVO, return: void };
     'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
     'settings/shortcuts/update': { params: Partial<Record<SettingKey, string>>, return: void };
     'settings/storage/update': { params: { path: string; collection: string }, return: void };

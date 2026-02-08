@@ -5,7 +5,7 @@ import path from 'path';
 import * as os from 'node:os';
 import fs from 'fs';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 
 const logger = getMainLogger('TtsService');
 
@@ -15,7 +15,7 @@ class TtsService {
         return base.replace(/\/+$/, '') + '/' + path2.replace(/^\/+/, '');
     };
 
-    @WaitRateLimit('tts')
+    @WithRateLimit('tts')
     public static async tts(str: string) {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
             throw new Error('OpenAI API key or endpoint is not set');

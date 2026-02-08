@@ -6,7 +6,7 @@ import { ZodObject } from 'zod';
 import { ModelMessage, Output, streamText } from 'ai';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import { AiStringResponse } from '@/common/types/aiRes/AiStringResponse';
-import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 @injectable()
 export default class ChatServiceImpl implements ChatService {
@@ -17,11 +17,11 @@ export default class ChatServiceImpl implements ChatService {
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
 
-    private logger = getMainLogger('ChatService').withTags('ai-json');
+    private logger = getMainLogger('ChatService');
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async chat(taskId: number, msgs: ModelMessage[]) {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'
@@ -53,9 +53,9 @@ export default class ChatServiceImpl implements ChatService {
         });
     }
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.dpTaskService.fail(taskId, {
                 progress: 'OpenAI api key or endpoint is empty'

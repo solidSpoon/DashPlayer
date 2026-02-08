@@ -703,4 +703,48 @@ export default class SrtUtil {
             emptyCount
         };
     }
+
+    /**
+     * 将 Whisper 分片结果转换为标准 SRT 文本。
+     *
+     * 关键行为：
+     * - 按分片偏移量升序处理，保证跨分片时间线正确。
+     * - 将每个 segment 的起止时间叠加所属分片偏移量。
+     * - 输出时统一重排索引，避免上游编号缺失或重复。
+     *
+     * @param chunks Whisper 分片结果列表。
+     * @returns 标准 SRT 文本内容。
+     */
+    public static whisperChunksToSrt(chunks: Array<{
+        offset: number;
+        response?: {
+            segments?: Array<{
+                start: number;
+                end: number;
+                text: string;
+            }>;
+        };
+    }>): string {
+        const sortedChunks = [...chunks].sort((leftChunk, rightChunk) => leftChunk.offset - rightChunk.offset);
+        let counter = 1;
+        const lines: SrtLine[] = [];
+
+        for (const chunk of sortedChunks) {
+            const segments = chunk.response?.segments ?? [];
+            for (const segment of segments) {
+                lines.push({
+                    index: counter,
+                    start: segment.start + chunk.offset,
+                    end: segment.end + chunk.offset,
+                    contentEn: segment.text,
+                    contentZh: ''
+                });
+                counter += 1;
+            }
+        }
+
+        return SrtUtil.srtLinesToSrt(lines, {
+            reindex: true,
+        });
+    }
 }

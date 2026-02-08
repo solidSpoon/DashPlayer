@@ -49,7 +49,7 @@ const WordPop = React.forwardRef(
 
         const theme = useTransLineTheme();
         const setting = useSetting((state) => state.setting);
-        const dictionaryEngineRaw = setting('dictionary.engine');
+        const dictionaryEngineRaw = setting('providers.dictionary');
         const dictionaryEngine =
             dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
                 ? dictionaryEngineRaw

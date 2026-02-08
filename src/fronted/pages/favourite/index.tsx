@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/fronted/lib/utils';
-import Separator from '@/fronted/components/shared/common/Separator';
 import useSWR from 'swr';
 import { LoaderPinwheel } from 'lucide-react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/fronted/components/ui/hover-card';
@@ -15,6 +14,10 @@ import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import toast from 'react-hot-toast';
+import { Button } from '@/fronted/components/ui/button';
+import PageHeader from '@/fronted/components/shared/common/PageHeader';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 
@@ -50,6 +53,7 @@ const Loader = () => {
 
 
 const Favorite = () => {
+    const { t } = useI18nTranslation('pages');
     const virtuosoRef = useRef<any>(null);
     const [keyword, setKeyword] = useState('');
     const [tagRelation, setTagRelation] = useState<'and' | 'or'>('and');
@@ -73,6 +77,27 @@ const Favorite = () => {
 
     const playInfo = useFavouriteClip((state) => state.playInfo);
 
+    /**
+     * 从本地 Saved Moments 文件夹重建索引。
+     *
+     * 行为说明：
+     * - 以本地文件夹中的 metadata 为准回灌数据库。
+     * - 完成后刷新当前列表数据。
+     */
+    const recoverSavedMoments = async (): Promise<void> => {
+        await toast.promise(
+            (async () => {
+                await api.call('favorite-clips/sync-from-oss');
+                await swrApiMutate('favorite-clips/search');
+            })(),
+            {
+                loading: t('savedMoments.recover.loading'),
+                success: t('savedMoments.recover.success'),
+                error: t('savedMoments.recover.error'),
+            }
+        );
+    };
+
     // 当当前播放的视频变化时，自动滚动到该视频位置
     useEffect(() => {
         if (playInfo && data.length > 0) {
@@ -91,22 +116,14 @@ const Favorite = () => {
     return (
         <div
             className={cn(
-                'w-full h-full flex flex-col overflow-hidden select-none bg-background p-6 pt-12 gap-4 text-foreground'
+                'w-full h-full flex flex-col overflow-hidden select-none bg-background px-6 py-4 gap-4 text-foreground'
             )}
         >
-            <div className={cn('p-4')}>
-                <h1 className={cn('text-4xl font-bold font-serif')}>
-                    Favorite
-                </h1>
-                <div className="flex items-center gap-4">
-                    <h2 className={cn('text-xl text-secondary-foreground mt-2 mb-4')}>
-                       Manage and re-watch your favorite clips
-                    </h2>
-                    <Loader />
-                </div>
-
-                <Separator orientation="horizontal" className="px-0" />
-            </div>
+            <PageHeader
+                title={t('savedMoments.title')}
+                description={t('savedMoments.description')}
+                rightSlot={<Loader />}
+            />
             <div className="w-full p-2 flex gap-2">
                 <StringQuery
                     query={keyword}
@@ -126,12 +143,27 @@ const Favorite = () => {
                      gridTemplateRows: '100%'
                  }}
             >
-                <Virtuoso
-                    ref={virtuosoRef}
-                    className={cn('max-w-3xl scrollbar-none')}
-                    data={data}
-                    itemContent={(_index, item) => <FavouriteItem item={item} />}
-                />
+                {data.length === 0 ? (
+                    <div className="max-w-3xl rounded-xl border border-dashed border-border p-8 flex flex-col gap-4 items-start justify-center">
+                        <h3 className="text-xl font-semibold">{t('savedMoments.empty.title')}</h3>
+                        <p className="text-sm text-muted-foreground leading-6">
+                            {t('savedMoments.empty.guideAdd')}
+                        </p>
+                        <p className="text-sm text-muted-foreground leading-6">
+                            {t('savedMoments.empty.guideRecover')}
+                        </p>
+                        <Button type="button" variant="outline" onClick={recoverSavedMoments}>
+                            {t('savedMoments.recover.button')}
+                        </Button>
+                    </div>
+                ) : (
+                    <Virtuoso
+                        ref={virtuosoRef}
+                        className={cn('max-w-3xl scrollbar-none')}
+                        data={data}
+                        itemContent={(_index, item) => <FavouriteItem item={item} />}
+                    />
+                )}
                 <FavouritePlayer />
             </div>
         </div>

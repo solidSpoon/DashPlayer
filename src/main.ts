@@ -6,9 +6,15 @@ import fs from 'fs';
 import path from 'path';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
-import runMigrate from '@/backend/infrastructure/db/migrate';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
+import runStartupMigrations from '@/backend/startup/runStartupMigrations';
+import container from '@/backend/ioc/inversify.config';
+import TYPES from '@/backend/ioc/types';
+import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
+import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
+import { getMainLogger } from '@/backend/infrastructure/logger';
+import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
@@ -17,8 +23,43 @@ if (squirrelStartup) {
     app.quit();
 }
 
+const logger = getMainLogger('MainStartup');
+
 const mainWindowRef = {
     current: null as BrowserWindow | null
+};
+
+/**
+ * 判断本次启动是否由“重置数据库”触发。
+ * @returns 命令行参数中是否包含重同步标记。
+ */
+const shouldResyncAfterResetDb = (): boolean => {
+    return process.argv.includes(RESET_DB_RESYNC_FLAG);
+};
+
+/**
+ * 在重置数据库后的首次启动执行本地文件回灌。
+ *
+ * 行为说明：
+ * - 以本地收藏/学习片段目录为准，重建数据库索引。
+ * - 任一同步失败仅记录日志，不阻断主窗口启动。
+ */
+const runResyncAfterResetDbIfNeeded = async (): Promise<void> => {
+    if (!shouldResyncAfterResetDb()) {
+        return;
+    }
+
+    try {
+        const favouriteClipsService = container.get<FavouriteClipsService>(TYPES.FavouriteClips);
+        const videoLearningService = container.get<VideoLearningService>(TYPES.VideoLearningService);
+
+        await favouriteClipsService.syncFromOss();
+        await videoLearningService.syncFromOss();
+
+        logger.info('Resync after reset-db completed');
+    } catch (error) {
+        logger.error('Resync after reset-db failed', { error });
+    }
 };
 
 const installReactDevToolsFromChromeProfile = async (targetSession: Session): Promise<boolean> => {
@@ -129,9 +170,10 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-    await runMigrate();
+    await runStartupMigrations();
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
+    await runResyncAfterResetDbIfNeeded();
     createWindow();
 });
 

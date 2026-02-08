@@ -1,17 +1,19 @@
 import React from 'react';
 import {
-    ItemWrapper,
-    Header,
     SliderInput,
     Title,
 } from '@/fronted/pages/setting/components/form';
 import ThemePreview from '@/fronted/pages/setting/components/ThemePreview';
-import Separator from '@/fronted/components/shared/common/Separator';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';
 import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { Label } from '@/fronted/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { applyLanguageSetting, AppLanguageSetting } from '@/fronted/i18n';
 
 const logger = getRendererLogger('AppearanceSetting');
 const api = backendClient;
@@ -33,22 +35,21 @@ const normalizeFontSize = (value: string | undefined): AppearanceFormValues['fon
 };
 
 const fontSizeToLabel = (fontSize: AppearanceFormValues['fontSize']) => {
-    if (fontSize === 'fontSizeSmall') {
-        return '小';
-    }
-    if (fontSize === 'fontSizeLarge') {
-        return '大';
-    }
-    return '中';
+    return fontSize;
 };
 
 const AppearanceSetting = () => {
+    const { t } = useI18nTranslation('settings');
     const themeSetting = useSetting((state) =>
         state.values.get('appearance.theme')
     );
     const fontSizeSetting = useSetting((state) =>
         state.values.get('appearance.fontSize')
     );
+    const languageSetting = useSetting((state) =>
+        state.values.get('i18n.language')
+    );
+    const setSetting = useSetting((state) => state.setSetting);
 
     const form = useForm<AppearanceFormValues>({
         defaultValues: {
@@ -184,23 +185,33 @@ const AppearanceSetting = () => {
 
     const currentTheme = normalizeTheme(watch('theme'));
     const currentFontSize = normalizeFontSize(watch('fontSize'));
+    const fontSizeOptions: Record<AppearanceFormValues['fontSize'], string> = {
+        fontSizeSmall: t('appearance.fontSizeSmall'),
+        fontSizeMedium: t('appearance.fontSizeMedium'),
+        fontSizeLarge: t('appearance.fontSizeLarge'),
+    };
+    const currentLanguage = (languageSetting === 'zh-CN' || languageSetting === 'en-US' || languageSetting === 'system'
+        ? languageSetting
+        : 'system') as AppLanguageSetting;
 
     logger.debug('Current fontSize setting', { fontSize: currentFontSize });
 
     return (
-        <form className="w-full h-full flex flex-col gap-5">
-            <Header title="外观" description="设置主题与字号" />
-            <Separator orientation="horizontal" className="px-0" />
-            <ItemWrapper>
-                <Title title="Theme" description="设置主题" />
+        <form className="w-full h-full min-h-0">
+            <SettingsPageShell
+                title={t('appearance.title')}
+                description={t('appearance.description')}
+                contentClassName="space-y-8"
+            >
+                <Title title={t('appearance.themeTitle')} description={t('appearance.themeDescription')} />
                 <div className="px-3 py-2 h-60 flex-shrink-0 flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
-                    {['dark', 'light'].map((t) => {
+                    {['dark', 'light'].map((themeOption) => {
                         return (
                             <div
-                                key={t}
+                                key={themeOption}
                                 className={cn('h-full flex flex-col gap-2 cursor-pointer')}
                                 onClick={() => {
-                                    setValue('theme', t as AppearanceFormValues['theme'], {
+                                    setValue('theme', themeOption as AppearanceFormValues['theme'], {
                                         shouldDirty: true,
                                         shouldTouch: true,
                                     });
@@ -209,42 +220,68 @@ const AppearanceSetting = () => {
                                 <div
                                     className={cn(
                                         'p-1 h-full rounded-lg',
-                                        currentTheme === t
+                                        currentTheme === themeOption
                                             ? 'border-2 border-primary'
                                             : 'border-2 border-secondary'
                                     )}
                                 >
                                     <ThemePreview
-                                        theme={t}
+                                        theme={themeOption}
                                         className={cn(
-                                            `${t} w-80 flex-1 flex-shrink-0 rounded overflow-hidden h-full`
+                                            `${themeOption} w-80 flex-1 flex-shrink-0 rounded overflow-hidden h-full`
                                         )}
                                     />
                                 </div>
-                                <div className="text-center">{t}</div>
+                                <div className="text-center">{themeOption}</div>
                             </div>
                         );
                     })}
                 </div>
-                <Title title="Font Size" description="设置字号" />
+                <Title title={t('appearance.fontSizeTitle')} description={t('appearance.fontSizeDescription')} />
                 <SliderInput
-                    title="字体大小"
-                    values={['小', '中', '大']}
+                    title={t('appearance.fontSizeLabel')}
+                    values={['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge']}
+                    valueLabelMap={fontSizeOptions}
                     defaultValue={fontSizeToLabel(currentFontSize)}
                     inputWidth="w-56"
                     setValue={(v) => {
-                        if (v === '小') {
+                        if (v === 'fontSizeSmall') {
                             setValue('fontSize', 'fontSizeSmall', { shouldDirty: true, shouldTouch: true });
                         }
-                        if (v === '中') {
+                        if (v === 'fontSizeMedium') {
                             setValue('fontSize', 'fontSizeMedium', { shouldDirty: true, shouldTouch: true });
                         }
-                        if (v === '大') {
+                        if (v === 'fontSizeLarge') {
                             setValue('fontSize', 'fontSizeLarge', { shouldDirty: true, shouldTouch: true });
                         }
                     }}
                 />
-            </ItemWrapper>
+                <div className="space-y-3">
+                    <div>
+                        <h1 className="text-lg font-bold mb-2">{t('appearance.languageTitle')}</h1>
+                        <p className="text-base text-gray-600">{t('appearance.languageDescription')}</p>
+                    </div>
+                    <div className="max-w-sm">
+                        <Label className="mb-2 block">{t('appearance.languageTitle')}</Label>
+                        <Select
+                            value={currentLanguage}
+                            onValueChange={(value: AppLanguageSetting) => {
+                                setSetting('i18n.language', value).catch(() => undefined);
+                                applyLanguageSetting(value).catch(() => undefined);
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="system">{t('appearance.languageSystem')}</SelectItem>
+                                <SelectItem value="zh-CN">{t('appearance.languageZhCN')}</SelectItem>
+                                <SelectItem value="en-US">{t('appearance.languageEnUS')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </SettingsPageShell>
         </form>
     );
 };

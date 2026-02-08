@@ -1,0 +1,83 @@
+{
+    "compatToastTitle": "该视频可能在播放器里无声",
+    "compatToastAction": "生成兼容版本",
+    "emptyState": {
+        "heroTitle": "开启英语学习之旅",
+        "heroDescription": "选择视频，通过双语字幕和智能功能提升英语水平。",
+        "ready": "准备就绪",
+        "continueWatching": "继续观看",
+        "restartWatching": "重新观看"
+    },
+    "speedSlider": {
+        "favoriteHint": "勾选常用速度，然后用快捷键 {{shortcut}} 在这些速度中切换。"
+    },
+    "controlBox": {
+        "title": "播放器控制",
+        "description": "管理播放器设置与播放行为。",
+        "showEnglish": "展示英文字幕",
+        "showChinese": "展示中文字幕",
+        "syncSideSubtitles": "同步侧边字幕",
+        "singleRepeat": "单句循环",
+        "autoPause": "自动暂停",
+        "autoPlayNext": "自动播放下一个",
+        "nightMode": "夜间模式",
+        "fullScreen": "全屏模式",
+        "podcastMode": "播客模式",
+        "shortcutHint": "快捷键：{{shortcut}}",
+        "syncSideHint": "隐藏英文字幕时也隐藏侧边字幕，鼠标移动到侧边时显示。",
+        "autoPauseHint": "当前句子结束后自动暂停。快捷键：{{shortcut}}",
+        "autoPlayNextHint": "文件夹模式下，当前视频结束后自动播放下一个视频。",
+        "fullScreenHint": "点击进入或退出全屏。",
+        "podcastModeHint": "播放音频文件时建议启用播客模式。"
+    },
+    "clearAdjust": {
+        "button": "清除时间调整",
+        "done": "已清除时间调整",
+        "tooltipTitle": "清除时间调整",
+        "tooltipSubtitle": "清除当前视频的所有时间调整",
+        "shortcutIntro": "当字幕时间戳不准确时，可用以下快捷键精调：",
+        "shortcutBeginMinus": "快捷键 {{shortcut}}：将当前句子开始时间提前 0.2 秒",
+        "shortcutBeginPlus": "快捷键 {{shortcut}}：将当前句子开始时间推后 0.2 秒",
+        "shortcutEndMinus": "快捷键 {{shortcut}}：将当前句子结束时间提前 0.2 秒",
+        "shortcutEndPlus": "快捷键 {{shortcut}}：将当前句子结束时间推后 0.2 秒"
+    },
+    "transcript": {
+        "button": "生成字幕",
+        "statusInit": "初始化中...",
+        "statusInProgress": "转录中...",
+        "tooltipTitle": "生成字幕",
+        "tooltipBody": "使用 AI 为当前视频生成字幕，字幕会保存到视频目录并在完成后自动加载。",
+        "noVideoSelected": "请先选择一个视频文件",
+        "addedToQueue": "已添加到转录队列"
+    },
+    "autoClip": {
+        "button": "裁切生词视频",
+        "detecting": "检测中...",
+        "analyzing": "分析中 {{progress}}%",
+        "inProgress": "裁切中 ({{count}})",
+        "pendingCount": "裁切 {{count}} 个生词片段",
+        "noneAvailable": "暂无可裁切片段",
+        "disabledDetecting": "正在检测裁切状态",
+        "disabledWaitingAnalysis": "等待字幕分析完成",
+        "disabledAnalyzing": "正在分析视频内容，请等待完成",
+        "disabledInProgress": "正在裁切生词视频，请等待完成",
+        "disabledRequested": "已创建裁切任务，等待后端开始处理",
+        "noVideoOrSubtitle": "请先加载视频和字幕",
+        "taskExists": "已存在裁切任务，请等待完成",
+        "starting": "开始裁切生词视频...",
+        "failed": "生词视频裁切失败，请重试",
+        "tooltipTitle": "裁切生词视频",
+        "tooltipSubtitle": "根据生词表自动裁切包含生词的视频片段",
+        "currentStatus": "当前状态：{{status}}",
+        "statusWaiting": "等待检测...",
+        "noticePrefix": "注意：{{reason}}",
+        "workflowTitle": "此功能会：",
+        "workflow1": "读取当前视频的字幕内容",
+        "workflow2": "匹配生词表中的生词",
+        "workflow3": "自动裁切包含生词的视频片段",
+        "workflow4": "保存到视频学习库中",
+        "suitableTitle": "适用于：",
+        "suitable1": "快速创建生词相关的学习视频",
+        "suitable2": "批量生成生词学习片段"
+    }
+}

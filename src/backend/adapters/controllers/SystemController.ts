@@ -14,6 +14,7 @@ import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
 import { UPDATE_TOAST_LAST_SHOWN_AT_KEY } from '@/common/constants/systemConfigKeys';
 import { UpdateCheckResult } from '@/common/types/update-check';
+import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 
 /**
  * eg: .mkv -> mkv
@@ -86,7 +87,7 @@ export default class SystemController implements Controller {
 
     public async resetDb() {
         await clearDB();
-        app.relaunch();
+        app.relaunch({ args: [...process.argv.slice(1), RESET_DB_RESYNC_FLAG] });
         app.quit();
     }
 

@@ -9,8 +9,15 @@ DashPlayer uses Electron 39 with Vite splitting the app into main (`src/main.ts`
 ## Coding Style & Naming Conventions
 Write TypeScript/TSX with 4-space indentation, single quotes, and trailing commas on multiline lists. Components and classes use `PascalCase`, hooks begin with `use`, and services/utilities stay `camelCase`. Keep UI concerns in renderer folders and business logic in backend services. Follow Tailwind utility ordering from existing files, and use the configured path aliases (`@/fronted/...`, `@/backend/...`, `@/common/...`).
 
+- 注释语言：新增/修改的注释一律使用中文（避免中英混杂）。
+- 方法注释：对新增/修改的 function/method，必须在方法顶部写 JSDoc，说明意图、关键入参/出参，以及任何不直观的行为/边界条件。
+- 变量注释：如果变量含义/约束无法一眼看懂，在变量声明前写一行中文注释说明。
+- 类型注释：对新增/修改的 `type`/`interface`/`class`，必须写顶部 JSDoc；对关键字段写字段级注释（解释含义、单位/格式、约束）。
+
 ## Testing Guidelines
 Vitest with Testing Library and JSDOM powers unit and integration coverage. Place specs beside source in `__tests__/` directories or as `*.test.ts(x)` siblings (`src/fronted/components/__tests__/Button.test.tsx`). Import `src/test/setup.ts` when DOM globals are needed. Assert user-visible behavior and IPC contracts, and keep coverage healthy via `yarn test:coverage`.
+
+- 测试代码描述规范：`describe` / `it` 文案统一使用中文，且尽量白话、易懂，优先表达真实业务行为，避免过度技术术语。
 
 ## Commit & Pull Request Guidelines
 Use Conventional Commits for commit messages (e.g., `feat: ...`, `fix: ...`, `chore: ...`, `docs: ...`, `refactor: ...`, `test: ...`, `build: ...`, `ci: ...`). Keep each commit scoped to a single feature or fix; do not bundle unrelated changes. PRs should explain context, list verification steps, attach UI captures when flows change, and link issues. Call out migration updates in `drizzle/` or scripts, and mention when contributors must rerun `yarn run download`.
@@ -19,10 +26,12 @@ Use Conventional Commits for commit messages (e.g., `feat: ...`, `fix: ...`, `ch
 External integrations drive key features: Youdao, Tencent, OpenAI, Sherpa ONNX. Configure credentials through the in-app Settings UI or local secure storage—never commit keys or generated data. Ensure `lib/` binaries match the branch (rerun `yarn run download` after upgrades) and review `forge.config.ts` plus `drizzle.config.ts` whenever changing build or database behavior.
 
 ## Logging & Debug Filters
-Use log tags to reduce noise during debugging. Set `DP_LOG_TAGS` (comma-separated, or `*`/`all` to disable filtering) in `.env` to only emit tagged logs. Add tags via `getMainLogger('Module').withTags('tag').info(...)`. When troubleshooting, suggest filtering to relevant tags/modules to reduce unrelated log spam. Prefer top-level `const logger = getMainLogger('Module')` in main and `const logger = getRendererLogger('Module')` in renderer. Tags are for coarse feature filtering only (1-2 tags, e.g. subtitle/whisper/translate/ipc), and only when you need to filter. Dev-time log level and filters must be set in env: `DP_LOG_LEVEL=debug`, `VITE_DP_LOG_LEVEL=debug`, `DP_LOG_TAGS=subtitle,whisper`.
+Use module and focus-token filters to reduce noise during debugging. Set `DP_LOG_INCLUDE_MODULES` / `DP_LOG_EXCLUDE_MODULES` and `VITE_DP_LOG_INCLUDE_MODULES` / `VITE_DP_LOG_EXCLUDE_MODULES` in `.env` to filter by module. For temporary feature-focused debugging, set `DP_LOG_FOCUS_TOKEN` and `VITE_DP_LOG_FOCUS_TOKEN`, and use `getMainLogger('Module').withFocus('token')` / `getRendererLogger('Module').withFocus('token')` or a temporary `[FOCUS:token]` message prefix. Prefer top-level `const logger = getMainLogger('Module')` in main and `const logger = getRendererLogger('Module')` in renderer. Dev-time log level and filters must be set in env: `DP_LOG_LEVEL=debug`, `VITE_DP_LOG_LEVEL=debug`.
 
 ## Agent Notes
 - Drizzle migrations under `drizzle/migrations/` are auto-generated; never edit them manually. Change the schema in `src/backend/infrastructure/db/tables/` and run `yarn drizzle-kit generate` afterwards.
 - This is a personal open-source project. Favor simple, pragmatic designs; avoid over-engineering architecture.
 - Avoid compatibility shims; remove dead/legacy code thoroughly when refactoring.
+- Before implementing new features or refactors, read `docs/architecture-guidelines.md` and follow its file placement/layering rules.
+- 遇到并发控制、限流、让步调度、锁顺序或重入相关需求时（例如 ffmpeg/ffprobe/whisper 任务并发、gpt/tts/tencent 请求限流、视频分析让步调度），先阅读 `docs/concurrency-kernel-usage.md`，按该文档的约定实现。
 - If you notice a potential new guideline worth adding to this file, ask before adding it.

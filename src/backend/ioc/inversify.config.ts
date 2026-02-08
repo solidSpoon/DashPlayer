@@ -46,6 +46,7 @@ import ChatSessionService from '@/backend/application/services/ChatSessionServic
 import ChatServiceImpl from '@/backend/application/services/impl/ChatServiceImpl';
 import ChatSessionServiceImpl from '@/backend/application/services/impl/ChatSessionServiceImpl';
 import AiProviderServiceImpl from '@/backend/application/services/impl/clients/AiProviderServiceImpl';
+import ModelRoutingServiceImpl from '@/backend/application/services/impl/clients/ModelRoutingServiceImpl';
 import WhisperService from '@/backend/application/services/WhisperService';
 import WhisperServiceImpl from '@/backend/application/services/impl/WhisperServiceImpl';
 import ConvertService from '@/backend/application/services/ConvertService';
@@ -77,11 +78,14 @@ import { OpenAIServiceImpl } from '@/backend/application/services/impl/OpenAISer
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import AiProviderService from '@/backend/application/services/AiProviderService';
+import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 import OpenAiWhisperGatewayImpl from '@/backend/infrastructure/openai/OpenAiWhisperGatewayImpl';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import { CloudTranscriptionServiceImpl } from '@/backend/application/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/application/services/impl/LocalTranscriptionServiceImpl';
 import {WhisperCppCli} from '@/backend/infrastructure/media/whisper/WhisperCppCli';
+import WhisperGateway from '@/backend/application/ports/gateways/media/WhisperGateway';
+import WhisperGatewayImpl from '@/backend/infrastructure/media/whisper/WhisperGatewayImpl';
 import {WordMatchService} from '@/backend/application/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/application/services/impl/WordMatchServiceImpl';
 import VocabularyController from '@/backend/adapters/controllers/VocabularyController';
@@ -93,6 +97,8 @@ import RendererEvents from '@/backend/application/ports/gateways/renderer/Render
 import RendererEventsImpl from '@/backend/infrastructure/renderer/RendererEventsImpl';
 import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
 import WindowPortImpl from '@/backend/infrastructure/window/WindowPortImpl';
+import FfmpegGateway from '@/backend/application/ports/gateways/media/FfmpegGateway';
+import FfmpegGatewayImpl from '@/backend/infrastructure/media/ffmpeg/FfmpegGatewayImpl';
 import WordsRepository from '@/backend/application/ports/repositories/WordsRepository';
 import WordsRepositoryImpl from '@/backend/infrastructure/db/repositories/WordsRepositoryImpl';
 import DpTaskRepository from '@/backend/application/ports/repositories/DpTaskRepository';
@@ -122,6 +128,7 @@ container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClien
 container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<SettingsKeyValueService>(TYPES.SettingsKeyValueService).to(SettingsKeyValueService).inSingletonScope();
+container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
@@ -149,6 +156,7 @@ container.bind<WindowPort>(TYPES.WindowPort).to(WindowPortImpl).inSingletonScope
 container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncService).inSingletonScope();
 container.bind<WhisperModelService>(TYPES.WhisperModelService).to(WhisperModelService).inSingletonScope();
 container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
+container.bind<WhisperGateway>(TYPES.WhisperGateway).to(WhisperGatewayImpl).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();
@@ -170,6 +178,7 @@ container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigSe
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
 container.bind<LocationService>(TYPES.LocationService).to(LocationServiceImpl).inSingletonScope();
+container.bind<FfmpegGateway>(TYPES.FfmpegGateway).to(FfmpegGatewayImpl).inSingletonScope();
 container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingletonScope();
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();

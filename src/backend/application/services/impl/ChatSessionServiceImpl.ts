@@ -8,7 +8,7 @@ import ChatSessionService from '@/backend/application/services/ChatSessionServic
 import { ChatBackgroundContext, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
-import { WaitRateLimit } from '@/common/utils/RateLimiter';
+import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 import {
     appendBackgroundMessage,
     buildAnalysisPrompt,
@@ -25,7 +25,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
         const sessionId = params.sessionId;
@@ -35,7 +35,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             event: 'start',
         });
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
@@ -62,7 +62,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         return { messageId };
     }
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult> {
         const messageId = this.createMessageId();
         const sessionId = params.sessionId;
@@ -72,7 +72,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             event: 'start',
         });
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
@@ -99,7 +99,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         return { messageId };
     }
 
-    @WaitRateLimit('gpt')
+    @WithRateLimit('gpt')
     public async start(
         sessionId: string,
         messages: ModelMessage[],
@@ -113,7 +113,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             event: 'start',
         });
 
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
@@ -144,7 +144,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         messageId: string,
         messages: ModelMessage[]
     ): Promise<void> {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             return;
         }
@@ -173,19 +173,19 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
 
 
     private async runAnalysisStream(sessionId: string, messageId: string, prompt: string): Promise<void> {
-        const model = this.aiProviderService.getModel();
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             return;
         }
-        const taggedLogger = this.logger.withTags('ai-json');
-        taggedLogger.debug('analysis stream start', { sessionId, messageId });
+        const streamLogger = this.logger;
+        streamLogger.debug('analysis stream start', { sessionId, messageId });
         const result = streamText({
             model,
             output: Output.object({ schema: AiUnifiedAnalysisSchema }),
             prompt,
         });
         for await (const partial of result.partialOutputStream) {
-            taggedLogger.debug('analysis stream chunk', {
+            streamLogger.debug('analysis stream chunk', {
                 sessionId,
                 messageId,
                 keys: Object.keys(partial ?? {}),
@@ -198,7 +198,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             });
         }
         const finalObject = await result.output;
-        taggedLogger.debug('analysis stream done', { sessionId, messageId });
+        streamLogger.debug('analysis stream done', { sessionId, messageId });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,

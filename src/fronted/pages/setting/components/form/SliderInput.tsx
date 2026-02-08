@@ -8,6 +8,7 @@ export interface SliderInputProps {
     defaultValue: string;
     setValue: (value: string) => void;
     inputWidth?: string;
+    valueLabelMap?: Record<string, string>;
 }
 const SliderInput = ({
     title,
@@ -15,6 +16,7 @@ const SliderInput = ({
     defaultValue,
     setValue,
     inputWidth,
+    valueLabelMap,
 }: SliderInputProps) => {
     const [localValue, setLocalValue] = useState<string>(defaultValue);
     useEffect(() => {
@@ -36,12 +38,13 @@ const SliderInput = ({
                     setValue(values[value[0]]);
                 }}
             />
-            <div className="text-sm text-left w-10">{localValue}</div>
+            <div className="text-sm text-left w-16">{valueLabelMap?.[localValue] ?? localValue}</div>
         </div>
     );
 };
 
 SliderInput.defaultProps = {
     inputWidth: 'w-44',
+    valueLabelMap: undefined,
 };
 export default SliderInput;

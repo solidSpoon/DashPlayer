@@ -6,19 +6,25 @@ import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const getShortcut = (key: string) => useSetting.getState().setting(key as any);
 
-export default function ClearAdjustButton() {
-  const tooltipMd = codeBlock`
-  #### 清除时间调整
-  _清除当前视频的所有时间调整_
+interface ClearAdjustButtonProps {
+  className?: string;
+}
 
-  当字幕时间戳不准确时, 可以使用如下快捷键调整:
-  - 快捷键 ${getShortcut('shortcut.adjustBeginMinus')} 将当前句子开始时间提前 0.2 秒
-  - 快捷键 ${getShortcut('shortcut.adjustBeginPlus')} 将当前句子开始时间推后 0.2 秒
-  - 快捷键 ${getShortcut('shortcut.adjustEndMinus')} 将当前句子结束时间提前 0.2 秒
-  - 快捷键 ${getShortcut('shortcut.adjustEndPlus')} 将当前句子结束时间推后 0.2 秒
+export default function ClearAdjustButton({ className }: ClearAdjustButtonProps) {
+  const { t } = useI18nTranslation('player');
+  const tooltipMd = codeBlock`
+  #### ${t('clearAdjust.tooltipTitle')}
+  _${t('clearAdjust.tooltipSubtitle')}_
+
+  ${t('clearAdjust.shortcutIntro')}
+  - ${t('clearAdjust.shortcutBeginMinus', { shortcut: getShortcut('shortcut.adjustBeginMinus') })}
+  - ${t('clearAdjust.shortcutBeginPlus', { shortcut: getShortcut('shortcut.adjustBeginPlus') })}
+  - ${t('clearAdjust.shortcutEndMinus', { shortcut: getShortcut('shortcut.adjustEndMinus') })}
+  - ${t('clearAdjust.shortcutEndPlus', { shortcut: getShortcut('shortcut.adjustEndPlus') })}
   `;
 
   const handleClick = async () => {
@@ -31,17 +37,18 @@ export default function ClearAdjustButton() {
     setTimeout(() => {
       if (path) useFile.setState({ subtitlePath: path });
     }, 0);
-    toast('清除了', { icon: '👏' });
+    toast(t('clearAdjust.done'), { icon: '👏' });
   };
 
   return (
     <TooltippedButton
       icon={Eraser}
-      text="清除时间调整"
+      text={t('clearAdjust.button')}
       onClick={handleClick}
       tooltipMd={tooltipMd}
       tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
+      className={className}
     />
   );
 }

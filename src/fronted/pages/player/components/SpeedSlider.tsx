@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useSetting from '@/fronted/hooks/useSetting';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export interface VolumeSliderProps {
     speed: number;
@@ -16,6 +17,7 @@ export interface VolumeSliderProps {
 }
 
 const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps) => {
+    const { t } = useI18nTranslation('player');
     const logger = getRendererLogger('SpeedSlider');
     const [open, setOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +72,9 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                                 />
                             </TooltipTrigger>
                             <TooltipContent>
-                                点击勾选几个常用的速度, 使用快捷键 {useSetting.getState().setting('shortcut.nextPlaybackRate')} 在这些速度中切换
+                                {t('speedSlider.favoriteHint', {
+                                    shortcut: useSetting.getState().setting('shortcut.nextPlaybackRate'),
+                                })}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

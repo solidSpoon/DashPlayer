@@ -1,8 +1,6 @@
 import * as React from 'react';
 import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
-import ItemWrapper from '@/fronted/pages/setting/components/form/ItemWrapper';
-import FooterWrapper from '@/fronted/pages/setting/components/form/FooterWrapper';
-import Header from '@/fronted/pages/setting/components/form/Header';
+import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
@@ -12,6 +10,7 @@ import useSetting from '@/fronted/hooks/useSetting';
 import { useShallow } from 'zustand/react/shallow';
 import { SettingKeyObj } from '@/common/types/store_schema';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;
 
@@ -26,6 +25,7 @@ const normalizeEngine = (value: string | undefined): TenantFormValues['translati
 };
 
 const TenantSetting = () => {
+    const { t } = useI18nTranslation('settings');
     const storeValues = useSetting(
         useShallow((state) => {
             return {
@@ -180,13 +180,26 @@ const TenantSetting = () => {
     const translationEngine = normalizeEngine(currentEngine);
 
     return (
-        <form className="w-full h-full flex flex-col gap-4">
-            <Header title="字幕翻译" description="配置翻译引擎和相关密钥" />
-
-            <ItemWrapper>
+        <form className="w-full h-full min-h-0">
+            <SettingsPageShell
+                title={t('tenant.title')}
+                description={t('tenant.description')}
+                contentClassName="space-y-6"
+                actions={(
+                    <Button
+                        onClick={async () => {
+                            await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
+                        }}
+                        variant="secondary"
+                        type="button"
+                    >
+                        {t('common.viewDocs')}
+                    </Button>
+                )}
+            >
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium">翻译引擎</label>
+                        <label className="text-sm font-medium">{t('tenant.translationEngineLabel')}</label>
                         <Controller
                             name="translationEngine"
                             control={control}
@@ -196,17 +209,17 @@ const TenantSetting = () => {
                                     onValueChange={(value) => field.onChange(value as TenantFormValues['translationEngine'])}
                                 >
                                     <SelectTrigger className="w-64">
-                                        <SelectValue placeholder="选择翻译引擎" />
+                                        <SelectValue placeholder={t('tenant.selectEnginePlaceholder')} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="tencent">腾讯翻译</SelectItem>
-                                        <SelectItem value="openai">OpenAI翻译</SelectItem>
+                                        <SelectItem value="tencent">{t('tenant.engineTencent')}</SelectItem>
+                                        <SelectItem value="openai">{t('tenant.engineOpenAi')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
                         />
                         <div className="text-xs text-gray-500">
-                            选择翻译引擎。腾讯翻译速度快，OpenAI翻译质量更高。
+                            {t('tenant.engineHelp')}
                         </div>
                     </div>
 
@@ -219,7 +232,7 @@ const TenantSetting = () => {
                                     <SettingInput
                                         setValue={(value) => field.onChange(value)}
                                         onBlur={field.onBlur}
-                                        title="腾讯云 SecretId"
+                                        title={t('tenant.tencentSecretId')}
                                         inputWidth="w-64"
                                         value={field.value ?? ''}
                                     />
@@ -235,13 +248,13 @@ const TenantSetting = () => {
                                         placeHolder="******************"
                                         setValue={(value) => field.onChange(value)}
                                         onBlur={field.onBlur}
-                                        title="腾讯云 SecretKey"
+                                        title={t('tenant.tencentSecretKey')}
                                         value={field.value ?? ''}
                                     />
                                 )}
                             />
                             <div className={cn('text-sm text-gray-500 mt-2 flex flex-row gap-2')}>
-                                你需要腾讯云的密钥才能使用字幕翻译，详见
+                                {t('tenant.tencentHintPrefix')}
                                 <a
                                     className={cn('underline')}
                                     onClick={async () => {
@@ -250,7 +263,7 @@ const TenantSetting = () => {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    文档
+                                    {t('common.docs')}
                                 </a>
                             </div>
                         </>
@@ -258,27 +271,15 @@ const TenantSetting = () => {
 
                     {translationEngine === 'openai' && (
                         <div className={cn('text-sm text-gray-500 p-4 bg-blue-50 rounded-lg')}>
-                            OpenAI翻译使用您在“OpenAI”页面中配置的密钥和端点。
+                            {t('tenant.openaiHintLine1')}
                             <br />
-                            请确保已在OpenAI设置页面中正确配置API密钥。
+                            {t('tenant.openaiHintLine2')}
                         </div>
                     )}
                 </div>
-            </ItemWrapper>
-
-            <FooterWrapper>
-                <Button
-                    onClick={async () => {
-                        await api.call('system/open-url', 'https://solidspoon.xyz/DashPlayer/');
-                    }}
-            variant="secondary"
-            type="button"
-        >
-            查看文档
-        </Button>
-        </FooterWrapper>
-    </form>
-);
+            </SettingsPageShell>
+        </form>
+    );
 };
 
 export default TenantSetting;

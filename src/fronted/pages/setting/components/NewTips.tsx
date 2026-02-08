@@ -7,12 +7,13 @@ import {
     CarouselPrevious
 } from '@/fronted/components/ui/carousel';
 import { Card, CardContent } from '@/fronted/components/ui/card';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const tips = [
-    '转录时，你可以离开当前页面，继续观看视频，转录会后台进行。转录完成后会自动更新对应视频的字幕。',
-    // '转录时，你可以离开当前页面，继续观看视频，转录会后台进行。转录完成后会自动更新对应视频的字幕。'
-];
 const NewTips = () => {
+    const { t } = useI18nTranslation('settings');
+    const tips = [
+        t('checkUpdate.tips.transcriptionBackground'),
+    ];
     const [api, setApi] = React.useState<CarouselApi>();
     const [current, setCurrent] = React.useState(0);
     const [count, setCount] = React.useState(0);
@@ -52,7 +53,7 @@ const NewTips = () => {
                 <CarouselNext />
             </Carousel>
             <div className="py-2 text-center text-sm text-muted-foreground">
-                Slide {current} of {count}
+                {t('checkUpdate.tips.slideCounter', { current, count })}
             </div>
         </div>
     );
