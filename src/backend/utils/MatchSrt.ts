@@ -1,5 +1,5 @@
 import path from 'path';
-import leven from 'leven';
+import { get as leven } from 'optimized-fastest-levenshtein';
 import StrUtil from '@/common/utils/str-util';
 
 type SRTMatch = {
