@@ -92,6 +92,10 @@ const useTranslation = create(
             }
 
             const state = get();
+            if (state.engine === 'none') {
+                return;
+            }
+
             const fileHash = sentences[0]?.fileHash;
 
             if (!fileHash) {
@@ -173,8 +177,18 @@ const useTranslation = create(
             });
         },
 
-        // 强制重新翻译
+        /**
+         * 强制重新翻译指定字幕句。
+         *
+         * @param fileHash 当前字幕文件哈希。
+         * @param indices 需要重新翻译的字幕索引列表。
+         * @param useCache 是否允许使用已有缓存，默认强制请求新结果。
+         */
         retranslate: (fileHash: string, indices: number[], useCache = false) => {
+            if (get().engine === 'none') {
+                return;
+            }
+
             set(state => {
                 const newStatus = new Map(state.translationStatus);
                 indices.forEach((index) => {

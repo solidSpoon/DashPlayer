@@ -311,15 +311,11 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const engine = await this.settingService.getCurrentTranslationProvider();
         if (!engine) {
-            this.logger.error('没有启用的翻译服务');
+            this.logger.info('字幕翻译服务未启用，忽略本次翻译请求');
             this.notifySubtitleTranslationFailed({
                 fileHash,
                 keys: requestedKeys,
                 provider: 'openai',
-            });
-            this.showSubtitleTranslationToast({
-                message: '未启用字幕翻译服务，请在设置中配置后重试',
-                dedupeKey: 'subtitle-translation:engine-not-enabled',
             });
             return;
         }
@@ -426,15 +422,11 @@ export default class TranslateServiceImpl implements TranslateService {
     private async processTencentBatch(tasks: Sentence[], storageMode: SubtitleTranslationStorageMode): Promise<void> {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'tencent') {
-            this.logger.error('腾讯翻译服务未启用');
+            this.logger.info('腾讯字幕翻译服务已关闭，忽略本次翻译请求');
             this.notifySubtitleTranslationFailed({
                 fileHash: tasks[0]?.fileHash ?? '',
                 keys: tasks.map((task) => task.translationKey),
                 provider: 'tencent',
-            });
-            this.showSubtitleTranslationToast({
-                message: '腾讯字幕翻译未启用，请检查设置',
-                dedupeKey: 'subtitle-translation:tencent-not-enabled',
             });
             return;
         }
@@ -527,16 +519,12 @@ export default class TranslateServiceImpl implements TranslateService {
     ): Promise<void> {
         const currentProvider = await this.settingService.getCurrentTranslationProvider();
         if (currentProvider !== 'openai') {
-            this.logger.error('OpenAI 翻译服务未启用');
+            this.logger.info('OpenAI 字幕翻译服务已关闭，忽略本次翻译请求');
             this.notifySubtitleTranslationFailed({
                 fileHash: tasks[0]?.fileHash ?? '',
                 keys: tasks.map((task) => task.translationKey),
                 provider: 'openai',
                 mode: openAiMode,
-            });
-            this.showSubtitleTranslationToast({
-                message: 'OpenAI 字幕翻译未启用，请检查设置',
-                dedupeKey: 'subtitle-translation:openai-not-enabled',
             });
             return;
         }
