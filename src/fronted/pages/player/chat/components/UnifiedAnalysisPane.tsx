@@ -7,6 +7,11 @@ import Md from '@/fronted/components/shared/markdown/Markdown';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Separator } from '@/fronted/components/ui/separator';
+import { Star } from 'lucide-react';
+import { useToast } from '@/fronted/components/ui/use-toast';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useVocabularyStore from '@/fronted/hooks/useVocabulary';
+import { Button } from '@/fronted/components/ui/button';
 
 const UnifiedAnalysisPane = ({ className }: {
     className?: string,
@@ -20,7 +25,27 @@ const UnifiedAnalysisPane = ({ className }: {
 
     logger.debug('AI analysis detail loaded', { vocab: vocabDetail, phrase: phraseDetail, grammar: grammarDetail });
 
+    const { toast } = useToast();
+    const isVocabularyWord = useVocabularyStore(s => s.isVocabularyWord);
+    const addVocabularyWords = useVocabularyStore(s => s.addVocabularyWords);
+
     const isLoading = status === 'streaming' && !vocabDetail && !phraseDetail && !grammarDetail;
+
+    const handleAdd = async (word: string, meaning?: string) => {
+        const normalized = word.trim().toLowerCase();
+        try {
+            const result = await backendClient.call('vocabulary/add', { word: normalized, translate: meaning });
+            if (result.success) {
+                addVocabularyWords([normalized]);
+                toast({ title: '已收藏', description: `「${normalized}」已加入生词本` });
+            } else {
+                toast({ title: '收藏失败', description: result.message, variant: 'destructive' });
+            }
+        } catch (error) {
+            logger.error('收藏失败', { error });
+            toast({ title: '收藏抛错', description: String(error), variant: 'destructive' });
+        }
+    };
 
     if (isLoading) {
         return (
@@ -51,14 +76,30 @@ const UnifiedAnalysisPane = ({ className }: {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">本句生词</h3>
                     <div className="flex flex-col gap-1">
                         {vocabDetail?.words?.map((word, i) => (
-                            <div key={i} className="flex flex-col gap-0.5 rounded-lg bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50">
+                            <div key={i} className="group flex flex-col gap-0.5 rounded-lg bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50 relative">
                                 <div className="flex items-center gap-2">
                                     <Playable className="font-semibold text-base text-foreground/90">{word.word}</Playable>
                                     <span className="text-xs text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
                                         {word.phonetic}
                                     </span>
+                                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 rounded-full"
+                                            onClick={() => handleAdd(word.word, word.meaning)}
+                                        >
+                                            <Star
+                                                size={14}
+                                                className={cn(
+                                                    'transition-colors',
+                                                    isVocabularyWord(word.word) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                                                )}
+                                            />
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="text-xs text-foreground/80 leading-snug">{word.meaning}</div>
+                                <div className="text-xs text-foreground/80 leading-snug pr-8">{word.meaning}</div>
                             </div>
                         ))}
                     </div>
@@ -73,9 +114,27 @@ const UnifiedAnalysisPane = ({ className }: {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">本句词组</h3>
                     <div className="flex flex-col gap-1">
                         {phraseDetail?.phrases?.map((phrase, i) => (
-                            <div key={i} className="flex flex-col gap-0.5 rounded-lg bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50">
-                                <Playable className="font-medium text-sm text-foreground/90">{phrase.phrase}</Playable>
-                                <div className="text-xs text-foreground/80 leading-snug">{phrase.meaning}</div>
+                            <div key={i} className="group flex flex-col gap-0.5 rounded-lg bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50 relative">
+                                <div className="flex items-center justify-between gap-2">
+                                    <Playable className="font-medium text-sm text-foreground/90">{phrase.phrase}</Playable>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 rounded-full"
+                                            onClick={() => handleAdd(phrase.phrase, phrase.meaning)}
+                                        >
+                                            <Star
+                                                size={14}
+                                                className={cn(
+                                                    'transition-colors',
+                                                    isVocabularyWord(phrase.phrase) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                                                )}
+                                            />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-foreground/80 leading-snug pr-8">{phrase.meaning}</div>
                             </div>
                         ))}
                     </div>

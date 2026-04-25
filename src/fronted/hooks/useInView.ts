@@ -6,7 +6,7 @@ import type { RefObject } from 'react';
 
 type UseInViewOptions = IntersectionObserverInit | undefined;
 
-const useInView = <T extends Element>(ref: RefObject<T>, options?: UseInViewOptions) => {
+const useInView = (ref: RefObject<Element | null>, options?: UseInViewOptions) => {
     const [inView, setInView] = useState(false);
 
     useEffect(() => {

@@ -455,7 +455,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             }
 
             if (options?.onProgress) {
-                const progress = Math.min(99, Math.round((completedChunks / totalChunks) * 100));
+                const progress = Math.min(90, Math.round((completedChunks / totalChunks) * 90));
                 this.clipAnalysisProgress.set(analysisKey, progress);
                 await options.onProgress(progress);
             }
@@ -479,7 +479,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 }
 
                 completedChunks++;
-                const progress = Math.min(99, Math.round((completedChunks / totalChunks) * 100));
+                const progress = Math.min(90, Math.round((completedChunks / totalChunks) * 90));
                 if (options?.onProgress) {
                     this.clipAnalysisProgress.set(analysisKey, progress);
                     await options.onProgress(progress);
@@ -495,28 +495,34 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     throw new Error('ANALYSIS_CANCELLED');
                 }
                 const matches = matchResults[i] || [];
-                if (!matches || matches.length === 0) {
-                    continue;
+                if (matches && matches.length > 0) {
+                    const matchedWords = Array.from(
+                        new Set(
+                            matches
+                                .map((m) => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
+                                .filter(Boolean)
+                        )
+                    );
+
+                    if (matchedWords.length > 0) {
+                        const clipKey = this.mapToClipKey(srtKey, i);
+                        candidates.push({
+                            indexInSrt: i,
+                            clipKey,
+                            matchedWords,
+                        });
+                    }
                 }
 
-                const matchedWords = Array.from(
-                    new Set(
-                        matches
-                            .map((m) => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
-                            .filter(Boolean)
-                    )
-                );
-
-                if (matchedWords.length === 0) {
-                    continue;
+                // 第二阶段进度：90% - 99%
+                if (options?.onProgress && i % 100 === 0) {
+                    const collectionProgress = 90 + Math.round((i / srtLines.length) * 9);
+                    if (collectionProgress !== (this.clipAnalysisProgress.get(analysisKey) ?? 0)) {
+                        this.clipAnalysisProgress.set(analysisKey, collectionProgress);
+                        await options.onProgress(collectionProgress);
+                    }
+                    await this.analysisScheduler.yieldIfNeeded();
                 }
-
-                const clipKey = this.mapToClipKey(srtKey, i);
-                candidates.push({
-                    indexInSrt: i,
-                    clipKey,
-                    matchedWords,
-                });
             }
 
             if (options?.onProgress) {

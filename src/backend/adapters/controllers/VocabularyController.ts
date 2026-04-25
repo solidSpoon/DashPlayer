@@ -20,9 +20,24 @@ export default class VocabularyController implements Controller {
         return this.vocabularyService.importWords(params.filePath);
     }
 
+    public async addWord(params: { word: string; translate?: string }) {
+        return this.vocabularyService.addWord(params);
+    }
+
+    public async deleteWord(params: { word: string }) {
+        return this.vocabularyService.deleteWord(params.word);
+    }
+
+    public async refreshTranslation(params: { word: string }) {
+        return this.vocabularyService.refreshWordTranslation(params.word);
+    }
+
     registerRoutes(): void {
         registerRoute('vocabulary/get-all', (p) => this.getAllWords(p));
         registerRoute('vocabulary/export-template', () => this.exportTemplate());
         registerRoute('vocabulary/import', (p) => this.importWords(p));
+        registerRoute('vocabulary/add', (p) => this.addWord(p));
+        registerRoute('vocabulary/delete', (p) => this.deleteWord(p));
+        registerRoute('vocabulary/refresh-translation', (p) => this.refreshTranslation(p));
     }
 }

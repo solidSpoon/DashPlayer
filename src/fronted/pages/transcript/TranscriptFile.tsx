@@ -17,10 +17,20 @@ import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const api = backendClient;
 const TranscriptFile = () => {
-    const { files, onAddToQueue } = useTranscript(useShallow(s => ({
+    const { files, onAddToQueue, onTranscript } = useTranscript(useShallow(s => ({
         files: s.files,
-        onAddToQueue: s.onAddToQueue
+        onAddToQueue: s.onAddToQueue,
+        onTranscript: s.onTranscript
     })));
+    
+    const handleFileClick = async (p: string) => {
+        const isFirst = files.length === 0;
+        onAddToQueue(p);
+        if (isFirst) {
+            // 如果是第一个文件，自动开始转录
+            await onTranscript(p);
+        }
+    };
     const queue = files.map(f => f.file);
     return (
         <div className={cn('flex-1 flex flex-col rounded-lg border bg-muted/20 p-4 min-h-0')}>
@@ -32,6 +42,8 @@ const TranscriptFile = () => {
                     const sp = ps.find(MediaUtil.isSrt);
                     if (vp) {
                         await api.call('watch-history/create', ps);
+                        // 也可以考虑在这里 handleFileClick
+                        await handleFileClick(vp);
                     }
                     if (sp) {
                         if (StrUtil.isNotBlank(vp)) {
@@ -65,7 +77,7 @@ const TranscriptFile = () => {
                     return <VideoItem2 pv={pv}
                                        ctxMenus={ctxMenus}
                                        onClick={() => {
-                                           onAddToQueue(PathUtil.join(pv.basePath, pv.fileName));
+                                           handleFileClick(PathUtil.join(pv.basePath, pv.fileName));
                                        }}
                                        variant={queue.includes(PathUtil.join(pv.basePath, pv.fileName)) ? 'lowlight' : 'normal'} />;
                 }}
@@ -85,7 +97,7 @@ const TranscriptFile = () => {
                                       onClick={() => {
                                           hc();
                                           if (!p.isFolder) {
-                                              onAddToQueue(PathUtil.join(p.basePath, p.fileName));
+                                              handleFileClick(PathUtil.join(p.basePath, p.fileName));
                                           }
                                       }} />;
                 }}

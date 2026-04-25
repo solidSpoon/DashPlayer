@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { Input } from '@/fronted/components/ui/input';
 import { Button } from '@/fronted/components/ui/button';
-import { Search, Upload, Download, List, LocateFixed } from 'lucide-react';
+import { Search, Upload, Download, List, LocateFixed, Trash2, RotateCw } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import {
   Tooltip,
@@ -10,6 +10,7 @@ import {
   TooltipTrigger
 } from '@/fronted/components/ui/tooltip';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { toast } from '@/fronted/components/ui/use-toast';
 
 interface WordItem {
   id: number;
@@ -30,6 +31,8 @@ type Props = {
   onClearSelection: () => void;
   onExportTemplate: () => void;
   onImportWords: (filePath: string) => void;
+  onDeleteWord: (word: WordItem) => void;
+  onRefreshWord: (word: WordItem) => void;
 };
 
 export default function WordSidebar({
@@ -42,6 +45,8 @@ export default function WordSidebar({
   onClearSelection,
   onExportTemplate,
   onImportWords,
+  onDeleteWord,
+  onRefreshWord,
 }: Props) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
@@ -75,6 +80,16 @@ export default function WordSidebar({
     }
   };
 
+  const handleDelete = (e: React.MouseEvent, word: WordItem) => {
+    e.stopPropagation();
+    onDeleteWord(word);
+  };
+
+  const handleRefresh = (e: React.MouseEvent, word: WordItem) => {
+    e.stopPropagation();
+    onRefreshWord(word);
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* 顶部工具栏 */}
@@ -99,6 +114,7 @@ export default function WordSidebar({
                 <Button
                   variant="outline"
                   size="icon"
+                  className="w-8 h-8"
                   aria-label="导出模板"
                   type="button"
                   onClick={onExportTemplate}
@@ -113,6 +129,7 @@ export default function WordSidebar({
                 <Button
                   variant="outline"
                   size="icon"
+                  className="w-8 h-8"
                   aria-label="导入 Excel"
                   type="button"
                   onClick={handleImportClick}
@@ -127,6 +144,7 @@ export default function WordSidebar({
                 <Button
                   variant={selectedWord ? 'outline' : 'default'}
                   size="icon"
+                  className="w-8 h-8"
                   aria-label="显示全部视频"
                   type="button"
                   onClick={handleShowAll}
@@ -141,6 +159,7 @@ export default function WordSidebar({
                 <Button
                   variant="outline"
                   size="icon"
+                  className="w-8 h-8"
                   aria-label="定位到当前单词"
                   type="button"
                   onClick={handleLocateCurrent}
@@ -182,7 +201,7 @@ export default function WordSidebar({
                   role="button"
                   tabIndex={0}
                   className={[
-                    'p-2 rounded-lg cursor-pointer transition-all text-sm leading-tight mb-1',
+                    'group p-2 rounded-lg cursor-pointer transition-all text-sm leading-tight mb-1 relative',
                     active
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted'
@@ -196,21 +215,50 @@ export default function WordSidebar({
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="font-medium">{word.word}</div>
-                    {!!word.videoCount && word.videoCount > 0 && (
-                      <div
-                        className={[
-                          'text-xs px-2 py-0.5 rounded-full border',
-                          active
-                            ? 'bg-primary/20 text-primary-foreground border-primary/30'
-                            : 'bg-secondary text-secondary-foreground border-transparent'
-                        ].join(' ')}
-                      >
-                        {word.videoCount}个视频
-                      </div>
-                    )}
+                    <div className="font-medium truncate mr-2" title={word.word}>{word.word}</div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        {!!word.videoCount && word.videoCount > 0 && (
+                          <div
+                            className={[
+                              'text-[10px] px-1.5 py-0.5 rounded-full border',
+                              active
+                                ? 'bg-primary/20 text-primary-foreground border-primary/30'
+                                : 'bg-secondary text-secondary-foreground border-transparent'
+                            ].join(' ')}
+                          >
+                            {word.videoCount}个视频
+                          </div>
+                        )}
+                        <div className={[
+                            'flex items-center gap-0.5 transition-opacity',
+                            active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        ].join(' ')}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={['w-6 h-6 p-0 hover:bg-black/10', active ? 'text-primary-foreground' : 'text-muted-foreground'].join(' ')}
+                                title="更新译文"
+                                onClick={(e) => handleRefresh(e, word)}
+                            >
+                                <RotateCw className="w-3 h-3" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={['w-6 h-6 p-0 hover:bg-black/10 hover:text-destructive', active ? 'text-primary-foreground' : 'text-muted-foreground'].join(' ')}
+                                title="删除"
+                                onClick={(e) => handleDelete(e, word)}
+                            >
+                                <Trash2 className="w-3 h-3" />
+                            </Button>
+                        </div>
+                    </div>
                   </div>
-                  <div className={['text-xs truncate', active ? 'text-primary-foreground/80' : 'text-muted-foreground'].join(' ')}>
+                  <div className={[
+                      'text-xs mt-0.5',
+                      active ? 'text-primary-foreground/80' : 'text-muted-foreground',
+                      'line-clamp-2'
+                  ].join(' ')} title={word.translate}>
                     {word.translate || '暂无释义'}
                   </div>
                 </div>

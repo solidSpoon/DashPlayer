@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+// @ts-ignore
 import * as turf from '@turf/turf';
+// @ts-ignore
 import { Feature, Polygon } from '@turf/turf';
 import WordPop from './word-pop';
 import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
@@ -16,9 +18,24 @@ import { usePlayer } from '@/fronted/hooks/usePlayer';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/hooks/useDictionaryStream';
 import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { useToast } from '@/fronted/components/ui/use-toast';
 
 const api = backendClient;
 const logger = getRendererLogger('Word');
+
+/** 从 OpenAIDictionaryResult 中提取简短释义（用于生词本） */
+const extractTranslate = (data: OpenAIDictionaryResult | null | undefined): string | undefined => {
+    if (!data || !Array.isArray(data.definitions) || data.definitions.length === 0) {
+        return undefined;
+    }
+    return data.definitions
+        .slice(0, 3)
+        .map((d) => {
+            const prefix = d.partOfSpeech ? `${d.partOfSpeech}. ` : '';
+            return `${prefix}${d.meaning}`;
+        })
+        .join('；');
+};
 export interface WordParam {
     word: string;
     original: string;
@@ -52,9 +69,10 @@ export const getBox = (ele: HTMLElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
+const Word = ({word, original, pop, requestPop, show, alwaysDark = false, classNames}: WordParam) => {
     const pause = usePlayer((s) => s.pause);
     const vocabularyStore = useVocabulary();
+    const { toast } = useToast();
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -63,7 +81,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
 
     // 检查是否是词汇单词
     const cleanWord = word.toLowerCase().replace(/[^\w-]/g, '');
-    const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
+    const isVocabularyWord = !!cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
 
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
     const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
@@ -102,7 +120,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 });
 
                 if (openaiDictionaryEnabled) {
-                    const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in (result as Record<string, unknown>);
+                    const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in (result as unknown as Record<string, unknown>);
                     useDictionaryStream.getState().setFinalResult(
                         targetWord,
                         requestId,
@@ -138,7 +156,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             });
 
             if (openaiDictionaryEnabled) {
-                const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in (newData as Record<string, unknown>);
+                const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in (newData as unknown as Record<string, unknown>);
                 useDictionaryStream.getState().setFinalResult(
                     original,
                     requestId,
@@ -154,6 +172,23 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             }
         } finally {
             setIsRefreshing(false);
+        }
+    };
+
+    /** 将当前单词加入收藏生词本 */
+    const handleAddToVocabulary = async (wordToAdd: string, translate?: string) => {
+        const normalized = wordToAdd.trim().toLowerCase();
+        try {
+            const result = await api.call('vocabulary/add', { word: normalized, translate });
+            if (result.success) {
+                vocabularyStore.addVocabularyWords([normalized]);
+                toast({ title: '已收藏', description: `「${normalized}」已加入生词本` });
+            } else {
+                toast({ title: '收藏失败', description: result.message, variant: 'destructive' });
+            }
+        } catch (error) {
+            logger.error('收藏单词失败', { error: error instanceof Error ? error.message : error });
+            toast({ title: '收藏失败', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
         }
     };
     const eleRef = useRef<HTMLSpanElement | null>(null);
@@ -283,6 +318,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             {pop && hovered ? (
                 <Eb>
                     <WordPop
+                        word={original}
                         translation={dictionaryResponse}
                         referenceElement={eleRef.current}
                         ref={popperRef}
@@ -290,6 +326,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                         openaiStreamingData={openaiDictionaryEnabled ? dictionaryEntry?.data : null}
                         isStreaming={openaiDictionaryEnabled && !!dictionaryEntry && !dictionaryEntry.isComplete}
                         onRefresh={handleRefresh}
+                        onAddToVocabulary={handleAddToVocabulary}
+                        isWordInVocabulary={isVocabularyWord}
                     />
                 </Eb>
             ) : null}
@@ -298,7 +336,3 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
 };
 
 export default Word;
-
-Word.defaultProps = {
-    alwaysDark: false,
-}

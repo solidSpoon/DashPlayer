@@ -18,13 +18,6 @@ type Props = {
 const SPLIT_REGEX =
   /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 
-/**
- * 渲染视频学习页的字幕列表。
- *
- * 说明：
- * - 列表中的生词高亮仅用于轻量提示，不承载主字幕的词典交互暗示。
- * - 保持英文行可扫描，但避免与主字幕的强高亮样式混淆。
- */
 export default function SubtitleList({
   lines,
   activeIndex,
@@ -48,13 +41,6 @@ export default function SubtitleList({
     }
   }, [activeIndex]);
 
-  /**
-   * 按 token 渲染列表里的生词轻提示。
-   *
-   * 说明：
-   * - 采用更克制的虚线下划线与较轻字重。
-   * - 不使用醒目的背景块，降低“可点击/可悬浮”的视觉预期。
-   */
   const renderHighlightedText = useCallback((text: string, keyPrefix: string) => {
     if (!text) {
       return null;
@@ -71,7 +57,7 @@ export default function SubtitleList({
         return (
           <span
             key={`${textHashBase}-${index}`}
-            className="font-medium underline decoration-dotted underline-offset-[0.18em] decoration-primary/35"
+            className="text-primary font-semibold underline decoration-primary/70 decoration-1 bg-primary/10 px-0.5 rounded-sm"
           >
             {token}
           </span>

@@ -90,10 +90,10 @@ export const checkUpdate = async (): Promise<UpdateCheckResult> => {
         return cache;
     }
 
-    const releases: Release[] = listResponse.data
-        .filter(isStableRelease)
+    const releases: Release[] = (listResponse.data as any[])
+        .filter((r: any) => isStableRelease(r))
         .map((release: { html_url: string; tag_name: string; body: string }) => toRelease(release))
-        .filter(release => isNewerVersion(release.version, currentVersion))
+        .filter((release: Release) => isNewerVersion(release.version, currentVersion))
         .sort(sortByVersionDesc);
 
     logger.info('fetched releases from github', { count: releases.length });

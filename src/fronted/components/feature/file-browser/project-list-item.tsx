@@ -30,7 +30,7 @@ const ProjectListItem = ({ video, onSelected }: {
     // 判断是否为 MP3 文件
     const isAudio = MediaUtil.isAudio(video.fileName);
     const showDuration = !video.isFolder && video.duration > 0;
-    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
     const inView = useInView(containerRef);
 
     const { data: url } = useSWR(

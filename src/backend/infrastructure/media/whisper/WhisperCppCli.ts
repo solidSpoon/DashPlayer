@@ -146,7 +146,13 @@ export class WhisperCppCli {
                 child.on('close', (code) => {
                     clearInterval(heartbeat);
                     if (code === 0) resolve();
-                    else reject(new Error(`whisper.cpp exit code ${code}: ${stderr.slice(-2000)}`));
+                    else {
+                        let errorMsg = `whisper.cpp exit code ${code}: ${stderr.slice(-2000)}`;
+                        if (code !== 0 && !stderr.trim() && process.platform === 'win32') {
+                            errorMsg += '\n提示：检测到程序异常退出且无输出，可能是由于缺少必要的 DLL 依赖或 Visual C++ 运行库。请尝试运行 "yarn download" 重新下载二进制文件，或安装最新的 VC++ Redistributable。';
+                        }
+                        reject(new Error(errorMsg));
+                    }
                 });
             });
         } finally {

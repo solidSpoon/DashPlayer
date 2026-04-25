@@ -93,12 +93,6 @@ https://github.com/solidSpoon/DashPlayer/assets/39454841/c243796b-7a4c-400c-99c9
 
 https://github.com/solidSpoon/DashPlayer/assets/39454841/55956719-306f-4046-a8b4-243f79029d26
 
-
-在字幕上点击并滑动可以循环播放多行字幕
-
-https://github.com/user-attachments/assets/82b2cb36-a44b-4729-9b4f-3a440c6deb40
-
-
 ---
 
 # 安装指南

@@ -166,37 +166,27 @@ const extractZip = async (zipPath, destDir) => {
         }
         // NOTE: `pwsh -Command <string>` consumes the remainder of the command line, so extra args are not reliably
         // available in `$args` on CI shells. Use `-File` to pass zip/dest as proper script arguments.
-        const psTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-ps-'));
-        const psFile = path.join(psTmpDir, 'expand-archive.ps1');
-        fs.writeFileSync(
-            psFile,
-            [
-                'param(',
-                '    [Parameter(Mandatory = $true)][string]$Zip,',
-                '    [Parameter(Mandatory = $true)][string]$Dest',
-                ')',
-                'Expand-Archive -Force -LiteralPath $Zip -DestinationPath $Dest',
-                '',
-            ].join('\n')
-        );
-        // Avoid `\e` escape sequences when zx renders arguments through a bash-like layer on Windows.
-        const psFileArg = String(psFile).replaceAll('\\', '/');
-        const zipArg = String(zipPath).replaceAll('\\', '/');
-        const destArg = String(destDir).replaceAll('\\', '/');
+        // However, the PowerShell profile can interfere with -File (see above). To avoid this, we call
+        // Expand-Archive directly from Node.js child_process instead of spawning a ps1 script.
+        const { exec } = await import('child_process');
+        const escapedZip = zipPath.replace(/'/g, "''");
+        const escapedDest = destDir.replace(/'/g, "''");
+        const psCmd = `Expand-Archive -Force -LiteralPath '${escapedZip}' -DestinationPath '${escapedDest}'`;
+        // Try Windows PowerShell first, fall back to pwsh
+        const execAsync = (cmd) => new Promise((resolve, reject) => {
+            exec(cmd, { shell: 'cmd.exe', windowsHide: true }, (err, _stdout, stderr) => {
+                if (err) reject(new Error(stderr || err.message));
+                else resolve();
+            });
+        });
         try {
-            await $`pwsh -NoProfile -ExecutionPolicy Bypass -File ${psFileArg} ${zipArg} ${destArg}`;
+            await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`);
         } catch {
-            await $`powershell -NoProfile -ExecutionPolicy Bypass -File ${psFileArg} ${zipArg} ${destArg}`;
-        } finally {
-            try {
-                fs.rmSync(psTmpDir, { recursive: true, force: true });
-            } catch {
-                // ignore
-            }
+            await execAsync(`pwsh -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`);
         }
-        return;
+    } else {
+        await $`unzip -o ${zipPath} -d ${destDir}`;
     }
-    await $`unzip -o ${zipPath} -d ${destDir}`;
 };
 
 const extractTarGz = async (tarPath, destDir) => {
@@ -432,10 +422,7 @@ const arch = process.env.npm_config_arch || os.arch()
             const archKey = arch === 'arm64' ? 'arm64' : 'x64';
             const nameRegex = new RegExp(`^whisper\\.cpp-${platKey}-${archKey}\\.(zip|tar\\.gz|tgz)$`, 'i');
 
-            let assetUrl = await getLatestReleaseAssetUrl({ owner: 'solidSpoon', repo: 'DashPlayer', nameRegex });
-            if (!assetUrl) {
-                assetUrl = await getLatestReleaseAssetUrlIncludingPrerelease({ owner: 'solidSpoon', repo: 'DashPlayer', nameRegex });
-            }
+            const assetUrl = await getLatestReleaseAssetUrlIncludingPrerelease({ owner: 'solidSpoon', repo: 'DashPlayer', nameRegex });
             if (!assetUrl) {
                 console.warn(chalk.yellow(`⚠️  whisper.cpp release asset not found for ${platform}/${arch}, skip download`));
             } else {
@@ -444,6 +431,8 @@ const arch = process.env.npm_config_arch || os.arch()
                     extraCopyPatterns.push(/^(libwhisper|libggml).*\.dylib$/i);
                 } else if (platform === 'linux') {
                     extraCopyPatterns.push(/^(libwhisper|libggml).*\.so(\.\d+)?$/i);
+                } else if (platform === 'win32') {
+                    extraCopyPatterns.push(/\.(dll|lib)$/i);
                 }
                 console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
                 await downloadAndExtractBinaryFromArchive({
@@ -456,5 +445,29 @@ const arch = process.env.npm_config_arch || os.arch()
         } catch (e) {
             console.warn(chalk.yellow(`⚠️  whisper.cpp download failed, keep existing binaries: ${e instanceof Error ? e.message : String(e)}`));
         }
+    }
+}
+
+{
+    // yt-dlp
+    const file = platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+    const res = await verifyExistence({
+        dir,
+        file,
+    });
+    if (res === 'need_download') {
+        const downloadUrl = platform === 'win32'
+            ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
+            : platform === 'darwin'
+                ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos'
+                : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+
+        console.info(chalk.blue(`=> yt-dlp target: ${path.join(dir, file)}`));
+        await download({
+            url: downloadUrl,
+            dir,
+            file,
+        });
+        fs.chmodSync(path.join(dir, file), 0o755);
     }
 }

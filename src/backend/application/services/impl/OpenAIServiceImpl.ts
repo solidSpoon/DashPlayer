@@ -23,7 +23,7 @@ export class OpenAIServiceImpl implements OpenAiService {
         this.apiKey = ak;
         this.endpoint = ep;
         this.openai = new OpenAI({
-            baseURL: ep + '/v1',
+            baseURL: ep.replace(/\/+$/, '') + '/v1',
             apiKey: ak
         });
         return this.openai;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Star, RefreshCw } from 'lucide-react';
 import {
     FloatingPortal,
     autoPlacement,
@@ -16,6 +17,7 @@ import { useTransLineTheme } from './translatable-theme';
 const logger = getRendererLogger('WordPop');
 
 export interface WordSubParam {
+    word?: string;
     translation: YdRes | OpenAIDictionaryResult | null | undefined;
     /**
      * 浮层锚点所绑定的单词元素。
@@ -29,6 +31,10 @@ export interface WordSubParam {
     openaiStreamingData?: OpenAIDictionaryResult | null;
     isStreaming?: boolean;
     onRefresh?: () => void;
+    /** 收藏按钮点击回调，参数为 (单词, 释义) */
+    onAddToVocabulary?: (word: string, translate?: string) => void;
+    /** 当前单词是否已在生词本中 */
+    isWordInVocabulary?: boolean;
     classNames?: {
         container?: string;        // youdao 容器覆盖
         openaiContainer?: string;  // openai 容器覆盖
@@ -37,14 +43,17 @@ export interface WordSubParam {
 }
 
 const WordPop = React.forwardRef(
-    (
+        (
         {
+            word,
             translation,
             referenceElement,
             isLoading: externalIsLoading,
             openaiStreamingData,
             isStreaming = false,
             onRefresh,
+            onAddToVocabulary,
+            isWordInVocabulary,
             classNames
         }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
@@ -111,8 +120,40 @@ const WordPop = React.forwardRef(
                         />
                     </div>
                 )}
-                <div className="sticky bottom-0 text-cyan-900 text-lg text-center w-full pt-1 mt-1 pb-2">
-                    {ydData?.translation}
+                <div className="sticky bottom-0 bg-white/95 border-t border-gray-100 flex items-center justify-between px-3 py-2 z-20">
+                    <div className="text-cyan-900 text-base font-medium truncate flex-1 pr-2">
+                        {ydData?.translation?.join('；')}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        {onAddToVocabulary && word && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onAddToVocabulary(word, ydData?.translation?.join('；')); }}
+                                disabled={isWordInVocabulary}
+                                className={cn(
+                                    'p-1.5 rounded-full shadow-sm transition-colors',
+                                    isWordInVocabulary
+                                        ? 'text-yellow-500 cursor-default bg-gray-50'
+                                        : 'text-gray-600 hover:text-yellow-600 bg-white hover:bg-gray-50 border border-gray-100',
+                                )}
+                                title={isWordInVocabulary ? '已收藏' : '收藏到生词本'}
+                            >
+                                <Star size={16} className={isWordInVocabulary ? 'fill-yellow-400' : ''} />
+                            </button>
+                        )}
+                        {onRefresh && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+                                disabled={externalIsLoading || isStreaming || isLoading}
+                                className={cn(
+                                    'p-1.5 rounded-full shadow-sm transition-colors bg-white hover:bg-gray-50 border border-gray-100 text-gray-600 hover:text-gray-800',
+                                    (externalIsLoading || isStreaming || isLoading) && 'opacity-50'
+                                )}
+                                title="强制刷新"
+                            >
+                                <RefreshCw size={16} className={(externalIsLoading || isStreaming || isLoading) ? 'animate-spin' : ''} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </>
         );
@@ -147,6 +188,8 @@ const WordPop = React.forwardRef(
                         isLoading={openAILoading}
                         isStreaming={isStreaming}
                         onRefresh={onRefresh}
+                        onAddToVocabulary={onAddToVocabulary}
+                        isWordInVocabulary={isWordInVocabulary}
                     />
                 );
             }
@@ -157,7 +200,8 @@ const WordPop = React.forwardRef(
                         theme.pop.container,
                         classNames?.container,
                         isLoading ? 'opacity-0' : 'opacity-100',
-                        shouldShowYoudao && (translation as any)?.webdict?.url && 'pt-4'
+                        shouldShowYoudao && (translation as any)?.webdict?.url && 'pt-4',
+                        'relative overflow-hidden'
                     )}
                 >
                     {shouldShowYoudao && renderYoudaoContent(translation as YdRes)}

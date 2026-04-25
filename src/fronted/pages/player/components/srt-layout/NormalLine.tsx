@@ -1,30 +1,89 @@
+import {ReactElement} from 'react';
 import usePlayerUi from '@/fronted/hooks/usePlayerUi';
 import {cn} from "@/fronted/lib/utils";
 import useSetting from '@/fronted/hooks/useSetting';
-import {FONT_SIZE} from '@/fronted/styles/style';
+import useVocabulary from '@/fronted/hooks/useVocabulary';
+import Style, {FONT_SIZE} from '@/fronted/styles/style';
+import hash from "object-hash";
 
 interface NormalLineParam {
     text: string;
     order: 'second' | 'third';
 }
 
+interface Part {
+    content: string;
+    isWord: boolean;
+    id: string;
+}
+
+export const SPLIT_REGEX =
+    /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 const NormalLine = ({text, order}: NormalLineParam) => {
     const show = usePlayerUi((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
+    const vocabularyStore = useVocabulary();
+    const isVocabularyWord = vocabularyStore.isVocabularyWord;
 
     if (text === undefined) {
         return <div/>;
     }
+    const isWord = (str: string): boolean => {
+        const noWordRegex = /[^A-Za-z0-9-\u4e00-\u9fa5]/;
+        return !noWordRegex.test(str);
+    };
+    const textHash = hash(text);
+    const words: Part[] = text
+        .replace(/\s+/g, ' ')
+        .split(SPLIT_REGEX)
+        .filter((w) => w)
+        .map((w, index) => {
+            return {
+                content: w,
+                isWord: isWord(w),
+                id: `${textHash}:${index}`,
+            };
+        });
+
+    const word = (str: string, key: string): ReactElement => {
+        const cleanWord = str.toLowerCase().replace(/[^\w]/g, '');
+        const isVocab = cleanWord && isVocabularyWord(cleanWord);
+
+        return (
+            <span
+                className={cn(
+                    !show && ['text-transparent rounded', Style.word_hover_normal_line_bg],
+                    isVocab && 'font-bold text-yellow-600 dark:text-yellow-400 underline decoration-yellow-600 dark:decoration-yellow-400 decoration-1'
+                )}
+                key={key}
+            >
+                {str}
+            </span>
+        );
+    };
+
+    const notWord = (str: string, key: string): ReactElement => {
+        const content = str === ' ' ? ' ' : str;
+        return (
+            <span className={`${show ? '' : 'text-transparent'} `} key={key}>
+                {content}
+            </span>
+        );
+    };
     return (
         <div
             className={cn(`my-0 mx-10 py-2.5 px-1 text-stone-600 dark:text-neutral-300`,
                 fontSize === 'fontSizeSmall' && (order === 'second' ? FONT_SIZE["ms2-small"] : FONT_SIZE["ms3-small"]),
                 fontSize === 'fontSizeMedium' && (order === 'second' ? FONT_SIZE["ms2-medium"] : FONT_SIZE["ms3-medium"]),
                 fontSize === 'fontSizeLarge' && (order === 'second' ? FONT_SIZE["ms2-large"] : FONT_SIZE["ms3-large"]),
-                !show && 'text-transparent',
             )}
         >
-            {text}
+            {words.map((w) => {
+                if (w.isWord) {
+                    return word(w.content, w.id);
+                }
+                return notWord(w.content, w.id);
+            })}
         </div>
     );
 };

@@ -36,7 +36,7 @@ import useInView from '@/fronted/hooks/useInView';
     // 1. 检测是否是 mp3
     const isAudio = MediaUtil.isAudio(video.fileName);
     const showDuration = !video.isFolder && video.duration > 0;
-    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
     const inView = useInView(containerRef);
 
     // 2. 如果是 mp3，就不调用生成缩略图的接口，把 key 设为 null

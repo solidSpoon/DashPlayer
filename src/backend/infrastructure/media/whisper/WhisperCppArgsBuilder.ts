@@ -38,7 +38,9 @@ export class WhisperCppArgsBuilder {
             } else if (supportsVadModelFlag) {
                 vadModelPath = path.join(modelsRoot, 'whisper-vad', `ggml-${vadModel}.bin`);
                 if (!fs.existsSync(vadModelPath)) {
-                    throw new Error(`静音检测模型未下载。请在【设置 → 服务配置 → Whisper 本地字幕识别】中下载静音检测模型后再转录。`);
+                    // 如果 VAD 模型不存在，记录日志并回退到普通模式，而不是抛出异常
+                    vadModelPath = null;
+                    vadSkippedBecauseUnsupported = true;
                 }
             }
         }

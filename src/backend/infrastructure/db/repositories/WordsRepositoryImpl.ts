@@ -1,4 +1,4 @@
-import { like, or } from 'drizzle-orm';
+import { like, or, eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
@@ -43,5 +43,29 @@ export default class WordsRepositoryImpl implements WordsRepository {
 
             tx.insert(words).values(values).run();
         });
+    }
+
+    public async addWord(word: string, translate?: string): Promise<void> {
+        await db
+            .insert(words)
+            .values({
+                word: word.trim().toLowerCase(),
+                translate: translate?.trim() || null,
+            })
+            .onConflictDoNothing();
+    }
+
+    public async updateWord(word: string, translate: string): Promise<void> {
+        await db
+            .update(words)
+            .set({
+                translate: translate.trim(),
+                updated_at: new Date().toISOString(),
+            })
+            .where(eq(words.word, word.trim().toLowerCase()));
+    }
+
+    public async deleteWord(word: string): Promise<void> {
+        await db.delete(words).where(eq(words.word, word.trim().toLowerCase()));
     }
 }

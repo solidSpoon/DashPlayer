@@ -62,7 +62,8 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             const tagIds: { tag_id: number | null }[] = tx
                 .select({ tag_id: clipTagRelation.tag_id })
                 .from(clipTagRelation)
-                .where(eq(clipTagRelation.clip_key, clipKey));
+                .where(eq(clipTagRelation.clip_key, clipKey))
+                .all();
 
             tx.delete(clipTagRelation).where(eq(clipTagRelation.clip_key, clipKey));
             tx.delete(videoClip).where(eq(videoClip.key, clipKey));
@@ -74,7 +75,8 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
                 const r = tx
                     .select({ c: count() })
                     .from(clipTagRelation)
-                    .where(eq(clipTagRelation.tag_id, tag_id));
+                    .where(eq(clipTagRelation.tag_id, tag_id))
+                    .all();
                 if ((r[0]?.c ?? 0) === 0) {
                     tx.delete(tag).where(eq(tag.id, tag_id));
                 }
@@ -220,7 +222,8 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             const r = tx
                 .select({ c: count() })
                 .from(clipTagRelation)
-                .where(eq(clipTagRelation.tag_id, tagId));
+                .where(eq(clipTagRelation.tag_id, tagId))
+                .all();
             if ((r[0]?.c ?? 0) === 0) {
                 tx.delete(tag).where(eq(tag.id, tagId));
             }

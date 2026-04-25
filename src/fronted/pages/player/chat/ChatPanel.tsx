@@ -33,6 +33,7 @@ const ChatPanel = () => {
         ctxMenuExplain,
         ctxMenuOpened,
         ctxMenuPlayAudio,
+        ctxMenuCollectWord,
         ctxMenuPolish,
         ctxMenuQuote,
         ctxMenuCopy,
@@ -41,6 +42,7 @@ const ChatPanel = () => {
         ctxMenuExplain: s.ctxMenuExplain,
         ctxMenuOpened: s.ctxMenuOpened,
         ctxMenuPlayAudio: s.ctxMenuPlayAudio,
+        ctxMenuCollectWord: s.ctxMenuCollectWord,
         ctxMenuPolish: s.ctxMenuPolish,
         ctxMenuQuote: s.ctxMenuQuote,
         ctxMenuCopy: s.ctxMenuCopy,
@@ -61,8 +63,7 @@ const ChatPanel = () => {
             animate={{
                 opacity: 1,
                 transition: {
-                    duration: 0.3,
-                    type: 'just'
+                    duration: 0.3
                 }
             }}
             exit={{opacity: 0}}
@@ -90,15 +91,13 @@ const ChatPanel = () => {
                         animate={{
                             y: 0,
                             transition: {
-                                duration: 0.3,
-                                type: 'just'
+                                duration: 0.3
                             }
                         }}
                         exit={{
                             y: '100%',
                             transition: {
-                                duration: 0.3,
-                                type: 'just'
+                                duration: 0.3
                             }
                         }}
                     >
@@ -167,6 +166,9 @@ const ChatPanel = () => {
                         onClick={ctxMenuExplain}
                     >解释所选单词</ContextMenuItem>
                     <ContextMenuItem
+                        onClick={ctxMenuCollectWord}
+                    >收藏所选单词</ContextMenuItem>
+                    <ContextMenuItem
                         onClick={ctxMenuPolish}
                     >润色句子</ContextMenuItem>
                     <ContextMenuItem
@@ -184,9 +186,5 @@ const ChatPanel = () => {
     );
 };
 
-ChatPanel.defaultProps = {
-    orientation: 'horizontal',
-    className: ''
-};
 
 export default ChatPanel;

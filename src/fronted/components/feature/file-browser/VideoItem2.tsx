@@ -42,7 +42,7 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
     const [contextMenu, setContextMenu] = React.useState(false);
     const [thumbnailReady, setThumbnailReady] = React.useState(false);
     const [thumbnailError, setThumbnailError] = React.useState(false);
-    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
     const inView = useInView(containerRef);
     const isAudio = MediaUtil.isAudio(pv.fileName);
     const isVideo = MediaUtil.isVideo(pv.fileName);
@@ -106,8 +106,8 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                                                     <div className="absolute inset-0 bg-white pointer-events-none" />
                                                 )}
                                                 <motion.img
-                                                    key={UrlUtil.toUrl(thumbnail)}
-                                                    src={UrlUtil.toUrl(thumbnail)}
+                                                    key={UrlUtil.toUrl(thumbnail!)}
+                                                    src={UrlUtil.toUrl(thumbnail!)}
                                                     alt={pv.fileName}
                                                     className="absolute inset-0 h-full w-full object-cover"
                                                     initial={{ opacity: 0 }}

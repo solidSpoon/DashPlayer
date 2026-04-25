@@ -21,6 +21,8 @@ import StorageDirectoryProvider, {
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
     // 当前正在处理的文件路径
     private activeFilePath: string | null = null;
+    // 当前正在执行的底层任务 ID (如 FFmpeg 或 Whisper)
+    private activeTaskId: number | null = null;
 
     // 被请求取消的文件集合
     private cancelled = new Set<string>();
@@ -41,6 +43,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
         @inject(TYPES.WhisperGateway) private whisperGateway: WhisperGateway,
         @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider: StorageDirectoryProvider,
+        @inject(TYPES.DpTaskService) private dpTaskService: any, // 临时注入以便取消底层任务
     ) {}
 
     /**
@@ -48,10 +51,21 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
      * @param inputPath 原始输入文件。
      * @returns 转换后的 WAV 文件路径。
      */
-    private async ensureWavFormat(inputPath: string): Promise<string> {
+    /**
+     * 确保输入音频转换为 WAV。
+     * @param inputPath 原始输入文件。
+     * @param onProgress 进度回调。
+     * @returns 转换后的 WAV 文件路径。
+     */
+    private async ensureWavFormat(inputPath: string, taskId?: number, onProgress?: (progress: number) => void): Promise<string> {
         const tempDir = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.TEMP);
         const out = path.join(tempDir, `converted_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
-        await this.ffmpegService.convertToWav(inputPath, out);
+        await this.ffmpegService.convertToWav({
+            taskId,
+            inputPath,
+            outputPath: out,
+            onProgress
+        });
         return out;
     }
 
@@ -145,7 +159,14 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             // 预处理
             if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
             this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 5, { message: '音频预处理（转换为 16k WAV）...' });
-            processedAudioPath = await this.ensureWavFormat(filePath);
+            
+            // 将 FFmpeg 的 0-100 进度映射到总进度的 5-10%
+            this.activeTaskId = Math.floor(Math.random() * 10000) + 10000;
+            processedAudioPath = await this.ensureWavFormat(filePath, this.activeTaskId, (p) => {
+                const mapped = Math.floor(5 + (p * 0.05));
+                this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, mapped, { message: '音频预处理（转换为 16k WAV）...' });
+            });
+            this.activeTaskId = null;
 
             // 引擎选择（按配置，不做兜底）
             const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
@@ -181,6 +202,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             throw error;
         } finally {
             this.activeFilePath = null;
+            this.activeTaskId = null;
 
             // 清理临时文件
             try {
@@ -281,9 +303,18 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             return true;
         }
 
-        // 如果是当前任务，doTranscribe 会在检查点自行退出
+        // 如果是当前任务，尝试取消底层任务
         if (this.activeFilePath === filePath) {
             this.whisperGateway.cancelActive();
+            if (this.activeTaskId !== null) {
+                try {
+                    // 调用底层 DpTaskService 取消可能的 FFmpeg 任务
+                    const task = (this as any).dpTaskService.getTask(this.activeTaskId);
+                    if (task) task.cancel();
+                } catch {
+                    //
+                }
+            }
             return true;
         }
 

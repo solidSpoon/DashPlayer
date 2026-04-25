@@ -1,6 +1,7 @@
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { DpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 
+// @ts-ignore
 import { LRUCache } from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
 import {inject, injectable, postConstruct} from 'inversify';

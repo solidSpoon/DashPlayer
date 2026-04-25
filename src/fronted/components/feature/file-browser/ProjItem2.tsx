@@ -36,7 +36,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
     ctxMenus: CtxMenu[]
 }) => {
     const [contextMenu, setContextMenu] = React.useState(false);
-    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
     const inView = useInView(containerRef);
     const isFolder = v.isFolder;
     const isAudio = !isFolder && MediaUtil.isAudio(v?.fileName);

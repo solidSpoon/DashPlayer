@@ -112,13 +112,6 @@ const AutoPausingIcon = () => {
 const CARD_SPACING_PX = 6; // 与 m-1.5 保持一致
 const CARD_RADIUS_PX = 12;
 
-/**
- * 渲染侧边字幕卡片。
- *
- * 说明：
- * - 侧边字幕保留生词提示，但不复用主字幕的强交互高亮样式。
- * - 这里的高亮只承担“轻提示”职责，避免误导用户以为支持悬浮词典。
- */
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat, selectionState }: SideSentenceNewParam, ref) => {
         const playing = usePlayerState((state) => state.playing);
@@ -172,13 +165,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 });
         };
 
-        /**
-         * 为侧边字幕渲染低强调生词提示。
-         *
-         * 说明：
-         * - 仅保留较轻的字重和虚线下划线。
-         * - 不使用主字幕那种高对比底色，避免产生可悬浮交互的暗示。
-         */
+        // 渲染带高亮的文本
         const renderHighlightedText = (text: string) => {
             const parts = splitText(text);
             return parts.map((part) => {
@@ -187,7 +174,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                         <span
                             key={part.id}
                             className={cn(
-                                'font-medium underline decoration-dotted underline-offset-[0.18em] decoration-current/35'
+                                '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30'
                             )}
                         >
                             {part.content}

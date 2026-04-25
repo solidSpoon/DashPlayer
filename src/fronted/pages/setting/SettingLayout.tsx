@@ -15,7 +15,7 @@ export type SettingType =
 const Sidebar = () => {
     const { t } = useI18nTranslation('settings');
     const location = useLocation();
-    const ele = (name: string, key: SettingType, icon: ReactElement) => {
+    const ele = (name: string, key: SettingType, icon: ReactElement<{ className?: string }>) => {
         const pathname =
             location.pathname === '/settings'
                 ? '/settings/shortcut'

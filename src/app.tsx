@@ -26,6 +26,7 @@ import Convert from '@/fronted/pages/convert/Convert';
 import Eb from '@/fronted/components/shared/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
+import DownloadPage from '@/fronted/pages/download/Download';
 import { startListeningToDpTasks } from '@/fronted/hooks/useDpTaskCenter';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
@@ -108,6 +109,10 @@ const App = () => {
                                 <Route
                                     path="vocabulary"
                                     element={<Eb key="vocabulary"><VideoLearningPage /></Eb>}
+                                />
+                                <Route
+                                    path="download"
+                                    element={<Eb key="download"><DownloadPage /></Eb>}
                                 />
                                 <Route path="about" element={<Eb key="about"><About /></Eb>} />
                                 <Route

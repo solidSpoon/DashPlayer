@@ -20,9 +20,7 @@ describe('computeResumeTime', () => {
     });
 
     it('handles invalid numbers safely', () => {
-        // @ts-expect-error test invalid values
         expect(computeResumeTime({ progress: NaN, duration: 100 })).toBe(0);
-        // @ts-expect-error test invalid values
         expect(computeResumeTime({ progress: 20, duration: NaN })).toBe(20);
     });
 });

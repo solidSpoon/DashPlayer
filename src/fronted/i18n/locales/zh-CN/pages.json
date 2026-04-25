@@ -96,6 +96,25 @@
             "cancel": "取消",
             "cancelledMessage": "转录任务已取消"
         }
+    },
+    "videoDownload": {
+        "title": "视频下载",
+        "description": "输入视频链接（YouTube/Bilibili/etc），解析资源并下载到本地。",
+        "inputPlaceholder": "请输入视频链接...",
+        "parse": "开始解析",
+        "parsing": "解析中...",
+        "download": "开始下载",
+        "empty": {
+            "title": "暂无下载任务",
+            "guide": "在上方输入链接并解析，然后开始下载。"
+        },
+        "status": {
+            "pending": "等待中",
+            "downloading": "下载中",
+            "finishing": "完成中",
+            "done": "已结束",
+            "failed": "失败"
+        }
     }
 }
 

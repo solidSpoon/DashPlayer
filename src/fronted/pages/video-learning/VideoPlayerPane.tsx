@@ -7,7 +7,7 @@ import VideoPlayerShortcut from './VideoPlayerShortcut';
 import { PlayerEngine } from '@/fronted/components/feature/player/player';
 import { usePlayerState } from '@/fronted/hooks/usePlayerState';
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
-import { useVocabularyState } from '@/fronted/hooks/useVocabulary';
+import useVocabularyStore, { useVocabularyState } from '@/fronted/hooks/useVocabulary';
 import { Sentence } from '@/common/types/SentenceC';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
@@ -263,6 +263,29 @@ export default function VideoPlayerPane({
       clearVocabularyWords();
     };
   }, [clip, setVocabularyWords, setVocabularyForms, clearVocabularyWords]);
+
+  // 加载数据库中的完整生词本词汇，确保从首页直接打开播放器也能高亮已收藏的单词
+  useEffect(() => {
+    const loadFullVocabulary = async () => {
+      const currentWords = useVocabularyStore.getState().vocabularyWords;
+      if (currentWords.length > 0) return;
+
+      try {
+        const result = await backendClient.call('vocabulary/get-all', {});
+        if (result.success && result.data) {
+          const savedWords = (result.data as Array<{ word: string }>)
+            .map((w) => w.word?.toLowerCase().trim())
+            .filter((w): w is string => !!w);
+          if (savedWords.length > 0) {
+            useVocabularyStore.getState().addVocabularyWords(savedWords);
+          }
+        }
+      } catch (e) {
+        // 静默失败，不影响播放
+      }
+    };
+    void loadFullVocabulary();
+  }, []);
 
   // 当外部 lineIdx 变化时，同步到播放器
   useEffect(() => {

@@ -80,9 +80,6 @@ export default function registerRoute<K extends keyof ApiMap>(path: K, func: Api
             const costMs = Date.now() - start;
             const message = error instanceof Error ? error.message : String(error);
             logger.error(`api-error path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
-            container
-                .get<RendererEvents>(TYPES.RendererEvents)
-                .error(error instanceof Error ? error : new Error(String(error)));
             throw error;
         }
     });

@@ -6,7 +6,6 @@ import fs from 'fs';
 import path from 'path';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
-import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
 import container from '@/backend/ioc/inversify.config';
@@ -171,7 +170,6 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
     await runStartupMigrations();
-    await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     await runResyncAfterResetDbIfNeeded();
     createWindow();

@@ -37,6 +37,7 @@ export const resources = {
     },
 };
 
+/*
 type DotPrefix<T extends string> = T extends '' ? '' : `.${T}`;
 type LeafKeys<T> = T extends string
     ? ''
@@ -48,6 +49,8 @@ type NamespaceKeys = Extract<keyof ResourceSchema, string>;
 export type TranslationKey = {
     [N in NamespaceKeys]: `${N}.${LeafKeys<ResourceSchema[N]>}`;
 }[NamespaceKeys];
+*/
+export type TranslationKey = string;
 
 export const resolveLocaleFromSystem = (language: string | undefined | null): AppLocale => {
     if ((language ?? '').toLowerCase().startsWith('zh')) {
