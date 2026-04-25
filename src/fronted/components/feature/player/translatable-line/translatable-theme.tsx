@@ -36,8 +36,8 @@ const defaultTheme: TransLineTheme = {
     root: 'px-10 pt-2.5 pb-2.5 text-center leading-relaxed'
   },
   word: {
-    hoverBgClass: 'transition-colors hover:bg-stone-100/90 dark:hover:bg-neutral-600/90',
-    vocabHighlightClass: 'font-medium text-sky-700/85 dark:text-sky-300/85 underline decoration-sky-500/45 dark:decoration-sky-300/45 decoration-[1.5px] underline-offset-[0.14em] rounded-sm transition-colors hover:bg-sky-500/10 dark:hover:bg-sky-400/10',
+    hoverBgClass: 'hover:bg-stone-100 dark:hover:bg-neutral-600',
+    vocabHighlightClass: '!text-blue-400 !underline !decoration-blue-400 !decoration-1 !bg-blue-500/10 px-0.5 rounded hover:!bg-blue-500/30',
     popReferenceBgClass: 'bg-stone-100 dark:bg-neutral-600'
   },
   pop: {

@@ -25,7 +25,7 @@ export default class AiProviderServiceImpl implements AiProviderService {
             return null;
         }
         const openai = createOpenAI({
-            baseURL: joinUrl(endpoint, '/v1'),
+            baseURL: joinUrl(endpoint.replace(/\/v1$/, ''), '/v1'),
             apiKey: apiKey,
         });
         return openai(routedModel.modelId);

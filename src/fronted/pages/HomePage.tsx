@@ -17,11 +17,17 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
+import { Reorder } from 'framer-motion';
+import { useNavigationStore } from '@/fronted/hooks/useNavigation';
+
 const logger = getRendererLogger('HomePage');
+
 const HomePage = () => {
     const { t } = useI18nTranslation('nav');
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
+    const videoId = useFile((s) => s.videoId);
+    const { orderedItems, setOrderedItems } = useNavigationStore();
 
     async function handleClickById(vId: string) {
         await backendClient.call('system/window-size/change', 'player');
@@ -78,23 +84,38 @@ const HomePage = () => {
             <main
                 className="flex h-0 flex-1 gap-4 p-4 md:gap-8">
 
-
                 <nav
                     className="flex flex-col gap-4 text-sm text-muted-foreground font-semibold md:p-10 md:pr-0"
                 >
                     <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/favorite'}
-                          className="font-semibold mt-28">{t('savedMoments')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/transcript'}
-                          className="font-semibold ">{t('subtitleWorkspace')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to="/split"
-                          className="font-semibold ">{t('sentenceSplitter')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/convert'}
-                          className="font-semibold ">{t('formatConverter')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/vocabulary'}
-                          className="font-semibold ">{t('vocabularyStudio')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/settings'}
-                          className="font-semibold ">{t('settingsCenter')}</Link>
+                    <div className="mt-28" />
+                    <Reorder.Group
+                        axis="y"
+                        values={orderedItems}
+                        onReorder={setOrderedItems}
+                        className="flex flex-col gap-4 list-none p-0 m-0 w-full"
+                    >
+                        {orderedItems.map((item) => (
+                            <Reorder.Item
+                                key={item.id}
+                                value={item}
+                                className="cursor-grab active:cursor-grabbing p-2 -mx-2 rounded hover:bg-foreground/5 transition-colors flex items-center select-none gap-3"
+                                whileDrag={{ scale: 1.05, opacity: 0.9, backgroundColor: 'var(--accent)' }}
+                            >
+                                {item.icon && React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement<any>, {
+                                    className: cn('w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0')
+                                }) : item.icon}
+                                <Link
+                                    onClick={() => backendClient.call('system/window-size/change', 'player')}
+                                    to={item.id === 'pa-player' ? `${item.path}/${videoId}?sideBarAnimation=false` : item.path}
+                                    draggable={false}
+                                    className="font-semibold w-full block pointer-events-auto"
+                                >
+                                    {t(item.label)}
+                                </Link>
+                            </Reorder.Item>
+                        ))}
+                    </Reorder.Group>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
                     <div

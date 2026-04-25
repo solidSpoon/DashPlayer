@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Star } from 'lucide-react';
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Playable from '@/fronted/components/shared/common/Playable';
 import { cn } from '@/fronted/lib/utils';
@@ -23,12 +23,27 @@ interface OpenAIWordPopProps {
     isLoading?: boolean;
     isStreaming?: boolean;
     onRefresh?: () => void;
-    className?: string; // 新增：容器 class 覆盖
+    /** 收藏按钮点击回调，参数为 (单词, 释义) */
+    onAddToVocabulary?: (word: string, translate?: string) => void;
+    /** 当前单词是否已在生词本中 */
+    isWordInVocabulary?: boolean;
+    className?: string; // 容器 class 覆盖
 }
 
-const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, isStreaming = false, onRefresh, className }) => {
+const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, isStreaming = false, onRefresh, onAddToVocabulary, isWordInVocabulary = false, className }) => {
     const hasDefinitions = !!data && Array.isArray(data.definitions) && data.definitions.length > 0;
     const hasContent = !!data && (Boolean(data.word) || hasDefinitions);
+
+    const translateText = React.useMemo(() => {
+        if (!data || !hasDefinitions) return undefined;
+        return data.definitions
+            .slice(0, 3)
+            .map((definition) => {
+                const prefix = definition.partOfSpeech ? `${definition.partOfSpeech}. ` : '';
+                return `${prefix}${definition.meaning}`;
+            })
+            .join('；');
+    }, [data, hasDefinitions]);
 
     const renderSkeleton = () => (
         <div className="p-4 h-full overflow-y-auto scrollbar-none space-y-3">
@@ -166,19 +181,36 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
 
     return (
         <div className={cn('w-80 h-96 bg-gray-100 text-gray-900 shadow-inner shadow-gray-100 drop-shadow-2xl rounded-2xl overflow-hidden text-left relative', className)}>
-            {onRefresh && (
-                <button
-                    onClick={onRefresh}
-                    disabled={isLoading || isStreaming}
-                    className={cn(
-                        'absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 shadow-sm transition-colors z-10',
-                        (isLoading || isStreaming) && 'opacity-50'
-                    )}
-                    title="强制刷新"
-                >
-                    <RefreshCw size={16} className={isLoading || isStreaming ? 'animate-spin' : ''} />
-                </button>
-            )}
+            <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                {onAddToVocabulary && (
+                    <button
+                        onClick={() => data?.word && onAddToVocabulary(data.word, translateText)}
+                        disabled={isWordInVocabulary || !data?.word}
+                        className={cn(
+                            'p-1.5 rounded-full bg-white/80 shadow-sm transition-colors',
+                            isWordInVocabulary
+                                ? 'text-yellow-500 cursor-default'
+                                : 'text-gray-600 hover:text-yellow-600 hover:bg-white',
+                        )}
+                        title={isWordInVocabulary ? '已收藏' : '收藏到生词本'}
+                    >
+                        <Star size={16} className={isWordInVocabulary ? 'fill-yellow-400' : ''} />
+                    </button>
+                )}
+                {onRefresh && (
+                    <button
+                        onClick={onRefresh}
+                        disabled={isLoading || isStreaming}
+                        className={cn(
+                            'p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 shadow-sm transition-colors',
+                            (isLoading || isStreaming) && 'opacity-50'
+                        )}
+                        title="强制刷新"
+                    >
+                        <RefreshCw size={16} className={isLoading || isStreaming ? 'animate-spin' : ''} />
+                    </button>
+                )}
+            </div>
             <div className="h-full overflow-hidden">
                 {isLoading && !hasContent ? renderSkeleton() : renderContent()}
             </div>

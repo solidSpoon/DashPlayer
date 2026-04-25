@@ -57,6 +57,7 @@ export default function VideoLearningPage() {
   const [pendingClip, setPendingClip] = useState<PendingClipRequest | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
+  const [storageStatus, setStorageStatus] = useState<{ resolvedPath?: string } | null>(null);
   const inFlightThumbsRef = useRef<Set<string>>(new Set());
   const { mutate } = useSWRConfig();
 
@@ -238,7 +239,10 @@ export default function VideoLearningPage() {
           if ((a.videoCount || 0) === 0 && (b.videoCount || 0) > 0) return 1;
           if ((a.videoCount || 0) > (b.videoCount || 0)) return -1;
           if ((a.videoCount || 0) < (b.videoCount || 0)) return 1;
-          return 0;
+          
+          const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+          const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+          return timeB - timeA;
         });
 
         setWords(sortedWords);
@@ -403,9 +407,17 @@ export default function VideoLearningPage() {
     }
 
     if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
-      playClip(0);
+      // 只有当不是正在加载新数据时才自动播放
+      if (!isValidating) {
+        playClip(0);
+      }
     }
-  }, [clips, currentClipIndex, loadedPage, pendingClip, playClip, setPendingClip]);
+  }, [clips, currentClipIndex, loadedPage, pendingClip, playClip, setPendingClip, isValidating]);
+
+  // 获取存储状态
+  useEffect(() => {
+    backendClient.call('storage/status').then(setStorageStatus).catch(console.error);
+  }, []);
 
   // 初始化加载单词
   useEffect(() => {
@@ -427,6 +439,38 @@ export default function VideoLearningPage() {
     handlePageChange(1, { targetIndex: 0 });
   }, [handlePageChange, setSelectedWord]);
 
+  const handleDeleteWord = useCallback(async (word: WordItem) => {
+    if (!confirm(`确定要删除单词「${word.word}」及其所有学习记录吗？`)) {
+        return;
+    }
+    const result = await backendClient.call('vocabulary/delete', { word: word.word });
+    if (result.success) {
+        toast.success(result.message || '已删除');
+        if (selectedWord?.word === word.word) {
+            setSelectedWord(null);
+        }
+        await fetchWords();
+        await mutate(searchKey);
+    } else {
+        toast.error(result.message || '删除失败');
+    }
+  }, [selectedWord, fetchWords, mutate, searchKey]);
+
+  const handleRefreshWord = useCallback(async (word: WordItem) => {
+    const loadingToast = toast.loading('正在更新释义...');
+    try {
+        const result = await backendClient.call('vocabulary/refresh-translation', { word: word.word });
+        if (result.success) {
+            toast.success(result.message || '更新成功', { id: loadingToast });
+            await fetchWords();
+        } else {
+            toast.error(result.message || '更新失败', { id: loadingToast });
+        }
+    } catch (error) {
+        toast.error('请求失败', { id: loadingToast });
+    }
+  }, [fetchWords]);
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 py-4 gap-4 text-foreground">
       <PageHeader
@@ -447,6 +491,8 @@ export default function VideoLearningPage() {
             onClearSelection={handleClearSelection}
             onExportTemplate={exportTemplate}
             onImportWords={importWords}
+            onDeleteWord={handleDeleteWord}
+            onRefreshWord={handleRefreshWord}
           />
         </div>
 
@@ -461,6 +507,11 @@ export default function VideoLearningPage() {
                 <p className="text-sm text-muted-foreground leading-6">
                   {t('vocabularyStudio.empty.guideRecover')}
                 </p>
+                {storageStatus?.resolvedPath && (
+                  <div className="text-xs bg-muted/50 p-2 rounded border border-border/40 select-text max-w-full overflow-hidden text-ellipsis">
+                    本地片段存储地址：<span className="font-mono">{storageStatus.resolvedPath}\favorite_clips\word_video</span>
+                  </div>
+                )}
                 <Button type="button" variant="outline" onClick={recoverVocabularyStudio}>
                   {t('vocabularyStudio.recover.button')}
                 </Button>

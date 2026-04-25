@@ -12,17 +12,23 @@ export interface SideBarProps {
     compact?: boolean;
 }
 
+import { Reorder } from 'framer-motion';
+import { useNavigationStore } from '@/fronted/hooks/useNavigation';
+import { NavItem } from '@/fronted/config/navigation';
+
 const SideBar = ({ compact }: SideBarProps) => {
     const { t } = useI18nTranslation('nav');
     const navigate = useNavigate();
     const location = useLocation();
     const videoId = useFile((s) => s.videoId);
     const theme = useSetting((s) => s.values.get('appearance.theme'));
-    const item = (
+    const { orderedItems, setOrderedItems } = useNavigationStore();
+
+    const renderItem = (
         text: string,
         path: string,
         key: string,
-        icon: ReactElement
+        icon: React.ReactNode
     ) => {
         const isPlayer = key === 'pa-player';
         const isActive = isPlayer
@@ -30,18 +36,18 @@ const SideBar = ({ compact }: SideBarProps) => {
             : location.pathname.includes(key);
         return (
             <div
-                onMouseDown={() => navigate(path)}
+                onClick={() => navigate(path)}
                 className={cn(
-                    'w-full px-2 flex justify-start items-center gap-2 rounded-xl h-10',
+                    'w-full px-2 flex justify-start items-center gap-2 rounded-xl h-10 select-none cursor-grab active:cursor-grabbing',
                     isActive
                         ? 'bg-zinc-100 drop-shadow dark:bg-neutral-900 shadow-white shadow-inner dark:shadow-none'
                         : 'hover:bg-stone-300 dark:hover:bg-neutral-800',
                     compact && 'justify-center'
                 )}
             >
-                {cloneElement(icon, {
+                {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, {
                     className: cn('w-5 h-5 text-yellow-600 text-yellow-500 flex-shrink-0')
-                })}
+                }) : icon}
                 {!compact && (
                     <div className={cn('text-base text-foreground  truncate w-0 flex-1')}>
                         {text}
@@ -66,47 +72,33 @@ const SideBar = ({ compact }: SideBarProps) => {
                     src={theme === 'dark' ? logoDark : logoLight}
                 />
             </div>
-            <div className={cn('basis-3/4 flex flex-col p-3 gap-1')}>
-                {/* {item('Home', '/home', 'home', <HiOutlineHome />)} */}
-                {item(
-                    t('playbackLab'),
-                    `/player/${videoId}?sideBarAnimation=false`,
-                    'pa-player',
-                    <Video />
-                )}
-                {item(
-                    t('savedMoments'),
-                    '/favorite',
-                    'favorite',
-                    <Star />
-                )}
-                {item(
-                    t('subtitleWorkspace'),
-                    '/transcript',
-                    'transcript',
-                    <Captions />
-                )}
-                {item(
-                    t('sentenceSplitter'),
-                    '/split',
-                    'split',
-                    <SquareSplitHorizontal />
-                )}
-                {item(
-                    t('formatConverter'),
-                    '/convert',
-                    'convert',
-                    <Rotate3D />
-                )}
-                {item(
-                    t('vocabularyStudio'),
-                    '/vocabulary',
-                    'vocabulary',
-                    <BookOpen />
-                )}
-                {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
-                {item(t('productStory'), '/about', 'about', <User />)}
-            </div>
+            <Reorder.Group
+                axis="y"
+                values={orderedItems}
+                onReorder={setOrderedItems}
+                className={cn('basis-3/4 flex flex-col p-3 gap-1 list-none')}
+            >
+                {orderedItems.map((navItem: NavItem) => {
+                    const finalPath = navItem.id === 'pa-player' 
+                        ? `/player/${videoId}?sideBarAnimation=false`
+                        : navItem.path;
+                    
+                    return (
+                        <Reorder.Item
+                            key={navItem.id}
+                            value={navItem}
+                            drag={!compact} // Compact mode might be too small for easy drag
+                        >
+                            {renderItem(
+                                t(navItem.label),
+                                finalPath,
+                                navItem.id,
+                                navItem.icon
+                            )}
+                        </Reorder.Item>
+                    );
+                })}
+            </Reorder.Group>
         </div>
     );
 };

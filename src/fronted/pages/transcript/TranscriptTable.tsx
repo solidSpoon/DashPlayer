@@ -11,6 +11,7 @@ import React from 'react';
 import useTranscript from '@/fronted/hooks/useTranscript';
 import { useShallow } from 'zustand/react/shallow';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { Captions } from 'lucide-react';
 
 const TranscriptTable = () => {
     const { t } = useI18nTranslation('pages');
@@ -22,8 +23,14 @@ const TranscriptTable = () => {
 
     if (files.length === 0) {
         return (
-            <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground rounded-lg border bg-muted/20">
-                {t('subtitleWorkspace.table.empty')}
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground rounded-lg border bg-muted/20 gap-3 p-8">
+                <div className="p-4 rounded-full bg-muted/30">
+                    <Captions className="w-8 h-8 opacity-40" />
+                </div>
+                <div className="text-center">
+                    <p className="text-sm font-medium">{t('subtitleWorkspace.table.empty')}</p>
+                    <p className="text-xs opacity-70 mt-1">从左侧选择一个视频或将其拖入此处开始生成</p>
+                </div>
             </div>
         );
     }

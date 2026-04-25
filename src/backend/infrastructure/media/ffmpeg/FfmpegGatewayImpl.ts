@@ -85,7 +85,7 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
     public async duration(filePath: string): Promise<number> {
         return new Promise<number>((resolve, reject) => {
             ffmpeg.ffprobe(filePath, (err, metadata) => {
-                if (err) reject(err);
+                if (err) reject(this.normalizeFfprobeError(err));
                 else resolve(metadata.format.duration ?? 0);
             });
         });
@@ -98,7 +98,7 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
         const stats = await fs.promises.stat(filePath);
         const probeData = await new Promise<FfprobeData>((resolve, reject) => {
             ffmpeg.ffprobe(filePath, (err, metadata) => {
-                if (err) reject(err);
+                if (err) reject(this.normalizeFfprobeError(err));
                 else resolve(metadata as FfprobeData);
             });
         });
@@ -253,5 +253,16 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
         });
 
         await runningTask.result;
+    }
+
+    /**
+     * 标准化 ffprobe 错误，识别损坏或不完整的媒体文件。
+     */
+    private normalizeFfprobeError(err: any): Error {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes('moov atom not found') || message.includes('Invalid data found when processing input')) {
+            return new Error('视频文件损坏或不完整 (moov atom not found)。如果是正在下载的文件，请在下载完成后再试。');
+        }
+        return err instanceof Error ? err : new Error(message);
     }
 }

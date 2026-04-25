@@ -337,15 +337,36 @@ export default class FfmpegServiceImpl implements FfmpegService {
      * 转换音频文件为 WAV 格式（强制 16kHz、单声道、16-bit PCM）。
      */
     @WithSemaphore('ffmpeg')
-    public async convertToWav(inputPath: string, outputPath: string): Promise<void> {
+    public async convertToWav(args: {
+        taskId?: number,
+        inputPath: string,
+        outputPath: string,
+        onProgress?: (progress: number) => void
+    }): Promise<void> {
+        const { taskId, inputPath, outputPath, onProgress } = args;
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputPath);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputPath);
-        await this.ffmpegGateway.convertToWav({
-            inputFile: inputPath,
-            outputFile: outputPath,
-            sampleRate: 16000,
-            channels: 1,
-        });
+        const inputDurationSecond = await this.duration(inputPath);
+
+        await this.runCancelableTask(
+            taskId,
+            {
+                inputDurationSecond,
+                onProgress,
+            },
+            async (onCancelable) => {
+                await this.ffmpegGateway.convertToWav({
+                    inputFile: inputPath,
+                    outputFile: outputPath,
+                    sampleRate: 16000,
+                    channels: 1,
+                }, {
+                    inputDurationSecond,
+                    onProgress,
+                    onCancelable,
+                });
+            },
+        );
     }
 
     /**

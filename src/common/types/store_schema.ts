@@ -34,10 +34,10 @@ export const SettingKeyObj = {
     'features.openai.enableSentenceLearning': 'true',
     'features.openai.subtitleTranslationMode': 'zh',
     'features.openai.subtitleCustomStyle': '',
-    'models.openai.available': 'gpt-5.4-nano',
-    'models.openai.sentenceLearning': 'gpt-5.4-nano',
-    'models.openai.subtitleTranslation': 'gpt-5.4-nano',
-    'models.openai.dictionary': 'gpt-5.4-nano',
+    'models.openai.available': 'gpt-4o',
+    'models.openai.sentenceLearning': 'gpt-4o',
+    'models.openai.subtitleTranslation': 'gpt-4o',
+    'models.openai.dictionary': 'gpt-4o',
     'subtitleTranslation.engine': 'openai',
     'dictionary.engine': 'openai',
     'transcription.engine': 'openai',
@@ -54,5 +54,6 @@ export const SettingKeyObj = {
     'player.autoPlayNext': 'false',
     'storage.path': '',
     'storage.collection': 'default',
+    'appearance.sidebarOrder': '',
 }
 export type SettingKey = keyof typeof SettingKeyObj;

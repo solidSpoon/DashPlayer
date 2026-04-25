@@ -114,17 +114,6 @@ const ServiceCredentialSetting = () => {
      * 测试指定服务商连通性。
      */
     const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
-        try {
-            await flush();
-        } catch (flushError) {
-            toast({
-                variant: 'destructive',
-                title: t('common.saveFailed'),
-                description: flushError instanceof Error ? flushError.message : String(flushError),
-            });
-            return;
-        }
-
         const setTesting = {
             openai: setTestingOpenAi,
             tencent: setTestingTencent,
@@ -133,12 +122,25 @@ const ServiceCredentialSetting = () => {
 
         setTesting(true);
         setTestResults((prev) => ({ ...prev, [provider]: null }));
+
         try {
-            const routeMap: Record<typeof provider, 'settings/service-credentials/test-openai' | 'settings/service-credentials/test-tencent' | 'settings/service-credentials/test-youdao'> = {
+            await flush();
+        } catch (flushError) {
+            setTesting(false);
+            toast({
+                variant: 'destructive',
+                title: t('common.saveFailed'),
+                description: flushError instanceof Error ? flushError.message : String(flushError),
+            });
+            return;
+        }
+
+        try {
+            const routeMap = {
                 openai: 'settings/service-credentials/test-openai',
                 tencent: 'settings/service-credentials/test-tencent',
                 youdao: 'settings/service-credentials/test-youdao',
-            };
+            } as const;
             const result = await api.call(routeMap[provider]);
             setTestResults((prev) => ({ ...prev, [provider]: result }));
         } catch (error) {

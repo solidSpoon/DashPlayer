@@ -204,6 +204,11 @@ interface ConvertDef {
 
 }
 
+interface DownloadDef {
+    'download/start': { params: { url: string; savePath?: string }, return: number };
+    'download/get-metadata': { params: string, return: { title: string; thumbnail?: string; url: string; duration?: number } };
+}
+
 interface FavoriteClipsDef {
     'favorite-clips/add': { params: { videoPath: string, srtKey: string, indexInSrt: number }, return: void };
     'favorite-clips/search': { params: ClipQuery, return: (ClipMeta & OssBaseMeta)[] };
@@ -237,6 +242,18 @@ interface VocabularyDef {
     'vocabulary/import': {
         params: { filePath: string },
         return: { success: boolean; message?: string; error?: string }
+    };
+    'vocabulary/add': {
+        params: { word: string; translate?: string },
+        return: { success: boolean; message?: string }
+    };
+    'vocabulary/delete': {
+        params: { word: string },
+        return: { success: boolean; message?: string }
+    };
+    'vocabulary/refresh-translation': {
+        params: { word: string },
+        return: { success: boolean; translate?: string; message?: string }
     };
 }
 
@@ -299,7 +316,8 @@ export type ApiDefinitions = ApiDefinition
     & FavoriteClipsDef
     & TagDef
     & VocabularyDef
-    & VideoLearningDef;
+    & VideoLearningDef
+    & DownloadDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

@@ -7,7 +7,7 @@ import { getEnvironmentConfigName } from '@/backend/utils/runtimeEnv';
 import { storeSet } from '@/backend/infrastructure/settings/store';
 import { OPENAI_SUBTITLE_CUSTOM_STYLE_KEY } from '@/common/constants/openaiSubtitlePrompts';
 
-const DEFAULT_OPENAI_MODEL = 'gpt-5.4-nano';
+const DEFAULT_OPENAI_MODEL = 'gpt-4o';
 const MIGRATION_ID = 'store-schema-provider-v1';
 
 const settingsStore = new Store<Record<string, unknown>>({

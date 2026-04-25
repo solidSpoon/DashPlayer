@@ -1,6 +1,11 @@
 import { Container } from 'inversify';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/adapters/controllers/FavoriteClipsController';
+import DownloadGateway from '@/backend/application/ports/gateways/media/DownloadGateway';
+import YtDlpGatewayImpl from '@/backend/infrastructure/media/download/YtDlpGatewayImpl';
+import DownloadService from '@/backend/application/services/DownloadService';
+import DownloadServiceImpl from '@/backend/application/services/impl/DownloadServiceImpl';
+import DownloadController from '@/backend/adapters/controllers/DownloadController';
 import Controller from '@/backend/adapters/controllers/Controller';
 import TagService from '@/backend/application/services/TagService';
 import TagController from '@/backend/adapters/controllers/TagController';
@@ -117,7 +122,7 @@ import SysConfRepository from '@/backend/application/ports/repositories/SysConfR
 import SysConfRepositoryImpl from '@/backend/infrastructure/db/repositories/SysConfRepositoryImpl';
 import SubtitleTimestampAdjustmentsRepository from '@/backend/application/ports/repositories/SubtitleTimestampAdjustmentsRepository';
 import SubtitleTimestampAdjustmentsRepositoryImpl from '@/backend/infrastructure/db/repositories/SubtitleTimestampAdjustmentsRepositoryImpl';
-import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import StorageDirectoryProviderImpl from '@/backend/infrastructure/storage/StorageDirectoryProviderImpl';
 
 
@@ -148,6 +153,8 @@ container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(WhisperModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
+container.bind<DownloadController>(TYPES.DownloadController).to(DownloadController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(DownloadController).inSingletonScope();
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();
@@ -195,4 +202,6 @@ container.bind<TranscriptionService>(TYPES.CloudTranscriptionService).to(CloudTr
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();
+container.bind<DownloadGateway>(TYPES.DownloadGateway).to(YtDlpGatewayImpl).inSingletonScope();
+container.bind<DownloadService>(TYPES.DownloadService).to(DownloadServiceImpl).inSingletonScope();
 export default container;

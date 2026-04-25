@@ -55,6 +55,9 @@ const TYPES = {
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
     SettingsKeyValueService: Symbol('SettingsKeyValueService'),
+    DownloadService: Symbol('DownloadService'),
+    DownloadGateway: Symbol('DownloadGateway'),
+    DownloadController: Symbol('DownloadController'),
 };
 
 export default TYPES;

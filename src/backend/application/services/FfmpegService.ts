@@ -106,7 +106,12 @@ export default interface FfmpegService {
     /**
      * Convert audio file to WAV format
      */
-    convertToWav(inputPath: string, outputPath: string): Promise<void>;
+    convertToWav(args: {
+        taskId?: number,
+        inputPath: string,
+        outputPath: string,
+        onProgress?: (progress: number) => void
+    }): Promise<void>;
 
     /**
      * NEW: Trim audio by time range (re-encode to mp3 for compatibility)

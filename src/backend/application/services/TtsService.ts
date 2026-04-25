@@ -20,7 +20,7 @@ class TtsService {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
             throw new Error('OpenAI API key or endpoint is not set');
         }
-        const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
+        const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint').replace(/\/v1$/, ''), '/v1/audio/speech');
         const headers = {
             'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
             'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',

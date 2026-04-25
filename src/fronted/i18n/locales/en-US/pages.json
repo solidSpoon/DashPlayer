@@ -96,6 +96,25 @@
             "cancel": "Cancel",
             "cancelledMessage": "Transcription cancelled"
         }
+    },
+    "videoDownload": {
+        "title": "Video Download",
+        "description": "Enter video links (YouTube/Bilibili/etc), parse resources and download to local.",
+        "inputPlaceholder": "Enter video link...",
+        "parse": "Start Parsing",
+        "parsing": "Parsing...",
+        "download": "Start Download",
+        "empty": {
+            "title": "No download tasks",
+            "guide": "Enter a link above and parse it, then start downloading."
+        },
+        "status": {
+            "pending": "Pending",
+            "downloading": "Downloading",
+            "finishing": "Finishing",
+            "done": "Done",
+            "failed": "Failed"
+        }
     }
 }
 

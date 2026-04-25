@@ -14,12 +14,20 @@ export default class VideoLearningClipRepositoryImpl implements VideoLearningCli
             return new Set();
         }
 
-        const rows = await db
-            .select({ key: videoLearningClip.key })
-            .from(videoLearningClip)
-            .where(inArray(videoLearningClip.key, keys));
+        const BATCH_SIZE = 500;
+        const result = new Set<string>();
 
-        return new Set(rows.map((r) => r.key));
+        for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+            const chunk = keys.slice(i, i + BATCH_SIZE);
+            const rows = await db
+                .select({ key: videoLearningClip.key })
+                .from(videoLearningClip)
+                .where(inArray(videoLearningClip.key, chunk));
+            
+            rows.forEach(r => result.add(r.key));
+        }
+
+        return result;
     }
 
     public async count(query: VideoLearningClipCountQuery = {}): Promise<number> {

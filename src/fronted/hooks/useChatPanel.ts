@@ -3,6 +3,8 @@
  */
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import useVocabularyStore from '@/fronted/hooks/useVocabulary';
+import { toast } from '@/fronted/components/ui/use-toast';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { engEqual, p } from '@/common/utils/Util';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
@@ -20,6 +22,8 @@ import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
 import { ChatBackgroundContext, ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
+import useSetting from '@/fronted/hooks/useSetting';
 
 const api = backendClient;
 
@@ -58,6 +62,7 @@ export type ChatPanelState = {
     canUndo: boolean;
     canRedo: boolean;
     context: string | null;
+    selectedText: string | null;
     input: string;
 };
 
@@ -75,6 +80,7 @@ export type ChatPanelActions = {
     ctxMenuOpened: () => void;
     ctxMenuExplain: () => void;
     ctxMenuPlayAudio: () => void;
+    ctxMenuCollectWord: () => void;
     ctxMenuPolish: () => void;
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
@@ -110,6 +116,7 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         canUndo: state.canUndo,
         canRedo: state.canRedo,
         context: state.context,
+        selectedText: state.selectedText,
         input: state.input
     };
 };
@@ -135,6 +142,7 @@ const empty = (): ChatPanelState => {
         canUndo: false,
         canRedo: false,
         context: null,
+        selectedText: null,
         input: ''
     };
 };
@@ -404,13 +412,15 @@ const useChatPanel = create(
         },
         ctxMenuOpened: () => {
             const internalContext = getInternalContext();
-            getRendererLogger('useChatPanel').debug('context menu opened', { context: internalContext });
+            const selection = window.getSelection()?.toString() || null;
+            getRendererLogger('useChatPanel').debug('context menu opened', { context: internalContext, selection });
             set({
-                context: internalContext
+                context: internalContext,
+                selectedText: selection
             });
         },
         ctxMenuExplain: async () => {
-            const userSelect = window.getSelection()?.toString() ?? '';
+            const userSelect = get().selectedText ?? window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(userSelect)) return;
             const context = get().context;
             if (StrUtil.isBlank(context) || engEqual(context, userSelect)) {
@@ -424,8 +434,63 @@ const useChatPanel = create(
                 ].join('\n'));
             }
         },
+        ctxMenuCollectWord: async () => {
+            let text = get().selectedText ?? window.getSelection()?.toString() ?? '';
+            if (StrUtil.isBlank(text)) {
+                toast({ title: '收藏失败', description: '请先用鼠标划选要收藏的单词或短语' });
+                return;
+            }
+            const normalized = text.trim().toLowerCase();
+            const originalText = text.trim();
+
+            try {
+                // 获取当前字典配置
+                const setting = useSetting.getState().setting;
+                const dictionaryEngineRaw = setting('providers.dictionary');
+                const dictionaryEngine = (dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai')
+                    ? dictionaryEngineRaw
+                    : 'openai';
+
+                // 尝试获取释义
+                let translate: string | undefined;
+                try {
+                    const dictRes = await api.call('ai-trans/word', {
+                        word: originalText,
+                        forceRefresh: false,
+                    });
+
+                    if (dictionaryEngine === 'youdao') {
+                        const ydData = dictRes as YdRes;
+                        translate = ydData?.translation?.join('；');
+                    } else {
+                        const openaiData = dictRes as OpenAIDictionaryResult;
+                        if (openaiData && Array.isArray(openaiData.definitions)) {
+                            translate = openaiData.definitions
+                                .slice(0, 3)
+                                .map((d) => {
+                                    const prefix = d.partOfSpeech ? `${d.partOfSpeech}. ` : '';
+                                    return `${prefix}${d.meaning}`;
+                                })
+                                .join('；');
+                        }
+                    }
+                } catch (dictError) {
+                    getRendererLogger('useChatPanel').warn('获取单词释义失败，将仅保存单词原文', { error: dictError });
+                }
+
+                const result = await api.call('vocabulary/add', { word: normalized, translate });
+                if (result.success) {
+                    useVocabularyStore.getState().addVocabularyWords([normalized]);
+                    toast({ title: '已收藏', description: `「${normalized}」已加入生词本` });
+                } else {
+                    toast({ title: '收藏失败', description: result.message, variant: 'destructive' });
+                }
+            } catch (error) {
+                getRendererLogger('useChatPanel').error('收藏单词失败', { error: error instanceof Error ? error.message : error });
+            }
+        },
         ctxMenuPlayAudio: async () => {
-            let text: string | null = window.getSelection()?.toString() ?? '';
+            let text: string | null = get().selectedText ?? window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
@@ -434,7 +499,7 @@ const useChatPanel = create(
             await playAudioUrl(ttsUrl);
         },
         ctxMenuPolish: async () => {
-            let text = window.getSelection()?.toString() ?? '';
+            let text = get().selectedText ?? window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context ?? '';
             }
@@ -452,7 +517,7 @@ const useChatPanel = create(
             }
         },
         ctxMenuQuote: () => {
-            let text: string | null = window.getSelection()?.toString() ?? '';
+            let text: string | null = get().selectedText ?? window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
@@ -467,7 +532,7 @@ const useChatPanel = create(
 
         },
         ctxMenuCopy: async () => {
-            let text: string | null = window.getSelection()?.toString() ?? '';
+            let text: string | null = get().selectedText ?? window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
                 text = get().context;
             }
