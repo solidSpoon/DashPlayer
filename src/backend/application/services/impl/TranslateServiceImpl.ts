@@ -19,6 +19,8 @@ import RendererGateway from '@/backend/application/ports/gateways/renderer/Rende
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import ClientProviderService from '@/backend/application/services/ClientProviderService';
 import SettingService from '@/backend/application/services/SettingService';
+import { OpenAiService } from '@/backend/application/services/OpenAiService';
+import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 import { YouDaoDictionaryClient } from '@/backend/application/ports/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/application/ports/gateways/translate/TencentTranslateClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -33,6 +35,7 @@ import {
     resolveSubtitleStyleWithSignature
 } from '@/common/constants/openaiSubtitlePrompts';
 import { RendererTranslationFailure, RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
+import { parseOpenAIBatchTextResult } from '@/backend/application/services/impl/openAiSubtitleBatchParser';
 
 const openAIDictionaryExampleSchema = z.object({
     sentence: z.string().describe('Example sentence in English'),
@@ -254,6 +257,10 @@ export default class TranslateServiceImpl implements TranslateService {
     private rendererGateway!: RendererGateway;
     @inject(TYPES.AiProviderService)
     private aiProviderService!: AiProviderService;
+    @inject(TYPES.OpenAiService)
+    private openAiService!: OpenAiService;
+    @inject(TYPES.ModelRoutingService)
+    private modelRoutingService!: ModelRoutingService;
     @inject(TYPES.CacheService)
     private cacheService!: CacheService;
     @inject(TYPES.SettingService)
@@ -574,33 +581,43 @@ export default class TranslateServiceImpl implements TranslateService {
                     })),
                     promptConfig.style
                 );
-                const result = streamText({
-                    model,
-                    output: Output.object({ schema }),
-                    prompt,
-                });
-                const streamedTranslations = new Map<string, string>();
-                for await (const partialObject of result.partialOutputStream) {
-                    this.logger.debug('subtitle batch json chunk', {
-                        windowKeys: windowSentences.map((sentence) => sentence.translationKey),
-                        keys: Object.keys(partialObject ?? {}),
+                let normalizedItems: Array<{ key: string; fileHash: string; translation: string }>;
+                try {
+                    const result = streamText({
+                        model,
+                        output: Output.object({ schema }),
+                        prompt,
                     });
-                    const partialItems = this.normalizeOpenAIBatchResult(partialObject, windowSentences);
-                    const partialUpdates = this.buildStreamingSubtitleUpdates(
-                        partialItems,
-                        requestedKeys,
-                        openAiMode,
-                        streamedTranslations
-                    );
-                    if (partialUpdates.length > 0) {
-                        this.rendererGateway.fireAndForget('translation/batch-result', {
-                            translations: partialUpdates,
+                    const streamedTranslations = new Map<string, string>();
+                    for await (const partialObject of result.partialOutputStream) {
+                        this.logger.debug('subtitle batch json chunk', {
+                            windowKeys: windowSentences.map((sentence) => sentence.translationKey),
+                            keys: Object.keys(partialObject ?? {}),
                         });
+                        const partialItems = this.normalizeOpenAIBatchResult(partialObject, windowSentences);
+                        const partialUpdates = this.buildStreamingSubtitleUpdates(
+                            partialItems,
+                            requestedKeys,
+                            openAiMode,
+                            streamedTranslations
+                        );
+                        if (partialUpdates.length > 0) {
+                            this.rendererGateway.fireAndForget('translation/batch-result', {
+                                translations: partialUpdates,
+                            });
+                        }
                     }
+
+                    const finalObject = await result.output;
+                    normalizedItems = this.normalizeOpenAIBatchResult(finalObject, windowSentences);
+                } catch (structuredError) {
+                    this.logger.warn('OpenAI 结构化字幕流失败，降级为普通 JSON 文本翻译', {
+                        keys: windowSentences.map((sentence) => sentence.translationKey),
+                        error: errorToBriefMessage(structuredError)
+                    });
+                    normalizedItems = await this.translateOpenAIBatchWithText(prompt, windowSentences);
                 }
 
-                const finalObject = await result.output;
-                const normalizedItems = this.normalizeOpenAIBatchResult(finalObject, windowSentences);
                 const requestedInWindow = windowSentences.filter((sentence) => requestedKeys.has(sentence.translationKey));
                 const resolvedRequestedKeys = new Set(
                     normalizedItems
@@ -672,6 +689,37 @@ export default class TranslateServiceImpl implements TranslateService {
                 error: firstError,
             });
         }
+    }
+
+    private async translateOpenAIBatchWithText(
+        prompt: string,
+        windowSentences: Sentence[]
+    ): Promise<Array<{ key: string; fileHash: string; translation: string }>> {
+        const routedModel = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
+        if (!routedModel) {
+            return [];
+        }
+
+        const completion = await this.openAiService.getOpenAi().chat.completions.create({
+            model: routedModel.modelId,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a professional subtitle assistant. Return JSON only.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.2
+        });
+        const text = completion.choices?.[0]?.message?.content ?? '';
+        this.logger.debug('subtitle batch text fallback response', {
+            windowKeys: windowSentences.map((sentence) => sentence.translationKey),
+            textLength: text.length
+        });
+        return parseOpenAIBatchTextResult(text, windowSentences);
     }
 
     /**
