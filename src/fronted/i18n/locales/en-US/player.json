@@ -43,6 +43,7 @@
     },
     "transcript": {
         "button": "Generate subtitles",
+        "modelMissing": "Download the subtitle model first in Settings Center > Service Credentials",
         "statusInit": "Initializing...",
         "statusInProgress": "Transcribing...",
         "tooltipTitle": "Generate subtitles",

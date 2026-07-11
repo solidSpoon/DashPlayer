@@ -10,10 +10,11 @@ import useTranscript from '@/fronted/hooks/useTranscript';
 import useSWR from "swr";
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 
 export interface TranscriptItemProps {
     file: string;
-    onStart: () => void;
+    onStart: () => Promise<'started' | 'model_missing'>;
     onDelete: () => void;
 }
 
@@ -71,7 +72,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                 msg = t('subtitleWorkspace.status.cancelled');
                 break;
             case DpTaskState.FAILED:
-                msg = t('subtitleWorkspace.status.failed');
+                msg = task.result?.message || t('subtitleWorkspace.status.failed');
                 break;
             default:
                 msg = task.result?.message || t('subtitleWorkspace.status.unknown');
@@ -124,8 +125,12 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
             )}>{msg}</TableCell>
             <TableCell className="flex gap-1">
                 <Button
-                    onClick={() => {
-                        onStart();
+                    onClick={async () => {
+                        const result = await onStart();
+                        if (result === 'model_missing') {
+                            toast.error(t('subtitleWorkspace.modelMissing'));
+                            return;
+                        }
                         setStarted(true);
                     }}
                     disabled={!task || (task.status as DpTaskState) === DpTaskState.IN_PROGRESS || (task.status as DpTaskState) === DpTaskState.INIT || (started && !task)}

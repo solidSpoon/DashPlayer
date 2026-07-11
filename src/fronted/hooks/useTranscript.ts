@@ -25,7 +25,7 @@ export type UseTranscriptState = {
 export type UseTranscriptAction = {
     onAddToQueue(p: string): void;
     onDelFromQueue(p: string): void;
-    onTranscript(p: string): Promise<void>;
+    onTranscript(p: string): Promise<'started' | 'model_missing'>;
     updateTranscriptTasks: (updates: Array<{ filePath: string; status?: string; result?: any }>) => void;
 };
 
@@ -48,6 +48,11 @@ const useTranscript = create(
                 set({ files: newFiles });
             },
             onTranscript: async (file: string) => {
+                const modelStatus = await api.call('parakeet/models/status');
+                if (!modelStatus.ready) {
+                    return 'model_missing';
+                }
+
                 const currentFiles = get().files.map((f) => f.file);
                 const existingFile = get().files.find((f) => f.file === file);
                 const isProcessing = existingFile &&
@@ -55,7 +60,7 @@ const useTranscript = create(
 
                 if (isProcessing) {
                     // 如果文件正在处理中，不重复添加
-                    return;
+                    return 'started';
                 }
 
                 await api.call('ai-func/transcript', { filePath: file });
@@ -71,6 +76,7 @@ const useTranscript = create(
                     });
                     set({ files: newFiles });
                 }
+                return 'started';
             },
             updateTranscriptTasks: (updates) => {
                 set((state) => {

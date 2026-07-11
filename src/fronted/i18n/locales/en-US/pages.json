@@ -73,6 +73,7 @@
     "subtitleWorkspace": {
         "title": "Subtitle Generator",
         "description": "Generate subtitles for videos with AI speech recognition",
+        "modelMissing": "Download the subtitle model first in Settings Center > Service Credentials",
         "table": {
             "videoColumn": "Video",
             "statusColumn": "Status",
@@ -98,4 +99,3 @@
         }
     }
 }
-

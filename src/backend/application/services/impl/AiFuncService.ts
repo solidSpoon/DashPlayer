@@ -69,7 +69,10 @@ export default class AiFuncService {
                     filePath,
                     taskId: 0,
                     status: DpTaskState.FAILED,
-                    result: { error: 'Parakeet v3 模型未下载。请到设置页面下载模型后再转录。' },
+                    result: {
+                        error: '字幕模型尚未下载',
+                        message: '请先到“设置中心 > 服务凭据”中下载字幕模型',
+                    },
                 }],
             });
             return;

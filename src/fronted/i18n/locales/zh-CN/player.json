@@ -43,6 +43,7 @@
     },
     "transcript": {
         "button": "生成字幕",
+        "modelMissing": "需要先下载字幕模型，请到“设置中心 > 服务凭据”中完成下载",
         "statusInit": "初始化中...",
         "statusInProgress": "转录中...",
         "tooltipTitle": "生成字幕",

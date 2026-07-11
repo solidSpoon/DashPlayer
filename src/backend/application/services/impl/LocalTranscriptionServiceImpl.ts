@@ -31,6 +31,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     // 记录每个文件的 Promise 控制器
     private deferred = new Map<string, { resolve: () => void; reject: (error: unknown) => void }>();
 
+    // 记录任务真正开始处理的时间，用于生成简短的累计秒数提示。
+    private transcriptionStartedAt = new Map<string, number>();
+
     private logger = getMainLogger('LocalTranscriptionService');
 
     constructor(
@@ -43,7 +46,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private readonly subtitleSegmenter = new EnglishSubtitleSegmenter();
 
     /**
-     * 向渲染进程发送转录任务状态，并把百分比写入用户可见消息。
+     * 向渲染进程发送转录任务状态，处理中仅向用户展示百分比与累计秒数。
      * @param taskId 任务标识；当前本地转录固定为 0。
      * @param filePath 被转录的媒体路径。
      * @param status 任务状态。
@@ -57,10 +60,16 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         progress: number,
         result?: Record<string, unknown>,
     ): void {
-        // 将进度信息合并到 message 字段中
-        const finalResult = result || {};
-        if (progress !== undefined && progress !== null) {
-            finalResult.message = `[${progress}%] ${finalResult.message || ''}`.trim();
+        const finalResult = { ...result };
+        if (status === DpTaskState.INIT) {
+            this.transcriptionStartedAt.set(filePath, Date.now());
+            finalResult.message = `${progress}%（0秒）`;
+        } else if (status === DpTaskState.IN_PROGRESS) {
+            const startedAt = this.transcriptionStartedAt.get(filePath);
+            const elapsedSeconds = startedAt === undefined ? 0 : Math.floor((Date.now() - startedAt) / 1000);
+            finalResult.message = `${progress}%（${elapsedSeconds}秒）`;
+        } else {
+            this.transcriptionStartedAt.delete(filePath);
         }
 
         this.rendererGateway.fireAndForget('transcript/batch-result', {
@@ -190,7 +199,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const duration = await this.ffmpegService.duration(filePath);
         if (!Number.isFinite(duration) || duration <= 0) throw new Error(`无法读取音频时长：${duration}`);
 
-        const chunkDuration = 5 * 60;
+        const chunkDuration = 2 * 60;
         const ranges: Array<{ start: number; end: number }> = [];
         for (let start = 0; start < duration; start += chunkDuration) {
             ranges.push({ start, end: Math.min(duration, start + chunkDuration) });
@@ -200,38 +209,27 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             ranges,
             outputFolder: tempFolder,
         });
-        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 35, { message: `已准备 ${wavPaths.length} 个识别片段` });
+        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 35);
 
         const timeline: SpeechRecognitionToken[] = [];
         for (let index = 0; index < wavPaths.length; index++) {
             if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
             const completedDuration = ranges[index].start;
             const progress = Math.min(90, Math.floor(35 + completedDuration / duration * 55));
-            const recognitionStartedAt = Date.now();
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress, {
-                message: `Parakeet v3 正在识别第 ${index + 1}/${wavPaths.length} 段`,
-            });
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress);
             const result = await this.speechRecognitionGateway.transcribe({
                 audioPath: wavPaths[index],
                 modelsRoot,
                 isCancelled: () => this.isCancelled(filePath),
                 onHeartbeat: () => {
-                    const elapsedSeconds = Math.floor((Date.now() - recognitionStartedAt) / 1000);
-                    const elapsedText = elapsedSeconds >= 60
-                        ? `${Math.floor(elapsedSeconds / 60)} 分 ${elapsedSeconds % 60} 秒`
-                        : `${elapsedSeconds} 秒`;
-                    this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress, {
-                        message: `Parakeet v3 正在识别第 ${index + 1}/${wavPaths.length} 段，已运行 ${elapsedText}`,
-                    });
+                    this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress);
                 },
             });
             const offset = ranges[index].start;
             timeline.push(...result.tokens.map((token) => ({ ...token, start: token.start + offset })));
 
             const completedProgress = Math.min(90, Math.floor(35 + ranges[index].end / duration * 55));
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, completedProgress, {
-                message: `已完成 ${index + 1}/${wavPaths.length} 段`,
-            });
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, completedProgress);
         }
         if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
         this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });

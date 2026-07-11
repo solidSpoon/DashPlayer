@@ -73,6 +73,7 @@
     "subtitleWorkspace": {
         "title": "视频字幕生成",
         "description": "使用 AI 语音识别为视频自动生成字幕",
+        "modelMissing": "需要先下载字幕模型，请到“设置中心 > 服务凭据”中完成下载",
         "table": {
             "videoColumn": "视频",
             "statusColumn": "状态",
@@ -98,4 +99,3 @@
         }
     }
 }
-

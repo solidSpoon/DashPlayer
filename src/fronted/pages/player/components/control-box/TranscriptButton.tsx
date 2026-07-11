@@ -63,8 +63,12 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       toast.error(t('transcript.noVideoSelected'));
       return;
     }
+    const result = await onTranscript(srtPath);
+    if (result === 'model_missing') {
+      toast.error(t('transcript.modelMissing'));
+      return;
+    }
     toast(t('transcript.addedToQueue'), { icon: '👏' });
-    await onTranscript(srtPath);
   };
 
   return (
