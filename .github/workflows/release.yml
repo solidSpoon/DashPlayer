@@ -18,24 +18,32 @@ jobs:
     runs-on: ${{ matrix.os.image }}
     steps:
       - name: Github checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22.12.0
           cache: yarn
-      - name: Initialize Visual Studio build environment (Windows only)
-        if: matrix.os.name == 'windows'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
       - name: Install WiX Toolset (Windows only)
         if: matrix.os.name == 'windows'
         run: |
           choco install wixtoolset
           echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
-      - run: yarn install --frozen-lockfile
+      - name: Install dependencies
+        if: matrix.os.name != 'windows'
+        run: yarn install --frozen-lockfile
+      - name: Install dependencies with Visual Studio (Windows only)
+        if: matrix.os.name == 'windows'
+        shell: cmd
+        run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && yarn install --frozen-lockfile
       - name: Publish app
+        if: matrix.os.name != 'windows'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run publish
+      - name: Publish app with Visual Studio (Windows only)
+        if: matrix.os.name == 'windows'
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && npm run publish

@@ -1,8 +1,10 @@
 import axios from 'axios';
-import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as path from 'path';
+import { pipeline } from 'stream/promises';
+import * as tarFs from 'tar-fs';
+import unbzip2Stream from 'unbzip2-stream';
 import { inject, injectable } from 'inversify';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
@@ -103,18 +105,20 @@ export class ParakeetModelService {
     }
 
     /**
-     * 使用操作系统自带 tar 解压官方 tar.bz2 归档。
+     * 在 Node 进程内流式解压官方 tar.bz2 归档，避免依赖系统 tar 或 bzip2。
      * @param archivePath 归档文件。
      * @param extractPath 解压目录。
      */
     private async extractArchive(archivePath: string, extractPath: string): Promise<void> {
-        await new Promise<void>((resolve, reject) => {
-            const child = spawn('tar', ['-xjf', archivePath, '-C', extractPath], { stdio: ['ignore', 'ignore', 'pipe'] });
-            let stderr = '';
-            child.stderr.on('data', (chunk) => { stderr += String(chunk); });
-            child.on('error', reject);
-            child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`模型解压失败：${stderr.slice(-1000)}`)));
-        });
+        try {
+            await pipeline(
+                fs.createReadStream(archivePath),
+                unbzip2Stream(),
+                tarFs.extract(extractPath),
+            );
+        } catch (error) {
+            throw new Error(`模型解压失败：${error instanceof Error ? error.message : String(error)}`, { cause: error });
+        }
     }
 
     /**
