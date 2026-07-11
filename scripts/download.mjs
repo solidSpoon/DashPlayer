@@ -6,6 +6,9 @@ import progress from "progress";
 import {createHash} from "crypto";
 import os from "os";
 import path from 'path';
+import {pipeline} from 'stream/promises';
+import * as tarFs from 'tar-fs';
+import unbzip2Stream from 'unbzip2-stream';
 import chalk from 'chalk';
 import { $ } from 'zx';
 
@@ -204,12 +207,22 @@ const extractTarGz = async (tarPath, destDir) => {
     await $`tar -xzf ${tarPath} -C ${destDir}`;
 };
 
+/**
+ * 根据归档格式解压到指定目录，tar.bz2 在 Node 内流式处理以兼容 Windows。
+ * @param {string} archivePath 归档文件路径。
+ * @param {string} destDir 解压目标目录。
+ * @returns {Promise<void>}
+ */
 const extractArchive = async (archivePath, destDir) => {
     if (archivePath.endsWith('.zip')) return extractZip(archivePath, destDir);
     if (archivePath.endsWith('.tar.gz') || archivePath.endsWith('.tgz')) return extractTarGz(archivePath, destDir);
     if (archivePath.endsWith('.tar.bz2')) {
         mkdirp(destDir);
-        await $`tar -xjf ${archivePath} -C ${destDir}`;
+        await pipeline(
+            fs.createReadStream(archivePath),
+            unbzip2Stream(),
+            tarFs.extract(destDir),
+        );
         return;
     }
     throw new Error(`Unsupported archive type: ${archivePath}`);
@@ -432,37 +445,32 @@ const arch = process.env.npm_config_arch || os.arch()
     const res = await verifyExistence({ dir: basePath, file: exeName });
 
     if (res === 'need_download') {
-        try {
-            const version = '1.13.4';
-            const releaseBase = `https://github.com/k2-fsa/sherpa-onnx/releases/download/v${version}`;
-            const assetNames = {
-                darwin: {
-                    arm64: `sherpa-onnx-v${version}-osx-arm64-static-no-tts.tar.bz2`,
-                    x64: `sherpa-onnx-v${version}-osx-x64-static-no-tts.tar.bz2`,
-                },
-                linux: {
-                    arm64: `sherpa-onnx-v${version}-linux-aarch64-static.tar.bz2`,
-                    x64: `sherpa-onnx-v${version}-linux-x64-static-no-tts.tar.bz2`,
-                },
-                win32: {
-                    arm64: `sherpa-onnx-v${version}-win-arm64-static-MT-Release-no-tts.tar.bz2`,
-                    x64: `sherpa-onnx-v${version}-win-x64-static-MT-Release-no-tts.tar.bz2`,
-                },
-            };
-            const assetName = assetNames[platform]?.[arch];
-            const assetUrl = assetName ? `${releaseBase}/${assetName}` : null;
-            if (!assetUrl) {
-                throw new Error(`Unsupported sherpa-onnx platform/arch: ${platform}/${arch}`);
-            } else {
-                console.info(chalk.blue(`=> sherpa-onnx target: ${exePath}`));
-                await downloadAndExtractBinaryFromArchive({
-                    url: assetUrl,
-                    outputPath: exePath,
-                    binaryNameCandidates: [exeName],
-                });
-            }
-        } catch (e) {
-            console.warn(chalk.yellow(`⚠️  sherpa-onnx download failed, keep existing binaries: ${e instanceof Error ? e.message : String(e)}`));
+        const version = '1.13.4';
+        const releaseBase = `https://github.com/k2-fsa/sherpa-onnx/releases/download/v${version}`;
+        const assetNames = {
+            darwin: {
+                arm64: `sherpa-onnx-v${version}-osx-arm64-static-no-tts.tar.bz2`,
+                x64: `sherpa-onnx-v${version}-osx-x64-static-no-tts.tar.bz2`,
+            },
+            linux: {
+                arm64: `sherpa-onnx-v${version}-linux-aarch64-static.tar.bz2`,
+                x64: `sherpa-onnx-v${version}-linux-x64-static-no-tts.tar.bz2`,
+            },
+            win32: {
+                arm64: `sherpa-onnx-v${version}-win-arm64-static-MT-Release-no-tts.tar.bz2`,
+                x64: `sherpa-onnx-v${version}-win-x64-static-MT-Release-no-tts.tar.bz2`,
+            },
+        };
+        const assetName = assetNames[platform]?.[arch];
+        const assetUrl = assetName ? `${releaseBase}/${assetName}` : null;
+        if (!assetUrl) {
+            throw new Error(`Unsupported sherpa-onnx platform/arch: ${platform}/${arch}`);
         }
+        console.info(chalk.blue(`=> sherpa-onnx target: ${exePath}`));
+        await downloadAndExtractBinaryFromArchive({
+            url: assetUrl,
+            outputPath: exePath,
+            binaryNameCandidates: [exeName],
+        });
     }
 }
