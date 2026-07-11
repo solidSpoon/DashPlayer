@@ -1,9 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
-import { Book, Languages, Mic, Settings2, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/fronted/components/ui/button';
+import { Book, Languages, Settings2, Sparkles } from 'lucide-react';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Checkbox } from '@/fronted/components/ui/checkbox';
@@ -11,7 +9,6 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
-import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
@@ -23,7 +20,6 @@ const api = backendClient;
  */
 const EngineSelectionSetting = () => {
     const { t } = useI18nTranslation('settings');
-    const navigate = useNavigate();
 
     const { data: settings } = useSWR('settings/engine-selection/detail', () =>
         api.call('settings/engine-selection/detail'),
@@ -31,10 +27,6 @@ const EngineSelectionSetting = () => {
     const { data: credentialSettings } = useSWR<ServiceCredentialSettingDetailVO>(
         'settings/service-credentials/detail',
         () => api.call('settings/service-credentials/detail'),
-    );
-    const { data: parakeetStatus } = useSWR<ParakeetModelStatusVO>(
-        'parakeet/models/status',
-        () => api.call('parakeet/models/status'),
     );
 
     const form = useForm<EngineSelectionSettingVO>();
@@ -48,7 +40,6 @@ const EngineSelectionSetting = () => {
     register('openai.featureModels.dictionary');
     register('providers.subtitleTranslationEngine');
     register('providers.dictionaryEngine');
-    register('providers.transcriptionEngine');
 
     const {
         ready,
@@ -72,7 +63,6 @@ const EngineSelectionSetting = () => {
 
     const subtitleMode = watch('openai.subtitleTranslationMode');
     const subtitleEngine = watch('providers.subtitleTranslationEngine');
-    const transcriptionEngine = watch('providers.transcriptionEngine');
 
     const availableModels = React.useMemo(() => {
         if (!credentialSettings) {
@@ -81,7 +71,6 @@ const EngineSelectionSetting = () => {
         return credentialSettings.openai.models.map((item) => item.model);
     }, [credentialSettings]);
 
-    const shouldShowParakeetConfigHint = transcriptionEngine === 'sherpa' && parakeetStatus?.ready !== true;
 
     if (!ready || !credentialSettings) {
         return (
@@ -239,45 +228,6 @@ const EngineSelectionSetting = () => {
                     )}
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-border/70 bg-background p-5">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm font-semibold"><Mic className="w-4 h-4" />{t('engineSelection.transcription.title')}</div>
-                            <div className="text-xs text-muted-foreground">{t('engineSelection.transcription.description')}</div>
-                        </div>
-                        <div className="w-full md:w-64">
-                            <Select
-                                value={watch('providers.transcriptionEngine')}
-                                onValueChange={(value: 'openai' | 'sherpa' | 'none') => {
-                                    setValue('providers.transcriptionEngine', value, { shouldDirty: true });
-                                }}
-                            >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="openai">OpenAI</SelectItem>
-                                    <SelectItem value="sherpa">Sherpa ONNX · Parakeet v3</SelectItem>
-                                    <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {shouldShowParakeetConfigHint && (
-                        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                            Parakeet v3 模型尚未下载，请先完成本地模型配置。
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="ml-3"
-                                onClick={() => navigate('/settings/service-credentials')}
-                            >
-                                {t('engineSelection.transcription.goConfigure')}
-                            </Button>
-                        </div>
-                    )}
-
-                </div>
 
                 <div className="space-y-3 rounded-xl border border-border/70 bg-background p-5">
                     <div className="space-y-1">

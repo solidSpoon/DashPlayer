@@ -1,6 +1,5 @@
 import TtsService from '@/backend/application/services/TtsService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
-import SettingService from '@/backend/application/services/SettingService';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -26,17 +25,11 @@ export default class AiFuncService {
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
 
-    @inject(TYPES.SettingService)
-    private settingService!: SettingService;
-
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
 
     @inject(TYPES.ParakeetModelService)
     private parakeetModelService!: ParakeetModelService;
-
-    @inject(TYPES.CloudTranscriptionService)
-    private cloudTranscriptionService!: TranscriptionService;
 
     @inject(TYPES.LocalTranscriptionService)
     private localTranscriptionService!: TranscriptionService;
@@ -68,17 +61,8 @@ export default class AiFuncService {
             }],
         });
 
-        const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
-        const modelStatus = transcriptionEngine === 'sherpa' ? await this.parakeetModelService.getStatus() : null;
-
-        let transcriptionService: TranscriptionService;
-        let serviceName = '';
-
-        if (transcriptionEngine === 'sherpa' && modelStatus?.ready) {
-            transcriptionService = this.localTranscriptionService;
-            serviceName = 'Local';
-            this.logger.info('Using local transcription service');
-        } else if (transcriptionEngine === 'sherpa') {
+        const modelStatus = await this.parakeetModelService.getStatus();
+        if (!modelStatus.ready) {
             this.logger.warn('Parakeet model not downloaded', { modelPath: modelStatus?.modelPath });
             this.rendererGateway.fireAndForget('transcript/batch-result', {
                 updates: [{
@@ -89,25 +73,10 @@ export default class AiFuncService {
                 }],
             });
             return;
-        } else if (transcriptionEngine === 'openai') {
-            transcriptionService = this.cloudTranscriptionService;
-            serviceName = 'Cloud';
-            this.logger.info('Using cloud transcription service');
-        } else {
-            this.logger.warn('No transcription service enabled');
-            this.rendererGateway.fireAndForget('transcript/batch-result', {
-                updates: [{
-                    filePath,
-                    taskId: 0,
-                    status: DpTaskState.FAILED,
-                    result: { error: '未启用任何转录服务' },
-                }],
-            });
-            return;
         }
 
-        transcriptionService.transcribe(filePath).catch((error) => {
-            this.logger.error(`${serviceName} transcription failed`, { error: error instanceof Error ? error.message : String(error) });
+        this.localTranscriptionService.transcribe(filePath).catch((error) => {
+            this.logger.error('Local transcription failed', { error: error instanceof Error ? error.message : String(error) });
         });
     }
 
@@ -119,12 +88,6 @@ export default class AiFuncService {
             const localSuccess = this.localTranscriptionService.cancel(filePath);
             if (localSuccess) {
                 this.logger.info('Local transcription task cancelled successfully', { filePath });
-                return true;
-            }
-
-            const cloudSuccess = this.cloudTranscriptionService.cancel(filePath);
-            if (cloudSuccess) {
-                this.logger.info('Cloud transcription task cancelled successfully', { filePath });
                 return true;
             }
 

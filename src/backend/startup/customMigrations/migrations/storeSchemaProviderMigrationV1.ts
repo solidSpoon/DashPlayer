@@ -75,16 +75,6 @@ const normalizeDictionaryEngine = (value: string | null): 'openai' | 'youdao' | 
 };
 
 /**
- * 校验转录引擎值；空值表示旧配置未显式设置。
- */
-const normalizeTranscriptionEngine = (value: string | null): 'openai' | 'whisper' | 'none' => {
-    if (value === 'openai' || value === 'whisper' || value === 'none') {
-        return value;
-    }
-    return 'none';
-};
-
-/**
  * 在候选模型存在且可用时保留原值，否则回退到可用列表首项。
  */
 const resolveModelFromAvailable = (candidate: string | null, availableModels: string[]): string | null => {
@@ -132,13 +122,6 @@ export const storeSchemaProviderMigrationV1 = {
             ?? (persistedLegacyDictionaryProvider === null ? null : persistedLegacyDictionaryProvider)
         );
 
-        const persistedTranscriptionProvider = getPersistedString('providers.transcription');
-        const persistedLegacyTranscriptionProvider = getPersistedString('transcription.engine');
-        const transcriptionEngine = normalizeTranscriptionEngine(
-            persistedTranscriptionProvider
-            ?? (persistedLegacyTranscriptionProvider === null ? null : persistedLegacyTranscriptionProvider)
-        );
-
         const persistedSentenceLearningEnabled = getPersistedString('features.openai.enableSentenceLearning')
             ?? getPersistedString('services.openai.enableSentenceLearning');
         const sentenceLearningEnabled = persistedSentenceLearningEnabled === null
@@ -177,8 +160,6 @@ export const storeSchemaProviderMigrationV1 = {
 
         storeSetIfPresent('providers.subtitleTranslation', subtitleEngine === 'none' ? null : subtitleEngine);
         storeSetIfPresent('providers.dictionary', dictionaryEngine === 'none' ? null : dictionaryEngine);
-        storeSetIfPresent('providers.transcription', transcriptionEngine === 'none' ? null : transcriptionEngine);
-
         storeSetIfPresent('features.openai.enableSentenceLearning', sentenceLearningEnabled);
         storeSetIfPresent('features.openai.subtitleTranslationMode', subtitleMode);
         storeSetIfPresent('features.openai.subtitleCustomStyle', subtitleCustomStyle);

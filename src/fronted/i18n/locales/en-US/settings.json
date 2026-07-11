@@ -132,7 +132,6 @@
         "featureSwitches": "Feature switches",
         "engineTencent": "Tencent Translation",
         "engineYoudao": "Youdao Dictionary",
-        "engineWhisperLocal": "Local Whisper",
         "engineNone": "Disabled",
         "subtitleTranslation": {
             "title": "Subtitle Translation",
@@ -149,13 +148,6 @@
             "description": "Used for word definitions and example lookups.",
             "modelLabel": "Dictionary model"
         },
-        "transcription": {
-            "title": "Speech-to-Subtitle",
-            "description": "Control which provider handles speech transcription.",
-            "modelLabel": "Transcription model",
-            "whisperHint": "Local transcription is not fully configured yet (model missing). Download the required Whisper model in Service Credentials first.",
-            "goConfigure": "Open settings"
-        },
         "sentenceLearning": {
             "title": "Sentence Learning",
             "description": "Enhances sentence parsing and learning guidance features.",
@@ -167,10 +159,8 @@
         "title": "Service Credentials",
         "description": "Manage cloud API credentials and local model assets.",
         "intro": "Credentials only control connectivity. Toggle feature behavior in the Feature Controls page.",
-        "downloadWhisperDone": "Whisper model downloaded: {{size}}",
-        "downloadVadDone": "VAD model downloaded.",
         "openai": {
-            "description": "Used for subtitle translation, dictionary lookup, and cloud transcription.",
+            "description": "Used for subtitle translation, dictionary lookup, and sentence learning.",
             "modelsLabel": "Available models",
             "tableModel": "Model",
             "tableUsage": "Used by",
@@ -190,23 +180,6 @@
             "description": "Used for dictionary lookups.",
             "appId": "App ID",
             "appKey": "App Key"
-        },
-        "whisper": {
-            "title": "Local Whisper Models",
-            "description": "Manage local transcription and silence-detection model assets.",
-            "modelSize": "Whisper model size",
-            "vadModel": "VAD model",
-            "enableVad": "Enable silence detection (VAD)",
-            "statusPrefix": "Whisper status:",
-            "baseReady": " base ready;",
-            "baseMissing": " base missing;",
-            "largeReady": " large ready;",
-            "largeMissing": " large missing;",
-            "downloadCurrent": "Download current Whisper model",
-            "vadStatusPrefix": "VAD status: ",
-            "vadReady": "ready",
-            "vadMissing": "missing",
-            "downloadVad": "Download VAD model"
         }
     }
 }

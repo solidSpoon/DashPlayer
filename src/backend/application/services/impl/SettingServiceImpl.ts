@@ -18,7 +18,6 @@ import {
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
-import { ParakeetModelService } from '@/backend/application/services/impl/ParakeetModelService';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
@@ -28,7 +27,6 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
-    @inject(TYPES.ParakeetModelService) private parakeetModelService!: ParakeetModelService;
     private logger = getMainLogger('SettingServiceImpl');
 
     private async setValue(key: SettingKey, value: string): Promise<void> {
@@ -77,13 +75,6 @@ export default class SettingServiceImpl implements SettingService {
 
     private normalizeDictionaryEngine(value: string): 'openai' | 'youdao' | 'none' {
         if (value === 'openai' || value === 'youdao' || value === 'none') {
-            return value;
-        }
-        return 'none';
-    }
-
-    private normalizeTranscriptionEngine(value: string): 'openai' | 'sherpa' | 'none' {
-        if (value === 'openai' || value === 'sherpa' || value === 'none') {
             return value;
         }
         return 'none';
@@ -231,11 +222,6 @@ export default class SettingServiceImpl implements SettingService {
             ['openai', 'youdao', 'none'] as const,
             'providers.dictionary',
         );
-        const transcriptionEngine = this.requireEnumValue(
-            this.getValue('providers.transcription'),
-            ['openai', 'sherpa', 'none'] as const,
-            'providers.transcription',
-        );
         const subtitleMode = this.requireEnumValue(
             this.getValue('features.openai.subtitleTranslationMode'),
             ['zh', 'simple_en', 'custom'] as const,
@@ -260,7 +246,6 @@ export default class SettingServiceImpl implements SettingService {
             providers: {
                 subtitleTranslationEngine,
                 dictionaryEngine,
-                transcriptionEngine,
             },
         };
     }
@@ -279,25 +264,12 @@ export default class SettingServiceImpl implements SettingService {
             ['openai', 'youdao', 'none'] as const,
             'providers.dictionaryEngine',
         );
-        const transcriptionEngine = this.requireEnumValue(
-            settings.providers.transcriptionEngine,
-            ['openai', 'sherpa', 'none'] as const,
-            'providers.transcriptionEngine',
-        );
         const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
         if (availableModels.length === 0) {
             throw new Error('models.openai.available 为空，无法保存功能模型选择');
         }
-        if (transcriptionEngine === 'sherpa') {
-            const modelStatus = await this.parakeetModelService.getStatus();
-            if (!modelStatus.ready) {
-                throw new Error(`Parakeet v3 模型未下载或不完整：${modelStatus.missingFiles.join(', ')}`);
-            }
-        }
-
         await this.setValue('providers.subtitleTranslation', subtitleTranslationEngine);
         await this.setValue('providers.dictionary', dictionaryEngine);
-        await this.setValue('providers.transcription', transcriptionEngine);
 
         const subtitleMode = this.requireEnumValue(
             settings.openai.subtitleTranslationMode,
@@ -343,14 +315,6 @@ export default class SettingServiceImpl implements SettingService {
     public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
         const engine = this.normalizeSubtitleEngine(this.getValue('providers.subtitleTranslation'));
         if (engine === 'openai' || engine === 'tencent') {
-            return engine;
-        }
-        return null;
-    }
-
-    public async getCurrentTranscriptionProvider(): Promise<'openai' | 'sherpa' | null> {
-        const engine = this.normalizeTranscriptionEngine(this.getValue('providers.transcription'));
-        if (engine === 'openai' || engine === 'sherpa') {
             return engine;
         }
         return null;

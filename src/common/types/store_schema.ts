@@ -30,7 +30,6 @@ export const SettingKeyObj = {
     'translation.engine': 'tencent',
     'providers.subtitleTranslation': 'openai',
     'providers.dictionary': 'openai',
-    'providers.transcription': 'sherpa',
     'features.openai.enableSentenceLearning': 'true',
     'features.openai.subtitleTranslationMode': 'zh',
     'features.openai.subtitleCustomStyle': '',
@@ -40,7 +39,6 @@ export const SettingKeyObj = {
     'models.openai.dictionary': 'gpt-5.4-nano',
     'subtitleTranslation.engine': 'openai',
     'dictionary.engine': 'openai',
-    'transcription.engine': 'openai',
     // Service function enablement
     'services.openai.enableSentenceLearning': 'true',
     'services.openai.subtitleTranslationMode': 'zh',

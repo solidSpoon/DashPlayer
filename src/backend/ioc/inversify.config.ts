@@ -45,8 +45,6 @@ import ChatServiceImpl from '@/backend/application/services/impl/ChatServiceImpl
 import ChatSessionServiceImpl from '@/backend/application/services/impl/ChatSessionServiceImpl';
 import AiProviderServiceImpl from '@/backend/application/services/impl/clients/AiProviderServiceImpl';
 import ModelRoutingServiceImpl from '@/backend/application/services/impl/clients/ModelRoutingServiceImpl';
-import WhisperService from '@/backend/application/services/WhisperService';
-import WhisperServiceImpl from '@/backend/application/services/impl/WhisperServiceImpl';
 import ConvertService from '@/backend/application/services/ConvertService';
 import ConvertServiceImpl from '@/backend/application/services/impl/ConvertServiceImpl';
 import SplitVideoService from '@/backend/application/services/SplitVideoService';
@@ -74,12 +72,9 @@ import { ParakeetModelController } from '@/backend/adapters/controllers/Parakeet
 import { ParakeetModelService } from '@/backend/application/services/impl/ParakeetModelService';
 import { OpenAIServiceImpl } from '@/backend/application/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
-import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
-import OpenAiWhisperGatewayImpl from '@/backend/infrastructure/openai/OpenAiWhisperGatewayImpl';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
-import { CloudTranscriptionServiceImpl } from '@/backend/application/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/application/services/impl/LocalTranscriptionServiceImpl';
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
 import SpeechRecognitionGateway from '@/backend/application/ports/gateways/media/SpeechRecognitionGateway';
@@ -183,15 +178,12 @@ container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingl
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
-container.bind<WhisperService>(TYPES.WhisperService).to(WhisperServiceImpl).inSingletonScope();
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
-container.bind<OpenAiWhisper>(TYPES.OpenAiWhisper).to(OpenAiWhisperGatewayImpl).inSingletonScope();
-container.bind<TranscriptionService>(TYPES.CloudTranscriptionService).to(CloudTranscriptionServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();
