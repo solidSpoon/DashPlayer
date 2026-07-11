@@ -12,6 +12,6 @@ export type EngineSelectionSettingVO = {
     providers: {
         subtitleTranslationEngine: 'openai' | 'tencent' | 'none';
         dictionaryEngine: 'openai' | 'youdao' | 'none';
-        transcriptionEngine: 'openai' | 'whisper' | 'none';
+        transcriptionEngine: 'openai' | 'sherpa' | 'none';
     };
 };

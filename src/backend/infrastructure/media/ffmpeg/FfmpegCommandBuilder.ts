@@ -98,6 +98,10 @@ export interface ConvertToWavArgs {
     sampleRate?: number;
     /** 输出声道数，默认 1。 */
     channels?: number;
+    /** 可选裁剪起点，单位为秒。 */
+    startSecond?: number;
+    /** 可选裁剪终点，单位为秒；必须与起点同时提供。 */
+    endSecond?: number;
 }
 
 /**
@@ -337,16 +341,27 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
         const sampleRate = args.sampleRate ?? 16000;
         const channels = args.channels ?? 1;
 
-        return [
-            '-y',
-            '-i', args.inputFile,
+        const result = ['-y'];
+        if (args.startSecond !== undefined || args.endSecond !== undefined) {
+            if (args.startSecond === undefined || args.endSecond === undefined) {
+                throw new Error('WAV 裁剪必须同时提供起止时间');
+            }
+            this.assertRange(args.startSecond, args.endSecond, 'WAV 裁剪');
+            result.push('-ss', TimeUtil.secondToTimeStrWithMs(args.startSecond));
+        }
+        result.push('-i', args.inputFile);
+        if (args.startSecond !== undefined && args.endSecond !== undefined) {
+            result.push('-t', `${args.endSecond - args.startSecond}`);
+        }
+        result.push(
             '-vn',
             '-ar', `${sampleRate}`,
             '-ac', `${channels}`,
             '-c:a', 'pcm_s16le',
             '-f', 'wav',
             args.outputFile,
-        ];
+        );
+        return result;
     }
 
     /**

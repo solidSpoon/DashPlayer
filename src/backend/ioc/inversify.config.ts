@@ -70,8 +70,8 @@ import WatchHistoryService from '@/backend/application/services/WatchHistoryServ
 import WatchHistoryServiceImpl from '@/backend/application/services/impl/WatchHistoryServiceImpl';
 import WatchHistoryController from '@/backend/adapters/controllers/WatchHistoryController';
 import SettingsController from '@/backend/adapters/controllers/SettingsController';
-import { WhisperModelController } from '@/backend/adapters/controllers/WhisperModelController';
-import { WhisperModelService } from '@/backend/application/services/impl/WhisperModelService';
+import { ParakeetModelController } from '@/backend/adapters/controllers/ParakeetModelController';
+import { ParakeetModelService } from '@/backend/application/services/impl/ParakeetModelService';
 import { OpenAIServiceImpl } from '@/backend/application/services/impl/OpenAIServiceImpl';
 import { OpenAiService } from '@/backend/application/services/OpenAiService';
 import { OpenAiWhisper } from '@/backend/application/ports/gateways/OpenAiWhisper';
@@ -81,9 +81,9 @@ import OpenAiWhisperGatewayImpl from '@/backend/infrastructure/openai/OpenAiWhis
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import { CloudTranscriptionServiceImpl } from '@/backend/application/services/impl/CloudTranscriptionServiceImpl';
 import { LocalTranscriptionServiceImpl } from '@/backend/application/services/impl/LocalTranscriptionServiceImpl';
-import {WhisperCppCli} from '@/backend/infrastructure/media/whisper/WhisperCppCli';
-import WhisperGateway from '@/backend/application/ports/gateways/media/WhisperGateway';
-import WhisperGatewayImpl from '@/backend/infrastructure/media/whisper/WhisperGatewayImpl';
+import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
+import SpeechRecognitionGateway from '@/backend/application/ports/gateways/media/SpeechRecognitionGateway';
+import SherpaOnnxGatewayImpl from '@/backend/infrastructure/media/sherpa/SherpaOnnxGatewayImpl';
 import {WordMatchService} from '@/backend/application/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/application/services/impl/WordMatchServiceImpl';
 import VocabularyController from '@/backend/adapters/controllers/VocabularyController';
@@ -145,7 +145,7 @@ container.bind<Controller>(TYPES.Controller).to(SystemController).inSingletonSco
 container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
-container.bind<Controller>(TYPES.Controller).to(WhisperModelController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services
@@ -154,9 +154,9 @@ container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSi
 container.bind<MainWindowRegistry>(TYPES.MainWindowRegistry).to(MainWindowRegistryImpl).inSingletonScope();
 container.bind<WindowPort>(TYPES.WindowPort).to(WindowPortImpl).inSingletonScope();
 container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncService).inSingletonScope();
-container.bind<WhisperModelService>(TYPES.WhisperModelService).to(WhisperModelService).inSingletonScope();
-container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
-container.bind<WhisperGateway>(TYPES.WhisperGateway).to(WhisperGatewayImpl).inSingletonScope();
+container.bind<ParakeetModelService>(TYPES.ParakeetModelService).to(ParakeetModelService).inSingletonScope();
+container.bind<SherpaOnnxCli>(TYPES.SherpaOnnxCli).to(SherpaOnnxCli).inSingletonScope();
+container.bind<SpeechRecognitionGateway>(TYPES.SpeechRecognitionGateway).to(SherpaOnnxGatewayImpl).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();

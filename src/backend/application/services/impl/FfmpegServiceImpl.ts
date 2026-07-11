@@ -406,6 +406,36 @@ export default class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
+     * 将媒体直接裁剪并转换为语音识别需要的 WAV 分片，避免有损中间格式和嵌套信号量。
+     * @param args 输入媒体、分片时间范围和输出目录。
+     * @returns 与时间范围顺序一致的 WAV 文件路径。
+     */
+    @WithSemaphore('ffmpeg')
+    public async createRecognitionWavChunks(args: {
+        inputFile: string;
+        ranges: Array<{ start: number; end: number }>;
+        outputFolder: string;
+    }): Promise<string[]> {
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.inputFile);
+        await fs.promises.mkdir(args.outputFolder, { recursive: true });
+        const outputs: string[] = [];
+        for (let index = 0; index < args.ranges.length; index++) {
+            const range = args.ranges[index];
+            const outputPath = path.join(args.outputFolder, `parakeet_${String(index + 1).padStart(3, '0')}.wav`);
+            await this.ffmpegGateway.convertToWav({
+                inputFile: args.inputFile,
+                outputFile: outputPath,
+                sampleRate: 16000,
+                channels: 1,
+                startSecond: range.start,
+                endSecond: range.end,
+            });
+            outputs.push(outputPath);
+        }
+        return outputs;
+    }
+
+    /**
      * 执行支持取消的任务，并统一处理取消异常。
      */
     private async runCancelableTask(

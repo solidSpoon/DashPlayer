@@ -109,6 +109,15 @@ export default interface FfmpegService {
     convertToWav(inputPath: string, outputPath: string): Promise<void>;
 
     /**
+     * 将媒体按时间范围直接转换为 16kHz 单声道 PCM WAV 分片。
+     */
+    createRecognitionWavChunks(args: {
+        inputFile: string;
+        ranges: Array<{ start: number; end: number }>;
+        outputFolder: string;
+    }): Promise<string[]>;
+
+    /**
      * NEW: Trim audio by time range (re-encode to mp3 for compatibility)
      */
     trimAudio(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;

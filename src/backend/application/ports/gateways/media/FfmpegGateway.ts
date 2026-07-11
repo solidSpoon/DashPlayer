@@ -136,6 +136,10 @@ export interface ConvertToWavArgs {
     sampleRate?: number;
     /** 声道数，默认 1。 */
     channels?: number;
+    /** 可选裁剪起点，单位为秒。 */
+    startSecond?: number;
+    /** 可选裁剪终点，单位为秒；必须与起点同时提供。 */
+    endSecond?: number;
 }
 
 /**

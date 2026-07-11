@@ -5,12 +5,11 @@ import { Book, Bot, CheckCircle2, Cpu, Download, Languages, Plus, ShieldCheck, T
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Progress } from '@/fronted/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
-import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
+import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -55,26 +54,24 @@ const ServiceCredentialSetting = () => {
     const [testingTencent, setTestingTencent] = React.useState(false);
     const [testingYoudao, setTestingYoudao] = React.useState(false);
     const [testResults, setTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
-    const [whisperModelStatus, setWhisperModelStatus] = React.useState<WhisperModelStatusVO | null>(null);
-    const [downloadingWhisperModel, setDownloadingWhisperModel] = React.useState(false);
-    const [downloadingVadModel, setDownloadingVadModel] = React.useState(false);
-    const [downloadProgressByKey, setDownloadProgressByKey] = React.useState<Record<string, { percent: number }>>({});
+    const [parakeetModelStatus, setParakeetModelStatus] = React.useState<ParakeetModelStatusVO | null>(null);
+    const [downloadingParakeetModel, setDownloadingParakeetModel] = React.useState(false);
+    const [parakeetDownloadProgress, setParakeetDownloadProgress] = React.useState(0);
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('engineSelection.sentenceLearning.title'),
         subtitleTranslation: t('engineSelection.subtitleTranslation.title'),
         dictionary: t('engineSelection.dictionary.title'),
     }), [t]);
 
-    const whisperModelSize = watch('whisper.modelSize');
     const openAiModels = watch('openai.models');
     const [newOpenAiModel, setNewOpenAiModel] = React.useState('');
 
     /**
-     * 刷新 Whisper 模型状态。
+     * 刷新 Parakeet 模型状态。
      */
-    const refreshWhisperModelStatus = React.useCallback(async () => {
-        const status = await api.call('whisper/models/status');
-        setWhisperModelStatus(status);
+    const refreshParakeetModelStatus = React.useCallback(async () => {
+        const status = await api.call('parakeet/models/status');
+        setParakeetModelStatus(status);
     }, []);
 
     React.useEffect(() => {
@@ -85,30 +82,27 @@ const ServiceCredentialSetting = () => {
     }, [initialize, settings]);
 
     React.useEffect(() => {
-        refreshWhisperModelStatus().catch(() => null);
-    }, [refreshWhisperModelStatus]);
+        refreshParakeetModelStatus().catch(() => null);
+    }, [refreshParakeetModelStatus]);
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { key: string; percent: number } | undefined;
-            if (!detail?.key) return;
-            setDownloadProgressByKey((prev) => ({
-                ...prev,
-                [detail.key]: { percent: detail.percent },
-            }));
+            const detail = (evt as CustomEvent).detail as { percent: number } | undefined;
+            if (!detail) return;
+            setParakeetDownloadProgress(detail.percent);
 
             if (detail.percent >= 100) {
                 setTimeout(() => {
-                    refreshWhisperModelStatus().catch(() => null);
+                    refreshParakeetModelStatus().catch(() => null);
                 }, 300);
             }
         };
 
-        window.addEventListener('whisper-model-download-progress', handler as EventListener);
+        window.addEventListener('parakeet-model-download-progress', handler as EventListener);
         return () => {
-            window.removeEventListener('whisper-model-download-progress', handler as EventListener);
+            window.removeEventListener('parakeet-model-download-progress', handler as EventListener);
         };
-    }, [refreshWhisperModelStatus]);
+    }, [refreshParakeetModelStatus]);
 
     /**
      * 测试指定服务商连通性。
@@ -200,20 +194,15 @@ const ServiceCredentialSetting = () => {
     };
 
     /**
-     * 下载当前选中的 Whisper 模型。
+     * 下载固定的 Parakeet v3 INT8 模型。
      */
-    const downloadSelectedWhisperModel = async () => {
-        const size = whisperModelSize;
-        if (!size) {
-            throw new Error('whisper.modelSize 未初始化');
-        }
-        const key = `whisper:${size}`;
-        setDownloadingWhisperModel(true);
-        setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
+    const downloadParakeetModel = async () => {
+        setDownloadingParakeetModel(true);
+        setParakeetDownloadProgress(0);
         try {
-            await api.call('whisper/models/download', { modelSize: size });
-            toast({ title: t('common.downloadDone'), description: t('serviceCredentials.downloadWhisperDone', { size }) });
-            await refreshWhisperModelStatus();
+            await api.call('parakeet/models/download');
+            toast({ title: t('common.downloadDone'), description: 'Parakeet v3 模型已下载' });
+            await refreshParakeetModelStatus();
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -221,29 +210,7 @@ const ServiceCredentialSetting = () => {
                 description: error instanceof Error ? error.message : String(error),
             });
         } finally {
-            setDownloadingWhisperModel(false);
-        }
-    };
-
-    /**
-     * 下载当前 VAD 模型。
-     */
-    const downloadSelectedVadModel = async () => {
-        const key = 'vad:silero-v6.2.0';
-        setDownloadingVadModel(true);
-        setDownloadProgressByKey((prev) => ({ ...prev, [key]: { percent: 0 } }));
-        try {
-            await api.call('whisper/models/download-vad', { vadModel: 'silero-v6.2.0' });
-            toast({ title: t('common.downloadDone'), description: t('serviceCredentials.downloadVadDone') });
-            await refreshWhisperModelStatus();
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('common.downloadFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
-        } finally {
-            setDownloadingVadModel(false);
+            setDownloadingParakeetModel(false);
         }
     };
 
@@ -432,86 +399,25 @@ const ServiceCredentialSetting = () => {
 
                 <div className="rounded-xl border border-border/70 p-5 space-y-4">
                     <div>
-                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />{t('serviceCredentials.whisper.title')}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{t('serviceCredentials.whisper.description')}</div>
+                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />Sherpa ONNX · Parakeet v3</div>
+                        <div className="text-xs text-muted-foreground mt-1">本地英语字幕识别模型，INT8 版本约 640 MB。</div>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label>{t('serviceCredentials.whisper.modelSize')}</Label>
-                        <Select
-                            value={watch('whisper.modelSize')}
-                            onValueChange={(value: 'base' | 'large') => setValue('whisper.modelSize', value, { shouldDirty: true })}
-                        >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="base">base</SelectItem>
-                                <SelectItem value="large">large</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="rounded-lg border border-border/60 divide-y divide-border/60 overflow-hidden">
-                        <div className="px-4 py-3 space-y-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <span className="text-sm font-medium">Whisper {whisperModelSize}</span>
-                                    {whisperModelStatus?.whisper?.[whisperModelSize]?.exists ? (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600">
-                                            <CheckCircle2 className="w-3 h-3" />
-                                            {t('common.ready')}
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                                            {t('common.notDownloaded')}
-                                        </span>
-                                    )}
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => downloadSelectedWhisperModel().catch(() => null)}
-                                    disabled={downloadingWhisperModel}
-                                >
-                                    <Download className="w-3.5 h-3.5 mr-1.5" />
-                                    {downloadingWhisperModel ? t('common.downloading') : t('common.download')}
-                                </Button>
+                    <div className="rounded-lg border border-border/60 px-4 py-3 space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-sm font-medium">Parakeet TDT 0.6B v3 INT8</span>
+                                {parakeetModelStatus?.ready ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
+                                )}
                             </div>
-                            {downloadingWhisperModel && (
-                                <Progress value={downloadProgressByKey[`whisper:${whisperModelSize}`]?.percent ?? 0} className="h-1.5" />
-                            )}
+                            <Button type="button" variant="outline" size="sm" onClick={() => downloadParakeetModel().catch(() => null)} disabled={downloadingParakeetModel}>
+                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                {downloadingParakeetModel ? t('common.downloading') : t('common.download')}
+                            </Button>
                         </div>
-
-                        <div className="px-4 py-3 space-y-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <span className="text-sm font-medium">VAD silero-v6.2.0</span>
-                                    {whisperModelStatus?.vad?.['silero-v6.2.0']?.exists ? (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600">
-                                            <CheckCircle2 className="w-3 h-3" />
-                                            {t('common.ready')}
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                                            {t('common.notDownloaded')}
-                                        </span>
-                                    )}
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => downloadSelectedVadModel().catch(() => null)}
-                                    disabled={downloadingVadModel}
-                                >
-                                    <Download className="w-3.5 h-3.5 mr-1.5" />
-                                    {downloadingVadModel ? t('common.downloading') : t('common.download')}
-                                </Button>
-                            </div>
-                            {downloadingVadModel && (
-                                <Progress value={downloadProgressByKey['vad:silero-v6.2.0']?.percent ?? 0} className="h-1.5" />
-                            )}
-                        </div>
+                        {downloadingParakeetModel && <Progress value={parakeetDownloadProgress} className="h-1.5" />}
                     </div>
                 </div>
             </SettingsPageShell>

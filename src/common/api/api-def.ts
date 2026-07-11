@@ -24,7 +24,7 @@ import {
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-import { WhisperModelStatusVO, WhisperModelSize, WhisperVadModel } from '@/common/types/vo/whisper-model-vo';
+import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 
@@ -170,10 +170,9 @@ interface SettingsDef {
     'settings/storage/update': { params: { path: string; collection: string }, return: void };
 }
 
-interface WhisperModelDef {
-    'whisper/models/status': { params: void, return: WhisperModelStatusVO };
-    'whisper/models/download': { params: { modelSize: WhisperModelSize }, return: { success: boolean; message: string } };
-    'whisper/models/download-vad': { params: { vadModel: WhisperVadModel }, return: { success: boolean; message: string } };
+interface ParakeetModelDef {
+    'parakeet/models/status': { params: void, return: ParakeetModelStatusVO };
+    'parakeet/models/download': { params: void, return: { success: boolean; message: string } };
 }
 
 interface SplitVideoDef {
@@ -294,7 +293,7 @@ export type ApiDefinitions = ApiDefinition
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & SettingsDef
-    & WhisperModelDef
+    & ParakeetModelDef
     & ConvertDef
     & FavoriteClipsDef
     & TagDef

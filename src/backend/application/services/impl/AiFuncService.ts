@@ -2,20 +2,16 @@ import TtsService from '@/backend/application/services/TtsService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import SettingService from '@/backend/application/services/SettingService';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
-import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { inject, injectable } from 'inversify';
-import * as fs from 'fs';
-import * as path from 'path';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import ChatService from '@/backend/application/services/ChatService';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import { ParakeetModelService } from '@/backend/application/services/impl/ParakeetModelService';
 
 @injectable()
 export default class AiFuncService {
@@ -33,11 +29,11 @@ export default class AiFuncService {
     @inject(TYPES.SettingService)
     private settingService!: SettingService;
 
-    @inject(TYPES.SettingsStore)
-    private settingsStore!: SettingsStore;
-
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
+
+    @inject(TYPES.ParakeetModelService)
+    private parakeetModelService!: ParakeetModelService;
 
     @inject(TYPES.CloudTranscriptionService)
     private cloudTranscriptionService!: TranscriptionService;
@@ -73,27 +69,23 @@ export default class AiFuncService {
         });
 
         const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
-        const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
-        const modelTag = modelSize === 'large' ? 'large-v3' : 'base';
-        const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
-        const modelPath = path.join(modelsRoot, 'whisper', `ggml-${modelTag}.bin`);
-        const modelDownloaded = fs.existsSync(modelPath);
+        const modelStatus = transcriptionEngine === 'sherpa' ? await this.parakeetModelService.getStatus() : null;
 
         let transcriptionService: TranscriptionService;
         let serviceName = '';
 
-        if (transcriptionEngine === 'whisper' && modelDownloaded) {
+        if (transcriptionEngine === 'sherpa' && modelStatus?.ready) {
             transcriptionService = this.localTranscriptionService;
             serviceName = 'Local';
             this.logger.info('Using local transcription service');
-        } else if (transcriptionEngine === 'whisper' && !modelDownloaded) {
-            this.logger.warn('Whisper model not downloaded', { modelSize, modelPath });
+        } else if (transcriptionEngine === 'sherpa') {
+            this.logger.warn('Parakeet model not downloaded', { modelPath: modelStatus?.modelPath });
             this.rendererGateway.fireAndForget('transcript/batch-result', {
                 updates: [{
                     filePath,
                     taskId: 0,
                     status: DpTaskState.FAILED,
-                    result: { error: `本地 Whisper 模型未下载：${modelSize}。请到设置页面下载模型后再转录。` },
+                    result: { error: 'Parakeet v3 模型未下载。请到设置页面下载模型后再转录。' },
                 }],
             });
             return;

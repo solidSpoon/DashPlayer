@@ -31,7 +31,7 @@ interface UIRendererDef {
         },
         return: void
     };
-    'settings/whisper-model-download-progress': { params: { key: string; percent: number; downloaded?: number; total?: number }, return: void };
+    'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number }, return: void };
 }
 
 // 翻译相关的前端API定义

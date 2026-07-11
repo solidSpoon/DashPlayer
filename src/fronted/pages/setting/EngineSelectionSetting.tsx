@@ -11,7 +11,7 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
-import { WhisperModelStatusVO } from '@/common/types/vo/whisper-model-vo';
+import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
@@ -32,9 +32,9 @@ const EngineSelectionSetting = () => {
         'settings/service-credentials/detail',
         () => api.call('settings/service-credentials/detail'),
     );
-    const { data: whisperStatus } = useSWR<WhisperModelStatusVO>(
-        'whisper/models/status',
-        () => api.call('whisper/models/status'),
+    const { data: parakeetStatus } = useSWR<ParakeetModelStatusVO>(
+        'parakeet/models/status',
+        () => api.call('parakeet/models/status'),
     );
 
     const form = useForm<EngineSelectionSettingVO>();
@@ -81,11 +81,7 @@ const EngineSelectionSetting = () => {
         return credentialSettings.openai.models.map((item) => item.model);
     }, [credentialSettings]);
 
-    const whisperSelectedModelSize = credentialSettings?.whisper.modelSize;
-    const whisperModelReady = whisperSelectedModelSize
-        ? whisperStatus?.whisper?.[whisperSelectedModelSize]?.exists === true
-        : false;
-    const shouldShowWhisperConfigHint = transcriptionEngine === 'whisper' && !whisperModelReady;
+    const shouldShowParakeetConfigHint = transcriptionEngine === 'sherpa' && parakeetStatus?.ready !== true;
 
     if (!ready || !credentialSettings) {
         return (
@@ -252,23 +248,23 @@ const EngineSelectionSetting = () => {
                         <div className="w-full md:w-64">
                             <Select
                                 value={watch('providers.transcriptionEngine')}
-                                onValueChange={(value: 'openai' | 'whisper' | 'none') => {
+                                onValueChange={(value: 'openai' | 'sherpa' | 'none') => {
                                     setValue('providers.transcriptionEngine', value, { shouldDirty: true });
                                 }}
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="openai">OpenAI</SelectItem>
-                                    <SelectItem value="whisper">{t('engineSelection.engineWhisperLocal')}</SelectItem>
+                                    <SelectItem value="sherpa">Sherpa ONNX · Parakeet v3</SelectItem>
                                     <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
 
-                    {shouldShowWhisperConfigHint && (
+                    {shouldShowParakeetConfigHint && (
                         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                            {t('engineSelection.transcription.whisperHint')}
+                            Parakeet v3 模型尚未下载，请先完成本地模型配置。
                             <Button
                                 type="button"
                                 size="sm"

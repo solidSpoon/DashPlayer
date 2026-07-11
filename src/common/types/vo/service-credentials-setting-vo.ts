@@ -37,14 +37,6 @@ export type ServiceCredentialSettingDetailVO = {
         /** 有道应用密钥。 */
         secretKey: string;
     };
-    whisper: {
-        /** Whisper 模型尺寸。 */
-        modelSize: 'base' | 'large';
-        /** 是否启用 VAD。 */
-        enableVad: boolean;
-        /** 当前选择的 VAD 模型标识。 */
-        vadModel: 'silero-v5.1.2' | 'silero-v6.2.0';
-    };
 };
 
 /**
@@ -70,13 +62,5 @@ export type ServiceCredentialSettingSaveVO = {
         secretId: string;
         /** 有道应用密钥。 */
         secretKey: string;
-    };
-    whisper: {
-        /** Whisper 模型尺寸。 */
-        modelSize: 'base' | 'large';
-        /** 是否启用 VAD。 */
-        enableVad: boolean;
-        /** 当前选择的 VAD 模型标识。 */
-        vadModel: 'silero-v5.1.2' | 'silero-v6.2.0';
     };
 };

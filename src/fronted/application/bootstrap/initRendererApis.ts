@@ -58,9 +58,8 @@ export function initRendererApis(): () => void {
         window.dispatchEvent(new CustomEvent('show-toast', { detail: params }));
     });
 
-    register('settings/whisper-model-download-progress', async (params) => {
-        logger.debug('Whisper model download progress', { params });
-        window.dispatchEvent(new CustomEvent('whisper-model-download-progress', { detail: params }));
+    register('settings/parakeet-model-download-progress', async (params) => {
+        window.dispatchEvent(new CustomEvent('parakeet-model-download-progress', { detail: params }));
     });
 
     register('translation/result', async (params) => {

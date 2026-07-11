@@ -1,21 +1,20 @@
 // @/backend/services/impl/LocalTranscriptionServiceImpl.ts
 import {injectable, inject} from 'inversify';
 import {TranscriptionService} from '@/backend/application/services/TranscriptionService';
-import SettingService from '@/backend/application/services/SettingService';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
-import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
 import * as path from 'path';
 import * as fsPromises from 'fs/promises';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
-import SrtUtil, {SrtLine} from '@/common/utils/SrtUtil';
+import SrtUtil from '@/common/utils/SrtUtil';
 import {DpTaskState} from "@/backend/infrastructure/db/tables/dpTask";
-import WhisperGateway from '@/backend/application/ports/gateways/media/WhisperGateway';
+import SpeechRecognitionGateway, { SpeechRecognitionToken } from '@/backend/application/ports/gateways/media/SpeechRecognitionGateway';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import EnglishSubtitleSegmenter from '@/backend/application/kernel/subtitle/EnglishSubtitleSegmenter';
 
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
@@ -30,32 +29,34 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private queue: Array<string> = [];
 
     // 记录每个文件的 Promise 控制器
-    private deferred = new Map<string, { resolve: () => void; reject: (e: any) => void }>();
+    private deferred = new Map<string, { resolve: () => void; reject: (error: unknown) => void }>();
 
     private logger = getMainLogger('LocalTranscriptionService');
 
     constructor(
-        @inject(TYPES.SettingService) private settingService: SettingService,
-        @inject(TYPES.SettingsStore) private settingsStore: SettingsStore,
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
         @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
-        @inject(TYPES.WhisperGateway) private whisperGateway: WhisperGateway,
+        @inject(TYPES.SpeechRecognitionGateway) private speechRecognitionGateway: SpeechRecognitionGateway,
         @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider: StorageDirectoryProvider,
     ) {}
 
-    /**
-     * 确保输入音频转换为 WAV。
-     * @param inputPath 原始输入文件。
-     * @returns 转换后的 WAV 文件路径。
-     */
-    private async ensureWavFormat(inputPath: string): Promise<string> {
-        const tempDir = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.TEMP);
-        const out = path.join(tempDir, `converted_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
-        await this.ffmpegService.convertToWav(inputPath, out);
-        return out;
-    }
+    private readonly subtitleSegmenter = new EnglishSubtitleSegmenter();
 
-    private sendProgress(taskId: number, filePath: string, status: string, progress: number, result?: any) {
+    /**
+     * 向渲染进程发送转录任务状态，并把百分比写入用户可见消息。
+     * @param taskId 任务标识；当前本地转录固定为 0。
+     * @param filePath 被转录的媒体路径。
+     * @param status 任务状态。
+     * @param progress 整体进度百分比。
+     * @param result 可选的消息、错误或字幕路径。
+     */
+    private sendProgress(
+        taskId: number,
+        filePath: string,
+        status: string,
+        progress: number,
+        result?: Record<string, unknown>,
+    ): void {
         // 将进度信息合并到 message 字段中
         const finalResult = result || {};
         if (progress !== undefined && progress !== null) {
@@ -72,7 +73,10 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
     }
 
-    // 队列入口：仅排队文件路径
+    /**
+     * 将文件加入串行本地转录队列。
+     * @param filePath 待转录媒体的绝对路径。
+     */
     public async transcribe(filePath: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             // 检查是否已经在队列中或正在处理
@@ -102,7 +106,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
     }
 
-    // 队列调度器：一次只处理一个任务
+    /** 串行消费队列；单个任务失败不会阻止后续任务。 */
     private async pump(): Promise<void> {
         if (this.processing) return;
 
@@ -127,11 +131,13 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         }
     }
 
-    // doTranscribe：使用按文件路径的取消检查
+    /**
+     * 执行单个文件的完整转录流程并负责临时目录清理。
+     * @param filePath 待转录媒体的绝对路径。
+     */
     private async doTranscribe(filePath: string): Promise<void> {
         this.activeFilePath = filePath;
 
-        let processedAudioPath = '';
         let tempFolder: string | null = null;
 
         try {
@@ -140,20 +146,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             this.sendProgress(0, filePath, DpTaskState.INIT, 0);
             if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
 
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 5, { message: '开始音频转录...' });
-
-            // 预处理
-            if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 5, { message: '音频预处理（转换为 16k WAV）...' });
-            processedAudioPath = await this.ensureWavFormat(filePath);
-
-            // 引擎选择（按配置，不做兜底）
-            const transcriptionEngine = await this.settingService.getCurrentTranscriptionProvider();
-
-            this.logger.info('Transcription config', {
-                transcriptionEngine,
-            });
-
             // 临时目录
             // 包含时间戳，避免同一文件并发任务相互覆盖
             const folderName = objectHash(`${filePath}::${Date.now()}`);
@@ -161,13 +153,8 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             tempFolder = path.join(tempRoot, 'parakeet', folderName);
             await fsPromises.mkdir(tempFolder, {recursive: true});
 
-            // 本地 whisper.cpp CLI 走内置语言自动检测（-l auto），无需额外语言检测步骤
-            if (transcriptionEngine !== 'whisper') {
-                throw new Error('Local transcription is not enabled by configuration.');
-            }
-            await this.transcribeWithWhisperCppCli({
+            await this.transcribeWithSherpaOnnx({
                 filePath,
-                processedAudioPath,
                 tempFolder,
             });
             return;
@@ -184,8 +171,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
             // 清理临时文件
             try {
-                // processedAudioPath 可能为同一路径（已转 WAV），谨慎删除
-                if (processedAudioPath) await fsPromises.rm(processedAudioPath, {force: true});
                 if (tempFolder) await fsPromises.rm(tempFolder, {recursive: true, force: true});
             } catch (cleanupError) {
                 this.logger.warn('Failed to cleanup temporary files', {cleanupError});
@@ -194,66 +179,65 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     }
 
     /**
-     * 使用本地 whisper.cpp 网关执行转录，并在应用层完成进度映射与结果后处理。
+     * 使用 sherpa-onnx 与 Parakeet v3 执行英语识别，并生成适合播放器展示的 SRT。
      * @param opts 转录所需的输入路径与临时目录。
      */
-    private async transcribeWithWhisperCppCli(opts: { filePath: string; processedAudioPath: string; tempFolder: string }): Promise<void> {
-        const { filePath, processedAudioPath, tempFolder } = opts;
-
-        const modelSize = this.settingsStore.get('whisper.modelSize') === 'large' ? 'large' : 'base';
-        const enableVad = true;
-        const vadModel = 'silero-v6.2.0' as const;
-
+    private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string }): Promise<void> {
+        const { filePath, tempFolder } = opts;
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
-
-        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 10, { message: 'whisper.cpp 正在识别...' });
-        const progressFromWhisperPercent = (p: number) => Math.max(10, Math.min(90, Math.floor(10 + p * 0.8)));
-        let lastReportedProgress = 10;
-        const maybeReportProgress = (percent: number, heartbeat: boolean) => {
-            if (!Number.isFinite(percent)) return;
-            const boundedPercent = Math.max(0, Math.min(100, Math.floor(percent)));
-            const progress = progressFromWhisperPercent(boundedPercent);
-            if (!heartbeat && progress <= lastReportedProgress) return;
-            lastReportedProgress = Math.max(lastReportedProgress, progress);
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, lastReportedProgress, { message: 'whisper.cpp 正在识别...' });
-        };
-
+        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 10, { message: '正在切分长音频...' });
         if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
+        const duration = await this.ffmpegService.duration(filePath);
+        if (!Number.isFinite(duration) || duration <= 0) throw new Error(`无法读取音频时长：${duration}`);
 
-        const {outSrt, warnings} = await this.whisperGateway.transcribe({
-            processedAudioPath,
-            tempFolder,
-            modelsRoot,
-            modelSize,
-            enableVad,
-            vadModel,
-            isCancelled: () => this.isCancelled(filePath),
-            onProgressEvent: (evt) => maybeReportProgress(evt.percent, evt.heartbeat),
-        });
-
-        if (warnings.includes('VAD_UNSUPPORTED')) {
-            this.logger.warn('whisper.cpp binary does not support VAD flags; please update whisper-cli for --vad support');
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 12, {message: '当前 whisper.cpp 不支持静音检测参数，将跳过静音检测'});
+        const chunkDuration = 5 * 60;
+        const ranges: Array<{ start: number; end: number }> = [];
+        for (let start = 0; start < duration; start += chunkDuration) {
+            ranges.push({ start, end: Math.min(duration, start + chunkDuration) });
         }
+        const wavPaths = await this.ffmpegService.createRecognitionWavChunks({
+            inputFile: filePath,
+            ranges,
+            outputFolder: tempFolder,
+        });
+        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 35, { message: `已准备 ${wavPaths.length} 个识别片段` });
 
+        const timeline: SpeechRecognitionToken[] = [];
+        for (let index = 0; index < wavPaths.length; index++) {
+            if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
+            const completedDuration = ranges[index].start;
+            const progress = Math.min(90, Math.floor(35 + completedDuration / duration * 55));
+            const recognitionStartedAt = Date.now();
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress, {
+                message: `Parakeet v3 正在识别第 ${index + 1}/${wavPaths.length} 段`,
+            });
+            const result = await this.speechRecognitionGateway.transcribe({
+                audioPath: wavPaths[index],
+                modelsRoot,
+                isCancelled: () => this.isCancelled(filePath),
+                onHeartbeat: () => {
+                    const elapsedSeconds = Math.floor((Date.now() - recognitionStartedAt) / 1000);
+                    const elapsedText = elapsedSeconds >= 60
+                        ? `${Math.floor(elapsedSeconds / 60)} 分 ${elapsedSeconds % 60} 秒`
+                        : `${elapsedSeconds} 秒`;
+                    this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress, {
+                        message: `Parakeet v3 正在识别第 ${index + 1}/${wavPaths.length} 段，已运行 ${elapsedText}`,
+                    });
+                },
+            });
+            const offset = ranges[index].start;
+            timeline.push(...result.tokens.map((token) => ({ ...token, start: token.start + offset })));
+
+            const completedProgress = Math.min(90, Math.floor(35 + ranges[index].end / duration * 55));
+            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, completedProgress, {
+                message: `已完成 ${index + 1}/${wavPaths.length} 段`,
+            });
+        }
         if (this.isCancelled(filePath)) throw new Error('Transcription cancelled by user');
-
         this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
-        const srtContentRaw = await fsPromises.readFile(outSrt, 'utf-8');
-        const parsedLines = SrtUtil.parseSrt(srtContentRaw);
-
-        const SHIFT_SECONDS = -0.2;
-        const shiftedLines: SrtLine[] = parsedLines
-            .map((l, idx) => ({
-                index: idx + 1,
-                start: Math.max(0, l.start + SHIFT_SECONDS),
-                end: Math.max(0, l.end + SHIFT_SECONDS),
-                contentEn: l.contentEn,
-                contentZh: l.contentZh,
-            }))
-            .filter(l => l.end > l.start);
-
-        const finalSrt = SrtUtil.srtLinesToSrt(shiftedLines, { reindex: true });
+        const lines = this.subtitleSegmenter.segment(timeline);
+        if (lines.length === 0) throw new Error('Parakeet v3 未识别出可用字幕');
+        const finalSrt = SrtUtil.srtLinesToSrt(lines, { reindex: true });
         const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
         await fsPromises.writeFile(srtFileName, finalSrt);
@@ -261,7 +245,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         this.sendProgress(0, filePath, DpTaskState.DONE, 100, { srtPath: srtFileName });
     }
 
-    // 取消逻辑：按文件路径取消
+    /**
+     * 取消排队中或正在识别的文件。
+     * @param filePath 目标媒体路径。
+     * @returns 找到并取消任务时返回 true。
+     */
     public cancel(filePath: string): boolean {
         // 标记为已取消
         this.cancelled.add(filePath);
@@ -283,7 +271,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         // 如果是当前任务，doTranscribe 会在检查点自行退出
         if (this.activeFilePath === filePath) {
-            this.whisperGateway.cancelActive();
+            this.speechRecognitionGateway.cancelActive();
             return true;
         }
 
@@ -292,121 +280,12 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         return false;
     }
 
+    /**
+     * 判断文件是否收到取消请求。
+     * @param filePath 目标媒体路径。
+     */
     private isCancelled(filePath: string): boolean {
         return this.cancelled.has(filePath);
     }
 
-
-
-    private createSegmentsFromWordTimeline(words: Array<{ word: string; start: number; end: number }>): Array<{ start: number; end: number; text: string }> {
-        if (!words || words.length === 0) return [];
-
-        const MAX_DURATION_S = 6.5;
-        const MAX_WORDS = 16;
-        const MAX_CHARS = 80;
-        const GAP_BREAK_S = 0.6;
-
-        const SENTENCE_ENDERS = /[.!?。！？]+$/;
-        const CLAUSE_BREAKERS = /[,;:，；：、]+$/;
-        const PUNCT_ONLY = /^[,.;:!?，。！？；：、]+$/;
-
-        const calcAppendLen = (currentLen: number, currentCount: number, token: string): number => {
-            if (!token) return 0;
-            if (PUNCT_ONLY.test(token)) return token.length;
-            return currentCount > 0 ? (1 + token.length) : token.length;
-        };
-
-        const joinTokens = (tokens: string[]): string => {
-            let out = '';
-            for (let i = 0; i < tokens.length; i++) {
-                const t = tokens[i];
-                if (!t) continue;
-                if (PUNCT_ONLY.test(t)) {
-                    out += t;
-                } else {
-                    out += (out.length > 0 ? ' ' : '') + t;
-                }
-            }
-            return out.replace(/\s{2,}/g, ' ').trim();
-        };
-
-        const segments: Array<{ start: number; end: number; text: string }> = [];
-        let current: { start: number; end: number; tokens: string[]; nonPunctWordCount: number; charLen: number } | null = null;
-        let prevEnd = words[0].start;
-
-        for (const w of words) {
-            const t = (w.word || '').trim();
-            if (!t) { prevEnd = w.end; continue; }
-
-            if (current && (w.start - prevEnd) >= GAP_BREAK_S) {
-                const text = joinTokens(current.tokens);
-                if (text) segments.push({ start: current.start, end: current.end, text });
-                current = null;
-            }
-
-            if (!current) {
-                current = { start: w.start, end: w.end, tokens: [], nonPunctWordCount: 0, charLen: 0 };
-            }
-
-            const addLen = calcAppendLen(current.charLen, current.tokens.length, t);
-            const wouldCharLen = current.charLen + addLen;
-            const wouldNonPunctCount = current.nonPunctWordCount + (PUNCT_ONLY.test(t) ? 0 : 1);
-            const wouldEnd = w.end;
-            const wouldDuration = wouldEnd - current.start;
-
-            const willExceed = wouldDuration > MAX_DURATION_S || wouldNonPunctCount > MAX_WORDS || wouldCharLen > MAX_CHARS;
-
-            if (willExceed) {
-                const text = joinTokens(current.tokens);
-                if (text) segments.push({ start: current.start, end: current.end, text });
-                current = { start: w.start, end: w.end, tokens: [t], nonPunctWordCount: PUNCT_ONLY.test(t) ? 0 : 1, charLen: t.length };
-                prevEnd = w.end;
-                continue;
-            }
-
-            current.tokens.push(t);
-            current.end = w.end;
-            current.charLen = wouldCharLen;
-            current.nonPunctWordCount = wouldNonPunctCount;
-
-            if (SENTENCE_ENDERS.test(t)) {
-                const text = joinTokens(current.tokens);
-                if (text) segments.push({ start: current.start, end: current.end, text });
-                current = null;
-                prevEnd = w.end;
-                continue;
-            }
-
-            if (CLAUSE_BREAKERS.test(t)) {
-                const longEnough = current.nonPunctWordCount >= 8 || current.charLen >= Math.floor(MAX_CHARS * 0.65) || (current.end - current.start) >= (MAX_DURATION_S * 0.8);
-                if (longEnough) {
-                    const text = joinTokens(current.tokens);
-                    if (text) segments.push({ start: current.start, end: current.end, text });
-                    current = null;
-                    prevEnd = w.end;
-                    continue;
-                }
-            }
-
-            prevEnd = w.end;
-        }
-
-        if (current && current.tokens.length > 0) {
-            const text = joinTokens(current.tokens);
-            if (text) segments.push({ start: current.start, end: current.end, text });
-        }
-
-        return segments.filter(s => Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start && (s.text || '').trim().length > 0);
-    }
-
-    private segmentsToSrt(segments: Array<{ start: number; end: number; text: string }>): string {
-        const lines: SrtLine[] = segments.map((segment, index) => ({
-            index: index + 1,
-            start: segment.start,
-            end: segment.end,
-            contentEn: segment.text,
-            contentZh: ''
-        }));
-        return SrtUtil.srtLinesToSrt(lines, { reindex: true });
-    }
 }
