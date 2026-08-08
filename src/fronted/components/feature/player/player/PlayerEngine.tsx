@@ -39,10 +39,6 @@ export interface PlayerEngineProps {
 const STALL_CHECK_MS = 500;
 const STALL_FROZEN_MS = 1200;
 const STALL_HEAL_COOLDOWN_MS = 5000;
-// 网络加载宽限期：连续加载超过该时长仍未起播才按卡死处理
-const LOADING_GRACE_MS = 4000;
-// seek 超时：seeking 持续超过该时长仍未结束则视为卡死
-const SEEK_TIMEOUT_MS = 2000;
 // 单个媒体源的恢复重建上限：超过后停止自动恢复并记录日志
 const MAX_RECOVERY_PER_SOURCE = 3;
 
@@ -102,8 +98,6 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
   const pendingRecoveryRef = useRef<number | null>(null);
   const [recoveryKey, setRecoveryKey] = useState(0);
 
-  // 记录 seek 开始时间与 seek 期间冻结的当前时间快照（用于 seek 超时判定）
-  const seekingSinceRef = useRef(0);
   // 当前媒体源已触发的恢复重建次数（source 变化时重置）
   const recoveryCountRef = useRef(0);
 
@@ -169,7 +163,6 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
             videoRef.current?.pause();
           }
         }
-        seekingSinceRef.current = Date.now();
       } catch (error) {
         logger.error('seek failed', {
           error: error instanceof Error ? error.message : String(error),
@@ -202,7 +195,6 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
   // source 变化时清除恢复状态与看门狗观察状态，避免旧代际状态残留
   useEffect(() => {
     pendingRecoveryRef.current = null;
-    seekingSinceRef.current = 0;
     recoveryCountRef.current = 0;
     stallAttemptRef.current = 0;
     lastStallHealAtRef.current = 0;
@@ -212,7 +204,6 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
   useEffect(() => {
     let lastSeenTime = -1;
     let frozenMs = 0;
-    let loadingSince = 0;
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     /**
@@ -240,7 +231,8 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
         readyState: video.readyState,
         networkState: video.networkState,
         paused: video.paused,
-        seeking: video.seeking
+        seeking: video.seeking,
+        src
       });
 
       // 前两次：强制 play()；仍卡住则重建 video 元素
@@ -281,75 +273,16 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
     const checkStall = () => {
       const video = videoRef.current;
       if (!video) return;
-      const now = Date.now();
-      const loading = video.networkState === HTMLMediaElement.NETWORK_LOADING;
-
-      // 追踪连续加载时长；不在加载则清零
-      if (loading) {
-        if (loadingSince === 0) loadingSince = now;
-      } else {
-        loadingSince = 0;
-      }
 
       // 应用不期望播放或媒体已结束：重置观察状态
       if (!usePlayer.getState().playing || video.ended) {
         lastSeenTime = -1;
         frozenMs = 0;
-        loadingSince = 0;
         stallAttemptRef.current = 0;
         return;
       }
 
-      // seeking 期间：给有限超时；超过 SEEK_TIMEOUT_MS 仍未结束则进入恢复流程
-      if (video.seeking) {
-        if (seekingSinceRef.current === 0) {
-          seekingSinceRef.current = now;
-        }
-        if (now - seekingSinceRef.current >= SEEK_TIMEOUT_MS) {
-          handleStall();
-        } else {
-          lastSeenTime = video.currentTime;
-          frozenMs = 0;
-          stallAttemptRef.current = 0;
-        }
-        return;
-      }
-      if (seekingSinceRef.current !== 0) {
-        // seek 已结束：重置超时记录
-        seekingSinceRef.current = 0;
-      }
-
-      // 初次加载（尚无足够数据）期间：网络加载中给予有限宽限期；
-      // 未在加载或超过宽限仍无数据时视为卡死，累计冻结时间触发恢复（避免加载卡死永不恢复）
-      if (video.readyState < 2) {
-        lastSeenTime = video.currentTime;
-        if (loading && now - loadingSince < LOADING_GRACE_MS) {
-          frozenMs = 0;
-          return;
-        }
-        frozenMs += STALL_CHECK_MS;
-        if (frozenMs >= STALL_FROZEN_MS) {
-          handleStall();
-        }
-        return;
-      }
-
-      // 网络加载中给予有限宽限期；超过宽限仍未起播则继续按冻结时间累计（避免死加载永久卡住）
-      if (loading && now - loadingSince < LOADING_GRACE_MS) {
-        lastSeenTime = video.currentTime;
-        frozenMs = 0;
-        return;
-      }
-
-      // 原生已暂停但应用仍期望播放：视为卡死（与 currentTime 冻结同样处理）
-      if (video.paused) {
-        frozenMs += STALL_CHECK_MS;
-        if (frozenMs >= STALL_FROZEN_MS) {
-          handleStall();
-        }
-        return;
-      }
-
+      // 播放时间不再前进（含原生已暂停、seek/加载卡住等形态）：累计冻结时长触发恢复
       if (video.currentTime !== lastSeenTime) {
         lastSeenTime = video.currentTime;
         frozenMs = 0;
