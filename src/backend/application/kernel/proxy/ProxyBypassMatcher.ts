@@ -91,18 +91,18 @@ export function parseProxyBypassRule(rawRule: string): ProxyBypassRule | null {
         return { type: 'ip', scheme, port, ip: cleaned };
     }
 
-    if (cleaned.includes('*')) {
-        if (isValidIp(cleaned.replace(/\*/g, '0'))) {
-            return { type: 'ipWildcard', scheme, port, regex: buildWildcardRegex(cleaned) };
-        }
-        return { type: 'domainWildcard', scheme, port, regex: buildWildcardRegex(cleaned) };
-    }
-
     if (cleaned.startsWith('*.')) {
         return { type: 'domain', scheme, port, domain: cleaned.slice(2), matchSubdomains: true };
     }
     if (cleaned.startsWith('.')) {
         return { type: 'domain', scheme, port, domain: cleaned.slice(1), matchSubdomains: true };
+    }
+
+    if (cleaned.includes('*')) {
+        if (isValidIp(cleaned.replace(/\*/g, '0'))) {
+            return { type: 'ipWildcard', scheme, port, regex: buildWildcardRegex(cleaned) };
+        }
+        return { type: 'domainWildcard', scheme, port, regex: buildWildcardRegex(cleaned) };
     }
     return { type: 'domain', scheme, port, domain: cleaned, matchSubdomains: false };
 }

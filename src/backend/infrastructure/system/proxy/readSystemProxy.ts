@@ -25,7 +25,7 @@ export interface SystemProxyInfo {
  * ```
  * 只读取 HTTP/HTTPS 代理；PAC 代理无法固化为单一 URL，返回 null。
  */
-const parseMacScutil = (output: string): SystemProxyInfo | null => {
+export const parseMacScutil = (output: string): SystemProxyInfo | null => {
     const values = new Map<string, string>();
     const exceptions: string[] = [];
     let inExceptions = false;
@@ -74,7 +74,7 @@ const parseMacScutil = (output: string): SystemProxyInfo | null => {
 };
 
 /** 解析 Windows `reg query` 输出，返回系统代理 URL 与例外列表。 */
-const parseWindowsReg = (output: string): SystemProxyInfo | null => {
+export const parseWindowsReg = (output: string): SystemProxyInfo | null => {
     const values = new Map<string, string>();
     for (const rawLine of output.split('\n')) {
         const line = rawLine.trim();
@@ -91,7 +91,12 @@ const parseWindowsReg = (output: string): SystemProxyInfo | null => {
     }
 
     const separatorIndex = proxyServer.indexOf(';');
-    const serverPart = separatorIndex >= 0 ? proxyServer.slice(0, separatorIndex) : proxyServer;
+    let serverPart = separatorIndex >= 0 ? proxyServer.slice(0, separatorIndex) : proxyServer;
+    // 处理 Windows 的多协议形式（http=host:port;https=host:port），去掉协议前缀。
+    const protocolPrefixMatch = serverPart.match(/^([a-zA-Z]+)=(.+)$/);
+    if (protocolPrefixMatch) {
+        serverPart = protocolPrefixMatch[2];
+    }
     const proxyUrl = serverPart.includes('://') ? serverPart : `http://${serverPart}`;
 
     const noProxy = (values.get('proxyoverride') ?? '')
