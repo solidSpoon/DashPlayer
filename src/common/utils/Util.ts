@@ -37,11 +37,11 @@ export default class Util {
     static arrayChanged = arrayChanged;
     static joinUrl = joinUrl;
 
-    public static isNull(obj: any): boolean {
+    public static isNull(obj: unknown): boolean {
         return obj === null || obj === undefined;
     }
 
-    public static isNotNull(obj: any): boolean {
+    public static isNotNull(obj: unknown): boolean {
         return !this.isNull(obj);
     }
 

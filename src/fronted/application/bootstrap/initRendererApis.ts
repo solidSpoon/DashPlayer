@@ -1,4 +1,4 @@
-import { RendererApiMap } from '@/common/api/renderer-api-def';
+import { RendererApiDefinitions, RendererApiMap } from '@/common/api/renderer-api-def';
 import useDictionaryStream from '@/fronted/hooks/useDictionaryStream';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useTranscript from '@/fronted/hooks/useTranscript';
@@ -15,7 +15,7 @@ export function initRendererApis(): () => void {
      * 统一注册入口：只负责执行与错误兜底，日志粒度由各 handler 自行决定。
      */
     const register = <K extends keyof RendererApiMap>(path: K, handler: RendererApiMap[K]) => {
-        const wrappedHandler = async (params: Parameters<RendererApiMap[K]>[0]) => {
+        const wrappedHandler = async (params: RendererApiDefinitions[K]['params']) => {
             try {
                 return await handler(params);
             } catch (error) {
@@ -26,7 +26,7 @@ export function initRendererApis(): () => void {
             }
         };
 
-        unregisters.push(rendererApiRegistry.register(path, wrappedHandler as any));
+        unregisters.push(rendererApiRegistry.register(path, wrappedHandler as RendererApiMap[K]));
     };
 
     register('ui/show-notification', async (params) => {

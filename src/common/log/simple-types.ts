@@ -7,6 +7,6 @@ export interface SimpleEvent {
   process: 'main' | 'renderer';
   module: string;     // 组件或文件名
   msg: string;
-  data?: any;         // 结构化对象（可选）
+  data?: unknown;     // 结构化对象（可选）
   focus?: string;     // 临时聚焦 token（可选）
 }

@@ -31,7 +31,7 @@ export class TypeGuards {
         }
     }
 
-    public static assertType<T>(value: any, type: string, message?: string): asserts value is T {
+    public static assertType<T>(value: unknown, type: string, message?: string): asserts value is T {
         if (typeof value !== type) {
             throw new AssertionError(message || `Value is not a ${type}`);
         }

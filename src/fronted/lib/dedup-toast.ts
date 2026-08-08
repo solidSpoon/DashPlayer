@@ -74,8 +74,8 @@ export function showDedupErrorToast(error: unknown, options?: { duration?: numbe
             ? error.message
             : typeof error === 'string'
                 ? error
-                : (error as any)?.message
-                    ? String((error as any).message)
+                : (error as { message?: unknown })?.message
+                    ? String((error as { message?: unknown }).message)
                     : String(error);
 
     showDedupToast('error', message, options);

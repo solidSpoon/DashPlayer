@@ -7,7 +7,6 @@ export class ElectronRendererApiRegistry implements RendererApiRegistryPort {
             throw new Error('window.electron.registerRendererApi is not available');
         }
 
-        return window.electron.registerRendererApi(path, handler as any);
+        return window.electron.registerRendererApi(path, handler);
     }
 }
-

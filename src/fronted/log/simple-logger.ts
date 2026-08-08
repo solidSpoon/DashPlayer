@@ -3,10 +3,10 @@ import type { SimpleLevel } from '@/common/log/simple-types';
 import { logWriter } from '@/fronted/application/bootstrap/logWriter';
 
 type RendererLogger = {
-  debug: (msg: string, data?: any) => void;
-  info: (msg: string, data?: any) => void;
-  warn: (msg: string, data?: any) => void;
-  error: (msg: string, data?: any) => void;
+  debug: (msg: string, data?: unknown) => void;
+  info: (msg: string, data?: unknown) => void;
+  warn: (msg: string, data?: unknown) => void;
+  error: (msg: string, data?: unknown) => void;
   withFocus: (focusToken: string) => RendererLogger;
 };
 
@@ -80,7 +80,7 @@ function prependFocusToken(msg: string, focusToken?: string) {
   return `[FOCUS:${focusToken}] ${msg}`;
 }
 
-function write(processName: 'renderer', moduleName: string, level: SimpleLevel, msg: string, data?: any, focus?: string) {
+function write(processName: 'renderer', moduleName: string, level: SimpleLevel, msg: string, data?: unknown, focus?: string) {
   const focusToken = focus || extractFocusToken(msg);
   const plainMsg = msg.replace(FOCUS_PREFIX_PATTERN, '');
   // 控制台输出（便于开发定位）
@@ -111,7 +111,7 @@ export function getRendererLogger(moduleName: string): RendererLogger {
   if (cached) return cached;
 
   const createLogger = (focusToken?: string): RendererLogger => {
-    const at = (level: SimpleLevel, msg: string, data?: any) => {
+    const at = (level: SimpleLevel, msg: string, data?: unknown) => {
       const focusedMsg = prependFocusToken(msg, focusToken);
       if (levelOrder[level] < levelOrder[CURRENT_LEVEL]) return;
       if (!shouldLogModule(moduleName)) return;
@@ -119,10 +119,10 @@ export function getRendererLogger(moduleName: string): RendererLogger {
       write('renderer', moduleName, level, focusedMsg, data, focusToken);
     };
     return {
-      debug: (msg: string, data?: any) => at('debug', msg, data),
-      info:  (msg: string, data?: any) => at('info',  msg, data),
-      warn:  (msg: string, data?: any) => at('warn',  msg, data),
-      error: (msg: string, data?: any) => at('error', msg, data),
+      debug: (msg: string, data?: unknown) => at('debug', msg, data),
+      info:  (msg: string, data?: unknown) => at('info',  msg, data),
+      warn:  (msg: string, data?: unknown) => at('warn',  msg, data),
+      error: (msg: string, data?: unknown) => at('error', msg, data),
       withFocus: (nextFocusToken: string) => createLogger(nextFocusToken),
     };
   };

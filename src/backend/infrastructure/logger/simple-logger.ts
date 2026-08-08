@@ -169,7 +169,7 @@ export function writeEvent(event: SimpleEvent) {
     }
 }
 
-function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) {
+function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unknown) {
     writeEvent({
         ts: new Date().toISOString(),
         level,
@@ -181,10 +181,10 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) 
 }
 
 type MainLogger = {
-    debug: (msg: string, data?: any) => void;
-    info: (msg: string, data?: any) => void;
-    warn: (msg: string, data?: any) => void;
-    error: (msg: string, data?: any) => void;
+    debug: (msg: string, data?: unknown) => void;
+    info: (msg: string, data?: unknown) => void;
+    warn: (msg: string, data?: unknown) => void;
+    error: (msg: string, data?: unknown) => void;
     withFocus: (focusToken: string) => MainLogger;
 };
 

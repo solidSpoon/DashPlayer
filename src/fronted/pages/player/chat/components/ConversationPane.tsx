@@ -63,7 +63,7 @@ const ConversationPane = () => {
         }
     }, []);
 
-    const mapping = (msg: CustomMessage<any>) => {
+    const mapping = (msg: CustomMessage<unknown>) => {
         switch (msg.msgType) {
             case "human-topic":
                 return <UserTopicMessage msg={msg as HumanTopicMessage}/>;

@@ -478,10 +478,10 @@ function getLemma(term: string): string {
         }
 
         if (doc.has('#Adjective')) {
-            const adjectives = (doc as any).adjectives?.();
-            const positive = adjectives?.toPositive?.().out?.('text');
-            if (typeof positive === 'string' && positive.length > 0) {
-                return positive.toLowerCase();
+            const adjectives = doc.adjectives();
+            const baseForm = (adjectives.conjugate()[0] as { Adjective?: string } | undefined)?.Adjective;
+            if (typeof baseForm === 'string' && baseForm.length > 0) {
+                return baseForm.toLowerCase();
             }
         }
 

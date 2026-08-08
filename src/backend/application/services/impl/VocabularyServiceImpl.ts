@@ -99,7 +99,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
         const now = new Date().toISOString();
         const importedWords = new Map<string, { word: string; translate: string | null }>();
 
-        for (const row of jsonData as any[]) {
+        for (const row of jsonData as Array<Record<string, unknown>>) {
             const english = row['英文'] || row['word'] || row['Word'];
             const translate = row['释义'] || row['translate'] || row['Translation'];
 
@@ -165,7 +165,7 @@ export default class VocabularyServiceImpl implements VocabularyService {
             }
 
             const defaultWords = await loadDefaultVocabulary();
-            const currentVocabularyRows = wordsResult.data.map(word => ({
+            const currentVocabularyRows = (wordsResult.data as Array<{ word: string; translate: string | null }>).map(word => ({
                 英文: word.word,
                 释义: word.translate || ''
             }));
