@@ -5,18 +5,14 @@ import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
-import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import {
+    TranscriptTask,
+    TranscriptTaskState,
+    TranscriptTaskUpdate,
+} from '@/common/contracts/transcript/transcript-task';
 
 const api = backendClient;
-
-export interface TranscriptTask {
-    file: string;
-    status?: DpTaskState | string;
-    result?: any;
-    created_at?: string;
-    updated_at?: string;
-}
 
 export type UseTranscriptState = {
     files: TranscriptTask[];
@@ -26,7 +22,7 @@ export type UseTranscriptAction = {
     onAddToQueue(p: string): void;
     onDelFromQueue(p: string): void;
     onTranscript(p: string): Promise<'started' | 'model_missing'>;
-    updateTranscriptTasks: (updates: Array<{ filePath: string; status?: string; result?: any }>) => void;
+    updateTranscriptTasks: (updates: TranscriptTaskUpdate[]) => void;
 };
 
 
@@ -56,7 +52,7 @@ const useTranscript = create(
                 const currentFiles = get().files.map((f) => f.file);
                 const existingFile = get().files.find((f) => f.file === file);
                 const isProcessing = existingFile &&
-                    (existingFile.status === 'init' || existingFile.status === 'in_progress');
+                    (existingFile.status === TranscriptTaskState.INIT || existingFile.status === TranscriptTaskState.IN_PROGRESS);
 
                 if (isProcessing) {
                     // 如果文件正在处理中，不重复添加
@@ -66,11 +62,11 @@ const useTranscript = create(
                 await api.call('ai-func/transcript', { filePath: file });
                 // 如果没有就新增，有就更新状态
                 if (!currentFiles.includes(file)) {
-                    set({ files: [...get().files, { file, status: 'init' }] });
+                    set({ files: [...get().files, { file, status: TranscriptTaskState.INIT }] });
                 } else {
                     const newFiles = get().files.map((f) => {
                         if (f.file === file) {
-                            return { ...f, status: 'init' };
+                            return { ...f, status: TranscriptTaskState.INIT };
                         }
                         return f;
                     });

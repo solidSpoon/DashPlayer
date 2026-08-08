@@ -2,6 +2,7 @@ import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import { RendererTranslationFailure, RendererTranslationItem } from '@/common/types/TranslationResult';
 import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
+import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -59,18 +60,7 @@ interface DictionaryRendererDef {
 
 // 转录相关的前端API定义
 interface TranscriptRendererDef {
-    'transcript/batch-result': { 
-        params: { 
-            updates: Array<{ 
-                filePath: string; 
-                taskId: number | null; 
-                status?: string; 
-                progress?: number;
-                result?: any;
-            }> 
-        }, 
-        return: void 
-    };
+    'transcript/batch-result': { params: { updates: TranscriptTaskUpdate[] }, return: void };
 }
 
 // 词汇匹配相关的前端API定义

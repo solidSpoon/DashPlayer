@@ -9,7 +9,6 @@ import FfmpegService from '@/backend/application/services/FfmpegService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
 import SrtUtil from '@/common/utils/SrtUtil';
-import {DpTaskState} from "@/backend/infrastructure/db/tables/dpTask";
 import SpeechRecognitionGateway, {
     SpeechRecognitionResult,
     SpeechRecognitionToken,
@@ -19,6 +18,7 @@ import StorageDirectoryProvider, {
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import EnglishSubtitleSegmenter from '@/backend/application/kernel/subtitle/EnglishSubtitleSegmenter';
 import { concurrency } from '@/backend/application/kernel/concurrency';
+import { TranscriptTaskResult, TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
 
 /** 单段识别失败时的最大重试次数。 */
 const MAX_CHUNK_RETRY = 2;
@@ -62,15 +62,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private sendProgress(
         taskId: number,
         filePath: string,
-        status: string,
+        status: TranscriptTaskState,
         progress: number,
-        result?: Record<string, unknown>,
+        result?: TranscriptTaskResult,
     ): void {
         const finalResult = { ...result };
-        if (status === DpTaskState.INIT) {
+        if (status === TranscriptTaskState.INIT) {
             this.transcriptionStartedAt.set(filePath, Date.now());
             finalResult.message = `${progress}%（0秒）`;
-        } else if (status === DpTaskState.IN_PROGRESS) {
+        } else if (status === TranscriptTaskState.IN_PROGRESS) {
             const startedAt = this.transcriptionStartedAt.get(filePath);
             const elapsedSeconds = startedAt === undefined ? 0 : Math.floor((Date.now() - startedAt) / 1000);
             finalResult.message = `${progress}%（${elapsedSeconds}秒）`;
@@ -94,7 +94,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
      */
     public async transcribe(filePath: string): Promise<void> {
         if (this.deferred.has(filePath)) {
-            this.sendProgress(0, filePath, DpTaskState.FAILED, 0, {
+            this.sendProgress(0, filePath, TranscriptTaskState.FAILED, 0, {
                 message: '该文件已在转录队列中或正在处理'
             });
             throw new Error('File already in queue or processing');
@@ -111,7 +111,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     throw new Error('Transcription cancelled by user');
                 }
                 if (this.deferred.size > 1) {
-                    this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 0, {
+                    this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, {
                         message: '已加入队列，等待前一个文件转录完成...'
                     });
                 }
@@ -149,7 +149,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         try {
             await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
             // 开始
-            this.sendProgress(0, filePath, DpTaskState.INIT, 0);
+            this.sendProgress(0, filePath, TranscriptTaskState.INIT, 0);
             if (signal.aborted) throw new Error('Transcription cancelled by user');
 
             // 临时目录
@@ -168,9 +168,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         } catch (error) {
             if (signal.aborted) {
-                this.sendProgress(0, filePath, DpTaskState.CANCELLED, 0, { message: '转录任务已取消' });
+                this.sendProgress(0, filePath, TranscriptTaskState.CANCELLED, 0, { message: '转录任务已取消' });
             } else {
-                this.sendProgress(0, filePath, DpTaskState.FAILED, 0, { error: error instanceof Error ? error.message : String(error) });
+                this.sendProgress(0, filePath, TranscriptTaskState.FAILED, 0, { error: error instanceof Error ? error.message : String(error) });
             }
             throw error;
         } finally {
@@ -191,7 +191,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
         const { filePath, tempFolder, signal } = opts;
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
-        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 10, { message: '正在切分长音频...' });
+        this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 10, { message: '正在切分长音频...' });
         if (signal.aborted) throw new Error('Transcription cancelled by user');
         const duration = await this.ffmpegService.duration(filePath);
         if (!Number.isFinite(duration) || duration <= 0) throw new Error(`无法读取音频时长：${duration}`);
@@ -208,14 +208,14 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             ranges,
             outputFolder: tempFolder,
         });
-        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 35);
+        this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 35);
 
         const chunkTimelines: SpeechRecognitionToken[][] = [];
         for (let index = 0; index < wavPaths.length; index++) {
             if (signal.aborted) throw new Error('Transcription cancelled by user');
             // 进度从 35% 起步，覆盖到 100%，并留出整理字幕的最后一步。
             const progress = Math.min(90, 35 + Math.floor(index / Math.max(wavPaths.length, 1) * 55));
-            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress);
+            this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
             const offset = ranges[index].start;
             const result = await this.transcribeChunkWithRetry({
                 wavPath: wavPaths[index],
@@ -227,7 +227,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             chunkTimelines.push(result.tokens.map((token) => ({ ...token, start: token.start + offset })));
         }
         if (signal.aborted) throw new Error('Transcription cancelled by user');
-        this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
+        this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
         const lines = this.subtitleSegmenter.segment(
             chunkTimelines,
             ranges.map((range) => range.start),
@@ -238,7 +238,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
         await fsPromises.writeFile(srtFileName, finalSrt);
 
-        this.sendProgress(0, filePath, DpTaskState.DONE, 100, { srtPath: srtFileName });
+        this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
     }
 
     /**
@@ -264,7 +264,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                         modelsRoot,
                         isCancelled: () => signal.aborted,
                         onHeartbeat: () => {
-                            this.sendProgress(0, filePath, DpTaskState.IN_PROGRESS, progress);
+                            this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
                         },
                     });
                 }, { skipOrderCheck: true });

@@ -38,7 +38,6 @@ interface AiFuncDef {
     'ai-func/format-split': { params: string, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: void };
     'ai-func/cancel-transcription': { params: { filePath: string }, return: boolean };
-    'ai-func/get-active-transcription-tasks': { params: void, return: unknown[] };
 }
 
 interface DpTaskDef {
