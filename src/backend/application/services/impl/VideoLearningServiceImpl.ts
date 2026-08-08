@@ -100,6 +100,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private clipAnalysisProgress: Map<string, number> = new Map();
     private clipStatusCache: Map<string, VideoLearningClipStatusVO> = new Map();
     private clipStatusSeq: Map<string, number> = new Map();
+    /** 每个字幕已失败并跳过的裁切任务键集合，用于在队列清空后仍能提示用户重试。 */
+    private clipFailedKeysBySrt: Map<string, Set<string>> = new Map();
     private currentAnalysisKey: string | null = null;
     private readonly maxClipTasksPerTick = 1;
     private readonly analysisScheduler = concurrency.scheduler('default');
@@ -218,6 +220,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         for (const srtKey of affectedSrtKeys) {
             this.clipStatusCache.delete(srtKey);
+            this.clipFailedKeysBySrt.delete(srtKey);
         }
 
         return queuedTasks.length;
@@ -293,6 +296,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         // 处理新增任务：仅针对数据库中不存在的键
         let taskProcessed = 0;
+        // 本次处理中失败并跳过的任务数，用于避免误报“全部完成”
+        let taskFailed = 0;
         for (const key of notExistingKeys) {
             if (taskProcessed >= this.maxClipTasksPerTick) {
                 break;
@@ -305,7 +310,26 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             if (task.operation === 'add') {
                 processedSrtKey = task.srtKey;
                 processedVideoPath = task.videoPath;
-                await this.taskAddOperation(task);
+                try {
+                    await this.taskAddOperation(task);
+                    // 任务成功后清除该键的失败记录（此前可能重试成功）
+                    this.clipFailedKeysBySrt.get(task.srtKey)?.delete(task.clipKey);
+                } catch (error) {
+                    taskFailed++;
+                    let failedKeys = this.clipFailedKeysBySrt.get(task.srtKey);
+                    if (!failedKeys) {
+                        failedKeys = new Set();
+                        this.clipFailedKeysBySrt.set(task.srtKey, failedKeys);
+                    }
+                    failedKeys.add(task.clipKey);
+                    this.logger.error('[checkQueue] add task failed, skip it:', {
+                        key,
+                        srtKey: task.srtKey,
+                        videoPath: task.videoPath,
+                        error,
+                    });
+                    this.notifyClipTaskFailed(task, error);
+                }
                 taskProcessed++;
             }
             // 从真实队列中删除该任务（如果没有被新的任务覆盖）
@@ -328,7 +352,16 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     const anyTaskForSrt = Array.from(this.taskQueue.values()).find(t => t.srtKey === processedSrtKey && t.operation === 'add');
                     processedVideoPath = anyTaskForSrt?.videoPath || '';
                 }
-                await this.taskCancelOperation(task);
+                try {
+                    await this.taskCancelOperation(task);
+                } catch (error) {
+                    this.logger.error('[checkQueue] cancel task failed, skip it:', {
+                        key,
+                        srtKey: task.srtKey,
+                        error,
+                    });
+                    this.notifyClipTaskFailed(task, error);
+                }
                 taskProcessed++;
             }
             if (this.taskQueue.get(key) === task) {
@@ -346,13 +379,43 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 '';
 
             if (finalVideoPath) {
-                if (remainingAddForSrt === 0) {
+                const failedCount = this.clipFailedKeysBySrt.get(processedSrtKey)?.size ?? 0;
+                if (remainingAddForSrt === 0 && taskFailed === 0 && failedCount === 0) {
                     await this.notifyClipStatus(finalVideoPath, processedSrtKey, 'completed', 0, 0, 1);
+                } else if (remainingAddForSrt === 0 && failedCount > 0) {
+                    await this.notifyClipStatus(
+                        finalVideoPath,
+                        processedSrtKey,
+                        'pending',
+                        failedCount,
+                        0,
+                        0,
+                    );
                 } else {
                     await this.notifyClipStatus(finalVideoPath, processedSrtKey, 'in_progress', 0, remainingAddForSrt, 0);
                 }
             }
         }
+    }
+
+    /**
+     * 通知某个裁切任务失败，并给出简要失败原因。
+     *
+     * 说明：失败任务会从队列中跳过，不影响后续任务继续处理。
+     *
+     * @param task 失败的任务。
+     * @param error 失败原因。
+     */
+    private notifyClipTaskFailed(task: LearningClipTask, error: unknown): void {
+        const reason = error instanceof Error ? error.message?.trim() : '';
+        const message = reason
+            ? `裁切任务失败，已跳过：${reason.length > 200 ? `${reason.slice(0, 200)}…` : reason}`
+            : '裁切任务失败，已跳过';
+        this.rendererGateway.fireAndForget('ui/show-toast', {
+            message,
+            variant: 'error',
+            duration: 5000,
+        });
     }
 
     private async taskAddOperation(task: LearningClipTask): Promise<void> {
@@ -369,20 +432,23 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             return;
         }
 
-        const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
-        await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
-
-        await this.videoLearningOssService.putClip(key, tempName, metaData);
-        const meta = await this.videoLearningOssService.get(key);
-        if (!meta) {
-            throw new Error('meta not found after putClip');
-        }
-        await this.addToDb(meta);
-
         try {
-            fs.rmSync(tempName, { force: true });
-        } catch (e) {
-            this.logger.warn('[taskAddOperation] failed to remove temp file', { tempName, error: e });
+            const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
+            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
+
+            await this.videoLearningOssService.putClip(key, tempName, metaData);
+            const meta = await this.videoLearningOssService.get(key);
+            if (!meta) {
+                throw new Error('meta not found after putClip');
+            }
+            await this.addToDb(meta);
+        } finally {
+            // 无论成功或失败，都清理临时文件，避免任务跳过后在 temp 目录残留大文件
+            try {
+                fs.rmSync(tempName, { force: true });
+            } catch (e) {
+                this.logger.warn('[taskAddOperation] failed to remove temp file', { tempName, error: e });
+            }
         }
     }
 
@@ -906,6 +972,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         this.clipAnalysisPromises.clear();
         this.clipAnalysisProgress.clear();
         this.clipStatusCache.clear();
+        this.clipFailedKeysBySrt.clear();
         this.currentAnalysisKey = null;
     }
 
