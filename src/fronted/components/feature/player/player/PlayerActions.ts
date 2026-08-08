@@ -29,7 +29,13 @@ export class PlayerActions {
 
   // seek
   seekTo(seekTime: SeekAction) { this.s.seekTo(seekTime); }
-  seekToTarget(opts: { time: number; target?: Sentence; overrideMs?: number; lockMs?: number }) {
+  /**
+   * 带目标句的 seek：跳转并锁定高亮。
+   * @param opts.time 目标时间（秒）
+   * @param opts.target 目标句子（用于高亮锁定）
+   * @param opts.play 是否在 seek 后继续播放（默认 true）
+   */
+  seekToTarget(opts: { time: number; target?: Sentence; overrideMs?: number; lockMs?: number; play?: boolean }) {
     this.s.seekToTarget(opts);
   }
 
