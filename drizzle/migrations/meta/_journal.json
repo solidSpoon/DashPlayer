@@ -15,6 +15,13 @@
       "when": 1765694134433,
       "tag": "0001_lively_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786181752015,
+      "tag": "0002_nostalgic_pete_wisdom",
+      "breakpoints": true
     }
   ]
 }

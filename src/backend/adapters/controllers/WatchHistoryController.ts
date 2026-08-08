@@ -48,6 +48,12 @@ export default class WatchHistoryController implements Controller {
         return this.watchHistoryService.getNextVideo(currentId);
     }
 
+    public async setPodcastModePreference({ videoId, podcastMode }: {
+        videoId: string, podcastMode: boolean
+    }): Promise<void> {
+        return this.watchHistoryService.setPodcastModePreference(videoId, podcastMode);
+    }
+
     registerRoutes(): void {
         registerRoute('watch-history/list', (p) => this.list(p));
         registerRoute('watch-history/list/basic', (p) => this.listBasic(p));
@@ -59,5 +65,6 @@ export default class WatchHistoryController implements Controller {
         registerRoute('watch-history/attach-srt', (p) => this.attachSrt(p));
         registerRoute('watch-history/suggest-srt', (p) => this.suggestSrt(p));
         registerRoute('watch-history/get-next-video', (p) => this.getNextVideo(p));
+        registerRoute('watch-history/set-podcast-mode-preference', (p) => this.setPodcastModePreference(p));
     }
 }

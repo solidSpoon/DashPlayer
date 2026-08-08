@@ -39,6 +39,7 @@ const TYPES = {
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
     VideoLearningClipWordRepository: Symbol('VideoLearningClipWordRepository'),
     WatchHistoryRepository: Symbol('WatchHistoryRepository'),
+    WatchHistoryExtRepository: Symbol('WatchHistoryExtRepository'),
     FavouriteClipsRepository: Symbol('FavouriteClipsRepository'),
     WordTranslatesRepository: Symbol('WordTranslatesRepository'),
     SentenceTranslatesRepository: Symbol('SentenceTranslatesRepository'),
