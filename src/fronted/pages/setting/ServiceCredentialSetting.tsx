@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
-import type { ParakeetModelPhase } from '@/common/api/renderer-api-def';
+import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -61,6 +61,8 @@ const ServiceCredentialSetting = () => {
     const [deletingParakeetModel, setDeletingParakeetModel] = React.useState(false);
     const [parakeetDownloadProgress, setParakeetDownloadProgress] = React.useState(0);
     const [parakeetDownloadPhase, setParakeetDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
+    /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
+    const downloadingRef = React.useRef(false);
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('engineSelection.sentenceLearning.title'),
         subtitleTranslation: t('engineSelection.subtitleTranslation.title'),
@@ -71,11 +73,20 @@ const ServiceCredentialSetting = () => {
     const [newOpenAiModel, setNewOpenAiModel] = React.useState('');
 
     /**
-     * 刷新 Parakeet 模型状态。
+     * 刷新 Parakeet 模型状态；若期间用户已手动开始下载，丢弃过期响应，避免覆盖进行中的下载状态。
+     * 下载任务结束后由主进程广播 idle 终态事件触发本方法，复位 UI。
      */
     const refreshParakeetModelStatus = React.useCallback(async () => {
         const status = await api.call('parakeet/models/status');
         setParakeetModelStatus(status);
+        if (downloadingRef.current) {
+            return;
+        }
+        setDownloadingParakeetModel(status.downloading);
+        if (status.phase) {
+            setParakeetDownloadPhase(status.phase);
+        }
+        setParakeetDownloadProgress(status.percent);
     }, []);
 
     React.useEffect(() => {
@@ -93,6 +104,14 @@ const ServiceCredentialSetting = () => {
         const handler = (evt: Event) => {
             const detail = (evt as CustomEvent).detail as { percent: number; phase?: ParakeetModelPhase } | undefined;
             if (!detail) return;
+            // 终态事件：下载任务已在主进程结束（成功/失败/取消），直接复位 UI 并重新查询状态。
+            if (detail.phase === 'idle') {
+                setDownloadingParakeetModel(false);
+                setParakeetDownloadProgress(0);
+                setParakeetDownloadPhase('downloading');
+                refreshParakeetModelStatus().catch(() => null);
+                return;
+            }
             if (detail.phase) {
                 setParakeetDownloadPhase(detail.phase);
             }
@@ -204,6 +223,7 @@ const ServiceCredentialSetting = () => {
      * 下载固定的 Parakeet v3 INT8 模型。
      */
     const downloadParakeetModel = async () => {
+        downloadingRef.current = true;
         setDownloadingParakeetModel(true);
         setParakeetDownloadProgress(0);
         setParakeetDownloadPhase('downloading');
@@ -220,6 +240,7 @@ const ServiceCredentialSetting = () => {
                 description: error instanceof Error ? error.message : String(error),
             });
         } finally {
+            downloadingRef.current = false;
             setDownloadingParakeetModel(false);
         }
     };
@@ -234,7 +255,6 @@ const ServiceCredentialSetting = () => {
                 setParakeetDownloadPhase('downloading');
                 toast({ title: t('serviceCredentials.parakeet.downloadCancelled') });
             }
-            await refreshParakeetModelStatus();
         } catch (error) {
             toast({
                 variant: 'destructive',

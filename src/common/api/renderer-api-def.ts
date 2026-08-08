@@ -3,6 +3,7 @@ import { RendererTranslationFailure, RendererTranslationItem } from '@/common/ty
 import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
 import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
+import { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -13,9 +14,6 @@ import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-t
 interface RendererApiDefinition {
     'example': { params: string, return: number };
 }
-
-/** Parakeet v3 模型下载流程阶段。 */
-export type ParakeetModelPhase = 'downloading' | 'extracting' | 'installing';
 
 // UI相关的前端API定义
 interface UIRendererDef {

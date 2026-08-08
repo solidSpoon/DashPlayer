@@ -11,7 +11,7 @@ import RendererGateway from '@/backend/application/ports/gateways/renderer/Rende
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import TYPES from '@/backend/ioc/types';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
-import type { ParakeetModelPhase } from '@/common/api/renderer-api-def';
+import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 import { PARAKEET_MODEL_DIRECTORY, PARAKEET_REQUIRED_FILES } from '@/backend/application/contracts/parakeetModel';
 
 const ARCHIVE_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2';
@@ -35,6 +35,10 @@ export class ParakeetModelService {
     private activeDownload: Promise<{ success: boolean; message: string }> | null = null;
     /** 当前下载的取消控制器；下载结束后置空。 */
     private activeAbortController: AbortController | null = null;
+    /** 当前下载阶段；无下载任务时为 null。 */
+    private currentPhase: ParakeetModelPhase | null = null;
+    /** 当前下载进度（0-100）；无下载任务时为 0。 */
+    private currentPercent = 0;
 
     constructor(
         @inject(TYPES.RendererGateway) private readonly rendererGateway: RendererGateway,
@@ -48,7 +52,14 @@ export class ParakeetModelService {
     public async getStatus(): Promise<ParakeetModelStatusVO> {
         const modelPath = await this.getModelPath();
         const missingFiles = PARAKEET_REQUIRED_FILES.filter((file) => !fs.existsSync(path.join(modelPath, file)));
-        return { modelPath, ready: missingFiles.length === 0, missingFiles: [...missingFiles] };
+        return {
+            modelPath,
+            ready: missingFiles.length === 0,
+            missingFiles: [...missingFiles],
+            downloading: this.activeDownload !== null,
+            phase: this.currentPhase,
+            percent: this.currentPercent,
+        };
     }
 
     /**
@@ -58,12 +69,18 @@ export class ParakeetModelService {
     public async download(): Promise<{ success: boolean; message: string }> {
         if (this.activeDownload) return this.activeDownload;
         this.activeAbortController = new AbortController();
+        this.currentPercent = 0;
+        this.currentPhase = 'downloading';
         this.activeDownload = this.performDownload();
         try {
             return await this.activeDownload;
         } finally {
             this.activeDownload = null;
             this.activeAbortController = null;
+            this.currentPhase = null;
+            this.currentPercent = 0;
+            // 广播终态，让已切页重挂载的页面也能复位下载状态。
+            this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent: 0, downloaded: 0, total: 0, phase: 'idle' });
         }
     }
 
@@ -154,6 +171,8 @@ export class ParakeetModelService {
      * @param phase 目标阶段。
      */
     private emitPhase(phase: ParakeetModelPhase): void {
+        this.currentPercent = 100;
+        this.currentPhase = phase;
         this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent: 100, downloaded: 0, total: 0, phase });
     }
 
@@ -194,6 +213,8 @@ export class ParakeetModelService {
             response.data.on('data', (chunk: Buffer) => {
                 downloaded += chunk.length;
                 const percent = total > 0 ? Math.floor(downloaded / total * 100) : 0;
+                this.currentPercent = percent;
+                this.currentPhase = 'downloading';
                 this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent, downloaded, total, phase: 'downloading' });
             });
             response.data.on('error', (error: Error) => {
