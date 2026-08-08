@@ -31,8 +31,8 @@ export default class VideoLearningOssServiceImpl extends AbstractOssServiceImpl<
         return this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.WORD_VIDEO);
     }
 
-    parseMetadata(metadata: any): (OssBaseMeta & ClipMeta) | null {
-        const version = metadata?.version;
+    parseMetadata(metadata: unknown): (OssBaseMeta & ClipMeta) | null {
+        const version = (metadata as { version?: unknown } | null)?.version;
         if (!version) {
             return null;
         }
@@ -45,8 +45,8 @@ export default class VideoLearningOssServiceImpl extends AbstractOssServiceImpl<
         return null;
     }
 
-    verifyNewMetadata(metadata: any): boolean {
-        if (this.getVersion() !== metadata?.version) {
+    verifyNewMetadata(metadata: unknown): boolean {
+        if (this.getVersion() !== (metadata as { version?: unknown } | null)?.version) {
             return false;
         }
         return MetaDataSchemaV1.merge(OssBaseSchema).safeParse(metadata).success;

@@ -1,5 +1,6 @@
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { Sentence } from '@/common/types/SentenceC';
+import { SentenceStruct } from '@/common/types/SentenceStruct';
 
 /**
  * 将 ClipSrtLine 转换为 Sentence 格式，以便在 usePlayer 中使用
@@ -9,7 +10,7 @@ export function convertClipSrtLinesToSentences(
   videoPath: string,
   clipKey: string
 ): Sentence[] {
-  return clipSrtLines.map((line, index) => ({
+  return clipSrtLines.map((line) => ({
     fileHash: clipKey, // 使用 clip key 作为文件哈希
     filePath: videoPath,
     index: line.index,
@@ -22,7 +23,7 @@ export function convertClipSrtLinesToSentences(
     key: `${clipKey}-${line.index}`,
     transGroup: 1, // 默认分组
     translationKey: `${clipKey}:${line.index}`, // 使用稳定句子键
-    struct: {} as any // 空结构体
+    struct: { original: line.contentEn, blocks: [] } as SentenceStruct
   }));
 }
 

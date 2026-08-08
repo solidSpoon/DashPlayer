@@ -23,7 +23,7 @@ function initializeRendererApis() {
         };
         
         // 将清理函数挂载到window对象，方便调试
-        (window as any).cleanupRendererApis = cleanup;
+        (window as unknown as { cleanupRendererApis: () => void }).cleanupRendererApis = cleanup;
         
         logger.info('renderer apis initialized successfully');
         

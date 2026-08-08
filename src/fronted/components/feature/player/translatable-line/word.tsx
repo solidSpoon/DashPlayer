@@ -222,8 +222,8 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
 
         setPlayLoading(true);
         try {
-            const isYoudaoFormat = (data: any): data is YdRes => {
-                return data && 'speakUrl' in data;
+            const isYoudaoFormat = (data: unknown): data is YdRes => {
+                return typeof data === 'object' && data !== null && 'speakUrl' in data;
             };
 
             let url = '';

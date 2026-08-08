@@ -195,7 +195,7 @@ let currentLockTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const usePlayer = create<PlayerState>((set, get) => {
   // 工具：句子 key
-  const sentenceKey = (s: Sentence) => `${(s as any).fileHash ?? 'nofile'}-${s.index}`;
+  const sentenceKey = (s: Sentence) => `${s.fileHash}-${s.index}`;
 
   // O(n) 快路径：若 sentences 已按 index 非递减，则直接线性构建
   const isNonDecreasingByIndex = (arr: Sentence[]) => {
@@ -441,9 +441,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
       // 仅在焦点位于虚拟组内时：允许高亮随时间在组内流动；单句循环保持冻结
       if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
-        const vgSet = new Set(virtualGroup.sentences.map((s) => `${(s as any).fileHash ?? 'nofile'}-${s.index}`));
+        const vgSet = new Set(virtualGroup.sentences.map((s) => `${s.fileHash}-${s.index}`));
         const next = srtTender.getByTime(effectiveTime);
-        const nextKey = `${(next as any).fileHash ?? 'nofile'}-${next.index}`;
+        const nextKey = `${next.fileHash}-${next.index}`;
         if (vgSet.has(nextKey) && next !== currentSentence) {
           set({ currentSentence: next });
         }
@@ -1004,7 +1004,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         });
       }
 
-      const { start, end } = srtTender.mapSeekTime(updated);
+      const { end } = srtTender.mapSeekTime(updated);
       const previewMs = options?.previewMs ?? 1000;
       const epsilon = 0.05;
 
@@ -1058,7 +1058,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (!focus) return -1;
       const posMap = internal.indexing?.posMap;
       if (!posMap) return -1;
-      const key = `${(focus as any).fileHash ?? 'nofile'}-${focus.index}`;
+      const key = `${focus.fileHash}-${focus.index}`;
       const pos = posMap.get(key);
       return typeof pos === 'number' ? pos : -1;
     },

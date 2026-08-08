@@ -1,4 +1,4 @@
-import i18n from 'i18next';
+import i18n, { changeLanguage, use } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import zhNav from '@/fronted/i18n/locales/zh-CN/nav.json';
 import enNav from '@/fronted/i18n/locales/en-US/nav.json';
@@ -72,13 +72,12 @@ export const resolveLocaleFromSetting = (
 export const applyLanguageSetting = async (setting: string | undefined | null): Promise<AppLocale> => {
     const locale = resolveLocaleFromSetting(setting);
     if (i18n.resolvedLanguage !== locale) {
-        await i18n.changeLanguage(locale);
+        await changeLanguage(locale);
     }
     return locale;
 };
 
-void i18n
-    .use(initReactI18next)
+void use(initReactI18next)
     .init({
         resources,
         lng: I18N_FALLBACK_LOCALE,

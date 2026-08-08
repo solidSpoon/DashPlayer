@@ -11,7 +11,7 @@ import TagQuery from '@/fronted/components/shared/query/TagQuery';
 import { DateRange } from 'react-day-picker';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
-import { Virtuoso } from 'react-virtuoso';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import toast from 'react-hot-toast';
@@ -54,7 +54,7 @@ const Loader = () => {
 
 const Favorite = () => {
     const { t } = useI18nTranslation('pages');
-    const virtuosoRef = useRef<any>(null);
+    const virtuosoRef = useRef<VirtuosoHandle | null>(null);
     const [keyword, setKeyword] = useState('');
     const [tagRelation, setTagRelation] = useState<'and' | 'or'>('and');
     const [tags, setTags] = useState<Tag[]>([]);
@@ -101,7 +101,7 @@ const Favorite = () => {
     // 当当前播放的视频变化时，自动滚动到该视频位置
     useEffect(() => {
         if (playInfo && data.length > 0) {
-            const currentIndex = data.findIndex((item: any) => item.key === playInfo.video.key);
+            const currentIndex = data.findIndex((item) => item.key === playInfo.video.key);
             if (currentIndex !== -1 && virtuosoRef.current) {
                 // 滚动到当前视频，确保它在视图中可见
                 virtuosoRef.current.scrollToIndex({

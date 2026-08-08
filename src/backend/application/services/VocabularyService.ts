@@ -4,7 +4,7 @@ export interface GetAllWordsParams {
 
 export interface GetAllWordsResult {
     success: boolean;
-    data?: any[];
+    data?: unknown[];
     error?: string;
 }
 

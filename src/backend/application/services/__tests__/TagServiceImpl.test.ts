@@ -25,7 +25,7 @@ describe('TagServiceImpl', () => {
       updateTagName: vi.fn(),
       searchTagsByPrefix: vi.fn(),
     };
-    (tagService as any).favouriteClipsRepository = mockRepo;
+    (tagService as unknown as { favouriteClipsRepository: typeof mockRepo }).favouriteClipsRepository = mockRepo;
     vi.clearAllMocks();
   });
 

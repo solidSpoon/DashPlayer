@@ -44,7 +44,7 @@ export type ChatPanelState = {
             value: string | null;
             time: number;
         }
-        chatTaskQueue: CustomMessage<any>[];
+        chatTaskQueue: CustomMessage<unknown>[];
     }
     chatSessionId: string;
     streamingMessageId: string | null;
@@ -53,8 +53,8 @@ export type ChatPanelState = {
     analysisStatus: 'idle' | 'streaming' | 'done' | 'error';
     analysisError: string | null;
     topic: Topic
-    messages: CustomMessage<any>[];
-    streamingMessage: CustomMessage<any> | null;
+    messages: CustomMessage<unknown>[];
+    streamingMessage: CustomMessage<unknown> | null;
     canUndo: boolean;
     canRedo: boolean;
     context: string | null;
@@ -78,7 +78,7 @@ export type ChatPanelActions = {
     ctxMenuPolish: () => void;
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
-    deleteMessage: (msg: CustomMessage<any>) => void;
+    deleteMessage: (msg: CustomMessage<unknown>) => void;
     retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
 };
@@ -96,7 +96,7 @@ const copy = (state: ChatPanelState): ChatPanelState => {
             context: {
                 ...state.internal.context
             },
-            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy())
+            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy() as CustomMessage<unknown>)
         },
         chatSessionId: state.chatSessionId,
         streamingMessageId: state.streamingMessageId,
@@ -441,7 +441,7 @@ const useChatPanel = create(
             if (StrUtil.isBlank(text)) return;
             await get().sent(`帮我把这句话改写得更地道一些：\n"""\n${text}\n"""`);
         },
-        deleteMessage: (msg: CustomMessage<any>) => {
+        deleteMessage: (msg: CustomMessage<unknown>) => {
             set({
                 messages: get().messages.filter(e => e !== msg)
             });

@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/application/services/ChatService';
-import { ZodObject } from 'zod';
+import { ZodType } from 'zod';
 import { ModelMessage, Output, streamText } from 'ai';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import { AiStringResponse } from '@/common/types/aiRes/AiStringResponse';
@@ -54,7 +54,7 @@ export default class ChatServiceImpl implements ChatService {
     }
 
     @WithRateLimit('gpt')
-    public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
+    public async run(taskId: number, resultSchema: ZodType, promptStr: string) {
         const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.dpTaskService.fail(taskId, {
