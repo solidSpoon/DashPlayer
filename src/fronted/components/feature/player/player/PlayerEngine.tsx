@@ -204,6 +204,8 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
     pendingRecoveryRef.current = null;
     seekingSinceRef.current = 0;
     recoveryCountRef.current = 0;
+    stallAttemptRef.current = 0;
+    lastStallHealAtRef.current = 0;
   }, [src]);
 
   // 看门狗：独立采样媒体状态，检测播放卡死并自愈
@@ -317,11 +319,18 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
         seekingSinceRef.current = 0;
       }
 
-      // 初次加载（尚无足够数据）期间：重置冻结计时，避免误判卡死；
-      // 但加载已超过宽限期时不拦截，继续累计冻结以便触发恢复
-      if (video.readyState < 2 && !(loading && now - loadingSince >= LOADING_GRACE_MS)) {
+      // 初次加载（尚无足够数据）期间：网络加载中给予有限宽限期；
+      // 未在加载或超过宽限仍无数据时视为卡死，累计冻结时间触发恢复（避免加载卡死永不恢复）
+      if (video.readyState < 2) {
         lastSeenTime = video.currentTime;
-        frozenMs = 0;
+        if (loading && now - loadingSince < LOADING_GRACE_MS) {
+          frozenMs = 0;
+          return;
+        }
+        frozenMs += STALL_CHECK_MS;
+        if (frozenMs >= STALL_FROZEN_MS) {
+          handleStall();
+        }
         return;
       }
 
