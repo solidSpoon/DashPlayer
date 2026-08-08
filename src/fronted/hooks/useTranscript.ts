@@ -14,6 +14,34 @@ import {
 
 const api = backendClient;
 
+/** 持久化状态中处于非终态（重启后不可能再收到后端更新）的任务的中断提示。 */
+const INTERRUPTED_MESSAGE = '转录任务已中断（应用重启），请重新转录';
+
+/**
+ * 归一化持久化到 localStorage 的任务列表：
+ * 后端任务状态保存在内存中，重启后即丢失，因此 rehydrate 时把非终态任务重置为 failed，
+ * 避免界面永久停留在“处理中”而永远收不到更新。
+ */
+function normalizePersistedFiles(persistedFiles: TranscriptTask[] | undefined): TranscriptTask[] {
+    if (!Array.isArray(persistedFiles)) {
+        return [];
+    }
+    return persistedFiles.map((task) => {
+        if (task.status !== TranscriptTaskState.INIT && task.status !== TranscriptTaskState.IN_PROGRESS) {
+            return task;
+        }
+        return {
+            ...task,
+            status: TranscriptTaskState.FAILED,
+            result: {
+                ...task.result,
+                message: INTERRUPTED_MESSAGE,
+            },
+            updated_at: new Date().toISOString(),
+        };
+    });
+}
+
 export type UseTranscriptState = {
     files: TranscriptTask[];
 };
@@ -127,7 +155,15 @@ const useTranscript = create(
             }
         })),
         {
-            name: 'transcript-page-info'
+            name: 'transcript-page-info',
+            merge: (persistedState, currentState) => {
+                const persisted = persistedState as Partial<UseTranscriptState & UseTranscriptAction> | undefined;
+                return {
+                    ...currentState,
+                    ...(persisted ?? {}),
+                    files: normalizePersistedFiles(persisted?.files),
+                };
+            },
         }
     )
 );
