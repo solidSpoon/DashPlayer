@@ -9,6 +9,7 @@ import registerHandler from '@/backend/dispatcher';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
+import { initProxyFeature } from '@/backend/startup/initProxy';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
@@ -174,6 +175,7 @@ app.on('ready', async () => {
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     await runResyncAfterResetDbIfNeeded();
+    await initProxyFeature();
     createWindow();
 });
 

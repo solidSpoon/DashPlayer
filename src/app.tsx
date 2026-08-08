@@ -12,6 +12,7 @@ import ShortcutSetting from '@/fronted/pages/setting/ShortcutSetting';
 import StorageSetting from '@/fronted/pages/setting/StorageSetting';
 import CheckUpdate from '@/fronted/pages/setting/CheckUpdate';
 import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
+import ProxySetting from '@/fronted/pages/setting/ProxySetting';
 import ServiceCredentialSetting from '@/fronted/pages/setting/ServiceCredentialSetting';
 import EngineSelectionSetting from '@/fronted/pages/setting/EngineSelectionSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
@@ -141,6 +142,10 @@ const App = () => {
                                     <Route
                                         path="appearance"
                                         element={<Eb><AppearanceSetting /></Eb>}
+                                    />
+                                    <Route
+                                        path="proxy"
+                                        element={<Eb><ProxySetting /></Eb>}
                                     />
                                 </Route>
                             </Route>

@@ -75,6 +75,17 @@ export default class SettingsController implements Controller {
     }
 
     /**
+     * 更新代理设置。
+     *
+     * 写入后通过代理设置订阅自动重应用，无需在此处主动调用。
+     */
+    public async updateProxySettings(params: { mode: string; url: string; bypassRules: string }): Promise<void> {
+        await this.settingsKeyValueService.set('proxy.mode', params.mode);
+        await this.settingsKeyValueService.set('proxy.url', params.url);
+        await this.settingsKeyValueService.set('proxy.bypass_rules', params.bypassRules);
+    }
+
+    /**
      * 获取快捷键设置详情。
      */
     public async getShortcutSettingsDetail(): Promise<ShortcutSettingDetailVO> {
@@ -160,5 +171,6 @@ export default class SettingsController implements Controller {
         registerRoute('settings/appearance/update', (p) => this.updateAppearanceSettings(p));
         registerRoute('settings/shortcuts/update', (p) => this.updateShortcutSettings(p));
         registerRoute('settings/storage/update', (p) => this.updateStorageSettings(p));
+        registerRoute('settings/proxy/update', (p) => this.updateProxySettings(p));
     }
 }

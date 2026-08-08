@@ -22,7 +22,8 @@
         "serviceCredentials": "服务凭据",
         "engineSelection": "功能设置",
         "storage": "存储",
-        "update": "版本更新"
+        "update": "版本更新",
+        "proxy": "代理"
     },
     "appearance": {
         "title": "外观",
@@ -40,6 +41,19 @@
         "languageSystem": "跟随系统",
         "languageZhCN": "简体中文",
         "languageEnUS": "English"
+    },
+    "proxy": {
+        "title": "网络代理",
+        "description": "配置应用使用的网络代理，支持跟随系统代理或手动指定。",
+        "modeTitle": "代理模式",
+        "modeSystem": "跟随系统",
+        "modeCustom": "自定义",
+        "modeNone": "不使用",
+        "modeDescription": "跟随系统会读取操作系统配置的代理；自定义需填写代理地址；不使用则全部直连。",
+        "urlTitle": "代理地址",
+        "urlDescription": "支持 http://、https:// 与 socks5:// 协议。",
+        "bypassRulesTitle": "直连规则",
+        "bypassRulesDescription": "逗号分隔的域名/IP/CIDR，命中这些地址的请求不走代理（如 localhost,127.0.0.1）。"
     },
     "checkUpdate": {
         "title": "版本更新",

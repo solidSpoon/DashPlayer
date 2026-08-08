@@ -168,6 +168,7 @@ interface SettingsDef {
     'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
     'settings/shortcuts/update': { params: ShortcutSettingSaveVO, return: void };
     'settings/storage/update': { params: { path: string; collection: string }, return: void };
+    'settings/proxy/update': { params: { mode: string; url: string; bypassRules: string }, return: void };
 }
 
 interface ParakeetModelDef {

@@ -13,6 +13,10 @@ export default defineConfig({
                 'better-sqlite3',
                 // `fluent-ffmpeg` has a conditional require to a missing `lib-cov/` entry.
                 'fluent-ffmpeg',
+                // Proxy stack: loaded at runtime from `node_modules` (shipped via forge ignore list)
+                'undici',
+                'fetch-socks',
+                'ipaddr.js',
             ],
             output: {
                 strict: false,
