@@ -52,14 +52,6 @@ import useInView from '@/fronted/hooks/useInView';
         }
     );
 
-    logger.debug('Rendering video card', {
-        id: video.id,
-        fileName: video.fileName,
-        isFolder: video.isFolder,
-        currentPosition: video.current_position,
-        duration: video.duration
-    });
-
     const [hover, setHover] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState(false);
 

@@ -33,6 +33,7 @@ import {
     resolveSubtitleStyleWithSignature
 } from '@/common/constants/openaiSubtitlePrompts';
 import { RendererTranslationFailure, RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
+import { concurrency } from '@/backend/application/kernel/concurrency';
 
 const openAIDictionaryExampleSchema = z.object({
     sentence: z.string().describe('Example sentence in English'),
@@ -307,6 +308,20 @@ export default class TranslateServiceImpl implements TranslateService {
         if (!indices || indices.length === 0) {
             return;
         }
+        // 同一字幕文件的翻译请求按文件串行执行，避免逐句请求并发打满 OpenAI 并加剧播放抖动。
+        await concurrency.withMutex(`subtitle-translation:${fileHash}`, async () => {
+            await this.groupTranslateLocked(fileHash, indices, useCache);
+        });
+    }
+
+    /**
+     * 执行单个字幕文件的整批翻译（同一 fileHash 已被互斥串行化）。
+     *
+     * @param fileHash 字幕文件哈希。
+     * @param indices 待翻译句子的索引数组。
+     * @param useCache 是否优先使用已保存的翻译缓存。
+     */
+    private async groupTranslateLocked(fileHash: string, indices: number[], useCache: boolean): Promise<void> {
         const requestedKeys = buildRequestedTranslationKeys(fileHash, indices);
 
         const engine = await this.settingService.getCurrentTranslationProvider();
@@ -580,11 +595,17 @@ export default class TranslateServiceImpl implements TranslateService {
                     prompt,
                 });
                 const streamedTranslations = new Map<string, string>();
+                let chunkCount = 0;
                 for await (const partialObject of result.partialOutputStream) {
-                    this.logger.debug('subtitle batch json chunk', {
-                        windowKeys: windowSentences.map((sentence) => sentence.translationKey),
-                        keys: Object.keys(partialObject ?? {}),
-                    });
+                    // 流式 chunk 频率极高，仅记录首/末 chunk 与间隔采样，保留进度可见性。
+                    chunkCount += 1;
+                    if (chunkCount === 1 || chunkCount % 20 === 0) {
+                        this.logger.debug('subtitle batch json chunk', {
+                            windowKeys: windowSentences.map((sentence) => sentence.translationKey),
+                            chunkCount,
+                            keys: Object.keys(partialObject ?? {}),
+                        });
+                    }
                     const partialItems = this.normalizeOpenAIBatchResult(partialObject, windowSentences);
                     const partialUpdates = this.buildStreamingSubtitleUpdates(
                         partialItems,
@@ -598,6 +619,7 @@ export default class TranslateServiceImpl implements TranslateService {
                         });
                     }
                 }
+                this.logger.debug(`subtitle batch stream 完成，共 ${chunkCount} 个 chunk`);
 
                 const finalObject = await result.output;
                 const normalizedItems = this.normalizeOpenAIBatchResult(finalObject, windowSentences);
@@ -1051,12 +1073,18 @@ Ensure the response strictly matches the provided JSON schema.`;
                 definitions: []
             };
             let hasStreamed = false;
+            let chunkCount = 0;
 
             for await (const partialObject of partialOutputStream) {
-                streamLogger.debug('dictionary json chunk', {
-                    word,
-                    keys: Object.keys(partialObject ?? {}),
-                });
+                // 词典流式 chunk 频率同样较高，按间隔采样，保留进度可见性。
+                chunkCount += 1;
+                if (chunkCount === 1 || chunkCount % 20 === 0) {
+                    streamLogger.debug('dictionary json chunk', {
+                        word,
+                        chunkCount,
+                        keys: Object.keys(partialObject ?? {}),
+                    });
+                }
                 let changed = false;
 
                 if (partialObject.word !== undefined) {

@@ -11,13 +11,13 @@ export function initRendererApis(): () => void {
     const logger = getRendererLogger('RendererApis');
     const unregisters: Array<() => void> = [];
 
+    /**
+     * 统一注册入口：只负责执行与错误兜底，日志粒度由各 handler 自行决定。
+     */
     const register = <K extends keyof RendererApiMap>(path: K, handler: RendererApiMap[K]) => {
         const wrappedHandler = async (params: Parameters<RendererApiMap[K]>[0]) => {
             try {
-                logger.info(`API called: ${path}`, { params });
-                const result = await handler(params);
-                logger.info(`API success: ${path}`);
-                return result;
+                return await handler(params);
             } catch (error) {
                 logger.error(`API error: ${path}`, {
                     error: error instanceof Error ? error.message : String(error),
@@ -68,7 +68,8 @@ export function initRendererApis(): () => void {
     });
 
     register('translation/batch-result', async (params) => {
-        logger.debug('Batch translation result', { params });
+        // 流式回推会高频到达，这里只记录条数与是否终态，不写完整译文。
+        logger.debug('Batch translation result', { count: params.translations.length });
         useTranslation.getState().updateTranslations(params.translations);
     });
 
@@ -99,12 +100,27 @@ export function initRendererApis(): () => void {
     });
 
     register('chat/stream', async (params) => {
-        logger.debug('Chat stream update', { params });
+        // 逐 token 流式更新：只记录生命周期事件（start/done/error），chunk 不落日志。
+        if (params.event !== 'chunk') {
+            logger.debug('Chat stream event', {
+                sessionId: params.sessionId,
+                messageId: params.messageId,
+                event: params.event,
+                error: params.error,
+            });
+        }
         useChatPanel.getState().receiveChatStream(params);
     });
 
     register('chat/analysis/stream', async (params) => {
-        logger.debug('Analysis stream update', { params });
+        if (params.event !== 'chunk') {
+            logger.debug('Analysis stream event', {
+                sessionId: params.sessionId,
+                messageId: params.messageId,
+                event: params.event,
+                error: params.error,
+            });
+        }
         useChatPanel.getState().receiveAnalysisStream(params);
     });
 

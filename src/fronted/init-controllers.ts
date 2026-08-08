@@ -26,7 +26,6 @@ function initializeRendererApis() {
         (window as any).cleanupRendererApis = cleanup;
         
         logger.info('renderer apis initialized successfully');
-        logger.debug('test command available: await window.electron.call("system/test-renderer-api")');
         
     } catch (error) {
         logger.error('renderer apis initialization failed', { error: error instanceof Error ? error.message : String(error) });

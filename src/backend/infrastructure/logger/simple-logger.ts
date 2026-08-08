@@ -129,8 +129,9 @@ function formatLine(event: SimpleEvent) {
     const focusLabel = event.focus ? `|focus:${event.focus}` : '';
     const prefix = `[${event.process}|${event.module}${focusLabel}]`;
     const msg = event.msg ? toSingleLine(event.msg.replace(FOCUS_PREFIX_PATTERN, '')) : '';
+    // 渲染端 debug 的对象 data 之前被丢弃，导致日志行没有排查价值；这里统一带上紧凑载荷。
     const isPrimitiveData = event.data === null || ['string', 'number', 'boolean'].includes(typeof event.data);
-    const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData;
+    const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData || event.level === 'debug';
     const data = includeData ? normalizeData(event.data) : '';
     const dataPart = data ? ` ${truncate(toSingleLine(data), 800)}` : '';
     return `${prefix} ${msg}${dataPart}`.trim();
@@ -214,7 +215,8 @@ export function pruneOldLogs(days = 14) {
     try {
         const files = fs.readdirSync(logPath);
         files.forEach((file) => {
-            if (!/^main-\\d{4}-\\d{2}-\\d{2}\\.log$/.test(file)) return;
+            // 同时匹配 main-YYYY-MM-DD.log 与 main-YYYY-MM-DD.old.log。
+            if (!/^main-\d{4}-\d{2}-\d{2}(\.old)?\.log$/.test(file)) return;
             const full = path.join(logPath, file);
             const st = fs.statSync(full);
             if (now - st.mtimeMs > keepMs) fs.unlinkSync(full);

@@ -120,8 +120,6 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
         }
     );
 
-    logger.debug('word loading status', { isWordLoading, hasDictionaryResponse: !!dictionaryResponse });
-
     const handleRefresh = async () => {
         setIsRefreshing(true);
         const requestId = openaiDictionaryEnabled ? createDictionaryRequestId(original) : '';
