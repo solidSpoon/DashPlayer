@@ -189,6 +189,19 @@
             "title": "腾讯翻译",
             "description": "用于字幕翻译能力。"
         },
+        "parakeet": {
+            "cancelDownload": "取消下载",
+            "installing": "正在安装模型…",
+            "extracting": "正在解压模型…",
+            "downloadCancelled": "下载已取消",
+            "deleteModel": "删除模型",
+            "deleteConfirmTitle": "删除 Parakeet v3 模型",
+            "deleteConfirmDescription": "删除后需重新下载才能使用本地字幕识别，确定要删除吗？",
+            "cancelDelete": "暂不删除",
+            "confirmDelete": "确认删除",
+            "modelDeleted": "模型已删除",
+            "deleteFailed": "删除失败"
+        },
         "youdao": {
             "title": "有道词典",
             "description": "用于词典查询能力。",

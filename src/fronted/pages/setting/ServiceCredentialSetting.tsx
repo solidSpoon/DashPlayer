@@ -1,15 +1,17 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
-import { Book, Bot, CheckCircle2, Cpu, Download, Languages, Plus, ShieldCheck, TestTube, Trash2, XCircle } from 'lucide-react';
+import { Book, Bot, CheckCircle2, Cpu, Download, Languages, Loader2, Plus, ShieldCheck, Square, TestTube, Trash2, XCircle } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
 import { Progress } from '@/fronted/components/ui/progress';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/fronted/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
+import type { ParakeetModelPhase } from '@/common/api/renderer-api-def';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -56,7 +58,9 @@ const ServiceCredentialSetting = () => {
     const [testResults, setTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
     const [parakeetModelStatus, setParakeetModelStatus] = React.useState<ParakeetModelStatusVO | null>(null);
     const [downloadingParakeetModel, setDownloadingParakeetModel] = React.useState(false);
+    const [deletingParakeetModel, setDeletingParakeetModel] = React.useState(false);
     const [parakeetDownloadProgress, setParakeetDownloadProgress] = React.useState(0);
+    const [parakeetDownloadPhase, setParakeetDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('engineSelection.sentenceLearning.title'),
         subtitleTranslation: t('engineSelection.subtitleTranslation.title'),
@@ -87,11 +91,14 @@ const ServiceCredentialSetting = () => {
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { percent: number } | undefined;
+            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ParakeetModelPhase } | undefined;
             if (!detail) return;
+            if (detail.phase) {
+                setParakeetDownloadPhase(detail.phase);
+            }
             setParakeetDownloadProgress(detail.percent);
 
-            if (detail.percent >= 100) {
+            if (detail.percent >= 100 && detail.phase !== 'extracting' && detail.phase !== 'installing') {
                 setTimeout(() => {
                     refreshParakeetModelStatus().catch(() => null);
                 }, 300);
@@ -199,8 +206,11 @@ const ServiceCredentialSetting = () => {
     const downloadParakeetModel = async () => {
         setDownloadingParakeetModel(true);
         setParakeetDownloadProgress(0);
+        setParakeetDownloadPhase('downloading');
         try {
             await api.call('parakeet/models/download');
+            setParakeetDownloadProgress(100);
+            setParakeetDownloadPhase('downloading');
             toast({ title: t('common.downloadDone'), description: 'Parakeet v3 模型已下载' });
             await refreshParakeetModelStatus();
         } catch (error) {
@@ -211,6 +221,46 @@ const ServiceCredentialSetting = () => {
             });
         } finally {
             setDownloadingParakeetModel(false);
+        }
+    };
+
+    /**
+     * 取消正在进行的 Parakeet v3 模型下载。
+     */
+    const cancelParakeetDownload = async () => {
+        try {
+            const result = await api.call('parakeet/models/cancel-download');
+            if (result.cancelled) {
+                setParakeetDownloadPhase('downloading');
+                toast({ title: t('serviceCredentials.parakeet.downloadCancelled') });
+            }
+            await refreshParakeetModelStatus();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('common.downloadFailed'),
+                description: error instanceof Error ? error.message : String(error),
+            });
+        }
+    };
+
+    /**
+     * 删除已下载的 Parakeet v3 模型并刷新状态。
+     */
+    const deleteParakeetModel = async () => {
+        setDeletingParakeetModel(true);
+        try {
+            await api.call('parakeet/models/delete');
+            toast({ title: t('serviceCredentials.parakeet.modelDeleted') });
+            await refreshParakeetModelStatus();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('serviceCredentials.parakeet.deleteFailed'),
+                description: error instanceof Error ? error.message : String(error),
+            });
+        } finally {
+            setDeletingParakeetModel(false);
         }
     };
 
@@ -412,12 +462,60 @@ const ServiceCredentialSetting = () => {
                                     <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
                                 )}
                             </div>
-                            <Button type="button" variant="outline" size="sm" onClick={() => downloadParakeetModel().catch(() => null)} disabled={downloadingParakeetModel}>
-                                <Download className="w-3.5 h-3.5 mr-1.5" />
-                                {downloadingParakeetModel ? t('common.downloading') : t('common.download')}
-                            </Button>
+                            <div className="flex items-center gap-2 shrink-0">
+                                {downloadingParakeetModel ? (
+                                    parakeetDownloadPhase === 'downloading' ? (
+                                        <Button type="button" variant="outline" size="sm" onClick={() => cancelParakeetDownload().catch(() => null)}>
+                                            <Square className="w-3.5 h-3.5 mr-1.5" />
+                                            {t('serviceCredentials.parakeet.cancelDownload')}
+                                        </Button>
+                                    ) : (
+                                        <Button type="button" variant="outline" size="sm" disabled>
+                                            {t('serviceCredentials.parakeet.installing')}
+                                        </Button>
+                                    )
+                                ) : (
+                                    <>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => downloadParakeetModel().catch(() => null)}>
+                                            <Download className="w-3.5 h-3.5 mr-1.5" />
+                                            {t('common.download')}
+                                        </Button>
+                                        {parakeetModelStatus?.ready && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button type="button" variant="outline" size="sm" disabled={deletingParakeetModel}>
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                                        {t('serviceCredentials.parakeet.deleteModel')}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>{t('serviceCredentials.parakeet.deleteConfirmTitle')}</AlertDialogTitle>
+                                                        <AlertDialogDescription>{t('serviceCredentials.parakeet.deleteConfirmDescription')}</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>{t('serviceCredentials.parakeet.cancelDelete')}</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => deleteParakeetModel().catch(() => null)}>{t('serviceCredentials.parakeet.confirmDelete')}</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
-                        {downloadingParakeetModel && <Progress value={parakeetDownloadProgress} className="h-1.5" />}
+                        {downloadingParakeetModel && (
+                            parakeetDownloadPhase === 'downloading' ? (
+                                <Progress value={parakeetDownloadProgress} className="h-1.5" />
+                            ) : (
+                                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    {parakeetDownloadPhase === 'extracting'
+                                        ? t('serviceCredentials.parakeet.extracting')
+                                        : t('serviceCredentials.parakeet.installing')}
+                                </p>
+                            )
+                        )}
                     </div>
                 </div>
             </SettingsPageShell>

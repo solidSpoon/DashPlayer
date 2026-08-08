@@ -13,6 +13,9 @@ interface RendererApiDefinition {
     'example': { params: string, return: number };
 }
 
+/** Parakeet v3 模型下载流程阶段。 */
+export type ParakeetModelPhase = 'downloading' | 'extracting' | 'installing';
+
 // UI相关的前端API定义
 interface UIRendererDef {
     'ui/show-notification': { params: { title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error' }, return: void };
@@ -31,7 +34,7 @@ interface UIRendererDef {
         },
         return: void
     };
-    'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number }, return: void };
+    'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
 }
 
 // 翻译相关的前端API定义

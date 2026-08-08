@@ -189,6 +189,19 @@
             "title": "Tencent Translation",
             "description": "Used for subtitle translation."
         },
+        "parakeet": {
+            "cancelDownload": "Cancel download",
+            "installing": "Installing model…",
+            "extracting": "Extracting model…",
+            "downloadCancelled": "Download cancelled",
+            "deleteModel": "Delete model",
+            "deleteConfirmTitle": "Delete Parakeet v3 model",
+            "deleteConfirmDescription": "Local subtitle recognition requires re-downloading after deletion. Delete anyway?",
+            "cancelDelete": "Keep model",
+            "confirmDelete": "Delete",
+            "modelDeleted": "Model deleted",
+            "deleteFailed": "Delete failed"
+        },
         "youdao": {
             "title": "Youdao Dictionary",
             "description": "Used for dictionary lookups.",

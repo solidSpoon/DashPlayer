@@ -10,9 +10,13 @@ import RendererGateway from '@/backend/application/ports/gateways/renderer/Rende
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import TYPES from '@/backend/ioc/types';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
+import type { ParakeetModelPhase } from '@/common/api/renderer-api-def';
 import { PARAKEET_MODEL_DIRECTORY, PARAKEET_REQUIRED_FILES } from '@/backend/application/contracts/parakeetModel';
 
 const ARCHIVE_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2';
+
+/** 下载被取消时抛出的错误信息（渲染层据此区分取消与真实失败）。 */
+export const PARAKEET_DOWNLOAD_CANCELLED_MESSAGE = 'Parakeet 模型下载已取消';
 
 /**
  * 负责 Parakeet v3 模型状态检查、下载和原子安装。
@@ -20,6 +24,8 @@ const ARCHIVE_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr
 @injectable()
 export class ParakeetModelService {
     private activeDownload: Promise<{ success: boolean; message: string }> | null = null;
+    /** 当前下载的取消控制器；下载结束后置空。 */
+    private activeAbortController: AbortController | null = null;
 
     constructor(
         @inject(TYPES.RendererGateway) private readonly rendererGateway: RendererGateway,
@@ -42,12 +48,40 @@ export class ParakeetModelService {
      */
     public async download(): Promise<{ success: boolean; message: string }> {
         if (this.activeDownload) return this.activeDownload;
+        this.activeAbortController = new AbortController();
         this.activeDownload = this.performDownload();
         try {
             return await this.activeDownload;
         } finally {
             this.activeDownload = null;
+            this.activeAbortController = null;
         }
+    }
+
+    /**
+     * 取消进行中的模型下载；无下载任务时直接返回。
+     * @returns 是否确实中止了一个下载任务。
+     */
+    public async cancelDownload(): Promise<{ cancelled: boolean }> {
+        const controller = this.activeAbortController;
+        if (!controller || this.activeDownload === null) {
+            return { cancelled: false };
+        }
+        controller.abort();
+        return { cancelled: true };
+    }
+
+    /**
+     * 删除已下载的 Parakeet v3 模型目录。
+     * @returns 删除结果；模型不存在时视为已删除。
+     */
+    public async deleteModel(): Promise<{ success: boolean; message: string }> {
+        const modelPath = await this.getModelPath();
+        if (!fs.existsSync(modelPath)) {
+            return { success: true, message: 'Parakeet v3 模型已删除' };
+        }
+        await fsPromises.rm(modelPath, { recursive: true, force: true });
+        return { success: true, message: 'Parakeet v3 模型已删除' };
     }
 
     /**
@@ -55,8 +89,15 @@ export class ParakeetModelService {
      * @returns 下载操作结果。
      */
     private async performDownload(): Promise<{ success: boolean; message: string }> {
+        const controller = this.activeAbortController;
+        if (!controller) {
+            throw new Error(PARAKEET_DOWNLOAD_CANCELLED_MESSAGE);
+        }
         const current = await this.getStatus();
         if (current.ready) return { success: true, message: 'Parakeet v3 模型已就绪' };
+        if (controller.signal.aborted) {
+            throw new Error(PARAKEET_DOWNLOAD_CANCELLED_MESSAGE);
+        }
 
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
         const workDir = path.join(modelsRoot, `.parakeet-download-${Date.now()}`);
@@ -64,16 +105,29 @@ export class ParakeetModelService {
         const extractPath = path.join(workDir, 'extract');
         await fsPromises.mkdir(extractPath, { recursive: true });
         try {
-            await this.downloadArchive(archivePath);
+            await this.downloadArchive(archivePath, controller.signal);
+            this.emitPhase('extracting');
             await this.extractArchive(archivePath, extractPath);
             const sourceDir = await this.findModelDirectory(extractPath);
             const missingFiles = PARAKEET_REQUIRED_FILES.filter((file) => !fs.existsSync(path.join(sourceDir, file)));
             if (missingFiles.length > 0) throw new Error(`模型归档缺少文件：${missingFiles.join(', ')}`);
+            if (controller.signal.aborted) {
+                throw new Error(PARAKEET_DOWNLOAD_CANCELLED_MESSAGE);
+            }
+            this.emitPhase('installing');
             await this.replaceModelDirectory(sourceDir, current.modelPath);
             return { success: true, message: 'Parakeet v3 模型下载完成' };
         } finally {
             await fsPromises.rm(workDir, { recursive: true, force: true });
         }
+    }
+
+    /**
+     * 向渲染层广播当前下载阶段（解压/安装时进度条停在 100%）。
+     * @param phase 目标阶段。
+     */
+    private emitPhase(phase: ParakeetModelPhase): void {
+        this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent: 100, downloaded: 0, total: 0, phase });
     }
 
     /** @returns 固定模型安装目录。 */
@@ -86,21 +140,39 @@ export class ParakeetModelService {
      * 流式下载模型归档并上报进度。
      * @param archivePath 临时归档路径。
      */
-    private async downloadArchive(archivePath: string): Promise<void> {
-        const response = await axios.get(ARCHIVE_URL, { responseType: 'stream' });
+    private async downloadArchive(archivePath: string, signal: AbortSignal): Promise<void> {
+        const response = await axios.get(ARCHIVE_URL, { responseType: 'stream', signal });
         const total = Number(response.headers['content-length'] ?? 0);
         await new Promise<void>((resolve, reject) => {
             const writer = fs.createWriteStream(archivePath);
             let downloaded = 0;
+            const onAbort = () => {
+                writer.destroy();
+                reject(new Error(PARAKEET_DOWNLOAD_CANCELLED_MESSAGE));
+            };
+            if (signal.aborted) {
+                onAbort();
+                return;
+            }
+            signal.addEventListener('abort', onAbort, { once: true });
             response.data.on('data', (chunk: Buffer) => {
                 downloaded += chunk.length;
                 const percent = total > 0 ? Math.floor(downloaded / total * 100) : 0;
-                this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent, downloaded, total });
+                this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent, downloaded, total, phase: 'downloading' });
             });
-            response.data.on('error', reject);
+            response.data.on('error', (error: Error) => {
+                signal.removeEventListener('abort', onAbort);
+                reject(error);
+            });
             response.data.pipe(writer);
-            writer.on('finish', resolve);
-            writer.on('error', reject);
+            writer.on('finish', () => {
+                signal.removeEventListener('abort', onAbort);
+                resolve();
+            });
+            writer.on('error', (error: Error) => {
+                signal.removeEventListener('abort', onAbort);
+                reject(error);
+            });
         });
     }
 
