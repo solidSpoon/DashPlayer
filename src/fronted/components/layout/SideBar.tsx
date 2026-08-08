@@ -31,6 +31,14 @@ const SideBar = ({ compact }: SideBarProps) => {
         return (
             <div
                 onMouseDown={() => navigate(path)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(path);
+                    }
+                }}
                 className={cn(
                     'w-full px-2 flex justify-start items-center gap-2 rounded-xl h-10',
                     isActive
@@ -64,6 +72,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                         compact && 'w-14 h-14'
                     )}
                     src={theme === 'dark' ? logoDark : logoLight}
+                    alt=""
                 />
             </div>
             <div className={cn('basis-3/4 flex flex-col p-3 gap-1')}>

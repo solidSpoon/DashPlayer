@@ -1,7 +1,7 @@
 import React from 'react';
 import { AiOutlineFieldTime } from 'react-icons/ai';
 import useSetting from '@/fronted/hooks/useSetting';
-import usePlayerUi from '@/fronted/hooks/usePlayerUi';
+import { usePlayerUi } from '@/fronted/hooks/usePlayerUi';
 import { p } from '@/common/utils/Util';
 import { FONT_SIZE } from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';

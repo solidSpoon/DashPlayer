@@ -17,7 +17,7 @@ const FullscreenToggleButton = ({fullScreen, changeFullScreen}: {
                         variant={'ghost'}
                         // size={'md'}
                         // onClick={fullScreen}
-                        onClick={(v) => {
+                        onClick={() => {
                             changeFullScreen(!fullScreen);
                         }}
                         className='flex items-center justify-center w-9 h-9'

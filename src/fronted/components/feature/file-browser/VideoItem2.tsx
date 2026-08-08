@@ -84,6 +84,15 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                         <TooltipTrigger asChild>
                             <div
                                 ref={containerRef}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    // 仅处理容器自身的按键，避免拦截子按钮的 Enter/Space
+                                    if (e.currentTarget === e.target && (e.key === 'Enter' || e.key === ' ')) {
+                                        e.preventDefault();
+                                        onClick?.();
+                                    }
+                                }}
                                 className={cn(
                                     'group/file-item w-full flex items-center gap-4 rounded-lg border border-transparent bg-background/60 px-3 py-2 transition-colors hover:bg-muted/70 dark:bg-muted/20 dark:hover:bg-muted/30',
                                     variant === 'highlight' && 'border-primary bg-primary/10 text-primary-foreground/90 hover:bg-primary/20',

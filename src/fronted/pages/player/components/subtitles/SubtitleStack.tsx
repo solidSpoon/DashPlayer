@@ -1,8 +1,7 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useMemo } from 'react';
 
 import { playerActions } from '@/fronted/components/feature/player/player';
 import { usePlayerState } from '@/fronted/hooks/usePlayerState';
-import { useMemo } from 'react';
 import FullscreenTranslatableLine from './FullscreenTranslatableLine';
 import SubtitleLine from './SubtitleLine';
 import StrUtil from '@/common/utils/str-util';

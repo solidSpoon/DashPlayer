@@ -19,7 +19,7 @@ type PlayerUiActions = {
   changeShowWordLevel: () => void;
 };
 
-export const usePlayerUi = create<PlayerUiState & PlayerUiActions>((set, get) => ({
+export const usePlayerUi = create<PlayerUiState & PlayerUiActions>((set) => ({
   showEn: true,
   showCn: true,
   syncSide: false,

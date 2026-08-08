@@ -357,11 +357,11 @@ export class ClipTenderImpl extends AbstractSrtTender<ClipSrtLine> {
         return sentence.end;
     }
 
-    getOriginAdjustedStart(sentence: ClipSrtLine): number | null {
+    getOriginAdjustedStart(): number | null {
         return null;
     }
 
-    getOriginAdjustedEnd(sentence: ClipSrtLine): number | null {
+    getOriginAdjustedEnd(): number | null {
         return null;
     }
 

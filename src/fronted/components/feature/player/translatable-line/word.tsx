@@ -213,11 +213,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
     /**
      * 单击单词时播放发音；若用户刚通过拖拽产生选区，则跳过播放。
      */
-    const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
-        if (hasMeaningfulSelection(event.currentTarget)) {
-            return;
-        }
-
+    const playWordAudio = async () => {
         if (playLoading) return;
 
         setPlayLoading(true);
@@ -249,14 +245,35 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
         }
     };
 
+    const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
+        if (hasMeaningfulSelection(event.currentTarget)) {
+            return;
+        }
+        await playWordAudio();
+    };
+
     return (
         <span>
             <span
                 ref={eleRef}
                 className="rounded cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onFocus={() => {
+                    setHovered(true);
+                }}
                 onMouseOver={() => {
                     setHovered(true);
                     pause();
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        void playWordAudio();
+                        if (!hovered) {
+                            setHovered(true);
+                        }
+                    }
                 }}
                 onClick={(e) => {
                     void handleWordClick(e);

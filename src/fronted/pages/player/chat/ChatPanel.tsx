@@ -148,7 +148,7 @@ const ChatPanel = () => {
                             <ConversationPane/>
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <TopicSelector className={cn('flex-shrink-0')}/>
+                                <TopicSelector />
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
                                 <SentencesPane className={cn('flex-shrink-0')}/>
                             </div>

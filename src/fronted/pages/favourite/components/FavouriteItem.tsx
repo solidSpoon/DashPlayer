@@ -21,7 +21,7 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
   const currentSentence = usePlayer((state) => state.currentSentence);
 
   const [currentLine, setCurrentLine] = React.useState<ClipSrtLine | null>(null);
-  const lines: ClipSrtLine[] = item?.clip_content ?? [];
+  const lines: ClipSrtLine[] = React.useMemo(() => item?.clip_content ?? [], [item]);
 
   useEffect(() => {
     // 仅当当前播放的视频就是本 item 时才做行高亮
@@ -55,6 +55,19 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
           {lines.map((contextLine: ClipSrtLine, index) => (
             <span
               key={`${item.key}-${index}`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setPlayInfo({
+                    video: item,
+                    time: contextLine.start,
+                    timeUpdated: Date.now(),
+                    sentenceIndex: index
+                  });
+                }
+              }}
               onClick={() => {
                 // 重复点击也会触发：timeUpdated 确保状态变化
                 setPlayInfo({

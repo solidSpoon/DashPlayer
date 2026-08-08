@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
-import usePlayerUi from '@/fronted/hooks/usePlayerUi';
+import { usePlayerUi } from '@/fronted/hooks/usePlayerUi';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';

@@ -106,6 +106,17 @@ const AppearanceSetting = () => {
                             <div
                                 key={themeOption}
                                 className={cn('h-full flex flex-col gap-2 cursor-pointer')}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setValue('theme', themeOption as AppearanceFormValues['theme'], {
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                        });
+                                    }
+                                }}
                                 onClick={() => {
                                     setValue('theme', themeOption as AppearanceFormValues['theme'], {
                                         shouldDirty: true,

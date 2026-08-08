@@ -8,7 +8,7 @@ import ProjectListCard from '@/fronted/components/feature/file-browser/project-l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { Button } from '@/fronted/components/ui/button';
 import useSWR from 'swr';
-import { apiPath, SWR_KEY } from '@/fronted/lib/swr-util';
+import { apiPath } from '@/fronted/lib/swr-util';
 import ProjectListItem from '@/fronted/components/feature/file-browser/project-list-item';
 import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/feature/file-browser/FolderSelector';
@@ -104,7 +104,7 @@ const HomePage = () => {
                             withMkv
                         />
                         <FolderSelector
-                            onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
+                            onSelected={FolderSelectAction.defaultAction2(async (vid) => {
                                 await backendClient.call('system/window-size/change', 'player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);

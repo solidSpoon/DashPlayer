@@ -169,6 +169,8 @@ const WordPop = React.forwardRef(
         return (
             <>
                 <FloatingPortal>
+                    {/* 仅用于阻止事件冒泡，不提供交互语义 */}
+                    {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
                     <div
                         {...getFloatingProps(getReferenceProps())}
                         ref={refs.setFloating}

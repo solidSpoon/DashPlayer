@@ -44,7 +44,7 @@ const useDpTaskCenter = create(
                 const unsubscribe = useDpTaskCenter.subscribe(
                     // 订阅 specific task 的变化
                     state => state.tasks.get(taskId),
-                    (task, previousTask) => {
+                    (task) => {
                         if (task && task !== 'init') {
                             // 触发 onUpdated 回调
                             onUpdated(task);
