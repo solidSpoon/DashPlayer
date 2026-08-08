@@ -96,3 +96,4 @@ out/
 /lib/
 /dist/
 /my-new-app/
+.cindy-worktrees/
