@@ -240,27 +240,18 @@ const applyProxyFromSettings = async (): Promise<void> => {
 };
 
 /**
- * 串行化并合并代理应用请求：
- * 设置保存可能连续触发多次 onDidChange，若并发执行 app.setProxy，
- * 较早的旧快照可能最后完成并覆盖新配置；这里保证任一时刻只执行一次应用，
- * 期间产生的新请求合并为一次，最终总是应用最新的设置快照。
+ * 串行化代理应用请求（Promise 链队列）：
+ * 一次保存会连续触发多个 onDidChange，若并发执行 app.setProxy，
+ * 较早的旧快照可能最后完成并覆盖新配置；排队可保证逐个串行执行，
+ * 且后续任务基于最新快照（配置未变化时 applyProxyFromSettings 会直接跳过）。
  */
-let applyingInFlight = false;
-let applyPending = false;
-const applyProxySerialized = async (): Promise<void> => {
-    if (applyingInFlight) {
-        applyPending = true;
-        return;
-    }
-    applyingInFlight = true;
-    try {
-        do {
-            applyPending = false;
-            await applyProxyFromSettings();
-        } while (applyPending);
-    } finally {
-        applyingInFlight = false;
-    }
+let proxyApplyQueue: Promise<void> = Promise.resolve();
+const enqueueProxyApply = (): void => {
+    proxyApplyQueue = proxyApplyQueue
+        .then(() => applyProxyFromSettings())
+        .catch((error) => {
+            logger.error('代理应用失败', { error });
+        });
 };
 
 const stopSystemProxyMonitor = (): void => {
@@ -275,9 +266,7 @@ const startSystemProxyMonitor = (): void => {
         return;
     }
     systemProxyInterval = setInterval(() => {
-        applyProxyFromSettings().catch((error) => {
-            logger.error('轮询系统代理失败', { error });
-        });
+        enqueueProxyApply();
     }, 60_000);
 };
 
@@ -302,9 +291,7 @@ export const onProxySettingChange = (): void => {
     } else {
         stopSystemProxyMonitor();
     }
-    applyProxySerialized().catch((error) => {
-        logger.error('代理设置变更应用失败', { error });
-    });
+    enqueueProxyApply();
 };
 
 /** 关闭代理监控并恢复 Node 侧直连（应用退出时调用）。 */
