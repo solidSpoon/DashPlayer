@@ -11,6 +11,7 @@ import {
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { getStorageRootStatus } from '@/backend/infrastructure/storage/StorageDirectorySupport';
 
 @injectable()
@@ -83,6 +84,17 @@ export default class SettingsController implements Controller {
         await this.settingsKeyValueService.set('proxy.mode', params.mode);
         await this.settingsKeyValueService.set('proxy.url', params.url);
         await this.settingsKeyValueService.set('proxy.bypass_rules', params.bypassRules);
+    }
+
+    /**
+     * 获取代理设置详情。
+     */
+    public async getProxySettingDetail(): Promise<ProxySettingDetailVO> {
+        return {
+            mode: await this.settingsKeyValueService.get('proxy.mode') as ProxySettingDetailVO['mode'],
+            url: await this.settingsKeyValueService.get('proxy.url'),
+            bypassRules: await this.settingsKeyValueService.get('proxy.bypass_rules'),
+        };
     }
 
     /**
@@ -171,6 +183,7 @@ export default class SettingsController implements Controller {
         registerRoute('settings/appearance/update', (p) => this.updateAppearanceSettings(p));
         registerRoute('settings/shortcuts/update', (p) => this.updateShortcutSettings(p));
         registerRoute('settings/storage/update', (p) => this.updateStorageSettings(p));
+        registerRoute('settings/proxy/detail', () => this.getProxySettingDetail());
         registerRoute('settings/proxy/update', (p) => this.updateProxySettings(p));
     }
 }

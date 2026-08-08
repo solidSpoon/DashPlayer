@@ -1,24 +1,22 @@
 import * as React from 'react';
+import useSWR from 'swr';
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import SettingInput from '@/fronted/pages/setting/components/form/SettingInput';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
-import useSetting from '@/fronted/hooks/useSetting';
-import { useShallow } from 'zustand/react/shallow';
 import { useForm } from 'react-hook-form';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-type ProxyMode = 'system' | 'custom' | 'none';
-
 type ProxyFormValues = {
-    mode: ProxyMode;
+    mode: ProxySettingDetailVO['mode'];
     url: string;
     bypassRules: string;
 };
 
-const normalizeMode = (value: string | undefined): ProxyMode => {
+const normalizeMode = (value: string | undefined): ProxyFormValues['mode'] => {
     if (value === 'custom' || value === 'none') {
         return value;
     }
@@ -27,18 +25,20 @@ const normalizeMode = (value: string | undefined): ProxyMode => {
 
 const ProxySetting = () => {
     const { t } = useI18nTranslation('settings');
-    const storeValues = useSetting(
-        useShallow((state) => ({
-            mode: state.values.get('proxy.mode') ?? '',
-            url: state.values.get('proxy.url') ?? '',
-            bypassRules: state.values.get('proxy.bypass_rules') ?? '',
-        }))
+
+    // 与 EngineSelectionSetting / ShortcutSetting 等页面一致：通过 detail 接口取服务端数据。
+    const { data: settings } = useSWR<ProxySettingDetailVO>('settings/proxy/detail', () =>
+        backendClient.call('settings/proxy/detail'),
     );
 
-    const form = useForm<ProxyFormValues>({});
-    const { watch, setValue } = form;
+    const form = useForm<ProxyFormValues>();
+    const { register, watch, setValue } = form;
 
-    const { initialize, flush } = useAutoSaveSettingsForm<ProxyFormValues>({
+    register('mode');
+    register('url');
+    register('bypassRules');
+
+    const { ready, initialize, flush } = useAutoSaveSettingsForm<ProxyFormValues>({
         form,
         onSave: async (values) => {
             await backendClient.call('settings/proxy/update', {
@@ -50,12 +50,29 @@ const ProxySetting = () => {
     });
 
     React.useEffect(() => {
+        if (!settings) {
+            return;
+        }
         initialize({
-            mode: normalizeMode(storeValues.mode),
-            url: storeValues.url,
-            bypassRules: storeValues.bypassRules,
+            mode: normalizeMode(settings.mode),
+            url: settings.url,
+            bypassRules: settings.bypassRules,
         });
-    }, [initialize, storeValues.mode, storeValues.url, storeValues.bypassRules]);
+    }, [initialize, settings]);
+
+    if (!ready) {
+        return (
+            <div className="w-full h-full min-h-0">
+                <SettingsPageShell
+                    title={t('proxy.title')}
+                    description={t('proxy.description')}
+                    contentClassName="space-y-8"
+                >
+                    <></>
+                </SettingsPageShell>
+            </div>
+        );
+    }
 
     const currentMode = normalizeMode(watch('mode'));
 
@@ -77,7 +94,7 @@ const ProxySetting = () => {
                     <div className="w-full md:w-72">
                         <Select
                             value={currentMode}
-                            onValueChange={(value: ProxyMode) => {
+                            onValueChange={(value: ProxyFormValues['mode']) => {
                                 setValue('mode', value, { shouldDirty: true, shouldTouch: true });
                             }}
                         >

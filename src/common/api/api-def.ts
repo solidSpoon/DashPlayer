@@ -24,6 +24,7 @@ import {
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
@@ -171,6 +172,7 @@ interface SettingsDef {
     'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
     'settings/shortcuts/update': { params: ShortcutSettingSaveVO, return: void };
     'settings/storage/update': { params: { path: string; collection: string }, return: void };
+    'settings/proxy/detail': { params: void, return: ProxySettingDetailVO };
     'settings/proxy/update': { params: { mode: string; url: string; bypassRules: string }, return: void };
 }
 

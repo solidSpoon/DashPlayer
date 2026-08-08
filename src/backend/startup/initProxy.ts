@@ -1,8 +1,7 @@
-import Store from 'electron-store';
-import { getEnvironmentConfigName } from '@/backend/utils/runtimeEnv';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { initProxy, onProxySettingChange, disposeProxy } from '@/backend/infrastructure/system/proxy/ProxyService';
 import { PROXY_SETTING_KEYS } from '@/backend/infrastructure/system/proxy/proxySettingKeys';
+import { subscribeSettingChange } from '@/backend/infrastructure/settings/store';
 
 const logger = getMainLogger('initProxy');
 
@@ -22,13 +21,9 @@ export const initProxyFeature = async (): Promise<void> => {
     }
     initialized = true;
 
-    const settingsStore = new Store<Record<string, unknown>>({
-        name: getEnvironmentConfigName('config'),
-    });
-
     for (const key of PROXY_SETTING_KEYS) {
         unsubscribers.push(
-            settingsStore.onDidChange(key, () => {
+            subscribeSettingChange(key, () => {
                 onProxySettingChange();
             })
         );

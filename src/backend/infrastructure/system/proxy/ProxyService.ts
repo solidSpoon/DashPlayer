@@ -239,6 +239,30 @@ const applyProxyFromSettings = async (): Promise<void> => {
     await applyProxy(config);
 };
 
+/**
+ * 串行化并合并代理应用请求：
+ * 设置保存可能连续触发多次 onDidChange，若并发执行 app.setProxy，
+ * 较早的旧快照可能最后完成并覆盖新配置；这里保证任一时刻只执行一次应用，
+ * 期间产生的新请求合并为一次，最终总是应用最新的设置快照。
+ */
+let applyingInFlight = false;
+let applyPending = false;
+const applyProxySerialized = async (): Promise<void> => {
+    if (applyingInFlight) {
+        applyPending = true;
+        return;
+    }
+    applyingInFlight = true;
+    try {
+        do {
+            applyPending = false;
+            await applyProxyFromSettings();
+        } while (applyPending);
+    } finally {
+        applyingInFlight = false;
+    }
+};
+
 const stopSystemProxyMonitor = (): void => {
     if (systemProxyInterval) {
         clearInterval(systemProxyInterval);
@@ -257,13 +281,6 @@ const startSystemProxyMonitor = (): void => {
     }, 60_000);
 };
 
-/** 订阅代理设置变更：任意一项变化即重新应用。 */
-export const onProxySettingChange = (): void => {
-    applyProxyFromSettings().catch((error) => {
-        logger.error('代理设置变更应用失败', { error });
-    });
-};
-
 /**
  * 在应用 ready 之后初始化代理：应用设置中配置的代理，
  * 并依据模式开启系统代理轮询。
@@ -277,9 +294,17 @@ export const initProxy = async (): Promise<void> => {
     await applyProxy(config);
 };
 
-/** 设置变更后的主动重应用（由设置写入链路调用）。 */
-export const reapplyProxy = async (): Promise<void> => {
-    await applyProxyFromSettings();
+/** 订阅代理设置变更：重新应用代理，并按最新模式启停系统代理轮询。 */
+export const onProxySettingChange = (): void => {
+    const mode = storeGet('proxy.mode') as ProxyMode;
+    if (mode === 'system') {
+        startSystemProxyMonitor();
+    } else {
+        stopSystemProxyMonitor();
+    }
+    applyProxySerialized().catch((error) => {
+        logger.error('代理设置变更应用失败', { error });
+    });
 };
 
 /** 关闭代理监控并恢复 Node 侧直连（应用退出时调用）。 */
