@@ -82,7 +82,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.23",
+    "@ai-sdk/openai": "^4.0.36",
     "@electron-forge/publisher-github": "^7.10.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@floating-ui/react": "^0.26.9",
@@ -118,7 +118,7 @@
     "@types/fluent-ffmpeg": "^2.1.24",
     "@uidotdev/usehooks": "^2.4.1",
     "@vitejs/plugin-react": "^5.1.2",
-    "ai": "^6.0.64",
+    "ai": "^7.0.58",
     "axios": "^1.6.8",
     "better-sqlite3": "^12.5.0",
     "class-variance-authority": "^0.7.1",
