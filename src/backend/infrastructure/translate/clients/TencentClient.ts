@@ -45,24 +45,42 @@ class TencentClient extends Client {
 
     @WithRateLimit('tencent')
     private async trans(source: string[]) {
+        const startedAt = Date.now();
+        const batchSize = source.length;
+        const charCount = source.reduce((sum, item) => sum + item.length, 0);
         const param = {
             Source: 'en',
             Target: 'zh',
             ProjectId: 0,
             SourceTextList: source
         };
-        this.logger.info('do-trans:', source);
-        const transResult: string[] | undefined = await super
-          .TextTranslateBatch(param)
-          .then((resp: TextTranslateBatchResponse) => resp.TargetTextList);
-        if (!transResult) {
-            return new TransHolder<string>();
+        // 只记批次要点，译文内容不进日志。
+        this.logger.debug('tencent batch trans start', { batchSize, charCount });
+        try {
+            const transResult: string[] | undefined = await super
+                .TextTranslateBatch(param)
+                .then((resp: TextTranslateBatchResponse) => resp.TargetTextList);
+            this.logger.debug('tencent batch trans ok', {
+                batchSize,
+                resultCount: transResult?.length ?? 0,
+                costMs: Date.now() - startedAt,
+            });
+            if (!transResult) {
+                return new TransHolder<string>();
+            }
+            const res = new TransHolder<string>();
+            source.forEach((item, index) => {
+                res.add(item, transResult[index]);
+            });
+            return res;
+        } catch (error) {
+            this.logger.warn('tencent batch trans failed', {
+                batchSize,
+                costMs: Date.now() - startedAt,
+                error,
+            });
+            throw error;
         }
-        const res = new TransHolder<string>();
-        source.forEach((item, index) => {
-            res.add(item, transResult[index]);
-        });
-        return res;
     }
 }
 export default TencentClient;

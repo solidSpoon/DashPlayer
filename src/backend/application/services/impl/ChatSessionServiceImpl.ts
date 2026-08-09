@@ -151,12 +151,16 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         }
         // v7 起 system 不能放在 messages 里，需拆出来走 system 参数，否则流会静默空转
         const { system, messages: promptMessages } = splitSystemMessages(messages);
+        // 生命周期日志记 info：生产环境默认 info 级，只有这样"流是否开始/完成、生成了多少 chunk"才可回溯。
+        this.logger.info('chat stream start', { sessionId, messageId });
         const result = streamText({
             model,
             system,
             messages: promptMessages,
         });
+        let chunkCount = 0;
         for await (const chunk of result.textStream) {
+            chunkCount += 1;
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
                 messageId,
@@ -164,6 +168,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 chunk,
             });
         }
+        this.logger.info('chat stream done', { sessionId, messageId, chunkCount });
         this.rendererGateway.fireAndForget('chat/stream', {
             sessionId,
             messageId,
@@ -182,18 +187,24 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
             return;
         }
         const streamLogger = this.logger;
-        streamLogger.debug('analysis stream start', { sessionId, messageId });
+        streamLogger.info('analysis stream start', { sessionId, messageId });
         const result = streamText({
             model,
             output: Output.object({ schema: AiUnifiedAnalysisSchema }),
             prompt,
         });
+        let chunkCount = 0;
         for await (const partial of result.partialOutputStream) {
-            streamLogger.debug('analysis stream chunk', {
-                sessionId,
-                messageId,
-                keys: Object.keys(partial ?? {}),
-            });
+            chunkCount += 1;
+            // chunk 频率极高，仅首 chunk 与每 20 个采样一次，避免逐 chunk 刷屏。
+            if (chunkCount === 1 || chunkCount % 20 === 0) {
+                streamLogger.debug('analysis stream chunk', {
+                    sessionId,
+                    messageId,
+                    chunkCount,
+                    keys: Object.keys(partial ?? {}),
+                });
+            }
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
@@ -201,6 +212,7 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
                 partial: this.normalizeAnalysisPartial(partial),
             });
         }
+        streamLogger.info('analysis stream done', { sessionId, messageId, chunkCount });
         const finalObject = await result.output;
         streamLogger.debug('analysis stream done', { sessionId, messageId });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {

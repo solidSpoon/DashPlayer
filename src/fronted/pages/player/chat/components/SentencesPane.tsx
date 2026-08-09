@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
@@ -46,7 +46,12 @@ const SentencesPane = ({ className }: {
     const sentences = (analysis?.examples?.sentences ?? []).filter((sentence) => {
         return Boolean(sentence?.sentence || sentence?.meaning);
     });
-    logger.debug('Sentence analysis loaded', { count: sentences.length });
+    // 渲染体内不打日志；分析完成时记录一次句子数量。
+    useEffect(() => {
+        if (status === 'done') {
+            logger.debug('Sentence analysis loaded', { count: sentences.length });
+        }
+    }, [status, sentences.length, logger]);
     return (
 
         <div className={cn('flex flex-col gap-2', className)}>
