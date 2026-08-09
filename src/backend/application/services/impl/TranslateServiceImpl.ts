@@ -276,6 +276,12 @@ export default class TranslateServiceImpl implements TranslateService {
             ? truncate(`${params.message}（${errorMessage}）`, 220)
             : params.message;
 
+        // 弹窗与日志绑定：任何字幕翻译失败弹窗都必须在主进程日志留下原因，避免"弹窗有、日志无"。
+        this.logger.error('字幕翻译失败弹窗', {
+            dedupeKey: params.dedupeKey,
+            message: params.message,
+            error: params.error,
+        });
         this.rendererGateway.fireAndForget('ui/show-toast', {
             title: params.title ?? '字幕翻译失败',
             message: combinedMessage,
@@ -498,6 +504,10 @@ export default class TranslateServiceImpl implements TranslateService {
                 });
                 this.logger.info(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
             } else {
+                this.logger.error('腾讯批量翻译未返回有效结果', {
+                    fileHash: tasks[0]?.fileHash ?? '',
+                    batchSize: tasks.length,
+                });
                 this.notifySubtitleTranslationFailed({
                     fileHash: tasks[0]?.fileHash ?? '',
                     keys: tasks.map((task) => task.translationKey),
@@ -658,6 +668,12 @@ export default class TranslateServiceImpl implements TranslateService {
                     if (!firstError) {
                         firstError = new Error('openai batch result missing requested items');
                     }
+                    // 模型返回可解析但缺失条目的部分失败：明确记录窗口与缺失数量，便于归因。
+                    this.logger.error('OpenAI 字幕窗口结果缺失', {
+                        windowKeys: windowSentences.map((sentence) => sentence.translationKey),
+                        resolvedCount: resolvedRequestedKeys.size,
+                        requestedCount: requestedInWindow.length,
+                    });
                 }
             } catch (error) {
                 this.logger.error('OpenAI 字幕窗口翻译失败', {

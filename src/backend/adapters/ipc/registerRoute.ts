@@ -81,6 +81,19 @@ function preview(value: unknown, maxLen = 800) {
 }
 
 /**
+ * 判断异常是否为用户主动取消（axios CanceledError / AbortError / 取消语义消息）。
+ * 取消属预期行为，不应按 error 记录。
+ */
+function isUserCancellation(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+    return error.name === 'CanceledError'
+        || error.name === 'AbortError'
+        || /cancel|取消/i.test(error.message);
+}
+
+/**
  * 注册 IPC 路由并统一记录调用日志。
  *
  * 行为说明：
@@ -112,7 +125,11 @@ export default function registerRoute<K extends keyof ApiMap>(path: K, func: Api
         } catch (error) {
             const costMs = Date.now() - start;
             const message = error instanceof Error ? error.message : String(error);
-            logger.error(`api-error path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
+            if (isUserCancellation(error)) {
+                logger.warn(`api-cancel path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
+            } else {
+                logger.error(`api-error path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
+            }
             container
                 .get<RendererEvents>(TYPES.RendererEvents)
                 .error(error instanceof Error ? error : new Error(String(error)));

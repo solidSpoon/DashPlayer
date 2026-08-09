@@ -11,14 +11,12 @@ import UserTextMessage from "@/fronted/pages/player/chat/components/messages/Use
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
 import { useShallow } from 'zustand/react/shallow';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { Send } from 'lucide-react';
 import AiStreamingMessage from '@/fronted/pages/player/chat/components/messages/AiStreamingMessage';
 import AiStreamingMessageModel from '@/common/types/msg/AiStreamingMessage';
 
 const ConversationPane = () => {
-    const logger = getRendererLogger('ConversationPane');
     const {messages, streamingMessage, sent, input, setInput} = useChatPanel(useShallow(s=> ({
         messages: s.messages,
         streamingMessage: s.streamingMessage,
@@ -83,11 +81,8 @@ const ConversationPane = () => {
         }
         const ts: DpTask[] = taskIds.map(taskId => s.tasks.get(taskId))
             .filter((task): task is DpTask => !!task && task !== 'init');
-        logger.debug('checking unfinished tasks', { tasks: ts });
         return ts.some(task => task.status !== DpTaskState.DONE);
     }) ?? false;
-
-    logger.debug('unfinished task status', { hasUnFinishedTask });
 
     const isBusy = hasUnFinishedTask || !!streamingMessage;
 

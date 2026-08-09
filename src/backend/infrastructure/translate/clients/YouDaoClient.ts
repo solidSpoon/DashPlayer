@@ -69,11 +69,14 @@ class YouDaoClient {
         const url = `${this.YOU_DAO_HOST}?${YouDaoClient.generateUrlParams(
             paramsJson
         )}`;
+        const startedAt = Date.now();
         const result = await axios.get(url);
+        const costMs = Date.now() - startedAt;
         if (result.data.errorCode !== '0') {
-            getMainLogger('YouDaoClient').error('youdao api error', { response: result.data });
+            getMainLogger('YouDaoClient').warn('youdao api error', { errorCode: result.data.errorCode, costMs });
             return null;
         }
+        getMainLogger('YouDaoClient').debug('youdao translate ok', { word, costMs });
         return JSON.stringify(result.data);
     }
 }

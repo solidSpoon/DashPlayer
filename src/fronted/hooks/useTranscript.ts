@@ -6,6 +6,7 @@ import { persist, subscribeWithSelector } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
     TranscriptTask,
     TranscriptTaskState,
@@ -13,6 +14,7 @@ import {
 } from '@/common/contracts/transcript/transcript-task';
 
 const api = backendClient;
+const logger = getRendererLogger('useTranscript');
 
 /** 持久化状态中处于非终态（重启后不可能再收到后端更新）的任务的中断提示。 */
 const INTERRUPTED_MESSAGE = '转录任务已中断（应用重启），请重新转录';
@@ -144,7 +146,7 @@ const useTranscript = create(
                                         icon: '🚀'
                                     });
                                 } catch (error) {
-                                    console.error('Failed to attach SRT:', error);
+                                    logger.error('Failed to attach SRT', { error });
                                 }
                             }, 0);
                         }

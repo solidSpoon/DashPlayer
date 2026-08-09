@@ -7,6 +7,7 @@ import ClipGrid from '@/fronted/pages/video-learning/ClipGrid';
 import VideoPlayerPane from '@/fronted/pages/video-learning/VideoPlayerPane';
 import WordSidebar from '@/fronted/pages/video-learning/WordSidebar';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
   Pagination,
   PaginationContent,
@@ -18,6 +19,8 @@ import {
 } from '@/fronted/components/ui/pagination';
 import { Button } from '@/fronted/components/ui/button';
 import toast from 'react-hot-toast';
+
+const logger = getRendererLogger('VideoLearning');
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -221,7 +224,7 @@ export default function VideoLearningPage() {
             clipCounts = countResult.data as Record<string, number>;
           }
         } catch (error) {
-          console.error('获取视频片段数量失败:', error);
+          logger.error('获取视频片段数量失败', { error });
         }
 
         const wordsWithVideoCount = wordData.map((word) => {
@@ -244,7 +247,7 @@ export default function VideoLearningPage() {
         setWords(sortedWords);
       }
     } catch (error) {
-      console.error('获取单词失败:', error);
+      logger.error('获取单词失败', { error });
     } finally {
       setLoading(false);
     }
@@ -296,7 +299,7 @@ export default function VideoLearningPage() {
         alert(`导出失败：${result.error}`);
       }
     } catch (error) {
-      console.error('导出模板失败:', error);
+      logger.error('导出模板失败', { error });
       alert('导出失败，请重试');
     }
   }, []);
@@ -322,7 +325,7 @@ export default function VideoLearningPage() {
         alert(`导入失败：${result.error || '未知错误'}`);
       }
     } catch (error) {
-      console.error('导入单词失败:', error);
+      logger.error('导入单词失败', { error });
       alert('导入失败，请重试');
     } finally {
       setLoading(false);
@@ -352,7 +355,7 @@ export default function VideoLearningPage() {
           });
           newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
         } catch (error) {
-          console.error('Failed to generate thumbnail for clip:', error);
+          logger.error('Failed to generate thumbnail for clip', { error });
         } finally {
           inFlightThumbsRef.current.delete(clip.key);
         }
@@ -364,7 +367,7 @@ export default function VideoLearningPage() {
         setThumbnailUrls((prev) => ({ ...prev, ...newThumbnailUrls }));
       }
     } catch (error) {
-      console.error('Failed to generate thumbnails:', error);
+      logger.error('Failed to generate thumbnails', { error });
     }
   }, [clips, thumbnailUrls]);
 

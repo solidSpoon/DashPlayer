@@ -147,6 +147,9 @@ const startAnalysisForTopic = async () => {
     await useChatPanel.getState().startAnalysis();
 };
 
+// 流式分析 chunk 计数：仅在收到 start 时归零，用于节流 chunk 级调试日志。
+let analysisStreamChunkCount = 0;
+
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
         ...empty(),
@@ -341,6 +344,7 @@ const useChatPanel = create(
                 return;
             }
             if (event.event === 'start') {
+                analysisStreamChunkCount = 0;
                 set({
                     analysis: {},
                     analysisMessageId: event.messageId,
@@ -355,10 +359,13 @@ const useChatPanel = create(
             }
 
             if (event.event === 'chunk' && event.partial) {
+                analysisStreamChunkCount += 1;
                 const logger = getRendererLogger('useChatPanel');
                 const partialExamples = event.partial.examples;
-                if (partialExamples) {
+                // chunk 频率极高且带示例句全文，仅首 chunk 与每 20 个采样一次。
+                if (partialExamples && (analysisStreamChunkCount === 1 || analysisStreamChunkCount % 20 === 0)) {
                     logger.debug('analysis examples chunk', {
+                        chunkCount: analysisStreamChunkCount,
                         sentencesCount: partialExamples.sentences?.length ?? 0,
                         sampleSentence: partialExamples.sentences?.[0],
                     });

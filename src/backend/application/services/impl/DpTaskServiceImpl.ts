@@ -114,6 +114,8 @@ export default class DpTaskServiceImpl implements DpTaskService {
         };
         this.updateTaskInfo(task, info);
         this.update(task);
+        // 最终结果只在这一行完整记录（日志系统会按单行 800 字上限兜底），逐 chunk 更新不记。
+        this.logger.info('task finished', { taskId: id, result: info.result ?? null });
     }
 
     public fail(id: number, info: InsertDpTask) {
@@ -123,20 +125,22 @@ export default class DpTaskServiceImpl implements DpTaskService {
         };
         this.updateTaskInfo(task, info);
         this.update(task);
+        this.logger.info('task failed', { taskId: id, result: info.result ?? null });
     }
 
     private updateTaskInfo(task: InsertDpTask, info: InsertDpTask) {
         if (info.progress !== undefined) {
-            this.logger.info('task progress updated', { taskId: task.id, progress: info.progress });
+            // 进度更新频率高，降为 debug 避免刷屏。
+            this.logger.debug('task progress updated', { taskId: task.id, progress: info.progress });
             task.progress = info.progress;
         }
         if (info.result !== undefined) {
-            this.logger.info('task result updated', { taskId: task.id, result: info.result });
             task.result = info.result;
         }
     }
 
     cancel(id: number) {
+        this.logger.info('task cancel requested', { taskId: id });
         this.cancelQueue.add(id);
         const cancelable = this.taskMapping.get(id);
         if (cancelable) {
@@ -148,6 +152,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
 
     checkCancel(id: number) {
         if (this.cancelQueue.has(id)) {
+            this.logger.info('task cancel confirmed', { taskId: id });
             this.update({
                 id,
                 status: DpTaskState.CANCELLED,
@@ -176,6 +181,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * 应用重启时取消所有任务
      */
     public static async cancelAll() {
+        getMainLogger('DpTaskServiceImpl').info('cancel all active tasks on startup');
         const { default: DpTaskRepositoryImpl } = await import('@/backend/infrastructure/db/repositories/DpTaskRepositoryImpl');
         const repo = new DpTaskRepositoryImpl();
         await repo.cancelAllActive();

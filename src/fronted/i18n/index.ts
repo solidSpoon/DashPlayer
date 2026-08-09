@@ -1,5 +1,6 @@
 import i18n, { changeLanguage, use } from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import zhNav from '@/fronted/i18n/locales/zh-CN/nav.json';
 import enNav from '@/fronted/i18n/locales/en-US/nav.json';
 import zhSettings from '@/fronted/i18n/locales/zh-CN/settings.json';
@@ -79,7 +80,7 @@ void use(initReactI18next)
         debug: import.meta.env.DEV,
         parseMissingKeyHandler: (key) => {
             if (import.meta.env.DEV) {
-                console.warn(`[i18n] missing key: ${key}`);
+                getRendererLogger('i18n').warn(`[i18n] missing key: ${key}`);
             }
             return key;
         },

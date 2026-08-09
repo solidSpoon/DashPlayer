@@ -25,6 +25,7 @@ if (squirrelStartup) {
 }
 
 const logger = getMainLogger('MainStartup');
+const devtoolsLogger = getMainLogger('devtools');
 
 const mainWindowRef = {
     current: null as BrowserWindow | null
@@ -105,7 +106,7 @@ const installReactDevToolsFromChromeProfile = async (targetSession: Session): Pr
 
             const extensionDir = path.join(baseDir, latest);
             await targetSession.extensions.loadExtension(extensionDir, { allowFileAccess: true });
-            console.info('[devtools] React DevTools loaded from Chrome profile:', extensionDir);
+            devtoolsLogger.info('React DevTools loaded from Chrome profile', { extensionDir });
             return true;
         } catch {
             // ignore and try next candidate
@@ -118,15 +119,15 @@ const installReactDevToolsFromChromeProfile = async (targetSession: Session): Pr
 const installReactDevTools = async (targetSession: Session): Promise<void> => {
     try {
         await installExtension(REACT_DEVELOPER_TOOLS, { forceDownload: false, session: targetSession });
-        console.info('[devtools] React DevTools installed via electron-devtools-installer');
+        devtoolsLogger.info('React DevTools installed via electron-devtools-installer');
         return;
     } catch (error) {
-        console.warn('[devtools] Failed to install React DevTools via downloader', error);
+        devtoolsLogger.warn('Failed to install React DevTools via downloader', { error });
     }
 
     const loaded = await installReactDevToolsFromChromeProfile(targetSession);
     if (!loaded) {
-        console.warn('[devtools] React DevTools not installed (no downloader access and no local Chrome/Edge extension found)');
+        devtoolsLogger.warn('React DevTools not installed (no downloader access and no local Chrome/Edge extension found)');
     }
 };
 
@@ -157,7 +158,7 @@ const createWindow = () => {
             const installed = mainWindow.webContents.session.extensions
                 .getAllExtensions()
                 .some((ext) => ext.id === REACT_DEVELOPER_TOOLS.id);
-            console.info('[devtools] React DevTools extension present:', installed);
+            devtoolsLogger.info('React DevTools extension present', { installed });
         });
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
         // Open the DevTools.

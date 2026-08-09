@@ -228,6 +228,7 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
      * 执行 FFmpeg 命令并透出进度与取消。
      */
     private async executeCommand(commandArgs: string[], options: FfmpegRunOptions): Promise<void> {
+        const startedAt = Date.now();
         const runningTask = this.runner.start(
             {
                 ffmpegPath: getRuntimeResourcePath('lib', 'ffmpeg'),
@@ -252,6 +253,13 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
             runningTask.cancel();
         });
 
-        await runningTask.result;
+        try {
+            const outcome = await runningTask.result;
+            // 命令已在 onStart 记录，这里只补退出码与耗时，便于慢环节归因。
+            this.logger.info('FFmpeg 执行完成', { exitCode: outcome.exitCode, durationMs: outcome.durationMs });
+        } catch (error) {
+            this.logger.warn('FFmpeg 执行失败', { durationMs: Date.now() - startedAt, error });
+            throw error;
+        }
     }
 }
