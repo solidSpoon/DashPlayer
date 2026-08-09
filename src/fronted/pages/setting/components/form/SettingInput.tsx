@@ -20,12 +20,12 @@ const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps>(
         {
             title,
             description,
-            placeHolder,
+            placeHolder = '',
             value,
             setValue,
-            type,
-            inputWidth,
-            className,
+            type = 'text',
+            inputWidth = 'w-96',
+            className = '',
             onBlur,
         },
         ref,
@@ -51,12 +51,4 @@ const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps>(
 );
 
 SettingInput.displayName = 'SettingInput';
-
-SettingInput.defaultProps = {
-    placeHolder: '',
-    type: 'text',
-    inputWidth: 'w-96',
-    description: '',
-    className: '',
-};
 export default SettingInput;

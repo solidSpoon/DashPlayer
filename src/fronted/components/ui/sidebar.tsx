@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/fronted/hooks/use-mobile"
-import { cn } from "@/fronted/components/lib/utils"
+import { cn } from "@/fronted/lib/utils"
 import { Button } from "@/fronted/components/ui/button"
 import { Input } from "@/fronted/components/ui/input"
 import { Separator } from "@/fronted/components/ui/separator"

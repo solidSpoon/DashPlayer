@@ -62,7 +62,7 @@ const ChatPanel = () => {
                 opacity: 1,
                 transition: {
                     duration: 0.3,
-                    type: 'just'
+                    ease: 'easeOut'
                 }
             }}
             exit={{opacity: 0}}
@@ -91,14 +91,14 @@ const ChatPanel = () => {
                             y: 0,
                             transition: {
                                 duration: 0.3,
-                                type: 'just'
+                                ease: 'easeOut'
                             }
                         }}
                         exit={{
                             y: '100%',
                             transition: {
                                 duration: 0.3,
-                                type: 'just'
+                                ease: 'easeOut'
                             }
                         }}
                     >

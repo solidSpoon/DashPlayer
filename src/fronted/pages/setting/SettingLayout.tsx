@@ -34,7 +34,7 @@ const Sidebar = () => {
                     "justify-start"
                 )}
             >
-                {cloneElement(icon, {
+                {cloneElement(icon as ReactElement<{ className?: string }>, {
                     className: cn('w-4 h-4 text-foreground/80'),
                 })}
                 {name}

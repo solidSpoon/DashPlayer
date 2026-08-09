@@ -51,7 +51,7 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
         inView && shouldLoadThumbnail
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, pv.basePath, pv.fileName, pv.current_position]
             : null,
-        async ([_key, path, file, time]) => {
+        async ([_key, path, file, time]: [string, string, string, number]) => {
             return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
@@ -115,8 +115,8 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
                                                     <div className="absolute inset-0 bg-white pointer-events-none" />
                                                 )}
                                                 <motion.img
-                                                    key={UrlUtil.toUrl(thumbnail)}
-                                                    src={UrlUtil.toUrl(thumbnail)}
+                                                    key={UrlUtil.toUrl(thumbnail ?? '')}
+                                                    src={UrlUtil.toUrl(thumbnail ?? '')}
                                                     alt={pv.fileName}
                                                     className="absolute inset-0 h-full w-full object-cover"
                                                     initial={{ opacity: 0 }}

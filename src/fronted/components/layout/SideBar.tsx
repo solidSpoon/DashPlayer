@@ -47,7 +47,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                     compact && 'justify-center'
                 )}
             >
-                {cloneElement(icon, {
+                {cloneElement(icon as ReactElement<{ className?: string }>, {
                     className: cn('w-5 h-5 text-yellow-600 text-yellow-500 flex-shrink-0')
                 })}
                 {!compact && (
