@@ -1052,14 +1052,15 @@ export default class TranslateServiceImpl implements TranslateService {
             const prompt = `You are a professional English-Chinese dictionary. Provide concise, structured dictionary information for the word "${word}".
 
 Requirements:
-1. Use this exact compact shape only: { word, phonetic, definitions }.
+1. Respond with JSON only, using this exact compact shape: { word, phonetic, definitions }.
 2. Every field is required; do not omit any field.
 3. definitions item shape: { partOfSpeech, meaning, examples }.
 4. examples item shape: { sentence, translation }.
 5. If unavailable, use empty string for text fields and empty array for list fields.
 6. Keep output concise and practical for a word popup.
 
-Ensure the response strictly matches the provided JSON schema.`;
+Output example (field names and nesting must match exactly):
+{"word":"serendipity","phonetic":"/ˌserənˈdɪpəti/","definitions":[{"partOfSpeech":"n.","meaning":"意外发现美好事物的运气","examples":[{"sentence":"Meeting her was a stroke of serendipity.","translation":"遇见她纯属偶然的好运。"}]}]}`;
 
             const { partialOutputStream } = streamText({
                 model,
