@@ -4,7 +4,7 @@ import { joinUrl } from '@/common/utils/Util';
 import { inject, injectable } from 'inversify';
 import AiProviderService, { AiModelScene } from '@/backend/application/services/AiProviderService';
 import { createOpenAI } from '@ai-sdk/openai';
-import { LanguageModel } from 'ai';
+import { LanguageModel, wrapLanguageModel } from 'ai';
 import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 import TYPES from '@/backend/ioc/types';
 
@@ -28,6 +28,12 @@ export default class AiProviderServiceImpl implements AiProviderService {
             baseURL: joinUrl(endpoint, '/v1'),
             apiKey: apiKey,
         });
-        return openai(routedModel.modelId);
+        // 全局统一使用最小推理强度（minimal），降低响应耗时与成本；minimal 是各模型普遍支持的最低档位
+        return wrapLanguageModel({
+            model: openai(routedModel.modelId),
+            middleware: {
+                transformParams: async ({ params }) => ({ ...params, reasoning: 'minimal' }),
+            },
+        });
     }
 }
