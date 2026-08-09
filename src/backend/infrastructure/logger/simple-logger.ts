@@ -3,6 +3,7 @@ import path from 'path';
 import util from 'util';
 import log from 'electron-log/main';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
+import { maskSensitiveValues } from '@/common/log/mask';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { AppStateDirectoryType, getAppStatePath } from '@/backend/infrastructure/system/AppStatePath';
 
@@ -103,17 +104,28 @@ function shouldLogFocus(msg: string, focus?: string): boolean {
     return (focus || extractFocusToken(msg)) === FOCUS_TOKEN_FILTER;
 }
 
+/**
+ * 把日志载荷序列化为单行紧凑字符串。
+ *
+ * 行为说明：
+ * - Error 取 name/message 与前 5 层堆栈，其余用 util.inspect（深度 3）；
+ * - 序列化结果统一经过敏感值模式掩码，防止错误对象或服务层数据携带密钥字符串落盘。
+ */
 function normalizeData(data: unknown): string {
     if (data === undefined) return '';
+    let raw: string;
     if (data instanceof Error) {
         const stack = data.stack ? data.stack.split('\n').slice(0, 5).join(' | ') : '';
-        return stack ? `${data.name}: ${data.message} | ${stack}` : `${data.name}: ${data.message}`;
+        raw = stack ? `${data.name}: ${data.message} | ${stack}` : `${data.name}: ${data.message}`;
+    } else {
+        try {
+            raw = util.inspect(data, { depth: 3, breakLength: Infinity, compact: true });
+        } catch {
+            raw = String(data);
+        }
     }
-    try {
-        return util.inspect(data, { depth: 3, breakLength: Infinity, compact: true });
-    } catch {
-        return String(data);
-    }
+    // 统一兜底掩码：错误对象/服务层数据里可能直接携带密钥字符串（如 OpenAI 错误回显 key）。
+    return maskSensitiveValues(raw);
 }
 
 function toSingleLine(text: string) {
