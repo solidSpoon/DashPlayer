@@ -15,12 +15,15 @@ import TYPES from '@/backend/ioc/types';
 //   （排除 chat/codex/pro 后缀）。实测 gpt-5.4-nano 接受 none、拒绝 minimal。
 // - DeepSeek：deepseek-v4 及更高版本支持 none；deepseek-chat/v3 是开关式思考，不走 effort。
 //   实测 deepseek-v4-flash 接受 none。
+// - 智谱：GLM-5.x 支持 none（官方文档：GLM-5.2 起按 SKU 声明 reasoning_effort，传入 none 或
+//   minimal 模型会放弃思考）；GLM-4.5/4.6/4.7 是开关式思考，不走 effort。
 // - 豆包：doubao-seed-1.6（排除 251015 快照/flash/thinking）与 doubao-1-5-thinking-pro-m 支持 none。
 // - Mistral：mistral-small-2603 支持 none。
 // - xAI：grok-4.3（排除 non-reasoning 变体）支持 none。
 const NONE_REASONING_MODEL_PATTERNS: RegExp[] = [
     /^gpt-5[.-]\d+(?!.*(?:chat|codex|pro))/i,
     /^deepseek-v(?:[4-9]\d*|[1-9]\d{1,})/i,
+    /^glm-5/i,
     /^doubao-(?:1-5-thinking-pro-m|seed-1[.-]6)(?!-(?:flash|thinking)(?:-|$))(?:-lite)?(?!-251015)(?:-\d+)?$/i,
     /^mistral-small-2603/i,
     /^grok-4\.3(?!.*non-reasoning)/i,
