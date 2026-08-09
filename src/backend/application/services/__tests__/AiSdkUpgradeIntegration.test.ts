@@ -28,17 +28,17 @@ vi.mock('@/backend/infrastructure/settings/store', () => ({
 }));
 
 import { z } from 'zod';
-import { ModelMessage, Output, streamText, LanguageModel } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { ModelMessage, Output, streamText, LanguageModel, wrapLanguageModel } from 'ai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
-import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
 import { splitSystemMessages } from '@/backend/application/services/chat/ChatPromptBuilder';
 import ChatServiceImpl from '../impl/ChatServiceImpl';
 import ChatSessionServiceImpl from '../impl/ChatSessionServiceImpl';
 import TranslateServiceImpl from '../impl/TranslateServiceImpl';
-import AiProviderServiceImpl from '../impl/clients/AiProviderServiceImpl';
+import AiProviderServiceImpl, { isNoneReasoningModel } from '../impl/clients/AiProviderServiceImpl';
 import ModelRoutingServiceImpl from '../impl/clients/ModelRoutingServiceImpl';
 import type DpTaskService from '../DpTaskService';
 import type AiProviderService from '../AiProviderService';
@@ -57,17 +57,51 @@ const liveTestsEnabled = process.env.DP_RUN_LIVE_AI_TESTS === 'true';
 const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 
 /**
- * 构造一个直连测试用的真实 OpenAI 模型（走 @ai-sdk/openai v4 的 createOpenAI）。
+ * 构造一个与生产 getModel 完全一致的直连测试模型：
+ * @ai-sdk/openai-compatible 的 chat 模型（只走 /chat/completions，避开官方 provider 默认的
+ * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）+ 仅对已知支持 none 的
+ * 模型族注入 reasoningEffort: 'none'（关闭推理，最快响应），其余模型不注入保持默认档位。
  *
  * @param modelId 要使用的模型 id。
  * @returns 可直接传给 streamText 的 LanguageModel。
  */
 const buildLiveModel = (modelId: string): LanguageModel => {
-    const openai = createOpenAI({
+    const provider = createOpenAICompatible({
+        name: 'openai',
         baseURL: `${testConfig!.endpoint}/v1`,
         apiKey: testConfig!.key,
     });
-    return openai(modelId);
+    // 与生产 getModel 的门控一致：isNoneReasoningModel 为假时不注入（走模型默认档位）
+    if (!isNoneReasoningModel(modelId)) {
+        return provider.chatModel(modelId);
+    }
+    return wrapLanguageModel({
+        model: provider.chatModel(modelId),
+        middleware: {
+            transformParams: async ({ params }) => ({
+                ...params,
+                providerOptions: {
+                    ...params.providerOptions,
+                    openai: { reasoningEffort: 'none' },
+                },
+            }),
+        },
+    });
+};
+
+/**
+ * 构造一个不带推理注入的裸 chat 模型，仅用于枚举各模型支持的推理档位（档位由调用方显式传入）。
+ *
+ * @param modelId 要使用的模型 id。
+ * @returns 可直接传给 streamText 的 LanguageModel。
+ */
+const buildRawLiveModel = (modelId: string): LanguageModelV3 => {
+    const provider = createOpenAICompatible({
+        name: 'openai',
+        baseURL: `${testConfig!.endpoint}/v1`,
+        apiKey: testConfig!.key,
+    });
+    return provider.chatModel(modelId);
 };
 
 /**
@@ -99,6 +133,40 @@ const buildMockTextModel = (text: string): LanguageModel => {
 };
 
 const runTests = (): void => {
+    // 离线回归：不发真实请求，守护 getModel 的推理门控（只对已知支持 none 的模型族注入）。
+    describe('推理门控（isNoneReasoningModel）', () => {
+        it.each([
+            ['gpt-5.4-nano', true],
+            ['gpt-5.1', true],
+            ['gpt-5.2', true],
+            ['gpt-5.6-sol', true],
+            ['gpt-5', false],
+            ['gpt-5-mini', false],
+            ['gpt-5-chat-latest', false],
+            ['gpt-5.2-pro', false],
+            ['gpt-5.1-codex', false],
+            ['o3', false],
+            ['o4-mini', false],
+            ['gpt-oss-120b', false],
+            ['deepseek-v4-flash', true],
+            ['deepseek-v5', true],
+            ['deepseek-v10', true],
+            ['deepseek-chat', false],
+            ['deepseek-v3', false],
+            ['doubao-seed-1-6', true],
+            ['doubao-1-5-thinking-pro-m', true],
+            ['doubao-seed-1-6-251015', false],
+            ['doubao-seed-1-6-flash', false],
+            ['mistral-small-2603', true],
+            ['mistral-small-2501', false],
+            ['grok-4.3', true],
+            ['grok-4.3-non-reasoning', false],
+            ['grok-4', false],
+        ])('模型 %s 的 none 注入判断应为 %s', (modelId, expected) => {
+            expect(isNoneReasoningModel(modelId)).toBe(expected);
+        });
+    });
+
     // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的欢迎语句路径。
     describe('整句学习欢迎语句（AI SDK v7 离线回归）', () => {
         describe('splitSystemMessages（system 消息拆分）', () => {
@@ -202,7 +270,65 @@ const runTests = (): void => {
         });
     });
 
-    describeLive('AI SDK 升级验证（ai v7 + @ai-sdk/openai v4）', () => {
+    describeLive('AI SDK 升级验证（ai v7 + @ai-sdk/openai-compatible）', () => {
+        describe('推理强度（reasoning effort）档位与模型兼容性', () => {
+            it('真实连接：生产 getModel 路径（按模型族注入 none 或保持默认）对每个可用模型都能流式产出文本', async () => {
+                expect(testConfig!.availableModels.length).toBeGreaterThan(0);
+                for (const modelId of testConfig!.availableModels) {
+                    // buildLiveModel 与生产 getModel 一致：兼容 provider + 仅对已知支持 none 的模型族注入最快档位
+                    const result = streamText({
+                        model: buildLiveModel(modelId),
+                        prompt: 'Reply with exactly: ok',
+                    });
+                    let text = '';
+                    for await (const chunk of result.textStream) {
+                        text += chunk;
+                    }
+                    expect(text.trim().length, `模型 ${modelId} 经生产 getModel 路径应能产出文本`).toBeGreaterThan(0);
+                }
+            }, 120000);
+
+            it('真实连接：枚举每个可用模型支持的推理档位，并保证 none 通用', async () => {
+                // 基线（不设置推理）用于对照：某些代理端模型即使成功也会在流里带 error part
+                const efforts = ['（不设置）', 'minimal', 'low', 'none'] as const;
+                const matrix: Record<string, string[]> = {};
+                for (const modelId of testConfig!.availableModels) {
+                    matrix[modelId] = [];
+                    for (const effort of efforts) {
+                        // 注意：提供方 400 不会让 textStream 抛错，而是以 error part 进入流；
+                        // 但 deepseek 等代理模型即使成功也会带“空 error part”，
+                        // 所以只把带具体信息的真实错误（如 AI_APICallError）视为档位不被支持。
+                        const result = streamText({
+                            model: buildRawLiveModel(modelId),
+                            // 兼容 provider 不认顶层 reasoning 参数，档位必须走 providerOptions.<name>.reasoningEffort
+                            ...(effort === '（不设置）'
+                                ? {}
+                                : { providerOptions: { openai: { reasoningEffort: effort } } }),
+                            prompt: 'Reply with exactly: ok',
+                            onError: () => {},
+                        });
+                        let rejected = false;
+                        for await (const part of result.fullStream) {
+                            if (part.type === 'error' && part.error && (part.error as Error).message) {
+                                rejected = true;
+                            }
+                        }
+                        if (!rejected) {
+                            matrix[modelId].push(effort);
+                        }
+                    }
+                }
+                console.log('[推理档位兼容矩阵]', JSON.stringify(matrix));
+                // 生产门控只对已知支持 none 的模型族注入（isNoneReasoningModel 为真），
+                // 其余模型保持默认档位；因此只断言这些模型必须接受 none
+                for (const modelId of testConfig!.availableModels) {
+                    if (isNoneReasoningModel(modelId)) {
+                        expect(matrix[modelId]).toContain('none');
+                    }
+                }
+            }, 120000);
+        });
+
         describe('streamText 文本流（聊天/欢迎语等通用路径）', () => {
             it('真实连接：messages 输入能流式产出文本并正常结束', async () => {
                 const result = streamText({
