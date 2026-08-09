@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
+import { setConcurrencyLogger } from '@/backend/application/kernel/concurrency';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
@@ -16,6 +17,8 @@ import { FavouriteClipsService } from '@/backend/application/services/FavouriteC
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
+import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
+import { storeGet } from '@/backend/infrastructure/settings/store';
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
@@ -26,6 +29,8 @@ if (squirrelStartup) {
 
 const logger = getMainLogger('MainStartup');
 const devtoolsLogger = getMainLogger('devtools');
+// 组合根运行期注入并发内核日志端口，保持 application/kernel 不依赖 infrastructure。
+setConcurrencyLogger(getMainLogger('concurrency'));
 
 const mainWindowRef = {
     current: null as BrowserWindow | null
@@ -131,7 +136,15 @@ const installReactDevTools = async (targetSession: Session): Promise<void> => {
     }
 };
 
+/**
+ * 创建主窗口并加载渲染端入口。
+ *
+ * 行为说明：
+ * - 开发模式加载 Vite dev server 并尝试安装 React DevTools；
+ * - 生产模式直接加载打包后的 renderer 文件。
+ */
 const createWindow = () => {
+    logger.info('main window created');
     // Create the browser window.
     const isMac = process.platform === 'darwin';
     const mainWindow = new BrowserWindow({
@@ -177,6 +190,13 @@ app.on('ready', async () => {
     await DpTaskServiceImpl.cancelAll();
     await runResyncAfterResetDbIfNeeded();
     await initProxyFeature();
+    // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。
+    logger.info('app ready', {
+        version: app.getVersion(),
+        platform: process.platform,
+        mode: isDevelopmentMode() ? 'development' : 'production',
+        proxyMode: storeGet('proxy.mode'),
+    });
     createWindow();
 });
 
@@ -184,9 +204,13 @@ app.on('ready', async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+    logger.info('all windows closed', { platform: process.platform });
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+app.on('before-quit', () => {
+    logger.info('app before quit');
 });
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the

@@ -71,8 +71,26 @@ export default class SettingsController implements Controller {
     }
 
     public async updateAppearanceSettings(params: { theme: string; fontSize: string }): Promise<void> {
+        this.logger.info('update appearance settings', { theme: params.theme, fontSize: params.fontSize });
         await this.settingsKeyValueService.set('appearance.theme', params.theme);
         await this.settingsKeyValueService.set('appearance.fontSize', params.fontSize);
+    }
+
+    /**
+     * 提取代理地址的主机部分用于日志；含凭据或解析失败时整体掩码。
+     * @param url 代理地址。
+     * @returns 掩码后的日志摘要。
+     */
+    private extractProxyHost(url: string): string {
+        try {
+            const parsed = new URL(url);
+            if (parsed.username || parsed.password) {
+                return '***';
+            }
+            return `${parsed.protocol}//${parsed.host}`;
+        } catch {
+            return url ? '***' : '';
+        }
     }
 
     /**
@@ -81,6 +99,7 @@ export default class SettingsController implements Controller {
      * 写入后通过代理设置订阅自动重应用，无需在此处主动调用。
      */
     public async updateProxySettings(params: { mode: string; url: string; bypassRules: string }): Promise<void> {
+        this.logger.info('update proxy settings', { mode: params.mode, host: this.extractProxyHost(params.url) });
         await this.settingsKeyValueService.set('proxy.mode', params.mode);
         await this.settingsKeyValueService.set('proxy.url', params.url);
         await this.settingsKeyValueService.set('proxy.bypass_rules', params.bypassRules);
@@ -129,6 +148,10 @@ export default class SettingsController implements Controller {
      * 更新快捷键设置。
      */
     public async updateShortcutSettings(params: ShortcutSettingSaveVO): Promise<void> {
+        this.logger.info('update shortcut settings', {
+            configured: Object.values(params).filter((value) => value).length,
+            total: Object.keys(params).length,
+        });
         await this.settingsKeyValueService.set('shortcut.previousSentence', params.previousSentence);
         await this.settingsKeyValueService.set('shortcut.nextSentence', params.nextSentence);
         await this.settingsKeyValueService.set('shortcut.repeatSentence', params.repeatSentence);
@@ -161,6 +184,7 @@ export default class SettingsController implements Controller {
      */
     public async updateStorageSettings(params: { path: string; collection: string }): Promise<void> {
         const nextPath = params.path.trim();
+        this.logger.info('update storage settings', { path: nextPath });
         if (nextPath.length > 0) {
             const status = getStorageRootStatus(nextPath);
             if (!status.available) {

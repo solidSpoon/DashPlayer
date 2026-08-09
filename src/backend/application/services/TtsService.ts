@@ -20,6 +20,9 @@ class TtsService {
         if (StrUtil.isBlank(storeGet('apiKeys.openAi.key')) || StrUtil.isBlank(storeGet('apiKeys.openAi.endpoint'))) {
             throw new Error('OpenAI API key or endpoint is not set');
         }
+        const startedAt = Date.now();
+        const charCount = str.length;
+        const preview = StrUtil.preview(str);
         const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
         const headers = {
             'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
@@ -35,6 +38,8 @@ class TtsService {
         };
 
         try {
+            // 只记请求要点与摘要，不记录完整文本。
+            logger.debug('tts request start', { charCount, preview });
             const response = await axios.post(url, data, { headers, responseType: 'arraybuffer' });
             const tempDir = path.join(os.tmpdir(), 'dp/tts');
             if (!fs.existsSync(tempDir)) {
@@ -42,10 +47,12 @@ class TtsService {
             }
             const filename = str.replace(/[^a-zA-Z0-9]/g, '_') + '.mp3';
             const outputPath = path.join(tempDir, filename);
+            const bytes = Buffer.from(response.data).length;
             fs.writeFileSync(outputPath, Buffer.from(response.data), 'binary');
+            logger.debug('tts request ok', { charCount, preview, durationMs: Date.now() - startedAt, bytes });
             return outputPath;
         } catch (error) {
-            logger.error('tts request failed', { error });
+            logger.error('tts request failed', { charCount, durationMs: Date.now() - startedAt, error });
             throw new Error('Failed to generate TTS');
         }
     }

@@ -15,6 +15,8 @@ import { createRateLimiter, RateLimiter } from '@/backend/application/kernel/con
 import { createSemaphore, Semaphore } from '@/backend/application/kernel/concurrency/primitives/Semaphore';
 import {
     AcquireOptions,
+    ConcurrencyLogger,
+    ConcurrencyLoggerRef,
     KernelAcquireOptions,
     LockOrderViolationError,
     Permit,
@@ -113,6 +115,11 @@ export interface ConcurrencyKernel {
         rateLimiter: Record<string, ReturnType<RateLimiter['snapshot']>>;
         scheduler: Record<string, SchedulerSnapshot>;
     };
+    /**
+     * 注入/更新日志端口；由组合根在运行期调用，undefined 关闭并发内核日志。
+     * @param logger 日志端口。
+     */
+    setLogger(logger: ConcurrencyLogger | undefined): void;
 }
 
 /**
@@ -166,15 +173,21 @@ function resolveLockOrder(key: string, orderMap: Map<string, number>): number {
 /**
  * 创建全局并发内核实例。
  * @param overrideProfiles 可选覆盖配置。
+ * @param logger 初始日志端口；也可通过 setLogger 在运行期注入/更新。
  * @returns 并发内核实例。
  */
-export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyProfiles>): ConcurrencyKernel {
+export function createConcurrencyKernel(
+    overrideProfiles?: Partial<ConcurrencyProfiles>,
+    logger?: ConcurrencyLogger,
+): ConcurrencyKernel {
     const profiles = mergeProfiles(defaultConcurrencyProfiles, overrideProfiles);
     const semaphoreInstances = new Map<string, Semaphore>();
     const mutexInstances = new Map<string, Mutex>();
     const rateLimiterInstances = new Map<string, RateLimiter>();
     const schedulerInstances = new Map<string, CooperativeScheduler>();
     const contextStorage = new AsyncLocalStorage<ConcurrencyContext>();
+    // 可变引用：组合根可在运行期注入/更新，已创建的原语也能立即生效。
+    const loggerRef: ConcurrencyLoggerRef = { current: logger };
     const semaphoreOrder = new Map<string, number>(Object.keys(profiles.semaphore)
         .sort((a, b) => a.localeCompare(b))
         .map((key, index) => [key, index]));
@@ -314,7 +327,7 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
                 return cached;
             }
             const profile = getSemaphoreProfile(key);
-            const created = createSemaphore({ capacity: profile.capacity, name: key });
+            const created = createSemaphore({ capacity: profile.capacity, name: key, logger: loggerRef });
             semaphoreInstances.set(key, created);
             return created;
         },
@@ -324,7 +337,7 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
             if (cached) {
                 return cached;
             }
-            const created = createMutex({ name: key });
+            const created = createMutex({ name: key, logger: loggerRef });
             mutexInstances.set(key, created);
             return created;
         },
@@ -339,6 +352,7 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
                 maxRequests: profile.maxRequests,
                 windowMs: profile.windowMs,
                 name: key,
+                logger: loggerRef,
             });
             rateLimiterInstances.set(key, created);
             return created;
@@ -354,6 +368,7 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
                 name: key,
                 timeSliceMs: profile.timeSliceMs,
                 yieldDelayMs: profile.yieldDelayMs,
+                logger: loggerRef,
             });
             schedulerInstances.set(key, created);
             return created;
@@ -453,6 +468,10 @@ export function createConcurrencyKernel(overrideProfiles?: Partial<ConcurrencyPr
                 rateLimiter,
                 scheduler,
             };
+        },
+
+        setLogger(nextLogger: ConcurrencyLogger | undefined): void {
+            loggerRef.current = nextLogger;
         },
     };
 }
