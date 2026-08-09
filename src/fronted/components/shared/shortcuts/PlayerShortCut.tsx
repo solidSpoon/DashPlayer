@@ -7,7 +7,7 @@ import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
 import { playerActions } from '@/fronted/components/feature/player/player';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
-import usePlayerUi from '@/fronted/hooks/usePlayerUi';
+import { usePlayerUi } from '@/fronted/hooks/usePlayerUi';
 
 const process = (values: string) => values
     .split(',')

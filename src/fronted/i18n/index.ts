@@ -37,18 +37,6 @@ export const resources = {
     },
 };
 
-type DotPrefix<T extends string> = T extends '' ? '' : `.${T}`;
-type LeafKeys<T> = T extends string
-    ? ''
-    : {
-        [K in Extract<keyof T, string>]: `${K}${DotPrefix<LeafKeys<T[K]>>}`;
-    }[Extract<keyof T, string>];
-type ResourceSchema = typeof resources['zh-CN'];
-type NamespaceKeys = Extract<keyof ResourceSchema, string>;
-export type TranslationKey = {
-    [N in NamespaceKeys]: `${N}.${LeafKeys<ResourceSchema[N]>}`;
-}[NamespaceKeys];
-
 export const resolveLocaleFromSystem = (language: string | undefined | null): AppLocale => {
     if ((language ?? '').toLowerCase().startsWith('zh')) {
         return 'zh-CN';

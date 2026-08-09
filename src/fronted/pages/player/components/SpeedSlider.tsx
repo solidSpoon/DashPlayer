@@ -41,6 +41,16 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                         onSpeedChange(num);
                         onSelectFinish?.();
                     }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setOpen(false);
+                            onSpeedChange(num);
+                            onSelectFinish?.();
+                        }
+                    }}
                     className={cn(
                         'flex flex-row w-full items-center justify-start px-8 py-1.5 rounded text-sm font-mono',
                         'cursor-pointer',

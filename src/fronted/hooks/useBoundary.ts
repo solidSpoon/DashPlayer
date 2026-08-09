@@ -1,7 +1,7 @@
 /**
  * 负责计算字幕容器的可视边界，并同步给字幕滚动状态机使用。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import useSystem from './useSystem';
 import useLayout from './useLayout';
 import useSubtitleScroll from './useSubtitleScroll';

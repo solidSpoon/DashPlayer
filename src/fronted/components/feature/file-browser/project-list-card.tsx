@@ -2,7 +2,7 @@ import useSWR from 'swr';
 import { cn } from '@/fronted/lib/utils';
 import React from 'react';
 import { SWR_KEY, swrApiMutate } from '@/fronted/lib/swr-util';
-import { Film, ListVideo, Trash2, Music } from 'lucide-react'; // 注意这里导入了 Music 图标
+import { Film, ListVideo, Trash2 } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { Progress } from '@/fronted/components/ui/progress';
@@ -64,6 +64,15 @@ import useInView from '@/fronted/hooks/useInView';
             <ContextMenuTrigger>
                 <div
                     ref={containerRef}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        // 仅处理容器自身的按键，避免拦截子按钮的 Enter/Space
+                        if (e.currentTarget === e.target && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            onSelected();
+                        }
+                    }}
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
                     className={cn('')}

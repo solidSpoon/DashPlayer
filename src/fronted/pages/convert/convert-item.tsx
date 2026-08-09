@@ -35,11 +35,11 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
     const { t } = useI18nTranslation('pages');
     const { data: url } = useSWR(file ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
-        async ([key, path, time]) => {
+        async ([, path, time]) => {
             return await api.call('split-video/thumbnail', { filePath: path, time });
         }
     );
-    const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([key, f]) => {
+    const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
         return await api.call('convert/video-length', f);
     }, {
         revalidateOnFocus: false,
@@ -65,6 +65,14 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
             <ContextMenuTrigger>
                 <div
                     onClick={onSelected}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSelected();
+                        }
+                    }}
                     className={cn('flex gap-6  p-4 relative rounded-xl overflow-hidden', className)}>
                     <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
                         {url ? <img

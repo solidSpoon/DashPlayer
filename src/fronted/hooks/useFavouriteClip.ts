@@ -8,7 +8,7 @@ import { swrApiMutate } from '@/fronted/lib/swr-util';
 import { Nullable } from '@/common/types/Types';
 import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
-import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';

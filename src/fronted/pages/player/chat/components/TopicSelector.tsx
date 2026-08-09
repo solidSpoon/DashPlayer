@@ -4,9 +4,7 @@ import { Card, CardContent } from '@/fronted/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 
-const TopicSelector = ({ className }: {
-    className: string,
-}) => {
+const TopicSelector = () => {
 
     const currentSentence = usePlayer(state => state.currentSentence);
     const sentences = usePlayer(state => state.sentences);
@@ -45,7 +43,7 @@ const TopicSelector = ({ className }: {
                 {
                     subtitles.map((s, i) => (
                         <div
-                            onContextMenu={(e) => {
+                            onContextMenu={() => {
                                 updateInternalContext(s.text);
                             }}
                             // ref={s === currentSentence ? currentRef : null}

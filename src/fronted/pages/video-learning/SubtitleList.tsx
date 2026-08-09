@@ -95,6 +95,14 @@ export default function SubtitleList({
               itemRefs.current[idx] = r;
             }}
             onClick={() => onPickLine?.(idx)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onPickLine?.(idx);
+              }
+            }}
             className={`p-2 rounded-lg text-sm cursor-pointer transition-colors ${
               idx === activeIndex
                 ? 'bg-primary/10'

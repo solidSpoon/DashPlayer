@@ -25,7 +25,7 @@ export default function MainSubtitle() {
             // 使用 transGroup 字段判断是否需要加载翻译
             loadTranslationGroup(subtitle, sentence.index);
         }
-    }, [sentence?.transGroup, sentence?.fileHash, sentence?.index, loadTranslationGroup]);
+    }, [logger, sentence, subtitle, loadTranslationGroup]);
 
     const ele = (): ReactElement[] => {
         if (!sentence) {

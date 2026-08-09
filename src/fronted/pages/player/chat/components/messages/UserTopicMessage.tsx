@@ -59,7 +59,7 @@ const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
     
     return (
         <div
-            onContextMenu={(e) => {
+            onContextMenu={() => {
                 updateInternalContext(msg.content);
             }}
             className="flex flex-wrap items-start gap-x-2 gap-y-6 px-4 py-1 relative"

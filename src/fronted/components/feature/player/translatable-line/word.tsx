@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as turf from '@turf/turf';
-import { Feature, Polygon } from '@turf/turf';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+import convex from '@turf/convex';
+import {
+    featureCollection,
+    point,
+    polygon,
+    type Feature,
+    type Polygon,
+} from '@turf/helpers';
 import WordPop from './word-pop';
 import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
@@ -38,11 +45,11 @@ export interface WordParam {
  */
 export const getBox = (ele: HTMLElement): Feature<Polygon> => {
     if (!ele) {
-        return turf.polygon([[]]);
+        return polygon([[]]);
     }
     const rect = ele.getBoundingClientRect();
     const number = 2;
-    return turf.polygon([
+    return polygon([
         [
             [rect.left - number, rect.top - number],
             [rect.right + number, rect.top - number],
@@ -102,7 +109,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 });
 
                 if (openaiDictionaryEnabled) {
-                    const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in (result as Record<string, unknown>);
+                    const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in result;
                     useDictionaryStream.getState().setFinalResult(
                         targetWord,
                         requestId,
@@ -136,7 +143,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             });
 
             if (openaiDictionaryEnabled) {
-                const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in (newData as Record<string, unknown>);
+                const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in newData;
                 useDictionaryStream.getState().setFinalResult(
                     original,
                     requestId,
@@ -183,10 +190,10 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             }
             const wordELe = getBox(eleRef.current!);
             const popper = getBox(popperRef.current ?? eleRef.current!);
-            const hull = turf.convex(turf.featureCollection([wordELe, popper]));
-            const point = turf.point([e.clientX, e.clientY]);
+            const hull = convex(featureCollection([wordELe, popper]));
+            const pt = point([e.clientX, e.clientY]);
 
-            const b = turf.booleanPointInPolygon(point, hull!);
+            const b = booleanPointInPolygon(pt, hull!);
             clearTimeout(timeout);
             if (!b) {
                 setHovered(false);
@@ -213,11 +220,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
     /**
      * 单击单词时播放发音；若用户刚通过拖拽产生选区，则跳过播放。
      */
-    const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
-        if (hasMeaningfulSelection(event.currentTarget)) {
-            return;
-        }
-
+    const playWordAudio = async () => {
         if (playLoading) return;
 
         setPlayLoading(true);
@@ -249,14 +252,35 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
         }
     };
 
+    const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
+        if (hasMeaningfulSelection(event.currentTarget)) {
+            return;
+        }
+        await playWordAudio();
+    };
+
     return (
         <span>
             <span
                 ref={eleRef}
                 className="rounded cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onFocus={() => {
+                    setHovered(true);
+                }}
                 onMouseOver={() => {
                     setHovered(true);
                     pause();
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        void playWordAudio();
+                        if (!hovered) {
+                            setHovered(true);
+                        }
+                    }
                 }}
                 onClick={(e) => {
                     void handleWordClick(e);

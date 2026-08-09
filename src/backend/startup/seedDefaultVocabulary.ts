@@ -6,7 +6,7 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
 import container from '@/backend/ioc/inversify.config';
 import SystemConfigService from '@/backend/application/services/SystemConfigService';
-import { loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
+import { DefaultVocabularyWord, loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
 
 export const DEFAULT_VOCABULARY_VERSION = '1';
 const SEED_VERSION_KEY = 'syssetup.vocabularySeedVersion';

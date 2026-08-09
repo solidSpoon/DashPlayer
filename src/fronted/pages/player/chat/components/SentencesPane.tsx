@@ -19,7 +19,6 @@ const SentencesPart = ({ sentences }: { sentences: {
                 <Playable
                     className="text-base font-medium text-foreground/90">{s?.sentence}</Playable>
                 <div
-                    tabIndex={0}
                     className="text-sm text-muted-foreground mt-0.5">{s?.meaning}</div>
                 <div className={'flex flex-wrap gap-x-3 gap-y-0.5 mt-2'}>
                     {

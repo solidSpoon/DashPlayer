@@ -52,9 +52,6 @@ const PlayerWithControlsPage = () => {
         useLayout((s) => s.height)
     );
     const location = useLocation();
-    const sideBarAnimation =
-        (new URLSearchParams(location.search).get('sideBarAnimation') ??
-            'true') === 'true';
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
@@ -252,7 +249,7 @@ const PlayerWithControlsPage = () => {
             // await api.call('watch-project/video/play', video.id);
         };
         runEffect();
-    }, [video]);
+    }, [video, navigate, t]);
     useEffect(() => {
         setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);

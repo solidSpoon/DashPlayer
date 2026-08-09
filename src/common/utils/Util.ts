@@ -1,5 +1,5 @@
 import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
-import { Nullable } from 'vitest';
+import type { Nullable } from '@/common/types/Types';
 
 
 /**

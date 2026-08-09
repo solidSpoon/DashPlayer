@@ -93,7 +93,7 @@ export const checkUpdate = async (): Promise<UpdateCheckResult> => {
     const releases: Release[] = listResponse.data
         .filter(isStableRelease)
         .map((release: { html_url: string; tag_name: string; body: string }) => toRelease(release))
-        .filter(release => isNewerVersion(release.version, currentVersion))
+        .filter((release: Release) => isNewerVersion(release.version, currentVersion))
         .sort(sortByVersionDesc);
 
     logger.info('fetched releases from github', { count: releases.length });

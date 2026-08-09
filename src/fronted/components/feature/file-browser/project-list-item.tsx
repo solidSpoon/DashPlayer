@@ -35,7 +35,7 @@ const ProjectListItem = ({ video, onSelected }: {
 
     const { data: url } = useSWR(
         inView && !isAudio ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] : null,
-        async ([key, path, file, time]) => {
+        async ([, path, file, time]) => {
             return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
@@ -52,6 +52,15 @@ const ProjectListItem = ({ video, onSelected }: {
             <ContextMenuTrigger>
                 <div
                     ref={containerRef}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        // 仅处理容器自身的按键，避免拦截子按钮的 Enter/Space
+                        if (e.currentTarget === e.target && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            onSelected();
+                        }
+                    }}
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
                     onClick={onSelected}

@@ -1,5 +1,4 @@
 import {cn} from "@/fronted/lib/utils";
-import {useEffect, useRef, useState} from "react";
 import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 
 const PlayerToaster = ({ className}: {

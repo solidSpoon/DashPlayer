@@ -132,7 +132,7 @@ const PlaybackControlBar = ({
                                     playerActions.setAutoPause(false);
                                     playerActions.setSingleRepeat(false);
                                 }}
-                                onValueCommit={(value) => {
+                                onValueCommit={() => {
                                     currentValueUpdateTime.current = Date.now();
                                     setSelecting(false);
                                 }}

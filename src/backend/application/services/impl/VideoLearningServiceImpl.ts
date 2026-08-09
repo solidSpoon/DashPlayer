@@ -1,7 +1,6 @@
 import path from 'path';
 import fs from 'fs';
 
-import db from '@/backend/infrastructure/db';
 import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 import VideoLearningClipRepository from '@/backend/application/ports/repositories/VideoLearningClipRepository';
@@ -12,13 +11,12 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 
-import { and, desc, eq, gte, inArray, like, lte, sql } from 'drizzle-orm';
 import { inject, injectable, postConstruct } from 'inversify';
 
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
-import { ClipQuery, SimpleClipQuery } from '@/common/api/dto';
+import { SimpleClipQuery } from '@/common/api/dto';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
 import CacheService from '@/backend/application/services/CacheService';
 import { ClipOssService } from '@/backend/application/services/OssService';
