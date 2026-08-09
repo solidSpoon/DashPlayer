@@ -147,6 +147,34 @@ export const buildAnalysisPrompt = (text: string): string => {
     ].join('\n');
 };
 
+/**
+ * 把消息列表中的 system 角色消息拆出来，返回 system 内容与剩余消息。
+ *
+ * AI SDK v7 起 messages 里不允许再带 system 角色消息（standardizePrompt 会直接抛
+ * InvalidPromptError），需要把 system 内容通过 streamText 的 system 参数单独传入。
+ * 多个 system 消息按原顺序用空行拼接为一个字符串。
+ *
+ * @param messages 原始消息列表（可能包含 system 角色消息）。
+ * @returns system 拼接后的内容（没有 system 时为 undefined），以及去掉 system 后的剩余消息。
+ */
+export const splitSystemMessages = (
+    messages: ModelMessage[]
+): { system?: string; messages: ModelMessage[] } => {
+    const systemParts: string[] = [];
+    const rest: ModelMessage[] = [];
+    for (const message of messages) {
+        if (message.role === 'system') {
+            systemParts.push(message.content);
+        } else {
+            rest.push(message);
+        }
+    }
+    return {
+        system: systemParts.length > 0 ? systemParts.join('\n\n') : undefined,
+        messages: rest,
+    };
+};
+
 export const appendBackgroundMessage = (
     messages: ModelMessage[],
     background?: ChatBackgroundContext
