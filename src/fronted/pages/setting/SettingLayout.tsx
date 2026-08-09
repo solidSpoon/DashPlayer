@@ -48,8 +48,8 @@ const Sidebar = () => {
             {ele(t('sections.serviceCredentials'), 'service-credentials', <Bot />)}
             {ele(t('sections.engineSelection'), 'engine-selection', <ToggleLeft />)}
             {ele(t('sections.storage'), 'storage', <Database />)}
-            {ele(t('sections.update'), 'update', <Compass />)}
             {ele(t('sections.proxy'), 'proxy', <Globe />)}
+            {ele(t('sections.update'), 'update', <Compass />)}
         </div>
     );
 };
