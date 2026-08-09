@@ -13,6 +13,7 @@ import {
     appendBackgroundMessage,
     buildAnalysisPrompt,
     buildWelcomeMessages,
+    splitSystemMessages,
 } from '@/backend/application/services/chat/ChatPromptBuilder';
 
 @injectable()
@@ -148,9 +149,12 @@ export default class ChatSessionServiceImpl implements ChatSessionService {
         if (!model) {
             return;
         }
+        // v7 起 system 不能放在 messages 里，需拆出来走 system 参数，否则流会静默空转
+        const { system, messages: promptMessages } = splitSystemMessages(messages);
         const result = streamText({
             model,
-            messages,
+            system,
+            messages: promptMessages,
         });
         for await (const chunk of result.textStream) {
             this.rendererGateway.fireAndForget('chat/stream', {

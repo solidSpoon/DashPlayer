@@ -30,8 +30,11 @@ vi.mock('@/backend/infrastructure/settings/store', () => ({
 import { z } from 'zod';
 import { ModelMessage, Output, streamText, LanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
+import { splitSystemMessages } from '@/backend/application/services/chat/ChatPromptBuilder';
 import ChatServiceImpl from '../impl/ChatServiceImpl';
 import ChatSessionServiceImpl from '../impl/ChatSessionServiceImpl';
 import TranslateServiceImpl from '../impl/TranslateServiceImpl';
@@ -67,7 +70,138 @@ const buildLiveModel = (modelId: string): LanguageModel => {
     return openai(modelId);
 };
 
+/**
+ * 构造一个返回固定文本流、不发真实请求的 mock 模型，供离线回归测试使用。
+ *
+ * @param text 模型固定返回的文本内容。
+ * @returns 可直接传给 streamText 的 LanguageModel。
+ */
+const buildMockTextModel = (text: string): LanguageModel => {
+    // 显式标注流部件类型，让 TS 能精确收窄到 LanguageModelV4StreamPart 联合
+    const streamParts: LanguageModelV4StreamPart[] = [
+        { type: 'text-start', id: 'mock-text' },
+        { type: 'text-delta', id: 'mock-text', delta: text },
+        { type: 'text-end', id: 'mock-text' },
+        {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+                inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
+                outputTokens: { total: 5, text: 5, reasoning: 0 },
+            },
+        },
+    ];
+    return new MockLanguageModelV4({
+        doStream: async () => ({
+            stream: convertArrayToReadableStream(streamParts),
+        }),
+    }) as unknown as LanguageModel;
+};
+
 const runTests = (): void => {
+    // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的欢迎语句路径。
+    describe('整句学习欢迎语句（AI SDK v7 离线回归）', () => {
+        describe('splitSystemMessages（system 消息拆分）', () => {
+            it('能把开头 system 消息拆出并保留剩余消息', () => {
+                const { system, messages } = splitSystemMessages([
+                    { role: 'system', content: '你是学习伙伴' },
+                    { role: 'user', content: '用户问题' },
+                    { role: 'assistant', content: '助手回答' },
+                ]);
+                expect(system).toBe('你是学习伙伴');
+                expect(messages).toEqual([
+                    { role: 'user', content: '用户问题' },
+                    { role: 'assistant', content: '助手回答' },
+                ]);
+            });
+
+            it('多个 system 消息按原顺序用空行拼接', () => {
+                const { system, messages } = splitSystemMessages([
+                    { role: 'system', content: '第一条' },
+                    { role: 'user', content: '问题' },
+                    { role: 'system', content: '第二条' },
+                ]);
+                expect(system).toBe('第一条\n\n第二条');
+                expect(messages).toEqual([{ role: 'user', content: '问题' }]);
+            });
+
+            it('没有 system 消息时返回 undefined 且消息不变', () => {
+                const { system, messages } = splitSystemMessages([
+                    { role: 'user', content: '问题' },
+                ]);
+                expect(system).toBeUndefined();
+                expect(messages).toEqual([{ role: 'user', content: '问题' }]);
+            });
+        });
+
+        describe('ChatSessionServiceImpl.startWelcome（整句学习面板欢迎语路径）', () => {
+            it('system+user 消息能流式产出欢迎语并通过事件回推，而不是空流直接 done', async () => {
+                const events: Array<{ event: string; payload: Record<string, unknown> }> = [];
+                const provider: AiProviderService = {
+                    getModel: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
+                };
+                const gateway: RendererGateway = {
+                    call: vi.fn(),
+                    fireAndForget: vi.fn((_path: never, params: Record<string, unknown>) => {
+                        events.push({ event: String(params.event), payload: params });
+                    }) as RendererGateway['fireAndForget'],
+                };
+                const sessionService = new ChatSessionServiceImpl();
+                (sessionService as unknown as { aiProviderService: AiProviderService }).aiProviderService = provider;
+                (sessionService as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
+
+                await sessionService.startWelcome({
+                    sessionId: 's-welcome',
+                    originalTopic: 'The monkeys start off by expecting zero reward.',
+                });
+                // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
+                const deadline = Date.now() + 10000;
+                while (!events.some((e) => e.event === 'done') && Date.now() < deadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                }
+                const chunks = events.filter((e) => e.event === 'chunk');
+                const done = events.find((e) => e.event === 'done');
+                expect(chunks.length).toBeGreaterThan(0);
+                expect(chunks.map((c) => String(c.payload.chunk)).join('')).toContain('你好');
+                expect(done).toBeDefined();
+            }, 15000);
+        });
+
+        describe('ChatServiceImpl.chat（句子学习对话路径）', () => {
+            it('带 system 消息的对话能流式产出文本并完成任务', async () => {
+                const calls: Array<{ type: string; id: number; info: Record<string, unknown> }> = [];
+                const dpTask: DpTaskService = {
+                    create: vi.fn().mockResolvedValue(1),
+                    detail: vi.fn(),
+                    details: vi.fn(),
+                    update: vi.fn(),
+                    process: vi.fn((id, info) => calls.push({ type: 'process', id, info: info as Record<string, unknown> })),
+                    finish: vi.fn((id, info) => calls.push({ type: 'finish', id, info: info as Record<string, unknown> })),
+                    fail: vi.fn((id, info) => calls.push({ type: 'fail', id, info: info as Record<string, unknown> })),
+                    cancel: vi.fn(),
+                    checkCancel: vi.fn(),
+                    registerTask: vi.fn(),
+                };
+                const provider: AiProviderService = {
+                    getModel: vi.fn(() => buildMockTextModel('这句话可以这样说')),
+                };
+                const chatService = new ChatServiceImpl();
+                (chatService as unknown as { dpTaskService: DpTaskService }).dpTaskService = dpTask;
+                (chatService as unknown as { aiProviderService: AiProviderService }).aiProviderService = provider;
+
+                const messages: ModelMessage[] = [
+                    { role: 'system', content: '你是用户的英语学习伙伴。' },
+                    { role: 'user', content: '这句话怎么理解？' },
+                ];
+                await chatService.chat(1, messages);
+                const finish = calls.find((c) => c.type === 'finish');
+                expect(finish).toBeDefined();
+                const result = JSON.parse(String(finish!.info.result ?? '{}')) as { str: string };
+                expect(result.str).toContain('这句话可以这样说');
+            }, 15000);
+        });
+    });
+
     describeLive('AI SDK 升级验证（ai v7 + @ai-sdk/openai v4）', () => {
         describe('streamText 文本流（聊天/欢迎语等通用路径）', () => {
             it('真实连接：messages 输入能流式产出文本并正常结束', async () => {
@@ -184,6 +318,7 @@ const runTests = (): void => {
             it('真实连接：chat() 能流式回传文本并完成任务', async () => {
                 calls.length = 0;
                 const messages: ModelMessage[] = [
+                    { role: 'system', content: '你是用户的英语学习伙伴，帮他看剧学英语。' },
                     { role: 'user', content: 'Say exactly: hi there' },
                 ];
                 await chatService.chat(1, messages);
@@ -250,6 +385,23 @@ const runTests = (): void => {
                 const lastChunk = chunks[chunks.length - 1];
                 const partial = lastChunk.payload.partial as { structure?: unknown };
                 expect(partial.structure).toBeDefined();
+            }, 60000);
+
+            it('真实连接：startWelcome() 能流式产出欢迎语并通过事件回推', async () => {
+                events.length = 0;
+                await sessionService.startWelcome({
+                    sessionId: 's2',
+                    originalTopic: 'The quick brown fox jumps over the lazy dog.',
+                });
+                // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
+                const deadline = Date.now() + 45000;
+                while (!events.some((e) => e.event === 'done') && Date.now() < deadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                const chunks = events.filter((e) => e.event === 'chunk');
+                const done = events.find((e) => e.event === 'done');
+                expect(chunks.length).toBeGreaterThan(0);
+                expect(done).toBeDefined();
             }, 60000);
         });
 
