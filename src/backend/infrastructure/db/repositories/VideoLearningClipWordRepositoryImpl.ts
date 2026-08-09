@@ -2,7 +2,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
-import { InsertVideoLearningClipWord, videoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
+import { videoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 
 import VideoLearningClipWordRepository from '@/backend/application/ports/repositories/VideoLearningClipWordRepository';
 
@@ -55,18 +55,6 @@ export default class VideoLearningClipWordRepositoryImpl implements VideoLearnin
         return result;
     }
 
-    public async insertManyIgnoreDuplicates(values: InsertVideoLearningClipWord[]): Promise<void> {
-        if (!values || values.length === 0) {
-            return;
-        }
-
-        await db.insert(videoLearningClipWord).values(values).onConflictDoNothing();
-    }
-
-    public async deleteAll(): Promise<void> {
-        await db.delete(videoLearningClipWord).where(sql`1=1`);
-    }
-
     public async countGroupedByWord(): Promise<Record<string, number>> {
         const rows = await db
             .select({
@@ -83,4 +71,3 @@ export default class VideoLearningClipWordRepositoryImpl implements VideoLearnin
         return result;
     }
 }
-

@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 
 import db from '@/backend/infrastructure/db';
-import { VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
+import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 import VideoLearningClipRepository from '@/backend/application/ports/repositories/VideoLearningClipRepository';
 import VideoLearningClipWordRepository from '@/backend/application/ports/repositories/VideoLearningClipWordRepository';
@@ -270,7 +270,19 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     /**
      * 定时任务
      */
+    /**
+     * 定时任务：处理视频学习片段的新增/取消队列。
+     *
+     * 行为说明：
+     * - 与 syncFromOss 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
+     */
     private async checkQueue() {
+        await concurrency.withMutex('video-learning-sync', async () => {
+            await this.doCheckQueue();
+        });
+    }
+
+    private async doCheckQueue() {
         if (this.taskQueue.size === 0) {
             return;
         }
@@ -912,16 +924,17 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
         const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
 
-        await this.videoLearningClipRepository.upsert({
+        const clip: InsertVideoLearningClip = {
             key: metaData.key,
             video_name: metaData.video_name,
             srt_clip: srtClip,
             srt_context: srtContext,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
-        });
+        };
 
         // 始终通过算法对核心文本进行匹配，以写入单词关系
+        const wordRelations: InsertVideoLearningClipWord[] = [];
         if (StrUtil.isNotBlank(srtClip)) {
             const matches = await this.wordMatchService.matchWordsInText(srtClip);
             const uniqueWords = Array.from(
@@ -933,15 +946,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             );
 
             if (uniqueWords.length > 0) {
-                const wordRelations: InsertVideoLearningClipWord[] = uniqueWords.map(word => ({
+                wordRelations.push(...uniqueWords.map(word => ({
                     clip_key: metaData.key,
                     word,
                     created_at: TimeUtil.timeUtc(),
                     updated_at: TimeUtil.timeUtc()
-                }));
-                await this.videoLearningClipWordRepository.insertManyIgnoreDuplicates(wordRelations);
+                })));
             }
         }
+        await this.videoLearningClipRepository.saveClipWithWords(clip, wordRelations);
     }
 
     private async clipInDb(key: string) {
@@ -949,17 +962,56 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 清除数据库，重新从 OSS 同步
+     * 清除数据库，重新从 OSS 同步。
+     *
+     * 行为说明：
+     * - 先把所有远端片段读入内存并完成单词匹配，再在单个事务内清空并重灌，任一步失败整体回滚；
+     * - 读取远端与单词匹配发生在事务外，避免在同步事务里做 IO 或命中缓存外的逻辑；
+     * - 与 checkQueue 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
      */
     public async syncFromOss() {
-        const keys = await this.videoLearningOssService.list();
-        await this.videoLearningClipRepository.deleteAll();
-        await this.videoLearningClipWordRepository.deleteAll();
-        for (const key of keys) {
-            const clip = await this.videoLearningOssService.get(key);
-            if (!clip) continue;
-            await this.addToDb(clip);
-        }
+        await concurrency.withMutex('video-learning-sync', async () => {
+            const keys = await this.videoLearningOssService.list();
+            const clips: InsertVideoLearningClip[] = [];
+            const wordRelations: InsertVideoLearningClipWord[] = [];
+            for (const key of keys) {
+                const clip = await this.videoLearningOssService.get(key);
+                if (!clip) {
+                    continue;
+                }
+                const srtLines = clip.clip_content ?? [];
+                const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
+                const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
+                clips.push({
+                    key: clip.key,
+                    video_name: clip.video_name,
+                    srt_clip: srtClip,
+                    srt_context: srtContext,
+                    created_at: TimeUtil.timeUtc(),
+                    updated_at: TimeUtil.timeUtc(),
+                });
+
+                if (StrUtil.isNotBlank(srtClip)) {
+                    const matches = await this.wordMatchService.matchWordsInText(srtClip);
+                    const uniqueWords = Array.from(
+                        new Set(
+                            matches
+                                .map(m => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
+                                .filter(Boolean)
+                        )
+                    );
+                    for (const word of uniqueWords) {
+                        wordRelations.push({
+                            clip_key: clip.key,
+                            word,
+                            created_at: TimeUtil.timeUtc(),
+                            updated_at: TimeUtil.timeUtc(),
+                        });
+                    }
+                }
+            }
+            await this.videoLearningClipRepository.replaceAll(clips, wordRelations);
+        });
     }
 
     public async countClipsGroupedByWord(): Promise<Record<string, number>> {
