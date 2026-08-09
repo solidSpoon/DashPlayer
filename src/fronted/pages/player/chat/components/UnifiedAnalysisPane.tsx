@@ -21,7 +21,8 @@ const UnifiedAnalysisPane = ({ className }: {
     // 渲染体内不打日志（每次渲染都会刷屏）；改为分析完成时记录一次。
     useEffect(() => {
         if (status === 'done') {
-            logger.debug('AI analysis detail loaded', { vocab: vocabDetail, phrase: phraseDetail, grammar: grammarDetail });
+            // 分析完成属关键生命周期，生产环境（info 级）也应可回溯渲染端是否收到结果。
+            logger.info('AI analysis detail loaded', { vocab: vocabDetail, phrase: phraseDetail, grammar: grammarDetail });
         }
     }, [status, vocabDetail, phraseDetail, grammarDetail, logger]);
 

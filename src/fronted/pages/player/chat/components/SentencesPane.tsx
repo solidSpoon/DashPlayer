@@ -49,7 +49,8 @@ const SentencesPane = ({ className }: {
     // 渲染体内不打日志；分析完成时记录一次句子数量。
     useEffect(() => {
         if (status === 'done') {
-            logger.debug('Sentence analysis loaded', { count: sentences.length });
+            // 分析完成属关键生命周期，生产环境（info 级）也应可回溯渲染端是否收到结果。
+            logger.info('Sentence analysis loaded', { count: sentences.length });
         }
     }, [status, sentences.length, logger]);
     return (

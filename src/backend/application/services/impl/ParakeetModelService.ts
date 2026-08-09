@@ -71,6 +71,7 @@ export class ParakeetModelService {
         this.activeAbortController = new AbortController();
         this.currentPercent = 0;
         this.currentPhase = 'downloading';
+        this.logger.info('parakeet model download start');
         this.activeDownload = this.performDownload();
         try {
             return await this.activeDownload;
@@ -94,6 +95,7 @@ export class ParakeetModelService {
             return { cancelled: false };
         }
         controller.abort();
+        this.logger.warn('parakeet model download cancel requested');
         return { cancelled: true };
     }
 
@@ -125,6 +127,7 @@ export class ParakeetModelService {
             throw new Error(PARAKEET_DOWNLOAD_CANCELLED_MESSAGE);
         }
 
+        const startedAt = Date.now();
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
         // 固定工作目录：断点续传需要归档文件在多次下载尝试间保持在同一路径。
         const workDir = path.join(modelsRoot, DOWNLOAD_WORK_DIR);
@@ -146,9 +149,13 @@ export class ParakeetModelService {
             this.emitPhase('installing');
             await this.replaceModelDirectory(sourceDir, current.modelPath);
             installed = true;
+            this.logger.info('parakeet model download complete', { durationMs: Date.now() - startedAt });
             return { success: true, message: 'Parakeet v3 模型下载完成' };
         } catch (error) {
-            if (!controller.signal.aborted) {
+            if (controller.signal.aborted) {
+                this.logger.warn('parakeet model download cancelled', { durationMs: Date.now() - startedAt });
+            } else {
+                this.logger.error('parakeet model download failed', { durationMs: Date.now() - startedAt, error });
                 // 下载、校验或安装失败时清掉半成品，避免下次续传基于损坏文件。
                 try {
                     await fsPromises.rm(workDir, { recursive: true, force: true });
@@ -173,6 +180,7 @@ export class ParakeetModelService {
     private emitPhase(phase: ParakeetModelPhase): void {
         this.currentPercent = 100;
         this.currentPhase = phase;
+        this.logger.info('parakeet model download phase', { phase });
         this.rendererGateway.fireAndForget('settings/parakeet-model-download-progress', { percent: 100, downloaded: 0, total: 0, phase });
     }
 

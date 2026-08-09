@@ -1,6 +1,7 @@
 import {
     SchedulerOptions,
     SchedulerSnapshot,
+    safeLog,
     YieldOptions,
 } from '@/backend/application/kernel/concurrency/types';
 
@@ -60,6 +61,7 @@ export function createCooperativeScheduler(options?: SchedulerOptions): Cooperat
     const clock = options?.clock ?? defaultClock;
     const sleeper = options?.sleeper ?? defaultSleeper;
     const name = options?.name ?? 'default';
+    const loggerRef = options?.logger;
     let frameStartAt = clock.now();
     let yieldCount = 0;
 
@@ -86,6 +88,7 @@ export function createCooperativeScheduler(options?: SchedulerOptions): Cooperat
                 await worker(items[index], index);
                 await this.yieldIfNeeded();
             }
+            safeLog(loggerRef, 'debug', 'scheduler chunked run done', { name, items: items.length, yieldCount });
         },
 
         snapshot(): SchedulerSnapshot {
@@ -99,4 +102,3 @@ export function createCooperativeScheduler(options?: SchedulerOptions): Cooperat
         },
     };
 }
-

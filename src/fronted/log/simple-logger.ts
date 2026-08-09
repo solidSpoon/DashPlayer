@@ -83,12 +83,14 @@ function prependFocusToken(msg: string, focusToken?: string) {
 function write(processName: 'renderer', moduleName: string, level: SimpleLevel, msg: string, data?: unknown, focus?: string) {
   const focusToken = focus || extractFocusToken(msg);
   const plainMsg = msg.replace(FOCUS_PREFIX_PATTERN, '');
-  // 控制台输出（便于开发定位）
   const focusPart = focusToken ? `|focus:${focusToken}` : '';
   const prefix = `[${processName}|${moduleName}|${level}${focusPart}]`;
-  const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : level === 'debug' ? 'debug' : 'log';
-  // eslint-disable-next-line no-console
-  console[method](prefix, plainMsg, data ?? '');
+  // 控制台输出仅用于开发定位；生产环境 console 无观众且双写拖累性能，跳过。
+  if (import.meta.env.DEV) {
+    const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : level === 'debug' ? 'debug' : 'log';
+    // eslint-disable-next-line no-console
+    console[method](prefix, plainMsg, data ?? '');
+  }
 
   // 发给主进程落盘
   try {

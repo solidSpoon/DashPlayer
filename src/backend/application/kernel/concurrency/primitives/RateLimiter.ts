@@ -1,8 +1,10 @@
 import {
     ConcurrencyCancelledError,
     ConcurrencyTimeoutError,
+    CONCURRENCY_WAIT_LOG_THRESHOLD_MS,
     RateLimiterOptions,
     RateLimiterSnapshot,
+    safeLog,
     WaitTurnOptions,
 } from '@/backend/application/kernel/concurrency/types';
 
@@ -11,6 +13,7 @@ type QueueWaiter = {
     reject: (error: Error) => void;
     cleanup: () => void;
     settled: boolean;
+    queuedAt: number;
 };
 
 /**
@@ -50,6 +53,7 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
     }
 
     const name = options.name ?? 'rate-limiter';
+    const loggerRef = options.logger;
     const maxRequests = options.maxRequests;
     const windowMs = options.windowMs;
     const timestamps: number[] = [];
@@ -86,6 +90,10 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
         waiter.cleanup();
         timestamps.push(Date.now());
         waiter.resolve();
+        const waitMs = Date.now() - waiter.queuedAt;
+        if (waitMs > CONCURRENCY_WAIT_LOG_THRESHOLD_MS) {
+            safeLog(loggerRef, 'debug', 'rate limiter wait passed', { name, waitMs, queueLen: queue.length });
+        }
     }
 
     /**
@@ -180,6 +188,7 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
                     resolve,
                     reject,
                     settled: false,
+                    queuedAt: Date.now(),
                     cleanup: () => {
                         if (timeoutId) {
                             clearTimeout(timeoutId);
@@ -194,18 +203,25 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
 
                 if (waitOptions?.signal?.aborted) {
                     failWaiter(waiter, new ConcurrencyCancelledError(`[${name}] 等待放行已取消`));
+                    safeLog(loggerRef, 'debug', 'rate limiter wait cancelled', { name, queueLen: queue.length });
                     return;
                 }
 
                 if (typeof waitOptions?.timeoutMs === 'number') {
                     timeoutId = setTimeout(() => {
                         failWaiter(waiter, new ConcurrencyTimeoutError(`[${name}] 等待放行超时`));
+                        safeLog(loggerRef, 'warn', 'rate limiter wait timeout', {
+                            name,
+                            waitMs: Date.now() - waiter.queuedAt,
+                            queueLen: queue.length,
+                        });
                     }, waitOptions.timeoutMs);
                 }
 
                 if (waitOptions?.signal) {
                     abortListener = () => {
                         failWaiter(waiter, new ConcurrencyCancelledError(`[${name}] 等待放行已取消`));
+                        safeLog(loggerRef, 'debug', 'rate limiter wait cancelled', { name, queueLen: queue.length });
                     };
                     waitOptions.signal.addEventListener('abort', abortListener, { once: true });
                 }
@@ -232,4 +248,3 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
         },
     };
 }
-
