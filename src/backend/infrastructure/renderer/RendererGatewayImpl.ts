@@ -28,7 +28,11 @@ export default class RendererGatewayImpl implements RendererGateway {
         return new Promise<RendererApiDefinitions[K]['return']>((resolve, reject) => {
             const eventName = `renderer-api-response-${callId}`;
 
-            ipcMain.once(eventName, (_event: unknown, response: any) => {
+            ipcMain.once(eventName, (_event: unknown, response: {
+                success: boolean;
+                result?: RendererApiDefinitions[K]['return'];
+                error?: string;
+            }) => {
                 if (response?.success) {
                     resolve(response.result);
                 } else {

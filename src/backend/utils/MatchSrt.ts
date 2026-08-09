@@ -4,6 +4,7 @@ import StrUtil from '@/common/utils/str-util';
 
 type SRTMatch = {
     path: string;
+    langSuffix: string | null;
     priority: number;
 };
 
@@ -15,7 +16,8 @@ function subtitleFormatRank(filePath: string): number {
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.srt') return 0;
     if (ext === '.vtt') return 1;
-    return 2;
+    if (ext === '.ass') return 2;
+    return 3;
 }
 
 function getLanguagePriority(langSuffix: string): number {
@@ -36,6 +38,29 @@ function getLanguagePriority(langSuffix: string): number {
     return languagePriorities[lang] || 10;
 }
 
+/**
+ * 语言匹配档位（数值越大越优先）：
+ * 5 = 显式英语；4 = 无语言后缀的纯同名（默认为主字幕）；3 = 中文；
+ * 2 = 其它已知语言；1 = 未知语言后缀。
+ * 英语学习场景下，显式英语字幕与纯同名主字幕均优先于中文。
+ */
+function languageTier(langSuffix: string | null): number {
+    if (langSuffix === null) {
+        return 4;
+    }
+    const lang = langSuffix.toLowerCase();
+    if (lang === 'eng' || lang === 'en' || lang === 'english') {
+        return 5;
+    }
+    if (lang === 'zh' || lang === 'zh-cn' || lang === 'zh-tw') {
+        return 3;
+    }
+    if (['es', 'fr', 'de', 'ja', 'ko', 'ru'].includes(lang)) {
+        return 2;
+    }
+    return 1;
+}
+
 export default class MatchSrt {
 
     private static videoNameCandidates(videoPath: string): string[] {
@@ -52,7 +77,8 @@ export default class MatchSrt {
 
     /**
      * 根据视频路径和字幕路径列表，返回匹配的字幕文件列表，按匹配优先级降序排列。
-     * 优先匹配同名字幕，带有英语语言后缀的字幕优先。
+     * 英语学习场景：优先显式英语（eng/en/english）字幕，其次无语言后缀的纯同名主字幕，
+     * 再次中文，最后其它语言；同档内按格式 srt > vtt > ass。
      *
      * @param videoPath - 视频文件的绝对路径
      * @param srtPaths - 字幕文件的绝对路径列表
@@ -71,15 +97,15 @@ export default class MatchSrt {
             const srtBaseName = extractBaseName(srtPath).toLowerCase();
 
             if (videoNames.some((n) => srtBaseName === n)) {
-                // 完全匹配，最低优先级
-                matches.push({ path: srtPath, priority: 1 });
+                // 完全同名（无语言后缀），作为默认主字幕参与语言档位排序
+                matches.push({ path: srtPath, langSuffix: null, priority: 1 });
             } else {
                 for (const videoName of videoNames) {
                     if (srtBaseName.startsWith(videoName + '.')) {
                         const langSuffix = srtBaseName.substring(videoName.length + 1);
                         const langPriority = getLanguagePriority(langSuffix);
                         if (langPriority > 0) {
-                            matches.push({ path: srtPath, priority: langPriority + 1 });
+                            matches.push({ path: srtPath, langSuffix, priority: langPriority + 1 });
                         }
                         break;
                     }
@@ -91,20 +117,25 @@ export default class MatchSrt {
             const baseName = videoNames[videoNames.length - 1] ?? extractBaseName(videoPath).toLowerCase();
             srtPaths.forEach((srtPath) => {
                 const distance = leven(baseName, extractBaseName(srtPath).toLowerCase());
-                matches.push({ path: srtPath, priority: 1000 - distance });
+                matches.push({ path: srtPath, langSuffix: null, priority: 1000 - distance });
             });
         }
-        // 按优先级降序排序
+        // 排序：先比语言档位（英语优先），再比格式（srt > vtt > ass）。
+        // 模糊匹配时语言档位均为默认档，此时先比名称相似度（priority），再比格式。
         matches.sort((a, b) => {
+            const tierDiff = languageTier(b.langSuffix) - languageTier(a.langSuffix);
+            if (tierDiff !== 0) {
+                return tierDiff;
+            }
+            if (usedFuzzyMatch && (a.priority ?? 0) !== (b.priority ?? 0)) {
+                return (b.priority ?? 0) - (a.priority ?? 0);
+            }
             const ar = subtitleFormatRank(a.path);
             const br = subtitleFormatRank(b.path);
-            if (!usedFuzzyMatch && ar !== br) {
+            if (ar !== br) {
                 return ar - br;
             }
-            if (b.priority !== a.priority) {
-                return b.priority - a.priority;
-            }
-            return ar - br;
+            return (b.priority ?? 0) - (a.priority ?? 0);
         });
         // 提取排序后的字幕路径
         return matches.map(match => match.path);

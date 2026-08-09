@@ -148,7 +148,7 @@ function StatusList({
     clipTags: Tag[];
 }) {
     const [query, setQuery] = React.useState('');
-    const { data: tags, error } = useSWR(['api/tags', query], () => api.call('tag/search', query), {
+    const { data: tags } = useSWR(['api/tags', query], () => api.call('tag/search', query), {
         fallbackData: []
     });
     const filteredTags = tags.filter((tag) => !clipTags.find((t) => t.id === tag.id));

@@ -2,7 +2,7 @@ import { TableCell, TableRow } from '@/fronted/components/ui/table';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import React from 'react';
-import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
+import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -39,8 +39,8 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
 
     React.useEffect(() => {
         if (task && task.status) {
-            const status = task.status as DpTaskState;
-            if (status === DpTaskState.DONE || status === DpTaskState.CANCELLED || status === DpTaskState.FAILED) {
+            const status = task.status as TranscriptTaskState;
+            if (status === TranscriptTaskState.DONE || status === TranscriptTaskState.CANCELLED || status === TranscriptTaskState.FAILED) {
                 setStarted(false);
             }
         }
@@ -48,15 +48,15 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
 
     let msg = t('subtitleWorkspace.status.notStarted');
     if (task && task.status) {
-        const status = task.status as DpTaskState;
+        const status = task.status as TranscriptTaskState;
         switch (status) {
-            case DpTaskState.INIT:
+            case TranscriptTaskState.INIT:
                 msg = t('subtitleWorkspace.status.initializing');
                 break;
-            case DpTaskState.IN_PROGRESS:
+            case TranscriptTaskState.IN_PROGRESS:
                 msg = task.result?.message || t('subtitleWorkspace.status.processing');
                 break;
-            case DpTaskState.DONE: {
+            case TranscriptTaskState.DONE: {
                 if (task.updated_at && task.created_at) {
                     const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
                     const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
@@ -68,10 +68,10 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                 }
                 break;
             }
-            case DpTaskState.CANCELLED:
+            case TranscriptTaskState.CANCELLED:
                 msg = t('subtitleWorkspace.status.cancelled');
                 break;
-            case DpTaskState.FAILED:
+            case TranscriptTaskState.FAILED:
                 msg = task.result?.message || t('subtitleWorkspace.status.failed');
                 break;
             default:
@@ -89,7 +89,8 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                 logger.warn('Failed to cancel transcription - task does not exist, updating status to cancelled', { file });
                 useTranscript.getState().updateTranscriptTasks([{
                     filePath: file,
-                    status: DpTaskState.CANCELLED,
+                    taskId: 0,
+                    status: TranscriptTaskState.CANCELLED,
                     result: { message: t('subtitleWorkspace.actions.cancelledMessage') }
                 }]);
             }
@@ -100,8 +101,8 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
         }
     };
 
-    const status = task?.status as DpTaskState;
-    const isFinished = !task || !status || status === DpTaskState.DONE || status === DpTaskState.CANCELLED || status === DpTaskState.FAILED;
+    const status = task?.status as TranscriptTaskState;
+    const isFinished = !task || !status || status === TranscriptTaskState.DONE || status === TranscriptTaskState.CANCELLED || status === TranscriptTaskState.FAILED;
 
     return (
         <TableRow>
@@ -119,9 +120,9 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
             </TableCell>
             <TableCell className={cn(
                 'text-sm',
-                status === DpTaskState.DONE && 'text-green-600 dark:text-green-400',
-                status === DpTaskState.FAILED && 'text-destructive',
-                status === DpTaskState.CANCELLED && 'text-muted-foreground'
+                status === TranscriptTaskState.DONE && 'text-green-600 dark:text-green-400',
+                status === TranscriptTaskState.FAILED && 'text-destructive',
+                status === TranscriptTaskState.CANCELLED && 'text-muted-foreground'
             )}>{msg}</TableCell>
             <TableCell className="flex gap-1">
                 <Button
@@ -133,7 +134,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                         }
                         setStarted(true);
                     }}
-                    disabled={!task || (task.status as DpTaskState) === DpTaskState.IN_PROGRESS || (task.status as DpTaskState) === DpTaskState.INIT || (started && !task)}
+                    disabled={!task || (task.status as TranscriptTaskState) === TranscriptTaskState.IN_PROGRESS || (task.status as TranscriptTaskState) === TranscriptTaskState.INIT || (started && !task)}
                     size="sm"
                     className="mx-auto"
                 >{t('subtitleWorkspace.actions.transcribe')}</Button>

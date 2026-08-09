@@ -3,6 +3,7 @@ import path from 'path';
 import util from 'util';
 import log from 'electron-log/main';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
+import { maskSensitiveValues } from '@/common/log/mask';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { AppStateDirectoryType, getAppStatePath } from '@/backend/infrastructure/system/AppStatePath';
 
@@ -103,17 +104,28 @@ function shouldLogFocus(msg: string, focus?: string): boolean {
     return (focus || extractFocusToken(msg)) === FOCUS_TOKEN_FILTER;
 }
 
+/**
+ * 把日志载荷序列化为单行紧凑字符串。
+ *
+ * 行为说明：
+ * - Error 取 name/message 与前 5 层堆栈，其余用 util.inspect（深度 3）；
+ * - 序列化结果统一经过敏感值模式掩码，防止错误对象或服务层数据携带密钥字符串落盘。
+ */
 function normalizeData(data: unknown): string {
     if (data === undefined) return '';
+    let raw: string;
     if (data instanceof Error) {
         const stack = data.stack ? data.stack.split('\n').slice(0, 5).join(' | ') : '';
-        return stack ? `${data.name}: ${data.message} | ${stack}` : `${data.name}: ${data.message}`;
+        raw = stack ? `${data.name}: ${data.message} | ${stack}` : `${data.name}: ${data.message}`;
+    } else {
+        try {
+            raw = util.inspect(data, { depth: 3, breakLength: Infinity, compact: true });
+        } catch {
+            raw = String(data);
+        }
     }
-    try {
-        return util.inspect(data, { depth: 3, breakLength: Infinity, compact: true });
-    } catch {
-        return String(data);
-    }
+    // 统一兜底掩码：错误对象/服务层数据里可能直接携带密钥字符串（如 OpenAI 错误回显 key）。
+    return maskSensitiveValues(raw);
 }
 
 function toSingleLine(text: string) {
@@ -129,8 +141,9 @@ function formatLine(event: SimpleEvent) {
     const focusLabel = event.focus ? `|focus:${event.focus}` : '';
     const prefix = `[${event.process}|${event.module}${focusLabel}]`;
     const msg = event.msg ? toSingleLine(event.msg.replace(FOCUS_PREFIX_PATTERN, '')) : '';
+    // 渲染端 debug 的对象 data 之前被丢弃，导致日志行没有排查价值；这里统一带上紧凑载荷。
     const isPrimitiveData = event.data === null || ['string', 'number', 'boolean'].includes(typeof event.data);
-    const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData;
+    const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData || event.level === 'debug';
     const data = includeData ? normalizeData(event.data) : '';
     const dataPart = data ? ` ${truncate(toSingleLine(data), 800)}` : '';
     return `${prefix} ${msg}${dataPart}`.trim();
@@ -168,7 +181,7 @@ export function writeEvent(event: SimpleEvent) {
     }
 }
 
-function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) {
+function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unknown) {
     writeEvent({
         ts: new Date().toISOString(),
         level,
@@ -180,10 +193,10 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: any) 
 }
 
 type MainLogger = {
-    debug: (msg: string, data?: any) => void;
-    info: (msg: string, data?: any) => void;
-    warn: (msg: string, data?: any) => void;
-    error: (msg: string, data?: any) => void;
+    debug: (msg: string, data?: unknown) => void;
+    info: (msg: string, data?: unknown) => void;
+    warn: (msg: string, data?: unknown) => void;
+    error: (msg: string, data?: unknown) => void;
     withFocus: (focusToken: string) => MainLogger;
 };
 
@@ -214,7 +227,8 @@ export function pruneOldLogs(days = 14) {
     try {
         const files = fs.readdirSync(logPath);
         files.forEach((file) => {
-            if (!/^main-\\d{4}-\\d{2}-\\d{2}\\.log$/.test(file)) return;
+            // 同时匹配 main-YYYY-MM-DD.log 与 main-YYYY-MM-DD.old.log。
+            if (!/^main-\d{4}-\d{2}-\d{2}(\.old)?\.log$/.test(file)) return;
             const full = path.join(logPath, file);
             const st = fs.statSync(full);
             if (now - st.mtimeMs > keepMs) fs.unlinkSync(full);

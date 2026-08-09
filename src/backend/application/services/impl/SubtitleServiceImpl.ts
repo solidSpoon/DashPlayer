@@ -13,6 +13,7 @@ import { SubtitleTimestampAdjustment } from '@/backend/infrastructure/db/tables/
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
+import MediaUtil from '@/common/utils/MediaUtil';
 import {WordMatchService} from '@/backend/application/services/WordMatchService';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
@@ -95,7 +96,7 @@ export class SubtitleServiceImpl implements SubtitleService {
                 sentences: adjustedSentence
             };
         }
-        const lines: SrtLine[] = SrtUtil.parseSrt(content);
+        const lines: SrtLine[] = MediaUtil.isAss(path) ? SrtUtil.parseAss(content) : SrtUtil.parseSrt(content);
         const subtitles = lines.map<Sentence>((line, index) => ({
             fileHash: hashKey,
             index: index,

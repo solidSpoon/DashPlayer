@@ -30,4 +30,15 @@ export default class StrUtil {
     public static hasBlank(...strs: (string | undefined | null)[]): boolean {
         return strs.some(StrUtil.isBlank);
     }
+
+    /**
+     * 生成日志用单行预览：折叠空白并截断，避免长文本撑爆日志行。
+     * @param str 原始文本。
+     * @param maxLen 最大保留长度，默认 60。
+     * @returns 单行预览文本（超长时以 … 结尾）。
+     */
+    public static preview(str: string, maxLen = 60): string {
+        const single = str.replace(/\s+/g, ' ').trim();
+        return single.length > maxLen ? `${single.slice(0, maxLen)}…` : single;
+    }
 }

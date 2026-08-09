@@ -29,6 +29,10 @@ export interface TranslationState {
     committedTranslations: Map<string, string>;
     /** 当前翻译状态。 */
     translationStatus: Map<string, TranslationStatus>;
+    /** 已请求翻译的最远句子游标（-1 表示尚未发起任何翻译请求）。 */
+    translationCursor: number;
+    /** 已发起翻译请求、尚未返回的字幕文件集合，用于请求去重。 */
+    inflightRequests: Set<string>;
 }
 
 // 注：现在直接使用 Sentence.transGroup 字段，不需要重新计算分组
@@ -74,6 +78,8 @@ const useTranslation = create(
         translations: new Map(),
         committedTranslations: new Map(),
         translationStatus: new Map(),
+        translationCursor: -1,
+        inflightRequests: new Set(),
 
         /**
          * 按当前句附近的窗口懒加载字幕翻译。
@@ -81,6 +87,9 @@ const useTranslation = create(
          * 行为说明：
          * - 仅当句子所属文件与当前激活字幕上下文一致时才会发请求，避免视频/字幕切换期间把旧副作用打到新上下文。
          * - 请求发出前先把目标句状态置为 translating；若请求失败，再恢复为 untranslated。
+         * - 同一文件存在进行中的请求时不再重复发起（in-flight 去重）。
+         * - translationCursor 是「已请求覆盖的前沿水线」：正常播放只扫描水线之后的窗口，
+         *   避免逐句重复请求；当回退 seek 落到水线之后且该区域有未翻译句时，回退水线重新覆盖。
          *
          * @param sentences 当前字幕列表。
          * @param currentIndex 当前聚焦句索引。
@@ -91,30 +100,64 @@ const useTranslation = create(
                 return;
             }
 
-            const state = get();
             const fileHash = sentences[0]?.fileHash;
 
             if (!fileHash) {
                 return;
             }
 
+            const state = get();
             if (state.activeFileHash !== fileHash) {
                 return;
             }
+            if (get().inflightRequests.has(fileHash)) {
+                return;
+            }
 
-            // 计算要翻译的范围 (当前index ± 10)
-            const startIndex = Math.max(0, currentIndex - 10);
-            const endIndex = Math.min(sentences.length - 1, currentIndex + 10);
+            const windowStart = Math.max(0, currentIndex - 10);
+            const windowEnd = Math.min(sentences.length - 1, currentIndex + 10);
+
+            // 回退 seek：水线内窗口仍有未翻译句时，把水线回退到窗口起点之前，重新覆盖该区域。
+            // 用 while 反复检查，直到窗口内（水线之下）不再有未翻译句。
+            let hasBackwardUntranslated = true;
+            while (hasBackwardUntranslated) {
+                const cursor = get().translationCursor;
+                if (cursor < windowStart) {
+                    hasBackwardUntranslated = false;
+                    break;
+                }
+                const coverEnd = Math.min(windowEnd, cursor);
+                hasBackwardUntranslated = sentences
+                    .slice(windowStart, coverEnd + 1)
+                    .some(sentence => {
+                        if (!sentence || !sentence.translationKey) {
+                            return false;
+                        }
+                        const status = get().translationStatus.get(sentence.translationKey) || 'untranslated';
+                        return status === 'untranslated';
+                    });
+                if (hasBackwardUntranslated) {
+                    set(currentState => ({
+                        ...currentState,
+                        translationCursor: windowStart - 1,
+                    }));
+                }
+            }
+
+            // 以当前句为中心扫描 ±10 窗口；只扫描水线之后未翻译的句子，单批最多 20 句。
+            const cursor = get().translationCursor;
+            const scanStart = Math.max(windowStart, cursor + 1);
+            const scanEnd = Math.min(windowEnd, scanStart + 19);
             const untranslatedIndices: number[] = [];
             const requestedKeys: string[] = [];
 
-            for (let i = startIndex; i <= endIndex; i++) {
+            for (let i = scanStart; i <= scanEnd; i++) {
                 const sentence = sentences[i];
                 if (!sentence || !sentence.translationKey) continue;
 
                 const translationKey = sentence.translationKey;
-                const status = state.translationStatus.get(translationKey) || 'untranslated';
-                const hasTranslation = state.translations.has(translationKey);
+                const status = get().translationStatus.get(translationKey) || 'untranslated';
+                const hasTranslation = get().translations.has(translationKey);
 
                 // 只加入未翻译或翻译失败的
                 if (status === 'untranslated' || (!hasTranslation && status !== 'translating')) {
@@ -124,9 +167,16 @@ const useTranslation = create(
             }
 
             if (untranslatedIndices.length === 0) {
+                // 窗口内没有待翻译句，游标前进到窗口末尾，避免下次重复扫描。
+                set(currentState => ({
+                    ...currentState,
+                    translationCursor: Math.max(currentState.translationCursor, windowEnd),
+                }));
                 return;
             }
 
+            const batchStart = scanStart;
+            const batchEnd = Math.max(...untranslatedIndices);
             set(currentState => {
                 const newStatus = new Map(currentState.translationStatus);
                 requestedKeys.forEach((key) => {
@@ -134,7 +184,9 @@ const useTranslation = create(
                 });
                 return {
                     ...currentState,
-                    translationStatus: newStatus
+                    translationStatus: newStatus,
+                    translationCursor: batchEnd,
+                    inflightRequests: new Set([...currentState.inflightRequests, fileHash]),
                 };
             });
 
@@ -151,9 +203,14 @@ const useTranslation = create(
                             newStatus.set(key, 'untranslated');
                         }
                     });
+                    // 回退游标并释放 in-flight，允许后续批次重试失败窗口。
+                    const nextInflight = new Set(currentState.inflightRequests);
+                    nextInflight.delete(fileHash);
                     return {
                         ...currentState,
-                        translationStatus: newStatus
+                        translationStatus: newStatus,
+                        translationCursor: Math.min(batchStart - 1, currentState.translationCursor),
+                        inflightRequests: nextInflight,
                     };
                 });
                 getRendererLogger('useTranslation').error('group translation request failed', { error });
@@ -261,6 +318,7 @@ const useTranslation = create(
                 const newTranslations = new Map(state.translations);
                 const newCommittedTranslations = new Map(state.committedTranslations);
                 const newStatus = new Map(state.translationStatus);
+                const nextInflight = new Set(state.inflightRequests);
 
                 filtered.forEach(({ key, translation, isComplete = true }) => {
                     newTranslations.set(key, translation);
@@ -269,12 +327,26 @@ const useTranslation = create(
                         newCommittedTranslations.set(key, translation);
                     }
                 });
+                // 单个请求批次可能包含多个翻译窗口，逐个窗口回传终态。
+                // 只有该文件不再存在 translating 状态（整批真正结束）时才释放 in-flight。
+                filtered.forEach(item => {
+                    if (!nextInflight.has(item.fileHash)) {
+                        return;
+                    }
+                    const prefix = `${item.fileHash}:`;
+                    const stillTranslating = Array.from(newStatus.entries())
+                        .some(([key, status]) => key.startsWith(prefix) && status === 'translating');
+                    if (!stillTranslating) {
+                        nextInflight.delete(item.fileHash);
+                    }
+                });
 
                 return {
                     ...state,
                     translations: newTranslations,
                     committedTranslations: newCommittedTranslations,
-                    translationStatus: newStatus
+                    translationStatus: newStatus,
+                    inflightRequests: nextInflight,
                 };
             });
         },
@@ -288,6 +360,8 @@ const useTranslation = create(
 
                 const newTranslations = new Map(state.translations);
                 const newStatus = new Map(state.translationStatus);
+                const nextInflight = new Set(state.inflightRequests);
+                let minFailedIndex = Infinity;
                 failure.keys.forEach((key) => {
                     if (newStatus.get(key) === 'translating') {
                         const committed = state.committedTranslations.get(key);
@@ -297,13 +371,24 @@ const useTranslation = create(
                             newTranslations.delete(key);
                         }
                         newStatus.set(key, 'untranslated');
+                        const index = Number(key.split(':').pop());
+                        if (Number.isFinite(index)) {
+                            minFailedIndex = Math.min(minFailedIndex, index);
+                        }
                     }
                 });
+                if (Number.isFinite(minFailedIndex)) {
+                    nextInflight.delete(failure.fileHash);
+                }
 
                 return {
                     ...state,
                     translations: newTranslations,
-                    translationStatus: newStatus
+                    translationStatus: newStatus,
+                    translationCursor: Number.isFinite(minFailedIndex)
+                        ? Math.min(state.translationCursor, minFailedIndex - 1)
+                        : state.translationCursor,
+                    inflightRequests: nextInflight,
                 };
             });
         },
@@ -314,7 +399,9 @@ const useTranslation = create(
                 activeFileHash: null,
                 translations: new Map(),
                 committedTranslations: new Map(),
-                translationStatus: new Map()
+                translationStatus: new Map(),
+                translationCursor: -1,
+                inflightRequests: new Set(),
             });
         },
 
@@ -330,7 +417,9 @@ const useTranslation = create(
                     activeFileHash: state.activeFileHash,
                     translations: new Map(),
                     committedTranslations: new Map(),
-                    translationStatus: new Map()
+                    translationStatus: new Map(),
+                    translationCursor: -1,
+                    inflightRequests: new Set(),
                 };
             });
         },
@@ -348,7 +437,9 @@ const useTranslation = create(
                     activeFileHash: state.activeFileHash,
                     translations: shouldReset ? new Map() : state.translations,
                     committedTranslations: shouldReset ? new Map() : state.committedTranslations,
-                    translationStatus: shouldReset ? new Map() : state.translationStatus
+                    translationStatus: shouldReset ? new Map() : state.translationStatus,
+                    translationCursor: shouldReset ? -1 : state.translationCursor,
+                    inflightRequests: shouldReset ? new Set() : state.inflightRequests,
                 };
             });
         },
@@ -363,7 +454,9 @@ const useTranslation = create(
                     activeFileHash: fileHash,
                     translations: new Map(),
                     committedTranslations: new Map(),
-                    translationStatus: new Map()
+                    translationStatus: new Map(),
+                    translationCursor: -1,
+                    inflightRequests: new Set(),
                 };
             });
         },

@@ -602,6 +602,109 @@ export default class SrtUtil {
     }
 
     /**
+     * 解析 ASS 文件内容为 SrtLine 数组（纯文本模式，不解析样式/特效）。
+     * 仅提取每个 Dialogue 行的开始/结束时间与正文，并剥离 {\...} 样式标签；
+     * 忽略 [Script Info] / [V4+ Styles] 等元数据段落。
+     *
+     * @param assContent - ASS 文件全文
+     * @returns 按出现顺序排列的 SrtLine 数组
+     */
+    public static parseAss(assContent: Nullable<string>): SrtLine[] {
+        if (StrUtil.isBlank(assContent)) {
+            return [];
+        }
+
+        const lines = assContent
+            .replace(/^\uFEFF/, '')
+            .replace(/\r\n?/g, '\n')
+            .split('\n');
+
+        const srtLines: SrtLine[] = [];
+        let fallbackIndex = 1;
+
+        // 记录 [Events] 段声明的字段顺序，默认使用标准布局
+        // Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+        let eventFields: string[] = [];
+        let inEventsSection = false;
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            const upper = line.toUpperCase();
+
+            if (upper.startsWith('[')) {
+                inEventsSection = upper.startsWith('[EVENTS]');
+                if (!inEventsSection) {
+                    continue;
+                }
+            }
+            if (!inEventsSection) {
+                continue;
+            }
+            if (upper.startsWith('FORMAT:')) {
+                eventFields = line.slice('FORMAT:'.length).split(',').map((f) => f.trim().toUpperCase());
+                continue;
+            }
+            if (!upper.startsWith('DIALOGUE:')) {
+                continue;
+            }
+
+            const fieldMap = new Map<string, string>();
+            const parts = line.split(',');
+            // 去掉首字段上的 "Dialogue:" 前缀（字段顺序可被 Format 重排）
+            parts[0] = parts[0]?.replace(/^DIALOGUE:\s*/i, '') ?? '';
+            for (let i = 0; i < parts.length; i++) {
+                const fieldName = eventFields[i] ?? '';
+                if (fieldName) {
+                    fieldMap.set(fieldName, parts[i].trim());
+                }
+            }
+            // 正文可能包含逗号，若声明了 Text 字段则把剩余部分拼回 Text
+            if (eventFields.includes('TEXT')) {
+                const textIndex = eventFields.indexOf('TEXT');
+                const joined = parts.slice(textIndex).join(',').trim();
+                if (joined) {
+                    fieldMap.set('TEXT', joined);
+                }
+            }
+
+            // 缺少必须字段或未声明 Format 时按标准布局兜底解析
+            const startRaw = fieldMap.get('START') ?? parts[1]?.trim() ?? '';
+            const endRaw = fieldMap.get('END') ?? parts[2]?.trim() ?? '';
+            const text = fieldMap.get('TEXT') ?? parts.slice(9).join(',').trim();
+            if (!startRaw || !endRaw || !text) {
+                continue;
+            }
+
+            try {
+                const start = SrtUtil.timeStringToSeconds(startRaw);
+                const end = SrtUtil.timeStringToSeconds(endRaw);
+                if (end <= start) {
+                    continue;
+                }
+                // 剥离 ASS 样式标签（保留 \N 换行，交给后续内容拆分）
+                const cleaned = text.replace(/{\\[^}]*}/g, '');
+                const contentLines = cleaned
+                    .replace(/\\N/gi, '\n')
+                    .split('\n')
+                    .map((l) => l.trim())
+                    .filter((l) => l.length > 0);
+                if (contentLines.length === 0) {
+                    continue;
+                }
+                const { contentEn, contentZh } = SrtUtil.parseContentLines(contentLines);
+                const srtLine = SrtUtil.createSrtLine(fallbackIndex, start, end, contentEn, contentZh);
+                srtLines.push(srtLine);
+                fallbackIndex += 1;
+            } catch (error: unknown) {
+                console.warn('failed to parse ass dialogue', { error, line: rawLine });
+                continue;
+            }
+        }
+
+        return srtLines;
+    }
+
+    /**
      * 将多个 SrtLine 转换为完整的 SRT 文本（复用多个方法）
      */
     public static srtLinesToSrt(

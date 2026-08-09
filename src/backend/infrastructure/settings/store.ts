@@ -16,6 +16,22 @@ const store = buildStore(getEnvironmentConfigName('config'));
 const isShortcutSettingKey = (key: SettingKey): boolean => key.startsWith('shortcut.');
 
 /**
+ * 订阅设置项变化。
+ *
+ * 说明：electron-store 的 onDidChange 只对同一实例的 set() 生效，
+ * 因此统一基于 store.ts 内的单例 store 订阅，避免跨实例监听同一份文件收不到事件。
+ *
+ * @param key 要监听的设置项
+ * @param callback 变化回调（无参，触发时按需自行读取最新值）
+ * @returns 取消订阅函数
+ */
+export const subscribeSettingChange = (key: SettingKey, callback: () => void): (() => void) => {
+    return store.onDidChange(key, () => {
+        callback();
+    });
+};
+
+/**
  * 写入设置值。
  *
  * 行为说明：

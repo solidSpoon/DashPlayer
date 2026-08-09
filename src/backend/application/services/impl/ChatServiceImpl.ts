@@ -2,12 +2,13 @@ import { inject, injectable } from 'inversify';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import ChatService from '@/backend/application/services/ChatService';
-import { ZodObject } from 'zod';
+import { ZodType } from 'zod';
 import { ModelMessage, Output, streamText } from 'ai';
 import AiProviderService from '@/backend/application/services/AiProviderService';
 import { AiStringResponse } from '@/common/types/aiRes/AiStringResponse';
 import { WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import { splitSystemMessages } from '@/backend/application/services/chat/ChatPromptBuilder';
 @injectable()
 export default class ChatServiceImpl implements ChatService {
 
@@ -32,9 +33,12 @@ export default class ChatServiceImpl implements ChatService {
             progress: 'AI is thinking...'
         });
 
+        // v7 起 system 不能放在 messages 里，需拆出来走 system 参数，否则流会静默空转
+        const { system, messages: promptMessages } = splitSystemMessages(msgs);
         const result = streamText({
-            model: model,
-            messages: msgs
+            model,
+            system,
+            messages: promptMessages
         });
         const response: AiStringResponse = {
             str: ''
@@ -54,7 +58,7 @@ export default class ChatServiceImpl implements ChatService {
     }
 
     @WithRateLimit('gpt')
-    public async run(taskId: number, resultSchema: ZodObject<any>, promptStr: string) {
+    public async run(taskId: number, resultSchema: ZodType, promptStr: string) {
         const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.dpTaskService.fail(taskId, {

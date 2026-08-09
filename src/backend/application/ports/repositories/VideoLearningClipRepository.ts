@@ -1,4 +1,5 @@
 import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
+import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 
 export interface VideoLearningClipPageQuery {
     keys?: string[];
@@ -15,8 +16,7 @@ export default interface VideoLearningClipRepository {
     count(query?: VideoLearningClipCountQuery): Promise<number>;
     listPage(query: VideoLearningClipPageQuery): Promise<VideoLearningClip[]>;
     exists(key: string): Promise<boolean>;
-    upsert(values: InsertVideoLearningClip): Promise<void>;
+    saveClipWithWords(clip: InsertVideoLearningClip, words: InsertVideoLearningClipWord[]): Promise<void>;
     deleteByKey(key: string): Promise<void>;
-    deleteAll(): Promise<void>;
+    replaceAll(clips: InsertVideoLearningClip[], words: InsertVideoLearningClipWord[]): Promise<void>;
 }
-

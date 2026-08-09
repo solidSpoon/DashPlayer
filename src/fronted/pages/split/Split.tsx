@@ -111,6 +111,14 @@ const Split = () => {
                                 </> : <span
                                     className="text-sm text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                                     onClick={onSelect}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            void onSelect();
+                                        }
+                                    }}
                                 >{t('sentenceSplitter.clickToSelect')}</span>}
                             </div>
                             <div className="flex items-center gap-2.5">
@@ -126,6 +134,14 @@ const Split = () => {
                                 </> : <span
                                     className="text-sm text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                                     onClick={onSelect}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            void onSelect();
+                                        }
+                                    }}
                                 >{t('sentenceSplitter.clickToSelect')}</span>}
                             </div>
                         </div>

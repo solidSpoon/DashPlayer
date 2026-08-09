@@ -91,7 +91,6 @@ export abstract class AbstractSrtTender<T> implements SrtTender<T> {
                 end: 0
             };
         }
-        logger.debug('Seek to internal', { t1: line.t1, origin: line.origin });
         return {
             start: line.t1,
             end: line.t2
@@ -358,11 +357,11 @@ export class ClipTenderImpl extends AbstractSrtTender<ClipSrtLine> {
         return sentence.end;
     }
 
-    getOriginAdjustedStart(sentence: ClipSrtLine): number | null {
+    getOriginAdjustedStart(): number | null {
         return null;
     }
 
-    getOriginAdjustedEnd(sentence: ClipSrtLine): number | null {
+    getOriginAdjustedEnd(): number | null {
         return null;
     }
 

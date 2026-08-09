@@ -22,7 +22,8 @@
         "serviceCredentials": "Service Credentials",
         "engineSelection": "Feature Controls",
         "storage": "Storage Management",
-        "update": "Version Updates"
+        "update": "Version Updates",
+        "proxy": "Network Proxy"
     },
     "appearance": {
         "title": "Appearance",
@@ -40,6 +41,19 @@
         "languageSystem": "Follow System",
         "languageZhCN": "Simplified Chinese",
         "languageEnUS": "English"
+    },
+    "proxy": {
+        "title": "Network Proxy",
+        "description": "Configure the proxy used by the app: follow the system proxy or set a custom one.",
+        "modeTitle": "Proxy mode",
+        "modeSystem": "Follow system",
+        "modeCustom": "Custom",
+        "modeNone": "No proxy",
+        "modeDescription": "Follow system reads the proxy configured on your OS; Custom requires a proxy URL; No proxy connects directly.",
+        "urlTitle": "Proxy URL",
+        "urlDescription": "Supports http://, https:// and socks5:// protocols.",
+        "bypassRulesTitle": "Bypass rules",
+        "bypassRulesDescription": "Comma-separated domains/IPs/CIDRs whose requests bypass the proxy (e.g. localhost,127.0.0.1)."
     },
     "checkUpdate": {
         "title": "Version Updates",
@@ -174,6 +188,19 @@
         "tencent": {
             "title": "Tencent Translation",
             "description": "Used for subtitle translation."
+        },
+        "parakeet": {
+            "cancelDownload": "Cancel download",
+            "installing": "Installing model…",
+            "extracting": "Extracting model…",
+            "downloadCancelled": "Download cancelled",
+            "deleteModel": "Delete model",
+            "deleteConfirmTitle": "Delete Parakeet v3 model",
+            "deleteConfirmDescription": "Local subtitle recognition requires re-downloading after deletion. Delete anyway?",
+            "cancelDelete": "Keep model",
+            "confirmDelete": "Delete",
+            "modelDeleted": "Model deleted",
+            "deleteFailed": "Delete failed"
         },
         "youdao": {
             "title": "Youdao Dictionary",

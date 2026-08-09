@@ -44,7 +44,7 @@ export type ChatPanelState = {
             value: string | null;
             time: number;
         }
-        chatTaskQueue: CustomMessage<any>[];
+        chatTaskQueue: CustomMessage<unknown>[];
     }
     chatSessionId: string;
     streamingMessageId: string | null;
@@ -53,8 +53,8 @@ export type ChatPanelState = {
     analysisStatus: 'idle' | 'streaming' | 'done' | 'error';
     analysisError: string | null;
     topic: Topic
-    messages: CustomMessage<any>[];
-    streamingMessage: CustomMessage<any> | null;
+    messages: CustomMessage<unknown>[];
+    streamingMessage: CustomMessage<unknown> | null;
     canUndo: boolean;
     canRedo: boolean;
     context: string | null;
@@ -78,7 +78,7 @@ export type ChatPanelActions = {
     ctxMenuPolish: () => void;
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
-    deleteMessage: (msg: CustomMessage<any>) => void;
+    deleteMessage: (msg: CustomMessage<unknown>) => void;
     retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
 };
@@ -96,7 +96,7 @@ const copy = (state: ChatPanelState): ChatPanelState => {
             context: {
                 ...state.internal.context
             },
-            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy())
+            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy() as CustomMessage<unknown>)
         },
         chatSessionId: state.chatSessionId,
         streamingMessageId: state.streamingMessageId,
@@ -146,6 +146,9 @@ const empty = (): ChatPanelState => {
 const startAnalysisForTopic = async () => {
     await useChatPanel.getState().startAnalysis();
 };
+
+// 流式分析 chunk 计数：仅在收到 start 时归零，用于节流 chunk 级调试日志。
+let analysisStreamChunkCount = 0;
 
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
@@ -341,6 +344,7 @@ const useChatPanel = create(
                 return;
             }
             if (event.event === 'start') {
+                analysisStreamChunkCount = 0;
                 set({
                     analysis: {},
                     analysisMessageId: event.messageId,
@@ -355,10 +359,13 @@ const useChatPanel = create(
             }
 
             if (event.event === 'chunk' && event.partial) {
+                analysisStreamChunkCount += 1;
                 const logger = getRendererLogger('useChatPanel');
                 const partialExamples = event.partial.examples;
-                if (partialExamples) {
+                // chunk 频率极高且带示例句全文，仅首 chunk 与每 20 个采样一次。
+                if (partialExamples && (analysisStreamChunkCount === 1 || analysisStreamChunkCount % 20 === 0)) {
                     logger.debug('analysis examples chunk', {
+                        chunkCount: analysisStreamChunkCount,
                         sentencesCount: partialExamples.sentences?.length ?? 0,
                         sampleSentence: partialExamples.sentences?.[0],
                     });
@@ -441,7 +448,7 @@ const useChatPanel = create(
             if (StrUtil.isBlank(text)) return;
             await get().sent(`帮我把这句话改写得更地道一些：\n"""\n${text}\n"""`);
         },
-        deleteMessage: (msg: CustomMessage<any>) => {
+        deleteMessage: (msg: CustomMessage<unknown>) => {
             set({
                 messages: get().messages.filter(e => e !== msg)
             });

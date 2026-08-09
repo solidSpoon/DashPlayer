@@ -48,5 +48,8 @@ export const SettingKeyObj = {
     'player.autoPlayNext': 'false',
     'storage.path': '',
     'storage.collection': 'default',
+    'proxy.mode': 'system',
+    'proxy.url': '',
+    'proxy.bypass_rules': '',
 }
 export type SettingKey = keyof typeof SettingKeyObj;

@@ -64,20 +64,23 @@ export function useTransLineTheme() {
   return useContext(ThemeCtx);
 }
 
-function mergeTheme(base: any, patch: any): any {
+function mergeTheme<T>(base: T, patch: DeepPartial<T> | undefined): T {
   if (!patch) return base;
-  const output: any = Array.isArray(base) ? [...base] : { ...base };
+  const output: T = Array.isArray(base) ? [...(base as unknown[])] as T : { ...base };
   for (const k of Object.keys(patch)) {
-    const v = (patch as any)[k];
+    const v = (patch as Record<string, unknown>)[k];
     if (v === undefined) continue;
-    if (isObject(base[k]) && isObject(v)) {
-      output[k] = mergeTheme(base[k], v);
+    if (isObject((base as Record<string, unknown>)[k]) && isObject(v)) {
+      (output as Record<string, unknown>)[k] = mergeTheme(
+        (base as Record<string, unknown>)[k],
+        v as DeepPartial<unknown>
+      );
     } else {
-      output[k] = v;
+      (output as Record<string, unknown>)[k] = v;
     }
   }
   return output;
 }
-function isObject(o: any) {
+function isObject(o: unknown) {
   return o && typeof o === 'object' && !Array.isArray(o);
 }

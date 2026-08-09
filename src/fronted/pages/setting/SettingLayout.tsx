@@ -2,7 +2,7 @@ import {Link, Outlet, useLocation} from 'react-router-dom';
 import React, {cloneElement, ReactElement} from 'react';
 import {cn} from "@/fronted/lib/utils";
 import {buttonVariants} from "@/fronted/components/ui/button";
-import { Bot, Command, Compass, Database, Palette, ToggleLeft } from 'lucide-react';
+import { Bot, Command, Compass, Database, Globe, Palette, ToggleLeft } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export type SettingType =
@@ -11,7 +11,8 @@ export type SettingType =
     | 'shortcut'
     | 'storage'
     | 'update'
-    | 'appearance';
+    | 'appearance'
+    | 'proxy';
 const Sidebar = () => {
     const { t } = useI18nTranslation('settings');
     const location = useLocation();
@@ -33,7 +34,7 @@ const Sidebar = () => {
                     "justify-start"
                 )}
             >
-                {cloneElement(icon, {
+                {cloneElement(icon as ReactElement<{ className?: string }>, {
                     className: cn('w-4 h-4 text-foreground/80'),
                 })}
                 {name}
@@ -47,6 +48,7 @@ const Sidebar = () => {
             {ele(t('sections.serviceCredentials'), 'service-credentials', <Bot />)}
             {ele(t('sections.engineSelection'), 'engine-selection', <ToggleLeft />)}
             {ele(t('sections.storage'), 'storage', <Database />)}
+            {ele(t('sections.proxy'), 'proxy', <Globe />)}
             {ele(t('sections.update'), 'update', <Compass />)}
         </div>
     );

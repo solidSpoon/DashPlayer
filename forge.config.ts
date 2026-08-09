@@ -34,6 +34,12 @@ const config: ForgeConfig = {
                 '/node_modules/isexe',
                 '/node_modules/inversify',
                 '/node_modules/reflect-metadata',
+                '/node_modules/undici',
+                '/node_modules/fetch-socks',
+                '/node_modules/socks',
+                '/node_modules/smart-buffer',
+                '/node_modules/ip-address',
+                '/node_modules/ipaddr.js',
             ];
 
             for (const prefix of keptNodeModulePrefixes) {

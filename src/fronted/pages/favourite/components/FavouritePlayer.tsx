@@ -199,12 +199,6 @@ const FavouritePlayer = () => {
     logger.debug('Player ended');
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   if (!playInfo) {
     return (
       <div className="w-full flex flex-col gap-4 p-6">

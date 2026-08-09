@@ -29,6 +29,14 @@ interface WatchHistoryService {
      * @param currentId 当前视频ID
      */
     getNextVideo(currentId: string): Promise<WatchHistoryVO | null>;
+
+    /**
+     * 保存用户手动设置的播客模式偏好。
+     *
+     * @param videoId 视频观看记录 ID
+     * @param podcastMode 用户手动选择的播客模式值
+     */
+    setPodcastModePreference(videoId: string, podcastMode: boolean): Promise<void>;
 }
 
 export default WatchHistoryService;

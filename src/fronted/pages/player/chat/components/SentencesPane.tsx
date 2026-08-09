@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
@@ -19,7 +19,6 @@ const SentencesPart = ({ sentences }: { sentences: {
                 <Playable
                     className="text-base font-medium text-foreground/90">{s?.sentence}</Playable>
                 <div
-                    tabIndex={0}
                     className="text-sm text-muted-foreground mt-0.5">{s?.meaning}</div>
                 <div className={'flex flex-wrap gap-x-3 gap-y-0.5 mt-2'}>
                     {
@@ -47,7 +46,13 @@ const SentencesPane = ({ className }: {
     const sentences = (analysis?.examples?.sentences ?? []).filter((sentence) => {
         return Boolean(sentence?.sentence || sentence?.meaning);
     });
-    logger.debug('Sentence analysis loaded', { count: sentences.length });
+    // 渲染体内不打日志；分析完成时记录一次句子数量。
+    useEffect(() => {
+        if (status === 'done') {
+            // 分析完成属关键生命周期，生产环境（info 级）也应可回溯渲染端是否收到结果。
+            logger.info('Sentence analysis loaded', { count: sentences.length });
+        }
+    }, [status, sentences.length, logger]);
     return (
 
         <div className={cn('flex flex-col gap-2', className)}>

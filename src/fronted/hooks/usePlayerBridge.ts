@@ -97,6 +97,13 @@ export function usePlayerBridge(navigate: (path: string) => void) {
         if (!videoId) return;
         let stopped = false;
         let counter = 0;
+        // 上次上报的位置与播放状态；用于判断是否真的需要上报，避免暂停期间每 5 秒空刷日志。
+        let lastReportedPosition = -1;
+        let lastReportedPlaying: boolean | null = null;
+        /**
+         * 定时上报播放进度：仅当位置变化超过 1 秒或播放/暂停状态切换时才上报，
+         * 正常播放保持每 5 秒一次的节奏，暂停/位置不变时零上报。
+         */
         const tick = async () => {
             if (stopped) return;
             try {
@@ -106,10 +113,17 @@ export function usePlayerBridge(navigate: (path: string) => void) {
                         counter += 1;
                         if (counter % 5 === 0) {
                             const playTime = usePlayer.getState().internal.exactPlayTime;
-                            await api.call('watch-history/progress/update', {
-                                file,
-                                currentPosition: playTime
-                            });
+                            const playing = usePlayer.getState().playing;
+                            const positionMoved = Math.abs(playTime - lastReportedPosition) >= 1;
+                            const stateChanged = playing !== lastReportedPlaying;
+                            if (positionMoved || stateChanged) {
+                                lastReportedPosition = playTime;
+                                lastReportedPlaying = playing;
+                                await api.call('watch-history/progress/update', {
+                                    file,
+                                    currentPosition: playTime
+                                });
+                            }
                         }
                     }
                 }

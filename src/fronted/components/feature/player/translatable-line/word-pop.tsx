@@ -91,12 +91,12 @@ const WordPop = React.forwardRef(
             refs.setReference(referenceElement);
         }, [referenceElement, refs]);
 
-        const isYoudaoFormat = (data: any): data is YdRes => {
-            return data && 'webdict' in data && 'translation' in data;
+        const isYoudaoFormat = (data: unknown): data is YdRes => {
+            return typeof data === 'object' && data !== null && 'webdict' in data && 'translation' in data;
         };
 
-        const isOpenAIFormat = (data: any): data is OpenAIDictionaryResult => {
-            return data && 'definitions' in data && Array.isArray(data.definitions);
+        const isOpenAIFormat = (data: unknown): data is OpenAIDictionaryResult => {
+            return typeof data === 'object' && data !== null && 'definitions' in data && Array.isArray((data as { definitions?: unknown }).definitions);
         };
 
         const renderYoudaoContent = (ydData: YdRes) => (
@@ -157,10 +157,10 @@ const WordPop = React.forwardRef(
                         theme.pop.container,
                         classNames?.container,
                         isLoading ? 'opacity-0' : 'opacity-100',
-                        shouldShowYoudao && (translation as any)?.webdict?.url && 'pt-4'
+                        shouldShowYoudao && translation.webdict?.url && 'pt-4'
                     )}
                 >
-                    {shouldShowYoudao && renderYoudaoContent(translation as YdRes)}
+                    {shouldShowYoudao && renderYoudaoContent(translation)}
                     {!shouldShowYoudao && <div className="p-4 text-gray-500">无可用的字典信息</div>}
                 </div>
             );
@@ -169,6 +169,8 @@ const WordPop = React.forwardRef(
         return (
             <>
                 <FloatingPortal>
+                    {/* 仅用于阻止事件冒泡，不提供交互语义 */}
+                    {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
                     <div
                         {...getFloatingProps(getReferenceProps())}
                         ref={refs.setFloating}

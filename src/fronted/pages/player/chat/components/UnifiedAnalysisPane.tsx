@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import Playable from '@/fronted/components/shared/common/Playable';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
@@ -18,7 +18,13 @@ const UnifiedAnalysisPane = ({ className }: {
     const phraseDetail = analysis?.phrases;
     const grammarDetail = analysis?.grammar;
 
-    logger.debug('AI analysis detail loaded', { vocab: vocabDetail, phrase: phraseDetail, grammar: grammarDetail });
+    // 渲染体内不打日志（每次渲染都会刷屏）；改为分析完成时记录一次。
+    useEffect(() => {
+        if (status === 'done') {
+            // 分析完成属关键生命周期，生产环境（info 级）也应可回溯渲染端是否收到结果。
+            logger.info('AI analysis detail loaded', { vocab: vocabDetail, phrase: phraseDetail, grammar: grammarDetail });
+        }
+    }, [status, vocabDetail, phraseDetail, grammarDetail, logger]);
 
     const isLoading = status === 'streaming' && !vocabDetail && !phraseDetail && !grammarDetail;
 

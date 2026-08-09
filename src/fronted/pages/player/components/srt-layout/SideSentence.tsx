@@ -235,7 +235,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         }, [selectionState]);
 
         return (
-            // eslint-disable-next-linejsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
                     'relative m-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg overflow-visible',

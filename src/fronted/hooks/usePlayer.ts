@@ -12,7 +12,22 @@ import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const api = backendClient;
 
-export type SeekAction = { time: number } | ((prev: { time: number }) => { time: number });
+/**
+ * seek 请求：目标时间与是否继续播放的意图。
+ */
+export type SeekRequest = {
+  /** 目标时间（秒）。 */
+  time: number;
+  /** 是否在 seek 后继续播放；缺省视为 true，false 表示保持暂停。 */
+  play?: boolean;
+};
+
+/**
+ * seek 动作：可直接传目标请求，或传函数形式基于上一次 seek 计算。
+ */
+export type SeekAction =
+    | SeekRequest
+    | ((prev: SeekRequest) => SeekRequest);
 type Range = { start: number; end: number };
 
 const OVERDUE_TIME = 600;
@@ -66,15 +81,24 @@ interface VirtualGroupState {
   sentences: Sentence[];
 }
 
+/**
+ * 播放器核心状态：媒体源、播放态、字幕定位与句子级跳转能力。
+ */
 interface PlayerState {
   // 媒体源与基础播放态
+  /** 当前媒体源路径（null 表示无源）。 */
   src: string | null;
+  /** 期望播放状态（用户意图）；实际播放由 PlayerEngine 驱动。 */
   playing: boolean;
   muted: boolean;
   volume: number;
   duration: number;
   playbackRate: number;
-  seekTime: { time: number };
+  /** 最近一次 seek 请求（含播放意图）。 */
+  seekTime: SeekRequest;
+
+  /** 播放请求计数：每次显式请求播放 +1，供 PlayerEngine 强制执行原生 play()；source 级计数，切换源时重置。 */
+  playRequestId: number;
 
   // 模式
   autoPause: boolean;
@@ -106,7 +130,7 @@ interface PlayerState {
   seekTo: (seekTime: SeekAction) => void;
 
   // 新：带目标句的 seek，立即设定 currentSentence + timeOverride + currentLock（推荐用于上一句/下一句/跳转）
-  seekToTarget: (opts: { time: number; target?: Sentence; overrideMs?: number; lockMs?: number }) => void;
+  seekToTarget: (opts: { time: number; target?: Sentence; overrideMs?: number; lockMs?: number; play?: boolean }) => void;
 
   setDuration: (duration: number) => void;
   setMuted: (muted: boolean) => void;
@@ -171,7 +195,7 @@ let currentLockTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const usePlayer = create<PlayerState>((set, get) => {
   // 工具：句子 key
-  const sentenceKey = (s: Sentence) => `${(s as any).fileHash ?? 'nofile'}-${s.index}`;
+  const sentenceKey = (s: Sentence) => `${s.fileHash}-${s.index}`;
 
   // O(n) 快路径：若 sentences 已按 index 非递减，则直接线性构建
   const isNonDecreasingByIndex = (arr: Sentence[]) => {
@@ -417,9 +441,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
       // 仅在焦点位于虚拟组内时：允许高亮随时间在组内流动；单句循环保持冻结
       if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
-        const vgSet = new Set(virtualGroup.sentences.map((s) => `${(s as any).fileHash ?? 'nofile'}-${s.index}`));
+        const vgSet = new Set(virtualGroup.sentences.map((s) => `${s.fileHash}-${s.index}`));
         const next = srtTender.getByTime(effectiveTime);
-        const nextKey = `${(next as any).fileHash ?? 'nofile'}-${next.index}`;
+        const nextKey = `${next.fileHash}-${next.index}`;
         if (vgSet.has(nextKey) && next !== currentSentence) {
           set({ currentSentence: next });
         }
@@ -464,6 +488,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     duration: 0,
     playbackRate: 1,
     seekTime: { time: 0 },
+    playRequestId: 0,
 
     autoPause: false,
     singleRepeat: false,
@@ -497,6 +522,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         playing: false,
         duration: 0,
         seekTime: { time: 0 },
+        playRequestId: 0,
         virtualGroup: { active: false, sentences: [] },
         internal: {
           exactPlayTime: 0,
@@ -538,31 +564,48 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }));
     },
 
-    // 播放控制
+    /**
+     * 开始播放：若存在延迟播放起点则先跳转，否则置播放态并递增播放请求计数。
+     */
     play: () => {
       const { onPlaySeekTime } = get().internal;
       if (onPlaySeekTime !== null) {
         get().seekToTarget({ time: onPlaySeekTime, target: get().currentSentence ?? undefined });
       } else {
-        set({ playing: true });
+        set((prev) => ({ playing: true, playRequestId: prev.playRequestId + 1 }));
       }
     },
 
+    /**
+     * 暂停播放。
+     */
     pause: () => set({ playing: false }),
 
+    /**
+     * 切换播放/暂停：开启时递增播放请求计数，驱动引擎强制原生播放。
+     */
     togglePlay: () => {
-      const { playing } = get();
-      set({ playing: !playing });
+      set((prev) => {
+        const next = !prev.playing;
+        return next
+          ? { playing: true, playRequestId: prev.playRequestId + 1 }
+          : { playing: false };
+      });
     },
 
-    // 基础 seek：仍然支持"按时间匹配高亮"，用于进度条拖动等通用场景
+    /**
+     * 基础 seek：按时间匹配高亮，用于进度条拖动等通用场景。
+     * @param seekTime 目标时间（可传函数形式读取上一次 seek）
+     */
     seekTo: (seekTime) => {
       const srtTender = get().srtTender;
       const currentSeek = get().seekTime;
       const next = typeof seekTime === 'function' ? seekTime(currentSeek) : seekTime;
+      const wantPlay = next.play ?? true;
 
       set((prev) => ({
-        playing: true,
+        playing: wantPlay,
+        playRequestId: wantPlay ? prev.playRequestId + 1 : prev.playRequestId,
         seekTime: next,
         currentSentence: srtTender ? srtTender.getByTime(next.time) : prev.currentSentence,
         internal: {
@@ -575,11 +618,17 @@ export const usePlayer = create<PlayerState>((set, get) => {
       activateTimeOverride(next.time, SEEK_OVERRIDE_MS);
     },
 
-    // 推荐：带 target 的 seek（上一句/下一句/跳转都走这里）
-    seekToTarget: ({ time, target, overrideMs = SEEK_OVERRIDE_MS, lockMs = CURRENT_LOCK_MS }) => {
+    /**
+     * 带目标句的 seek：立即设定 currentSentence + timeOverride + currentLock（上一句/下一句/跳转推荐入口）。
+     * @param time 目标时间（秒）
+     * @param target 目标句子，用于高亮锁定
+     * @param play 是否在 seek 后继续播放
+     */
+    seekToTarget: ({ time, target, overrideMs = SEEK_OVERRIDE_MS, lockMs = CURRENT_LOCK_MS, play = true }) => {
       set((prev) => ({
-        playing: true,
-        seekTime: { time },
+        playing: play,
+        playRequestId: play ? prev.playRequestId + 1 : prev.playRequestId,
+        seekTime: { time, play },
         currentSentence: target ?? prev.currentSentence, // 直接设目标句
         internal: {
           ...prev.internal,
@@ -955,7 +1004,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         });
       }
 
-      const { start, end } = srtTender.mapSeekTime(updated);
+      const { end } = srtTender.mapSeekTime(updated);
       const previewMs = options?.previewMs ?? 1000;
       const epsilon = 0.05;
 
@@ -1009,7 +1058,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (!focus) return -1;
       const posMap = internal.indexing?.posMap;
       if (!posMap) return -1;
-      const key = `${(focus as any).fileHash ?? 'nofile'}-${focus.index}`;
+      const key = `${focus.fileHash}-${focus.index}`;
       const pos = posMap.get(key);
       return typeof pos === 'number' ? pos : -1;
     },

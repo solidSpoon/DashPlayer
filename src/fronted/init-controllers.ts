@@ -23,10 +23,9 @@ function initializeRendererApis() {
         };
         
         // 将清理函数挂载到window对象，方便调试
-        (window as any).cleanupRendererApis = cleanup;
+        (window as unknown as { cleanupRendererApis: () => void }).cleanupRendererApis = cleanup;
         
         logger.info('renderer apis initialized successfully');
-        logger.debug('test command available: await window.electron.call("system/test-renderer-api")');
         
     } catch (error) {
         logger.error('renderer apis initialization failed', { error: error instanceof Error ? error.message : String(error) });

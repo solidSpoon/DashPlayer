@@ -12,6 +12,7 @@ import FfmpegService from '@/backend/application/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import SplitVideoService from '@/backend/application/services/SplitVideoService';
 import SrtUtil from "@/common/utils/SrtUtil";
+import MediaUtil from '@/common/utils/MediaUtil';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 
 
@@ -70,7 +71,7 @@ class SplitVideoServiceImpl implements SplitVideoService {
             this.logger.error('read srt file failed');
             return folderName;
         }
-        const srt = SrtUtil.parseSrt(content);
+        const srt = MediaUtil.isAss(srtPath) ? SrtUtil.parseAss(content) : SrtUtil.parseSrt(content);
         for (const srtItem of srtSplit) {
             const lines = srt
                 .filter(line => line.end >= srtItem.start && line.start <= srtItem.end)

@@ -102,6 +102,8 @@ import VideoLearningClipWordRepository from '@/backend/application/ports/reposit
 import VideoLearningClipWordRepositoryImpl from '@/backend/infrastructure/db/repositories/VideoLearningClipWordRepositoryImpl';
 import WatchHistoryRepository from '@/backend/application/ports/repositories/WatchHistoryRepository';
 import WatchHistoryRepositoryImpl from '@/backend/infrastructure/db/repositories/WatchHistoryRepositoryImpl';
+import WatchHistoryExtRepository from '@/backend/application/ports/repositories/WatchHistoryExtRepository';
+import WatchHistoryExtRepositoryImpl from '@/backend/infrastructure/db/repositories/WatchHistoryExtRepositoryImpl';
 import FavouriteClipsRepository from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 import FavouriteClipsRepositoryImpl from '@/backend/infrastructure/db/repositories/FavouriteClipsRepositoryImpl';
 import WordTranslatesRepository from '@/backend/application/ports/repositories/WordTranslatesRepository';
@@ -157,6 +159,7 @@ container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipWordRepository>(TYPES.VideoLearningClipWordRepository).to(VideoLearningClipWordRepositoryImpl).inSingletonScope();
 container.bind<WatchHistoryRepository>(TYPES.WatchHistoryRepository).to(WatchHistoryRepositoryImpl).inSingletonScope();
+container.bind<WatchHistoryExtRepository>(TYPES.WatchHistoryExtRepository).to(WatchHistoryExtRepositoryImpl).inSingletonScope();
 container.bind<FavouriteClipsRepository>(TYPES.FavouriteClipsRepository).to(FavouriteClipsRepositoryImpl).inSingletonScope();
 container.bind<WordTranslatesRepository>(TYPES.WordTranslatesRepository).to(WordTranslatesRepositoryImpl).inSingletonScope();
 container.bind<SentenceTranslatesRepository>(TYPES.SentenceTranslatesRepository).to(SentenceTranslatesRepositoryImpl).inSingletonScope();

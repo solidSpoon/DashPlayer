@@ -74,15 +74,15 @@ const preprocessMarkers = (value: string): string => {
 /**
  * 将 ReactMarkdown 传入的子节点递归还原成纯文本，供自定义组件读取标签文案。
  */
-const asText = (children: any): string => {
+const asText = (children: React.ReactNode): string => {
     if (typeof children === 'string') {
         return children;
     }
     if (Array.isArray(children)) {
         return children.map((child) => asText(child)).join('');
     }
-    if (children?.props?.children) {
-        return asText(children.props.children);
+    if (React.isValidElement(children) && (children.props as { children?: React.ReactNode }).children) {
+        return asText((children.props as { children?: React.ReactNode }).children);
     }
     return '';
 };

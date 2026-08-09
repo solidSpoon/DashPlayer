@@ -14,11 +14,57 @@ interface TimedWord {
 /** 英文字幕分段器，将模型子词时间轴转换为播放器使用的字幕行。 */
 export default class EnglishSubtitleSegmenter {
     /**
-     * 将 SentencePiece 子词时间轴转换为英文字幕行。
+     * 将多个分段的 SentencePiece 子词时间轴合并为英文字幕行。
+     * 每个分段按切分点分区负责 [ownCut, nextCut) 的时间区间，重叠区由后续分段独占，
+     * 从而避免切分边界处的内容重复出现。
+     * @param chunkTimelines 每个分段的时间轴；时间戳均已加上该分段的起始偏移。
+     * @param cutPoints 每个分段的原始切分点（秒）：第 0 段为 0，第 i 段为上一个切分点（不含重叠）。
+     * @returns 已按阅读时长、字数和停顿切分的字幕行。
+     */
+    public segment(chunkTimelines: SpeechRecognitionToken[][], cutPoints: number[]): SrtLine[] {
+        const timeline = this.mergeTimelines(chunkTimelines, cutPoints);
+        return this.segmentTimeline(timeline);
+    }
+
+    /**
+     * 将多段时间轴按切分点分区合并：每个分段只保留 [ownCut, nextCut) 区间内的子词，
+     * 重叠区（同一音频被相邻两段识别）只由覆盖它的后续分段贡献，不依赖时间戳完全相等。
+     * @param chunkTimelines 每个分段的时间轴。
+     * @param cutPoints 每个分段的原始切分点（秒）。
+     * @returns 全局唯一、按时间排序的子词序列。
+     */
+    public mergeTimelines(chunkTimelines: SpeechRecognitionToken[][], cutPoints: number[]): SpeechRecognitionToken[] {
+        const raw: SpeechRecognitionToken[] = [];
+        for (let index = 0; index < chunkTimelines.length; index++) {
+            const ownCut = cutPoints[index] ?? 0;
+            const nextCut = cutPoints[index + 1] ?? Number.POSITIVE_INFINITY;
+            for (const token of chunkTimelines[index]) {
+                const text = token.text.trim();
+                if (!text) continue;
+                if (token.start < ownCut || token.start >= nextCut) continue;
+                raw.push(token);
+            }
+        }
+        // 按音频绝对时间排序。
+        raw.sort((a, b) => a.start - b.start);
+        const merged: SpeechRecognitionToken[] = [];
+        const seen = new Set<string>();
+        for (const token of raw) {
+            const text = token.text.trim();
+            const key = `${text}@${token.start.toFixed(3)}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push(token);
+        }
+        return merged;
+    }
+
+    /**
+     * 将全局子词时间轴转换为英文字幕行。
      * @param tokens 按时间顺序排列的模型子词。
      * @returns 已按阅读时长、字数和停顿切分的字幕行。
      */
-    public segment(tokens: SpeechRecognitionToken[]): SrtLine[] {
+    public segmentTimeline(tokens: SpeechRecognitionToken[]): SrtLine[] {
         return this.createSegments(this.createWords(tokens)).map((segment, index) => ({
             index: index + 1,
             start: segment.start,
@@ -38,7 +84,7 @@ export default class EnglishSubtitleSegmenter {
         let current: TimedWord | null = null;
         for (let index = 0; index < tokens.length; index++) {
             const token = tokens[index];
-            const nextStart = tokens[index + 1]?.start ?? token.start + 0.32;
+            const nextToken = tokens[index + 1] ?? null;
             const startsWord = /^\s/.test(token.text);
             const text = token.text.trim();
             if (!text) continue;
@@ -48,17 +94,30 @@ export default class EnglishSubtitleSegmenter {
             }
             if (/^[,.;:!?]+$/.test(text) && current) {
                 current.word += text;
-                current.end = Math.max(current.end, nextStart);
+                current.end = Math.max(current.end, this.resolveWordEnd(token, nextToken));
                 continue;
             }
-            if (!current) current = { word: text, start: token.start, end: Math.max(token.start + 0.08, nextStart) };
+            if (!current) current = { word: text, start: token.start, end: this.resolveWordEnd(token, nextToken) };
             else {
                 current.word += text;
-                current.end = Math.max(current.end, nextStart);
+                current.end = Math.max(current.end, this.resolveWordEnd(token, nextToken));
             }
         }
         if (current) words.push(current);
         return words;
+    }
+
+    /**
+     * 估算当前单词的结束时间：优先取下一个子词的开始时间，没有下一个时用固定增量兜底。
+     * @param token 当前子词。
+     * @param nextToken 时间轴上的下一个子词，可能为空。
+     * @returns 单词的估算结束时间。
+     */
+    private resolveWordEnd(token: SpeechRecognitionToken, nextToken: SpeechRecognitionToken | null): number {
+        if (nextToken) {
+            return nextToken.start;
+        }
+        return token.start + 0.32;
     }
 
     /**

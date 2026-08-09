@@ -22,7 +22,8 @@
         "serviceCredentials": "服务凭据",
         "engineSelection": "功能设置",
         "storage": "存储",
-        "update": "版本更新"
+        "update": "版本更新",
+        "proxy": "代理"
     },
     "appearance": {
         "title": "外观",
@@ -40,6 +41,19 @@
         "languageSystem": "跟随系统",
         "languageZhCN": "简体中文",
         "languageEnUS": "English"
+    },
+    "proxy": {
+        "title": "网络代理",
+        "description": "配置应用使用的网络代理，支持跟随系统代理或手动指定。",
+        "modeTitle": "代理模式",
+        "modeSystem": "跟随系统",
+        "modeCustom": "自定义",
+        "modeNone": "不使用",
+        "modeDescription": "跟随系统会读取操作系统配置的代理；自定义需填写代理地址；不使用则全部直连。",
+        "urlTitle": "代理地址",
+        "urlDescription": "支持 http://、https:// 与 socks5:// 协议。",
+        "bypassRulesTitle": "直连规则",
+        "bypassRulesDescription": "逗号分隔的域名/IP/CIDR，命中这些地址的请求不走代理（如 localhost,127.0.0.1）。"
     },
     "checkUpdate": {
         "title": "版本更新",
@@ -174,6 +188,19 @@
         "tencent": {
             "title": "腾讯翻译",
             "description": "用于字幕翻译能力。"
+        },
+        "parakeet": {
+            "cancelDownload": "取消下载",
+            "installing": "正在安装模型…",
+            "extracting": "正在解压模型…",
+            "downloadCancelled": "下载已取消",
+            "deleteModel": "删除模型",
+            "deleteConfirmTitle": "删除 Parakeet v3 模型",
+            "deleteConfirmDescription": "删除后需重新下载才能使用本地字幕识别，确定要删除吗？",
+            "cancelDelete": "暂不删除",
+            "confirmDelete": "确认删除",
+            "modelDeleted": "模型已删除",
+            "deleteFailed": "删除失败"
         },
         "youdao": {
             "title": "有道词典",

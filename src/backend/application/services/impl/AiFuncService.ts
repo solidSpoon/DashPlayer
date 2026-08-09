@@ -6,11 +6,11 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { inject, injectable } from 'inversify';
-import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import ChatService from '@/backend/application/services/ChatService';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import { ParakeetModelService } from '@/backend/application/services/impl/ParakeetModelService';
+import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
 
 @injectable()
 export default class AiFuncService {
@@ -56,7 +56,7 @@ export default class AiFuncService {
             updates: [{
                 filePath,
                 taskId: 0,
-                status: DpTaskState.INIT,
+                status: TranscriptTaskState.INIT,
                 result: { message: '初始化...' },
             }],
         });
@@ -68,7 +68,7 @@ export default class AiFuncService {
                 updates: [{
                     filePath,
                     taskId: 0,
-                    status: DpTaskState.FAILED,
+                    status: TranscriptTaskState.FAILED,
                     result: {
                         error: '字幕模型尚未下载',
                         message: '请先到“设置中心 > 服务凭据”中下载字幕模型',

@@ -13,10 +13,8 @@ import ChatPanel from '@/fronted/pages/player/chat/ChatPanel';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useSWR from 'swr';
 import PlaybackLayout from '@/fronted/pages/player/components/srt-layout/Layout';
-import {SWR_KEY} from '@/fronted/lib/swr-util';
+import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
-// removed old controller usage; player v2 actions used instead
-import { playerActions } from '@/fronted/components/feature/player/player';
 import StrUtil from '@/common/utils/str-util';
 import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
@@ -54,13 +52,9 @@ const PlayerWithControlsPage = () => {
         useLayout((s) => s.height)
     );
     const location = useLocation();
-    const sideBarAnimation =
-        (new URLSearchParams(location.search).get('sideBarAnimation') ??
-            'true') === 'true';
     const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
-    const autoModeAppliedRef = useRef<{ videoId: string | number; mediaType: 'audio' | 'video' } | null>(null);
     const windowButtonsVisibleRef = useRef<boolean | null>(null);
     const compatToastShownRef = useRef<Set<string>>(new Set());
     useEffect(() => {
@@ -135,7 +129,6 @@ const PlayerWithControlsPage = () => {
             const videoPath = PathUtil.join(video.basePath, video.fileName);
             if (videoPath && vp !== videoPath) {
                 useFile.getState().updateFile(videoPath);
-                playerActions.play();
             }
 
             setTimeout(() => {
@@ -193,13 +186,11 @@ const PlayerWithControlsPage = () => {
             }
             if (video) {
                 const mediaType: 'audio' | 'video' = MediaUtil.isAudio(video.fileName) ? 'audio' : 'video';
-                const alreadyApplied =
-                    autoModeAppliedRef.current?.videoId === video.id &&
-                    autoModeAppliedRef.current?.mediaType === mediaType;
-
-                if (!alreadyApplied) {
-                    autoModeAppliedRef.current = { videoId: video.id, mediaType };
-
+                if (video.podcastModeUserSet) {
+                    // 用户手动选择过：直接应用选择，不再自动切换
+                    useLayout.getState().setPodcastMode(video.podcastModeManual ?? false);
+                } else {
+                    // 没有用户偏好：首次打开音频自动进播客模式，视频自动回普通模式
                     if (mediaType === 'audio') {
                         const currentMode = useLayout.getState().podcastMode;
                         if (!currentMode) {
@@ -210,6 +201,11 @@ const PlayerWithControlsPage = () => {
                                         mode="podcast"
                                         onCancel={() => {
                                             useLayout.getState().setPodcastMode(false);
+                                            void api.call('watch-history/set-podcast-mode-preference', {
+                                                videoId: video.id,
+                                                podcastMode: false,
+                                            });
+                                            void swrMutate(SWR_KEY.PLAYER_P);
                                             toast.dismiss(t.id);
                                         }}
                                     />
@@ -230,6 +226,11 @@ const PlayerWithControlsPage = () => {
                                         mode="video"
                                         onCancel={() => {
                                             useLayout.getState().setPodcastMode(true);
+                                            void api.call('watch-history/set-podcast-mode-preference', {
+                                                videoId: video.id,
+                                                podcastMode: true,
+                                            });
+                                            void swrMutate(SWR_KEY.PLAYER_P);
                                             toast.dismiss(t.id);
                                         }}
                                     />
@@ -248,7 +249,7 @@ const PlayerWithControlsPage = () => {
             // await api.call('watch-project/video/play', video.id);
         };
         runEffect();
-    }, [video]);
+    }, [video, navigate, t]);
     useEffect(() => {
         setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);

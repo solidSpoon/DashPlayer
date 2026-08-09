@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import VolumeSlider from '../VolumeSlider';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
 import {cn} from "@/fronted/lib/utils";
@@ -55,7 +54,7 @@ const PodcastControlBar = ({
                 className={cn('w-full p-4 pt-6 backdrop-blur bg-gray-500/20 rounded-none border-0 border-t shadow-2xl',
                     !mouseOver && 'bg-transparent border-none backdrop-blur-0 shadow-none'
                 )}
-                onMouseOver={(e) => {
+                onMouseOver={() => {
                     setMouseOver(true);
                 }}
                 onMouseLeave={() => {
@@ -82,7 +81,7 @@ const PodcastControlBar = ({
                             setAutoPause(false);
                             setSingleRepeat(false);
                         }}
-                        onValueCommit={(value) => {
+                        onValueCommit={() => {
                             currentValueUpdateTime.current = Date.now();
                             // onTimeChange?.({time: value[0]});
                             setSelecting(false);

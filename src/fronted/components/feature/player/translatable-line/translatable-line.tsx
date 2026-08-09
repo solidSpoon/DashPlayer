@@ -56,6 +56,8 @@ const TranslatableLine = ({
     return text === undefined ? (
         <div />
     ) : (
+        // 该容器只用于文本选择/拖拽，不承担交互语义
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <div
             className={cn(
                 theme.core.root,

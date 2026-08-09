@@ -59,6 +59,7 @@ export interface ConcurrencyProfiles {
  */
 export const defaultConcurrencyProfiles: ConcurrencyProfiles = {
     semaphore: {
+        transcription: { capacity: 1 },
         ffmpeg: { capacity: 5 },
         ffprobe: { capacity: 5 },
         whisper: { capacity: 10 },
@@ -73,4 +74,3 @@ export const defaultConcurrencyProfiles: ConcurrencyProfiles = {
         default: { timeSliceMs: 8, yieldDelayMs: 0 },
     },
 };
-

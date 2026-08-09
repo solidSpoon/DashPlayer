@@ -4,9 +4,10 @@ import useSWR from 'swr';
 import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
-import usePlayerUi from '@/fronted/hooks/usePlayerUi';
+import { usePlayerUi } from '@/fronted/hooks/usePlayerUi';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
 import useLayout from '@/fronted/hooks/useLayout';
+import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 import { SettingKey } from '@/common/types/store_schema';
 import { SettingToggle, TranscriptButton, AutoClipButton, ClearAdjustButton } from './index';
@@ -173,8 +174,17 @@ export default function ControlBox() {
             label={t('controlBox.podcastMode')}
             checked={podcstMode}
             onCheckedChange={() => {
-              setPodcastMode(!podcstMode);
-              changeFullScreen(false);
+                const nextMode = !podcstMode;
+                setPodcastMode(nextMode);
+                changeFullScreen(false);
+                const videoId = useFile.getState().videoId;
+                if (videoId) {
+                    void backendClient.call('watch-history/set-podcast-mode-preference', {
+                        videoId,
+                        podcastMode: nextMode,
+                    });
+                    void swrMutate(SWR_KEY.PLAYER_P);
+                }
             }}
             tooltipMd={t('controlBox.podcastModeHint')}
             className="h-11 px-3 py-2"

@@ -71,7 +71,7 @@ const FileBrowser = () => {
                         onSelected={FileAction.playerAction(navigate)}
                     />
                     <FolderSelector
-                        onSelected={FolderSelectAction.defaultAction2(async (vid, fp) => {
+                        onSelected={FolderSelectAction.defaultAction2(async (vid) => {
                             navigate(`/player/${vid}`);
                         })}
                     />

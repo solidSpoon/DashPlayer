@@ -14,6 +14,7 @@ import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import FileUtil from '@/backend/utils/FileUtil';
 import WatchHistoryRepository from '@/backend/application/ports/repositories/WatchHistoryRepository';
+import WatchHistoryExtRepository from '@/backend/application/ports/repositories/WatchHistoryExtRepository';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
@@ -30,6 +31,8 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
     private rendererGateway!: RendererGateway;
     @inject(TYPES.WatchHistoryRepository)
     private watchHistoryRepository!: WatchHistoryRepository;
+    @inject(TYPES.WatchHistoryExtRepository)
+    private watchHistoryExtRepository!: WatchHistoryExtRepository;
 
     private mapId(folder: string, name: string, type: WatchHistoryType) {
         return ObjUtil.hash(`${folder}-${name}-${type}`);
@@ -453,6 +456,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (!fs.existsSync(filePath)) {
             return null;
         }
+        const ext = await this.watchHistoryExtRepository.findByWatchHistoryId(history.id);
         let srtFile = history.srt_file;
         if (StrUtil.isNotBlank(srtFile)) {
             await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFile);
@@ -477,7 +481,9 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             duration,
             current_position: history.current_position,
             srtFile: srtFile ?? '',
-            playing: false
+            playing: false,
+            podcastModeUserSet: ext?.podcast_mode_user_set ?? null,
+            podcastModeManual: ext?.podcast_mode_manual ?? null,
         };
     }
 
@@ -488,6 +494,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         if (!fs.existsSync(filePath)) {
             return null;
         }
+        const ext = await this.watchHistoryExtRepository.findByWatchHistoryId(history.id);
         return {
             id: history.id,
             basePath: history.base_path,
@@ -497,7 +504,9 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             duration: 0,
             current_position: history.current_position,
             srtFile: history.srt_file ?? '',
-            playing: false
+            playing: false,
+            podcastModeUserSet: ext?.podcast_mode_user_set ?? null,
+            podcastModeManual: ext?.podcast_mode_manual ?? null,
         };
     }
 
@@ -645,6 +654,10 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         const deletedFiles = files.filter(file => this.isPathMissing(path.join(file.base_path, file.file_name)));
 
         for (const { base_path, file_name } of deletedFiles) {
+            const records = await this.watchHistoryRepository.findByBasePathFileName(base_path, file_name);
+            for (const record of records) {
+                await this.watchHistoryExtRepository.deleteByWatchHistoryId(record.id);
+            }
             await this.watchHistoryRepository.deleteByBasePathFileName(base_path, file_name);
         }
     }
@@ -678,6 +691,7 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
             });
         }
         await this.watchHistoryRepository.deleteById(id);
+        await this.watchHistoryExtRepository.deleteByWatchHistoryId(id);
         // 删除字幕文件
         if (record.srt_file && record.srt_file.startsWith(libraryPath)) {
             const srtExists = await this.watchHistoryRepository.findBySrtFile(record.srt_file);
@@ -749,5 +763,21 @@ export default class WatchHistoryServiceImpl implements WatchHistoryService {
         }
 
         return null;
+    }
+
+    /**
+     * 保存用户手动设置的播客模式偏好。
+     *
+     * 用户一旦手动开关过播客模式，后续自动切换逻辑都应尊重该选择，
+     * 因此这里把偏好落库（写入扩展表），保证重启后依然生效。
+     *
+     * @param videoId 视频观看记录 ID
+     * @param podcastMode 用户手动选择的播客模式值
+     */
+    public async setPodcastModePreference(videoId: string, podcastMode: boolean): Promise<void> {
+        await this.watchHistoryExtRepository.upsert(videoId, {
+            podcast_mode_user_set: true,
+            podcast_mode_manual: podcastMode,
+        });
     }
 }

@@ -33,6 +33,7 @@ import {
     resolveSubtitleStyleWithSignature
 } from '@/common/constants/openaiSubtitlePrompts';
 import { RendererTranslationFailure, RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
+import { concurrency } from '@/backend/application/kernel/concurrency';
 
 const openAIDictionaryExampleSchema = z.object({
     sentence: z.string().describe('Example sentence in English'),
@@ -275,6 +276,12 @@ export default class TranslateServiceImpl implements TranslateService {
             ? truncate(`${params.message}（${errorMessage}）`, 220)
             : params.message;
 
+        // 弹窗与日志绑定：任何字幕翻译失败弹窗都必须在主进程日志留下原因，避免"弹窗有、日志无"。
+        this.logger.error('字幕翻译失败弹窗', {
+            dedupeKey: params.dedupeKey,
+            message: params.message,
+            error: params.error,
+        });
         this.rendererGateway.fireAndForget('ui/show-toast', {
             title: params.title ?? '字幕翻译失败',
             message: combinedMessage,
@@ -307,6 +314,20 @@ export default class TranslateServiceImpl implements TranslateService {
         if (!indices || indices.length === 0) {
             return;
         }
+        // 同一字幕文件的翻译请求按文件串行执行，避免逐句请求并发打满 OpenAI 并加剧播放抖动。
+        await concurrency.withMutex(`subtitle-translation:${fileHash}`, async () => {
+            await this.groupTranslateLocked(fileHash, indices, useCache);
+        });
+    }
+
+    /**
+     * 执行单个字幕文件的整批翻译（同一 fileHash 已被互斥串行化）。
+     *
+     * @param fileHash 字幕文件哈希。
+     * @param indices 待翻译句子的索引数组。
+     * @param useCache 是否优先使用已保存的翻译缓存。
+     */
+    private async groupTranslateLocked(fileHash: string, indices: number[], useCache: boolean): Promise<void> {
         const requestedKeys = buildRequestedTranslationKeys(fileHash, indices);
 
         const engine = await this.settingService.getCurrentTranslationProvider();
@@ -483,6 +504,10 @@ export default class TranslateServiceImpl implements TranslateService {
                 });
                 this.logger.info(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
             } else {
+                this.logger.error('腾讯批量翻译未返回有效结果', {
+                    fileHash: tasks[0]?.fileHash ?? '',
+                    batchSize: tasks.length,
+                });
                 this.notifySubtitleTranslationFailed({
                     fileHash: tasks[0]?.fileHash ?? '',
                     keys: tasks.map((task) => task.translationKey),
@@ -580,11 +605,17 @@ export default class TranslateServiceImpl implements TranslateService {
                     prompt,
                 });
                 const streamedTranslations = new Map<string, string>();
+                let chunkCount = 0;
                 for await (const partialObject of result.partialOutputStream) {
-                    this.logger.debug('subtitle batch json chunk', {
-                        windowKeys: windowSentences.map((sentence) => sentence.translationKey),
-                        keys: Object.keys(partialObject ?? {}),
-                    });
+                    // 流式 chunk 频率极高，仅记录首/末 chunk 与间隔采样，保留进度可见性。
+                    chunkCount += 1;
+                    if (chunkCount === 1 || chunkCount % 20 === 0) {
+                        this.logger.debug('subtitle batch json chunk', {
+                            windowKeys: windowSentences.map((sentence) => sentence.translationKey),
+                            chunkCount,
+                            keys: Object.keys(partialObject ?? {}),
+                        });
+                    }
                     const partialItems = this.normalizeOpenAIBatchResult(partialObject, windowSentences);
                     const partialUpdates = this.buildStreamingSubtitleUpdates(
                         partialItems,
@@ -598,6 +629,7 @@ export default class TranslateServiceImpl implements TranslateService {
                         });
                     }
                 }
+                this.logger.debug(`subtitle batch stream 完成，共 ${chunkCount} 个 chunk`);
 
                 const finalObject = await result.output;
                 const normalizedItems = this.normalizeOpenAIBatchResult(finalObject, windowSentences);
@@ -636,6 +668,12 @@ export default class TranslateServiceImpl implements TranslateService {
                     if (!firstError) {
                         firstError = new Error('openai batch result missing requested items');
                     }
+                    // 模型返回可解析但缺失条目的部分失败：明确记录窗口与缺失数量，便于归因。
+                    this.logger.error('OpenAI 字幕窗口结果缺失', {
+                        windowKeys: windowSentences.map((sentence) => sentence.translationKey),
+                        resolvedCount: resolvedRequestedKeys.size,
+                        requestedCount: requestedInWindow.length,
+                    });
                 }
             } catch (error) {
                 this.logger.error('OpenAI 字幕窗口翻译失败', {
@@ -1030,14 +1068,15 @@ export default class TranslateServiceImpl implements TranslateService {
             const prompt = `You are a professional English-Chinese dictionary. Provide concise, structured dictionary information for the word "${word}".
 
 Requirements:
-1. Use this exact compact shape only: { word, phonetic, definitions }.
+1. Respond with JSON only, using this exact compact shape: { word, phonetic, definitions }.
 2. Every field is required; do not omit any field.
 3. definitions item shape: { partOfSpeech, meaning, examples }.
 4. examples item shape: { sentence, translation }.
 5. If unavailable, use empty string for text fields and empty array for list fields.
 6. Keep output concise and practical for a word popup.
 
-Ensure the response strictly matches the provided JSON schema.`;
+Output example (field names and nesting must match exactly):
+{"word":"serendipity","phonetic":"/ˌserənˈdɪpəti/","definitions":[{"partOfSpeech":"n.","meaning":"意外发现美好事物的运气","examples":[{"sentence":"Meeting her was a stroke of serendipity.","translation":"遇见她纯属偶然的好运。"}]}]}`;
 
             const { partialOutputStream } = streamText({
                 model,
@@ -1051,12 +1090,18 @@ Ensure the response strictly matches the provided JSON schema.`;
                 definitions: []
             };
             let hasStreamed = false;
+            let chunkCount = 0;
 
             for await (const partialObject of partialOutputStream) {
-                streamLogger.debug('dictionary json chunk', {
-                    word,
-                    keys: Object.keys(partialObject ?? {}),
-                });
+                // 词典流式 chunk 频率同样较高，按间隔采样，保留进度可见性。
+                chunkCount += 1;
+                if (chunkCount === 1 || chunkCount % 20 === 0) {
+                    streamLogger.debug('dictionary json chunk', {
+                        word,
+                        chunkCount,
+                        keys: Object.keys(partialObject ?? {}),
+                    });
+                }
                 let changed = false;
 
                 if (partialObject.word !== undefined) {

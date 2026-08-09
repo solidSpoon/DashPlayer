@@ -6,15 +6,19 @@ import fs from 'fs';
 import path from 'path';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
+import { setConcurrencyLogger } from '@/backend/application/kernel/concurrency';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
+import { initProxyFeature } from '@/backend/startup/initProxy';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
+import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
+import { storeGet } from '@/backend/infrastructure/settings/store';
 
 // 导入日志 IPC 监听
 import '@/backend/adapters/ipc/renderer-log';
@@ -24,6 +28,9 @@ if (squirrelStartup) {
 }
 
 const logger = getMainLogger('MainStartup');
+const devtoolsLogger = getMainLogger('devtools');
+// 组合根运行期注入并发内核日志端口，保持 application/kernel 不依赖 infrastructure。
+setConcurrencyLogger(getMainLogger('concurrency'));
 
 const mainWindowRef = {
     current: null as BrowserWindow | null
@@ -104,7 +111,7 @@ const installReactDevToolsFromChromeProfile = async (targetSession: Session): Pr
 
             const extensionDir = path.join(baseDir, latest);
             await targetSession.extensions.loadExtension(extensionDir, { allowFileAccess: true });
-            console.info('[devtools] React DevTools loaded from Chrome profile:', extensionDir);
+            devtoolsLogger.info('React DevTools loaded from Chrome profile', { extensionDir });
             return true;
         } catch {
             // ignore and try next candidate
@@ -117,19 +124,27 @@ const installReactDevToolsFromChromeProfile = async (targetSession: Session): Pr
 const installReactDevTools = async (targetSession: Session): Promise<void> => {
     try {
         await installExtension(REACT_DEVELOPER_TOOLS, { forceDownload: false, session: targetSession });
-        console.info('[devtools] React DevTools installed via electron-devtools-installer');
+        devtoolsLogger.info('React DevTools installed via electron-devtools-installer');
         return;
     } catch (error) {
-        console.warn('[devtools] Failed to install React DevTools via downloader', error);
+        devtoolsLogger.warn('Failed to install React DevTools via downloader', { error });
     }
 
     const loaded = await installReactDevToolsFromChromeProfile(targetSession);
     if (!loaded) {
-        console.warn('[devtools] React DevTools not installed (no downloader access and no local Chrome/Edge extension found)');
+        devtoolsLogger.warn('React DevTools not installed (no downloader access and no local Chrome/Edge extension found)');
     }
 };
 
+/**
+ * 创建主窗口并加载渲染端入口。
+ *
+ * 行为说明：
+ * - 开发模式加载 Vite dev server 并尝试安装 React DevTools；
+ * - 生产模式直接加载打包后的 renderer 文件。
+ */
 const createWindow = () => {
+    logger.info('main window created');
     // Create the browser window.
     const isMac = process.platform === 'darwin';
     const mainWindow = new BrowserWindow({
@@ -156,7 +171,7 @@ const createWindow = () => {
             const installed = mainWindow.webContents.session.extensions
                 .getAllExtensions()
                 .some((ext) => ext.id === REACT_DEVELOPER_TOOLS.id);
-            console.info('[devtools] React DevTools extension present:', installed);
+            devtoolsLogger.info('React DevTools extension present', { installed });
         });
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
         // Open the DevTools.
@@ -174,6 +189,14 @@ app.on('ready', async () => {
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     await runResyncAfterResetDbIfNeeded();
+    await initProxyFeature();
+    // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。
+    logger.info('app ready', {
+        version: app.getVersion(),
+        platform: process.platform,
+        mode: isDevelopmentMode() ? 'development' : 'production',
+        proxyMode: storeGet('proxy.mode'),
+    });
     createWindow();
 });
 
@@ -181,9 +204,13 @@ app.on('ready', async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+    logger.info('all windows closed', { platform: process.platform });
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+app.on('before-quit', () => {
+    logger.info('app before quit');
 });
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the

@@ -209,6 +209,8 @@ export default function Subtitle() {
         const isGroupStart = isSelected && item.index === virtualGroupMeta.min;
         const isGroupEnd = isSelected && item.index === virtualGroupMeta.max;
         return (
+            // 拖拽选区容器：鼠标按下/进入/抬起用于区间选择，不承担点击交互
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <div
                 onMouseDown={handleMouseDown(item)}
                 onMouseEnter={handleMouseEnter(item)}

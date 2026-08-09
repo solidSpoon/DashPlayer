@@ -1,8 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 
-import db from '@/backend/infrastructure/db';
-import { VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
+import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 import VideoLearningClipRepository from '@/backend/application/ports/repositories/VideoLearningClipRepository';
 import VideoLearningClipWordRepository from '@/backend/application/ports/repositories/VideoLearningClipWordRepository';
@@ -12,13 +11,12 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 
-import { and, desc, eq, gte, inArray, like, lte, sql } from 'drizzle-orm';
 import { inject, injectable, postConstruct } from 'inversify';
 
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
-import { ClipQuery, SimpleClipQuery } from '@/common/api/dto';
+import { SimpleClipQuery } from '@/common/api/dto';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
 import CacheService from '@/backend/application/services/CacheService';
 import { ClipOssService } from '@/backend/application/services/OssService';
@@ -100,6 +98,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private clipAnalysisProgress: Map<string, number> = new Map();
     private clipStatusCache: Map<string, VideoLearningClipStatusVO> = new Map();
     private clipStatusSeq: Map<string, number> = new Map();
+    /** 每个字幕已失败并跳过的裁切任务键集合，用于在队列清空后仍能提示用户重试。 */
+    private clipFailedKeysBySrt: Map<string, Set<string>> = new Map();
     private currentAnalysisKey: string | null = null;
     private readonly maxClipTasksPerTick = 1;
     private readonly analysisScheduler = concurrency.scheduler('default');
@@ -218,6 +218,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         for (const srtKey of affectedSrtKeys) {
             this.clipStatusCache.delete(srtKey);
+            this.clipFailedKeysBySrt.delete(srtKey);
         }
 
         return queuedTasks.length;
@@ -267,7 +268,19 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     /**
      * 定时任务
      */
+    /**
+     * 定时任务：处理视频学习片段的新增/取消队列。
+     *
+     * 行为说明：
+     * - 与 syncFromOss 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
+     */
     private async checkQueue() {
+        await concurrency.withMutex('video-learning-sync', async () => {
+            await this.doCheckQueue();
+        });
+    }
+
+    private async doCheckQueue() {
         if (this.taskQueue.size === 0) {
             return;
         }
@@ -293,6 +306,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         // 处理新增任务：仅针对数据库中不存在的键
         let taskProcessed = 0;
+        // 本次处理中失败并跳过的任务数，用于避免误报“全部完成”
+        let taskFailed = 0;
         for (const key of notExistingKeys) {
             if (taskProcessed >= this.maxClipTasksPerTick) {
                 break;
@@ -305,7 +320,26 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             if (task.operation === 'add') {
                 processedSrtKey = task.srtKey;
                 processedVideoPath = task.videoPath;
-                await this.taskAddOperation(task);
+                try {
+                    await this.taskAddOperation(task);
+                    // 任务成功后清除该键的失败记录（此前可能重试成功）
+                    this.clipFailedKeysBySrt.get(task.srtKey)?.delete(task.clipKey);
+                } catch (error) {
+                    taskFailed++;
+                    let failedKeys = this.clipFailedKeysBySrt.get(task.srtKey);
+                    if (!failedKeys) {
+                        failedKeys = new Set();
+                        this.clipFailedKeysBySrt.set(task.srtKey, failedKeys);
+                    }
+                    failedKeys.add(task.clipKey);
+                    this.logger.error('[checkQueue] add task failed, skip it:', {
+                        key,
+                        srtKey: task.srtKey,
+                        videoPath: task.videoPath,
+                        error,
+                    });
+                    this.notifyClipTaskFailed(task, error);
+                }
                 taskProcessed++;
             }
             // 从真实队列中删除该任务（如果没有被新的任务覆盖）
@@ -328,7 +362,16 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     const anyTaskForSrt = Array.from(this.taskQueue.values()).find(t => t.srtKey === processedSrtKey && t.operation === 'add');
                     processedVideoPath = anyTaskForSrt?.videoPath || '';
                 }
-                await this.taskCancelOperation(task);
+                try {
+                    await this.taskCancelOperation(task);
+                } catch (error) {
+                    this.logger.error('[checkQueue] cancel task failed, skip it:', {
+                        key,
+                        srtKey: task.srtKey,
+                        error,
+                    });
+                    this.notifyClipTaskFailed(task, error);
+                }
                 taskProcessed++;
             }
             if (this.taskQueue.get(key) === task) {
@@ -346,13 +389,43 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 '';
 
             if (finalVideoPath) {
-                if (remainingAddForSrt === 0) {
+                const failedCount = this.clipFailedKeysBySrt.get(processedSrtKey)?.size ?? 0;
+                if (remainingAddForSrt === 0 && taskFailed === 0 && failedCount === 0) {
                     await this.notifyClipStatus(finalVideoPath, processedSrtKey, 'completed', 0, 0, 1);
+                } else if (remainingAddForSrt === 0 && failedCount > 0) {
+                    await this.notifyClipStatus(
+                        finalVideoPath,
+                        processedSrtKey,
+                        'pending',
+                        failedCount,
+                        0,
+                        0,
+                    );
                 } else {
                     await this.notifyClipStatus(finalVideoPath, processedSrtKey, 'in_progress', 0, remainingAddForSrt, 0);
                 }
             }
         }
+    }
+
+    /**
+     * 通知某个裁切任务失败，并给出简要失败原因。
+     *
+     * 说明：失败任务会从队列中跳过，不影响后续任务继续处理。
+     *
+     * @param task 失败的任务。
+     * @param error 失败原因。
+     */
+    private notifyClipTaskFailed(task: LearningClipTask, error: unknown): void {
+        const reason = error instanceof Error ? error.message?.trim() : '';
+        const message = reason
+            ? `裁切任务失败，已跳过：${reason.length > 200 ? `${reason.slice(0, 200)}…` : reason}`
+            : '裁切任务失败，已跳过';
+        this.rendererGateway.fireAndForget('ui/show-toast', {
+            message,
+            variant: 'error',
+            duration: 5000,
+        });
     }
 
     private async taskAddOperation(task: LearningClipTask): Promise<void> {
@@ -369,20 +442,23 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             return;
         }
 
-        const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
-        await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
-
-        await this.videoLearningOssService.putClip(key, tempName, metaData);
-        const meta = await this.videoLearningOssService.get(key);
-        if (!meta) {
-            throw new Error('meta not found after putClip');
-        }
-        await this.addToDb(meta);
-
         try {
-            fs.rmSync(tempName, { force: true });
-        } catch (e) {
-            this.logger.warn('[taskAddOperation] failed to remove temp file', { tempName, error: e });
+            const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
+            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
+
+            await this.videoLearningOssService.putClip(key, tempName, metaData);
+            const meta = await this.videoLearningOssService.get(key);
+            if (!meta) {
+                throw new Error('meta not found after putClip');
+            }
+            await this.addToDb(meta);
+        } finally {
+            // 无论成功或失败，都清理临时文件，避免任务跳过后在 temp 目录残留大文件
+            try {
+                fs.rmSync(tempName, { force: true });
+            } catch (e) {
+                this.logger.warn('[taskAddOperation] failed to remove temp file', { tempName, error: e });
+            }
         }
     }
 
@@ -846,16 +922,17 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
         const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
 
-        await this.videoLearningClipRepository.upsert({
+        const clip: InsertVideoLearningClip = {
             key: metaData.key,
             video_name: metaData.video_name,
             srt_clip: srtClip,
             srt_context: srtContext,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
-        });
+        };
 
         // 始终通过算法对核心文本进行匹配，以写入单词关系
+        const wordRelations: InsertVideoLearningClipWord[] = [];
         if (StrUtil.isNotBlank(srtClip)) {
             const matches = await this.wordMatchService.matchWordsInText(srtClip);
             const uniqueWords = Array.from(
@@ -867,15 +944,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             );
 
             if (uniqueWords.length > 0) {
-                const wordRelations: InsertVideoLearningClipWord[] = uniqueWords.map(word => ({
+                wordRelations.push(...uniqueWords.map(word => ({
                     clip_key: metaData.key,
                     word,
                     created_at: TimeUtil.timeUtc(),
                     updated_at: TimeUtil.timeUtc()
-                }));
-                await this.videoLearningClipWordRepository.insertManyIgnoreDuplicates(wordRelations);
+                })));
             }
         }
+        await this.videoLearningClipRepository.saveClipWithWords(clip, wordRelations);
     }
 
     private async clipInDb(key: string) {
@@ -883,17 +960,56 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 清除数据库，重新从 OSS 同步
+     * 清除数据库，重新从 OSS 同步。
+     *
+     * 行为说明：
+     * - 先把所有远端片段读入内存并完成单词匹配，再在单个事务内清空并重灌，任一步失败整体回滚；
+     * - 读取远端与单词匹配发生在事务外，避免在同步事务里做 IO 或命中缓存外的逻辑；
+     * - 与 checkQueue 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
      */
     public async syncFromOss() {
-        const keys = await this.videoLearningOssService.list();
-        await this.videoLearningClipRepository.deleteAll();
-        await this.videoLearningClipWordRepository.deleteAll();
-        for (const key of keys) {
-            const clip = await this.videoLearningOssService.get(key);
-            if (!clip) continue;
-            await this.addToDb(clip);
-        }
+        await concurrency.withMutex('video-learning-sync', async () => {
+            const keys = await this.videoLearningOssService.list();
+            const clips: InsertVideoLearningClip[] = [];
+            const wordRelations: InsertVideoLearningClipWord[] = [];
+            for (const key of keys) {
+                const clip = await this.videoLearningOssService.get(key);
+                if (!clip) {
+                    continue;
+                }
+                const srtLines = clip.clip_content ?? [];
+                const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
+                const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
+                clips.push({
+                    key: clip.key,
+                    video_name: clip.video_name,
+                    srt_clip: srtClip,
+                    srt_context: srtContext,
+                    created_at: TimeUtil.timeUtc(),
+                    updated_at: TimeUtil.timeUtc(),
+                });
+
+                if (StrUtil.isNotBlank(srtClip)) {
+                    const matches = await this.wordMatchService.matchWordsInText(srtClip);
+                    const uniqueWords = Array.from(
+                        new Set(
+                            matches
+                                .map(m => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
+                                .filter(Boolean)
+                        )
+                    );
+                    for (const word of uniqueWords) {
+                        wordRelations.push({
+                            clip_key: clip.key,
+                            word,
+                            created_at: TimeUtil.timeUtc(),
+                            updated_at: TimeUtil.timeUtc(),
+                        });
+                    }
+                }
+            }
+            await this.videoLearningClipRepository.replaceAll(clips, wordRelations);
+        });
     }
 
     public async countClipsGroupedByWord(): Promise<Record<string, number>> {
@@ -906,6 +1022,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         this.clipAnalysisPromises.clear();
         this.clipAnalysisProgress.clear();
         this.clipStatusCache.clear();
+        this.clipFailedKeysBySrt.clear();
         this.currentAnalysisKey = null;
     }
 

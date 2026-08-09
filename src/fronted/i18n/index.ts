@@ -1,5 +1,6 @@
-import i18n from 'i18next';
+import i18n, { changeLanguage, use } from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import zhNav from '@/fronted/i18n/locales/zh-CN/nav.json';
 import enNav from '@/fronted/i18n/locales/en-US/nav.json';
 import zhSettings from '@/fronted/i18n/locales/zh-CN/settings.json';
@@ -37,18 +38,6 @@ export const resources = {
     },
 };
 
-type DotPrefix<T extends string> = T extends '' ? '' : `.${T}`;
-type LeafKeys<T> = T extends string
-    ? ''
-    : {
-        [K in Extract<keyof T, string>]: `${K}${DotPrefix<LeafKeys<T[K]>>}`;
-    }[Extract<keyof T, string>];
-type ResourceSchema = typeof resources['zh-CN'];
-type NamespaceKeys = Extract<keyof ResourceSchema, string>;
-export type TranslationKey = {
-    [N in NamespaceKeys]: `${N}.${LeafKeys<ResourceSchema[N]>}`;
-}[NamespaceKeys];
-
 export const resolveLocaleFromSystem = (language: string | undefined | null): AppLocale => {
     if ((language ?? '').toLowerCase().startsWith('zh')) {
         return 'zh-CN';
@@ -72,13 +61,12 @@ export const resolveLocaleFromSetting = (
 export const applyLanguageSetting = async (setting: string | undefined | null): Promise<AppLocale> => {
     const locale = resolveLocaleFromSetting(setting);
     if (i18n.resolvedLanguage !== locale) {
-        await i18n.changeLanguage(locale);
+        await changeLanguage(locale);
     }
     return locale;
 };
 
-void i18n
-    .use(initReactI18next)
+void use(initReactI18next)
     .init({
         resources,
         lng: I18N_FALLBACK_LOCALE,
@@ -92,7 +80,7 @@ void i18n
         debug: import.meta.env.DEV,
         parseMissingKeyHandler: (key) => {
             if (import.meta.env.DEV) {
-                console.warn(`[i18n] missing key: ${key}`);
+                getRendererLogger('i18n').warn(`[i18n] missing key: ${key}`);
             }
             return key;
         },

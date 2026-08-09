@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from "@/fronted/lib/utils";
 import TranscriptFile from './TranscriptFile';
 import TranscriptTable from '@/fronted/pages/transcript/TranscriptTable';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';

@@ -124,10 +124,22 @@ export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] 
     ];
 };
 
+/**
+ * 生成整句分析提示词。
+ *
+ * json_object 协议（见 AiProviderServiceImpl 的说明）不会把 Output.object 的 zod schema
+ * 传给服务端，模型能看到的唯一结构约束就是提示词本身；此前提示词只说"与给定 schema 字段
+ * 一致"却从未贴出结构，导致模型靠猜字段名（实测 phraseGroups 用 text、phrases 缺失等
+ * 固定跑偏，而唯一给了 JSON 示例的 examples 永远正确）。因此这里贴出紧凑字段契约 + 完整
+ * 输出示例模板（覆盖全部字段名与嵌套层级），比贴冗长的 JSON Schema 更可读、对齐更稳。
+ *
+ * @param text 要分析的句子。
+ * @returns 拼接后的分析提示词。
+ */
 export const buildAnalysisPrompt = (text: string): string => {
     return [
         '你是一个专业、冷静的英语学习助手。',
-        '请严格输出 JSON，内容必须与给定 schema 字段一致，且不要包含多余字段。',
+        '请严格输出 JSON，字段名与嵌套结构必须与下面的字段契约和示例模板完全一致，不要包含多余字段。',
         '所有中文内容使用简体中文。',
         '',
         '分析目标句子:',
@@ -142,9 +154,75 @@ export const buildAnalysisPrompt = (text: string): string => {
         '- examples: 必须给出 5 个例句，sentences 数组长度必须为 5。',
         '- examples: 尽量使用 vocab/phrases 中的点，points 列出用到的词或短语；如果没有合适的点，points 返回空数组但例句仍必须给出。',
         '- examples 结构必须是 sentences 数组，每项包含 sentence/meaning/points，禁止额外字段。',
-        '- examples 结构示例:',
-        '{"examples":{"sentences":[{"sentence":"...","meaning":"...","points":["..."]}]}}',
+        '',
+        '输出结构（紧凑字段契约）:',
+        '- structure → phraseGroups[]（original / translation / tags[]）',
+        '- vocab → hasNewWord + words[]（word / phonetic / meaning）',
+        '- phrases → hasPhrase + phrases[]（phrase / meaning）',
+        '- grammar → hasGrammar + grammarsMd',
+        '- examples → sentences[]（sentence / meaning / points[]）',
+        '',
+        '输出示例模板（字段名与嵌套必须与此完全一致，内容按目标句子实际填写）:',
+        '```json',
+        '{',
+        '  "structure": {',
+        '    "sentence": "目标句子的完整原文",',
+        '    "phraseGroups": [',
+        '      { "original": "意群原文", "translation": "意群的中文翻译", "tags": ["标签"] }',
+        '    ]',
+        '  },',
+        '  "vocab": {',
+        '    "hasNewWord": true,',
+        '    "words": [',
+        '      { "word": "单词", "phonetic": "音标", "meaning": "中文释义" }',
+        '    ]',
+        '  },',
+        '  "phrases": {',
+        '    "hasPhrase": true,',
+        '    "phrases": [',
+        '      { "phrase": "词组", "meaning": "中文释义" }',
+        '    ]',
+        '  },',
+        '  "grammar": {',
+        '    "hasGrammar": true,',
+        '    "grammarsMd": "中文语法说明（Markdown，不用标题语法）"',
+        '  },',
+        '  "examples": {',
+        '    "sentences": [',
+        '      { "sentence": "英文例句", "meaning": "中文释义", "points": ["用到的词或短语"] }',
+        '    ]',
+        '  }',
+        '}',
+        '```',
     ].join('\n');
+};
+
+/**
+ * 把消息列表中的 system 角色消息拆出来，返回 system 内容与剩余消息。
+ *
+ * AI SDK v7 起 messages 里不允许再带 system 角色消息（standardizePrompt 会直接抛
+ * InvalidPromptError），需要把 system 内容通过 streamText 的 system 参数单独传入。
+ * 多个 system 消息按原顺序用空行拼接为一个字符串。
+ *
+ * @param messages 原始消息列表（可能包含 system 角色消息）。
+ * @returns system 拼接后的内容（没有 system 时为 undefined），以及去掉 system 后的剩余消息。
+ */
+export const splitSystemMessages = (
+    messages: ModelMessage[]
+): { system?: string; messages: ModelMessage[] } => {
+    const systemParts: string[] = [];
+    const rest: ModelMessage[] = [];
+    for (const message of messages) {
+        if (message.role === 'system') {
+            systemParts.push(message.content);
+        } else {
+            rest.push(message);
+        }
+    }
+    return {
+        system: systemParts.length > 0 ? systemParts.join('\n\n') : undefined,
+        messages: rest,
+    };
 };
 
 export const appendBackgroundMessage = (

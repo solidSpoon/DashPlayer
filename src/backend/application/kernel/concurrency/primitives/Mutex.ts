@@ -1,5 +1,6 @@
 import {
     AcquireOptions,
+    ConcurrencyLoggerRef,
     Permit,
 } from '@/backend/application/kernel/concurrency/types';
 import { createSemaphore, Semaphore } from '@/backend/application/kernel/concurrency/primitives/Semaphore';
@@ -33,11 +34,12 @@ export interface Mutex {
  * @param options 初始化选项。
  * @returns 互斥锁实例。
  */
-export function createMutex(options?: { name?: string }): Mutex {
+export function createMutex(options?: { name?: string; logger?: ConcurrencyLoggerRef }): Mutex {
     const name = options?.name ?? 'mutex';
     const semaphore: Semaphore = createSemaphore({
         capacity: 1,
         name,
+        logger: options?.logger,
     });
 
     return {
@@ -55,4 +57,3 @@ export function createMutex(options?: { name?: string }): Mutex {
         },
     };
 }
-

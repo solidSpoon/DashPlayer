@@ -13,6 +13,8 @@ const Playable = ({ className, children }: PlayableProps) => {
     const logger = getRendererLogger('Playable');
     const [loading, setLoading] = useState(false);
     return (
+        // 可点文本：点击仅用于取消选区/阻止冒泡，交互语义由内部播放按钮承担
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
         <span
             onClick={(e) => {
                 e.preventDefault();

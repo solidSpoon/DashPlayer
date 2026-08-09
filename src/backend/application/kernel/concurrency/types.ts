@@ -62,6 +62,10 @@ export interface SemaphoreOptions {
      * 便于调试和观测的名称。
      */
     name?: string;
+    /**
+     * 日志端口持有者；由组合根运行期注入，保持内核不直接依赖基础设施。
+     */
+    logger?: ConcurrencyLoggerRef;
 }
 
 /**
@@ -102,6 +106,10 @@ export interface RateLimiterOptions {
      * 便于调试和观测的名称。
      */
     name?: string;
+    /**
+     * 日志端口持有者；由组合根运行期注入，保持内核不直接依赖基础设施。
+     */
+    logger?: ConcurrencyLoggerRef;
 }
 
 /**
@@ -159,7 +167,70 @@ export interface SchedulerOptions {
      * 调度器名称。
      */
     name?: string;
+    /**
+     * 日志端口持有者；由组合根运行期注入，保持内核不直接依赖基础设施。
+     */
+    logger?: ConcurrencyLoggerRef;
 }
+
+/**
+ * 并发内核日志端口；由组合根注入，保证内核本身无外部副作用。
+ */
+export interface ConcurrencyLogger {
+    /**
+     * 记录 debug 级别日志。
+     * @param msg 消息文本。
+     * @param data 结构化数据。
+     */
+    debug(msg: string, data?: Record<string, unknown>): void;
+    /**
+     * 记录 warn 级别日志。
+     * @param msg 消息文本。
+     * @param data 结构化数据。
+     */
+    warn(msg: string, data?: Record<string, unknown>): void;
+}
+
+/**
+ * 日志端口持有者：内核持有可变引用，支持组合根在运行期注入/更新，无需重建已创建的原语。
+ */
+export interface ConcurrencyLoggerRef {
+    /**
+     * 当前日志端口；undefined 表示关闭并发内核日志。
+     */
+    current: ConcurrencyLogger | undefined;
+}
+
+/**
+ * 安全调用日志端口：并发原语的日志异常绝不允许影响状态流转，日志失败一律吞掉。
+ * @param loggerRef 日志端口持有者。
+ * @param level 日志级别。
+ * @param msg 消息文本。
+ * @param data 结构化数据。
+ */
+export function safeLog(
+    loggerRef: ConcurrencyLoggerRef | undefined,
+    level: 'debug' | 'warn',
+    msg: string,
+    data?: Record<string, unknown>,
+): void {
+    const logger = loggerRef?.current;
+    if (!logger) {
+        return;
+    }
+    try {
+        if (level === 'debug') {
+            logger.debug(msg, data);
+        } else {
+            logger.warn(msg, data);
+        }
+    } catch {
+        // 日志失败不影响并发原语的状态流转。
+    }
+}
+
+/** 等待超过该阈值（毫秒）时记 debug，用于观测限流/信号量竞争。 */
+export const CONCURRENCY_WAIT_LOG_THRESHOLD_MS = 500;
 
 /**
  * 合作式让步调用选项。

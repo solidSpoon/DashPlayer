@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
 import { playerActions } from '@/fronted/components/feature/player/player';
-import usePlayerUi from '@/fronted/hooks/usePlayerUi';
+import { usePlayerUi } from '@/fronted/hooks/usePlayerUi';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLinePodcast from './TranslatableLinePodcast';
 import PodcastControlBar from './PodcastControlBar';

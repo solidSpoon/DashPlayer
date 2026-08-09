@@ -38,11 +38,9 @@ const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSl
                 max={100}
                 min={0}
                 defaultValue={[volume * 100]}
-                onValueCommit={(value) => {
-                    onVolumeChange(value[0] / 100);
-                    setLocalVolume(value[0] / 100);
-                }}
                 onValueChange={(value) => {
+                    // 拖动过程中即时生效，无需等松手
+                    onVolumeChange(value[0] / 100);
                     setLocalVolume(value[0] / 100);
                 }}
             />

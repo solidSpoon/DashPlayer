@@ -1,5 +1,5 @@
 import {cn} from "@/fronted/lib/utils";
-import usePlayerUi from "@/fronted/hooks/usePlayerUi";
+import { usePlayerUi } from "@/fronted/hooks/usePlayerUi";
 import useSetting from "@/fronted/hooks/useSetting";
 import {FONT_SIZE} from "@/fronted/styles/style";
 

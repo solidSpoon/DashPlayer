@@ -62,7 +62,7 @@ const ChatPanel = () => {
                 opacity: 1,
                 transition: {
                     duration: 0.3,
-                    type: 'just'
+                    ease: 'easeOut'
                 }
             }}
             exit={{opacity: 0}}
@@ -91,14 +91,14 @@ const ChatPanel = () => {
                             y: 0,
                             transition: {
                                 duration: 0.3,
-                                type: 'just'
+                                ease: 'easeOut'
                             }
                         }}
                         exit={{
                             y: '100%',
                             transition: {
                                 duration: 0.3,
-                                type: 'just'
+                                ease: 'easeOut'
                             }
                         }}
                     >
@@ -148,7 +148,7 @@ const ChatPanel = () => {
                             <ConversationPane/>
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <TopicSelector className={cn('flex-shrink-0')}/>
+                                <TopicSelector />
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
                                 <SentencesPane className={cn('flex-shrink-0')}/>
                             </div>

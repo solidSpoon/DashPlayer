@@ -15,10 +15,11 @@ import CacheService from '@/backend/application/services/CacheService';
 import { ClipOssService } from '@/backend/application/services/OssService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/application/services/FfmpegService';
+import { concurrency } from '@/backend/application/kernel/concurrency';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
-import FavouriteClipsRepository from '@/backend/application/ports/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem } from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
@@ -90,9 +91,18 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     /**
-     * 定时任务
+     * 定时任务：处理收藏片段的新增/取消队列。
+     *
+     * 行为说明：
+     * - 与 syncFromOss 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
      */
     async checkQueue() {
+        await concurrency.withMutex('favourite-clip-sync', async () => {
+            await this.doCheckQueue();
+        });
+    }
+
+    private async doCheckQueue() {
         if (this.taskQueue.size === 0) {
             return;
         }
@@ -241,19 +251,14 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         const srtLines = metaData.clip_content ?? [];
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
         const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
-        await this.favouriteClipsRepository.upsertClip({
+        await this.favouriteClipsRepository.saveClipWithTags({
             key: metaData.key,
             video_name: metaData.video_name,
             srt_clip: srtClip,
             srt_context: srtContext,
             created_at: TimeUtil.timeUtc(),
             updated_at: TimeUtil.timeUtc()
-        });
-        const tagNames = CollUtil.emptyIfNull(metaData.tags);
-        for (const tagName of tagNames) {
-            const tag = await this.favouriteClipsRepository.ensureTag(tagName);
-            await this.addClipTag(metaData.key, tag.id);
-        }
+        }, CollUtil.emptyIfNull(metaData.tags));
     }
 
     private async clipInDb(key: string) {
@@ -295,18 +300,39 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     /**
-     * 清除数据库，重新从oss同步
+     * 清除数据库，重新从 OSS 同步。
+     *
+     * 行为说明：
+     * - 先把所有远端片段读入内存，再在单个事务内清空并重灌，任一步失败整体回滚；
+     * - 读取远端发生在事务外，避免在同步事务里做 IO；
+     * - 与 checkQueue 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
      */
     async syncFromOss() {
-        const keys = await this.clipOssService.list();
-        await this.favouriteClipsRepository.deleteAll();
-        for (const key of keys) {
-            const clip = await this.clipOssService.get(key);
-            if (!clip) {
-                continue;
+        await concurrency.withMutex('favourite-clip-sync', async () => {
+            const keys = await this.clipOssService.list();
+            const clips: FavouriteClipsReplaceAllItem[] = [];
+            for (const key of keys) {
+                const clip = await this.clipOssService.get(key);
+                if (!clip) {
+                    continue;
+                }
+                const srtLines = clip.clip_content ?? [];
+                const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
+                const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');
+                clips.push({
+                    clip: {
+                        key: clip.key,
+                        video_name: clip.video_name,
+                        srt_clip: srtClip,
+                        srt_context: srtContext,
+                        created_at: TimeUtil.timeUtc(),
+                        updated_at: TimeUtil.timeUtc(),
+                    },
+                    tags: CollUtil.emptyIfNull(clip.tags),
+                });
             }
-            await this.addToDb(clip);
-        }
+            await this.favouriteClipsRepository.replaceAll(clips);
+        });
     }
 
     @postConstruct()

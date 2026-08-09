@@ -8,7 +8,7 @@ import {InsertVideoClip, VideoClip, videoClip} from '@/backend/infrastructure/db
 import { ClipQuery } from '@/common/api/dto';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import FavouriteClipsRepository, { FavouriteClipsUpsertClipParams } from '@/backend/application/ports/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem, FavouriteClipsUpsertClipParams } from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 
 @injectable()
 export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepository {
@@ -32,23 +32,119 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
         return rows.length > 0;
     }
 
-    public async upsertClip(values: FavouriteClipsUpsertClipParams): Promise<void> {
-        await db
-            .insert(videoClip)
-            .values({
-                ...values,
-                created_at: values.created_at ?? TimeUtil.timeUtc(),
-                updated_at: values.updated_at ?? TimeUtil.timeUtc(),
-            } satisfies InsertVideoClip)
-            .onConflictDoUpdate({
-                target: [videoClip.key],
-                set: {
-                    video_name: values.video_name,
-                    srt_clip: values.srt_clip,
-                    srt_context: values.srt_context,
+    /**
+     * 原子地保存一个片段及其标签关联。
+     *
+     * 行为说明：
+     * - 片段按 key upsert，标签不存在时自动创建，关联按 clip_key+tag_id 去重；
+     * - 整个写入在一个事务内完成，任一步失败都会整体回滚。
+     *
+     * @param values 片段内容。
+     * @param tagNames 该片段关联的标签名列表。
+     */
+    public async saveClipWithTags(values: FavouriteClipsUpsertClipParams, tagNames: string[]): Promise<void> {
+        db.transaction((tx) => {
+            tx.insert(videoClip)
+                .values({
+                    ...values,
+                    created_at: values.created_at ?? TimeUtil.timeUtc(),
                     updated_at: values.updated_at ?? TimeUtil.timeUtc(),
-                },
-            });
+                } satisfies InsertVideoClip)
+                .onConflictDoUpdate({
+                    target: [videoClip.key],
+                    set: {
+                        video_name: values.video_name,
+                        srt_clip: values.srt_clip,
+                        srt_context: values.srt_context,
+                        updated_at: values.updated_at ?? TimeUtil.timeUtc(),
+                    },
+                })
+                .run();
+
+            for (const name of tagNames) {
+                const created = tx
+                    .insert(tag)
+                    .values({ name } satisfies InsertTag)
+                    .onConflictDoUpdate({
+                        target: [tag.name],
+                        set: { name },
+                    })
+                    .returning({ id: tag.id })
+                    .get();
+                if (!created) {
+                    throw new Error('saveClipWithTags failed to ensure tag');
+                }
+                tx.insert(clipTagRelation)
+                    .values({
+                        clip_key: values.key,
+                        tag_id: created.id,
+                        created_at: TimeUtil.timeUtc(),
+                        updated_at: TimeUtil.timeUtc(),
+                    })
+                    .onConflictDoNothing()
+                    .run();
+            }
+        });
+    }
+
+    /**
+     * 原子地清空收藏相关表并重灌一批片段及其标签。
+     *
+     * 行为说明：
+     * - 先清空 videoClip / clipTagRelation / tag 三张表，再按传入列表逐条写入；
+     * - 整个替换在一个事务内完成，任一步失败都会整体回滚，避免留下半成品数据。
+     *
+     * @param clips 重灌的片段列表，每项包含片段内容和关联标签名。
+     */
+    public async replaceAll(clips: FavouriteClipsReplaceAllItem[]): Promise<void> {
+        db.transaction((tx) => {
+            tx.delete(videoClip).where(sql`1=1`).run();
+            tx.delete(clipTagRelation).where(sql`1=1`).run();
+            tx.delete(tag).where(sql`1=1`).run();
+
+            for (const { clip, tags } of clips) {
+                tx.insert(videoClip)
+                    .values({
+                        ...clip,
+                        created_at: clip.created_at ?? TimeUtil.timeUtc(),
+                        updated_at: clip.updated_at ?? TimeUtil.timeUtc(),
+                    } satisfies InsertVideoClip)
+                    .onConflictDoUpdate({
+                        target: [videoClip.key],
+                        set: {
+                            video_name: clip.video_name,
+                            srt_clip: clip.srt_clip,
+                            srt_context: clip.srt_context,
+                            updated_at: clip.updated_at ?? TimeUtil.timeUtc(),
+                        },
+                    })
+                    .run();
+
+                for (const name of tags) {
+                    const created = tx
+                        .insert(tag)
+                        .values({ name } satisfies InsertTag)
+                        .onConflictDoUpdate({
+                            target: [tag.name],
+                            set: { name },
+                        })
+                        .returning({ id: tag.id })
+                        .get();
+                    if (!created) {
+                        throw new Error('replaceAll failed to ensure tag');
+                    }
+                    tx.insert(clipTagRelation)
+                        .values({
+                            clip_key: clip.key,
+                            tag_id: created.id,
+                            created_at: TimeUtil.timeUtc(),
+                            updated_at: TimeUtil.timeUtc(),
+                        })
+                        .onConflictDoNothing()
+                        .run();
+                }
+            }
+        });
     }
 
     /**
@@ -62,10 +158,11 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             const tagIds: { tag_id: number | null }[] = tx
                 .select({ tag_id: clipTagRelation.tag_id })
                 .from(clipTagRelation)
-                .where(eq(clipTagRelation.clip_key, clipKey));
+                .where(eq(clipTagRelation.clip_key, clipKey))
+                .all();
 
-            tx.delete(clipTagRelation).where(eq(clipTagRelation.clip_key, clipKey));
-            tx.delete(videoClip).where(eq(videoClip.key, clipKey));
+            tx.delete(clipTagRelation).where(eq(clipTagRelation.clip_key, clipKey)).run();
+            tx.delete(videoClip).where(eq(videoClip.key, clipKey)).run();
 
             for (const { tag_id } of tagIds) {
                 if (!tag_id) {
@@ -74,24 +171,12 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
                 const r = tx
                     .select({ c: count() })
                     .from(clipTagRelation)
-                    .where(eq(clipTagRelation.tag_id, tag_id));
+                    .where(eq(clipTagRelation.tag_id, tag_id))
+                    .all();
                 if ((r[0]?.c ?? 0) === 0) {
-                    tx.delete(tag).where(eq(tag.id, tag_id));
+                    tx.delete(tag).where(eq(tag.id, tag_id)).run();
                 }
             }
-        });
-    }
-
-    /**
-     * 清空收藏相关表数据。
-     *
-     * 注意：better-sqlite3 使用同步事务，事务回调不可返回 Promise。
-     */
-    public async deleteAll(): Promise<void> {
-        await db.transaction((tx) => {
-            tx.delete(videoClip).where(sql`1=1`);
-            tx.delete(clipTagRelation).where(sql`1=1`);
-            tx.delete(tag).where(sql`1=1`);
         });
     }
 
@@ -216,13 +301,14 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
                     eq(clipTagRelation.clip_key, clipKey),
                     eq(clipTagRelation.tag_id, tagId),
                 ),
-            );
+            ).run();
             const r = tx
                 .select({ c: count() })
                 .from(clipTagRelation)
-                .where(eq(clipTagRelation.tag_id, tagId));
+                .where(eq(clipTagRelation.tag_id, tagId))
+                .all();
             if ((r[0]?.c ?? 0) === 0) {
-                tx.delete(tag).where(eq(tag.id, tagId));
+                tx.delete(tag).where(eq(tag.id, tagId)).run();
             }
         });
     }

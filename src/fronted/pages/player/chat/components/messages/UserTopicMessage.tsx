@@ -4,9 +4,6 @@ import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes'
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/hooks/useChatPanel';
 import StrUtil from '@/common/utils/str-util';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
-
-const logger = getRendererLogger('UserTopicMessage');
 
 const process = (
     original: string,
@@ -29,7 +26,6 @@ const process = (
         const index = lowerCaseText.indexOf(lowerCaseOriginal);
         const before = text.substring(0, index);
         const after = text.substring(index + group.original.length);
-        logger.debug('phrase group processing', { before, after });
         if (before) res.push(before);
         res.push(group);
         text = after;
@@ -59,7 +55,7 @@ const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
     
     return (
         <div
-            onContextMenu={(e) => {
+            onContextMenu={() => {
                 updateInternalContext(msg.content);
             }}
             className="flex flex-wrap items-start gap-x-2 gap-y-6 px-4 py-1 relative"

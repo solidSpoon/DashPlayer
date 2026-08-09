@@ -26,7 +26,7 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
     logger.debug('Project list final path', { finalPath });
     const { data: basicData } = useSWR(
         [apiPath('watch-history/list/basic'), finalPath],
-        ([p, bp]) => api.call('watch-history/list/basic', bp)
+        ([, bp]) => api.call('watch-history/list/basic', bp)
     );
     const [fullData, setFullData] = React.useState<typeof basicData>(undefined);
     const data = fullData ?? basicData;
