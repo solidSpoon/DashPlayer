@@ -1,6 +1,10 @@
 import { ModelMessage } from 'ai';
 import { ChatBackgroundContext, ChatWelcomeParams } from '@/common/types/chat';
-import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import { z } from 'zod';
+import {
+    AiUnifiedAnalysisRes,
+    AiUnifiedAnalysisSchema,
+} from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
 export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] => {
     const system = [
@@ -124,10 +128,23 @@ export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] 
     ];
 };
 
+/**
+ * 生成整句分析提示词。
+ *
+ * json_object 协议（见 AiProviderServiceImpl 的说明）不会把 Output.object 的 zod schema
+ * 传给服务端，模型能看到的唯一结构约束就是提示词本身；此前提示词只说"与给定 schema 字段
+ * 一致"却从未贴出 schema，导致模型靠猜字段名（实测 phraseGroups 用 text、phrases 缺失等
+ * 固定跑偏）。因此这里把完整 JSON Schema（z.toJSONSchema 生成）序列化后内嵌进提示词，
+ * 并附一行紧凑字段契约便于模型快速对齐。
+ *
+ * @param text 要分析的句子。
+ * @returns 拼接后的分析提示词。
+ */
 export const buildAnalysisPrompt = (text: string): string => {
+    const schemaJson = JSON.stringify(z.toJSONSchema(AiUnifiedAnalysisSchema), null, 2);
     return [
         '你是一个专业、冷静的英语学习助手。',
-        '请严格输出 JSON，内容必须与给定 schema 字段一致，且不要包含多余字段。',
+        '请严格输出 JSON，字段名与嵌套结构必须与下面贴出的 JSON Schema 完全一致，不要包含多余字段。',
         '所有中文内容使用简体中文。',
         '',
         '分析目标句子:',
@@ -144,6 +161,18 @@ export const buildAnalysisPrompt = (text: string): string => {
         '- examples 结构必须是 sentences 数组，每项包含 sentence/meaning/points，禁止额外字段。',
         '- examples 结构示例:',
         '{"examples":{"sentences":[{"sentence":"...","meaning":"...","points":["..."]}]}}',
+        '',
+        '输出结构（紧凑字段契约）:',
+        '- structure → phraseGroups[]（original / translation / tags[]）',
+        '- vocab → hasNewWord + words[]（word / phonetic / meaning）',
+        '- phrases → hasPhrase + phrases[]（phrase / meaning）',
+        '- grammar → hasGrammar + grammarsMd',
+        '- examples → sentences[]（sentence / meaning / points[]）',
+        '',
+        '输出结构的完整 JSON Schema（以此为准）:',
+        '```json',
+        schemaJson,
+        '```',
     ].join('\n');
 };
 
