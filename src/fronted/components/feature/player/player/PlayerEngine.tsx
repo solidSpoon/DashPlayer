@@ -77,7 +77,7 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
   }), shallow);
 
   const playerRef = useRef<ReactPlayer>(null);
-  // 记录已执行的最新 seek（按值比较去重，避免同一目标重复触发）
+  // 记录已执行的最新 seek 请求；相同时间的新对象仍代表一次新的用户操作。
   const lastSeekRef = useRef<SeekRequest>({ time: -1, play: true });
   const lastSeekTsRef = useRef<number>(0);
   const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -132,7 +132,7 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
     if (!playerRef.current) return;
     const next = seekTime;
 
-    if (lastSeekRef.current.time === next.time && (lastSeekRef.current.play ?? true) === (next.play ?? true)) return;
+    if (lastSeekRef.current === next) return;
 
     // 新 seek 到达时，使未完成的卡死恢复失效（用户意图优先）
     pendingRecoveryRef.current = null;
