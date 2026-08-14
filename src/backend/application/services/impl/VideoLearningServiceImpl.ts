@@ -34,29 +34,17 @@ import StorageDirectoryProvider, {
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 import VideoLearningClipAnalysis, { ClipCandidate } from '@/backend/application/services/impl/VideoLearningClipAnalysis';
+import VideoLearningClipTaskQueue, {
+    LearningClipTask,
+    LearningClipTaskResult,
+} from '@/backend/application/services/impl/VideoLearningClipTaskQueue';
 
+/** 视频学习流程使用的字幕缓存。 */
 type SrtCache = SrtSentence;
 
 /**
- * 视频学习片段队列中的待执行操作。
+ * 编排学习片段的分析、裁切、查询和同步。
  */
-type LearningClipTask = {
-    /** 源视频绝对路径；取消任务可为空。 */
-    videoPath: string;
-    /** 字幕缓存键。 */
-    srtKey: string;
-    /** 目标字幕行序号。 */
-    indexInSrt: number;
-    /** 当前片段命中的单词列表。 */
-    matchedWords: string[];
-    /** 用于覆盖同一字幕行旧操作的稳定键。 */
-    clipKey: string;
-    /** 当前片段应新增还是取消。 */
-    operation: 'add' | 'cancel';
-    /** 字幕文件绝对路径，用于缓存缺失时重新加载。 */
-    srtPath?: string;
-};
-
 @injectable()
 export default class VideoLearningServiceImpl implements VideoLearningService {
     private readonly logger = getMainLogger('VideoLearningServiceImpl');
@@ -91,27 +79,33 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     private videoLearningClipWordRepository!: VideoLearningClipWordRepository;
 
     /**
-     * 任务队列主键：clipKey = srtKey + '__' + indexInSrt。
-     * 说明：这里不再使用字幕上下文哈希，确保同一字幕行的任务键稳定且可逆定位。
-     */
-    private readonly taskQueue = new Map<string, LearningClipTask>();
-
-    /** 当前是否已有队列消费者在运行。 */
-    private isQueueDraining = false;
-
-    /**
      * 按字幕管理的候选片段分析器。
-     *
-     * 回调在实际调用时才读取注入的 WordMatchService，避免属性注入初始化顺序影响。
+     * 回调延迟读取属性注入的 WordMatchService。
      */
     private readonly clipAnalysis = new VideoLearningClipAnalysis(
         (texts) => this.wordMatchService.matchWordsInTexts(texts),
     );
+    /**
+     * 管理实际裁切任务的等待与串行消费。
+     */
+    private readonly clipTaskQueue = new VideoLearningClipTaskQueue({
+        execute: (task) => this.addLearningClip(task),
+        onTaskFinished: (result) => this.handleClipTaskFinished(result),
+        onQueueError: (error) => {
+            this.logger.error('视频学习片段队列消费异常', { error });
+        },
+    });
+    /** 各字幕最近一次片段状态。 */
     private clipStatusCache: Map<string, VideoLearningClipStatusVO> = new Map();
+    /** 各字幕状态通知的递增序号。 */
     private clipStatusSeq: Map<string, number> = new Map();
-    /** 每个字幕已失败并跳过的裁切任务键集合，用于在队列清空后仍能提示用户重试。 */
-    private clipFailedKeysBySrt: Map<string, Set<string>> = new Map();
 
+    /**
+     * 从缓存读取字幕。
+     *
+     * @param srtKey 字幕缓存键。
+     * @returns 缓存中的字幕；不存在时返回 null。
+     */
     private getSrtFromCache(srtKey: string): SrtCache | null {
         return (this.cacheService.get('cache:srt', srtKey) as SrtCache) ?? null;
     }
@@ -140,12 +134,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const candidateKeys = candidates.map((candidate) => candidate.clipKey);
         const existingKeySet = await this.videoLearningClipRepository.findExistingKeys(candidateKeys);
-        const queueSnapshot = Array.from(this.taskQueue.values()).filter(
-            (task) => task.operation === 'add' && task.srtKey === srtKey,
+        const queuedKeySet = new Set(
+            this.clipTaskQueue.getTasksBySrt(srtKey).map((task) => task.clipKey),
         );
-        const queuedKeySet = new Set(queueSnapshot.map((task) => task.clipKey));
 
         let completedCount = 0;
+        const tasks: LearningClipTask[] = [];
 
         for (const candidate of candidates) {
             if (existingKeySet.has(candidate.clipKey)) {
@@ -157,25 +151,18 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 continue;
             }
 
-            const existingTask = this.taskQueue.get(candidate.clipKey);
-            if (existingTask && existingTask.operation === 'add') {
-                continue;
-            }
-
-            this.taskQueue.set(candidate.clipKey, {
+            tasks.push({
                 videoPath,
                 srtKey,
                 indexInSrt: candidate.indexInSrt,
                 matchedWords: candidate.matchedWords,
                 clipKey: candidate.clipKey,
-                operation: 'add',
                 srtPath: resolvedSrtPath,
             });
         }
 
-        const inProgressCount = Array.from(this.taskQueue.values()).filter(
-            (task) => task.operation === 'add' && task.srtKey === srtKey,
-        ).length;
+        this.clipTaskQueue.enqueue(tasks);
+        const inProgressCount = this.clipTaskQueue.getTasksBySrt(srtKey).length;
 
         const status: 'in_progress' | 'completed' = inProgressCount > 0 ? 'in_progress' : 'completed';
 
@@ -188,7 +175,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             completedCount || undefined,
             status === 'completed' ? 100 : undefined,
         );
-        this.requestQueueDrain();
+        this.clipTaskQueue.start();
     }
 
     /**
@@ -197,7 +184,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
      * @returns 全局自动裁切队列快照。
      */
     public async getGlobalClipQueueStatus(): Promise<GlobalVideoLearningClipQueueStatusVO> {
-        const queuedCount = this.getQueuedAutoClipTaskCount();
+        const queuedCount = this.clipTaskQueue.getTaskCount();
         return {
             queuedCount,
             hasQueuedTasks: queuedCount > 0,
@@ -207,42 +194,21 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     /**
      * 清空尚未开始处理的自动裁切队列。
      *
-     * 说明：
-     * - 这里只移除队列中的新增裁切任务。
-     * - 已经进入 ffmpeg 的任务允许自然完成，不做强制中断。
+     * 已经开始的 ffmpeg 任务会继续执行。
      *
      * @returns 被移除的排队任务数量。
      */
     public async cancelAllAutoClipTasks(): Promise<number> {
-        const queuedTasks = Array.from(this.taskQueue.values()).filter((task) => task.operation === 'add');
-        if (queuedTasks.length === 0) {
+        const cancelled = this.clipTaskQueue.cancelPendingTasks();
+        if (cancelled.count === 0) {
             return 0;
         }
 
-        const affectedSrtKeys = new Set<string>();
-        for (const task of queuedTasks) {
-            affectedSrtKeys.add(task.srtKey);
-            this.taskQueue.delete(task.clipKey);
-        }
-
-        for (const srtKey of affectedSrtKeys) {
+        for (const srtKey of cancelled.srtKeys) {
             this.clipStatusCache.delete(srtKey);
-            this.clipFailedKeysBySrt.delete(srtKey);
         }
 
-        return queuedTasks.length;
-    }
-    /**
-     * 统计全局自动裁切队列中的新增任务数量。
-     *
-     * @returns 当前队列中的新增任务数。
-     */
-    private getQueuedAutoClipTaskCount(): number {
-        return Array.from(this.taskQueue.values()).filter((task) => task.operation === 'add').length;
-    }
-
-    private mapToClipKey(srtKey: string, indexInSrt: number): string {
-        return `${srtKey}__${indexInSrt}`;
+        return cancelled.count;
     }
 
     /**
@@ -278,135 +244,36 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 请求消费视频学习片段队列。
-     *
-     * 队列已有消费者时直接返回；消费过程中的新入队任务由当前消费者继续处理。
-     */
-    private requestQueueDrain(): void {
-        if (this.isQueueDraining) {
-            return;
-        }
-
-        this.isQueueDraining = true;
-        void this.drainQueue();
-    }
-
-    /**
-     * 顺序消费全部视频学习片段任务。
-     *
-     * 每次只在同步锁内处理一个任务，避免全量 OSS 同步被长队列长期阻塞。
-     */
-    private async drainQueue(): Promise<void> {
-        try {
-            while (await this.processNextQueueTask()) {
-                // 循环条件已表达是否仍有任务，无需额外轮询。
-            }
-        } catch (error) {
-            this.logger.error('视频学习片段队列消费异常', { error });
-        } finally {
-            this.isQueueDraining = false;
-            if (this.taskQueue.size > 0) {
-                this.requestQueueDrain();
-            }
-        }
-    }
-
-    /**
-     * 在同步锁内处理队首任务。
-     *
-     * @returns 本次实际取得任务时返回 `true`。
-     */
-    private async processNextQueueTask(): Promise<boolean> {
-        return concurrency.withMutex('video-learning-sync', async () => {
-            const task = this.taskQueue.values().next().value as LearningClipTask | undefined;
-            if (!task) {
-                return false;
-            }
-
-            let failed = false;
-            try {
-                const exists = await this.clipInDb(task.clipKey);
-                if (task.operation === 'add' && !exists) {
-                    await this.taskAddOperation(task);
-                    this.clipFailedKeysBySrt.get(task.srtKey)?.delete(task.clipKey);
-                }
-                if (task.operation === 'cancel' && exists) {
-                    await this.taskCancelOperation(task);
-                }
-            } catch (error) {
-                failed = true;
-                this.recordFailedTask(task);
-                this.logger.error('视频学习片段任务失败，已跳过', {
-                    clipKey: task.clipKey,
-                    operation: task.operation,
-                    srtKey: task.srtKey,
-                    videoPath: task.videoPath,
-                    error,
-                });
-                this.notifyClipTaskFailed(task, error);
-            } finally {
-                if (this.taskQueue.get(task.clipKey) === task) {
-                    this.taskQueue.delete(task.clipKey);
-                }
-            }
-
-            await this.notifyQueueStatusAfterTask(task, failed);
-            return true;
-        });
-    }
-
-    /**
-     * 记录已跳过的失败裁切任务。
-     *
-     * @param task 失败任务。
-     */
-    private recordFailedTask(task: LearningClipTask): void {
-        let failedKeys = this.clipFailedKeysBySrt.get(task.srtKey);
-        if (!failedKeys) {
-            failedKeys = new Set();
-            this.clipFailedKeysBySrt.set(task.srtKey, failedKeys);
-        }
-        failedKeys.add(task.clipKey);
-    }
-
-    /**
      * 在单个任务结束后更新对应字幕的裁切状态。
      *
-     * @param task 刚完成或失败的任务。
-     * @param failed 当前任务是否失败。
+     * @param result 刚结束的任务及其执行结果。
      */
-    private async notifyQueueStatusAfterTask(task: LearningClipTask, failed: boolean): Promise<void> {
-        const videoPath = task.videoPath
-            || Array.from(this.taskQueue.values()).find((item) => item.srtKey === task.srtKey)?.videoPath;
-        if (!videoPath) {
-            return;
+    private async handleClipTaskFinished(result: LearningClipTaskResult): Promise<void> {
+        const { task, error } = result;
+        if (error !== undefined) {
+            this.logger.error('视频学习片段任务失败，已跳过', {
+                clipKey: task.clipKey,
+                srtKey: task.srtKey,
+                videoPath: task.videoPath,
+                error,
+            });
+            this.notifyClipTaskFailed(error);
         }
 
-        const remainingAddCount = Array.from(this.taskQueue.values())
-            .filter((item) => item.operation === 'add' && item.srtKey === task.srtKey)
-            .length;
-        const failedCount = this.clipFailedKeysBySrt.get(task.srtKey)?.size ?? 0;
-
-        if (remainingAddCount > 0) {
-            await this.notifyClipStatus(videoPath, task.srtKey, 'in_progress', 0, remainingAddCount, 0);
+        const candidates = this.clipAnalysis.getCachedCandidates(task.srtKey);
+        if (!candidates) {
+            this.clipStatusCache.delete(task.srtKey);
             return;
         }
-        if (failed || failedCount > 0) {
-            await this.notifyClipStatus(videoPath, task.srtKey, 'pending', failedCount, 0, 0);
-            return;
-        }
-        await this.notifyClipStatus(videoPath, task.srtKey, 'completed', 0, 0, 1);
+        await this.computeStatusFromCandidates(task.videoPath, task.srtKey, candidates);
     }
 
     /**
-     * 通知某个裁切任务失败，并给出简要失败原因。
+     * 通知渲染进程当前裁切任务失败。
      *
-     * 说明：失败任务会从队列中跳过，不影响后续任务继续处理。
-     *
-     * @param task 失败的任务。
      * @param error 失败原因。
      */
-    private notifyClipTaskFailed(task: LearningClipTask, error: unknown): void {
+    private notifyClipTaskFailed(error: unknown): void {
         const reason = error instanceof Error ? error.message?.trim() : '';
         const message = reason
             ? `裁切任务失败，已跳过：${reason.length > 200 ? `${reason.slice(0, 200)}…` : reason}`
@@ -423,7 +290,11 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
      *
      * @param task 待新增的片段任务。
      */
-    private async taskAddOperation(task: LearningClipTask): Promise<void> {
+    private async addLearningClip(task: LearningClipTask): Promise<void> {
+        if (await this.clipInDb(task.clipKey)) {
+            return;
+        }
+
         const srt = await this.ensureSrtCached(task.srtKey, task.srtPath);
         if (!srt) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
@@ -434,10 +305,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const folder = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.TEMP);
         const tempName = path.join(folder, key + '.mp4');
-
-        if (await this.clipInDb(key)) {
-            return;
-        }
 
         try {
             const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
@@ -455,14 +322,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 删除指定的学习片段。
+     * 计算目标字幕行及其上下文的裁切时间范围。
      *
-     * @param task 待取消的片段任务。
+     * @param srt 字幕内容。
+     * @param indexInSrt 目标字幕行序号。
+     * @returns 裁切开始和结束时间。
      */
-    public async taskCancelOperation(task: LearningClipTask): Promise<void> {
-        await this.deleteLearningClip(task.clipKey);
-    }
-
     private mapTrimRange(srt: SrtCache, indexInSrt: number): [number, number] {
         const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
         const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
@@ -471,6 +336,16 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return [startTime, endTime];
     }
 
+    /**
+     * 生成片段上传所需的字幕和视频元数据。
+     *
+     * 字幕时间转换为相对片段起点的时间。
+     *
+     * @param videoPath 源视频绝对路径。
+     * @param srt 字幕内容。
+     * @param indexInSrt 目标字幕行序号。
+     * @returns 片段元数据。
+     */
     private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number): ClipMeta {
         const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
         const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
@@ -489,27 +364,36 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return {
             clip_file: '',
             thumbnail_file: '',
-            tags: [], // 确保 tags 字段为空
+            tags: [],
             video_name: videoPath,
             created_at: Date.now(),
             clip_content: clipJson
         };
     }
 
+    /**
+     * 删除片段的本地索引和远端文件。
+     *
+     * @param key 片段键。
+     */
     public async deleteLearningClip(key: string): Promise<void> {
         await this.videoLearningClipRepository.deleteByKey(key);
         await this.videoLearningOssService.delete(key);
     }
 
     /**
-     * 转换为视频学习片段VO
+     * 将片段元数据转换为前端视图对象。
+     *
+     * 本地排队任务使用原视频和绝对字幕时间，远端片段使用片段文件和相对时间。
+     *
+     * @param clip 本地任务或远端片段元数据。
+     * @param vocabularyEntries 片段关联的词汇。
+     * @returns 视频学习片段视图对象。
      */
     private convertToVideoLearningClipVO(
         clip: OssBaseMeta & ClipMeta & { sourceType: 'oss' | 'local' },
         vocabularyEntries: ClipVocabularyEntry[]
     ): VideoLearningClipVO {
-        // 正在处理中：返回原视频路径，字幕时间使用原视频的绝对时间
-        // 已处理完成：返回OSS片段路径，字幕时间是相对片段的
         const videoPath = clip.sourceType === 'local' ? clip.video_name :
                         (clip.baseDir && clip.clip_file ? `${clip.baseDir}/${clip.clip_file}` : clip.video_name);
 
@@ -517,7 +401,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             ? (clip as (typeof clip & { clipBeginAt?: number })).clipBeginAt ?? 0
             : 0;
 
-        // 后端直接返回处理好的时间，前端不用计算（local: absolute，oss: relative）
         const processedClipContent = (clip.clip_content ?? []).map(item => ({
             index: item.index,
             start: clip.sourceType === 'local' ? (clipBeginAt + item.start) : item.start,
@@ -539,6 +422,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         };
     }
 
+    /**
+     * 规范化词汇及其命中词形。
+     *
+     * @param entries 原始词汇条目。
+     * @returns 去除空值并统一为小写的词汇条目。
+     */
     private normalizeVocabularyEntries(entries: ClipVocabularyEntry[] | undefined | null): ClipVocabularyEntry[] {
         if (!entries || entries.length === 0) {
             return [];
@@ -649,6 +538,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return await this.buildVocabularyEntriesFromLines(lines, words);
     }
 
+    /**
+     * 将任务中的命中单词转换为基础词汇条目。
+     *
+     * @param baseWords 任务命中的单词。
+     * @returns 去重并统一为小写的词汇条目。
+     */
     private buildVocabularyEntriesFromMatchedWords(baseWords: string[] | undefined | null): ClipVocabularyEntry[] {
         if (!baseWords || baseWords.length === 0) {
             return [];
@@ -668,10 +563,24 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         }));
     }
 
+    /**
+     * 批量读取片段关联的单词。
+     *
+     * @param keys 片段键列表。
+     * @returns 以片段键索引的单词列表。
+     */
     private async getClipWordsMap(keys: string[]): Promise<Map<string, string[]>> {
         return await this.videoLearningClipWordRepository.getWordsMapByClipKeys(keys);
     }
 
+    /**
+     * 分页查询已完成和正在裁切的学习片段。
+     *
+     * 正在裁切的任务排在已完成片段之前，并与数据库结果共用分页区间。
+     *
+     * @param query 查询词和分页参数。
+     * @returns 学习片段分页结果。
+     */
     public async search({ word, page, pageSize }: SimpleClipQuery): Promise<VideoLearningClipPage> {
         const normalizedPageSize = Math.min(Math.max(pageSize ?? 12, 1), 100);
         const normalizedPage = Math.max(page ?? 1, 1);
@@ -685,9 +594,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         }
         const dbTotal = await this.videoLearningClipRepository.count({ keys: dbClipKeys });
 
-        const inProgressTasks = Array.from(this.taskQueue.values())
-            .filter(task => task.operation === 'add')
-            .filter(task => {
+        const inProgressTasks = this.clipTaskQueue.getTasks()
+            .filter((task) => {
                 if (!searchWord) {
                     return true;
                 }
@@ -712,12 +620,11 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     }
 
                     const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
-                    const key = this.mapToClipKey(task.srtKey, task.indexInSrt);
                     const [clipBeginAt] = this.mapTrimRange(srt, task.indexInSrt);
 
                     const clipEntry = {
                         ...metaData,
-                        key,
+                        key: task.clipKey,
                         sourceType: 'local' as const,
                         version: 1,
                         clip_file: task.videoPath,
@@ -772,6 +679,11 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         };
     }
 
+    /**
+     * 将远端片段元数据及其命中单词写入本地数据库。
+     *
+     * @param metaData 远端片段元数据。
+     */
     private async addToDb(metaData: ClipMeta & OssBaseMeta) {
         const srtLines = metaData.clip_content ?? [];
         const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
@@ -786,7 +698,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             updated_at: TimeUtil.timeUtc()
         };
 
-        // 始终通过算法对核心文本进行匹配，以写入单词关系
+        // 使用目标字幕重新计算片段关联词。
         const wordRelations: InsertVideoLearningClipWord[] = [];
         if (StrUtil.isNotBlank(srtClip)) {
             const matches = await this.wordMatchService.matchWordsInText(srtClip);
@@ -810,17 +722,20 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         await this.videoLearningClipRepository.saveClipWithWords(clip, wordRelations);
     }
 
+    /**
+     * 检查片段是否已写入本地数据库。
+     *
+     * @param key 片段键。
+     * @returns 片段存在时返回 true。
+     */
     private async clipInDb(key: string) {
         return await this.videoLearningClipRepository.exists(key);
     }
 
     /**
-     * 清除数据库，重新从 OSS 同步。
+     * 使用 OSS 中的片段完整重建本地索引。
      *
-     * 行为说明：
-     * - 先把所有远端片段读入内存并完成单词匹配，再在单个事务内清空并重灌，任一步失败整体回滚；
-     * - 读取远端与单词匹配发生在事务外，避免在同步事务里做 IO 或命中缓存外的逻辑；
-     * - 与队列任务使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
+     * 同步与裁切任务共用互斥锁，避免重建索引时并发写入。
      */
     public async syncFromOss() {
         await concurrency.withMutex('video-learning-sync', async () => {
@@ -867,6 +782,11 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         });
     }
 
+    /**
+     * 统计每个单词关联的学习片段数量。
+     *
+     * @returns 以单词索引的片段数量。
+     */
     public async countClipsGroupedByWord(): Promise<Record<string, number>> {
         return await this.videoLearningClipWordRepository.countGroupedByWord();
     }
@@ -879,15 +799,12 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     public invalidateClipAnalysisCache(): void {
         this.clipAnalysis.clear();
         this.clipStatusCache.clear();
-        this.clipFailedKeysBySrt.clear();
     }
 
     /**
      * 检测并返回指定字幕的学习片段状态。
      *
-     * 行为说明：
-     * - 优先命中缓存与进行中的分析任务，避免重复计算。
-     * - 字幕缓存和路径都不可用时直接报错，避免把数据异常伪装成分析完成。
+     * 优先使用已缓存的状态和候选片段；没有分析结果时在后台启动分析。
      *
      * @param videoPath 视频路径，用于状态通知。
      * @param srtKey 字幕缓存键。
@@ -921,7 +838,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 为没有序列号的状态补充分版本号。
+     * 为没有序列号的状态补充当前序号。
      *
      * @param srtKey 字幕缓存键。
      * @param status 当前状态。
@@ -939,7 +856,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     /**
      * 在后台启动字幕候选片段分析。
      *
-     * 同一字幕已有分析任务时不重复启动；分析结果会自行触发一次状态重算。
+     * 同一字幕已有分析任务时不会重复启动。
      *
      * @param videoPath 视频路径，用于通知渲染进程。
      * @param srtKey 字幕缓存键。
@@ -981,6 +898,14 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             });
     }
 
+    /**
+     * 根据候选片段、当前任务队列和数据库记录计算指定字幕的裁切状态。
+     *
+     * @param videoPath 源视频绝对路径。
+     * @param srtKey 字幕缓存键。
+     * @param candidates 已完成分析的候选片段。
+     * @returns 最新裁切状态；任务失败但仍未入库的片段会重新显示为待处理。
+     */
     private async computeStatusFromCandidates(
         videoPath: string,
         srtKey: string,
@@ -993,14 +918,8 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const candidateKeys = candidates.map((candidate) => candidate.clipKey);
 
-        const [existingKeySet, queueSnapshot] = await Promise.all([
-            this.videoLearningClipRepository.findExistingKeys(candidateKeys),
-            Promise.resolve(
-                Array.from(this.taskQueue.values()).filter(
-                    (task) => task.operation === 'add' && task.srtKey === srtKey,
-                ),
-            ),
-        ]);
+        const existingKeySet = await this.videoLearningClipRepository.findExistingKeys(candidateKeys);
+        const queueSnapshot = this.clipTaskQueue.getTasksBySrt(srtKey);
         const inQueueKeySet = new Set(queueSnapshot.map((task) => task.clipKey));
 
         let pendingCount = 0;
@@ -1054,6 +973,19 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         };
     }
 
+    /**
+     * 缓存并通知字幕的最新裁切状态。
+     *
+     * 状态内容没有变化时只保留缓存，不重复通知渲染进程。
+     *
+     * @param videoPath 视频路径。
+     * @param srtKey 字幕缓存键。
+     * @param status 当前状态。
+     * @param pendingCount 待裁切数量。
+     * @param inProgressCount 正在裁切数量。
+     * @param completedCount 已完成数量。
+     * @param analyzingProgress 分析进度百分比。
+     */
     private async notifyClipStatus(
         videoPath: string,
         srtKey: string,
