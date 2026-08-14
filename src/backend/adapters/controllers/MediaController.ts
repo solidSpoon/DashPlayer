@@ -1,63 +1,77 @@
-import {ChapterParseResult} from '@/common/types/chapter-result';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
-import FfmpegServiceImpl from '@/backend/application/services/impl/FfmpegServiceImpl';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/adapters/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
-import SplitVideoService from '@/backend/application/services/SplitVideoService';
-import MediaService from '@/backend/application/services/MediaService';
+import SplitVideoService, {
+    SplitVideoRequest,
+} from '@/backend/application/services/SplitVideoService';
+import MediaService, {
+    ThumbnailOptions,
+} from '@/backend/application/services/MediaService';
+import { ChapterParseResult } from '@/common/types/chapter-result';
 
+/**
+ * 注册视频切分、缩略图和时长相关 IPC 路由。
+ */
 @injectable()
 export default class MediaController implements Controller {
+    public constructor(
+        @inject(TYPES.SplitVideoService)
+        private readonly splitVideoService: SplitVideoService,
+        @inject(TYPES.MediaService)
+        private readonly mediaService: MediaService,
+    ) {}
 
-    @inject(TYPES.SplitVideoService)
-    private splitVideoService!: SplitVideoService;
-
-    @inject(TYPES.FfmpegService)
-    private ffmpegService!: FfmpegServiceImpl;
-    @inject(TYPES.MediaService)
-    private mediaService!: MediaService;
-
-    public async previewSplit(str: string): Promise<ChapterParseResult[]> {
-        return this.splitVideoService.previewSplit(str);
+    /**
+     * 解析章节文本供界面预览。
+     * @param chapterText 用户输入的章节文本。
+     * @returns 解析后的章节列表。
+     */
+    public async previewSplit(chapterText: string): Promise<ChapterParseResult[]> {
+        return this.splitVideoService.previewSplit(chapterText);
     }
 
-    public async split({
-                           videoPath,
-                           srtPath,
-                           chapters
-                       }: {
-        videoPath: string,
-        srtPath: string | null,
-        chapters: ChapterParseResult[]
-    }): Promise<string> {
-        return await this.splitVideoService.splitByChapters({
-            videoPath,
-            srtPath,
-            chapters
-        });
+    /**
+     * 按章节切分视频和可选字幕。
+     * @param request 视频切分请求。
+     * @returns 分段文件所在目录。
+     */
+    public async split(request: SplitVideoRequest): Promise<string> {
+        return this.splitVideoService.splitByChapters(request);
     }
 
-
-    public async thumbnail({filePath, time, quality = 'medium', width, format = 'jpg'}: {
-        filePath: string,
-        time: number,
-        quality?: 'low' | 'medium' | 'high' | 'ultra',
-        width?: number,
-        format?: 'jpg' | 'png'
+    /**
+     * 获取或生成视频缩略图。
+     * @param request 视频路径、截图时间和图片选项。
+     * @returns 缩略图文件绝对路径。
+     */
+    public async thumbnail(request: {
+        filePath: string;
+        time: number;
+        quality?: ThumbnailOptions['quality'];
+        width?: number;
+        format?: ThumbnailOptions['format'];
     }): Promise<string> {
+        const { filePath, time, quality = 'medium', width, format = 'jpg' } = request;
         return this.mediaService.thumbnail(filePath, time, { quality, width, format });
     }
 
+    /**
+     * 获取视频时长。
+     * @param filePath 视频文件绝对路径。
+     * @returns 视频时长，单位为秒。
+     */
     public videoLength(filePath: string): Promise<number> {
-        return this.ffmpegService.duration(filePath);
+        return this.mediaService.duration(filePath);
     }
 
-
-    registerRoutes(): void {
-        registerRoute('split-video/preview', (p)=>this.previewSplit(p));
-        registerRoute('split-video/split', (p)=>this.split(p));
-        registerRoute('split-video/thumbnail', (p)=>this.thumbnail(p));
-        registerRoute('split-video/video-length', (p)=>this.videoLength(p));
+    /**
+     * 注册媒体相关 IPC 路由。
+     */
+    public registerRoutes(): void {
+        registerRoute('split-video/preview', (params) => this.previewSplit(params));
+        registerRoute('split-video/split', (params) => this.split(params));
+        registerRoute('split-video/thumbnail', (params) => this.thumbnail(params));
+        registerRoute('split-video/video-length', (params) => this.videoLength(params));
     }
 }

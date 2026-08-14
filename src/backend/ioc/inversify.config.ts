@@ -47,9 +47,7 @@ import AiProviderServiceImpl from '@/backend/application/services/impl/clients/A
 import ModelRoutingServiceImpl from '@/backend/application/services/impl/clients/ModelRoutingServiceImpl';
 import ConvertService from '@/backend/application/services/ConvertService';
 import SplitVideoService from '@/backend/application/services/SplitVideoService';
-import SplitVideoServiceImpl from '@/backend/application/services/impl/SplitVideoServiceImpl';
 import MediaService from '@/backend/application/services/MediaService';
-import MediaServiceImpl from '@/backend/application/services/impl/MediaServiceImpl';
 import ClientProviderService from '@/backend/application/services/ClientProviderService';
 import YouDaoProvider from '@/backend/infrastructure/translate/providers/YouDaoProvider';
 import TencentProvider from '@/backend/infrastructure/translate/providers/TencentProvider';
@@ -184,8 +182,8 @@ container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingl
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertService).inSingletonScope();
-container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
-container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
+container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoService).inSingletonScope();
+container.bind<MediaService>(TYPES.MediaService).to(MediaService).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();

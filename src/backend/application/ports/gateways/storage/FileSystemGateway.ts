@@ -5,6 +5,12 @@
  */
 export default interface FileSystemGateway {
     /**
+     * 确保目录存在。
+     * @param directoryPath 目录绝对路径。
+     */
+    ensureDirectory(directoryPath: string): Promise<void>;
+
+    /**
      * 判断普通文件是否存在。
      *
      * 路径存在但不是普通文件时会直接抛错，避免业务代码把同名目录误判为文件。
@@ -20,6 +26,27 @@ export default interface FileSystemGateway {
      * @returns 文件大小，单位为字节。
      */
     getFileSize(filePath: string): Promise<number>;
+
+    /**
+     * 读取 UTF-8 文本文件。
+     * @param filePath 文件绝对路径。
+     * @returns 文件文本内容。
+     */
+    readTextFile(filePath: string): Promise<string>;
+
+    /**
+     * 写入 UTF-8 文本文件。
+     * @param filePath 文件绝对路径。
+     * @param content 待写入的文本内容。
+     */
+    writeTextFile(filePath: string, content: string): Promise<void>;
+
+    /**
+     * 移动或重命名文件。
+     * @param sourcePath 原文件绝对路径。
+     * @param targetPath 目标文件绝对路径。
+     */
+    moveFile(sourcePath: string, targetPath: string): Promise<void>;
 
     /**
      * 删除文件；文件不存在时不报错。
