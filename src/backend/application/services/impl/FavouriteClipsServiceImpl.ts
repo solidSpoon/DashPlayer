@@ -1,9 +1,8 @@
 import hash from 'object-hash';
 import path from 'path';
 import TimeUtil from '@/common/utils/TimeUtil';
-import fs from 'fs';
 import ErrorConstants from '@/common/constants/error-constants';
-import { inject, injectable, postConstruct } from 'inversify';
+import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { ClipQuery } from '@/common/api/dto';
 import StrUtil from '@/common/utils/str-util';
@@ -23,12 +22,22 @@ import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem } from '@/backen
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
+import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 
+/**
+ * 收藏片段队列中的待执行操作。
+ */
 type ClipTask = {
+    /** 源视频绝对路径；取消任务不需要该字段。 */
     videoPath: string,
+    /** 字幕缓存键。 */
     srtKey: string,
+    /** 目标字幕行序号。 */
     indexInSrt: number,
+    /** 用于覆盖同一片段旧操作的稳定键。 */
     clipKey: string,
+    /** 当前片段应新增还是取消。 */
     operation: 'add' | 'cancel'
 };
 @injectable()
@@ -49,13 +58,26 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     @inject(TYPES.FavouriteClipsRepository)
     private favouriteClipsRepository!: FavouriteClipsRepository;
 
+    /** 待执行的收藏片段操作；相同片段的新操作会覆盖旧操作。 */
+    private readonly taskQueue = new Map<string, ClipTask>();
+
+    /** 当前是否已有队列消费者在运行。 */
+    private isQueueDraining = false;
+
+    @inject(TYPES.FileSystemGateway)
+    private fileSystemGateway!: FileSystemGateway;
+
+    @inject(TYPES.RendererGateway)
+    private rendererGateway!: RendererGateway;
+
+
     /**
-     * key: hash(srtContext)
-     * @private
+     * 将字幕行加入收藏片段队列。
+     *
+     * @param videoPath 源视频绝对路径。
+     * @param srtKey 字幕缓存键。
+     * @param indexInSrt 字幕行序号。
      */
-    private taskQueue: Map<string, ClipTask> = new Map();
-
-
     public async addClip(videoPath: string, srtKey: string, indexInSrt: number): Promise<void> {
         const clipKey = this.mapToClipKey(srtKey, indexInSrt);
         this.taskQueue.set(clipKey, {
@@ -65,8 +87,15 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             clipKey,
             operation: 'add'
         });
+        this.requestQueueDrain();
     }
 
+    /**
+     * 取消尚未完成的收藏片段新增操作。
+     *
+     * @param srtKey 字幕缓存键。
+     * @param indexInSrt 字幕行序号。
+     */
     public async cancelAddClip(srtKey: string, indexInSrt: number): Promise<void> {
         const clipKey = this.mapToClipKey(srtKey, indexInSrt);
         this.taskQueue.set(clipKey, {
@@ -76,8 +105,16 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
             clipKey,
             operation: 'cancel'
         });
+        this.requestQueueDrain();
     }
 
+    /**
+     * 根据字幕上下文生成收藏片段的稳定键。
+     *
+     * @param srtKey 字幕缓存键。
+     * @param indexInSrt 字幕行序号。
+     * @returns 片段稳定键。
+     */
     private mapToClipKey(srtKey: string, indexInSrt: number): string {
         const srt = this.cacheService.get('cache:srt', srtKey);
         if (!srt) {
@@ -91,59 +128,85 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
     }
 
     /**
-     * 定时任务：处理收藏片段的新增/取消队列。
+     * 请求消费收藏片段队列。
      *
-     * 行为说明：
-     * - 与 syncFromOss 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
+     * 队列已有消费者时直接返回；消费过程中新增的任务由当前消费者继续处理。
      */
-    async checkQueue() {
-        await concurrency.withMutex('favourite-clip-sync', async () => {
-            await this.doCheckQueue();
+    private requestQueueDrain(): void {
+        if (this.isQueueDraining) {
+            return;
+        }
+
+        this.isQueueDraining = true;
+        void this.drainQueue();
+    }
+
+    /**
+     * 顺序消费全部收藏片段任务。
+     *
+     * 每次只在同步锁内处理一个任务，避免全量 OSS 同步被长队列长期阻塞。
+     */
+    private async drainQueue(): Promise<void> {
+        try {
+            while (await this.processNextQueueTask()) {
+                // 循环条件已表达是否仍有任务，无需额外轮询。
+            }
+        } catch (error) {
+            this.logger.error('收藏片段队列消费异常', { error });
+        } finally {
+            this.isQueueDraining = false;
+            if (this.taskQueue.size > 0) {
+                this.requestQueueDrain();
+            }
+        }
+    }
+
+    /**
+     * 在同步锁内处理队首任务。
+     *
+     * @returns 本次实际取得任务时返回 `true`。
+     */
+    private async processNextQueueTask(): Promise<boolean> {
+        return concurrency.withMutex('favourite-clip-sync', async () => {
+            const task = this.taskQueue.values().next().value as ClipTask | undefined;
+            if (!task) {
+                return false;
+            }
+
+            try {
+                const exists = await this.clipInDb(task.clipKey);
+                if (task.operation === 'add' && !exists) {
+                    await this.taskAddOperation(task);
+                }
+                if (task.operation === 'cancel' && exists) {
+                    await this.taskCancelOperation(task);
+                }
+            } catch (error) {
+                this.logger.error('收藏片段任务失败，已跳过', {
+                    clipKey: task.clipKey,
+                    operation: task.operation,
+                    error,
+                });
+                this.notifyClipTaskFailed(task, error);
+            } finally {
+                if (this.taskQueue.get(task.clipKey) === task) {
+                    this.taskQueue.delete(task.clipKey);
+                }
+            }
+
+            return true;
         });
     }
 
-    private async doCheckQueue() {
-        if (this.taskQueue.size === 0) {
-            return;
-        }
-        const tempMapping = new Map(this.taskQueue);
-        const newKeys = Array.from(tempMapping.keys());
-
-        const existsKeys = await this.favouriteClipsRepository.listExistingClipKeys(newKeys);
-        const notExistKeys = newKeys.filter((key) => !existsKeys.includes(key));
-
-        for (const k of notExistKeys) {
-            const task = tempMapping.get(k);
-            if (!task) {
-                this.logger.error('task not found');
-                continue;
-            }
-            if (task.operation === 'add') {
-                await this.taskAddOperation(task);
-            }
-            if (this.taskQueue.get(k) === task) {
-                this.taskQueue.delete(k);
-            }
-        }
-        for (const k of existsKeys) {
-            const task = tempMapping.get(k);
-            if (!task) {
-                this.logger.error('task not found');
-                continue;
-            }
-            if (task.operation === 'cancel') {
-                await this.taskCancelOperation(task);
-            }
-            if (this.taskQueue.get(k) === task) {
-                this.taskQueue.delete(k);
-            }
-        }
-    }
-
+    /**
+     * 创建收藏片段并写入外部媒体库与本地索引。
+     *
+     * @param task 待执行的新增任务。
+     */
     private async taskAddOperation(task: ClipTask): Promise<void> {
         const srt = this.cacheService.get('cache:srt', task.srtKey);
         if (!srt) {
-            return;
+            throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
         const metaData = this.mapToMetaData(task.videoPath, srt, task.indexInSrt);
         const key = this.mapToMetaKey(srt, task.indexInSrt);
@@ -152,24 +215,54 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
         if (await this.clipInDb(key)) {
             return;
         }
-        const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
-        await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
-        await this.clipOssService.putClip(key, tempName, metaData);
-        const meta = await this.clipOssService.get(key);
-        if (!meta) {
-            throw new Error('meta not found');
+        try {
+            const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
+            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
+            await this.clipOssService.putClip(key, tempName, metaData);
+            const meta = await this.clipOssService.get(key);
+            if (!meta) {
+                throw new Error('收藏片段元数据不存在');
+            }
+            await this.addToDb(meta);
+        } finally {
+            await this.fileSystemGateway.removeFileIfExists(tempName);
         }
-        await this.addToDb(meta);
-        fs.rmSync(tempName);
     }
 
+    /**
+     * 删除收藏片段。
+     *
+     * @param task 待执行的取消任务。
+     */
     public async taskCancelOperation(task: ClipTask): Promise<void> {
         const srt = this.cacheService.get('cache:srt', task.srtKey);
         if (!srt) {
-            return;
+            throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
         const key = this.mapToMetaKey(srt, task.indexInSrt);
         await this.deleteFavoriteClip(key);
+    }
+
+    /**
+     * 向用户显示收藏片段任务失败原因。
+     *
+     * @param task 失败任务。
+     * @param error 原始异常。
+     */
+    private notifyClipTaskFailed(task: ClipTask, error: unknown): void {
+        const reason = error instanceof Error ? error.message.trim() : '';
+        const message = reason
+            ? `收藏片段处理失败，已跳过：${reason}`
+            : '收藏片段处理失败，已跳过';
+        this.rendererGateway.fireAndForget('ui/show-toast', {
+            message,
+            variant: 'error',
+            duration: 5000,
+        });
+        this.logger.debug('收藏片段失败通知已发送', {
+            clipKey: task.clipKey,
+            operation: task.operation,
+        });
     }
 
     private mapTrimRange(srt: SrtSentence, indexInSrt: number): [number, number] {
@@ -305,7 +398,7 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
      * 行为说明：
      * - 先把所有远端片段读入内存，再在单个事务内清空并重灌，任一步失败整体回滚；
      * - 读取远端发生在事务外，避免在同步事务里做 IO；
-     * - 与 checkQueue 使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
+     * - 与队列任务使用同一把互斥锁串行执行，避免全量重灌清掉并发新增的片段。
      */
     async syncFromOss() {
         await concurrency.withMutex('favourite-clip-sync', async () => {
@@ -332,18 +425,6 @@ export default class FavouriteClipsServiceImpl implements FavouriteClipsService 
                 });
             }
             await this.favouriteClipsRepository.replaceAll(clips);
-        });
-    }
-
-    @postConstruct()
-    public postConstruct() {
-        const func = async () => {
-            // dpLog.info('FavouriteClipsServiceImpl task start');
-            await this.checkQueue();
-            setTimeout(func, 1000);
-        };
-        func().catch((e) => {
-            this.logger.error('FavouriteClipsServiceImpl loop failed', { error: e });
         });
     }
 

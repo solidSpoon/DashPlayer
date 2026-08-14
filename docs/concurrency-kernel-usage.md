@@ -15,7 +15,6 @@ import { concurrency } from '@/backend/application/kernel/concurrency';
 - `withSemaphore`：并发槽位控制。
 - `withRateLimit`：速率限制。
 - `scheduler().yieldIfNeeded()`：合作式让步。
-- `snapshot()`：观测当前并发状态。
 
 ## 2. 常用写法
 
@@ -106,7 +105,6 @@ class ExampleService {
 
 ## 7. 排障建议
 
-- `concurrency.snapshot()` 用于观察 `inUse/waiting/queued`。
 - 等待超阈值（>500ms）会记 `debug`（含等待时长与队列长度）；超时抛错前记 `warn`（含 key/等待时长/队列长度），取消记 `debug`——在日志中可直接归因限流与信号量竞争。
 - 遇到死锁疑似场景，先检查是否触发锁顺序违规。
 - 遇到吞吐下降，优先检查是否误开了过小 `timeSliceMs`。

@@ -20,7 +20,6 @@ import {
     KernelAcquireOptions,
     LockOrderViolationError,
     Permit,
-    SchedulerSnapshot,
     WaitTurnOptions,
 } from '@/backend/application/kernel/concurrency/types';
 
@@ -105,16 +104,6 @@ export interface ConcurrencyKernel {
      * @param key 调度器键，缺省为 default。
      */
     yieldIfNeeded(key?: string): Promise<void>;
-    /**
-     * 返回所有已创建实例的快照。
-     * @returns 快照信息。
-     */
-    snapshot(): {
-        semaphore: Record<string, ReturnType<Semaphore['snapshot']>>;
-        mutex: Record<string, ReturnType<Mutex['snapshot']>>;
-        rateLimiter: Record<string, ReturnType<RateLimiter['snapshot']>>;
-        scheduler: Record<string, SchedulerSnapshot>;
-    };
     /**
      * 注入/更新日志端口；由组合根在运行期调用，undefined 关闭并发内核日志。
      * @param logger 日志端口。
@@ -441,33 +430,6 @@ export function createConcurrencyKernel(
 
         async yieldIfNeeded(key = 'default'): Promise<void> {
             await this.scheduler(key).yieldIfNeeded();
-        },
-
-        snapshot() {
-            const semaphore: Record<string, ReturnType<Semaphore['snapshot']>> = {};
-            const mutex: Record<string, ReturnType<Mutex['snapshot']>> = {};
-            const rateLimiter: Record<string, ReturnType<RateLimiter['snapshot']>> = {};
-            const scheduler: Record<string, SchedulerSnapshot> = {};
-
-            for (const [key, instance] of semaphoreInstances.entries()) {
-                semaphore[key] = instance.snapshot();
-            }
-            for (const [key, instance] of mutexInstances.entries()) {
-                mutex[key] = instance.snapshot();
-            }
-            for (const [key, instance] of rateLimiterInstances.entries()) {
-                rateLimiter[key] = instance.snapshot();
-            }
-            for (const [key, instance] of schedulerInstances.entries()) {
-                scheduler[key] = instance.snapshot();
-            }
-
-            return {
-                semaphore,
-                mutex,
-                rateLimiter,
-                scheduler,
-            };
         },
 
         setLogger(nextLogger: ConcurrencyLogger | undefined): void {

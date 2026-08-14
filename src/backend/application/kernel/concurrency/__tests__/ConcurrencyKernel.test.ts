@@ -30,19 +30,7 @@ describe('并发内核门面', () => {
         scheduler.beginFrame();
         await new Promise((resolve) => setTimeout(resolve, 2));
         await kernel.yieldIfNeeded();
-        expect(kernel.snapshot().scheduler.default.yieldCount).toBeGreaterThanOrEqual(1);
-    });
-
-    it('snapshot 应包含已创建实例状态', async () => {
-        const kernel = createConcurrencyKernel();
-        await kernel.withRateLimit('gpt', async () => undefined);
-        kernel.scheduler('default');
-        kernel.mutex('critical');
-
-        const snap = kernel.snapshot();
-        expect(snap.rateLimiter.gpt).toBeDefined();
-        expect(snap.scheduler.default).toBeDefined();
-        expect(snap.mutex.critical).toBeDefined();
+        expect(scheduler.snapshot().yieldCount).toBeGreaterThanOrEqual(1);
     });
 
     it('缺少配置的 key 应抛出错误', () => {
@@ -61,7 +49,7 @@ describe('并发内核门面', () => {
             }, { reentrant: true });
         }, { reentrant: true });
 
-        expect(kernel.snapshot().semaphore.ffmpeg.inUse).toBe(0);
+        expect(kernel.semaphore('ffmpeg').snapshot().inUse).toBe(0);
     });
 
     it('锁顺序逆序获取应抛出违规错误', async () => {
