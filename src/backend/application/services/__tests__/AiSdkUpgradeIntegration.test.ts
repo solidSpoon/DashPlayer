@@ -578,7 +578,7 @@ const runTests = (): void => {
                     }) as RendererGateway['call'],
                     fireAndForget: vi.fn(),
                 };
-                const cacheService: CacheService = {
+                const cacheService: Pick<CacheService, 'get' | 'set' | 'delete' | 'clear'> = {
                     get: vi.fn(),
                     set: vi.fn(),
                     delete: vi.fn(),
@@ -605,7 +605,9 @@ const runTests = (): void => {
                 (service as unknown as { tencentProvider: typeof tencentProvider }).tencentProvider = tencentProvider;
                 (service as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
                 (service as unknown as { aiProviderService: AiProviderService }).aiProviderService = aiProvider;
-                (service as unknown as { cacheService: CacheService }).cacheService = cacheService;
+                (service as unknown as {
+                    cacheService: Pick<CacheService, 'get' | 'set' | 'delete' | 'clear'>;
+                }).cacheService = cacheService;
                 (service as unknown as { settingService: SettingService }).settingService = settingService;
                 (service as unknown as { wordTranslatesRepository: WordTranslatesRepository }).wordTranslatesRepository = wordRepo;
                 (service as unknown as { sentenceTranslatesRepository: SentenceTranslatesRepository }).sentenceTranslatesRepository = sentenceRepo;

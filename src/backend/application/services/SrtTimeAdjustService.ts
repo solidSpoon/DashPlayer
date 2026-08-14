@@ -1,46 +1,75 @@
 import {
     InsertSubtitleTimestampAdjustment,
-    SubtitleTimestampAdjustment
+    SubtitleTimestampAdjustment,
 } from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
+import { inject, injectable } from 'inversify';
+
+import SubtitleTimestampAdjustmentsRepository
+    from '@/backend/application/ports/repositories/SubtitleTimestampAdjustmentsRepository';
+import TYPES from '@/backend/ioc/types';
 
 /**
- * 调整字幕时间
+ * 管理字幕时间调整记录。
  */
-export default interface SrtTimeAdjustService {
+@injectable()
+export default class SrtTimeAdjustService {
+    @inject(TYPES.SubtitleTimestampAdjustmentsRepository)
+    private subtitleTimestampAdjustmentsRepository!: SubtitleTimestampAdjustmentsRepository;
 
     /**
-     * 记录调整
-     * @param e
+     * 新增或覆盖一条字幕时间调整记录。
+     *
+     * @param adjustment 待保存的调整记录。
      */
-    record(e: InsertSubtitleTimestampAdjustment): Promise<void>;
+    public async record(adjustment: InsertSubtitleTimestampAdjustment): Promise<void> {
+        await this.subtitleTimestampAdjustmentsRepository.upsert(adjustment);
+    }
 
     /**
-     * 删除调整
-     * @param key
+     * 按记录键删除字幕时间调整。
+     *
+     * @param key 调整记录键。
      */
-    deleteByKey(key: string): Promise<void>;
+    public async deleteByKey(key: string): Promise<void> {
+        await this.subtitleTimestampAdjustmentsRepository.deleteByKey(key);
+    }
 
     /**
-     * 删除调整
-     * @param fileHash
+     * 删除指定文件的全部字幕时间调整。
+     *
+     * @param fileHash 文件哈希。
      */
-    deleteByFile(fileHash: string): Promise<void>;
+    public async deleteByFile(fileHash: string): Promise<void> {
+        await this.subtitleTimestampAdjustmentsRepository.deleteByFileHash(fileHash);
+    }
 
     /**
-     * 获取调整
-     * @param key
+     * 按记录键读取字幕时间调整。
+     *
+     * @param key 调整记录键。
+     * @returns 对应记录；不存在时返回 `undefined`。
      */
-    getByKey(key: string): Promise<SubtitleTimestampAdjustment | undefined>;
+    public async getByKey(key: string): Promise<SubtitleTimestampAdjustment | undefined> {
+        return this.subtitleTimestampAdjustmentsRepository.findByKey(key);
+    }
 
     /**
-     * 获取调整
-     * @param subtitlePath
+     * 按字幕路径读取全部时间调整。
+     *
+     * @param subtitlePath 字幕文件路径。
+     * @returns 对应的调整记录列表。
      */
-    getByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]>;
+    public getByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]> {
+        return this.subtitleTimestampAdjustmentsRepository.findByPath(subtitlePath);
+    }
 
     /**
-     * 获取调整
-     * @param h
+     * 按文件哈希读取全部时间调整。
+     *
+     * @param hash 文件哈希。
+     * @returns 对应的调整记录列表。
      */
-    getByHash(h: string): Promise<SubtitleTimestampAdjustment[]>;
+    public getByHash(hash: string): Promise<SubtitleTimestampAdjustment[]> {
+        return this.subtitleTimestampAdjustmentsRepository.findByHash(hash);
+    }
 }

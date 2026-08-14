@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import SettingService from '@/backend/application/services/SettingService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
+import SettingsKeyValueService from '@/backend/application/services/SettingsKeyValueService';
 import {
     ServiceCredentialSettingDetailVO,
     ServiceCredentialSettingSaveVO,

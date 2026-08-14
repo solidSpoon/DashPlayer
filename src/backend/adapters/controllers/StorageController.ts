@@ -5,7 +5,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import FileUtil from '@/backend/utils/FileUtil';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import SettingsKeyValueService from '@/backend/application/services/impl/SettingsKeyValueService';
+import SettingsKeyValueService from '@/backend/application/services/SettingsKeyValueService';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,

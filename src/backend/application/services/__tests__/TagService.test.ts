@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
-import TagServiceImpl from '../impl/TagServiceImpl';
+import TagService from '../TagService';
 
 // Mock inversify
 vi.mock('inversify', () => ({
@@ -8,8 +8,8 @@ vi.mock('inversify', () => ({
     inject: () => (target: unknown, _propertyKey: string) => target,
 }));
 
-describe('TagServiceImpl', () => {
-  let tagService: TagServiceImpl;
+describe('标签服务', () => {
+  let tagService: TagService;
   let mockRepo: {
     ensureTag: ReturnType<typeof vi.fn>;
     deleteTagById: ReturnType<typeof vi.fn>;
@@ -18,7 +18,7 @@ describe('TagServiceImpl', () => {
   };
 
   beforeEach(() => {
-    tagService = new TagServiceImpl();
+    tagService = new TagService();
     mockRepo = {
       ensureTag: vi.fn(),
       deleteTagById: vi.fn(),
@@ -29,8 +29,8 @@ describe('TagServiceImpl', () => {
     vi.clearAllMocks();
   });
 
-  describe('addTag', () => {
-    it('should add a new tag successfully', async () => {
+  describe('添加标签', () => {
+    it('可以成功添加新标签', async () => {
       const mockTag: Tag = {
         id: 1,
         name: 'test-tag',
@@ -45,14 +45,14 @@ describe('TagServiceImpl', () => {
       expect(result).toEqual(mockTag);
     });
 
-    it('should throw error when name is blank', async () => {
+    it('标签名称为空时会抛出错误', async () => {
       await expect(tagService.addTag('')).rejects.toThrow('name is blank');
       await expect(tagService.addTag('   ')).rejects.toThrow('name is blank');
       await expect(tagService.addTag(null as unknown as string)).rejects.toThrow('name is blank');
       await expect(tagService.addTag(undefined as unknown as string)).rejects.toThrow('name is blank');
     });
 
-    it('should handle existing tag', async () => {
+    it('标签已存在时返回原标签', async () => {
       const existingTag: Tag = {
         id: 1,
         name: 'existing-tag',
@@ -68,8 +68,8 @@ describe('TagServiceImpl', () => {
     });
   });
 
-  describe('deleteTag', () => {
-    it('should delete tag by id', async () => {
+  describe('删除标签', () => {
+    it('可以按编号删除标签', async () => {
       mockRepo.deleteTagById.mockResolvedValue(undefined);
 
       await tagService.deleteTag(1);
@@ -77,15 +77,15 @@ describe('TagServiceImpl', () => {
       expect(mockRepo.deleteTagById).toHaveBeenCalledWith(1);
     });
 
-    it('should handle deletion of non-existent tag gracefully', async () => {
+    it('删除不存在的标签时正常结束', async () => {
       mockRepo.deleteTagById.mockResolvedValue(undefined);
 
       await expect(tagService.deleteTag(999)).resolves.toBeUndefined();
     });
   });
 
-  describe('updateTag', () => {
-    it('should update tag name', async () => {
+  describe('修改标签', () => {
+    it('可以修改标签名称', async () => {
       mockRepo.updateTagName.mockResolvedValue(undefined);
 
       await tagService.updateTag(1, 'updated-name');
@@ -94,8 +94,8 @@ describe('TagServiceImpl', () => {
     });
   });
 
-  describe('search', () => {
-    it('should search tags by keyword', async () => {
+  describe('搜索标签', () => {
+    it('可以按关键字搜索标签', async () => {
       const mockTags: Tag[] = [
         { id: 1, name: 'javascript', created_at: '2023-01-01', updated_at: '2023-01-01' },
         { id: 2, name: 'java', created_at: '2023-01-01', updated_at: '2023-01-01' }
@@ -108,7 +108,7 @@ describe('TagServiceImpl', () => {
       expect(result).toEqual(mockTags);
     });
 
-    it('should return empty array when no tags match', async () => {
+    it('没有匹配标签时返回空数组', async () => {
       mockRepo.searchTagsByPrefix.mockResolvedValue([]);
 
       const result = await tagService.search('nonexistent');
@@ -116,7 +116,7 @@ describe('TagServiceImpl', () => {
       expect(result).toEqual([]);
     });
 
-    it('should handle empty keyword search', async () => {
+    it('允许使用空关键字搜索', async () => {
       mockRepo.searchTagsByPrefix.mockResolvedValue([]);
 
       const result = await tagService.search('');
