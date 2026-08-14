@@ -2,27 +2,102 @@ import fs from 'fs';
 import path from 'path';
 import util from 'util';
 import log from 'electron-log/main';
+
+import { isSensitiveKey, maskSensitiveValues } from '@/common/log/mask';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
-import { maskSensitiveValues } from '@/common/log/mask';
-import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { AppStateDirectoryType, getAppStatePath } from '@/backend/infrastructure/system/AppStatePath';
+import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
+import { getCurrentTraceId, isTraceId } from './trace-context';
+
+/** 写入 JSON Lines 文件的稳定日志结构。 */
+interface JsonLogRecord {
+    /** 日志结构版本，便于分析脚本处理未来演进。 */
+    schemaVersion: 1;
+    /** 事件发生时间，ISO 8601 格式。 */
+    timestamp: string;
+    /** 日志级别。 */
+    level: SimpleLevel;
+    /** 产生日志的 Electron 进程。 */
+    process: 'main' | 'renderer';
+    /** 组件、类或文件的稳定名称。 */
+    module: string;
+    /** 简短、可检索的事件描述。 */
+    message: string;
+    /** 可选的跨异步调用链追踪标识。 */
+    traceId?: string;
+    /** 已脱敏和裁剪的结构化上下文。 */
+    data?: unknown;
+}
+
+/** 日志器公开能力；`withTrace` 用于脱离自动异步上下文的显式追踪。 */
+export interface MainLogger {
+    debug: (msg: string, data?: unknown) => void;
+    info: (msg: string, data?: unknown) => void;
+    warn: (msg: string, data?: unknown) => void;
+    error: (msg: string, data?: unknown) => void;
+    withTrace: (traceId: string) => MainLogger;
+}
 
 const logPath = getAppStatePath(AppStateDirectoryType.LOGS);
+const MAX_DATA_DEPTH = 5;
+const MAX_OBJECT_KEYS = 50;
+const MAX_ARRAY_ITEMS = 50;
+const MAX_STRING_LENGTH = 4000;
 
 if (!fs.existsSync(logPath)) {
     fs.mkdirSync(logPath, { recursive: true });
 }
 
-function todayFile() {
-    const d = new Date();
-    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return path.join(logPath, `main-${day}.log`);
+/**
+ * 计算当天 JSON Lines 日志文件路径。
+ * @returns main-YYYY-MM-DD.jsonl 形式的绝对路径。
+ */
+function todayFile(): string {
+    const date = new Date();
+    const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return path.join(logPath, `main-${day}.jsonl`);
+}
+
+/**
+ * 将 electron-log 自身捕获的异常也包装成合法 JSON，保证文件每一行都可独立解析。
+ * @param data electron-log 收到的原始参数。
+ * @param level electron-log 日志级别。
+ * @param timestamp 日志发生时间。
+ * @returns 单行 JSON 字符串。
+ */
+function formatTransportLine(data: unknown[], level: string, timestamp: Date): string {
+    if (data.length === 1 && typeof data[0] === 'string') {
+        try {
+            const parsed = JSON.parse(data[0]) as Partial<JsonLogRecord>;
+            if (parsed.schemaVersion === 1
+                && typeof parsed.timestamp === 'string'
+                && typeof parsed.module === 'string'
+                && typeof parsed.message === 'string') {
+                return data[0];
+            }
+        } catch {
+            // 非结构化的 electron-log 内部消息在下面统一包装。
+        }
+    }
+
+    const sanitizedData = sanitizeValue(data);
+    return JSON.stringify({
+        schemaVersion: 1,
+        timestamp: timestamp.toISOString(),
+        level: normalizeLevel(level) ?? 'error',
+        process: 'main',
+        module: 'electron-log',
+        message: maskSensitiveValues(util.format(...(sanitizedData as unknown[]))),
+        data: sanitizedData,
+    } satisfies JsonLogRecord);
 }
 
 log.initialize({ preload: true });
 log.transports.file.resolvePathFn = todayFile;
 log.transports.file.level = 'silly';
-log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
+log.transports.file.format = ({ data, level, message }) => [
+    formatTransportLine(data, level, message.date),
+];
 log.transports.console.level = isDevelopmentMode() ? 'silly' : 'warn';
 log.errorHandler.startCatching();
 
@@ -33,8 +108,11 @@ const levelOrder: Record<SimpleLevel, number> = {
     error: 50,
 };
 
-const FOCUS_PREFIX_PATTERN = /^\[FOCUS:([^\]]+)\]\s*/;
-
+/**
+ * 将环境变量中的日志级别解析为受支持值。
+ * @param level 候选日志级别。
+ * @returns 合法级别；无法识别时返回 null。
+ */
 function normalizeLevel(level: string | undefined): SimpleLevel | null {
     if (level === 'debug' || level === 'info' || level === 'warn' || level === 'error') {
         return level;
@@ -42,6 +120,10 @@ function normalizeLevel(level: string | undefined): SimpleLevel | null {
     return null;
 }
 
+/**
+ * 获取当前运行模式对应的默认日志级别。
+ * @returns 配置值，或开发环境 debug、生产环境 info。
+ */
 function defaultLevel(): SimpleLevel {
     const envLevel = normalizeLevel(process.env.DP_LOG_LEVEL);
     if (envLevel) {
@@ -52,36 +134,51 @@ function defaultLevel(): SimpleLevel {
 
 let CURRENT_LEVEL: SimpleLevel = defaultLevel();
 
-export function setLogLevel(level: SimpleLevel) {
+/**
+ * 动态调整 main 进程日志级别。
+ * @param level 新的最低日志级别。
+ */
+export function setLogLevel(level: SimpleLevel): void {
     CURRENT_LEVEL = level;
 }
 
-function shouldLog(level: SimpleLevel) {
+/**
+ * 判断指定级别是否达到当前输出阈值。
+ * @param level 待判断日志级别。
+ * @returns 应输出时返回 true。
+ */
+function shouldLog(level: SimpleLevel): boolean {
     return levelOrder[level] >= levelOrder[CURRENT_LEVEL];
 }
 
+/**
+ * 解析逗号分隔的模块过滤配置。
+ * @param input 环境变量原始值。
+ * @returns 去除空白和空项后的模块名。
+ */
 function normalizeCsvInput(input?: string): string[] {
     if (!input) return [];
-    return input.split(',').map(item => item.trim()).filter(Boolean);
+    return input.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
+/**
+ * 创建模块过滤集合。
+ * @param input 逗号分隔的模块名。
+ * @returns 模块集合；未配置时返回 null。
+ */
 function createModuleFilterSet(input?: string): Set<string> | null {
     const modules = normalizeCsvInput(input);
-    if (modules.length === 0) {
-        return null;
-    }
-    return new Set(modules);
+    return modules.length > 0 ? new Set(modules) : null;
 }
 
-function normalizeFocusToken(input?: string): string | null {
-    const token = input?.trim();
-    return token ? token : null;
-}
+const INCLUDE_MODULE_FILTER = createModuleFilterSet(process.env.DP_LOG_INCLUDE_MODULES);
+const EXCLUDE_MODULE_FILTER = createModuleFilterSet(process.env.DP_LOG_EXCLUDE_MODULES);
 
-const INCLUDE_MODULE_FILTER: Set<string> | null = createModuleFilterSet(process.env.DP_LOG_INCLUDE_MODULES);
-const EXCLUDE_MODULE_FILTER: Set<string> | null = createModuleFilterSet(process.env.DP_LOG_EXCLUDE_MODULES);
-const FOCUS_TOKEN_FILTER: string | null = normalizeFocusToken(process.env.DP_LOG_FOCUS_TOKEN);
-
+/**
+ * 判断模块是否通过 allowlist/denylist。
+ * @param moduleName 日志模块名。
+ * @returns 应输出时返回 true。
+ */
 function shouldLogModule(moduleName: string): boolean {
     if (INCLUDE_MODULE_FILTER && !INCLUDE_MODULE_FILTER.has(moduleName)) {
         return false;
@@ -92,96 +189,124 @@ function shouldLogModule(moduleName: string): boolean {
     return true;
 }
 
-function extractFocusToken(msg: string): string | undefined {
-    const matched = msg.match(FOCUS_PREFIX_PATTERN);
-    return matched?.[1]?.trim() || undefined;
-}
-
-function shouldLogFocus(msg: string, focus?: string): boolean {
-    if (!FOCUS_TOKEN_FILTER) {
-        return true;
+/**
+ * 将任意值转换为可 JSON 序列化、已脱敏且有界的结构。
+ * @param value 原始日志数据。
+ * @param depth 当前递归深度。
+ * @param seen 已访问对象集合，用于识别循环引用。
+ * @returns 可安全写入日志的值。
+ */
+function sanitizeValue(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+    if (value === null || value === undefined || typeof value === 'boolean') {
+        return value;
     }
-    return (focus || extractFocusToken(msg)) === FOCUS_TOKEN_FILTER;
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : String(value);
+    }
+    if (typeof value === 'string') {
+        const masked = maskSensitiveValues(value);
+        return masked.length > MAX_STRING_LENGTH ? `${masked.slice(0, MAX_STRING_LENGTH)}…` : masked;
+    }
+    if (typeof value === 'bigint') {
+        return value.toString();
+    }
+    if (typeof value === 'function' || typeof value === 'symbol') {
+        return String(value);
+    }
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+    if (depth >= MAX_DATA_DEPTH) {
+        return '[MaxDepth]';
+    }
+    if (value instanceof Error) {
+        if (seen.has(value)) {
+            return '[Circular Error]';
+        }
+        seen.add(value);
+        return {
+            name: value.name,
+            message: sanitizeValue(value.message, depth + 1, seen),
+            stack: sanitizeValue(value.stack, depth + 1, seen),
+            cause: sanitizeValue(value.cause, depth + 1, seen),
+        };
+    }
+    if (typeof value !== 'object') {
+        return String(value);
+    }
+    if (seen.has(value)) {
+        return '[Circular]';
+    }
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        const items = value.slice(0, MAX_ARRAY_ITEMS).map((item) => sanitizeValue(item, depth + 1, seen));
+        if (value.length > MAX_ARRAY_ITEMS) {
+            items.push(`[Truncated ${value.length - MAX_ARRAY_ITEMS} items]`);
+        }
+        return items;
+    }
+
+    try {
+        const entries = Object.entries(value as Record<string, unknown>);
+        const output: Record<string, unknown> = {};
+        for (const [key, item] of entries.slice(0, MAX_OBJECT_KEYS)) {
+            output[key] = isSensitiveKey(key) ? '***' : sanitizeValue(item, depth + 1, seen);
+        }
+        if (entries.length > MAX_OBJECT_KEYS) {
+            output.__truncatedKeys = entries.length - MAX_OBJECT_KEYS;
+        }
+        return output;
+    } catch {
+        return '[Unserializable]';
+    }
 }
 
 /**
- * 把日志载荷序列化为单行紧凑字符串。
- *
- * 行为说明：
- * - Error 取 name/message 与前 5 层堆栈，其余用 util.inspect（深度 3）；
- * - 序列化结果统一经过敏感值模式掩码，防止错误对象或服务层数据携带密钥字符串落盘。
+ * 将跨进程事件转换为稳定的 JSON 日志结构。
+ * @param event 原始日志事件。
+ * @returns 已规范化的日志记录。
  */
-function normalizeData(data: unknown): string {
-    if (data === undefined) return '';
-    let raw: string;
-    if (data instanceof Error) {
-        const stack = data.stack ? data.stack.split('\n').slice(0, 5).join(' | ') : '';
-        raw = stack ? `${data.name}: ${data.message} | ${stack}` : `${data.name}: ${data.message}`;
-    } else {
-        try {
-            raw = util.inspect(data, { depth: 3, breakLength: Infinity, compact: true });
-        } catch {
-            raw = String(data);
-        }
+function createRecord(event: SimpleEvent): JsonLogRecord {
+    const record: JsonLogRecord = {
+        schemaVersion: 1,
+        timestamp: event.ts || new Date().toISOString(),
+        level: event.level,
+        process: event.process,
+        module: event.module,
+        message: maskSensitiveValues(event.msg),
+    };
+    if (isTraceId(event.traceId)) {
+        record.traceId = event.traceId;
     }
-    // 统一兜底掩码：错误对象/服务层数据里可能直接携带密钥字符串（如 OpenAI 错误回显 key）。
-    return maskSensitiveValues(raw);
+    if (event.data !== undefined) {
+        record.data = sanitizeValue(event.data);
+    }
+    return record;
 }
 
-function toSingleLine(text: string) {
-    return text.replaceAll('\n', ' | ').replaceAll('\r', '');
-}
-
-function truncate(text: string, maxLen = 1200) {
-    if (text.length <= maxLen) return text;
-    return `${text.slice(0, maxLen)}…`;
-}
-
-function formatLine(event: SimpleEvent) {
-    const focusLabel = event.focus ? `|focus:${event.focus}` : '';
-    const prefix = `[${event.process}|${event.module}${focusLabel}]`;
-    const msg = event.msg ? toSingleLine(event.msg.replace(FOCUS_PREFIX_PATTERN, '')) : '';
-    // 渲染端 debug 的对象 data 之前被丢弃，导致日志行没有排查价值；这里统一带上紧凑载荷。
-    const isPrimitiveData = event.data === null || ['string', 'number', 'boolean'].includes(typeof event.data);
-    const includeData = event.level === 'warn' || event.level === 'error' || isPrimitiveData || event.level === 'debug';
-    const data = includeData ? normalizeData(event.data) : '';
-    const dataPart = data ? ` ${truncate(toSingleLine(data), 800)}` : '';
-    return `${prefix} ${msg}${dataPart}`.trim();
-}
-
-export function writeEvent(event: SimpleEvent) {
-    if (!shouldLog(event.level)) {
+/**
+ * 将日志事件写入对应 transport。
+ * @param event 原始日志事件；调用方需提供明确的进程、模块和级别。
+ */
+export function writeEvent(event: SimpleEvent): void {
+    if (!shouldLog(event.level) || !shouldLogModule(event.module)) {
         return;
     }
-    if (!shouldLogModule(event.module)) {
-        return;
-    }
-    if (!shouldLogFocus(event.msg, event.focus)) {
-        return;
-    }
-    const line = formatLine({
-        ...event,
-        ts: event.ts || new Date().toISOString(),
-        focus: event.focus || extractFocusToken(event.msg),
-    });
 
-    switch (event.level) {
-        case 'debug':
-            log.debug(line);
-            break;
-        case 'info':
-            log.info(line);
-            break;
-        case 'warn':
-            log.warn(line);
-            break;
-        case 'error':
-            log.error(line);
-            break;
-    }
+    const line = JSON.stringify(createRecord(event));
+    log[event.level](line);
 }
 
-function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unknown) {
+/**
+ * 在 main 进程创建并写入日志事件。
+ * @param moduleName 日志模块名。
+ * @param level 日志级别。
+ * @param msg 事件描述。
+ * @param data 可选结构化上下文。
+ * @param traceId 显式 trace ID；未提供时读取当前异步上下文。
+ */
+function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unknown, traceId?: string): void {
     writeEvent({
         ts: new Date().toISOString(),
         level,
@@ -189,52 +314,53 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unkno
         module: moduleName,
         msg,
         data,
+        traceId: traceId ?? getCurrentTraceId(),
     });
 }
 
-type MainLogger = {
-    debug: (msg: string, data?: unknown) => void;
-    info: (msg: string, data?: unknown) => void;
-    warn: (msg: string, data?: unknown) => void;
-    error: (msg: string, data?: unknown) => void;
-    withFocus: (focusToken: string) => MainLogger;
-};
-
-function prependFocusToken(msg: string, focusToken?: string) {
-    if (!focusToken) return msg;
-    if (FOCUS_PREFIX_PATTERN.test(msg)) return msg;
-    return `[FOCUS:${focusToken}] ${msg}`;
-}
-
-function createLogger(moduleName: string, focusToken?: string): MainLogger {
+/**
+ * 创建指定模块的 main 进程日志器。
+ * @param moduleName 稳定模块名。
+ * @param traceId 可选的显式 trace ID。
+ * @returns 可复用日志器。
+ */
+function createLogger(moduleName: string, traceId?: string): MainLogger {
     return {
-        debug: (msg, data) => logAt(moduleName, 'debug', prependFocusToken(msg, focusToken), data),
-        info: (msg, data) => logAt(moduleName, 'info', prependFocusToken(msg, focusToken), data),
-        warn: (msg, data) => logAt(moduleName, 'warn', prependFocusToken(msg, focusToken), data),
-        error: (msg, data) => logAt(moduleName, 'error', prependFocusToken(msg, focusToken), data),
-        withFocus: (nextFocusToken) => createLogger(moduleName, nextFocusToken),
+        debug: (msg, data) => logAt(moduleName, 'debug', msg, data, traceId),
+        info: (msg, data) => logAt(moduleName, 'info', msg, data, traceId),
+        warn: (msg, data) => logAt(moduleName, 'warn', msg, data, traceId),
+        error: (msg, data) => logAt(moduleName, 'error', msg, data, traceId),
+        withTrace: (nextTraceId) => createLogger(moduleName, nextTraceId),
     };
 }
 
+/**
+ * 获取指定模块的 main 进程日志器。
+ * @param moduleName 稳定模块名。
+ * @returns 可复用日志器；默认自动读取当前 trace 上下文。
+ */
 export function getMainLogger(moduleName: string): MainLogger {
     return createLogger(moduleName);
 }
 
-export function pruneOldLogs(days = 14) {
+/**
+ * 删除超过保留期的新旧格式日志文件。
+ * @param days 保留天数，默认 14 天。
+ */
+export function pruneOldLogs(days = 14): void {
     const keepMs = days * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
     try {
         const files = fs.readdirSync(logPath);
         files.forEach((file) => {
-            // 同时匹配 main-YYYY-MM-DD.log 与 main-YYYY-MM-DD.old.log。
-            if (!/^main-\d{4}-\d{2}-\d{2}(\.old)?\.log$/.test(file)) return;
-            const full = path.join(logPath, file);
-            const st = fs.statSync(full);
-            if (now - st.mtimeMs > keepMs) fs.unlinkSync(full);
+            if (!/^main-\d{4}-\d{2}-\d{2}(?:\.old)?\.(?:jsonl|log)$/.test(file)) return;
+            const fullPath = path.join(logPath, file);
+            const fileStat = fs.statSync(fullPath);
+            if (now - fileStat.mtimeMs > keepMs) fs.unlinkSync(fullPath);
         });
     } catch (error) {
-        getMainLogger('logger-prune').error('pruneOldLogs error', { error });
+        getMainLogger('logger-prune').error('prune old logs failed', { error });
     }
 }
 

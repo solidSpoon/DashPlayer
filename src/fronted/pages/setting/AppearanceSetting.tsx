@@ -59,7 +59,7 @@ const AppearanceSetting = () => {
     const { initialize, flush } = useAutoSaveSettingsForm<AppearanceFormValues>({
         form,
         onSave: async (values) => {
-            logger.debug('saving appearance settings', values);
+            logger.debug('saving appearance settings', { values });
             await api.call('settings/appearance/update', {
                 theme: values.theme,
                 fontSize: values.fontSize,

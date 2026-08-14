@@ -13,16 +13,16 @@ const runMigrate = async () => {
         migrate(db, config);
     } catch (error) {
         const logger = getMainLogger('db-migrate');
-        logger.error('run migrate failed, clear db and retry', error);
+        logger.error('run migrate failed, clear db and retry', { error });
         await clearDB();
         migrate(db, config);
     }
 }
 
 const logger = getMainLogger('db-migrate');
-logger.debug('runMigrate config', config);
-logger.debug('runMigrate resourcesPath', process.resourcesPath);
+logger.debug('runMigrate config', { config });
+logger.debug('runMigrate resourcesPath', { resourcesPath: process.resourcesPath });
 fs.readdirSync(config.migrationsFolder).forEach((file) => {
-    logger.debug('migration file', file);
+    logger.debug('migration file', { file });
 });
 export default runMigrate;

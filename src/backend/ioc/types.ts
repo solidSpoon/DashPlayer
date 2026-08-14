@@ -4,6 +4,7 @@ const TYPES = {
     FavouriteClips: Symbol('FavouriteClips'),
     VideoLearningService: Symbol('VideoLearningService'),
     Controller: Symbol('Controller'),
+    Database: Symbol('Database'),
     WatchProject: Symbol('WatchProject'),
     TagService: Symbol('TagService'),
     SubtitleService: Symbol('SubtitleService'),

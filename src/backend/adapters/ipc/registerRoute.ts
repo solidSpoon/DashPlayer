@@ -1,12 +1,11 @@
 import { ipcMain } from 'electron';
-import util from 'util';
 
 import { ApiMap } from '@/common/api/api-def';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
-import { getMainLogger } from '@/backend/infrastructure/logger';
+import { getMainLogger, resolveTraceId, runWithTrace } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
-import { isSensitiveKey, maskSensitiveValues } from '@/common/log/mask';
+import type { TraceCarrier } from '@/common/log/simple-types';
 
 const logger = getMainLogger('ipc');
 
@@ -17,71 +16,9 @@ const QUIET_PATH_POLICIES: Partial<Record<string, { logParam: boolean; logResult
 };
 
 /**
- * 递归脱敏对象，用于日志预览前的安全化处理。
- *
- * 行为说明：
- * - 命中敏感字段名（含独立 key 字段）整体替换为 '***'；
- * - 字符串值先做 sk-/Bearer 模式掩码，再做 400 字符截断；
- * - 深度超过 4 层、对象键超过 40 个、数组超过 40 项时截断为占位，防止日志膨胀。
- */
-function sanitize(value: unknown, depth = 0): unknown {
-    const maxDepth = 4;
-    const maxKeys = 40;
-    const maxArray = 40;
-
-    if (value === null || value === undefined) return value;
-    if (typeof value === 'string') {
-        const masked = maskSensitiveValues(value);
-        return masked.length > 400 ? `${masked.slice(0, 400)}…` : masked;
-    }
-    if (typeof value === 'number' || typeof value === 'boolean') return value;
-    if (typeof value === 'bigint') return value.toString();
-    if (value instanceof Error) return { name: value.name, message: value.message };
-
-    if (depth >= maxDepth) return '[MaxDepth]';
-
-    if (Array.isArray(value)) {
-        return value.slice(0, maxArray).map((v) => sanitize(v, depth + 1));
-    }
-
-    if (typeof value === 'object') {
-        const out: Record<string, unknown> = {};
-        const entries = Object.entries(value as Record<string, unknown>).slice(0, maxKeys);
-        for (const [key, val] of entries) {
-            if (isSensitiveKey(key)) {
-                out[key] = '***';
-            } else {
-                out[key] = sanitize(val, depth + 1);
-            }
-        }
-        return out;
-    }
-
-    return String(value);
-}
-
-function toSingleLine(text: string) {
-    return text.replaceAll('\n', ' | ').replaceAll('\r', '');
-}
-
-function preview(value: unknown, maxLen = 800) {
-    try {
-        const inspected = util.inspect(sanitize(value), {
-            depth: 4,
-            breakLength: Infinity,
-            compact: true,
-            maxArrayLength: 40,
-            maxStringLength: 400,
-        });
-        const single = toSingleLine(inspected);
-        return single.length > maxLen ? `${single.slice(0, maxLen)}…` : single;
-    } catch {
-        return '[Unserializable]';
-    }
-}
-
-/**
  * 判断异常是否为用户主动取消（axios CanceledError / AbortError / 取消语义消息）。
+ * @param error 捕获到的未知异常。
+ * @returns 属于用户主动取消时返回 true。
  * 取消属预期行为，不应按 error 记录。
  */
 function isUserCancellation(error: unknown): boolean {
@@ -97,43 +34,58 @@ function isUserCancellation(error: unknown): boolean {
  * 注册 IPC 路由并统一记录调用日志。
  *
  * 行为说明：
- * - 普通路径在 info 级记录 param/result（已脱敏）；
+ * - renderer 提供合法 trace ID 时沿用，否则在 main 边界生成；
+ * - 普通路径在 info 级记录 param/result，统一日志出口负责脱敏与裁剪；
  * - 命中 QUIET_PATH_POLICIES 的高频/敏感路径降为 debug，并按策略跳过 param/result，避免噪音与密钥落盘；
  * - 异常统一记 error，并转发给渲染端事件总线。
+ * @param path API 路径。
+ * @param func 与路径匹配的处理函数。
  */
 export default function registerRoute<K extends keyof ApiMap>(path: K, func: ApiMap[K]) {
-    ipcMain.handle(path, async (_event, param) => {
-        const start = Date.now();
-        const policy = QUIET_PATH_POLICIES[path];
-        if (policy) {
-            logger.debug(`api-call path=${String(path)}${policy.logParam ? ` param=${preview(param)}` : ''}`);
-        } else {
-            logger.info(`api-call path=${String(path)} param=${preview(param)}`);
-        }
+    ipcMain.handle(path, async (_event, param, traceCarrier?: TraceCarrier) => {
+        const traceId = resolveTraceId(traceCarrier?.traceId);
+        return runWithTrace(traceId, async () => {
+            const start = Date.now();
+            const policy = QUIET_PATH_POLICIES[path];
+            const requestData = policy?.logParam === false
+                ? { path: String(path) }
+                : { path: String(path), param };
 
-        try {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const result = await func(param);
-            const costMs = Date.now() - start;
             if (policy) {
-                logger.debug(`api-ok path=${String(path)} costMs=${costMs}${policy.logResult ? ` result=${preview(result)}` : ''}`);
+                logger.debug('ipc request started', requestData);
             } else {
-                logger.info(`api-ok path=${String(path)} costMs=${costMs} result=${preview(result)}`);
+                logger.info('ipc request started', requestData);
             }
-            return result;
-        } catch (error) {
-            const costMs = Date.now() - start;
-            const message = error instanceof Error ? error.message : String(error);
-            if (isUserCancellation(error)) {
-                logger.warn(`api-cancel path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
-            } else {
-                logger.error(`api-error path=${String(path)} costMs=${costMs} message=${preview(message, 300)}`, { error });
+
+            try {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const result = await func(param);
+                const responseData = policy?.logResult === false
+                    ? { path: String(path), durationMs: Date.now() - start }
+                    : { path: String(path), durationMs: Date.now() - start, result };
+                if (policy) {
+                    logger.debug('ipc request completed', responseData);
+                } else {
+                    logger.info('ipc request completed', responseData);
+                }
+                return result;
+            } catch (error) {
+                const errorData = {
+                    path: String(path),
+                    durationMs: Date.now() - start,
+                    error,
+                };
+                if (isUserCancellation(error)) {
+                    logger.warn('ipc request cancelled', errorData);
+                } else {
+                    logger.error('ipc request failed', errorData);
+                }
+                container
+                    .get<RendererEvents>(TYPES.RendererEvents)
+                    .error(error instanceof Error ? error : new Error(String(error)));
+                throw error;
             }
-            container
-                .get<RendererEvents>(TYPES.RendererEvents)
-                .error(error instanceof Error ? error : new Error(String(error)));
-            throw error;
-        }
+        });
     });
 }

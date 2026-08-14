@@ -257,6 +257,10 @@ Repository。
 
 - main 进程使用 `getMainLogger('<Module>')`；
 - renderer 使用 `getRendererLogger('<Module>')`；
+- 日志文件使用 JSON Lines（`.jsonl`），每行必须是一个完整 JSON 对象；
+- 稳定字段包括 `schemaVersion`、`timestamp`、`level`、`process`、`module`、`message`，请求链路按需包含 `traceId` 和 `data`；
+- renderer 发起 IPC 时生成 trace ID，main 进程在 IPC 边界通过异步上下文自动贯穿后端日志；
+- 日志参数应放进结构化 `data`，不要把 `path=value`、对象预览等信息拼进 `message`；
 - 不要在业务代码中留下长期的临时调试日志；
 - 日志中不能写入 API Key、Authorization、完整敏感配置或不必要的大对象。
 

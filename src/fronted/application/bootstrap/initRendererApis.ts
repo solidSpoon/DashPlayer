@@ -19,7 +19,8 @@ export function initRendererApis(): () => void {
             try {
                 return await handler(params);
             } catch (error) {
-                logger.error(`API error: ${path}`, {
+                logger.error('renderer api call failed', {
+                    path,
                     error: error instanceof Error ? error.message : String(error),
                 });
                 throw error;

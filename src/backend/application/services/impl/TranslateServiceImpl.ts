@@ -358,7 +358,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData || !srtData.sentences) {
-            this.logger.error(`未找到 Hash 为 ${fileHash} 的字幕缓存`);
+            this.logger.error('未找到字幕缓存', { fileHash });
             this.notifySubtitleTranslationFailed({
                 fileHash,
                 keys: requestedKeys,
@@ -391,7 +391,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 this.rendererGateway.fireAndForget('translation/batch-result', {
                     translations: cachedTranslations
                 });
-                this.logger.info(`命中缓存并将 ${cachedTranslations.length} 条结果回传前端`);
+                this.logger.info('命中缓存并回传前端', { count: cachedTranslations.length });
 
                 sentencesToTranslate = sentencesToTranslate.filter(s => !cachedResults.has(s.translationKey));
             }
@@ -413,7 +413,7 @@ export default class TranslateServiceImpl implements TranslateService {
             this.rendererGateway.fireAndForget('translation/batch-result', {
                 translations: fallbackTranslations
             });
-            this.logger.info(`跳过 ${fallbackTranslations.length} 条无需翻译的字幕并回传结果`);
+            this.logger.info('跳过无需翻译的字幕并回传结果', { count: fallbackTranslations.length });
             sentencesToTranslate = sentencesToTranslate.filter(sentence => shouldTranslateSubtitleText(sentence.text));
         }
 
@@ -422,7 +422,7 @@ export default class TranslateServiceImpl implements TranslateService {
             return;
         }
 
-        this.logger.info(`准备使用 ${engine} 翻译 ${sentencesToTranslate.length} 条句子`);
+        this.logger.info('准备翻译句子', { engine, count: sentencesToTranslate.length });
         if (engine === 'tencent') {
             await this.processTencentBatch(sentencesToTranslate, storageMode);
         } else if (engine === 'openai') {
@@ -502,7 +502,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 this.rendererGateway.fireAndForget('translation/batch-result', {
                     translations: resultsToRender
                 });
-                this.logger.info(`腾讯翻译完成，成功回传并保存 ${resultsToRender.length} 条结果`);
+                this.logger.info('腾讯翻译完成并保存', { count: resultsToRender.length });
             } else {
                 this.logger.error('腾讯批量翻译未返回有效结果', {
                     fileHash: tasks[0]?.fileHash ?? '',
@@ -519,7 +519,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 });
             }
         } catch (error) {
-            this.logger.error('腾讯批量翻译失败:', error);
+            this.logger.error('腾讯批量翻译失败', { error });
             this.notifySubtitleTranslationFailed({
                 fileHash: tasks[0]?.fileHash ?? '',
                 keys: tasks.map((task) => task.translationKey),
@@ -629,7 +629,7 @@ export default class TranslateServiceImpl implements TranslateService {
                         });
                     }
                 }
-                this.logger.debug(`subtitle batch stream 完成，共 ${chunkCount} 个 chunk`);
+                this.logger.debug('subtitle batch stream 完成', { chunkCount });
 
                 const finalObject = await result.output;
                 const normalizedItems = this.normalizeOpenAIBatchResult(finalObject, windowSentences);
@@ -694,7 +694,7 @@ export default class TranslateServiceImpl implements TranslateService {
 
         if (resultsToSave.size > 0) {
             await this.saveTranslationsByKeys(resultsToSave, storageMode);
-            this.logger.info(`OpenAI 翻译流程结束，已保存 ${resultsToSave.size} 条结果。`);
+            this.logger.info('OpenAI 翻译流程结束，已保存结果', { count: resultsToSave.size });
         }
 
         if (failedCount > 0) {
@@ -929,7 +929,7 @@ export default class TranslateServiceImpl implements TranslateService {
                 }
             });
         } catch (error) {
-            this.logger.error('批量获取翻译缓存失败:', error);
+            this.logger.error('批量获取翻译缓存失败', { error });
         }
         return result;
     }
@@ -947,7 +947,7 @@ export default class TranslateServiceImpl implements TranslateService {
         try {
             await this.sentenceTranslatesRepository.upsertMany(params);
         } catch (error) {
-            this.logger.error('批量保存翻译结果失败:', error);
+            this.logger.error('批量保存翻译结果失败', { error });
         }
     }
 
@@ -1020,11 +1020,11 @@ export default class TranslateServiceImpl implements TranslateService {
         if (!forceRefresh) {
             const cacheRes = await this.wordLoad(str, currentProvider);
             if (cacheRes) {
-                this.logger.info(`命中${currentProvider}单词缓存:`, cacheRes);
+                this.logger.info('命中单词缓存', { provider: currentProvider, cache: cacheRes });
                 return cacheRes;
             }
         } else {
-            this.logger.info(`强制刷新${currentProvider}单词:`, str);
+            this.logger.info('强制刷新单词', { provider: currentProvider, word: str });
         }
 
         if (currentProvider === 'youdao') {
@@ -1150,7 +1150,7 @@ Output example (field names and nesting must match exactly):
 
             return null;
         } catch (error) {
-            this.logger.error(`OpenAI 字典查询失败 (word: ${word}):`, error);
+            this.logger.error('OpenAI 字典查询失败', { word, error });
             if (requestId) {
                 try {
                     await this.emitOpenAIDictionaryUpdate(
@@ -1160,7 +1160,7 @@ Output example (field names and nesting must match exactly):
                         true
                     );
                 } catch (emitError) {
-                    this.logger.error('Failed to notify renderer about OpenAI dictionary error', emitError);
+                    this.logger.error('failed to notify renderer about OpenAI dictionary error', { error: emitError });
                 }
             }
             return null;
@@ -1233,10 +1233,10 @@ Output example (field names and nesting must match exactly):
         }
 
         const cache: TransHolder<string> = await this.sentenceLoadBatch(processedSentences, storageMode);
-        this.logger.info('旧版句子翻译-缓存命中:', cache.getMapping());
+        this.logger.info('旧版句子翻译-缓存命中', { mapping: cache.getMapping() });
 
         const retries = processedSentences.filter((e) => !cache.get(e));
-        this.logger.info('旧版句子翻译-需要在线翻译:', retries);
+        this.logger.info('旧版句子翻译-需要在线翻译', { retries });
 
         if (retries.length === 0) {
             return cache.getMapping();
@@ -1266,7 +1266,7 @@ Output example (field names and nesting must match exactly):
                 return cache.merge(transResult).getMapping();
             }
         } catch (e) {
-            this.logger.error('旧版 transSentences 失败:', e);
+            this.logger.error('旧版 transSentences 失败', { error: e });
             return cache.getMapping();
         }
         return cache.getMapping();
@@ -1322,7 +1322,7 @@ Output example (field names and nesting must match exactly):
                     return { sentence, translation: finalTranslation };
                 }
             } catch (error) {
-                this.logger.error(`OpenAI 翻译句子失败 (sentence: ${sentence}):`, error);
+                this.logger.error('OpenAI 翻译句子失败', { sentence, error });
             }
             return null;
         });
@@ -1367,7 +1367,7 @@ Output example (field names and nesting must match exactly):
 
             return parsed as YdRes;
         } catch (error) {
-            this.logger.error(`解析字典缓存失败 (provider: ${provider}, word: ${word})`, error);
+            this.logger.error('解析字典缓存失败', { provider, word, error });
             return undefined;
         }
     }

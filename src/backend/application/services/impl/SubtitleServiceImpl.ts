@@ -88,7 +88,7 @@ export class SubtitleServiceImpl implements SubtitleService {
             const adjustedSentence = await this.adjustTime(cache.sentences, hashKey);
             // 异步调用单词匹配，不阻塞返回
             this.processVocabularyMatching(cache.sentences).catch(error => {
-                logger.error('Error processing vocabulary matching from cache:', error);
+                logger.error('failed to process vocabulary matching from cache', { error });
             });
             return {
                 fileHash: hashKey,
@@ -124,7 +124,7 @@ export class SubtitleServiceImpl implements SubtitleService {
 
         // 异步调用单词匹配，不阻塞返回
         this.processVocabularyMatching(adjustedSentence).catch(error => {
-            logger.error('Error processing vocabulary matching:', error);
+            logger.error('failed to process vocabulary matching', { error });
         });
 
         return {
@@ -154,19 +154,19 @@ export class SubtitleServiceImpl implements SubtitleService {
             const allText = validTexts.join(' ');
             const matchedWords = await this.wordMatchService.matchWordsInText(allText);
 
-            logger.debug('matched words', matchedWords);
+            logger.debug('matched words', { matchedWords });
             if (matchedWords && matchedWords.length > 0) {
                 const vocabularyWords = matchedWords.map(mw => mw.original.toLowerCase());
                 if (vocabularyWords.length > 0) {
                     await this.rendererGateway.call('vocabulary/match-result', { vocabularyWords });
-                    logger.info(`Vocabulary matching completed: ${vocabularyWords.length} words found`);
-                    logger.debug('Vocabulary words being sent to frontend:', { vocabularyWords });
+                    logger.info('vocabulary matching completed', { count: vocabularyWords.length });
+                    logger.debug('vocabulary words being sent to frontend', { vocabularyWords });
                 }
             } else {
                 logger.debug('No vocabulary words matched');
             }
         } catch (error) {
-            logger.error('Error in vocabulary matching:', error);
+            logger.error('failed in vocabulary matching', { error });
         }
     }
 

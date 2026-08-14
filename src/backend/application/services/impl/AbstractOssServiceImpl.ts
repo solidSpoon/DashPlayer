@@ -40,7 +40,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             const destPath = path.join(clipDir, fileName);
             fs.copyFileSync(sourcePath, destPath);
         } catch (error) {
-            this.logger.error(`Error adding file ${fileName}`, error);
+            this.logger.error('failed to add file', { fileName, error });
             throw error;
         }
     }
@@ -50,7 +50,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
         try {
             fs.rmSync(clipDir, { recursive: true, force: true });
         } catch (error) {
-            this.logger.error(`Error deleting file`, error);
+            this.logger.error('failed to delete file', { error });
             throw error;
         }
     }
@@ -70,7 +70,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             };
             return this.parseMetadata(res);
         } catch (error) {
-            this.logger.error(`Error retrieving file`, error);
+            this.logger.error('failed to retrieve file', { error });
             return null;
         }
     }
@@ -114,7 +114,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             } catch {
                 // 清理临时文件失败时不阻断主流程
             }
-            this.logger.error(`Error updating metadata `, error);
+            this.logger.error('failed to update metadata', { error });
             throw error;
         }
     }
@@ -130,7 +130,7 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
                 .filter(item => item.isDirectory())
                 .map(item => item.name);
         } catch (error) {
-            this.logger.error(`Error listing objects`, error);
+            this.logger.error('failed to list objects', { error });
             throw error;
         }
     }

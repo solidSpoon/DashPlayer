@@ -5,7 +5,7 @@ import {SettingKey} from './common/types/store_schema';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
 import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
-import type { SimpleEvent } from '@/common/log/simple-types';
+import type { SimpleEvent, TraceCarrier } from '@/common/log/simple-types';
 
 export type Channels =
     | 'main-state'
@@ -22,6 +22,15 @@ const on = (channel: Channels, func: (...args: unknown[]) => void) => {
         ipcRenderer.removeListener(channel, subscription);
     };
 };
+
+/**
+ * 为一次 renderer → main IPC 调用创建 trace ID。
+ * @returns 32 位小写十六进制 trace ID。
+ */
+const createTraceCarrier = (): TraceCarrier => ({
+    traceId: globalThis.crypto.randomUUID().replaceAll('-', ''),
+});
+
 const electronHandler = {
     onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
         return on('store-update', func as never);
@@ -35,14 +44,24 @@ const electronHandler = {
     onTaskUpdate: (func: (task: DpTask) => void) => {
         return on('dp-task-update', func as never);
     },
-    // 调用函数的方法
+    /**
+     * 调用 main 进程 API，并为本次调用附加独立 trace ID。
+     * @param path API 路径。
+     * @param param API 参数。
+     * @returns main 进程返回结果。
+     */
     call: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {
-        return ipcRenderer.invoke(path, param);
+        return ipcRenderer.invoke(path, param, createTraceCarrier());
     },
-    // 调用函数的方法
+    /**
+     * 调用 main 进程 API，失败时返回 null。
+     * @param path API 路径。
+     * @param param API 参数。
+     * @returns main 进程返回结果；调用失败时返回 null。
+     */
     safeCall: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return'] | null> {
         try {
-            return await ipcRenderer.invoke(path, param);
+            return await ipcRenderer.invoke(path, param, createTraceCarrier());
         } catch (e) {
             // Error handling for renderer API registration
             return null;

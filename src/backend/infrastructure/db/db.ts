@@ -1,69 +1,28 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
 import path from 'path';
 import { and, ExtractTablesWithRelations, sql } from 'drizzle-orm';
-import fs from 'fs';
 import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
+import Database from 'better-sqlite3';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { AppStateDirectoryType, getAppStatePath } from '@/backend/infrastructure/system/AppStatePath';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import { createDb } from './createDb';
 
-// const file = path.join(
-//     app?.getPath?.('userData') ?? __dirname,
-//     'useradd',
-//     'dp_db.sqlite3'
-// );
+// 生产数据库文件路径，由 Electron userData 决定。
 const file = path.join(getAppStatePath(AppStateDirectoryType.DATA), 'dp_db.sqlite3');
 const enableDbLog = process.env.DP_DB_LOG === 'true';
-const dir = path.dirname(file);
+const slowQueryLogger = getMainLogger('db-slow-query');
 
-if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-}
-const sqlite = new Database(file);
-// 统一慢查询归因：在 prepare 唯一入口给所有语句计时，仓储层无需逐个包装。
-wrapTimingDatabase(sqlite);
-const db = drizzle(sqlite, { logger: isDevelopmentMode() && enableDbLog });
-
-/** 慢查询阈值：超过该毫秒数记 warn，用于慢环节归因。 */
-const SLOW_QUERY_THRESHOLD_MS = 500;
+// 创建生产环境的单例数据库；慢查询通过回调归因到日志。
+const { db, sqlite } = createDb(file, {
+    logger: isDevelopmentMode() && enableDbLog,
+    onSlowQuery: (sqlText, ms) => slowQueryLogger.warn('slow query', { sql: sqlText, ms }),
+});
 
 /**
- * 给 better-sqlite3 实例打统一慢查询计时补丁。
+ * 清空生产数据库中的所有表、索引和自增序列。
  *
- * 行为说明：
- * - 拦截 prepare 返回语句的 all/get/run 执行方法，drizzle 的所有查询
- *   （含事务 savepoint）都会经过此处，仓储层无需逐个包装；
- * - 超过阈值记 warn（含归一化后的 SQL 文本与耗时），异常照常向上抛、不吞错；
- * - 只影响当前实例，不污染其它 Database 实例。
- *
- * @param sqlite 已创建的 better-sqlite3 实例。
+ * 仅用于迁移失败后的重试或显式重置；会删除全部业务数据，调用前须明确意图。
  */
-function wrapTimingDatabase(sqlite: InstanceType<typeof Database>): void {
-    const originalPrepare = sqlite.prepare.bind(sqlite);
-    sqlite.prepare = ((source: string) => {
-        const stmt = originalPrepare(source);
-        // 归一化 SQL 文本：折叠换行/连续空白并截断，避免超长语句撑爆日志行。
-        const sqlText = source.replace(/\s+/g, ' ').trim().slice(0, 300);
-        const wrap = <A extends unknown[], R>(exec: (...args: A) => R): ((...args: A) => R) => (...args: A): R => {
-            const start = Date.now();
-            try {
-                return exec(...args);
-            } finally {
-                const costMs = Date.now() - start;
-                if (costMs > SLOW_QUERY_THRESHOLD_MS) {
-                    getMainLogger('db-slow-query').warn('slow query', { sql: sqlText, ms: costMs });
-                }
-            }
-        };
-        stmt.all = wrap(stmt.all.bind(stmt));
-        stmt.get = wrap(stmt.get.bind(stmt));
-        stmt.run = wrap(stmt.run.bind(stmt));
-        return stmt;
-    }) as typeof sqlite.prepare;
-}
-
-// 清空数据库
 export async function clearDB() {
     // Get all tables
     const tables = await db
