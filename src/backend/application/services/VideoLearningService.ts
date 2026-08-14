@@ -68,8 +68,11 @@ export interface VideoLearningService {
     getGlobalClipQueueStatus(): Promise<GlobalVideoLearningClipQueueStatusVO>;
 
     /**
-     * 清空尚未完成的自动裁切队列。
-     * @returns 被清理的排队任务数量
+     * 清空全局队列中尚未开始的自动裁切任务。
+     *
+     * 已经开始执行的任务会继续完成，不计入返回数量。
+     *
+     * @returns 被清理的等待任务数量
      */
     cancelAllAutoClipTasks(): Promise<number>;
 

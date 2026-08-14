@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
 import { Scissors } from 'lucide-react';
@@ -32,6 +32,7 @@ interface AutoClipButtonProps {
  */
 export default function AutoClipButton({ className }: AutoClipButtonProps) {
   const { t } = useI18nTranslation('player');
+  const { mutate: mutateSWRCache } = useSWRConfig();
   const videoPath = useFile((state) => state.videoPath);
   const srtHash = useFile((state) => state.srtHash);
   const subtitlePath = useFile((state) => state.subtitlePath);
@@ -179,39 +180,13 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
   })();
 
   /**
-   * 乐观更新当前视频状态，避免取消队列后短暂显示旧的 in_progress。
-   */
-  const optimisticallyResetCurrentClipStatus = () => {
-    void mutateClipStatus((prev) => {
-      if (!prev || prev.status !== 'in_progress') {
-        return prev;
-      }
-
-      const nextPendingCount = (prev.pendingCount ?? 0) + (prev.inProgressCount ?? 0);
-      if (nextPendingCount <= 0) {
-        return {
-          ...prev,
-          status: 'completed',
-          pendingCount: 0,
-          inProgressCount: 0,
-        };
-      }
-
-      return {
-        ...prev,
-        status: 'pending',
-        pendingCount: nextPendingCount,
-        inProgressCount: 0,
-      };
-    }, { revalidate: false });
-  };
-
-  /**
    * 处理按钮点击。
    *
    * 行为说明：
    * - 全局裁切队列非空时，点击即清空队列。
    * - 否则对当前视频发起自动裁切。
+   * - 全局队列状态等待后端确认，避免取消请求先于任务入队。
+   * - 取消成功后清除全部视频状态缓存，切回旧视频时重新检测。
    */
   const handleClick = async () => {
     if (isGlobalClipping) {
@@ -219,7 +194,11 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
         toast(t('autoClip.cancelling'), { icon: '🛑' });
         await backendClient.call('video-learning/cancel-auto-clip-all');
         await mutateGlobalQueueStatus({ queuedCount: 0, hasQueuedTasks: false }, { revalidate: false });
-        optimisticallyResetCurrentClipStatus();
+        await mutateSWRCache(
+          (key) => Array.isArray(key) && key[0] === 'video-learning/detect-clip-status',
+          undefined,
+          { revalidate: false },
+        );
         void mutateClipStatus();
         toast.success(t('autoClip.cancelled'));
       } catch (error) {
@@ -241,13 +220,6 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
     }
     try {
       toast(t('autoClip.starting'), { icon: '✂️' });
-      await mutateGlobalQueueStatus(
-        (prev) => ({
-          queuedCount: (prev?.queuedCount ?? 0) + pendingCount,
-          hasQueuedTasks: true,
-        }),
-        { revalidate: false }
-      );
       await mutateClipStatus(
         (prev) => prev ? {
           ...prev,
@@ -262,6 +234,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
         srtKey: srtHash,
         srtPath: subtitlePath
       });
+      await mutateGlobalQueueStatus();
     } catch (error) {
       logger.error('生词视频裁切失败:', error);
       void mutateGlobalQueueStatus();
