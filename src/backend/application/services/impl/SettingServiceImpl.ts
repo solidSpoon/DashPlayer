@@ -155,6 +155,10 @@ export default class SettingServiceImpl implements SettingService {
             openai: {
                 key: this.getValue('apiKeys.openAi.key'),
                 endpoint: this.getValue('apiKeys.openAi.endpoint'),
+                autoAppendV1: this.requireBooleanString(
+                    this.getValue('apiKeys.openAi.autoAppendV1'),
+                    'apiKeys.openAi.autoAppendV1',
+                ),
                 models: modelDetails,
             },
             tencent: {
@@ -177,6 +181,9 @@ export default class SettingServiceImpl implements SettingService {
      */
     public async saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void> {
         const currentAvailableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
+        if (typeof settings.openai.autoAppendV1 !== 'boolean') {
+            throw new Error('openai.autoAppendV1 必须为布尔值');
+        }
         const parsedModels = settings.openai.models.map((item) => item.trim());
         if (parsedModels.some((item) => item.length === 0)) {
             throw new Error('openai.models 包含空模型标识');
@@ -198,6 +205,7 @@ export default class SettingServiceImpl implements SettingService {
 
         await this.setValue('apiKeys.openAi.key', settings.openai.key);
         await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
+        await this.setValue('apiKeys.openAi.autoAppendV1', settings.openai.autoAppendV1 ? 'true' : 'false');
         await this.setValue('models.openai.available', dedupedModels.join('\n'));
 
         await this.setValue('apiKeys.tencent.secretId', settings.tencent.secretId);

@@ -17,9 +17,12 @@ vi.mock('electron', () => ({
 // electron-store 是外部化 CJS 依赖，vitest 里 vi.mock('electron') 拦不到它内部的 require，
 // 会导致它回落到 ~/Library/Preferences 等真实目录写入配置（曾把开发 Key 写出去）。
 // 因此把应用 store 模块整体 mock 成内存实现，测试数据只存在于内存，绝不落盘。
+// 与生产 storeGet 行为一致：未写入的键回落到 SettingKeyObj 里的默认值（如 apiKeys.openAi.autoAppendV1 默认 'true'）。
+import { SettingKeyObj } from '@/common/types/store_schema';
+import type { SettingKey } from '@/common/types/store_schema';
 const storeState = vi.hoisted(() => ({ values: new Map<string, string>() }));
 vi.mock('@/backend/infrastructure/settings/store', () => ({
-    storeGet: (key: string) => storeState.values.get(key) ?? '',
+    storeGet: (key: string) => storeState.values.get(key) ?? SettingKeyObj[key as SettingKey] ?? '',
     storeSet: (key: string, value: string) => {
         storeState.values.set(key, value);
         return true;
@@ -34,6 +37,7 @@ import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
+import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
 import { splitSystemMessages } from '@/backend/application/services/chat/ChatPromptBuilder';
 import ChatServiceImpl from '../impl/ChatServiceImpl';
 import ChatSessionServiceImpl from '../impl/ChatSessionServiceImpl';
@@ -68,7 +72,7 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 const buildLiveModel = (modelId: string): LanguageModel => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: `${testConfig!.endpoint}/v1`,
+        baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
         apiKey: testConfig!.key,
     });
     // 与生产 getModel 的门控一致：isNoneReasoningModel 为假时不注入（走模型默认档位）
@@ -98,7 +102,7 @@ const buildLiveModel = (modelId: string): LanguageModel => {
 const buildRawLiveModel = (modelId: string): LanguageModelV3 => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: `${testConfig!.endpoint}/v1`,
+        baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
         apiKey: testConfig!.key,
     });
     return provider.chatModel(modelId);
@@ -391,6 +395,7 @@ const runTests = (): void => {
                 const { storeSet } = await import('@/backend/infrastructure/settings/store');
                 storeSet('apiKeys.openAi.key', testConfig!.key);
                 storeSet('apiKeys.openAi.endpoint', testConfig!.endpoint);
+                storeSet('apiKeys.openAi.autoAppendV1', testConfig!.autoAppendV1);
                 if (testConfig!.availableModels.length > 0) {
                     storeSet('models.openai.available', testConfig!.availableModels.join('\n'));
                 }

@@ -1,5 +1,6 @@
 import StrUtil from '@/common/utils/str-util';
 import {storeGet} from '@/backend/infrastructure/settings/store';
+import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
 import axios from 'axios';
 import path from 'path';
 import * as os from 'node:os';
@@ -23,7 +24,10 @@ class TtsService {
         const startedAt = Date.now();
         const charCount = str.length;
         const preview = StrUtil.preview(str);
-        const url = this.joinUrl(storeGet('apiKeys.openAi.endpoint'), '/v1/audio/speech');
+        const url = this.joinUrl(
+            resolveOpenAiBaseUrl(storeGet('apiKeys.openAi.endpoint'), storeGet('apiKeys.openAi.autoAppendV1')),
+            '/audio/speech'
+        );
         const headers = {
             'Authorization': `Bearer ${storeGet('apiKeys.openAi.key')}`,
             'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',

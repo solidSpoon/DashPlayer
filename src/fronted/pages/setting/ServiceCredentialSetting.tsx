@@ -5,6 +5,7 @@ import { Book, Bot, CheckCircle2, Cpu, Download, Languages, Loader2, Plus, Shiel
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
+import { Switch } from '@/fronted/components/ui/switch';
 import { Progress } from '@/fronted/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/fronted/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
@@ -31,6 +32,8 @@ const ServiceCredentialSetting = () => {
 
     const form = useForm<ServiceCredentialSettingDetailVO>();
     const { register, setValue, watch } = form;
+
+    register('openai.autoAppendV1');
 
     const {
         ready,
@@ -352,6 +355,17 @@ const ServiceCredentialSetting = () => {
                         <div className="space-y-2">
                             <Label>Endpoint</Label>
                             <Input {...register('openai.endpoint')} placeholder="https://api.openai.com" />
+                            <div className="flex items-center justify-between gap-3 pt-1">
+                                <div className="space-y-0.5">
+                                    <Label className="text-xs font-medium">{t('serviceCredentials.openai.autoAppendV1')}</Label>
+                                    <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.autoAppendV1Hint')}</div>
+                                </div>
+                                <Switch
+                                    checked={watch('openai.autoAppendV1')}
+                                    onCheckedChange={(checked) => setValue('openai.autoAppendV1', checked === true, { shouldDirty: true })}
+                                />
+                            </div>
+                            <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.chatCompletionOnly')}</div>
                         </div>
                         <div className="space-y-2 md:col-span-2">
                             <Label>{t('serviceCredentials.openai.modelsLabel')}</Label>

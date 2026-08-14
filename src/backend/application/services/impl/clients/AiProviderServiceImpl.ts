@@ -1,6 +1,6 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
+import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
 import StrUtil from '@/common/utils/str-util';
-import { joinUrl } from '@/common/utils/Util';
 import { inject, injectable } from 'inversify';
 import AiProviderService, { AiModelScene } from '@/backend/application/services/AiProviderService';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -62,7 +62,7 @@ export default class AiProviderServiceImpl implements AiProviderService {
         // 恰恰走 Responses；三方模型场景下兼容 provider 更稳妥。
         const provider = createOpenAICompatible({
             name: 'openai',
-            baseURL: joinUrl(endpoint, '/v1'),
+            baseURL: resolveOpenAiBaseUrl(endpoint, storeGet('apiKeys.openAi.autoAppendV1')),
             apiKey: apiKey,
             // 不开启 supportsStructuredOutputs：让 Output.object 走通用的 response_format
             // json_object，兼容面最广（几乎所有 OpenAI 兼容端点都支持）；SDK 仍在客户端按

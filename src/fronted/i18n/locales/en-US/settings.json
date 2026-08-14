@@ -174,7 +174,10 @@
         "description": "Manage cloud API credentials and local model assets.",
         "intro": "Credentials only control connectivity. Toggle feature behavior in the Feature Controls page.",
         "openai": {
-            "description": "Used for subtitle translation, dictionary lookup, and sentence learning.",
+            "description": "Supports OpenAI-compatible APIs, used for subtitle translation, dictionary lookup, and sentence learning.",
+            "autoAppendV1": "Auto-append /v1",
+            "autoAppendV1Hint": "When enabled, /v1 is appended to the API address automatically; disable it when your address already includes /v1.",
+            "chatCompletionOnly": "Only the chat completion API format is supported.",
             "modelsLabel": "Available models",
             "tableModel": "Model",
             "tableUsage": "Used by",

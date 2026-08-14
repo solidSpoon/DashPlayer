@@ -20,8 +20,10 @@ export type ServiceCredentialSettingDetailVO = {
     openai: {
         /** OpenAI API Key。 */
         key: string;
-        /** OpenAI 接口地址。 */
+        /** OpenAI 兼容接口地址（不含 /v1，是否自动追加由 autoAppendV1 决定）。 */
         endpoint: string;
+        /** 是否自动在接口地址后追加 /v1。 */
+        autoAppendV1: boolean;
         /** OpenAI 可用模型列表。 */
         models: OpenAiAvailableModelDetailVO[];
     };
@@ -46,8 +48,10 @@ export type ServiceCredentialSettingSaveVO = {
     openai: {
         /** OpenAI API Key。 */
         key: string;
-        /** OpenAI 接口地址。 */
+        /** OpenAI 兼容接口地址（不含 /v1，是否自动追加由 autoAppendV1 决定）。 */
         endpoint: string;
+        /** 是否自动在接口地址后追加 /v1。 */
+        autoAppendV1: boolean;
         /** OpenAI 可用模型标识列表。 */
         models: string[];
     };
