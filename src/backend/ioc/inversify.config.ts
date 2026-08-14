@@ -46,7 +46,6 @@ import ChatSessionServiceImpl from '@/backend/application/services/impl/ChatSess
 import AiProviderServiceImpl from '@/backend/application/services/impl/clients/AiProviderServiceImpl';
 import ModelRoutingServiceImpl from '@/backend/application/services/impl/clients/ModelRoutingServiceImpl';
 import ConvertService from '@/backend/application/services/ConvertService';
-import ConvertServiceImpl from '@/backend/application/services/impl/ConvertServiceImpl';
 import SplitVideoService from '@/backend/application/services/SplitVideoService';
 import SplitVideoServiceImpl from '@/backend/application/services/impl/SplitVideoServiceImpl';
 import MediaService from '@/backend/application/services/MediaService';
@@ -116,6 +115,8 @@ import SubtitleTimestampAdjustmentsRepository from '@/backend/application/ports/
 import SubtitleTimestampAdjustmentsRepositoryImpl from '@/backend/infrastructure/db/repositories/SubtitleTimestampAdjustmentsRepositoryImpl';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import StorageDirectoryProviderImpl from '@/backend/infrastructure/storage/StorageDirectoryProviderImpl';
+import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
+import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGatewayImpl';
 
 
 const container = new Container();
@@ -176,12 +177,13 @@ container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigSe
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
 container.bind<StorageDirectoryProvider>(TYPES.StorageDirectoryProvider).to(StorageDirectoryProviderImpl).inSingletonScope();
+container.bind<FileSystemGateway>(TYPES.FileSystemGateway).to(FileSystemGatewayImpl).inSingletonScope();
 container.bind<FfmpegGateway>(TYPES.FfmpegGateway).to(FfmpegGatewayImpl).inSingletonScope();
 container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingletonScope();
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
-container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
+container.bind<ConvertService>(TYPES.ConvertService).to(ConvertService).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();

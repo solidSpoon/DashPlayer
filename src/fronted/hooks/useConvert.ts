@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
-import { FolderVideos } from '@/common/types/tonvert-type';
+import { FolderVideos } from '@/common/contracts/convert';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

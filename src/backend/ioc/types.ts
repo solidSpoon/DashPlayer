@@ -14,6 +14,7 @@ const TYPES = {
     CacheService: Symbol('CacheService'),
     SettingService: Symbol('SettingService'),
     StorageDirectoryProvider: Symbol('StorageDirectoryProvider'),
+    FileSystemGateway: Symbol('FileSystemGateway'),
     DpTaskService: Symbol('DpTaskService'),
     ChatService: Symbol('ChatService'),
     ChatSessionService: Symbol('ChatSessionService'),

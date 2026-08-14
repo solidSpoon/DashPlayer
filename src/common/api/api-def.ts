@@ -8,7 +8,7 @@ import {
 } from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
 import {SettingKey} from '@/common/types/store_schema';
 import { UpdateCheckResult } from '@/common/types/update-check';
-import {FolderVideos} from '@/common/types/tonvert-type';
+import { FolderVideos } from '@/common/contracts/convert';
 
 import {Tag} from '@/backend/infrastructure/db/tables/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
