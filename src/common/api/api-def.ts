@@ -183,13 +183,18 @@ interface ParakeetModelDef {
     'parakeet/models/delete': { params: void, return: { success: boolean; message: string } };
 }
 
+/** 视频切分 IPC 定义。 */
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
     'split-video/split': {
         params: { videoPath: string, srtPath: string | null, chapters: ChapterParseResult[] },
         return: string
     };
-    'split-video/thumbnail': {
+}
+
+/** 通用媒体信息和缩略图 IPC 定义。 */
+interface MediaDef {
+    'media/thumbnail': {
         params: {
             filePath: string,
             time: number,
@@ -199,14 +204,13 @@ interface SplitVideoDef {
         },
         return: string
     };
-    'split-video/video-length': { params: string, return: number };
+    'media/duration': { params: string, return: number };
+    'media/info': { params: string, return: VideoInfo };
 }
 
 interface ConvertDef {
     'convert/to-mp4': { params: string, return: number };
     'convert/from-folder': { params: string[], return: FolderVideos[] };
-    'convert/video-length': { params: string, return: number };
-    'convert/video-info': { params: string, return: VideoInfo };
     'convert/suggest-html5-video': { params: string, return: string | null };
 
 }
@@ -298,6 +302,7 @@ export type ApiDefinitions = ApiDefinition
     & WatchHistoryDef
     & SubtitleControllerDef
     & SplitVideoDef
+    & MediaDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & SettingsDef

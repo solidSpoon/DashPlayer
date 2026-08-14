@@ -52,7 +52,7 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, pv.basePath, pv.fileName, pv.current_position]
             : null,
         async ([_key, path, file, time]: [string, string, string, number]) => {
-            return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
+            return await api.call('media/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
 

@@ -1,7 +1,6 @@
 import path from 'path';
 import { inject, injectable } from 'inversify';
 import { FolderVideos } from '@/common/contracts/convert';
-import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/application/errors/errors';
 import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
@@ -88,24 +87,6 @@ export default class ConvertService {
             result.push({ folder, videos });
         }
         return result;
-    }
-
-    /**
-     * 获取视频时长。
-     * @param filePath 视频绝对路径。
-     * @returns 视频时长，单位为秒。
-     */
-    public async getVideoDuration(filePath: string): Promise<number> {
-        return this.ffmpegService.duration(filePath);
-    }
-
-    /**
-     * 获取视频媒体信息。
-     * @param filePath 视频绝对路径。
-     * @returns FFprobe 解析后的视频信息。
-     */
-    public async getVideoInfo(filePath: string): Promise<VideoInfo> {
-        return this.ffmpegService.getVideoInfo(filePath);
     }
 
     /**

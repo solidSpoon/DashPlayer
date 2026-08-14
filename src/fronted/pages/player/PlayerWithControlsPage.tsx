@@ -142,7 +142,7 @@ const PlayerWithControlsPage = () => {
                         if (suggested) {
                             return;
                         }
-                        const info = await api.call('convert/video-info', videoPath);
+                        const info = await api.call('media/info', videoPath);
                         const audioCodec = (info?.audioCodec ?? '').toLowerCase();
                         const suspiciousAudioCodecs = new Set([
                             'dts',

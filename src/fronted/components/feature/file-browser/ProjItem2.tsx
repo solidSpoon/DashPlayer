@@ -47,7 +47,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, v.basePath, v.fileName, v.current_position]
             : null,
         async ([_key, path, file, time]) => {
-            return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
+            return await api.call('media/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
     const progress = !isFolder && v?.duration

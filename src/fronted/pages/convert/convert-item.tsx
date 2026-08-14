@@ -36,11 +36,11 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
     const { data: url } = useSWR(file ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([, path, time]) => {
-            return await api.call('split-video/thumbnail', { filePath: path, time });
+            return await api.call('media/thumbnail', { filePath: path, time });
         }
     );
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
-        return await api.call('convert/video-length', f);
+        return await api.call('media/duration', f);
     }, {
         revalidateOnFocus: false,
         fallbackData: 0

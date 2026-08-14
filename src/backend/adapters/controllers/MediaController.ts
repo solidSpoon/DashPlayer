@@ -9,9 +9,10 @@ import MediaService, {
     ThumbnailOptions,
 } from '@/backend/application/services/MediaService';
 import { ChapterParseResult } from '@/common/types/chapter-result';
+import { VideoInfo } from '@/common/types/video-info';
 
 /**
- * 注册视频切分、缩略图和时长相关 IPC 路由。
+ * 注册视频切分和通用媒体 IPC 路由。
  */
 @injectable()
 export default class MediaController implements Controller {
@@ -61,8 +62,17 @@ export default class MediaController implements Controller {
      * @param filePath 视频文件绝对路径。
      * @returns 视频时长，单位为秒。
      */
-    public videoLength(filePath: string): Promise<number> {
+    public duration(filePath: string): Promise<number> {
         return this.mediaService.duration(filePath);
+    }
+
+    /**
+     * 获取视频媒体信息。
+     * @param filePath 视频文件绝对路径。
+     * @returns FFprobe 解析后的媒体信息。
+     */
+    public info(filePath: string): Promise<VideoInfo> {
+        return this.mediaService.info(filePath);
     }
 
     /**
@@ -71,7 +81,8 @@ export default class MediaController implements Controller {
     public registerRoutes(): void {
         registerRoute('split-video/preview', (params) => this.previewSplit(params));
         registerRoute('split-video/split', (params) => this.split(params));
-        registerRoute('split-video/thumbnail', (params) => this.thumbnail(params));
-        registerRoute('split-video/video-length', (params) => this.videoLength(params));
+        registerRoute('media/thumbnail', (params) => this.thumbnail(params));
+        registerRoute('media/duration', (params) => this.duration(params));
+        registerRoute('media/info', (params) => this.info(params));
     }
 }

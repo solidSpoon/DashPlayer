@@ -50,7 +50,7 @@ export class FileAction {
                         'opus',
                         'vorbis',
                     ]);
-                    const infos = await Promise.all(missing.map((p) => api.call('convert/video-info', p)));
+                    const infos = await Promise.all(missing.map((p) => api.call('media/info', p)));
                     const suspiciousFiles = missing.filter((_p, idx) => {
                         const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
                         return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
@@ -111,7 +111,7 @@ export class FileAction {
                         'opus',
                         'vorbis',
                     ]);
-                    const infos = await Promise.all(missing.map((p) => api.call('convert/video-info', p)));
+                    const infos = await Promise.all(missing.map((p) => api.call('media/info', p)));
                     const suspiciousFiles = missing.filter((_p, idx) => {
                         const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
                         return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);

@@ -45,7 +45,7 @@ import useInView from '@/fronted/hooks/useInView';
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position]
             : null,
         async ([_key, path, file, time]) => {
-            return await api.call('split-video/thumbnail', {
+            return await api.call('media/thumbnail', {
                 filePath: PathUtil.join(path, file),
                 time
             });

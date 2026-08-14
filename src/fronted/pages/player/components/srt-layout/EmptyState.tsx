@@ -46,7 +46,7 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
             ]
             : null,
         async ([, basePath, fileName, time]) => {
-            return await api.call('split-video/thumbnail', {
+            return await api.call('media/thumbnail', {
                 filePath: PathUtil.join(basePath as string, fileName as string),
                 time: time as number,
                 quality: 'ultra', // Ultra HD quality

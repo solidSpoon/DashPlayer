@@ -3,7 +3,6 @@ import { FolderVideos } from '@/common/contracts/convert';
 import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { VideoInfo } from '@/common/types/video-info';
 import ConvertService from '@/backend/application/services/ConvertService';
 
 /**
@@ -38,24 +37,6 @@ export default class ConvertController implements Controller {
     }
 
     /**
-     * 获取视频时长。
-     * @param filePath 视频绝对路径。
-     * @returns 视频时长，单位为秒。
-     */
-    public async videoLength(filePath: string): Promise<number> {
-        return this.convertService.getVideoDuration(filePath);
-    }
-
-    /**
-     * 获取视频媒体信息。
-     * @param filePath 视频绝对路径。
-     * @returns 视频媒体信息。
-     */
-    public async videoInfo(filePath: string): Promise<VideoInfo> {
-        return this.convertService.getVideoInfo(filePath);
-    }
-
-    /**
      * 查找视频对应的 HTML5 MP4 文件。
      * @param filePath 原视频或 HTML5 MP4 文件绝对路径。
      * @returns 已存在的 HTML5 MP4 路径；不存在时返回 `null`。
@@ -70,8 +51,6 @@ export default class ConvertController implements Controller {
     public registerRoutes(): void {
         registerRoute('convert/to-mp4', (p) => this.toMp4(p));
         registerRoute('convert/from-folder', (p) => this.fromFolder(p));
-        registerRoute('convert/video-length', (p) => this.videoLength(p));
-        registerRoute('convert/video-info', (p) => this.videoInfo(p));
         registerRoute('convert/suggest-html5-video', (p) => this.suggestHtml5Video(p));
     }
 }

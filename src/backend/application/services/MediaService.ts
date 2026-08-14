@@ -7,6 +7,7 @@ import StorageDirectoryProvider, {
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
+import { VideoInfo } from '@/common/types/video-info';
 
 /** 缩略图清晰度。 */
 export type ThumbnailQuality = 'low' | 'medium' | 'high' | 'ultra';
@@ -22,7 +23,7 @@ export interface ThumbnailOptions {
 }
 
 /**
- * 提供媒体文件时长读取和缩略图生成能力。
+ * 提供媒体文件信息、时长读取和缩略图生成能力。
  */
 @injectable()
 export default class MediaService {
@@ -95,6 +96,16 @@ export default class MediaService {
     public async duration(inputFile: string): Promise<number> {
         await this.assertSourceFileExists(inputFile);
         return this.readPositiveDuration(inputFile);
+    }
+
+    /**
+     * 获取媒体文件信息。
+     * @param inputFile 媒体文件绝对路径。
+     * @returns FFprobe 解析后的媒体信息。
+     */
+    public async info(inputFile: string): Promise<VideoInfo> {
+        await this.assertSourceFileExists(inputFile);
+        return this.ffmpegService.getVideoInfo(inputFile);
     }
 
     /**

@@ -36,7 +36,7 @@ const ProjectListItem = ({ video, onSelected }: {
     const { data: url } = useSWR(
         inView && !isAudio ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] : null,
         async ([, path, file, time]) => {
-            return await api.call('split-video/thumbnail', { filePath: PathUtil.join(path, file), time });
+            return await api.call('media/thumbnail', { filePath: PathUtil.join(path, file), time });
         }
     );
 

@@ -349,7 +349,7 @@ export default function VideoLearningPage() {
       const tasks = clipsToProcess.map(async (clip) => {
         try {
           const startTime = clip.clipContent.find((c) => c.isClip)?.start || 0;
-          const thumbnailPathOrUrl = await backendClient.call('split-video/thumbnail', {
+          const thumbnailPathOrUrl = await backendClient.call('media/thumbnail', {
             filePath: clip.videoPath,
             time: startTime
           });

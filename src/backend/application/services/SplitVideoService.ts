@@ -85,6 +85,28 @@ export default class SplitVideoService {
             throw new Error('章节标题和时间必须有效');
         }
 
+        const duration = await this.ffmpegService.duration(request.videoPath);
+        if (!Number.isFinite(duration) || duration <= 0) {
+            throw new Error(`无法读取有效的视频时长：${request.videoPath}`);
+        }
+
+        const chapterStarts = request.chapters.map((chapter) => TimeUtil.parseDuration(chapter.timestampStart));
+        for (let index = 0; index < request.chapters.length; index++) {
+            const chapter = request.chapters[index];
+            const start = chapterStarts[index];
+            if (!Number.isFinite(start) || start < 0 || start >= duration) {
+                throw new Error(`章节“${chapter.title}”的开始时间超出视频范围`);
+            }
+            if (index > 0 && start <= chapterStarts[index - 1]) {
+                throw new Error('章节开始时间必须严格递增');
+            }
+            const hasControlCharacter = Array.from(chapter.title)
+                .some((character) => character.charCodeAt(0) < 32);
+            if (/[<>:"/\\|?*]/u.test(chapter.title) || hasControlCharacter) {
+                throw new Error(`章节标题包含文件名不支持的字符：${chapter.title}`);
+            }
+        }
+
         if (request.srtPath === null) {
             return;
         }
@@ -126,16 +148,21 @@ export default class SplitVideoService {
             throw new Error(`视频切分结果数量异常：预期 ${chapters.length} 个，实际 ${outputFiles.length} 个`);
         }
 
-        const splitVideos: string[] = [];
-        for (let index = 0; index < outputFiles.length; index++) {
+        const targetPaths = outputFiles.map((outputFile, index) => {
             const chapter = chapters[index];
-            const outputFile = outputFiles[index];
             const fileName = `${chapter.timestampStart}-${chapter.title}${path.extname(outputFile)}`.replaceAll(':', '');
-            const targetPath = path.join(folderName, fileName);
-            await this.fileSystemGateway.moveFile(outputFile, targetPath);
-            splitVideos.push(targetPath);
+            return path.join(folderName, fileName);
+        });
+        for (const targetPath of targetPaths) {
+            if (await this.fileSystemGateway.fileExists(targetPath)) {
+                throw new Error(`切分输出文件已存在：${targetPath}`);
+            }
         }
-        return splitVideos;
+
+        for (let index = 0; index < outputFiles.length; index++) {
+            await this.fileSystemGateway.moveFile(outputFiles[index], targetPaths[index]);
+        }
+        return targetPaths;
     }
 
     /**
