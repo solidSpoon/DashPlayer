@@ -111,9 +111,13 @@ import StorageDirectoryProvider from '@/backend/application/ports/gateways/stora
 import StorageDirectoryProviderImpl from '@/backend/infrastructure/storage/StorageDirectoryProviderImpl';
 import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGatewayImpl';
+import db from '@/backend/infrastructure/db';
+import type { Db } from '@/backend/infrastructure/db/createDb';
 
 
 const container = new Container();
+// 数据库单例：仓储层统一从这里注入，测试可用内存库替换。
+container.bind<Db>(TYPES.Database).toConstantValue(db);
 // Clients
 container.bind<ClientProviderService<YouDaoDictionaryClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
 container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
