@@ -26,13 +26,14 @@ import SubtitleService from '@/backend/application/services/SubtitleService';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 import { ClipVocabularyEntry, VideoLearningClipVO, VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
-import { WordMatchService, MatchedWord } from '@/backend/application/services/WordMatchService';
+import { WordMatchService } from '@/backend/application/services/WordMatchService';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { concurrency } from '@/backend/application/kernel/concurrency';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
+import VideoLearningClipAnalysis, { ClipCandidate } from '@/backend/application/services/impl/VideoLearningClipAnalysis';
 
 type SrtCache = SrtSentence;
 
@@ -54,18 +55,6 @@ type LearningClipTask = {
     operation: 'add' | 'cancel';
     /** 字幕文件绝对路径，用于缓存缺失时重新加载。 */
     srtPath?: string;
-};
-
-/**
- * 字幕分析得到的可裁切片段。
- */
-type ClipCandidate = {
-    /** 字幕行序号。 */
-    indexInSrt: number;
-    /** 片段稳定键。 */
-    clipKey: string;
-    /** 当前片段命中的单词列表。 */
-    matchedWords: string[];
 };
 
 @injectable()
@@ -110,20 +99,18 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
     /** 当前是否已有队列消费者在运行。 */
     private isQueueDraining = false;
 
-    // todo 改用 cacheService 存储, 无需过期时间，我会在其他业务逻辑中主动清理
-    private clipAnalysisCache: Map<string, ClipCandidate[]> = new Map();
-    private clipAnalysisChunkCache: Map<
-        string,
-        { totalChunks: number; chunks: Map<number, MatchedWord[][]> }
-    > = new Map();
-    private clipAnalysisPromises: Map<string, Promise<ClipCandidate[]>> = new Map();
-    private clipAnalysisProgress: Map<string, number> = new Map();
+    /**
+     * 按字幕管理的候选片段分析器。
+     *
+     * 回调在实际调用时才读取注入的 WordMatchService，避免属性注入初始化顺序影响。
+     */
+    private readonly clipAnalysis = new VideoLearningClipAnalysis(
+        (texts) => this.wordMatchService.matchWordsInTexts(texts),
+    );
     private clipStatusCache: Map<string, VideoLearningClipStatusVO> = new Map();
     private clipStatusSeq: Map<string, number> = new Map();
     /** 每个字幕已失败并跳过的裁切任务键集合，用于在队列清空后仍能提示用户重试。 */
     private clipFailedKeysBySrt: Map<string, Set<string>> = new Map();
-    private currentAnalysisKey: string | null = null;
-    private readonly analysisScheduler = concurrency.scheduler('default');
 
     private getSrtFromCache(srtKey: string): SrtCache | null {
         return (this.cacheService.get('cache:srt', srtKey) as SrtCache) ?? null;
@@ -144,7 +131,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
 
         const resolvedSrtPath = srt.filePath || srtPath || undefined;
 
-        const candidates = await this.collectClipCandidates(videoPath, srtKey, { srtPath: resolvedSrtPath });
+        const candidates = await this.clipAnalysis.collectCandidates(srtKey, srt);
 
         if (candidates.length === 0) {
             await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
@@ -258,10 +245,13 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return `${srtKey}__${indexInSrt}`;
     }
 
-    private mapAnalysisKey(srtKey: string): string {
-        return srtKey;
-    }
-
+    /**
+     * 读取字幕缓存，必要时通过字幕服务重新加载。
+     *
+     * @param srtKey 字幕缓存键。
+     * @param srtPath 缓存缺失时可用于重新解析的字幕路径。
+     * @returns 已加载的字幕；路径缺失或解析失败时返回 null。
+     */
     private async ensureSrtCached(srtKey: string, srtPath?: string): Promise<SrtCache | null> {
         let srt = this.getSrtFromCache(srtKey);
         if (srt) {
@@ -479,148 +469,6 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         const startTime = clipContext[0].start ?? 0;
         const endTime = clipContext[clipContext.length - 1].end ?? 0;
         return [startTime, endTime];
-    }
-
-    private async collectClipCandidates(
-        _videoPath: string,
-        srtKey: string,
-        options?: { onProgress?: (progress: number) => Promise<void> | void; srtPath?: string }
-    ): Promise<ClipCandidate[]> {
-        const analysisKey = this.mapAnalysisKey(srtKey);
-
-        const cached = this.clipAnalysisCache.get(analysisKey);
-        if (cached) {
-            return cached;
-        }
-
-        const existingPromise = this.clipAnalysisPromises.get(analysisKey);
-        if (existingPromise) {
-            return existingPromise;
-        }
-
-        const compute = async (): Promise<ClipCandidate[]> => {
-            const srt = await this.ensureSrtCached(srtKey, options?.srtPath);
-            if (!srt) {
-                throw new Error(ErrorConstants.CACHE_NOT_FOUND);
-            }
-
-            this.analysisScheduler.beginFrame();
-            const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-            const contents = srtLines.map((line) => (line?.contentEn || '').toLowerCase());
-
-            if (contents.length === 0) {
-                return [];
-            }
-
-            const CHUNK_SIZE = 50;
-            const totalChunks = Math.ceil(contents.length / CHUNK_SIZE);
-            const matchResults: MatchedWord[][] = new Array(contents.length);
-
-            const chunkCache =
-                this.clipAnalysisChunkCache.get(analysisKey) ??
-                { totalChunks, chunks: new Map<number, MatchedWord[][]>() };
-            if (chunkCache.totalChunks !== totalChunks) {
-                chunkCache.totalChunks = totalChunks;
-                chunkCache.chunks.clear();
-            }
-            this.clipAnalysisChunkCache.set(analysisKey, chunkCache);
-
-            let completedChunks = 0;
-            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                const cachedChunk = chunkCache.chunks.get(chunkIndex);
-                if (cachedChunk) {
-                    const start = chunkIndex * CHUNK_SIZE;
-                    for (let j = 0; j < cachedChunk.length; j++) {
-                        matchResults[start + j] = cachedChunk[j];
-                    }
-                    completedChunks++;
-                }
-            }
-
-            if (options?.onProgress) {
-                const progress = Math.min(99, Math.round((completedChunks / totalChunks) * 100));
-                this.clipAnalysisProgress.set(analysisKey, progress);
-                await options.onProgress(progress);
-            }
-            this.logger.debug(
-                `chunk cache state ${JSON.stringify({ srtKey, totalChunks, completedChunks })}`
-            );
-
-            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                if (this.currentAnalysisKey !== analysisKey) {
-                    throw new Error('ANALYSIS_CANCELLED');
-                }
-                if (chunkCache.chunks.has(chunkIndex)) {
-                    continue;
-                }
-                const start = chunkIndex * CHUNK_SIZE;
-                const chunk = contents.slice(start, start + CHUNK_SIZE);
-                const chunkResults = await this.wordMatchService.matchWordsInTexts(chunk);
-                chunkCache.chunks.set(chunkIndex, chunkResults);
-                for (let j = 0; j < chunkResults.length; j++) {
-                    matchResults[start + j] = chunkResults[j];
-                }
-
-                completedChunks++;
-                const progress = Math.min(99, Math.round((completedChunks / totalChunks) * 100));
-                if (options?.onProgress) {
-                    this.clipAnalysisProgress.set(analysisKey, progress);
-                    await options.onProgress(progress);
-                }
-
-                await this.analysisScheduler.yieldIfNeeded();
-            }
-
-            const candidates: ClipCandidate[] = [];
-
-            for (let i = 0; i < srtLines.length; i++) {
-                if (this.currentAnalysisKey !== analysisKey) {
-                    throw new Error('ANALYSIS_CANCELLED');
-                }
-                const matches = matchResults[i] || [];
-                if (!matches || matches.length === 0) {
-                    continue;
-                }
-
-                const matchedWords = Array.from(
-                    new Set(
-                        matches
-                            .map((m) => (m.databaseWord?.word || m.normalized || m.original || '').toLowerCase())
-                            .filter(Boolean)
-                    )
-                );
-
-                if (matchedWords.length === 0) {
-                    continue;
-                }
-
-                const clipKey = this.mapToClipKey(srtKey, i);
-                candidates.push({
-                    indexInSrt: i,
-                    clipKey,
-                    matchedWords,
-                });
-            }
-
-            if (options?.onProgress) {
-                this.clipAnalysisProgress.set(analysisKey, 100);
-                await options.onProgress(100);
-            }
-
-            return candidates;
-        };
-
-        const scheduled = compute();
-        this.clipAnalysisPromises.set(analysisKey, scheduled);
-
-        try {
-            const candidates = await scheduled;
-            this.clipAnalysisCache.set(analysisKey, candidates);
-            return candidates;
-        } finally {
-            this.clipAnalysisPromises.delete(analysisKey);
-            this.clipAnalysisProgress.delete(analysisKey);
-        }
     }
 
     private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number): ClipMeta {
@@ -1023,14 +871,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return await this.videoLearningClipWordRepository.countGroupedByWord();
     }
 
+    /**
+     * 清除字幕分析与状态缓存。
+     *
+     * 已经发出的分析请求不会被强制中断，但其结果会被丢弃。
+     */
     public invalidateClipAnalysisCache(): void {
-        this.clipAnalysisCache.clear();
-        this.clipAnalysisChunkCache.clear();
-        this.clipAnalysisPromises.clear();
-        this.clipAnalysisProgress.clear();
+        this.clipAnalysis.clear();
         this.clipStatusCache.clear();
         this.clipFailedKeysBySrt.clear();
-        this.currentAnalysisKey = null;
     }
 
     /**
@@ -1038,7 +887,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
      *
      * 行为说明：
      * - 优先命中缓存与进行中的分析任务，避免重复计算。
-     * - 当字幕缓存缺失时，返回 completed 以避免前端长期等待。
+     * - 字幕缓存和路径都不可用时直接报错，避免把数据异常伪装成分析完成。
      *
      * @param videoPath 视频路径，用于状态通知。
      * @param srtKey 字幕缓存键。
@@ -1046,90 +895,38 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
      * @returns 当前片段状态快照。
      */
     public async detectClipStatus(videoPath: string, srtKey: string, srtPath?: string): Promise<VideoLearningClipStatusVO> {
-        const analysisKey = this.mapAnalysisKey(srtKey);
-        this.logger.debug(
-            `detect ${JSON.stringify({
-                videoPath,
-                srtKey,
-                hasSrtPath: !!srtPath,
-                currentAnalysisKey: this.currentAnalysisKey,
-                cachedStatus: this.clipStatusCache.get(srtKey)?.status ?? null,
-                cachedCandidates: this.clipAnalysisCache.has(analysisKey),
-                chunkCache: this.clipAnalysisChunkCache.has(analysisKey),
-                inFlight: this.clipAnalysisPromises.has(analysisKey),
-                progress: this.clipAnalysisProgress.get(analysisKey) ?? null,
-            })}`
-        );
         const srt = await this.ensureSrtCached(srtKey, srtPath);
         if (!srt) {
-            this.logger.debug(`srt cache miss ${JSON.stringify({ srtKey, videoPath })}`);
-            await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
-            return { status: 'completed' };
+            throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
 
         const cachedStatus = this.clipStatusCache.get(srtKey);
         if (cachedStatus && cachedStatus.status !== 'analyzing') {
-            this.logger.debug(
-                `status cache hit ${JSON.stringify({
-                    srtKey,
-                    status: cachedStatus.status,
-                    pendingCount: cachedStatus.pendingCount ?? null,
-                    inProgressCount: cachedStatus.inProgressCount ?? null,
-                    completedCount: cachedStatus.completedCount ?? null,
-                })}`
-            );
             return this.ensureSeq(srtKey, cachedStatus);
         }
 
-        const cachedCandidates = this.clipAnalysisCache.get(analysisKey);
+        const cachedCandidates = this.clipAnalysis.getCachedCandidates(srtKey);
         if (cachedCandidates) {
-            this.logger.debug(`candidates cache hit ${JSON.stringify({ srtKey, count: cachedCandidates.length })}`);
             return await this.computeStatusFromCandidates(videoPath, srtKey, cachedCandidates);
         }
 
-        const chunkCache = this.clipAnalysisChunkCache.get(analysisKey);
-        if (chunkCache && chunkCache.totalChunks > 0) {
-            const completedChunks = chunkCache.chunks.size;
-            const progress = Math.min(99, Math.round((completedChunks / chunkCache.totalChunks) * 100));
-            if (progress > 0) {
-                this.logger.debug(
-                    `chunk progress hit ${JSON.stringify({
-                        srtKey,
-                        completedChunks,
-                        totalChunks: chunkCache.totalChunks,
-                        progress,
-                    })}`
-                );
-                this.clipAnalysisProgress.set(analysisKey, progress);
-                await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
-                if (!this.clipAnalysisPromises.has(analysisKey)) {
-                    const resolvedSrtPath = srt.filePath || srtPath || undefined;
-                    this.startClipAnalysis(videoPath, srtKey, resolvedSrtPath);
-                }
-                return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
-            }
+        const progress = this.clipAnalysis.getProgress(srtKey)
+            ?? this.clipAnalysis.getCachedProgress(srtKey)
+            ?? 0;
+        if (!this.clipAnalysis.isRunning(srtKey)) {
+            this.startClipAnalysis(videoPath, srtKey, srt);
         }
-
-        if (this.clipAnalysisPromises.has(analysisKey)) {
-            this.logger.debug(`analysis in progress ${JSON.stringify({ srtKey })}`);
-            const progress = this.clipAnalysisProgress.get(analysisKey) ?? 0;
-            await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
-            return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
-        }
-
-        const progress = this.clipAnalysisProgress.get(analysisKey);
-        if (typeof progress === 'number') {
-            await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
-            return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
-        }
-
-        const resolvedSrtPath = srt.filePath || srtPath || undefined;
-        this.startClipAnalysis(videoPath, srtKey, resolvedSrtPath);
-        this.logger.debug(`start analysis ${JSON.stringify({ srtKey, videoPath })}`);
-        await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, 0);
-        return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: 0 });
+        await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
+        return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
     }
 
+    /**
+     * 为没有序列号的状态补充分版本号。
+     *
+     * @param srtKey 字幕缓存键。
+     * @param status 当前状态。
+     * @returns 带有序列号的状态。
+     */
     private ensureSeq(srtKey: string, status: VideoLearningClipStatusVO): VideoLearningClipStatusVO {
         if (status.seq !== undefined) {
             return status;
@@ -1139,43 +936,48 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         return { ...status, seq: nextSeq };
     }
 
-    private startClipAnalysis(videoPath: string, srtKey: string, srtPath?: string): void {
-        const analysisKey = this.mapAnalysisKey(srtKey);
-        this.currentAnalysisKey = analysisKey;
-        if (this.clipAnalysisPromises.has(analysisKey)) {
+    /**
+     * 在后台启动字幕候选片段分析。
+     *
+     * 同一字幕已有分析任务时不重复启动；分析结果会自行触发一次状态重算。
+     *
+     * @param videoPath 视频路径，用于通知渲染进程。
+     * @param srtKey 字幕缓存键。
+     * @param srt 已加载的字幕内容。
+     */
+    private startClipAnalysis(videoPath: string, srtKey: string, srt: SrtCache): void {
+        if (this.clipAnalysis.isRunning(srtKey)) {
             return;
         }
 
-        this.logger.debug(
-            `start ${JSON.stringify({ srtKey, videoPath, srtPath: srtPath ?? null })}`
-        );
-        void this.collectClipCandidates(videoPath, srtKey, {
-            onProgress: async (progress) => {
+        void this.clipAnalysis.collectCandidates(
+            srtKey,
+            srt,
+            async (progress) => {
                 await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
             },
-            srtPath,
-            })
+        )
             .then(async (candidates) => {
-                if (this.currentAnalysisKey !== analysisKey) {
-                    this.logger.debug(`cancelled after compute ${JSON.stringify({ srtKey })}`);
-                    return;
-                }
                 if (candidates.length === 0) {
-                    this.logger.debug(`no candidates ${JSON.stringify({ srtKey })}`);
                     await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
                     return;
                 }
-                this.logger.debug(`candidates ready ${JSON.stringify({ srtKey, count: candidates.length })}`);
                 await this.computeStatusFromCandidates(videoPath, srtKey, candidates);
             })
             .catch(async (error) => {
-                if (error instanceof Error && error.message === 'ANALYSIS_CANCELLED') {
-                    this.logger.debug(`cancelled ${JSON.stringify({ srtKey })}`);
-                    this.clipAnalysisProgress.delete(analysisKey);
+                if (
+                    error instanceof Error
+                    && (error.message === 'CLIP_ANALYSIS_INVALIDATED'
+                        || error.message === 'CLIP_ANALYSIS_REPLACED')
+                ) {
                     return;
                 }
-                this.logger.error('分析裁切状态失败:', error);
-                await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
+                this.logger.error('分析裁切状态失败', { srtKey, videoPath, error });
+                this.rendererGateway.fireAndForget('ui/show-toast', {
+                    message: '学习片段分析失败，请检查字幕和词库后重试',
+                    variant: 'error',
+                    duration: 5000,
+                });
             });
     }
 
