@@ -52,7 +52,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
       errorRetryCount: 3,
       errorRetryInterval: 1500,
       onError: (error) => {
-        logger.error('检测全局裁切队列状态失败:', error);
+        logger.error('检测全局裁切队列状态失败', { error });
       }
     }
   );
@@ -81,7 +81,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
       errorRetryCount: 3,
       errorRetryInterval: 1500,
       onError: (error) => {
-        logger.error('检测裁切状态失败:', error);
+        logger.error('检测裁切状态失败', { error });
       }
     }
   );
@@ -223,7 +223,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
         void mutateClipStatus();
         toast.success(t('autoClip.cancelled'));
       } catch (error) {
-        logger.error('取消全局生词视频裁切队列失败:', error);
+        logger.error('取消全局生词视频裁切队列失败', { error });
         void mutateGlobalQueueStatus();
         void mutateClipStatus();
         toast.error(t('autoClip.cancelFailed'));
@@ -263,7 +263,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
         srtPath: subtitlePath
       });
     } catch (error) {
-      logger.error('生词视频裁切失败:', error);
+      logger.error('生词视频裁切失败', { error });
       void mutateGlobalQueueStatus();
       void mutateClipStatus();
       toast.error(t('autoClip.failed'));

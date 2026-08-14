@@ -9,11 +9,6 @@ const FavouriteMainSrt = () => {
 
   const currentSentence = usePlayer((state) => state.currentSentence);
 
-  console.log('FavouriteMainSrt render:', {
-    sentenceKey: currentSentence ? `${currentSentence.fileHash}-${currentSentence.index}` : null,
-    timestamp: Date.now()
-  });
-
   if (!playInfo || !currentSentence) {
     return <></>;
   }

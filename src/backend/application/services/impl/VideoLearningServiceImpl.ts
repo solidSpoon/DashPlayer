@@ -729,7 +729,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                     const vocabulary = this.buildVocabularyEntriesFromMatchedWords(task.matchedWords);
                     paginatedInProgress.push(this.convertToVideoLearningClipVO(clipEntry, vocabulary));
                 } catch (error) {
-                    this.logger.error('Failed to process in-progress task:', error);
+                    this.logger.error('failed to process in-progress task', { error });
                 }
             }
         }
@@ -1024,16 +1024,14 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
             status = 'pending';
         }
 
-        this.logger.debug(
-            `computed ${JSON.stringify({
-                srtKey,
-                status,
-                pendingCount,
-                inProgressCount,
-                completedCount,
-                candidates: candidates.length,
-            })}`
-        );
+        this.logger.debug('clip status computed', {
+            srtKey,
+            status,
+            pendingCount,
+            inProgressCount,
+            completedCount,
+            candidates: candidates.length,
+        });
 
         await this.notifyClipStatus(
             videoPath,
@@ -1064,17 +1062,15 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
         analyzingProgress?: number
     ): Promise<void> {
         try {
-            this.logger.debug(
-                `notify ${JSON.stringify({
-                    videoPath,
-                    srtKey,
-                    status,
-                    pendingCount: pendingCount ?? null,
-                    inProgressCount: inProgressCount ?? null,
-                    completedCount: completedCount ?? null,
-                    analyzingProgress: analyzingProgress ?? null,
-                })}`
-            );
+            this.logger.debug('clip status notify', {
+                videoPath,
+                srtKey,
+                status,
+                pendingCount: pendingCount ?? null,
+                inProgressCount: inProgressCount ?? null,
+                completedCount: completedCount ?? null,
+                analyzingProgress: analyzingProgress ?? null,
+            });
 
             let message = '';
             if (status === 'pending') {
@@ -1132,7 +1128,7 @@ export default class VideoLearningServiceImpl implements VideoLearningService {
                 });
             }
         } catch (error) {
-            this.logger.error('Failed to notify clip status:', error);
+            this.logger.error('failed to notify clip status', { error });
         }
     }
 }

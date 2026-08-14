@@ -31,12 +31,7 @@ export default class SettingsController implements Controller {
      * 保存服务凭据页面数据。
      */
     public async saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void> {
-        this.logger.info('update service credentials', {
-            settings: {
-                ...settings,
-                openai: { ...settings.openai, key: '***' },
-            },
-        });
+        this.logger.info('update service credentials', { settings });
         await this.settingService.saveServiceCredentials(settings);
     }
 

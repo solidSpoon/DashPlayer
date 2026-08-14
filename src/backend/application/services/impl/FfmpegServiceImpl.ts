@@ -465,7 +465,7 @@ export default class FfmpegServiceImpl implements FfmpegService {
             return;
         } catch (error) {
             const normalized = error instanceof Error ? error : new Error(String(error));
-            this.logger.error('An error occurred while executing ffmpeg command:', {
+            this.logger.error('an error occurred while executing ffmpeg command', {
                 error: normalized,
                 context,
             });
