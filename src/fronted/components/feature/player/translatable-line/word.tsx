@@ -292,10 +292,12 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 <span
                     className={cn(
                         'rounded select-text',
+                        // 隐藏英文时单词显示为原样式实心占位块：生词同样保留 font-medium，
+                        // 使占位块宽度与 hover 显示后的生词完全一致，避免整行出现位移
                         !show && ['text-transparent', Style.word_hover_bg],
-                        hoverBg,
+                        show && hoverBg,
+                        show && vocabCls,
                         hovered && pop && (alwaysDark ? 'bg-neutral-600' : theme.word.popReferenceBgClass),
-                        vocabCls,
                         classNames?.word,
                     )}
                 >
