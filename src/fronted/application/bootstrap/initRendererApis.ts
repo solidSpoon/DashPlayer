@@ -63,6 +63,10 @@ export function initRendererApis(): () => void {
         window.dispatchEvent(new CustomEvent('parakeet-model-download-progress', { detail: params }));
     });
 
+    register('settings/sherpa-tts-model-download-progress', async (params) => {
+        window.dispatchEvent(new CustomEvent('sherpa-tts-model-download-progress', { detail: params }));
+    });
+
     register('translation/result', async (params) => {
         logger.debug('Translation result', { params });
         useTranslation.getState().updateTranslation(params);

@@ -1,4 +1,4 @@
-import TtsService from '@/backend/application/services/TtsService';
+import { LocalTtsService } from '@/backend/application/services/impl/LocalTtsService';
 import DpTaskService from '@/backend/application/services/DpTaskService';
 import { TranscriptionService } from '@/backend/application/services/TranscriptionService';
 import TYPES from '@/backend/ioc/types';
@@ -34,6 +34,9 @@ export default class AiFuncService {
     @inject(TYPES.LocalTranscriptionService)
     private localTranscriptionService!: TranscriptionService;
 
+    @inject(TYPES.LocalTtsService)
+    private localTtsService!: LocalTtsService;
+
     public async formatSplit(text: string): Promise<number> {
         const taskId = await this.dpTaskService.create();
         this.chatService.chat(taskId, [{
@@ -44,7 +47,7 @@ export default class AiFuncService {
     }
 
     public async tts(text: string): Promise<string> {
-        return UrlUtil.toUrl(await TtsService.tts(text));
+        return UrlUtil.toUrl(await this.localTtsService.synthesize(text));
     }
 
     public async transcript(params: { filePath: string }): Promise<void> {

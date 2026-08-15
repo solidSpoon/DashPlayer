@@ -444,33 +444,45 @@ const arch = process.env.npm_config_arch || os.arch()
     const exePath = path.join(basePath, exeName);
     const res = await verifyExistence({ dir: basePath, file: exeName });
 
+    const version = '1.13.4';
+    const releaseBase = `https://github.com/k2-fsa/sherpa-onnx/releases/download/v${version}`;
+    const assetNames = {
+        darwin: {
+            arm64: `sherpa-onnx-v${version}-osx-arm64-static.tar.bz2`,
+            x64: `sherpa-onnx-v${version}-osx-x64-static.tar.bz2`,
+        },
+        linux: {
+            arm64: `sherpa-onnx-v${version}-linux-aarch64-static.tar.bz2`,
+            x64: `sherpa-onnx-v${version}-linux-x64-static.tar.bz2`,
+        },
+        win32: {
+            arm64: `sherpa-onnx-v${version}-win-arm64-static-MT-Release.tar.bz2`,
+            x64: `sherpa-onnx-v${version}-win-x64-static-MT-Release.tar.bz2`,
+        },
+    };
+    const assetName = assetNames[platform]?.[arch];
+    const assetUrl = assetName ? `${releaseBase}/${assetName}` : null;
+    if (!assetUrl) {
+        throw new Error(`Unsupported sherpa-onnx platform/arch: ${platform}/${arch}`);
+    }
+
     if (res === 'need_download') {
-        const version = '1.13.4';
-        const releaseBase = `https://github.com/k2-fsa/sherpa-onnx/releases/download/v${version}`;
-        const assetNames = {
-            darwin: {
-                arm64: `sherpa-onnx-v${version}-osx-arm64-static-no-tts.tar.bz2`,
-                x64: `sherpa-onnx-v${version}-osx-x64-static-no-tts.tar.bz2`,
-            },
-            linux: {
-                arm64: `sherpa-onnx-v${version}-linux-aarch64-static.tar.bz2`,
-                x64: `sherpa-onnx-v${version}-linux-x64-static-no-tts.tar.bz2`,
-            },
-            win32: {
-                arm64: `sherpa-onnx-v${version}-win-arm64-static-MT-Release-no-tts.tar.bz2`,
-                x64: `sherpa-onnx-v${version}-win-x64-static-MT-Release-no-tts.tar.bz2`,
-            },
-        };
-        const assetName = assetNames[platform]?.[arch];
-        const assetUrl = assetName ? `${releaseBase}/${assetName}` : null;
-        if (!assetUrl) {
-            throw new Error(`Unsupported sherpa-onnx platform/arch: ${platform}/${arch}`);
-        }
         console.info(chalk.blue(`=> sherpa-onnx target: ${exePath}`));
         await downloadAndExtractBinaryFromArchive({
             url: assetUrl,
             outputPath: exePath,
             binaryNameCandidates: [exeName],
+        });
+    }
+
+    const ttsExeName = platform === 'win32' ? 'sherpa-onnx-offline-tts.exe' : 'sherpa-onnx-offline-tts';
+    const ttsExePath = path.join(basePath, ttsExeName);
+    const ttsRes = await verifyExistence({ dir: basePath, file: ttsExeName });
+    if (ttsRes === 'need_download') {
+        await downloadAndExtractBinaryFromArchive({
+            url: assetUrl,
+            outputPath: ttsExePath,
+            binaryNameCandidates: [ttsExeName],
         });
     }
 }

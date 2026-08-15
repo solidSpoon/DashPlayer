@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsPageShell';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
+import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useToast } from '@/fronted/components/ui/use-toast';
@@ -62,8 +63,14 @@ const ServiceCredentialSetting = () => {
     const [deletingParakeetModel, setDeletingParakeetModel] = React.useState(false);
     const [parakeetDownloadProgress, setParakeetDownloadProgress] = React.useState(0);
     const [parakeetDownloadPhase, setParakeetDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
+    const [sherpaTtsModelStatus, setSherpaTtsModelStatus] = React.useState<SherpaTtsModelStatusVO | null>(null);
+    const [downloadingSherpaTtsModel, setDownloadingSherpaTtsModel] = React.useState(false);
+    const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
+    const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
+    const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
     /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
     const downloadingRef = React.useRef(false);
+    const sherpaTtsDownloadingRef = React.useRef(false);
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('engineSelection.sentenceLearning.title'),
         subtitleTranslation: t('engineSelection.subtitleTranslation.title'),
@@ -101,6 +108,19 @@ const ServiceCredentialSetting = () => {
         refreshParakeetModelStatus().catch(() => null);
     }, [refreshParakeetModelStatus]);
 
+    const refreshSherpaTtsModelStatus = React.useCallback(async () => {
+        const status = await api.call('sherpa-tts/models/status');
+        setSherpaTtsModelStatus(status);
+        if (sherpaTtsDownloadingRef.current) return;
+        setDownloadingSherpaTtsModel(status.downloading);
+        if (status.phase) setSherpaTtsDownloadPhase(status.phase);
+        setSherpaTtsDownloadProgress(status.percent);
+    }, []);
+
+    React.useEffect(() => {
+        refreshSherpaTtsModelStatus().catch(() => null);
+    }, [refreshSherpaTtsModelStatus]);
+
     React.useEffect(() => {
         const handler = (evt: Event) => {
             const detail = (evt as CustomEvent).detail as { percent: number; phase?: ParakeetModelPhase } | undefined;
@@ -130,6 +150,24 @@ const ServiceCredentialSetting = () => {
             window.removeEventListener('parakeet-model-download-progress', handler as EventListener);
         };
     }, [refreshParakeetModelStatus]);
+
+    React.useEffect(() => {
+        const handler = (evt: Event) => {
+            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ParakeetModelPhase } | undefined;
+            if (!detail) return;
+            if (detail.phase === 'idle') {
+                setDownloadingSherpaTtsModel(false);
+                setSherpaTtsDownloadProgress(0);
+                setSherpaTtsDownloadPhase('downloading');
+                refreshSherpaTtsModelStatus().catch(() => null);
+                return;
+            }
+            if (detail.phase) setSherpaTtsDownloadPhase(detail.phase);
+            setSherpaTtsDownloadProgress(detail.percent);
+        };
+        window.addEventListener('sherpa-tts-model-download-progress', handler as EventListener);
+        return () => window.removeEventListener('sherpa-tts-model-download-progress', handler as EventListener);
+    }, [refreshSherpaTtsModelStatus]);
 
     /**
      * 测试指定服务商连通性。
@@ -282,6 +320,48 @@ const ServiceCredentialSetting = () => {
             });
         } finally {
             setDeletingParakeetModel(false);
+        }
+    };
+
+    /**
+     * 下载固定的 Sherpa-ONNX Piper 英语 TTS 模型。
+     */
+    const downloadSherpaTtsModel = async () => {
+        sherpaTtsDownloadingRef.current = true;
+        setDownloadingSherpaTtsModel(true);
+        setSherpaTtsDownloadProgress(0);
+        setSherpaTtsDownloadPhase('downloading');
+        try {
+            await api.call('sherpa-tts/models/download');
+            toast({ title: t('common.downloadDone'), description: 'Sherpa TTS 模型已下载' });
+            await refreshSherpaTtsModelStatus();
+        } catch (error) {
+            toast({ variant: 'destructive', title: t('common.downloadFailed'), description: error instanceof Error ? error.message : String(error) });
+        } finally {
+            sherpaTtsDownloadingRef.current = false;
+            setDownloadingSherpaTtsModel(false);
+        }
+    };
+
+    /**
+     * 取消正在进行的 Sherpa TTS 模型下载。
+     */
+    const cancelSherpaTtsDownload = async () => {
+        const result = await api.call('sherpa-tts/models/cancel-download');
+        if (result.cancelled) toast({ title: 'Sherpa TTS 模型下载已取消' });
+    };
+
+    /**
+     * 删除已下载的 Sherpa TTS 模型。
+     */
+    const deleteSherpaTtsModel = async () => {
+        setDeletingSherpaTtsModel(true);
+        try {
+            await api.call('sherpa-tts/models/delete');
+            toast({ title: 'Sherpa TTS 模型已删除' });
+            await refreshSherpaTtsModelStatus();
+        } finally {
+            setDeletingSherpaTtsModel(false);
         }
     };
 
@@ -547,6 +627,46 @@ const ServiceCredentialSetting = () => {
                                         : t('serviceCredentials.parakeet.installing')}
                                 </p>
                             )
+                        )}
+                    </div>
+                </div>
+
+                <div className="rounded-xl border border-border/70 p-5 space-y-4">
+                    <div>
+                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />Sherpa ONNX · Piper TTS</div>
+                        <div className="text-xs text-muted-foreground mt-1">本地英语文字转语音模型，离线生成 WAV 音频。</div>
+                    </div>
+                    <div className="rounded-lg border border-border/60 px-4 py-3 space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-sm font-medium">Piper en_US Amy Low</span>
+                                {sherpaTtsModelStatus?.ready ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                {downloadingSherpaTtsModel ? (
+                                    sherpaTtsDownloadPhase === 'downloading' ? (
+                                        <Button type="button" variant="outline" size="sm" onClick={() => cancelSherpaTtsDownload().catch(() => null)}><Square className="w-3.5 h-3.5 mr-1.5" />取消下载</Button>
+                                    ) : (
+                                        <Button type="button" variant="outline" size="sm" disabled>安装中</Button>
+                                    )
+                                ) : (
+                                    <>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => downloadSherpaTtsModel().catch(() => null)}><Download className="w-3.5 h-3.5 mr-1.5" />{t('common.download')}</Button>
+                                        {sherpaTtsModelStatus?.ready && (
+                                            <Button type="button" variant="outline" size="sm" disabled={deletingSherpaTtsModel} onClick={() => deleteSherpaTtsModel().catch(() => null)}><Trash2 className="w-3.5 h-3.5 mr-1.5" />删除模型</Button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                        {downloadingSherpaTtsModel && (
+                            sherpaTtsDownloadPhase === 'downloading'
+                                ? <Progress value={sherpaTtsDownloadProgress} className="h-1.5" />
+                                : <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" />{sherpaTtsDownloadPhase === 'extracting' ? '正在解压模型…' : '正在安装模型…'}</p>
                         )}
                     </div>
                 </div>

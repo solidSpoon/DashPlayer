@@ -63,6 +63,7 @@ export const defaultConcurrencyProfiles: ConcurrencyProfiles = {
         ffmpeg: { capacity: 5 },
         ffprobe: { capacity: 5 },
         whisper: { capacity: 10 },
+        tts: { capacity: 1 },
     },
     rateLimiter: {
         whisper: { maxRequests: 5, windowMs: 1000 },

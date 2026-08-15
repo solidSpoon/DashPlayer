@@ -34,6 +34,7 @@ interface UIRendererDef {
         return: void
     };
     'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
+    'settings/sherpa-tts-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
 }
 
 // 翻译相关的前端API定义

@@ -71,6 +71,10 @@ import { LocalTranscriptionServiceImpl } from '@/backend/application/services/im
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
 import SpeechRecognitionGateway from '@/backend/application/ports/gateways/media/SpeechRecognitionGateway';
 import SherpaOnnxGatewayImpl from '@/backend/infrastructure/media/sherpa/SherpaOnnxGatewayImpl';
+import { SherpaOnnxTtsCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxTtsCli';
+import { SherpaTtsModelService } from '@/backend/application/services/impl/SherpaTtsModelService';
+import { LocalTtsService } from '@/backend/application/services/impl/LocalTtsService';
+import { SherpaTtsModelController } from '@/backend/adapters/controllers/SherpaTtsModelController';
 import {WordMatchService} from '@/backend/application/services/WordMatchService';
 import WordMatchServiceImpl from '@/backend/application/services/impl/WordMatchServiceImpl';
 import VocabularyController from '@/backend/adapters/controllers/VocabularyController';
@@ -140,6 +144,7 @@ container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 // Services
@@ -151,6 +156,9 @@ container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncService).inSingleton
 container.bind<ParakeetModelService>(TYPES.ParakeetModelService).to(ParakeetModelService).inSingletonScope();
 container.bind<SherpaOnnxCli>(TYPES.SherpaOnnxCli).to(SherpaOnnxCli).inSingletonScope();
 container.bind<SpeechRecognitionGateway>(TYPES.SpeechRecognitionGateway).to(SherpaOnnxGatewayImpl).inSingletonScope();
+container.bind<SherpaOnnxTtsCli>(TYPES.SherpaOnnxTtsCli).to(SherpaOnnxTtsCli).inSingletonScope();
+container.bind<SherpaTtsModelService>(TYPES.SherpaTtsModelService).to(SherpaTtsModelService).inSingletonScope();
+container.bind<LocalTtsService>(TYPES.LocalTtsService).to(LocalTtsService).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();
