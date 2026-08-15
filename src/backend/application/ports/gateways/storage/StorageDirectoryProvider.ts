@@ -1,3 +1,5 @@
+import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+
 /**
  * 外部存储目录目标。
  *
@@ -46,4 +48,16 @@ export default interface StorageDirectoryProvider {
      * @param targetPath 外部文件或文件夹绝对路径。
      */
     ensurePathAccessPermissionIfExists(targetPath: string): Promise<void>;
+
+    /**
+     * 解析指定配置路径对应的媒体库根目录状态。
+     *
+     * 行为说明：
+     * - 仅做解析与访问状态检查，不触发目录创建，也不弹出权限恢复弹窗；
+     * - 用于设置保存前的路径校验，避免和目录提供器的主动创建/恢复流程耦合。
+     *
+     * @param configuredPath 用户保存的原始路径；为空时按默认媒体库目录解析。
+     * @returns 媒体库根目录健康状态。
+     */
+    getRootStatus(configuredPath?: string): Promise<StorageStatusVO>;
 }

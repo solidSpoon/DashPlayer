@@ -16,8 +16,13 @@ import {
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
+import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
 
 @injectable()
 export default class SettingServiceImpl implements SettingService {
@@ -27,6 +32,7 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
+    @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider!: StorageDirectoryProvider;
     private logger = getMainLogger('SettingServiceImpl');
 
     private async setValue(key: SettingKey, value: string): Promise<void> {
@@ -313,6 +319,184 @@ export default class SettingServiceImpl implements SettingService {
                 'openai.featureModels.dictionary',
             ),
         );
+    }
+
+    /**
+     * 提取代理地址的主机部分用于日志；含凭据或解析失败时整体掩码。
+     *
+     * @param url 代理地址。
+     * @returns 掩码后的日志摘要。
+     */
+    private extractProxyHost(url: string): string {
+        try {
+            const parsed = new URL(url);
+            if (parsed.username || parsed.password) {
+                return '***';
+            }
+            return `${parsed.protocol}//${parsed.host}`;
+        } catch {
+            return url ? '***' : '';
+        }
+    }
+
+    /**
+     * 查询快捷键设置详情。
+     */
+    public async getShortcutSettingsDetail(): Promise<ShortcutSettingDetailVO> {
+        return {
+            previousSentence: this.getValue('shortcut.previousSentence'),
+            nextSentence: this.getValue('shortcut.nextSentence'),
+            repeatSentence: this.getValue('shortcut.repeatSentence'),
+            playPause: this.getValue('shortcut.playPause'),
+            repeatSingleSentence: this.getValue('shortcut.repeatSingleSentence'),
+            autoPause: this.getValue('shortcut.autoPause'),
+            toggleEnglishDisplay: this.getValue('shortcut.toggleEnglishDisplay'),
+            toggleChineseDisplay: this.getValue('shortcut.toggleChineseDisplay'),
+            toggleBilingualDisplay: this.getValue('shortcut.toggleBilingualDisplay'),
+            toggleWordLevelDisplay: this.getValue('shortcut.toggleWordLevelDisplay'),
+            nextTheme: this.getValue('shortcut.nextTheme'),
+            adjustBeginMinus: this.getValue('shortcut.adjustBeginMinus'),
+            adjustBeginPlus: this.getValue('shortcut.adjustBeginPlus'),
+            adjustEndMinus: this.getValue('shortcut.adjustEndMinus'),
+            adjustEndPlus: this.getValue('shortcut.adjustEndPlus'),
+            clearAdjust: this.getValue('shortcut.clearAdjust'),
+            nextPlaybackRate: this.getValue('shortcut.nextPlaybackRate'),
+            aiChat: this.getValue('shortcut.aiChat'),
+            addClip: this.getValue('shortcut.addClip'),
+            openControlPanel: this.getValue('shortcut.openControlPanel'),
+        };
+    }
+
+    /**
+     * 保存快捷键设置。
+     *
+     * 说明：
+     * - 快捷键允许空字符串，表示显式取消绑定；
+     * - 字段结构固定，逐项写入以保持键名映射集中在一处。
+     */
+    public async saveShortcutSettings(settings: ShortcutSettingSaveVO): Promise<void> {
+        this.logger.info('update shortcut settings', {
+            configured: Object.values(settings).filter((value) => value).length,
+            total: Object.keys(settings).length,
+        });
+        await this.setValue('shortcut.previousSentence', settings.previousSentence);
+        await this.setValue('shortcut.nextSentence', settings.nextSentence);
+        await this.setValue('shortcut.repeatSentence', settings.repeatSentence);
+        await this.setValue('shortcut.playPause', settings.playPause);
+        await this.setValue('shortcut.repeatSingleSentence', settings.repeatSingleSentence);
+        await this.setValue('shortcut.autoPause', settings.autoPause);
+        await this.setValue('shortcut.toggleEnglishDisplay', settings.toggleEnglishDisplay);
+        await this.setValue('shortcut.toggleChineseDisplay', settings.toggleChineseDisplay);
+        await this.setValue('shortcut.toggleBilingualDisplay', settings.toggleBilingualDisplay);
+        await this.setValue('shortcut.toggleWordLevelDisplay', settings.toggleWordLevelDisplay);
+        await this.setValue('shortcut.nextTheme', settings.nextTheme);
+        await this.setValue('shortcut.adjustBeginMinus', settings.adjustBeginMinus);
+        await this.setValue('shortcut.adjustBeginPlus', settings.adjustBeginPlus);
+        await this.setValue('shortcut.adjustEndMinus', settings.adjustEndMinus);
+        await this.setValue('shortcut.adjustEndPlus', settings.adjustEndPlus);
+        await this.setValue('shortcut.clearAdjust', settings.clearAdjust);
+        await this.setValue('shortcut.nextPlaybackRate', settings.nextPlaybackRate);
+        await this.setValue('shortcut.aiChat', settings.aiChat);
+        await this.setValue('shortcut.addClip', settings.addClip);
+        await this.setValue('shortcut.openControlPanel', settings.openControlPanel);
+    }
+
+    /**
+     * 查询外观设置详情，严格校验存储值。
+     */
+    public async getAppearanceSettingDetail(): Promise<AppearanceSettingVO> {
+        return {
+            theme: this.requireEnumValue(
+                this.getValue('appearance.theme'),
+                ['dark', 'light'] as const,
+                'appearance.theme',
+            ),
+            fontSize: this.requireEnumValue(
+                this.getValue('appearance.fontSize'),
+                ['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge'] as const,
+                'appearance.fontSize',
+            ),
+            language: this.requireEnumValue(
+                this.getValue('i18n.language'),
+                ['system', 'zh-CN', 'en-US'] as const,
+                'i18n.language',
+            ),
+        };
+    }
+
+    /**
+     * 保存外观设置，枚举值非法时立即抛错。
+     */
+    public async saveAppearanceSettings(settings: AppearanceSettingVO): Promise<void> {
+        const theme = this.requireEnumValue(settings.theme, ['dark', 'light'] as const, 'appearance.theme');
+        const fontSize = this.requireEnumValue(
+            settings.fontSize,
+            ['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge'] as const,
+            'appearance.fontSize',
+        );
+        const language = this.requireEnumValue(
+            settings.language,
+            ['system', 'zh-CN', 'en-US'] as const,
+            'i18n.language',
+        );
+        this.logger.info('update appearance settings', { theme, fontSize, language });
+        await this.setValue('appearance.theme', theme);
+        await this.setValue('appearance.fontSize', fontSize);
+        await this.setValue('i18n.language', language);
+    }
+
+    /**
+     * 查询存储设置详情。
+     */
+    public async getStorageSettingDetail(): Promise<StorageSettingVO> {
+        return {
+            path: this.getValue('storage.path'),
+        };
+    }
+
+    /**
+     * 保存存储设置。
+     *
+     * 行为说明：
+     * - 非空路径会先做根目录可用性校验，不可用时抛出显式错误；
+     * - 空路径表示回落到默认媒体库目录，直接写入。
+     */
+    public async saveStorageSettings(settings: StorageSettingVO): Promise<void> {
+        const nextPath = settings.path.trim();
+        this.logger.info('update storage settings', { path: nextPath });
+        if (nextPath.length > 0) {
+            const status = await this.storageDirectoryProvider.getRootStatus(nextPath);
+            if (!status.available) {
+                throw new Error(status.message);
+            }
+        }
+        await this.setValue('storage.path', settings.path);
+    }
+
+    /**
+     * 查询代理设置详情，严格校验代理模式。
+     */
+    public async getProxySettingDetail(): Promise<ProxySettingDetailVO> {
+        return {
+            mode: this.requireEnumValue(
+                this.getValue('proxy.mode'),
+                ['system', 'custom', 'none'] as const,
+                'proxy.mode',
+            ),
+            url: this.getValue('proxy.url'),
+            bypassRules: this.getValue('proxy.bypass_rules'),
+        };
+    }
+
+    /**
+     * 保存代理设置，写入后由代理订阅自动重应用。
+     */
+    public async saveProxySettings(settings: ProxySettingSaveVO): Promise<void> {
+        const mode = this.requireEnumValue(settings.mode, ['system', 'custom', 'none'] as const, 'proxy.mode');
+        this.logger.info('update proxy settings', { mode, host: this.extractProxyHost(settings.url) });
+        await this.setValue('proxy.mode', mode);
+        await this.setValue('proxy.url', settings.url);
+        await this.setValue('proxy.bypass_rules', settings.bypassRules);
     }
 
     public async getCurrentSentenceLearningProvider(): Promise<'openai' | null> {

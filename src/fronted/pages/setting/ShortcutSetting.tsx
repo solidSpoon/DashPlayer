@@ -237,7 +237,7 @@ const ShortcutSetting = () => {
     const { ready, status: autoSaveStatus, error: autoSaveError, initialize, flush } = useAutoSaveSettingsForm<ShortcutFormValues>({
         form,
         onSave: async (values) => {
-            await api.call('settings/shortcuts/update', values);
+            await api.call('settings/shortcuts/save', values);
         },
     });
 

@@ -33,8 +33,6 @@ const ServiceCredentialSetting = () => {
     const form = useForm<ServiceCredentialSettingDetailVO>();
     const { register, setValue, watch } = form;
 
-    register('openai.autoAppendV1');
-
     const {
         ready,
         status: autoSaveStatus,

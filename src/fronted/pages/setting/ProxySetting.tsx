@@ -32,16 +32,12 @@ const ProxySetting = () => {
     );
 
     const form = useForm<ProxyFormValues>();
-    const { register, watch, setValue } = form;
-
-    register('mode');
-    register('url');
-    register('bypassRules');
+    const { watch, setValue } = form;
 
     const { ready, initialize, flush } = useAutoSaveSettingsForm<ProxyFormValues>({
         form,
         onSave: async (values) => {
-            await backendClient.call('settings/proxy/update', {
+            await backendClient.call('settings/proxy/save', {
                 mode: values.mode,
                 url: values.url,
                 bypassRules: values.bypassRules,

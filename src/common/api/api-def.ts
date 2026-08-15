@@ -24,7 +24,9 @@ import {
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
+import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
@@ -169,11 +171,13 @@ interface SettingsDef {
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
     'settings/shortcuts/detail': { params: void, return: ShortcutSettingDetailVO };
-    'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
-    'settings/shortcuts/update': { params: ShortcutSettingSaveVO, return: void };
-    'settings/storage/update': { params: { path: string; collection: string }, return: void };
+    'settings/shortcuts/save': { params: ShortcutSettingSaveVO, return: void };
+    'settings/appearance/detail': { params: void, return: AppearanceSettingVO };
+    'settings/appearance/save': { params: AppearanceSettingVO, return: void };
+    'settings/storage/detail': { params: void, return: StorageSettingVO };
+    'settings/storage/save': { params: StorageSettingVO, return: void };
     'settings/proxy/detail': { params: void, return: ProxySettingDetailVO };
-    'settings/proxy/update': { params: { mode: string; url: string; bypassRules: string }, return: void };
+    'settings/proxy/save': { params: ProxySettingSaveVO, return: void };
 }
 
 interface ParakeetModelDef {

@@ -30,16 +30,7 @@ const EngineSelectionSetting = () => {
     );
 
     const form = useForm<EngineSelectionSettingVO>();
-    const { register, setValue, watch } = form;
-
-    register('openai.enableSentenceLearning');
-    register('openai.subtitleTranslationMode');
-    register('openai.subtitleCustomStyle');
-    register('openai.featureModels.sentenceLearning');
-    register('openai.featureModels.subtitleTranslation');
-    register('openai.featureModels.dictionary');
-    register('providers.subtitleTranslationEngine');
-    register('providers.dictionaryEngine');
+    const { setValue, watch } = form;
 
     const {
         ready,

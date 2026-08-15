@@ -12,48 +12,40 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
 import { useForm, Controller } from 'react-hook-form';
-import useSetting from '@/fronted/hooks/useSetting';
-import { useShallow } from 'zustand/react/shallow';
 import { Input } from '@/fronted/components/ui/input';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
+import useSWR from 'swr';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 
 const api = backendClient;
 
-type StorageFormValues = {
-    path: string;
-    collection: string;
-};
+type StorageFormValues = StorageSettingVO;
 
+/**
+ * 存储设置页：通过 detail 接口加载媒体库路径，自动保存到 save 接口。
+ */
 const StorageSetting = () => {
     const { t } = useI18nTranslation('settings');
     const [size, setSize] = React.useState<string>('--');
     const [storageStatus, setStorageStatus] = React.useState<StorageStatusVO | null>(null);
-    const storeValues = useSetting(
-        useShallow((state) => ({
-            path: state.values.get('storage.path') ?? '',
-            collection: state.values.get('storage.collection') ?? 'default',
-        }))
+
+    const { data: detail } = useSWR<StorageSettingVO>('settings/storage/detail', () =>
+        api.call('settings/storage/detail'),
     );
 
-    const form = useForm<StorageFormValues>({
-    });
-
+    const form = useForm<StorageFormValues>();
     const { control, formState, setValue } = form;
-    const { status: autoSaveStatus, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
-        form,
-        onSave: async (values) => {
-            await api.call('settings/storage/update', {
-                path: values.path,
-                collection: values.collection,
-            });
-        },
-    });
 
-    React.useEffect(() => {
-        const loadStorageStatus = async () => {
+    /**
+     * 查询媒体库目录状态与占用空间。
+     *
+     * @param configuredPath 当前配置的媒体库路径；查询失败时用于构造错误状态。
+     */
+    const loadStorageStatus = React.useCallback(async (configuredPath: string) => {
+        try {
             const nextStatus = await api.call('storage/status');
             setStorageStatus(nextStatus);
 
@@ -64,12 +56,11 @@ const StorageSetting = () => {
 
             const nextSize = await api.call('storage/cache/size');
             setSize(nextSize);
-        };
-        loadStorageStatus().catch((error) => {
+        } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setStorageStatus({
-                configuredPath: storeValues.path,
-                resolvedPath: storeValues.path,
+                configuredPath,
+                resolvedPath: configuredPath,
                 exists: false,
                 isDirectory: false,
                 readable: false,
@@ -79,12 +70,30 @@ const StorageSetting = () => {
                 message,
             });
             setSize('--');
-        });
-    }, [storeValues.path]);
+        }
+    }, []);
+
+    const { status: autoSaveStatus, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
+        form,
+        onSave: async (values) => {
+            await api.call('settings/storage/save', { path: values.path });
+            await loadStorageStatus(values.path);
+        },
+    });
 
     React.useEffect(() => {
-        initialize(storeValues);
-    }, [initialize, storeValues]);
+        if (!detail) {
+            return;
+        }
+        initialize(detail);
+    }, [initialize, detail]);
+
+    React.useEffect(() => {
+        if (!detail) {
+            return;
+        }
+        loadStorageStatus(detail.path).catch(() => undefined);
+    }, [detail, loadStorageStatus]);
 
     async function reloadOss() {
         try {

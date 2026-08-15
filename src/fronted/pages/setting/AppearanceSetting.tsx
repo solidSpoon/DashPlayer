@@ -8,84 +8,75 @@ import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsP
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';
-import useSetting from '@/fronted/hooks/useSetting';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { applyLanguageSetting, AppLanguageSetting } from '@/fronted/i18n';
+import { applyLanguageSetting } from '@/fronted/i18n';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
+import useSWR from 'swr';
+import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 
 const logger = getRendererLogger('AppearanceSetting');
 const api = backendClient;
 
-type AppearanceFormValues = {
-    theme: 'dark' | 'light';
-    fontSize: 'fontSizeSmall' | 'fontSizeMedium' | 'fontSizeLarge';
-};
+type AppearanceFormValues = AppearanceSettingVO;
 
-const normalizeTheme = (value: string | undefined): AppearanceFormValues['theme'] => {
-    return value === 'light' ? 'light' : 'dark';
-};
-
-const normalizeFontSize = (value: string | undefined): AppearanceFormValues['fontSize'] => {
-    if (value === 'fontSizeSmall' || value === 'fontSizeLarge') {
-        return value;
-    }
-    return 'fontSizeMedium';
-};
-
-const fontSizeToLabel = (fontSize: AppearanceFormValues['fontSize']) => {
-    return fontSize;
-};
-
+/**
+ * 外观设置页：通过 detail 接口加载，自动保存到 save 接口。
+ */
 const AppearanceSetting = () => {
     const { t } = useI18nTranslation('settings');
-    const themeSetting = useSetting((state) =>
-        state.values.get('appearance.theme')
-    );
-    const fontSizeSetting = useSetting((state) =>
-        state.values.get('appearance.fontSize')
-    );
-    const languageSetting = useSetting((state) =>
-        state.values.get('i18n.language')
-    );
-    const setSetting = useSetting((state) => state.setSetting);
 
-    const form = useForm<AppearanceFormValues>({
-    });
+    const { data: settings } = useSWR<AppearanceSettingVO>('settings/appearance/detail', () =>
+        api.call('settings/appearance/detail'),
+    );
 
+    const form = useForm<AppearanceFormValues>();
     const { watch, setValue } = form;
-    const { initialize, flush } = useAutoSaveSettingsForm<AppearanceFormValues>({
+
+    const { ready, initialize, flush } = useAutoSaveSettingsForm<AppearanceFormValues>({
         form,
         onSave: async (values) => {
             logger.debug('saving appearance settings', { values });
-            await api.call('settings/appearance/update', {
-                theme: values.theme,
-                fontSize: values.fontSize,
-            });
+            await api.call('settings/appearance/save', values);
         },
     });
 
     React.useEffect(() => {
-        initialize({
-            theme: normalizeTheme(themeSetting),
-            fontSize: normalizeFontSize(fontSizeSetting),
-        });
-    }, [fontSizeSetting, initialize, themeSetting]);
+        if (!settings) {
+            return;
+        }
+        initialize(settings);
+    }, [initialize, settings]);
 
-    const currentTheme = normalizeTheme(watch('theme'));
-    const currentFontSize = normalizeFontSize(watch('fontSize'));
+    if (!ready) {
+        return (
+            <div className="w-full h-full min-h-0">
+                <SettingsPageShell
+                    title={t('appearance.title')}
+                    description={t('appearance.description')}
+                    contentClassName="space-y-8"
+                >
+                    <></>
+                </SettingsPageShell>
+            </div>
+        );
+    }
+
+    const currentTheme = watch('theme');
+    const currentFontSize = watch('fontSize');
+    const currentLanguage = watch('language');
+
+    if (currentTheme === undefined || currentFontSize === undefined || currentLanguage === undefined) {
+        throw new Error('外观设置表单未初始化');
+    }
+
     const fontSizeOptions: Record<AppearanceFormValues['fontSize'], string> = {
         fontSizeSmall: t('appearance.fontSizeSmall'),
         fontSizeMedium: t('appearance.fontSizeMedium'),
         fontSizeLarge: t('appearance.fontSizeLarge'),
     };
-    const currentLanguage = (languageSetting === 'zh-CN' || languageSetting === 'en-US' || languageSetting === 'system'
-        ? languageSetting
-        : 'system') as AppLanguageSetting;
-
-    logger.debug('Current fontSize setting', { fontSize: currentFontSize });
 
     return (
         <form className="w-full h-full min-h-0" onSubmit={(event) => {
@@ -149,7 +140,7 @@ const AppearanceSetting = () => {
                     title={t('appearance.fontSizeLabel')}
                     values={['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge']}
                     valueLabelMap={fontSizeOptions}
-                    defaultValue={fontSizeToLabel(currentFontSize)}
+                    defaultValue={currentFontSize}
                     inputWidth="w-56"
                     setValue={(v) => {
                         if (v === 'fontSizeSmall') {
@@ -172,8 +163,11 @@ const AppearanceSetting = () => {
                         <Label className="mb-2 block">{t('appearance.languageTitle')}</Label>
                         <Select
                             value={currentLanguage}
-                            onValueChange={(value: AppLanguageSetting) => {
-                                setSetting('i18n.language', value).catch(() => undefined);
+                            onValueChange={(value) => {
+                                setValue('language', value as AppearanceFormValues['language'], {
+                                    shouldDirty: true,
+                                    shouldTouch: true,
+                                });
                                 applyLanguageSetting(value).catch(() => undefined);
                             }}
                         >

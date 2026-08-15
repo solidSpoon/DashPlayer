@@ -32,7 +32,7 @@ describe('ProxySetting（SWR 版本）', () => {
         window.electron = {
             call: vi.fn((path: string, params: unknown) => {
                 if (path === KEY) return Promise.resolve({ mode: 'custom', url: '', bypassRules: '' });
-                if (path === 'settings/proxy/update') calls.push(params);
+                if (path === 'settings/proxy/save') calls.push(params);
                 return Promise.resolve(undefined);
             }),
         } as never;
