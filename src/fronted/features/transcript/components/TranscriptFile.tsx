@@ -4,8 +4,6 @@ import ProjectListComp from '@/fronted/features/file-browser/components/project-
 import { Folder } from 'lucide-react';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import MediaUtil from '@/common/utils/MediaUtil';
-import useTranscript from '../transcriptStore';
-import { useShallow } from 'zustand/react/shallow';
 import FolderSelector, { FolderSelectAction } from '@/fronted/features/file-browser/components/FolderSelector';
 import FileSelector from '@/fronted/features/file-browser/components/FileSelector';
 import ProjItem2 from '@/fronted/features/file-browser/components/ProjItem2';
@@ -14,12 +12,19 @@ import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/features/file-browser/components/BackNavItem';
 import { transcriptApi } from '../transcriptApi';
-const TranscriptFile = () => {
-    const { files, onAddToQueue } = useTranscript(useShallow(s => ({
-        files: s.files,
-        onAddToQueue: s.onAddToQueue
-    })));
-    const queue = files.map(f => f.file);
+import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+
+/** 转录文件浏览区属性。 */
+export interface TranscriptFileProps {
+    /** 后端返回的全部转录任务。 */
+    tasks: TranscriptTask[];
+    /** 将视频加入后端任务表。 */
+    onEnqueue: (filePath: string) => Promise<void>;
+}
+
+/** 浏览媒体文件，并将选中的视频加入后端转录列表。 */
+const TranscriptFile = ({ tasks, onEnqueue }: TranscriptFileProps) => {
+    const queue = new Set(tasks.map((task) => task.file));
     return (
         <div className={cn('flex-1 flex flex-col rounded-lg border bg-muted/20 p-4 min-h-0')}>
             <div
@@ -63,9 +68,9 @@ const TranscriptFile = () => {
                     return <VideoItem2 pv={pv}
                                        ctxMenus={ctxMenus}
                                        onClick={() => {
-                                           onAddToQueue(PathUtil.join(pv.basePath, pv.fileName));
+                                           void onEnqueue(PathUtil.join(pv.basePath, pv.fileName));
                                        }}
-                                       variant={queue.includes(PathUtil.join(pv.basePath, pv.fileName)) ? 'lowlight' : 'normal'} />;
+                                       variant={queue.has(PathUtil.join(pv.basePath, pv.fileName)) ? 'lowlight' : 'normal'} />;
                 }}
                 projEle={(p, hc) => {
                     const ctxMenus = [
@@ -79,11 +84,11 @@ const TranscriptFile = () => {
                     ];
                     return <ProjItem2 v={p}
                                       ctxMenus={ctxMenus}
-                                      variant={queue.includes(PathUtil.join(p.basePath, p.fileName)) ? 'lowlight' : 'normal'}
+                                      variant={queue.has(PathUtil.join(p.basePath, p.fileName)) ? 'lowlight' : 'normal'}
                                       onClick={() => {
                                           hc();
                                           if (!p.isFolder) {
-                                              onAddToQueue(PathUtil.join(p.basePath, p.fileName));
+                                              void onEnqueue(PathUtil.join(p.basePath, p.fileName));
                                           }
                                       }} />;
                 }}

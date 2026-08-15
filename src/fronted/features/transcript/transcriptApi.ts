@@ -2,6 +2,28 @@ import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 export const transcriptApi = {
     /**
+     * 查询后端持久化的转录任务列表。
+     *
+     * @returns 当前全部转录任务。
+     */
+    listTasks: () => backendClient.call('transcript/list'),
+
+    /**
+     * 将视频加入后端转录队列；重复视频返回已有任务。
+     *
+     * @param filePath 视频绝对路径。
+     * @returns 新建或已存在的转录任务。
+     */
+    enqueueTask: (filePath: string) => backendClient.call('transcript/enqueue', { filePath }),
+
+    /**
+     * 删除后端转录任务。
+     *
+     * @param filePath 视频绝对路径。
+     */
+    removeTask: (filePath: string) => backendClient.call('transcript/remove', { filePath }),
+
+    /**
      * 查询本地转录模型是否可用。
      *
      * @returns 当前模型状态。
@@ -14,7 +36,7 @@ export const transcriptApi = {
      * @param filePath 视频绝对路径。
      * @returns 后端接受任务后结束。
      */
-    startTranscription: (filePath: string) => backendClient.call('ai-func/transcript', { filePath }),
+    startTranscription: (filePath: string) => backendClient.call('transcript/start', { filePath }),
 
     /**
      * 取消指定视频的转录任务。
@@ -22,7 +44,7 @@ export const transcriptApi = {
      * @param filePath 视频绝对路径。
      * @returns 是否成功取消后端任务。
      */
-    cancelTranscription: (filePath: string) => backendClient.call('ai-func/cancel-transcription', { filePath }),
+    cancelTranscription: (filePath: string) => backendClient.call('transcript/cancel', { filePath }),
 
     /**
      * 将文件加入观看历史。

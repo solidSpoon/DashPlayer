@@ -42,6 +42,7 @@ const TYPES = {
     LocalTtsService: Symbol('LocalTtsService'),
     WordsRepository: Symbol('WordsRepository'),
     DpTaskRepository: Symbol('DpTaskRepository'),
+    TranscriptionTaskRepository: Symbol('TranscriptionTaskRepository'),
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
     VideoLearningClipWordRepository: Symbol('VideoLearningClipWordRepository'),
     WatchHistoryRepository: Symbol('WatchHistoryRepository'),

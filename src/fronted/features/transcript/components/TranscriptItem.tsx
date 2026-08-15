@@ -2,11 +2,13 @@ import { TableCell, TableRow } from '@/fronted/components/ui/table';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import React from 'react';
-import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
+import {
+    TranscriptTask,
+    TranscriptTaskState,
+} from '@/common/contracts/transcript/transcript-task';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import useTranscript from '../transcriptStore';
 import useSWR from 'swr';
 import { transcriptApi } from '../transcriptApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -14,24 +16,24 @@ import toast from 'react-hot-toast';
 
 /** 单个转录任务行的输入属性。 */
 export interface TranscriptItemProps {
-    /** 视频文件绝对路径。 */
-    file: string;
+    /** 后端返回的转录任务。 */
+    task: TranscriptTask;
     /** 启动转录并返回启动结果。 */
     onStart: () => Promise<'started' | 'model_missing'>;
     /** 从转录队列移除任务。 */
-    onDelete: () => void;
+    onDelete: () => Promise<void>;
 }
 
-const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
+/** 展示单个转录任务，并提供开始、取消和删除操作。 */
+const TranscriptItem = ({ task, onStart, onDelete }: TranscriptItemProps) => {
     const { t } = useI18nTranslation('pages');
     const [started, setStarted] = React.useState(false);
     const [cancelling, setCancelling] = React.useState(false);
     const logger = getRendererLogger('TranscriptItem');
-    const files = useTranscript((state) => state.files);
+    const file = task.file;
     const { data: fInfo } = useSWR(['system/path-info', file], ([_k, f]) => transcriptApi.getPathInfo(f));
 
-    const task = files.find(f => f.file === file);
-    logger.debug('task status updated', { task });
+    logger.debug('task status updated', { file, status: task.status });
 
     React.useEffect(() => {
         if (task && task.status) {
@@ -53,15 +55,11 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                 msg = task.result?.message || t('subtitleWorkspace.status.processing');
                 break;
             case TranscriptTaskState.DONE: {
-                if (task.updated_at && task.created_at) {
-                    const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
-                    const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
-                    const duration = Math.floor((updatedAt - createdAt) / 1000);
-                    logger.debug('task duration calculated', { duration, updatedAt: task.updated_at, createdAt: task.created_at });
-                    msg = t('subtitleWorkspace.status.doneWithDuration', { duration });
-                } else {
-                    msg = t('subtitleWorkspace.status.done');
-                }
+                const updatedAt = TimeUtil.isoToDate(task.updated_at).getTime();
+                const createdAt = TimeUtil.isoToDate(task.created_at).getTime();
+                const duration = Math.floor((updatedAt - createdAt) / 1000);
+                logger.debug('task duration calculated', { duration, updatedAt: task.updated_at, createdAt: task.created_at });
+                msg = t('subtitleWorkspace.status.doneWithDuration', { duration });
                 break;
             }
             case TranscriptTaskState.CANCELLED:
@@ -82,16 +80,11 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
             if (success) {
                 logger.info('Transcription cancelled successfully', { file });
             } else {
-                logger.warn('Failed to cancel transcription - task does not exist, updating status to cancelled', { file });
-                useTranscript.getState().updateTranscriptTasks([{
-                    filePath: file,
-                    taskId: 0,
-                    status: TranscriptTaskState.CANCELLED,
-                    result: { message: t('subtitleWorkspace.actions.cancelledMessage') }
-                }]);
+                throw new Error(`后端不存在可取消的转录任务: ${file}`);
             }
         } catch (error) {
             logger.error('Error cancelling transcription', { file, error });
+            toast.error(error instanceof Error ? error.message : String(error));
         } finally {
             setCancelling(false);
         }
@@ -137,7 +130,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                 <Button
                     onClick={() => {
                         if (isFinished) {
-                            onDelete();
+                            void onDelete();
                         } else {
                             handleCancelTranscription();
                         }

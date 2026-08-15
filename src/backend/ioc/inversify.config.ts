@@ -80,6 +80,8 @@ import WordsRepository from '@/backend/services/repositories/WordsRepository';
 import WordsRepositoryImpl from '@/backend/infrastructure/db/repositories/WordsRepositoryImpl';
 import DpTaskRepository from '@/backend/services/repositories/DpTaskRepository';
 import DpTaskRepositoryImpl from '@/backend/infrastructure/db/repositories/DpTaskRepositoryImpl';
+import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
+import TranscriptionTaskRepositoryImpl from '@/backend/infrastructure/db/repositories/TranscriptionTaskRepositoryImpl';
 import VideoLearningClipRepository from '@/backend/services/repositories/VideoLearningClipRepository';
 import VideoLearningClipRepositoryImpl from '@/backend/infrastructure/db/repositories/VideoLearningClipRepositoryImpl';
 import VideoLearningClipWordRepository from '@/backend/services/repositories/VideoLearningClipWordRepository';
@@ -149,6 +151,7 @@ container.bind<SherpaTtsModelService>(TYPES.SherpaTtsModelService).to(SherpaTtsM
 container.bind<LocalTtsService>(TYPES.LocalTtsService).to(LocalTtsServiceImpl).inSingletonScope();
 container.bind<WordsRepository>(TYPES.WordsRepository).to(WordsRepositoryImpl).inSingletonScope();
 container.bind<DpTaskRepository>(TYPES.DpTaskRepository).to(DpTaskRepositoryImpl).inSingletonScope();
+container.bind<TranscriptionTaskRepository>(TYPES.TranscriptionTaskRepository).to(TranscriptionTaskRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipRepository>(TYPES.VideoLearningClipRepository).to(VideoLearningClipRepositoryImpl).inSingletonScope();
 container.bind<VideoLearningClipWordRepository>(TYPES.VideoLearningClipWordRepository).to(VideoLearningClipWordRepositoryImpl).inSingletonScope();
 container.bind<WatchHistoryRepository>(TYPES.WatchHistoryRepository).to(WatchHistoryRepositoryImpl).inSingletonScope();

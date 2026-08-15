@@ -1,10 +1,13 @@
 import { RendererApiDefinitions, RendererApiMap } from '@/common/api/renderer-api-def';
 import useDictionaryStream from '@/fronted/features/player/dictionaryStore';
 import useChatPanel from '@/fronted/features/chat/chatStore';
-import useTranscript from '@/fronted/features/transcript/transcriptStore';
 import useTranslation from '@/fronted/features/player/translationStore';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
+import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
+import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
+import toast from 'react-hot-toast';
 
 /**
  * 注册 main 进程可调用的 renderer 接口。
@@ -88,8 +91,22 @@ export function initRendererApis(): () => void {
     });
 
     register('transcript/batch-result', async (params) => {
-        logger.debug('Batch transcription result', { params });
-        useTranscript.getState().updateTranscriptTasks(params.updates);
+        logger.debug('Batch transcription result', {
+            count: params.updates.length,
+            statuses: params.updates.map((update) => update.status),
+        });
+
+        try {
+            for (const update of params.updates) {
+                if (update.status === TranscriptTaskState.DONE && update.result?.srtPath) {
+                    await transcriptApi.attachSubtitle(update.filePath, 'same');
+                    await swrMutate(SWR_KEY.PLAYER_P);
+                    toast('Transcript done', { icon: '🚀' });
+                }
+            }
+        } finally {
+            await swrMutate(SWR_KEY.TRANSCRIPTION_TASKS);
+        }
     });
 
     register('dictionary/openai-update', async ({ requestId, word, data, isComplete = false }) => {

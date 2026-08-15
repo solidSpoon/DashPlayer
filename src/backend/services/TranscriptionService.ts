@@ -17,9 +17,53 @@ import StorageDirectoryProvider, {
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import EnglishSubtitleSegmenter from '@/backend/utils/subtitle/EnglishSubtitleSegmenter';
 import { concurrency } from '@/backend/utils/concurrency';
-import { TranscriptTaskResult, TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
+import {
+    TranscriptTask,
+    TranscriptTaskResult,
+    TranscriptTaskState,
+} from '@/common/contracts/transcript/transcript-task';
+import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
 
+/**
+ * 本地转录任务的持久化、排队、执行与取消契约。
+ */
 export interface TranscriptionService {
+    /**
+     * 查询持久化的转录任务列表。
+     *
+     * @returns 按入队顺序排列的转录任务。
+     */
+    listTasks(): Promise<TranscriptTask[]>;
+
+    /**
+     * 将文件加入转录列表；同一路径只保留一条任务。
+     *
+     * @param filePath 待转录媒体的绝对路径。
+     * @returns 新建或已存在的任务。
+     */
+    enqueue(filePath: string): Promise<TranscriptTask>;
+
+    /**
+     * 从转录列表删除未执行中的任务。
+     *
+     * @param filePath 待删除媒体的绝对路径。
+     */
+    remove(filePath: string): Promise<void>;
+
+    /**
+     * 将应用重启前未完成的任务标记为中断。
+     */
+    recoverInterruptedTasks(): Promise<void>;
+
+    /**
+     * 写入任务状态并通知 renderer。
+     *
+     * @param filePath 任务文件路径。
+     * @param status 目标状态。
+     * @param result 状态说明。
+     */
+    updateTask(filePath: string, status: TranscriptTaskState, result: TranscriptTaskResult): Promise<void>;
+
     /**
      * 开始转录任务
      * @param filePath 音频/视频文件路径
@@ -40,6 +84,9 @@ const MAX_CHUNK_RETRY = 2;
 /** 相邻音频分段的语音重叠时长（秒），用于避免切分边界切到单词。 */
 const CHUNK_OVERLAP_SECONDS = 1;
 
+/**
+ * 使用后端数据库维护转录列表，并通过并发内核串行执行本地识别任务。
+ */
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
     // 记录每个文件的 Promise 控制器
@@ -62,9 +109,23 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         @inject(TYPES.SpeechRecognitionGateway) private speechRecognitionGateway: SpeechRecognitionGateway,
         @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private fileSystemGateway: FileSystemGateway,
+        @inject(TYPES.TranscriptionTaskRepository) private transcriptionTaskRepository: TranscriptionTaskRepository,
     ) {}
 
     private readonly subtitleSegmenter = new EnglishSubtitleSegmenter();
+
+    /**
+     * 校验并归一化媒体绝对路径，确保数据库唯一索引和内存队列使用同一键。
+     *
+     * @param filePath 调用方传入的媒体路径。
+     * @returns 归一化后的绝对路径。
+     */
+    private normalizeFilePath(filePath: string): string {
+        if (!path.isAbsolute(filePath)) {
+            throw new Error(`转录文件路径必须是绝对路径: ${filePath}`);
+        }
+        return path.normalize(filePath);
+    }
 
     /**
      * 向渲染进程发送转录任务状态，处理中仅向用户展示百分比与累计秒数。
@@ -74,13 +135,13 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
      * @param progress 整体进度百分比。
      * @param result 可选的消息、错误或字幕路径。
      */
-    private sendProgress(
+    private async sendProgress(
         taskId: number,
         filePath: string,
         status: TranscriptTaskState,
         progress: number,
         result?: TranscriptTaskResult,
-    ): void {
+    ): Promise<void> {
         const finalResult = { ...result };
         if (status === TranscriptTaskState.INIT) {
             this.transcriptionStartedAt.set(filePath, Date.now());
@@ -93,6 +154,10 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             this.transcriptionStartedAt.delete(filePath);
         }
 
+        await this.transcriptionTaskRepository.updateByFilePath(filePath, {
+            status,
+            result: finalResult,
+        });
         this.rendererGateway.fireAndForget('transcript/batch-result', {
             updates: [{
                 filePath,
@@ -104,53 +169,125 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     }
 
     /**
+     * 查询后端持久化的转录任务列表。
+     *
+     * @returns 当前全部转录任务。
+     */
+    public listTasks(): Promise<TranscriptTask[]> {
+        return this.transcriptionTaskRepository.list();
+    }
+
+    /**
+     * 将视频加入后端转录列表，并由数据库唯一索引执行去重。
+     *
+     * @param filePath 待转录媒体的绝对路径。
+     * @returns 新建或已存在的转录任务。
+     */
+    public async enqueue(filePath: string): Promise<TranscriptTask> {
+        const normalizedFilePath = this.normalizeFilePath(filePath);
+        return this.transcriptionTaskRepository.createIfAbsent({ filePath: normalizedFilePath });
+    }
+
+    /**
+     * 删除未进入执行阶段的转录任务。
+     *
+     * @param filePath 待删除媒体的绝对路径。
+     * @throws 任务正在排队或执行时抛出，要求调用方先取消任务。
+     */
+    public async remove(filePath: string): Promise<void> {
+        const normalizedFilePath = this.normalizeFilePath(filePath);
+        if (this.deferred.has(normalizedFilePath)) {
+            throw new Error(`转录任务正在执行，不能删除: ${normalizedFilePath}`);
+        }
+        await this.transcriptionTaskRepository.deleteByFilePath(normalizedFilePath);
+    }
+
+    /**
+     * 清理应用重启前遗留的未完成任务状态。
+     */
+    public recoverInterruptedTasks(): Promise<void> {
+        return this.transcriptionTaskRepository.markActiveAsInterrupted();
+    }
+
+    /**
+     * 写入转录任务状态并向 renderer 推送最新状态。
+     *
+     * @param filePath 任务文件路径。
+     * @param status 目标状态。
+     * @param result 状态说明。
+     */
+    public updateTask(
+        filePath: string,
+        status: TranscriptTaskState,
+        result: TranscriptTaskResult,
+    ): Promise<void> {
+        return this.sendProgress(0, this.normalizeFilePath(filePath), status, 0, result);
+    }
+
+    /**
      * 将文件加入本地转录队列，同一时间只处理一个文件。
      * @param filePath 待转录媒体的绝对路径。
      */
     public async transcribe(filePath: string): Promise<void> {
-        if (this.deferred.has(filePath)) {
-            this.sendProgress(0, filePath, TranscriptTaskState.FAILED, 0, {
-                message: '该文件已在转录队列中或正在处理'
-            });
+        const normalizedFilePath = this.normalizeFilePath(filePath);
+        if (this.deferred.has(normalizedFilePath)) {
             throw new Error('File already in queue or processing');
         }
 
-        return await new Promise<void>((resolve, reject) => {
-            const controller = new AbortController();
-            this.deferred.set(filePath, { resolve, reject });
-            this.abortControllers.set(filePath, controller);
-
-            concurrency.withMutex('transcription', async () => {
-                // 若在排队等待期间被取消，不再执行转录。
-                if (controller.signal.aborted) {
-                    throw new Error('Transcription cancelled by user');
-                }
-                if (this.deferred.size > 1) {
-                    this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, {
-                        message: '已加入队列，等待前一个文件转录完成...'
-                    });
-                }
-                this.activeFilePath = filePath;
-                await this.doTranscribe(filePath, controller.signal);
-            }, { signal: controller.signal }).catch((error) => {
-                // mutex 等待期间取消会抛 ConcurrencyCancelledError，统一按取消处理。
-                if (controller.signal.aborted) {
-                    throw new Error('Transcription cancelled by user');
-                }
-                throw error;
-            }).then(
-                () => {
-                    this.deferred.delete(filePath);
-                    this.abortControllers.delete(filePath);
-                    resolve();
-                },
-                (error: unknown) => {
-                    this.deferred.delete(filePath);
-                    this.abortControllers.delete(filePath);
-                    reject(error);
-                },
-            );
+        let resolveTask!: () => void;
+        let rejectTask!: (error: unknown) => void;
+        const taskPromise = new Promise<void>((resolve, reject) => {
+            resolveTask = resolve;
+            rejectTask = reject;
         });
+
+        const controller = new AbortController();
+        this.deferred.set(normalizedFilePath, { resolve: resolveTask, reject: rejectTask });
+        this.abortControllers.set(normalizedFilePath, controller);
+
+        try {
+            // 先落库再等待互斥锁，确保排队任务立即呈现在所有前端入口。
+            await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.INIT, 0);
+        } catch (error) {
+            this.deferred.delete(normalizedFilePath);
+            this.abortControllers.delete(normalizedFilePath);
+            throw error;
+        }
+
+        concurrency.withMutex('transcription', async () => {
+            // 若在排队等待期间被取消，不再执行转录。
+            if (controller.signal.aborted) {
+                throw new Error('Transcription cancelled by user');
+            }
+            this.activeFilePath = normalizedFilePath;
+            await this.doTranscribe(normalizedFilePath, controller.signal);
+        }, { signal: controller.signal }).catch(async (error) => {
+            // 在队列等待或实际执行期间取消，都统一持久化为 cancelled。
+            if (controller.signal.aborted) {
+                await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.CANCELLED, 0, {
+                    message: '转录任务已取消',
+                });
+                throw new Error('Transcription cancelled by user');
+            }
+
+            await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.FAILED, 0, {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
+        }).then(
+            () => {
+                this.deferred.delete(normalizedFilePath);
+                this.abortControllers.delete(normalizedFilePath);
+                resolveTask();
+            },
+            (error: unknown) => {
+                this.deferred.delete(normalizedFilePath);
+                this.abortControllers.delete(normalizedFilePath);
+                rejectTask(error);
+            },
+        );
+
+        return taskPromise;
     }
 
     /**
@@ -164,7 +301,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         try {
             await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
             // 开始
-            this.sendProgress(0, filePath, TranscriptTaskState.INIT, 0);
+            await this.sendProgress(0, filePath, TranscriptTaskState.INIT, 0);
             if (signal.aborted) throw new Error('Transcription cancelled by user');
 
             // 临时目录
@@ -181,13 +318,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             });
             return;
 
-        } catch (error) {
-            if (signal.aborted) {
-                this.sendProgress(0, filePath, TranscriptTaskState.CANCELLED, 0, { message: '转录任务已取消' });
-            } else {
-                this.sendProgress(0, filePath, TranscriptTaskState.FAILED, 0, { error: error instanceof Error ? error.message : String(error) });
-            }
-            throw error;
         } finally {
             // 清理临时文件
             try {
@@ -206,7 +336,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
         const { filePath, tempFolder, signal } = opts;
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
-        this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 10, { message: '正在切分长音频...' });
+        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 10, { message: '正在切分长音频...' });
         if (signal.aborted) throw new Error('Transcription cancelled by user');
         const duration = await this.ffmpegService.duration(filePath);
         if (!Number.isFinite(duration) || duration <= 0) throw new Error(`无法读取音频时长：${duration}`);
@@ -223,14 +353,14 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             ranges,
             outputFolder: tempFolder,
         });
-        this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 35);
+        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 35);
 
         const chunkTimelines: SpeechRecognitionToken[][] = [];
         for (let index = 0; index < wavPaths.length; index++) {
             if (signal.aborted) throw new Error('Transcription cancelled by user');
             // 进度从 35% 起步，覆盖到 100%，并留出整理字幕的最后一步。
             const progress = Math.min(90, 35 + Math.floor(index / Math.max(wavPaths.length, 1) * 55));
-            this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
+            await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
             const offset = ranges[index].start;
             const result = await this.transcribeChunkWithRetry({
                 wavPath: wavPaths[index],
@@ -242,7 +372,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             chunkTimelines.push(result.tokens.map((token) => ({ ...token, start: token.start + offset })));
         }
         if (signal.aborted) throw new Error('Transcription cancelled by user');
-        this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
+        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
         const lines = this.subtitleSegmenter.segment(
             chunkTimelines,
             ranges.map((range) => range.start),
@@ -253,7 +383,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
         await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);
 
-        this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
+        await this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
     }
 
     /**
@@ -279,7 +409,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                         modelsRoot,
                         isCancelled: () => signal.aborted,
                         onHeartbeat: () => {
-                            this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
+                            void this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
                         },
                     });
                 }, { skipOrderCheck: true });
@@ -306,11 +436,12 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
      * @returns 找到并取消任务时返回 true。
      */
     public cancel(filePath: string): boolean {
-        if (this.deferred.has(filePath)) {
+        const normalizedFilePath = this.normalizeFilePath(filePath);
+        if (this.deferred.has(normalizedFilePath)) {
             // 触发取消信号：正在排队等待的任务会直接退出，正在识别的任务会中止循环并在检查点退出。
-            this.abortControllers.get(filePath)?.abort();
+            this.abortControllers.get(normalizedFilePath)?.abort();
             // 目标是当前正在识别的任务时，再终止底层识别进程以缩短等待时间。
-            if (this.activeFilePath === filePath) {
+            if (this.activeFilePath === normalizedFilePath) {
                 this.speechRecognitionGateway.cancelActive();
             }
             return true;
