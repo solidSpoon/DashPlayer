@@ -581,10 +581,12 @@ const ServiceCredentialSetting = () => {
                                     )
                                 ) : (
                                     <>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => downloadParakeetModel().catch(() => null)}>
-                                            <Download className="w-3.5 h-3.5 mr-1.5" />
-                                            {t('common.download')}
-                                        </Button>
+                                        {!parakeetModelStatus?.ready && (
+                                            <Button type="button" variant="outline" size="sm" onClick={() => downloadParakeetModel().catch(() => null)}>
+                                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                                {t('common.download')}
+                                            </Button>
+                                        )}
                                         {parakeetModelStatus?.ready && (
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
@@ -648,7 +650,9 @@ const ServiceCredentialSetting = () => {
                                     )
                                 ) : (
                                     <>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => downloadSherpaTtsModel().catch(() => null)}><Download className="w-3.5 h-3.5 mr-1.5" />{t('common.download')}</Button>
+                                        {!sherpaTtsModelStatus?.ready && (
+                                            <Button type="button" variant="outline" size="sm" onClick={() => downloadSherpaTtsModel().catch(() => null)}><Download className="w-3.5 h-3.5 mr-1.5" />{t('common.download')}</Button>
+                                        )}
                                         {sherpaTtsModelStatus?.ready && (
                                             <Button type="button" variant="outline" size="sm" disabled={deletingSherpaTtsModel} onClick={() => deleteSherpaTtsModel().catch(() => null)}><Trash2 className="w-3.5 h-3.5 mr-1.5" />删除模型</Button>
                                         )}
