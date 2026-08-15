@@ -82,39 +82,6 @@ export default class FileUtil {
     }
 
     /**
-     * 清理空目录
-     * @param dir - 目标目录
-     */
-    public static async cleanEmptyDirectories(dir: string): Promise<void> {
-        try {
-            const entries = await fsPromises.readdir(dir, { withFileTypes: true });
-
-            for (const entry of entries) {
-                const fullPath = path.join(dir, entry.name);
-
-                if (entry.isDirectory()) {
-                    // 递归清理子目录
-                    await FileUtil.cleanEmptyDirectories(fullPath);
-
-                    // 清理后检查目录是否为空
-                    try {
-                        const subEntries = await fsPromises.readdir(fullPath);
-                        if (subEntries.length === 0) {
-                            await fsPromises.rmdir(fullPath);
-                            getMainLogger('FileUtil').debug('removed empty directory', { path: fullPath });
-                        }
-                    } catch (error) {
-                        getMainLogger('FileUtil').error('remove directory failed', { path: fullPath, error });
-                    }
-                }
-            }
-        } catch (error) {
-            getMainLogger('FileUtil').error('clean directory failed', { dir, error });
-            throw error; // 重新抛出错误以便装饰器处理
-        }
-    }
-
-    /**
      * 比较两个视频信息是否相同
      * @returns true 如果视频未被修改，false 如果视频已被修改
      */

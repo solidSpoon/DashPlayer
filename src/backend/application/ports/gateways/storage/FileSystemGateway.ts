@@ -21,6 +21,15 @@ export default interface FileSystemGateway {
     fileExists(filePath: string): Promise<boolean>;
 
     /**
+     * 判断目录是否存在。
+     *
+     * 路径不存在、上级路径不是目录或目标是普通文件时返回 `false`；其他文件系统错误继续抛出。
+     *
+     * @param directoryPath 待检查的目录绝对路径。
+     * @returns 目录存在时返回 `true`，目标不是目录时返回 `false`。
+     */
+    directoryExists(directoryPath: string): Promise<boolean>;
+    /**
      * 获取文件大小。
      * @param filePath 文件绝对路径。
      * @returns 文件大小，单位为字节。
@@ -63,4 +72,30 @@ export default interface FileSystemGateway {
      * @returns 目录下普通文件的名称，不包含目录路径。
      */
     listFileNames(directoryPath: string): Promise<string[]>;
+
+    /**
+     * 列出目录中的子目录名。
+     * @param directoryPath 目录绝对路径。
+     * @returns 目录下子目录的名称，不包含目录路径。
+     */
+    listDirectoryNames(directoryPath: string): Promise<string[]>;
+
+    /**
+     * 删除目录下已经为空的子目录。
+     *
+     * 目标目录本身不会删除；无法读取或删除目录时直接抛出错误。
+     *
+     * @param directoryPath 待清理的根目录。
+     */
+    removeEmptySubdirectories(directoryPath: string): Promise<void>;
+
+    /**
+     * 判断路径是否明确不存在。
+     *
+     * 只有路径不存在或上级路径不是目录时返回 `true`；权限等其他错误继续抛出。
+     *
+     * @param targetPath 待检查的路径。
+     * @returns 路径明确不存在时返回 `true`。
+     */
+    pathIsMissing(targetPath: string): Promise<boolean>;
 }

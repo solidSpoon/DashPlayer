@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import path from 'path';
 import { injectable } from 'inversify';
 import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 
@@ -28,7 +29,24 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
             }
             return true;
         } catch (error) {
-            if (this.readErrorCode(error) === 'ENOENT') {
+            if (this.isMissingPathError(error)) {
+                return false;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * 判断目录是否存在。
+     * @param directoryPath 待检查的目录绝对路径。
+     * @returns 目录存在时返回 `true`。
+     */
+    public async directoryExists(directoryPath: string): Promise<boolean> {
+        try {
+            const stat = await fs.stat(directoryPath);
+            return stat.isDirectory();
+        } catch (error) {
+            if (this.isMissingPathError(error)) {
                 return false;
             }
             throw error;
@@ -83,7 +101,7 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
         try {
             await fs.unlink(filePath);
         } catch (error) {
-            if (this.readErrorCode(error) !== 'ENOENT') {
+            if (!this.isMissingPathError(error)) {
                 throw error;
             }
         }
@@ -102,6 +120,52 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
     }
 
     /**
+     * 列出目录中的子目录名。
+     * @param directoryPath 目录绝对路径。
+     * @returns 目录下子目录的名称，不包含目录路径。
+     */
+    public async listDirectoryNames(directoryPath: string): Promise<string[]> {
+        const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+        return entries
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => entry.name);
+    }
+
+    /**
+     * 删除目录下已经为空的子目录。
+     *
+     * @param directoryPath 待清理的根目录。
+     */
+    public async removeEmptySubdirectories(directoryPath: string): Promise<void> {
+        const directoryNames = await this.listDirectoryNames(directoryPath);
+        for (const directoryName of directoryNames) {
+            const childPath = path.join(directoryPath, directoryName);
+            await this.removeEmptySubdirectories(childPath);
+            const childEntries = await fs.readdir(childPath);
+            if (childEntries.length === 0) {
+                await fs.rmdir(childPath);
+            }
+        }
+    }
+
+    /**
+     * 判断路径是否明确不存在。
+     * @param targetPath 待检查的路径。
+     * @returns 路径明确不存在时返回 `true`。
+     */
+    public async pathIsMissing(targetPath: string): Promise<boolean> {
+        try {
+            await fs.stat(targetPath);
+            return false;
+        } catch (error) {
+            if (this.isMissingPathError(error)) {
+                return true;
+            }
+            throw error;
+        }
+    }
+
+    /**
      * 从未知异常中读取 Node.js 错误码。
      * @param error 文件系统抛出的未知异常。
      * @returns Node.js 错误码；不存在时返回 `undefined`。
@@ -111,5 +175,15 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
             return (error as NodeJS.ErrnoException).code;
         }
         return undefined;
+    }
+
+    /**
+     * 判断文件系统错误是否表示路径不存在。
+     * @param error 文件系统抛出的未知异常。
+     * @returns 仅在路径不存在或上级路径不是目录时返回 `true`。
+     */
+    private isMissingPathError(error: unknown): boolean {
+        const code = this.readErrorCode(error);
+        return code === 'ENOENT' || code === 'ENOTDIR';
     }
 }
