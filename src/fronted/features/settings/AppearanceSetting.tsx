@@ -8,7 +8,7 @@ import SettingsPageShell from '@/fronted/features/settings/components/form/Setti
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -18,8 +18,6 @@ import useSWR from 'swr';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 
 const logger = getRendererLogger('AppearanceSetting');
-const api = backendClient;
-
 type AppearanceFormValues = AppearanceSettingVO;
 
 /**
@@ -29,7 +27,7 @@ const AppearanceSetting = () => {
     const { t } = useI18nTranslation('settings');
 
     const { data: settings } = useSWR<AppearanceSettingVO>('settings/appearance/detail', () =>
-        api.call('settings/appearance/detail'),
+        settingsApi.getAppearance(),
     );
 
     const form = useForm<AppearanceFormValues>();
@@ -39,7 +37,7 @@ const AppearanceSetting = () => {
         form,
         onSave: async (values) => {
             logger.debug('saving appearance settings', { values });
-            await api.call('settings/appearance/save', values);
+            await settingsApi.saveAppearance(values);
         },
     });
 

@@ -14,12 +14,10 @@ import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCrede
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-
-const api = backendClient;
 
 /**
  * 服务凭据设置页。
@@ -28,7 +26,7 @@ const ServiceCredentialSetting = () => {
     const { t } = useI18nTranslation('settings');
     const { toast } = useToast();
     const { data: settings } = useSWR('settings/service-credentials/detail', () =>
-        api.call('settings/service-credentials/detail'),
+        settingsApi.getServiceCredentials(),
     );
 
     const form = useForm<ServiceCredentialSettingDetailVO>();
@@ -50,7 +48,7 @@ const ServiceCredentialSetting = () => {
                     models: values.openai.models.map((item) => item.model),
                 },
             };
-            await api.call('settings/service-credentials/save', payload);
+            await settingsApi.saveServiceCredentials(payload);
         },
     });
 
@@ -85,7 +83,7 @@ const ServiceCredentialSetting = () => {
      * 下载任务结束后由主进程广播 idle 终态事件触发本方法，复位 UI。
      */
     const refreshParakeetModelStatus = React.useCallback(async () => {
-        const status = await api.call('parakeet/models/status');
+        const status = await settingsApi.getParakeetModelStatus();
         setParakeetModelStatus(status);
         if (downloadingRef.current) {
             return;
@@ -109,7 +107,7 @@ const ServiceCredentialSetting = () => {
     }, [refreshParakeetModelStatus]);
 
     const refreshSherpaTtsModelStatus = React.useCallback(async () => {
-        const status = await api.call('sherpa-tts/models/status');
+        const status = await settingsApi.getSherpaTtsModelStatus();
         setSherpaTtsModelStatus(status);
         if (sherpaTtsDownloadingRef.current) return;
         setDownloadingSherpaTtsModel(status.downloading);
@@ -193,12 +191,7 @@ const ServiceCredentialSetting = () => {
         setTesting(true);
         setTestResults((prev) => ({ ...prev, [provider]: null }));
         try {
-            const routeMap: Record<typeof provider, 'settings/service-credentials/test-openai' | 'settings/service-credentials/test-tencent' | 'settings/service-credentials/test-youdao'> = {
-                openai: 'settings/service-credentials/test-openai',
-                tencent: 'settings/service-credentials/test-tencent',
-                youdao: 'settings/service-credentials/test-youdao',
-            };
-            const result = await api.call(routeMap[provider]);
+            const result = await settingsApi.testServiceCredential(provider);
             setTestResults((prev) => ({ ...prev, [provider]: result }));
         } catch (error) {
             setTestResults((prev) => ({
@@ -267,7 +260,7 @@ const ServiceCredentialSetting = () => {
         setParakeetDownloadProgress(0);
         setParakeetDownloadPhase('downloading');
         try {
-            await api.call('parakeet/models/download');
+            await settingsApi.downloadParakeetModel();
             setParakeetDownloadProgress(100);
             setParakeetDownloadPhase('downloading');
             toast({ title: t('common.downloadDone'), description: 'Parakeet v3 模型已下载' });
@@ -289,7 +282,7 @@ const ServiceCredentialSetting = () => {
      */
     const cancelParakeetDownload = async () => {
         try {
-            const result = await api.call('parakeet/models/cancel-download');
+            const result = await settingsApi.cancelParakeetModelDownload();
             if (result.cancelled) {
                 setParakeetDownloadPhase('downloading');
                 toast({ title: t('serviceCredentials.parakeet.downloadCancelled') });
@@ -309,7 +302,7 @@ const ServiceCredentialSetting = () => {
     const deleteParakeetModel = async () => {
         setDeletingParakeetModel(true);
         try {
-            await api.call('parakeet/models/delete');
+            await settingsApi.deleteParakeetModel();
             toast({ title: t('serviceCredentials.parakeet.modelDeleted') });
             await refreshParakeetModelStatus();
         } catch (error) {
@@ -332,7 +325,7 @@ const ServiceCredentialSetting = () => {
         setSherpaTtsDownloadProgress(0);
         setSherpaTtsDownloadPhase('downloading');
         try {
-            await api.call('sherpa-tts/models/download');
+            await settingsApi.downloadSherpaTtsModel();
             toast({ title: t('common.downloadDone'), description: 'Sherpa TTS 模型已下载' });
             await refreshSherpaTtsModelStatus();
         } catch (error) {
@@ -347,7 +340,7 @@ const ServiceCredentialSetting = () => {
      * 取消正在进行的 Sherpa TTS 模型下载。
      */
     const cancelSherpaTtsDownload = async () => {
-        const result = await api.call('sherpa-tts/models/cancel-download');
+        const result = await settingsApi.cancelSherpaTtsModelDownload();
         if (result.cancelled) toast({ title: 'Sherpa TTS 模型下载已取消' });
     };
 
@@ -357,7 +350,7 @@ const ServiceCredentialSetting = () => {
     const deleteSherpaTtsModel = async () => {
         setDeletingSherpaTtsModel(true);
         try {
-            await api.call('sherpa-tts/models/delete');
+            await settingsApi.deleteSherpaTtsModel();
             toast({ title: 'Sherpa TTS 模型已删除' });
             await refreshSherpaTtsModelStatus();
         } finally {

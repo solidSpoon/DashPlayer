@@ -68,5 +68,24 @@
         "jsx-a11y/no-noninteractive-tabindex": "warn",
         "jsx-a11y/label-has-associated-control": "warn",
         "jsx-a11y/alt-text": "warn"
-    }
+    },
+    "overrides": [
+        {
+            "files": ["src/fronted/features/**/*.{ts,tsx}"],
+            "excludedFiles": ["src/fronted/features/**/*Api.ts"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "paths": [
+                            {
+                                "name": "@/fronted/infrastructure/electron/backendClient",
+                                "message": "业务调用请收口到当前 feature 的 *Api.ts 文件。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
 }

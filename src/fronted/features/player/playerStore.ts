@@ -8,9 +8,7 @@ import StrUtil from '@/common/utils/str-util';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import usePlayerToaster from '@/fronted/features/player/playerToasterStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-
-const api = backendClient;
+import { playerApi } from '@/fronted/features/player/playerApi';
 
 /**
  * seek 请求：目标时间与是否继续播放的意图。
@@ -861,7 +859,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
 
       try {
-        await api.call('subtitle-timestamp/delete/by-key', resetSentence.key);
+        await playerApi.deleteTimestampAdjustmentByKey(resetSentence.key);
       } catch {
         // ignore backend errors; frontend state already restored
       }
@@ -947,7 +945,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       usePlayerToaster.getState().setNotification({ type: 'info', text: `start: ${diffStr} s` });
 
       const { start: start2, end: end2 } = srtTender.mapSeekTime(updated);
-      void api.call('subtitle-timestamp/update', {
+      void playerApi.updateTimestampAdjustment({
         key: updated.key,
         subtitle_path: subtitlePath,
         subtitle_hash: useFile.getState().srtHash,
@@ -993,7 +991,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         usePlayerToaster.getState().setNotification({ type: 'info', text: `end: ${diffStr} s` });
 
         const { start: start2, end: end2 } = srtTender.mapSeekTime(updated);
-        void api.call('subtitle-timestamp/update', {
+      void playerApi.updateTimestampAdjustment({
           key: updated.key,
           subtitle_path: subtitlePath,
           subtitle_hash: useFile.getState().srtHash,

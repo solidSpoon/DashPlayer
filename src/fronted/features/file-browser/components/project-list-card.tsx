@@ -18,12 +18,10 @@ import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/features/file-browser/components/music-card';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import useInView from '@/fronted/hooks/useInView';
 
     const logger = getRendererLogger('ProjectListCard');
-
-    const api = backendClient;
 
     const ProjectListCard = ({
                              video,
@@ -45,10 +43,7 @@ import useInView from '@/fronted/hooks/useInView';
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position]
             : null,
         async ([_key, path, file, time]) => {
-            return await api.call('media/thumbnail', {
-                filePath: PathUtil.join(path, file),
-                time
-            });
+            return await fileBrowserApi.getThumbnail(PathUtil.join(path, file), time);
         }
     );
 
@@ -141,7 +136,7 @@ import useInView from '@/fronted/hooks/useInView';
                                 onClick={async (e) => {
                                     e.stopPropagation();
                                     logger.debug('Deleting video from watch history', { id: video.id });
-                                    await api.call('watch-history/group-delete', video.id);
+                                    await fileBrowserApi.deleteWatchHistoryGroup(video.id);
                                     await swrApiMutate('watch-history/list');
                                 }}
                             >
@@ -163,14 +158,14 @@ import useInView from '@/fronted/hooks/useInView';
             <ContextMenuContent>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('system/open-folder', video.basePath);
+                                    await fileBrowserApi.openFolder(video.basePath);
                     }}
                 >
                     Show In Explorer
                 </ContextMenuItem>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('watch-history/group-delete', video.id);
+                        await fileBrowserApi.deleteWatchHistoryGroup(video.id);
                         await swrApiMutate('watch-history/list');
                     }}
                 >

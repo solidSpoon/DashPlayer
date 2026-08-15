@@ -24,10 +24,9 @@ import {ModeSwitchToast} from '@/fronted/components/shared/toasts/ModeSwitchToas
 import useSystem from '@/fronted/hooks/useSystem';
 import useConvert from '@/fronted/features/convert/convertStore';
 import { toast as sonnerToast } from 'sonner';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const api = backendClient;
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const COMPAT_TOAST_ID = 'compat-playback-toast';
@@ -35,9 +34,9 @@ const PlayerWithControlsPage = () => {
     const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
     const navigate = useNavigate();
-    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => api.call('watch-history/detail', videoId));
+    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => playerApi.getWatchHistoryDetail(videoId));
     logger.debug('pa-player page loaded', {videoId, hasVideo: !!video});
-    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => api.call('system/window-size'));
+    const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, playerApi.getWindowState);
     const isMac = useSystem((s) => s.isMac);
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
@@ -64,7 +63,7 @@ const PlayerWithControlsPage = () => {
 
         const isVideo = !!video && !MediaUtil.isAudio(video.fileName);
         if (!isVideo) {
-            api.call('system/window-buttons/visibility', true).then();
+            playerApi.setWindowButtonsVisibility(true).then();
             windowButtonsVisibleRef.current = true;
             return;
         }
@@ -74,7 +73,7 @@ const PlayerWithControlsPage = () => {
                 return;
             }
             windowButtonsVisibleRef.current = visible;
-            api.call('system/window-buttons/visibility', visible).then();
+            playerApi.setWindowButtonsVisibility(visible).then();
         };
 
         if (showSideBar) {
@@ -138,11 +137,11 @@ const PlayerWithControlsPage = () => {
                     }
                     compatToastShownRef.current.add(videoPath);
                     try {
-                        const suggested = await api.call('convert/suggest-html5-video', videoPath);
+                        const suggested = await playerApi.suggestHtml5Video(videoPath);
                         if (suggested) {
                             return;
                         }
-                        const info = await api.call('media/info', videoPath);
+                        const info = await playerApi.getMediaInfo(videoPath);
                         const audioCodec = (info?.audioCodec ?? '').toLowerCase();
                         const suspiciousAudioCodecs = new Set([
                             'dts',
@@ -177,7 +176,7 @@ const PlayerWithControlsPage = () => {
 
             let subtitlePath = video.srtFile;
             if (StrUtil.isBlank(subtitlePath)) {
-                const availableSrt = await api.call('watch-history/suggest-srt', videoPath);
+                const availableSrt = await playerApi.suggestSubtitle(videoPath);
                 subtitlePath = CollUtil.getFirst(availableSrt) ?? '';
             }
 
@@ -201,10 +200,7 @@ const PlayerWithControlsPage = () => {
                                         mode="podcast"
                                         onCancel={() => {
                                             useLayout.getState().setPodcastMode(false);
-                                            void api.call('watch-history/set-podcast-mode-preference', {
-                                                videoId: video.id,
-                                                podcastMode: false,
-                                            });
+                                            void playerApi.setPodcastModePreference(video.id, false);
                                             void swrMutate(SWR_KEY.PLAYER_P);
                                             toast.dismiss(t.id);
                                         }}
@@ -226,10 +222,7 @@ const PlayerWithControlsPage = () => {
                                         mode="video"
                                         onCancel={() => {
                                             useLayout.getState().setPodcastMode(true);
-                                            void api.call('watch-history/set-podcast-mode-preference', {
-                                                videoId: video.id,
-                                                podcastMode: true,
-                                            });
+                                            void playerApi.setPodcastModePreference(video.id, true);
                                             void swrMutate(SWR_KEY.PLAYER_P);
                                             toast.dismiss(t.id);
                                         }}
@@ -244,9 +237,6 @@ const PlayerWithControlsPage = () => {
                     }
                 }
             }
-
-
-            // await api.call('watch-project/video/play', video.id);
         };
         runEffect();
     }, [video, navigate, t]);

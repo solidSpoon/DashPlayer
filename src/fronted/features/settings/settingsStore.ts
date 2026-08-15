@@ -3,7 +3,7 @@
  */
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import {
     RuntimeSettingKey,
     RuntimeSettingsSnapshot,
@@ -58,7 +58,7 @@ const useSetting = create(
         init: false,
         values: new Map<RuntimeSettingKey, string>(),
         setSetting: async (key: RuntimeWritableSettingKey, value: string) => {
-            await backendClient.call('settings/runtime/save', {key, value});
+            await settingsApi.saveRuntimeSetting({key, value});
             set((state) => ({
                 ...state,
                 values: new Map(state.values).set(key, value),

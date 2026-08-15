@@ -17,10 +17,8 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/features/file-browser/components/music-card';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import useInView from '@/fronted/hooks/useInView';
-
-const api = backendClient;
 
 const ProjectListItem = ({ video, onSelected }: {
     video: WatchHistoryVO,
@@ -36,7 +34,7 @@ const ProjectListItem = ({ video, onSelected }: {
     const { data: url } = useSWR(
         inView && !isAudio ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, video.basePath, video.fileName, video.current_position] : null,
         async ([, path, file, time]) => {
-            return await api.call('media/thumbnail', { filePath: PathUtil.join(path, file), time });
+            return await fileBrowserApi.getThumbnail(PathUtil.join(path, file), time);
         }
     );
 
@@ -116,7 +114,7 @@ const ProjectListItem = ({ video, onSelected }: {
                         variant={'outline'}
                         onClick={async (e) => {
                             e.stopPropagation();
-                            await api.call('watch-history/group-delete', video.id);
+                            await fileBrowserApi.deleteWatchHistoryGroup(video.id);
                             await swrApiMutate('watch-history/list');
                         }}
                     >
@@ -129,12 +127,12 @@ const ProjectListItem = ({ video, onSelected }: {
             <ContextMenuContent>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('system/open-folder', video.basePath);
+                        await fileBrowserApi.openFolder(video.basePath);
                     }}
                 >Show In Explorer</ContextMenuItem>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('watch-history/group-delete', video.id);
+                        await fileBrowserApi.deleteWatchHistoryGroup(video.id);
                         await swrApiMutate('watch-history/list');
                     }}
                 >Delete</ContextMenuItem>

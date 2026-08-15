@@ -29,15 +29,13 @@ import {
 import { Eraser, Pencil, X } from 'lucide-react';
 import { SettingKeyObj } from '@/common/types/store_schema';
 import { useForm, Controller } from 'react-hook-form';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-
-const api = backendClient;
 
 /**
  * 解析快捷键字符串，规范化并去重。
@@ -228,7 +226,7 @@ const ShortcutSetting = () => {
     const { t } = useI18nTranslation('settings');
     const { data: shortcutValues } = useSWR<ShortcutSettingDetailVO>(
         'settings/shortcuts/detail',
-        () => api.call('settings/shortcuts/detail'),
+        settingsApi.getShortcuts,
     );
 
     const form = useForm<ShortcutFormValues>();
@@ -237,7 +235,7 @@ const ShortcutSetting = () => {
     const { ready, status: autoSaveStatus, error: autoSaveError, initialize, flush } = useAutoSaveSettingsForm<ShortcutFormValues>({
         form,
         onSave: async (values) => {
-            await api.call('settings/shortcuts/save', values);
+            await settingsApi.saveShortcuts(values);
         },
     });
 

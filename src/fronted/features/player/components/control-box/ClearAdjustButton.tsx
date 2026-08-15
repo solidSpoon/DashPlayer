@@ -6,7 +6,7 @@ import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
 import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 /**
@@ -37,7 +37,7 @@ export default function ClearAdjustButton({ className }: ClearAdjustButtonProps)
   const handleClick = async () => {
     const fileHash = useFile.getState().srtHash;
     if (!fileHash) return;
-    await backendClient.call('subtitle-timestamp/delete/by-file-hash', fileHash);
+    await playerApi.deleteTimestampAdjustment(fileHash);
     // 触发字幕重载
     const path = useFile.getState().subtitlePath;
     useFile.setState({ subtitlePath: null });

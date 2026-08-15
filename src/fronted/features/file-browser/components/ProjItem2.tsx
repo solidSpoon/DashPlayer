@@ -25,10 +25,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/fronted/components/ui/dropdown-menu';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import useInView from '@/fronted/hooks/useInView';
 
-const api = backendClient;
 const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
     v: WatchHistoryVO;
     variant?: BrowserItemVariant;
@@ -47,7 +46,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, v.basePath, v.fileName, v.current_position]
             : null,
         async ([_key, path, file, time]) => {
-            return await api.call('media/thumbnail', { filePath: PathUtil.join(path, file), time });
+            return await fileBrowserApi.getThumbnail(PathUtil.join(path, file), time);
         }
     );
     const progress = !isFolder && v?.duration

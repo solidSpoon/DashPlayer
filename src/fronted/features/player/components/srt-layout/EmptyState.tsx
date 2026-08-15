@@ -10,10 +10,9 @@ import PathUtil from '@/common/utils/PathUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const api = backendClient;
 const logger = getRendererLogger('PlaybackEmptyState');
 
 type PlaybackEmptyStateProps = {
@@ -25,7 +24,7 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
     const navigate = useNavigate();
     const {data: history} = useSWR<WatchHistoryVO[]>(
         apiPath('watch-history/list'),
-        () => api.call('watch-history/list')
+        playerApi.listWatchHistory
     );
     const featured = history?.[0];
     const isAudio = featured ? MediaUtil.isAudio(featured.fileName) : false;
@@ -46,7 +45,7 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
             ]
             : null,
         async ([, basePath, fileName, time]) => {
-            return await api.call('media/thumbnail', {
+            return await playerApi.getThumbnail({
                 filePath: PathUtil.join(basePath as string, fileName as string),
                 time: time as number,
                 quality: 'ultra', // Ultra HD quality
@@ -72,7 +71,7 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
             return;
         }
         try {
-            await api.call('watch-history/progress/update', {
+            await playerApi.updateProgress({
                 file: PathUtil.join(featured.basePath, featured.fileName),
                 currentPosition: 0,
             });

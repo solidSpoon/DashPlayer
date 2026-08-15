@@ -17,9 +17,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
 
-const api = backendClient;
 const logger = getRendererLogger('FavouritePlayer');
 
 // 进度条子组件：只订阅 currentTime 和 duration，其他部分不受影响
@@ -64,7 +63,7 @@ const FavouritePlayer = () => {
 
   const { data: allVideos = [] } = useSWR(
     apiPath('favorite-clips/search'),
-    () => api.call('favorite-clips/search')
+    () => favouriteApi.search()
   );
 
   // 低频状态：数值/布尔，变化不频繁

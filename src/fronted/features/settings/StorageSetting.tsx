@@ -13,14 +13,12 @@ import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/fronted/components/ui/input';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
-
-const api = backendClient;
 
 type StorageFormValues = StorageSettingVO;
 
@@ -33,7 +31,7 @@ const StorageSetting = () => {
     const [storageStatus, setStorageStatus] = React.useState<StorageStatusVO | null>(null);
 
     const { data: detail } = useSWR<StorageSettingVO>('settings/storage/detail', () =>
-        api.call('settings/storage/detail'),
+        settingsApi.getStorage(),
     );
 
     const form = useForm<StorageFormValues>();
@@ -46,7 +44,7 @@ const StorageSetting = () => {
      */
     const loadStorageStatus = React.useCallback(async (configuredPath: string) => {
         try {
-            const nextStatus = await api.call('storage/status');
+            const nextStatus = await settingsApi.getStorageStatus();
             setStorageStatus(nextStatus);
 
             if (!nextStatus.available) {
@@ -54,7 +52,7 @@ const StorageSetting = () => {
                 return;
             }
 
-            const nextSize = await api.call('storage/cache/size');
+            const nextSize = await settingsApi.getCacheSize();
             setSize(nextSize);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -76,7 +74,7 @@ const StorageSetting = () => {
     const { status: autoSaveStatus, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
         form,
         onSave: async (values) => {
-            await api.call('settings/storage/save', { path: values.path });
+            await settingsApi.saveStorage(values.path);
             await loadStorageStatus(values.path);
         },
     });
@@ -102,7 +100,7 @@ const StorageSetting = () => {
             const message = error instanceof Error ? error.message : String(error);
             throw new Error(t('storage.saveSettingsFailed', { message }));
         }
-        await api.call('favorite-clips/sync-from-oss');
+        await settingsApi.syncFavouriteFromOss();
         await swrApiMutate('favorite-clips/search');
         useFile.setState({
             subtitlePath: null,
@@ -116,7 +114,7 @@ const StorageSetting = () => {
             const message = error instanceof Error ? error.message : String(error);
             throw new Error(t('storage.saveSettingsFailed', { message }));
         }
-        const result = await api.call('video-learning/sync-from-oss');
+        const result = await settingsApi.syncVideoLearningFromOss();
         if (!result?.success) {
             throw new Error(t('storage.syncWordClipsFailed'));
         }
@@ -124,11 +122,11 @@ const StorageSetting = () => {
     }
 
     const handleClear = async () => {
-        await api.call('system/reset-db');
+        await settingsApi.resetDatabase();
     };
 
     const handleOpen = async () => {
-        await api.call('system/open-folder/cache');
+        await settingsApi.openCacheFolder();
     };
 
     const libraryAvailable = storageStatus?.available ?? false;
@@ -196,7 +194,7 @@ const StorageSetting = () => {
                         size="icon"
                         type="button"
                         onClick={async () => {
-                            const folder: string[] = await api.call('system/select-folder', { createDirectory: true });
+                            const folder: string[] = await settingsApi.selectStorageFolder({ createDirectory: true });
                             if (folder.length > 0) {
                                 const f = `${folder[0]}`;
                                 setValue('path', f, { shouldDirty: true, shouldTouch: true });

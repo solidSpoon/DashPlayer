@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/fronted/components/ui/tooltip';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 
 interface WordItem {
   id: number;
@@ -55,7 +55,7 @@ export default function WordSidebar({
   }, [words, searchTerm]);
 
   const handleImportClick = async () => {
-    const selectedFiles = await backendClient.call('system/select-file', ['.xlsx', '.xls']);
+    const selectedFiles = await videoLearningApi.selectVocabularyFile();
     const filePath = selectedFiles?.[0];
     if (!filePath) {
       return;

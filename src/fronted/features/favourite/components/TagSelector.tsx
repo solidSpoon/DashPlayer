@@ -23,16 +23,14 @@ import { Dialog, DialogContent } from '@/fronted/components/ui/dialog';
 import { Badge } from '@/fronted/components/ui/badge';
 import useFavouriteClip from '@/fronted/features/favourite/favouriteStore';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
 
-// 模拟API调用
-const api = backendClient;
 export default function TagSelector() {
     const playInfo = useFavouriteClip(state => state.playInfo);
     const {
         data: clipTags,
         mutate: clipTagMutate
-    } = useSWR(playInfo ? [apiPath('favorite-clips/query-clip-tags'), playInfo.video.key] : null, ([_, key]) => api.call('favorite-clips/query-clip-tags', key), {
+    } = useSWR(playInfo ? [apiPath('favorite-clips/query-clip-tags'), playInfo.video.key] : null, ([_, key]) => favouriteApi.queryClipTags(key), {
         fallbackData: []
     });
 
@@ -43,7 +41,7 @@ export default function TagSelector() {
     const handleSelectTag = async (tag: Tag) => {
         const key = playInfo?.video.key;
         if (!key) return;
-        await api.call('favorite-clips/add-clip-tag', {
+        await favouriteApi.addClipTag({
             key: key,
             tagId: tag.id
         });
@@ -54,10 +52,10 @@ export default function TagSelector() {
     };
 
     const handleCreateTag = async (name: string) => {
-        const newTag = await api.call('tag/add', name);
+        const newTag = await favouriteApi.addTag(name);
         const key = playInfo?.video.key;
         if (!key) return;
-        await api.call('favorite-clips/add-clip-tag', {
+        await favouriteApi.addClipTag({
             key: key,
             tagId: newTag.id
         });
@@ -67,7 +65,7 @@ export default function TagSelector() {
     };
 
     const handleRenameTag = async (id: number, newName: string) => {
-        await api.call('tag/update', { id, name: newName });
+        await favouriteApi.updateTag({ id, name: newName });
         await swrApiMutate('favorite-clips/query-clip-tags'); // 重新获取标签数据
         await clipTagMutate();
         setRenameDialogOpen(false);
@@ -93,7 +91,7 @@ export default function TagSelector() {
                             onClick={async () => {
                                 const key = playInfo?.video.key;
                                 if (!key) return;
-                                await api.call('favorite-clips/delete-clip-tag', {
+                                await favouriteApi.deleteClipTag({
                                     key: key,
                                     tagId: tag.id
                                 });
@@ -148,7 +146,7 @@ function StatusList({
     clipTags: Tag[];
 }) {
     const [query, setQuery] = React.useState('');
-    const { data: tags } = useSWR(['api/tags', query], () => api.call('tag/search', query), {
+    const { data: tags } = useSWR(['api/tags', query], () => favouriteApi.searchTags(query), {
         fallbackData: []
     });
     const filteredTags = tags.filter((tag) => !clipTags.find((t) => t.id === tag.id));

@@ -9,11 +9,9 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-
-const api = backendClient;
 
 /**
  * 功能设置页。
@@ -22,11 +20,11 @@ const EngineSelectionSetting = () => {
     const { t } = useI18nTranslation('settings');
 
     const { data: settings } = useSWR('settings/engine-selection/detail', () =>
-        api.call('settings/engine-selection/detail'),
+        settingsApi.getEngineSelection(),
     );
     const { data: credentialSettings } = useSWR<ServiceCredentialSettingDetailVO>(
         'settings/service-credentials/detail',
-        () => api.call('settings/service-credentials/detail'),
+        settingsApi.getServiceCredentials,
     );
 
     const form = useForm<EngineSelectionSettingVO>();
@@ -41,7 +39,7 @@ const EngineSelectionSetting = () => {
     } = useAutoSaveSettingsForm<EngineSelectionSettingVO>({
         form,
         onSave: async (values) => {
-            await api.call('settings/engine-selection/save', values);
+            await settingsApi.saveEngineSelection(values);
         },
     });
 

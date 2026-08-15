@@ -5,7 +5,7 @@ import { cn } from '@/fronted/lib/utils';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 
 const logger = getRendererLogger('ProjectListComp');
 
@@ -17,16 +17,13 @@ export interface ProjectListCompProps {
     enterProj?: string;
 }
 
-const api = backendClient;
-
-
 const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = '' }: ProjectListCompProps) => {
     const [basePath, setBasePath] = React.useState<string|null>(null);
     const finalPath = basePath ?? enterProj;
     logger.debug('Project list final path', { finalPath });
     const { data: basicData } = useSWR(
         [apiPath('watch-history/list/basic'), finalPath],
-        ([, bp]) => api.call('watch-history/list/basic', bp)
+        ([, bp]) => fileBrowserApi.listBasicWatchHistoryByPath(bp)
     );
     const [fullData, setFullData] = React.useState<typeof basicData>(undefined);
     const data = fullData ?? basicData;
@@ -35,7 +32,7 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
         let cancelled = false;
         setFullData(undefined);
         const idleId = window.requestIdleCallback(() => {
-            api.call('watch-history/list', finalPath)
+            fileBrowserApi.listWatchHistoryByPath(finalPath)
                 .then((result) => {
                     if (!cancelled) {
                         setFullData(result);

@@ -7,17 +7,15 @@ import useSWR from 'swr';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import NewTips from '@/fronted/features/settings/components/NewTips';
 import { cn } from '@/fronted/lib/utils';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { UpdateCheckResult } from '@/common/types/update-check';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-
-const api = backendClient;
 
 const CheckUpdate = () => {
     const { t } = useI18nTranslation('settings');
 
     const { data: updateResult, isLoading: checking } = useSWR<UpdateCheckResult>('system/check-update', async () => {
-        return await api.call('system/check-update');
+        return await settingsApi.checkUpdate();
     });
 
     const hasNewRelease = (updateResult?.releases?.length ?? 0) > 0;
@@ -30,7 +28,7 @@ const CheckUpdate = () => {
             actions={(
                 <Button
                     onClick={async () => {
-                        await api.call('system/open-url',
+                        await settingsApi.openUrl(
                             'https://github.com/solidSpoon/DashPlayer/releases/latest'
                         );
                     }}

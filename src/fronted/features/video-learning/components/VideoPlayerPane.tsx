@@ -10,7 +10,7 @@ import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConv
 import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';
 import { Sentence } from '@/common/types/SentenceC';
 import { ClipSrtLine } from '@/common/types/clipMeta';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 import { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
 
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
@@ -242,10 +242,7 @@ export default function VideoPlayerPane({
 
     let disposed = false;
     const resolveVocabulary = async () => {
-      const result = await backendClient.call('video-learning/resolve-clip-vocabulary', {
-        lines: clip.clipContent,
-        words: normalizedWords,
-      });
+      const result = await videoLearningApi.resolveClipVocabulary(clip.clipContent, normalizedWords);
       if (!result.success || disposed) {
         return;
       }

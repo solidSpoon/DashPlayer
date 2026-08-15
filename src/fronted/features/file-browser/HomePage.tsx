@@ -14,7 +14,7 @@ import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/features/file-browser/components/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/features/file-browser/components/FileSelector';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('HomePage');
@@ -24,12 +24,12 @@ const HomePage = () => {
     const changeSideBar = useLayout((s) => s.changeSideBar);
 
     async function handleClickById(vId: string) {
-        await backendClient.call('system/window-size/change', 'player');
+        await fileBrowserApi.changeWindowSize('player');
         changeSideBar(false);
         navigate(`/player/${vId}`);
     }
 
-    const { data: vpsBasic } = useSWR(apiPath('watch-history/list/basic'), () => backendClient.call('watch-history/list/basic'));
+    const { data: vpsBasic } = useSWR(apiPath('watch-history/list/basic'), fileBrowserApi.listBasicWatchHistory);
     const [vpsFull, setVpsFull] = React.useState<typeof vpsBasic>(undefined);
     const vps = vpsFull ?? vpsBasic;
     const clear = useFile((s) => s.clear);
@@ -37,7 +37,7 @@ const HomePage = () => {
     // 从第四个开始截取num个
     const rest = vps?.slice(3, num + 3);
     useEffect(() => {
-        backendClient.call('system/window-size/change', 'home').then();
+        fileBrowserApi.changeWindowSize('home').then();
         clear();
     }, [clear]);
     useEffect(() => {
@@ -46,7 +46,7 @@ const HomePage = () => {
 
         const loadFullList = async () => {
             try {
-                const full = await backendClient.call('watch-history/list');
+                const full = await fileBrowserApi.listWatchHistory();
                 if (!cancelled) {
                     setVpsFull(full);
                 }
@@ -82,17 +82,17 @@ const HomePage = () => {
                     className="flex flex-col gap-4 text-sm text-muted-foreground font-semibold md:p-10 md:pr-0"
                 >
                     <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/favorite'}
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/favorite'}
                           className="font-semibold mt-28">{t('savedMoments')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/transcript'}
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/transcript'}
                           className="font-semibold ">{t('subtitleWorkspace')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to="/split"
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to="/split"
                           className="font-semibold ">{t('sentenceSplitter')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/convert'}
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/convert'}
                           className="font-semibold ">{t('formatConverter')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/vocabulary'}
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/vocabulary'}
                           className="font-semibold ">{t('vocabularyStudio')}</Link>
-                    <Link onClick={() => backendClient.call('system/window-size/change', 'player')} to={'/settings'}
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/settings'}
                           className="font-semibold ">{t('settingsCenter')}</Link>
                 </nav>
                 <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
@@ -105,7 +105,7 @@ const HomePage = () => {
                         />
                         <FolderSelector
                             onSelected={FolderSelectAction.defaultAction2(async (vid) => {
-                                await backendClient.call('system/window-size/change', 'player');
+                                await fileBrowserApi.changeWindowSize('player');
                                 changeSideBar(false);
                                 navigate(`/player/${vid}`);
                             })}

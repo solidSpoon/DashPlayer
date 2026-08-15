@@ -15,13 +15,11 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { chatApi } from '@/fronted/features/chat/chatApi';
 import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
 import { ChatBackgroundContext, ChatStreamEvent, ChatWelcomeParams, Topic } from '@/common/types/chat';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
-
-const api = backendClient;
 
 const undoRedo = new UndoRedo<ChatPanelState>();
 export type ChatPanelState = {
@@ -266,7 +264,7 @@ const useChatPanel = create(
             const background = buildChatBackgroundContext(get().analysis ?? null);
             const history = [...baseMessages, ...requestMessages];
             getRendererLogger('useChatPanel').debug('chat history', { messageCount: history.length });
-            const { messageId } = await api.call('chat/start', {
+            const { messageId } = await chatApi.start({
                 sessionId: get().chatSessionId,
                 messages: history,
                 background: background ?? undefined,
@@ -380,7 +378,7 @@ const useChatPanel = create(
             if (StrUtil.isBlank(text) || text === 'offscreen') {
                 return;
             }
-            const { messageId } = await api.call('chat/analysis/start', {
+            const { messageId } = await chatApi.startAnalysis({
                 sessionId: get().chatSessionId,
                 text,
             });
@@ -578,7 +576,7 @@ const extractTopic = (t: Topic): string => {
 };
 
 const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic) => {
-    api.call('chat/welcome', params)
+    chatApi.getWelcome(params)
         .then(({ messageId }) => {
             if (useChatPanel.getState().chatSessionId !== params.sessionId) {
                 return;

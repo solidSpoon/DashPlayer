@@ -5,11 +5,9 @@ import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 
 const logger = getRendererLogger('FolderSelector');
-
-const api = backendClient;
 
 export interface FolderSelectorProps {
     onSelected?: (fp: string) => void;
@@ -19,7 +17,7 @@ export interface FolderSelectorProps {
 export class FolderSelectAction {
     public static defaultAction(onSelected?: (vid: string) => void) {
         return async (fp: string) => {
-            const [id] = await api.call('watch-history/create', [fp]);
+            const [id] = await fileBrowserApi.createWatchHistory([fp]);
             onSelected?.(id);
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrApiMutate('watch-history/list');
@@ -29,7 +27,7 @@ export class FolderSelectAction {
 
     public static defaultAction2(onSelected: (vid: string, fp: string) => void) {
         return async (fp: string) => {
-            const [id] = await api.call('watch-history/create', [fp]);
+            const [id] = await fileBrowserApi.createWatchHistory([fp]);
             logger.debug('Created watch history', { id });
             onSelected(id, fp);
             await swrMutate(SWR_KEY.PLAYER_P);
@@ -41,7 +39,7 @@ export class FolderSelectAction {
 
 const FolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
     const handleClick = async () => {
-        const ps = await api.call('system/select-folder', {});
+        const ps = await fileBrowserApi.selectFolder({});
         logger.debug('Selected folder projects', { projectCount: ps.length, firstProject: ps[0] });
         if (ps.length > 0) {
             onSelected?.(ps[0]);

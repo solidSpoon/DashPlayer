@@ -15,9 +15,8 @@ import useSWR from 'swr';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import BackNavItem from '@/fronted/features/file-browser/components/BackNavItem';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 
-const api = backendClient;
 const logger = getRendererLogger('FileBrowser');
 const FileBrowser = () => {
     const navigate = useNavigate();
@@ -39,7 +38,7 @@ const FileBrowser = () => {
     }, []);
     const { data } = useSWR(
         [apiPath('watch-history/detail'), videoId],
-        ([_p, v]) => api.call('watch-history/detail', v ?? ''),
+        ([_p, v]) => fileBrowserApi.getWatchHistoryDetail(v ?? ''),
         {
             revalidateOnFocus: false,
             fallbackData: previousData,
@@ -102,7 +101,7 @@ const FileBrowser = () => {
                                         icon: <Folder />,
                                         text: 'Show In Explorer',
                                         onClick: async () => {
-                                            await api.call('system/open-folder', pv.basePath);
+                                            await fileBrowserApi.openFolder(pv.basePath);
                                         }
                                     }
                                 ]} variant={variant} />
@@ -114,7 +113,7 @@ const FileBrowser = () => {
                                 icon: <Folder />,
                                 text: 'Show In Explorer',
                                 onClick: async () => {
-                                    await api.call('system/open-folder', p.basePath);
+                                    await fileBrowserApi.openFolder(p.basePath);
                                 }
                             },
                             {
@@ -122,7 +121,7 @@ const FileBrowser = () => {
                                 text: 'Delete',
                                 disabled: file === PathUtil.join(p.basePath, p.fileName),
                                 onClick: async () => {
-                                    await api.call('watch-history/group-delete', p.id);
+                                    await fileBrowserApi.deleteWatchHistoryGroup(p.id);
                                     await swrApiMutate('watch-history/list');
                                 }
                             }

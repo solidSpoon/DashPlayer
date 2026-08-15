@@ -6,7 +6,7 @@ import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -28,7 +28,7 @@ const ProxySetting = () => {
 
     // 与 EngineSelectionSetting / ShortcutSetting 等页面一致：通过 detail 接口取服务端数据。
     const { data: settings } = useSWR<ProxySettingDetailVO>('settings/proxy/detail', () =>
-        backendClient.call('settings/proxy/detail'),
+        settingsApi.getProxy(),
     );
 
     const form = useForm<ProxyFormValues>();
@@ -37,7 +37,7 @@ const ProxySetting = () => {
     const { ready, initialize, flush } = useAutoSaveSettingsForm<ProxyFormValues>({
         form,
         onSave: async (values) => {
-            await backendClient.call('settings/proxy/save', {
+            await settingsApi.saveProxy({
                 mode: values.mode,
                 url: values.url,
                 bypassRules: values.bypassRules,

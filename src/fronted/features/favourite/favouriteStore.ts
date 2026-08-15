@@ -11,9 +11,7 @@ import TransHolder from '@/common/utils/TransHolder';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayer } from '@/fronted/features/player/playerStore';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-
-const api = backendClient;
+import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
 
 export interface PlayInfo {
   video: ClipMeta & OssBaseMeta;
@@ -67,8 +65,8 @@ const useFavouriteClip = create(
       const key = mapClipKey(srtHash, currentSentence.index);
       let exists = get().lineClip.get(key);
       if (exists === undefined) {
-        exists = await api
-          .call('favorite-clips/exists', {
+        exists = await favouriteApi
+          .exists({
             srtKey: srtHash,
             linesInSrt: [currentSentence.index]
           })
@@ -80,9 +78,9 @@ const useFavouriteClip = create(
         return { lineClip };
       });
       if (exists) {
-        await api.call('favorite-clips/cancel-add', { srtKey: srtHash, indexInSrt: currentSentence?.index });
+        await favouriteApi.cancelAdd({ srtKey: srtHash, indexInSrt: currentSentence?.index });
       } else {
-        await api.call('favorite-clips/add', {
+        await favouriteApi.add({
           videoPath,
           srtKey: srtHash,
           indexInSrt: currentSentence?.index
@@ -90,7 +88,7 @@ const useFavouriteClip = create(
       }
     },
     updateClipInfo: async (srtKey: string, indexesInSrt: number[]) => {
-      const mapping = await api.call('favorite-clips/exists', { srtKey, linesInSrt: indexesInSrt });
+      const mapping = await favouriteApi.exists({ srtKey, linesInSrt: indexesInSrt });
       set((state) => {
         const lineClip = new Map(state.lineClip);
         for (const [indexInSrt, exists] of mapping) {
@@ -101,7 +99,7 @@ const useFavouriteClip = create(
       });
     },
     deleteClip: async (key: string) => {
-      await api.call('favorite-clips/delete', key);
+      await favouriteApi.delete(key);
       await swrApiMutate('favorite-clips/search');
       useFile.setState({
         subtitlePath: null
@@ -137,7 +135,7 @@ useFavouriteClip.subscribe(
 
     if (param.length === 0) return;
 
-    const transHolder = TransHolder.from(await api.call('ai-trans/batch-translate', param));
+    const transHolder = TransHolder.from(await favouriteApi.batchTranslate(param));
     useFavouriteClip.setState({
       transMap: transHolder.merge(currentHolder)
     });

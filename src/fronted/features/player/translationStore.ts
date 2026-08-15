@@ -7,7 +7,7 @@ import hash from 'object-hash';
 import { Sentence } from '@/common/types/SentenceC';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { RendererTranslationFailure, RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 
 // 每句话的翻译状态
 export type TranslationStatus = 'untranslated' | 'translating' | 'completed';
@@ -191,11 +191,7 @@ const useTranslation = create(
             });
 
             // 只发送未翻译的索引
-            backendClient.call('ai-trans/request-group-translation', {
-                fileHash,
-                indices: untranslatedIndices,
-                useCache: true
-            }).catch(error => {
+            playerApi.requestGroupTranslation(fileHash, untranslatedIndices, true).catch(error => {
                 set(currentState => {
                     const newStatus = new Map(currentState.translationStatus);
                     requestedKeys.forEach((key) => {
@@ -244,11 +240,7 @@ const useTranslation = create(
                 };
             });
             // 发送索引数组，不使用缓存
-            backendClient.call('ai-trans/request-group-translation', {
-                fileHash,
-                indices,
-                useCache
-            }).catch(error => {
+            playerApi.requestGroupTranslation(fileHash, indices, useCache).catch(error => {
                 set(state => {
                     const newStatus = new Map(state.translationStatus);
                     indices.forEach((index) => {

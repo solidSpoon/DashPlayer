@@ -14,7 +14,7 @@ import AutoClipButton from './AutoClipButton';
 import ClearAdjustButton from './ClearAdjustButton';
 import SettingToggle from './SettingToggle';
 import TranscriptButton from './TranscriptButton';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 /**
@@ -57,7 +57,7 @@ export default function ControlBox() {
   const setting = useSetting((s) => s.setting);
   const autoPlayNextSetting = useSetting((s) => s.setting('player.autoPlayNext'));
 
-  const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, () => backendClient.call('system/window-size'));
+  const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, playerApi.getWindowState);
 
   const { podcstMode, setPodcastMode } = useLayout(
     useShallow((s) => ({
@@ -168,9 +168,9 @@ export default function ControlBox() {
             checked={windowState === 'fullscreen'}
             onCheckedChange={async () => {
               if (windowState === 'fullscreen') {
-                await backendClient.call('system/window-size/change', 'normal');
+                await playerApi.changeWindowSize('normal');
               } else {
-                await backendClient.call('system/window-size/change', 'fullscreen');
+                await playerApi.changeWindowSize('fullscreen');
               }
               await swrMutate(SWR_KEY.WINDOW_SIZE);
             }}
@@ -188,10 +188,7 @@ export default function ControlBox() {
                 changeFullScreen(false);
                 const videoId = useFile.getState().videoId;
                 if (videoId) {
-                    void backendClient.call('watch-history/set-podcast-mode-preference', {
-                        videoId,
-                        podcastMode: nextMode,
-                    });
+                    void playerApi.setPodcastModePreference(videoId, nextMode);
                     void swrMutate(SWR_KEY.PLAYER_P);
                 }
             }}

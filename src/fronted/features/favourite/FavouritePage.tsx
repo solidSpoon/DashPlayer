@@ -13,16 +13,14 @@ import { Tag } from '@/common/contracts/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/features/favourite/favouriteStore';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
 import toast from 'react-hot-toast';
 import { Button } from '@/fronted/components/ui/button';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const api = backendClient;
-
 const Loader = () => {
-    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), () => api.call('favorite-clips/task-info'), {
+    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), favouriteApi.getTaskInfo, {
         fallbackData: 0
     });
     const has = unfinishedLength > 0;
@@ -63,7 +61,7 @@ const Favorite = () => {
     const [keywordRange, setKeywordRange] = useState<'clip' | 'context'>('clip');
     const { data } = useSWR([apiPath('favorite-clips/search'), keyword, tags, date, tagRelation, includeNoTag, keywordRange], () => {
         // 将 searchQuery 传递给接口
-        return api.call('favorite-clips/search', {
+        return favouriteApi.search({
             keyword,
             keywordRange,
             tags: tags.map((tag) => tag.id),
@@ -87,7 +85,7 @@ const Favorite = () => {
     const recoverSavedMoments = async (): Promise<void> => {
         await toast.promise(
             (async () => {
-                await api.call('favorite-clips/sync-from-oss');
+                await favouriteApi.syncFromOss();
                 await swrApiMutate('favorite-clips/search');
             })(),
             {

@@ -12,10 +12,8 @@ import useLayout from '@/fronted/hooks/useLayout';
 import useConvert from '@/fronted/features/convert/convertStore';
 import { toast } from 'sonner';
 import StrUtil from '@/common/utils/str-util';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import i18n from '@/fronted/i18n';
-
-const api = backendClient;
 
 export class FileAction {
 
@@ -24,16 +22,18 @@ export class FileAction {
             if (ps.length === 1 && MediaUtil.isSubtitle(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
                 if (StrUtil.isNotBlank(videoPath)) {
-                    await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
+                    await fileBrowserApi.attachSubtitle(videoPath, ps[0]);
                     useFile.getState().clearSrt();
                 }
             } else {
-                const [id] = await api.call('watch-history/create', ps);
-                await api.call('system/window-size/change', 'player');
+                const [id] = await fileBrowserApi.createWatchHistory(ps);
+                await fileBrowserApi.changeWindowSize('player');
                 navigate(`/player/${id}`);
                 const mkvs = ps.filter(p => p.toLowerCase().endsWith('.mkv'));
                 if (mkvs.length > 0) {
-                    const suggested = await Promise.all(mkvs.map((p) => api.call('convert/suggest-html5-video', p)));
+                    const suggested = await Promise.all(
+                        mkvs.map((path) => fileBrowserApi.suggestHtml5Video(path)),
+                    );
                     const missing = mkvs.filter((_p, idx) => !suggested[idx]);
                     if (missing.length === 0) {
                         return;
@@ -50,7 +50,9 @@ export class FileAction {
                         'opus',
                         'vorbis',
                     ]);
-                    const infos = await Promise.all(missing.map((p) => api.call('media/info', p)));
+                    const infos = await Promise.all(
+                        missing.map((path) => fileBrowserApi.getMediaInfo(path)),
+                    );
                     const suspiciousFiles = missing.filter((_p, idx) => {
                         const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
                         return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
@@ -85,18 +87,20 @@ export class FileAction {
             if (ps.length === 1 && MediaUtil.isSubtitle(ps[0])) {
                 const videoPath = useFile.getState().videoPath;
                 if (StrUtil.isNotBlank(videoPath)) {
-                    await api.call('watch-history/attach-srt', { videoPath, srtPath: ps[0] });
+                    await fileBrowserApi.attachSubtitle(videoPath, ps[0]);
                     useFile.getState().clearSrt();
                 }
             } else {
-                const [id] = await api.call('watch-history/create', ps);
-                await api.call('system/window-size/change', 'player');
+                const [id] = await fileBrowserApi.createWatchHistory(ps);
+                await fileBrowserApi.changeWindowSize('player');
                 useLayout.getState().changeSideBar(false);
                 navigate(`/player/${id}`);
 
                 const mkvs = ps.filter(p => p.toLowerCase().endsWith('.mkv'));
                 if (mkvs.length > 0) {
-                    const suggested = await Promise.all(mkvs.map((p) => api.call('convert/suggest-html5-video', p)));
+                    const suggested = await Promise.all(
+                        mkvs.map((path) => fileBrowserApi.suggestHtml5Video(path)),
+                    );
                     const missing = mkvs.filter((_p, idx) => !suggested[idx]);
                     if (missing.length === 0) {
                         return;
@@ -111,7 +115,9 @@ export class FileAction {
                         'opus',
                         'vorbis',
                     ]);
-                    const infos = await Promise.all(missing.map((p) => api.call('media/info', p)));
+                    const infos = await Promise.all(
+                        missing.map((path) => fileBrowserApi.getMediaInfo(path)),
+                    );
                     const suspiciousFiles = missing.filter((_p, idx) => {
                         const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
                         return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
@@ -150,7 +156,7 @@ export default function FileSelector({
     withMkv?: boolean;
 }) {
     const handleClick = async () => {
-        const ps = await api.call('system/select-file', withMkv ? AllFormats : SupportedFormats);
+        const ps = await fileBrowserApi.selectFiles(withMkv ? AllFormats : SupportedFormats);
         if (ps?.length > 0) {
             await onSelected(ps);
         }

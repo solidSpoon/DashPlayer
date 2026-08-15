@@ -9,10 +9,9 @@ import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { computeResumeTime } from '@/fronted/lib/playerResume';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 import useTranslation from '@/fronted/features/player/translationStore';
 
-const api = backendClient;
 const logger = getRendererLogger('usePlayerBridge');
 
 async function waitForPlayerDuration(timeoutMs = 1500): Promise<number> {
@@ -69,7 +68,7 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             useTranslation.getState().setActiveFileHash(null);
             playerActions.clearSubtitles();
             try {
-                const result = await api.call('subtitle/srt/parse-to-sentences', currentPath);
+                const result = await playerApi.parseSubtitleToSentences(currentPath);
                 if (cancelled || currentPath !== useFile.getState().subtitlePath) {
                     return;
                 }
@@ -119,7 +118,7 @@ export function usePlayerBridge(navigate: (path: string) => void) {
                             if (positionMoved || stateChanged) {
                                 lastReportedPosition = playTime;
                                 lastReportedPlaying = playing;
-                                await api.call('watch-history/progress/update', {
+                                await playerApi.updateProgress({
                                     file,
                                     currentPosition: playTime
                                 });
@@ -149,14 +148,14 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             return;
         }
         try {
-            const result = await api.call('watch-history/detail', currentVideoId);
+            const result = await playerApi.getWatchHistoryDetail(currentVideoId);
             const progress = result?.current_position ?? 0;
             const duration = await waitForPlayerDuration();
             const resumeTime = computeResumeTime({ progress, duration });
             logger.debug('jumping to history progress', { progress, duration, resumeTime });
 
             if (resumeTime === 0 && progress > 0) {
-                await api.call('watch-history/progress/update', { file, currentPosition: 0 });
+                await playerApi.updateProgress({ file, currentPosition: 0 });
             }
 
             playerActions.seekTo({ time: resumeTime });
@@ -175,7 +174,7 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             return;
         }
         try {
-            const nextVideo = await api.call('watch-history/get-next-video', currentVideoId);
+            const nextVideo = await playerApi.getNextVideo(currentVideoId);
             if (nextVideo) {
                 logger.info('auto playing next video', { fileName: nextVideo.fileName });
                 navigate(`/player/${nextVideo.id}`);

@@ -22,9 +22,8 @@ import { useTransLineTheme } from './translatable-theme';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/features/player/dictionaryStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { playerApi } from '@/fronted/features/player/playerApi';
 
-const api = backendClient;
 const logger = getRendererLogger('Word');
 export interface WordParam {
     word: string;
@@ -102,7 +101,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             }
 
             try {
-                const result = await api.call('ai-trans/word', {
+                const result = await playerApi.translateWord({
                     word: targetWord,
                     forceRefresh: false,
                     requestId: openaiDictionaryEnabled ? requestId : undefined
@@ -136,7 +135,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
         }
 
         try {
-            const newData = await api.call('ai-trans/word', {
+            const newData = await playerApi.translateWord({
                 word: original,
                 forceRefresh: true,
                 requestId: openaiDictionaryEnabled ? requestId : undefined

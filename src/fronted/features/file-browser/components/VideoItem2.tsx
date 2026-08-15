@@ -19,10 +19,8 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import MusicCard from '@/fronted/features/file-browser/components/music-card';
 import { motion } from 'framer-motion';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import useInView from '@/fronted/hooks/useInView';
-
-const api = backendClient;
 
 export interface CtxMenu {
     icon: React.ReactNode;
@@ -52,7 +50,7 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
             ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, pv.basePath, pv.fileName, pv.current_position]
             : null,
         async ([_key, path, file, time]: [string, string, string, number]) => {
-            return await api.call('media/thumbnail', { filePath: PathUtil.join(path, file), time });
+            return await fileBrowserApi.getThumbnail(PathUtil.join(path, file), time);
         }
     );
 

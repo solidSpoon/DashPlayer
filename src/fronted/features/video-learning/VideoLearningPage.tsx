@@ -6,7 +6,7 @@ import { VideoClip } from './types';
 import ClipGrid from '@/fronted/features/video-learning/components/ClipGrid';
 import VideoPlayerPane from '@/fronted/features/video-learning/components/VideoPlayerPane';
 import WordSidebar from '@/fronted/features/video-learning/components/WordSidebar';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
   Pagination,
@@ -72,7 +72,7 @@ export default function VideoLearningPage() {
   const { data: learningClips = DEFAULT_LEARNING_RESPONSE, isValidating } = useSWR(
     searchKey,
     async () => {
-      return await backendClient.call('video-learning/search', {
+      return await videoLearningApi.search({
         word: selectedWordValue,
         page,
         pageSize: PAGE_SIZE
@@ -213,13 +213,13 @@ export default function VideoLearningPage() {
   const fetchWords = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await backendClient.call('vocabulary/get-all', {});
+      const result = await videoLearningApi.getVocabulary();
       if (result.success) {
         const wordData: WordItem[] = Array.isArray(result.data) ? result.data as WordItem[] : [];
 
         let clipCounts: Record<string, number> = {};
         try {
-          const countResult = await backendClient.call('video-learning/clip-counts', undefined);
+          const countResult = await videoLearningApi.getClipCounts();
           if (countResult?.success && countResult.data) {
             clipCounts = countResult.data as Record<string, number>;
           }
@@ -263,7 +263,7 @@ export default function VideoLearningPage() {
   const recoverVocabularyStudio = useCallback(async (): Promise<void> => {
     await toast.promise(
       (async () => {
-        const result = await backendClient.call('video-learning/sync-from-oss');
+        const result = await videoLearningApi.syncFromOss();
         if (!result?.success) {
           throw new Error('sync failed');
         }
@@ -281,7 +281,7 @@ export default function VideoLearningPage() {
   // 导出模板
   const exportTemplate = useCallback(async () => {
     try {
-      const result = await backendClient.call('vocabulary/export-template');
+      const result = await videoLearningApi.exportVocabularyTemplate();
       if (result.success) {
         // 直接使用 data URL 下载，避免手动 base64 解码
         const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.data}`;
@@ -313,9 +313,7 @@ export default function VideoLearningPage() {
         return;
       }
 
-      const result = await backendClient.call('vocabulary/import', {
-        filePath
-      });
+      const result = await videoLearningApi.importVocabulary(filePath);
 
       if (result.success) {
         await fetchWords();
@@ -349,10 +347,7 @@ export default function VideoLearningPage() {
       const tasks = clipsToProcess.map(async (clip) => {
         try {
           const startTime = clip.clipContent.find((c) => c.isClip)?.start || 0;
-          const thumbnailPathOrUrl = await backendClient.call('media/thumbnail', {
-            filePath: clip.videoPath,
-            time: startTime
-          });
+          const thumbnailPathOrUrl = await videoLearningApi.getThumbnail(clip.videoPath, startTime);
           newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
         } catch (error) {
           logger.error('Failed to generate thumbnail for clip', { error });

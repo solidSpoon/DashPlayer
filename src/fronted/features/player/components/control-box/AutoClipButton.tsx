@@ -7,7 +7,7 @@ import TooltippedButton from '@/fronted/components/shared/common/TooltippedButto
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -41,7 +41,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
   const { data: globalQueueStatus, mutate: mutateGlobalQueueStatus } = useSWR<GlobalVideoLearningClipQueueStatusVO>(
     'video-learning/clip-queue-status',
     async () => {
-      return await backendClient.call('video-learning/clip-queue-status');
+      return await videoLearningApi.getClipQueueStatus();
     },
     {
       revalidateOnMount: true,
@@ -64,11 +64,11 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
       ? ['video-learning/detect-clip-status', videoPath, srtHash, subtitlePath]
       : null,
     async ([, videoPathParam, srtHashParam, subtitlePathParam]: [string, string, string, string]) => {
-      const result = await backendClient.call('video-learning/detect-clip-status', {
-        videoPath: videoPathParam,
-        srtKey: srtHashParam,
-        srtPath: subtitlePathParam || undefined
-      });
+      const result = await videoLearningApi.getClipStatus(
+        videoPathParam,
+        srtHashParam,
+        subtitlePathParam || undefined,
+      );
       return result as ClipStatusState;
     },
     {
@@ -192,7 +192,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
     if (isGlobalClipping) {
       try {
         toast(t('autoClip.cancelling'), { icon: '🛑' });
-        await backendClient.call('video-learning/cancel-auto-clip-all');
+        await videoLearningApi.cancelAllAutoClip();
         await mutateGlobalQueueStatus({ queuedCount: 0, hasQueuedTasks: false }, { revalidate: false });
         await mutateSWRCache(
           (key) => Array.isArray(key) && key[0] === 'video-learning/detect-clip-status',
@@ -229,11 +229,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
         } : prev,
         { revalidate: false }
       );
-      await backendClient.call('video-learning/auto-clip', {
-        videoPath,
-        srtKey: srtHash,
-        srtPath: subtitlePath
-      });
+      await videoLearningApi.startAutoClip(videoPath, srtHash, subtitlePath);
       await mutateGlobalQueueStatus();
     } catch (error) {
       logger.error('生词视频裁切失败', { error });
