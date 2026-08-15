@@ -8,6 +8,7 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import WordsRepository from '@/backend/services/repositories/WordsRepository';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
+import SubtitleService from '@/backend/services/SubtitleService';
 
 export interface GetAllWordsParams {
     search?: string;
@@ -52,6 +53,9 @@ export class VocabularyServiceImpl implements VocabularyService {
 
     @inject(TYPES.WordMatchService)
     private wordMatchService!: WordMatchService;
+
+    @inject(TYPES.SubtitleService)
+    private subtitleService!: SubtitleService;
 
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
@@ -265,6 +269,7 @@ export class VocabularyServiceImpl implements VocabularyService {
 
             await this.wordsRepository.replaceAll(importedWords);
             this.wordMatchService.invalidateVocabularyCache();
+            this.subtitleService.invalidateVocabularyAnalysisCache();
 
             try {
                 await this.videoLearningService.syncFromOss();

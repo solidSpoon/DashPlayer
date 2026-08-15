@@ -11,6 +11,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { computeResumeTime } from '@/fronted/lib/playerResume';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import useTranslation from '@/fronted/features/player/translationStore';
+import useVocabulary from '@/fronted/features/player/vocabularyStore';
 
 const logger = getRendererLogger('usePlayerBridge');
 
@@ -30,6 +31,8 @@ async function waitForPlayerDuration(timeoutMs = 1500): Promise<number> {
 export function usePlayerBridge(navigate: (path: string) => void) {
     const videoPath = useFile((s) => s.videoPath);
     const subtitlePath = useFile((s) => s.subtitlePath);
+    const srtHash = useFile((s) => s.srtHash);
+    const subtitleSessionId = useFile((s) => s.subtitleSessionId);
     const videoId = useFile((s) => s.videoId);
 
     const lastLoadedFileRef = useRef<string | undefined>(undefined);
@@ -57,19 +60,30 @@ export function usePlayerBridge(navigate: (path: string) => void) {
          * - 新字幕解析成功后，先激活新的 fileHash，再加载字幕，确保依赖当前句子的副作用看到的是一致上下文。
          */
         const loadSubtitles = async () => {
-            if (StrUtil.isBlank(subtitlePath)) {
-                useFile.setState({ srtHash: null });
-                useTranslation.getState().setActiveFileHash(null);
-                playerActions.clearSubtitles();
+            useVocabulary.getState().clearVocabularyWords();
+            const currentVideoId = videoId;
+            if (StrUtil.isBlank(currentVideoId)) {
                 return;
             }
-            const currentPath = subtitlePath!;
-            useFile.setState({ srtHash: null });
+            const currentPath = StrUtil.isBlank(subtitlePath) ? null : subtitlePath!;
+            const playbackSessionId = crypto.randomUUID();
+            useFile.setState({
+                srtHash: null,
+                subtitleSessionId: null,
+            });
             useTranslation.getState().setActiveFileHash(null);
             playerActions.clearSubtitles();
             try {
-                const result = await playerApi.parseSubtitleToSentences(currentPath);
-                if (cancelled || currentPath !== useFile.getState().subtitlePath) {
+                const result = await playerApi.parseSubtitleToSentences({
+                    subtitlePath: currentPath,
+                    videoId: currentVideoId!,
+                    playbackSessionId,
+                });
+                if (
+                    cancelled
+                    || currentPath !== useFile.getState().subtitlePath
+                    || currentVideoId !== useFile.getState().videoId
+                ) {
                     return;
                 }
                 if (!result) {
@@ -78,7 +92,10 @@ export function usePlayerBridge(navigate: (path: string) => void) {
                     playerActions.clearSubtitles();
                     return;
                 }
-                useFile.setState({ srtHash: result.fileHash });
+                useFile.setState({
+                    srtHash: result.fileHash,
+                    subtitleSessionId: playbackSessionId,
+                });
                 useTranslation.getState().setActiveFileHash(result.fileHash);
                 playerActions.loadSubtitles(result.sentences);
             } catch (error) {
@@ -90,7 +107,60 @@ export function usePlayerBridge(navigate: (path: string) => void) {
         return () => {
             cancelled = true;
         };
-    }, [subtitlePath]);
+    }, [subtitlePath, videoId]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        /**
+         * 在字幕已经交给播放器后，独立匹配当前字幕中出现的用户生词。
+         *
+         * 结果必须与当前字幕哈希一致，避免切换视频后旧任务覆盖新页面。
+         */
+        const loadVocabulary = async () => {
+            if (
+                StrUtil.isBlank(srtHash)
+                || StrUtil.isBlank(subtitleSessionId)
+                || StrUtil.isBlank(videoId)
+            ) {
+                return;
+            }
+
+            const currentFileHash = srtHash!;
+            const currentSessionId = subtitleSessionId!;
+            const currentVideoId = videoId!;
+            try {
+                const result = await playerApi.matchSubtitleVocabulary({
+                    fileHash: currentFileHash,
+                    videoId: currentVideoId,
+                    playbackSessionId: currentSessionId,
+                });
+                if (
+                    cancelled
+                    || result.cancelled
+                    || result.videoId !== currentVideoId
+                    || result.playbackSessionId !== currentSessionId
+                    || result.fileHash !== currentFileHash
+                    || useFile.getState().srtHash !== currentFileHash
+                    || useFile.getState().subtitleSessionId !== currentSessionId
+                    || useFile.getState().videoId !== currentVideoId
+                ) {
+                    return;
+                }
+                useVocabulary.getState().setVocabularyWords(result.vocabularyWords);
+            } catch (error) {
+                logger.error('failed to match subtitle vocabulary', {
+                    error: error instanceof Error ? error.message : String(error),
+                    fileHash: currentFileHash,
+                });
+            }
+        };
+
+        loadVocabulary().then();
+        return () => {
+            cancelled = true;
+        };
+    }, [srtHash, subtitleSessionId, videoId]);
 
     useEffect(() => {
         if (!videoId) return;
@@ -148,7 +218,7 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             return;
         }
         try {
-            const result = await playerApi.getWatchHistoryDetail(currentVideoId);
+            const result = await playerApi.getPlayerDetail(currentVideoId);
             const progress = result?.current_position ?? 0;
             const duration = await waitForPlayerDuration();
             const resumeTime = computeResumeTime({ progress, duration });

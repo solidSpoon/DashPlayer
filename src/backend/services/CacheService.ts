@@ -8,6 +8,7 @@ import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipSt
  */
 export type CacheType = {
     'cache:srt': SrtSentence;
+    'cache:srt-vocabulary-texts': string[];
     'cache:clip-status': VideoLearningClipStatusVO;
 };
 

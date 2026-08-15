@@ -12,6 +12,7 @@ type UseFileState = {
     subtitlePath: string | null;
     videoLoaded: boolean;
     srtHash: string | null;
+    subtitleSessionId: string | null;
 };
 
 type UseFileActions = {
@@ -29,6 +30,7 @@ const useFile = create(
         videoId: null,
         projectId: null,
         srtHash: null,
+        subtitleSessionId: null,
         updateFile: (ph: string) => {
             if (MediaUtil.isMedia(ph)) {
                 set({
@@ -43,6 +45,7 @@ const useFile = create(
                 set((s) => ({
                     subtitlePath: ph,
                     srtHash: s.subtitlePath === ph ? s.srtHash : null,
+                    subtitleSessionId: s.subtitlePath === ph ? s.subtitleSessionId : null,
                 }));
             }
         },
@@ -60,12 +63,14 @@ const useFile = create(
                 videoLoaded: false,
                 videoId: null,
                 srtHash: null,
+                subtitleSessionId: null,
             });
         },
         clearSrt: () => {
             set({
                 subtitlePath: null,
                 srtHash: null,
+                subtitleSessionId: null,
             });
         },
     }))

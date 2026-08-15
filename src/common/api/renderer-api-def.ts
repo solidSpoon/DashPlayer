@@ -62,16 +62,6 @@ interface TranscriptRendererDef {
     'transcript/batch-result': { params: { updates: TranscriptTaskUpdate[] }, return: void };
 }
 
-// 词汇匹配相关的前端API定义
-interface VocabularyRendererDef {
-    'vocabulary/match-result': { 
-        params: { 
-            vocabularyWords: string[]; // 未还原的复数等形态的单词数组
-        }, 
-        return: void 
-    };
-}
-
 // 视频学习裁切状态更新的前端API定义
 interface VideoLearningRendererDef {
     'video-learning/clip-status-update': {
@@ -106,7 +96,6 @@ export type RendererApiDefinitions = RendererApiDefinition
     & TranslationRendererDef
     & DictionaryRendererDef
     & TranscriptRendererDef
-    & VocabularyRendererDef
     & VideoLearningRendererDef
     & ChatRendererDef
     & AnalysisRendererDef;

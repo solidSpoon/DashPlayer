@@ -27,12 +27,29 @@ import {
 import WatchHistoryLibrary from '@/backend/services/WatchHistoryLibrary';
 import WatchHistoryViewBuilder from '@/backend/services/WatchHistoryViewBuilder';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import SubtitleService from '@/backend/services/SubtitleService';
 
 interface WatchHistoryService {
     list(basePath: string): Promise<WatchHistoryVO[]>;
     listBasic(basePath: string): Promise<WatchHistoryVO[]>;
 
     detail(folder: string): Promise<WatchHistoryVO | null>;
+
+    /**
+     * 获取播放页启动所需的轻量详情。
+     *
+     * @param id 观看记录 ID。
+     * @returns 不包含媒体探测和字幕扫描结果的播放详情。
+     */
+    playerDetail(id: string): Promise<WatchHistoryVO | null>;
+
+    /**
+     * 独立解析播放记录应使用的字幕。
+     *
+     * @param id 观看记录 ID。
+     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     */
+    playerSubtitle(id: string): Promise<string>;
 
     /**
      * 添加媒体文件
@@ -93,6 +110,7 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
      * @param watchHistoryRepository 观看历史仓储。
      * @param watchHistoryExtRepository 观看历史扩展信息仓储。
      * @param fileSystemGateway 文件系统访问入口。
+     * @param subtitleService 字幕解析与播放生词任务服务。
      */
     public constructor(
         @inject(TYPES.StorageDirectoryProvider)
@@ -107,6 +125,8 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
         private readonly watchHistoryExtRepository: WatchHistoryExtRepository,
         @inject(TYPES.FileSystemGateway)
         private readonly fileSystemGateway: FileSystemGateway,
+        @inject(TYPES.SubtitleService)
+        private readonly subtitleService: SubtitleService,
     ) {
         this.watchHistoryLibrary = new WatchHistoryLibrary(
             watchHistoryRepository,
@@ -343,6 +363,56 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
             displayFileName: preferredRecord.id === record.id ? undefined : record.file_name,
             isFolder: record.project_type === WatchHistoryProjectType.DIRECTORY,
         };
+    }
+
+    /**
+     * 读取播放页启动所需的轻量详情，并优先使用已生成的 HTML5 变体。
+     *
+     * 该流程不读取媒体时长，也不扫描字幕目录，避免 ffprobe 和目录访问阻塞视频起播。
+     *
+     * @param id 观看历史记录 ID。
+     * @returns 轻量播放详情；记录或源文件不存在时返回 `null`。
+     */
+    public async playerDetail(id: string): Promise<WatchHistoryVO | null> {
+        this.subtitleService.activatePlaybackVideo(id);
+        const record = await this.watchHistoryRepository.findById(id);
+        if (!record) {
+            return null;
+        }
+
+        const preferredRecord = await this.findPreferredVideoRecord(record);
+        const item = await this.watchHistoryViewBuilder.buildPlayerDetail(preferredRecord)
+            ?? (preferredRecord.id === record.id
+                ? null
+                : await this.watchHistoryViewBuilder.buildPlayerDetail(record));
+        if (!item) {
+            return null;
+        }
+        return {
+            ...item,
+            displayFileName: preferredRecord.id === record.id ? undefined : record.file_name,
+            isFolder: record.project_type === WatchHistoryProjectType.DIRECTORY,
+        };
+    }
+
+    /**
+     * 独立解析播放记录应使用的字幕，并优先基于实际播放的 HTML5 变体进行匹配。
+     *
+     * @param id 观看历史记录 ID。
+     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     */
+    public async playerSubtitle(id: string): Promise<string> {
+        const record = await this.watchHistoryRepository.findById(id);
+        if (!record) {
+            throw new Error(`观看记录不存在：${id}`);
+        }
+
+        const preferredRecord = await this.findPreferredVideoRecord(record);
+        const subtitle = await this.watchHistoryViewBuilder.resolveSubtitleForPlayback(preferredRecord);
+        if (subtitle === null) {
+            throw new Error(`视频文件不存在：${path.join(preferredRecord.base_path, preferredRecord.file_name)}`);
+        }
+        return subtitle;
     }
 
     /**

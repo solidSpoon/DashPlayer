@@ -52,17 +52,26 @@ export const playerApi = {
         backendClient.call('ai-trans/request-group-translation', { fileHash, indices, useCache }),
 
     /**
-     * 查询指定视频的观看记录详情。
+     * 查询播放页启动所需的轻量详情。
      *
      * @param videoId 视频标识。
-     * @returns 观看记录详情。
+     * @returns 不包含媒体探测和字幕扫描结果的播放详情。
      */
-    getWatchHistoryDetail: (videoId: string | undefined) => {
+    getPlayerDetail: (videoId: string | undefined) => {
         if (!videoId) {
-            throw new Error('缺少视频标识，无法查询观看记录');
+            throw new Error('缺少视频标识，无法查询播放详情');
         }
-        return backendClient.call('watch-history/detail', videoId);
+        return backendClient.call('watch-history/player-detail', videoId);
     },
+
+    /**
+     * 独立解析当前播放记录应使用的字幕。
+     *
+     * @param videoId 视频标识。
+     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     */
+    getPlayerSubtitle: (videoId: string) =>
+        backendClient.call('watch-history/player-subtitle', videoId),
 
     /**
      * 查询完整观看记录。
@@ -79,14 +88,6 @@ export const playerApi = {
      */
     setWindowButtonsVisibility: (visible: boolean) =>
         backendClient.call('system/window-buttons/visibility', visible),
-
-    /**
-     * 查询视频建议使用的字幕文件。
-     *
-     * @param videoPath 视频文件路径。
-     * @returns 建议字幕路径。
-     */
-    suggestSubtitle: (videoPath: string) => backendClient.call('watch-history/suggest-srt', videoPath),
 
     /**
      * 建议将视频转换为 HTML5 可播放格式。
@@ -121,11 +122,26 @@ export const playerApi = {
     /**
      * 解析字幕为句子。
      *
-     * @param subtitlePath 字幕文件路径。
+     * @param params 字幕路径、视频 ID 和字幕加载会话 ID。
      * @returns 解析后的句子列表。
      */
-    parseSubtitleToSentences: (subtitlePath: string) =>
-        backendClient.call('subtitle/srt/parse-to-sentences', subtitlePath),
+    parseSubtitleToSentences: (params: {
+        subtitlePath: string | null;
+        videoId: string;
+        playbackSessionId: string;
+    }) => backendClient.call('subtitle/srt/parse-to-sentences', params),
+
+    /**
+     * 匹配已解析字幕中出现的用户生词。
+     *
+     * @param params 字幕哈希、视频 ID 和字幕加载会话 ID。
+     * @returns 带字幕哈希的生词匹配结果。
+     */
+    matchSubtitleVocabulary: (params: {
+        fileHash: string;
+        videoId: string;
+        playbackSessionId: string;
+    }) => backendClient.call('subtitle/srt/match-vocabulary', params),
 
     /**
      * 更新播放进度。

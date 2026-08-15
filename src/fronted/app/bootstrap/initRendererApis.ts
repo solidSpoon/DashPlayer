@@ -3,7 +3,6 @@ import useDictionaryStream from '@/fronted/features/player/dictionaryStore';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import useTranscript from '@/fronted/features/transcript/transcriptStore';
 import useTranslation from '@/fronted/features/player/translationStore';
-import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
@@ -91,11 +90,6 @@ export function initRendererApis(): () => void {
     register('transcript/batch-result', async (params) => {
         logger.debug('Batch transcription result', { params });
         useTranscript.getState().updateTranscriptTasks(params.updates);
-    });
-
-    register('vocabulary/match-result', async (params) => {
-        logger.info('Vocabulary match result received', { count: params.vocabularyWords.length });
-        useVocabulary.getState().setVocabularyWords(params.vocabularyWords);
     });
 
     register('dictionary/openai-update', async ({ requestId, word, data, isComplete = false }) => {

@@ -8,6 +8,7 @@ const TYPES = {
     WatchProject: Symbol('WatchProject'),
     TagService: Symbol('TagService'),
     SubtitleService: Symbol('SubtitleService'),
+    SubtitleVocabularyAnalysisService: Symbol('SubtitleVocabularyAnalysisService'),
     SrtTimeAdjustService: Symbol('SubtitleTimestampAdjustmentService'),
     MainWindowRegistry: Symbol('MainWindowRegistry'),
     WindowPort: Symbol('WindowPort'),

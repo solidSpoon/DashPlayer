@@ -6,6 +6,10 @@ import TagService, { TagServiceImpl } from '@/backend/services/TagService';
 import TagController from '@/backend/controllers/TagController';
 import SrtTimeAdjustService, { SrtTimeAdjustServiceImpl } from '@/backend/services/SrtTimeAdjustService';
 import SubtitleService, { SubtitleServiceImpl } from '@/backend/services/SubtitleService';
+import {
+    SubtitleVocabularyAnalysisService,
+    SubtitleVocabularyAnalysisServiceImpl,
+} from '@/backend/services/SubtitleVocabularyAnalysisService';
 import SrtTimeAdjustController from '@/backend/controllers/SrtTimeAdjustController';
 import AiFuncController from '@/backend/controllers/AiFuncController';
 import ChatStreamController from '@/backend/controllers/ChatStreamController';
@@ -161,6 +165,9 @@ container.bind<VideoLearningService>(TYPES.VideoLearningService).to(VideoLearnin
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
 container.bind<SubtitleService>(TYPES.SubtitleService).to(SubtitleServiceImpl).inSingletonScope();
+container.bind<SubtitleVocabularyAnalysisService>(TYPES.SubtitleVocabularyAnalysisService)
+    .to(SubtitleVocabularyAnalysisServiceImpl)
+    .inSingletonScope();
 container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigServiceImpl).inSingletonScope();
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();

@@ -144,6 +144,8 @@ interface WatchHistoryDef {
     'watch-history/create/from-library': { params: string[], return: string[] };
     'watch-history/group-delete': { params: string, return: void };
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
+    'watch-history/player-detail': { params: string, return: WatchHistoryVO | null };
+    'watch-history/player-subtitle': { params: string, return: string };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/suggest-srt': { params: string, return: string[] };
     'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };
@@ -154,7 +156,28 @@ interface WatchHistoryDef {
 }
 
 interface SubtitleControllerDef {
-    'subtitle/srt/parse-to-sentences': { params: string, return: SrtSentence | null };
+    'subtitle/srt/parse-to-sentences': {
+        params: {
+            subtitlePath: string | null;
+            videoId: string;
+            playbackSessionId: string;
+        };
+        return: SrtSentence | null;
+    };
+    'subtitle/srt/match-vocabulary': {
+        params: {
+            fileHash: string;
+            videoId: string;
+            playbackSessionId: string;
+        };
+        return: {
+            videoId: string;
+            playbackSessionId: string;
+            fileHash: string;
+            vocabularyWords: string[];
+            cancelled: boolean;
+        };
+    };
 }
 
 interface SubtitleTimestampAdjustmentControllerDef {

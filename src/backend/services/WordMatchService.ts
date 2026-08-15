@@ -12,6 +12,10 @@ export interface WordMatchService {
     matchWordsInText(text: string): Promise<MatchedWord[]>;
     matchWordsInTexts(texts: string[]): Promise<MatchedWord[][]>;
     getVocabularyWords(): Promise<Word[]>;
+    /**
+     * 获取当前词表版本，用于区分不同词表快照生成的分析结果。
+     */
+    getVocabularyRevision(): number;
     invalidateVocabularyCache(): void;
 }
 
@@ -27,6 +31,8 @@ export class WordMatchServiceImpl implements WordMatchService {
 
     private vocabularyWordsCache: Word[] | null = null;
     private vocabularyMatcherCache: VocabularyMatcher<Word> | null = null;
+    /** 词表缓存版本，每次词表失效时递增。 */
+    private vocabularyRevision = 0;
 
     @inject(TYPES.WordsRepository)
     private wordsRepository!: WordsRepository;
@@ -102,8 +108,21 @@ export class WordMatchServiceImpl implements WordMatchService {
         return this.vocabularyWordsCache;
     }
 
+    /**
+     * 获取当前词表版本。
+     *
+     * @returns 当前进程内词表缓存版本。
+     */
+    getVocabularyRevision(): number {
+        return this.vocabularyRevision;
+    }
+
+    /**
+     * 清除词表缓存并使基于旧词表的分析结果失效。
+     */
     invalidateVocabularyCache(): void {
         this.vocabularyWordsCache = null;
         this.vocabularyMatcherCache = null;
+        this.vocabularyRevision += 1;
     }
 }

@@ -40,15 +40,32 @@ export default class WatchHistoryViewBuilder {
      * @returns 完整展示数据；视频文件不存在时返回 `null`。
      */
     public async buildFull(history: WatchHistoryRecord): Promise<WatchHistoryVO | null> {
+        const srtFile = await this.resolveSubtitleForPlayback(history);
+        if (srtFile === null) {
+            return null;
+        }
+
+        const filePath = path.join(history.base_path, history.file_name);
+        const duration = await this.mediaService.duration(filePath);
+        return this.buildBase(history, duration, srtFile);
+    }
+
+    /**
+     * 构建播放页启动所需的轻量详情。
+     *
+     * 该方法只校验媒体文件并读取数据库字段，不探测媒体时长，也不扫描字幕目录，
+     * 从而让 renderer 可以尽早设置视频源。
+     *
+     * @param history 观看历史数据库记录。
+     * @returns 轻量播放详情；媒体文件不存在时返回 `null`。
+     */
+    public async buildPlayerDetail(history: WatchHistoryRecord): Promise<WatchHistoryVO | null> {
         const filePath = path.join(history.base_path, history.file_name);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
         if (!await this.fileSystemGateway.fileExists(filePath)) {
             return null;
         }
-
-        const srtFile = await this.resolveSubtitle(history, filePath);
-        const duration = await this.mediaService.duration(filePath);
-        return this.buildBase(history, duration, srtFile);
+        return this.buildBase(history, 0, history.srt_file ?? '');
     }
 
     /**
@@ -111,6 +128,24 @@ export default class WatchHistoryViewBuilder {
 
         const subtitleFiles = await this.listSubtitleFiles(history.base_path);
         return MatchSrt.matchOne(videoPath, subtitleFiles) ?? '';
+    }
+
+    /**
+     * 独立解析播放记录应使用的字幕文件。
+     *
+     * 已关联字幕有效时直接返回；否则扫描视频目录并匹配最合适的字幕。
+     * 返回 `null` 表示媒体文件本身不存在，空字符串表示媒体存在但没有匹配字幕。
+     *
+     * @param history 观看历史数据库记录。
+     * @returns 字幕路径、空字符串或媒体不存在时的 `null`。
+     */
+    public async resolveSubtitleForPlayback(history: WatchHistoryRecord): Promise<string | null> {
+        const videoPath = path.join(history.base_path, history.file_name);
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(videoPath);
+        if (!await this.fileSystemGateway.fileExists(videoPath)) {
+            return null;
+        }
+        return this.resolveSubtitle(history, videoPath);
     }
 
     /**

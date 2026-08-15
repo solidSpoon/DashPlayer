@@ -15,8 +15,6 @@ import useSWR from 'swr';
 import PlaybackLayout from '@/fronted/features/player/components/srt-layout/Layout';
 import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
-import StrUtil from '@/common/utils/str-util';
-import CollUtil from '@/common/utils/CollUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
 import toast, { Toast } from 'react-hot-toast';
@@ -34,7 +32,7 @@ const PlayerWithControlsPage = () => {
     const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
     const navigate = useNavigate();
-    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => playerApi.getWatchHistoryDetail(videoId));
+    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => playerApi.getPlayerDetail(videoId));
     logger.debug('pa-player page loaded', {videoId, hasVideo: !!video});
     const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, playerApi.getWindowState);
     const isMac = useSystem((s) => s.isMac);
@@ -42,6 +40,7 @@ const PlayerWithControlsPage = () => {
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const uiFullScreen = useLayout((s) => s.fullScreen);
     const chatTopic = useChatPanel(s => s.topic);
+    const videoLoaded = useFile((s) => s.videoLoaded);
     const w = cpW.bind(
         null,
         useLayout((s) => s.width)
@@ -117,15 +116,25 @@ const PlayerWithControlsPage = () => {
         };
     }, [chatTopic, isMac, showSideBar, uiFullScreen, video, windowState]);
     useEffect(() => {
-        const runEffect = async () => {
+        /**
+         * 应用轻量播放详情，并优先把视频源写入播放器状态。
+         */
+        const runEffect = () => {
             logger.debug('video effect triggered', {video});
             if (!video) {
                 return;
             }
+            const previousVideoId = useFile.getState().videoId;
             useFile.setState({videoId: video.id});
             const vp = useFile.getState().videoPath;
-            const sp = useFile.getState().subtitlePath;
             const videoPath = PathUtil.join(video.basePath, video.fileName);
+            if (previousVideoId !== video.id) {
+                useFile.setState({
+                    subtitlePath: null,
+                    srtHash: null,
+                    subtitleSessionId: null,
+                });
+            }
             if (videoPath && vp !== videoPath) {
                 useFile.getState().updateFile(videoPath);
             }
@@ -174,15 +183,6 @@ const PlayerWithControlsPage = () => {
                 })().then();
             }, 800);
 
-            let subtitlePath = video.srtFile;
-            if (StrUtil.isBlank(subtitlePath)) {
-                const availableSrt = await playerApi.suggestSubtitle(videoPath);
-                subtitlePath = CollUtil.getFirst(availableSrt) ?? '';
-            }
-
-            if (subtitlePath && sp !== video.srtFile) {
-                useFile.getState().updateFile(subtitlePath);
-            }
             if (video) {
                 const mediaType: 'audio' | 'video' = MediaUtil.isAudio(video.fileName) ? 'audio' : 'video';
                 if (video.podcastModeUserSet) {
@@ -240,6 +240,58 @@ const PlayerWithControlsPage = () => {
         };
         runEffect();
     }, [video, navigate, t]);
+    useEffect(() => {
+        let cancelled = false;
+
+        /**
+         * 在当前视频完成 ready、恢复进度并发出播放指令后，再匹配和解析字幕。
+         *
+         * 同时校验 store 中的实时状态，避免切换视频时沿用上一条记录的
+         * `videoLoaded` 快照，导致新视频尚未 ready 就开始解析字幕。
+         */
+        const loadSubtitleAfterVideoReady = async () => {
+            if (!video || !videoLoaded) {
+                return;
+            }
+
+            const videoPath = PathUtil.join(video.basePath, video.fileName);
+            const fileState = useFile.getState();
+            if (
+                !fileState.videoLoaded
+                || fileState.videoId !== video.id
+                || fileState.videoPath !== videoPath
+            ) {
+                return;
+            }
+
+            try {
+                const subtitlePath = await playerApi.getPlayerSubtitle(video.id);
+                const latestFileState = useFile.getState();
+                if (
+                    cancelled
+                    || !latestFileState.videoLoaded
+                    || latestFileState.videoId !== video.id
+                    || latestFileState.videoPath !== videoPath
+                ) {
+                    return;
+                }
+                if (subtitlePath) {
+                    latestFileState.updateFile(subtitlePath);
+                } else {
+                    latestFileState.clearSrt();
+                }
+            } catch (error) {
+                logger.error('failed to resolve player subtitle', {
+                    error: error instanceof Error ? error.message : String(error),
+                    videoId: video.id,
+                });
+            }
+        };
+        loadSubtitleAfterVideoReady().then();
+        return () => {
+            cancelled = true;
+        };
+    }, [video, videoLoaded]);
     useEffect(() => {
         setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);

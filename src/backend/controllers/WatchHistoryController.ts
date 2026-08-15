@@ -44,6 +44,26 @@ export default class WatchHistoryController implements Controller {
         return this.watchHistoryService.detail(id);
     }
 
+    /**
+     * 获取不执行媒体探测和字幕扫描的播放启动详情。
+     *
+     * @param id 观看记录 ID。
+     * @returns 轻量播放详情。
+     */
+    public async playerDetail(id: string): Promise<WatchHistoryVO | null> {
+        return this.watchHistoryService.playerDetail(id);
+    }
+
+    /**
+     * 独立解析播放记录应使用的字幕。
+     *
+     * @param id 观看记录 ID。
+     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     */
+    public async playerSubtitle(id: string): Promise<string> {
+        return this.watchHistoryService.playerSubtitle(id);
+    }
+
     public async getNextVideo(currentId: string): Promise<WatchHistoryVO | null> {
         return this.watchHistoryService.getNextVideo(currentId);
     }
@@ -62,6 +82,8 @@ export default class WatchHistoryController implements Controller {
         registerRoute('watch-history/create/from-library', (p) => this.create(p, true));
         registerRoute('watch-history/group-delete', (p) => this.groupDelete(p));
         registerRoute('watch-history/detail', (p) => this.detail(p));
+        registerRoute('watch-history/player-detail', (p) => this.playerDetail(p));
+        registerRoute('watch-history/player-subtitle', (p) => this.playerSubtitle(p));
         registerRoute('watch-history/attach-srt', (p) => this.attachSrt(p));
         registerRoute('watch-history/suggest-srt', (p) => this.suggestSrt(p));
         registerRoute('watch-history/get-next-video', (p) => this.getNextVideo(p));

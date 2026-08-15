@@ -27,6 +27,7 @@ import StorageDirectoryProvider, {
 } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import VideoLearningClipAnalysis, { ClipCandidate } from '@/backend/services/VideoLearningClipAnalysis';
+import { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
 import VideoLearningClipTaskQueue, {
     LearningClipTask,
     LearningClipTaskResult,
@@ -152,11 +153,18 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     private videoLearningClipWordRepository!: VideoLearningClipWordRepository;
 
     /**
-     * 按字幕管理的候选片段分析器。
-     * 回调延迟读取属性注入的 WordMatchService。
+     * 共享字幕生词分析服务。
+     */
+    @inject(TYPES.SubtitleVocabularyAnalysisService)
+    private subtitleVocabularyAnalysisService!: SubtitleVocabularyAnalysisService;
+
+    /**
+     * 按字幕管理的候选片段转换器。
+     *
+     * 通过延迟回调读取属性注入的共享分析服务，避免字段初始化早于依赖注入。
      */
     private readonly clipAnalysis = new VideoLearningClipAnalysis(
-        (texts) => this.wordMatchService.matchWordsInTexts(texts),
+        () => this.subtitleVocabularyAnalysisService,
     );
     /**
      * 管理实际裁切任务的等待与串行消费。
@@ -877,7 +885,7 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     /**
      * 检测并返回指定字幕的学习片段状态。
      *
-     * 优先使用已缓存的状态和候选片段；没有分析结果时在后台启动分析。
+     * 优先使用已缓存的状态和候选片段；没有分析结果时只返回共享分析状态。
      *
      * @param videoPath 视频路径，用于状态通知。
      * @param srtKey 字幕缓存键。
@@ -900,12 +908,14 @@ export class VideoLearningServiceImpl implements VideoLearningService {
             return await this.computeStatusFromCandidates(videoPath, srtKey, cachedCandidates);
         }
 
-        const progress = this.clipAnalysis.getProgress(srtKey)
-            ?? this.clipAnalysis.getCachedProgress(srtKey)
-            ?? 0;
-        if (!this.clipAnalysis.isRunning(srtKey)) {
-            this.startClipAnalysis(videoPath, srtKey, srt);
+        const cachedProgress = this.clipAnalysis.getCachedProgress(srtKey);
+        if (cachedProgress === 100) {
+            const candidates = await this.clipAnalysis.collectCandidates(srtKey, srt);
+            return await this.computeStatusFromCandidates(videoPath, srtKey, candidates);
         }
+        const progress = this.clipAnalysis.getProgress(srtKey)
+            ?? cachedProgress
+            ?? 0;
         await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
         return this.ensureSeq(srtKey, { status: 'analyzing', analyzingProgress: progress });
     }
@@ -924,51 +934,6 @@ export class VideoLearningServiceImpl implements VideoLearningService {
         const nextSeq = this.clipStatusSeq.get(srtKey) ?? 1;
         this.clipStatusSeq.set(srtKey, nextSeq);
         return { ...status, seq: nextSeq };
-    }
-
-    /**
-     * 在后台启动字幕候选片段分析。
-     *
-     * 同一字幕已有分析任务时不会重复启动。
-     *
-     * @param videoPath 视频路径，用于通知渲染进程。
-     * @param srtKey 字幕缓存键。
-     * @param srt 已加载的字幕内容。
-     */
-    private startClipAnalysis(videoPath: string, srtKey: string, srt: SrtCache): void {
-        if (this.clipAnalysis.isRunning(srtKey)) {
-            return;
-        }
-
-        void this.clipAnalysis.collectCandidates(
-            srtKey,
-            srt,
-            async (progress) => {
-                await this.notifyClipStatus(videoPath, srtKey, 'analyzing', undefined, undefined, undefined, progress);
-            },
-        )
-            .then(async (candidates) => {
-                if (candidates.length === 0) {
-                    await this.notifyClipStatus(videoPath, srtKey, 'completed', 0, 0, 0, 100);
-                    return;
-                }
-                await this.computeStatusFromCandidates(videoPath, srtKey, candidates);
-            })
-            .catch(async (error) => {
-                if (
-                    error instanceof Error
-                    && (error.message === 'CLIP_ANALYSIS_INVALIDATED'
-                        || error.message === 'CLIP_ANALYSIS_REPLACED')
-                ) {
-                    return;
-                }
-                this.logger.error('分析裁切状态失败', { srtKey, videoPath, error });
-                this.rendererGateway.fireAndForget('ui/show-toast', {
-                    message: '学习片段分析失败，请检查字幕和词库后重试',
-                    variant: 'error',
-                    duration: 5000,
-                });
-            });
     }
 
     /**
