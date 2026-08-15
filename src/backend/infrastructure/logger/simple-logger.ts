@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
+import { app } from 'electron';
 import log from 'electron-log/main';
 
 import { isSensitiveKey, maskSensitiveValues } from '@/common/log/mask';
@@ -13,6 +14,8 @@ import { getCurrentTraceId, isTraceId } from './trace-context';
 interface JsonLogRecord {
     /** 日志结构版本，便于分析脚本处理未来演进。 */
     schemaVersion: 1;
+    /** 产生日志时运行的软件版本。 */
+    appVersion: string;
     /** 事件发生时间，ISO 8601 格式。 */
     timestamp: string;
     /** 日志级别。 */
@@ -70,6 +73,7 @@ function formatTransportLine(data: unknown[], level: string, timestamp: Date): s
         try {
             const parsed = JSON.parse(data[0]) as Partial<JsonLogRecord>;
             if (parsed.schemaVersion === 1
+                && typeof parsed.appVersion === 'string'
                 && typeof parsed.timestamp === 'string'
                 && typeof parsed.module === 'string'
                 && typeof parsed.message === 'string') {
@@ -83,6 +87,7 @@ function formatTransportLine(data: unknown[], level: string, timestamp: Date): s
     const sanitizedData = sanitizeValue(data);
     return JSON.stringify({
         schemaVersion: 1,
+        appVersion: app.getVersion(),
         timestamp: timestamp.toISOString(),
         level: normalizeLevel(level) ?? 'error',
         process: 'main',
@@ -270,6 +275,7 @@ function sanitizeValue(value: unknown, depth = 0, seen = new WeakSet<object>()):
 function createRecord(event: SimpleEvent): JsonLogRecord {
     const record: JsonLogRecord = {
         schemaVersion: 1,
+        appVersion: app.getVersion(),
         timestamp: event.ts || new Date().toISOString(),
         level: event.level,
         process: event.process,
