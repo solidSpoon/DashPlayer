@@ -6,13 +6,63 @@ import { inject, injectable } from 'inversify';
 
 import SubtitleTimestampAdjustmentsRepository
     from '@/backend/services/repositories/SubtitleTimestampAdjustmentsRepository';
-import TYPES from '@/backend/ioc/types';
+import TYPES from '@/backend/ioc/types';/**
+ * SrtTimeAdjustService 的业务契约。
+ */
+export default interface SrtTimeAdjustService {
+    /**
+     * 新增或覆盖一条字幕时间调整记录。
+     *
+     * @param adjustment 待保存的调整记录。
+     */
+    record(adjustment: SubtitleTimestampAdjustmentInput): Promise<void>;
+
+    /**
+     * 按记录键删除字幕时间调整。
+     *
+     * @param key 调整记录键。
+     */
+    deleteByKey(key: string): Promise<void>;
+
+    /**
+     * 删除指定文件的全部字幕时间调整。
+     *
+     * @param fileHash 文件哈希。
+     */
+    deleteByFile(fileHash: string): Promise<void>;
+
+    /**
+     * 按记录键读取字幕时间调整。
+     *
+     * @param key 调整记录键。
+     * @returns 对应记录；不存在时返回 `undefined`。
+     */
+    getByKey(key: string): Promise<SubtitleTimestampAdjustment | undefined>;
+
+    /**
+     * 按字幕路径读取全部时间调整。
+     *
+     * @param subtitlePath 字幕文件路径。
+     * @returns 对应的调整记录列表。
+     */
+    getByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]>;
+
+    /**
+     * 按文件哈希读取全部时间调整。
+     *
+     * @param hash 文件哈希。
+     * @returns 对应的调整记录列表。
+     */
+    getByHash(hash: string): Promise<SubtitleTimestampAdjustment[]>;
+}
+
+
 
 /**
  * 管理字幕时间调整记录。
  */
 @injectable()
-export default class SrtTimeAdjustService {
+export class SrtTimeAdjustServiceImpl implements SrtTimeAdjustService {
     @inject(TYPES.SubtitleTimestampAdjustmentsRepository)
     private subtitleTimestampAdjustmentsRepository!: SubtitleTimestampAdjustmentsRepository;
 

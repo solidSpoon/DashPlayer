@@ -23,13 +23,42 @@ export const PARAKEET_DOWNLOAD_CANCELLED_MESSAGE = 'Parakeet 模型下载已取�
 const DOWNLOAD_WORK_DIR = '.parakeet-download';
 
 /** 模型归档临时文件名。 */
-const ARCHIVE_FILE_NAME = 'model.tar.bz2';
+const ARCHIVE_FILE_NAME = 'model.tar.bz2';/**
+ * ParakeetModelService 的业务契约。
+ */
+export default interface ParakeetModelService {
+    /**
+     * 查询 Parakeet v3 是否已完整安装。
+     * @returns 模型路径、就绪状态与缺失文件。
+     */
+    getStatus(): Promise<ParakeetModelStatusVO>;
+
+    /**
+     * 下载官方 INT8 模型归档并完成原子安装。
+     * @returns 下载操作结果。
+     */
+    download(): Promise<{ success: boolean; message: string }>;
+
+    /**
+     * 取消进行中的模型下载；无下载任务时直接返回。
+     * @returns 是否确实中止了一个下载任务。
+     */
+    cancelDownload(): Promise<{ cancelled: boolean }>;
+
+    /**
+     * 删除已下载的 Parakeet v3 模型目录。
+     * @returns 删除结果；模型不存在时视为已删除。
+     */
+    deleteModel(): Promise<{ success: boolean; message: string }>;
+}
+
+
 
 /**
  * 负责 Parakeet v3 模型状态检查、下载和原子安装。
  */
 @injectable()
-export class ParakeetModelService {
+export class ParakeetModelServiceImpl implements ParakeetModelService {
     private readonly logger = getMainLogger('ParakeetModelService');
 
     private activeDownload: Promise<{ success: boolean; message: string }> | null = null;

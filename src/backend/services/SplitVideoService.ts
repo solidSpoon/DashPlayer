@@ -20,13 +20,32 @@ export interface SplitVideoRequest {
     srtPath: string | null;
     /** 已解析并确认有效的章节列表。 */
     chapters: ChapterParseResult[];
+}/**
+ * SplitVideoService 的业务契约。
+ */
+export default interface SplitVideoService {
+    /**
+     * 将章节文本解析为预览列表。
+     * @param chapterText 用户输入的章节文本。
+     * @returns 解析后的章节列表。
+     */
+    previewSplit(chapterText: string): Promise<ChapterParseResult[]>;
+
+    /**
+     * 按章节切分视频，并可选地切分配套字幕。
+     * @param request 视频、字幕和章节信息。
+     * @returns 分段文件所在目录。
+     */
+    splitByChapters(request: SplitVideoRequest): Promise<string>;
 }
+
+
 
 /**
  * 按章节切分视频，并在提供字幕时生成对应的分段字幕。
  */
 @injectable()
-export default class SplitVideoService {
+export class SplitVideoServiceImpl implements SplitVideoService {
     public constructor(
         @inject(TYPES.FfmpegService)
         private readonly ffmpegService: FfmpegService,

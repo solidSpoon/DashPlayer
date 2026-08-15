@@ -39,11 +39,11 @@ import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provide
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
 import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
 import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
-import ChatServiceImpl from '../ChatServiceImpl';
-import ChatSessionServiceImpl from '../ChatSessionServiceImpl';
-import TranslateServiceImpl from '../TranslateServiceImpl';
-import AiProviderServiceImpl, { isNoneReasoningModel } from '../AiProviderServiceImpl';
-import ModelRoutingServiceImpl from '../ModelRoutingServiceImpl';
+import { ChatServiceImpl } from '../ChatService';
+import { ChatSessionServiceImpl } from '../ChatSessionService';
+import { TranslateServiceImpl } from '../TranslateService';
+import { AiProviderServiceImpl, isNoneReasoningModel } from '../AiProviderService';
+import { ModelRoutingServiceImpl } from '../ModelRoutingService';
 import type DpTaskService from '../DpTaskService';
 import type AiProviderService from '../AiProviderService';
 import type ModelRoutingService from '../ModelRoutingService';

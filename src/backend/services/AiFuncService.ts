@@ -1,4 +1,4 @@
-import { LocalTtsService } from '@/backend/services/LocalTtsService';
+import LocalTtsService from '@/backend/services/LocalTtsService';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
 import TYPES from '@/backend/ioc/types';
@@ -9,11 +9,24 @@ import { inject, injectable } from 'inversify';
 import ChatService from '@/backend/services/ChatService';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import { ParakeetModelService } from '@/backend/services/ParakeetModelService';
-import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
+import ParakeetModelService from '@/backend/services/ParakeetModelService';
+import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';/**
+ * AiFuncService 的业务契约。
+ */
+export default interface AiFuncService {
+    formatSplit(text: string): Promise<number>;
+
+    tts(text: string): Promise<string>;
+
+    transcript(params: { filePath: string }): Promise<void>;
+
+    cancelTranscription(params: { filePath: string }): Promise<boolean>;
+}
+
+
 
 @injectable()
-export default class AiFuncService {
+export class AiFuncServiceImpl implements AiFuncService {
     private logger = getMainLogger('AiFuncService');
 
     @inject(TYPES.DpTaskService)

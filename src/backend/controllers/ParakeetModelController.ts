@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/controllers/Controller';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import { ParakeetModelService } from '@/backend/services/ParakeetModelService';
+import ParakeetModelService from '@/backend/services/ParakeetModelService';
 import TYPES from '@/backend/ioc/types';
 
 /**

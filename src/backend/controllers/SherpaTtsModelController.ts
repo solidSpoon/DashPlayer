@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import Controller from '@/backend/controllers/Controller';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import TYPES from '@/backend/ioc/types';
-import { SherpaTtsModelService } from '@/backend/services/SherpaTtsModelService';
+import SherpaTtsModelService from '@/backend/services/SherpaTtsModelService';
 
 /**
  * 暴露 Sherpa TTS 模型管理 IPC。

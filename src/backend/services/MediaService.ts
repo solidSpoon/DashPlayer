@@ -20,13 +20,44 @@ export interface ThumbnailOptions {
     width?: number;
     /** 输出图片格式。 */
     format?: 'jpg' | 'png';
+}/**
+ * MediaService 的业务契约。
+ */
+export default interface MediaService {
+    /**
+     * 获取或生成媒体缩略图。
+     *
+     * 相同文件、时间和选项会复用已有的非空缩略图；空文件会被删除后重新生成。
+     *
+     * @param sourceFilePath 媒体文件绝对路径。
+     * @param timestamp 截图时间，单位为秒；未提供时使用视频中点附近。
+     * @param options 缩略图清晰度、宽度和格式。
+     * @returns 缩略图文件绝对路径。
+     */
+    thumbnail(sourceFilePath: string, timestamp?: number, options?: ThumbnailOptions): Promise<string>;
+
+    /**
+     * 获取媒体文件时长。
+     * @param inputFile 媒体文件绝对路径。
+     * @returns 媒体时长，单位为秒。
+     */
+    duration(inputFile: string): Promise<number>;
+
+    /**
+     * 获取媒体文件信息。
+     * @param inputFile 媒体文件绝对路径。
+     * @returns FFprobe 解析后的媒体信息。
+     */
+    info(inputFile: string): Promise<VideoInfo>;
 }
+
+
 
 /**
  * 提供媒体文件信息、时长读取和缩略图生成能力。
  */
 @injectable()
-export default class MediaService {
+export class MediaServiceImpl implements MediaService {
     public constructor(
         @inject(TYPES.StorageDirectoryProvider)
         private readonly storageDirectoryProvider: StorageDirectoryProvider,

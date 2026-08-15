@@ -1,15 +1,11 @@
-// src/backend/services/AiTransServiceImpl.ts
-
 import { inject, injectable } from 'inversify';
 import { z } from 'zod';
 import { Output, streamText } from 'ai';
-
 import TYPES from '@/backend/ioc/types';
 import { SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
 import { WordTranslate, InsertWordTranslate } from '@/backend/infrastructure/db/tables/wordTranslates';
 import SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
 import WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
-
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
 import TransHolder from '@/common/utils/TransHolder';
@@ -22,7 +18,6 @@ import SettingService from '@/backend/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import TranslateService from '@/backend/services/AiTransServiceImpl';
 import { Sentence } from '@/common/types/SentenceC';
 import CacheService from '@/backend/services/CacheService';
 import {
@@ -34,6 +29,22 @@ import {
 } from '@/common/constants/openaiSubtitlePrompts';
 import { RendererTranslationFailure, RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 import { concurrency } from '@/backend/utils/concurrency';
+
+export default interface TranslateService {
+    transWord(
+        str: string,
+        forceRefresh?: boolean,
+        requestId?: string
+    ): Promise<YdRes | OpenAIDictionaryResult | null>;
+    transSentences(sentences: string[]): Promise<Map<string, string>>;
+
+    groupTranslate(params: {
+        fileHash: string;
+        indices: number[];
+        useCache?: boolean;
+    }): Promise<void>;
+}
+
 
 const openAIDictionaryExampleSchema = z.object({
     sentence: z.string().describe('Example sentence in English'),
@@ -236,7 +247,7 @@ const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSO
 const buildRequestedTranslationKeys = (fileHash: string, indices: number[]): string[] => indices.map((index) => `${fileHash}:${index}`);
 
 @injectable()
-export default class TranslateServiceImpl implements TranslateService {
+export class TranslateServiceImpl implements TranslateService {
     private readonly logger = getMainLogger('TranslateServiceImpl');
     /**
      * 记录进行中的单词词典查询，避免同 provider + 同单词被短时间重复触发。
@@ -1413,3 +1424,4 @@ Output example (field names and nesting must match exactly):
         await this.sentenceTranslatesRepository.upsertMany(params);
     }
 }
+

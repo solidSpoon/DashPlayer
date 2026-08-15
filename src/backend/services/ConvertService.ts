@@ -16,7 +16,35 @@ interface ConvertOutputPaths {
     videoPath: string;
     /** 从视频中提取的字幕文件路径。 */
     subtitlePath: string;
+}/**
+ * ConvertService 的业务契约。
+ */
+export default interface ConvertService {
+    /**
+     * 创建并启动一个 MKV 转 HTML5 MP4 的后台任务。
+     *
+     * @param inputFile 待转换视频的绝对路径。
+     * @returns 创建后的任务 ID。
+     * @throws 输入文件不存在或无法访问时直接抛错，不创建任务。
+     */
+    startToMp4(inputFile: string): Promise<number>;
+
+    /**
+     * 扫描文件夹并返回尚未生成 HTML5 MP4 的 MKV 视频。
+     * @param folders 待扫描的文件夹绝对路径。
+     * @returns 每个文件夹对应的待转换视频集合。
+     */
+    listUnconvertedVideos(folders: string[]): Promise<FolderVideos[]>;
+
+    /**
+     * 查找输入视频对应的 HTML5 MP4 文件。
+     * @param filePath 原视频或 HTML5 MP4 文件绝对路径。
+     * @returns 已存在的 HTML5 MP4 路径；不存在时返回 `null`。
+     */
+    suggestHtml5Video(filePath: string): Promise<string | null>;
 }
+
+
 
 /**
  * 负责视频转换用例的完整业务流程。
@@ -24,7 +52,7 @@ interface ConvertOutputPaths {
  * Controller 只调用此服务；任务状态、输出路径和 FFmpeg 调用均在这里统一编排。
  */
 @injectable()
-export default class ConvertService {
+export class ConvertServiceImpl implements ConvertService {
     /**
      * 创建转换用例服务。
      * @param dpTaskService 后台任务状态服务。

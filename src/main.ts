@@ -8,7 +8,7 @@ import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-insta
 import registerHandler from '@/backend/dispatcher';
 import { setConcurrencyLogger } from '@/backend/utils/concurrency';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
-import DpTaskServiceImpl from '@/backend/services/DpTaskServiceImpl';
+import { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
 import { initProxyFeature } from '@/backend/startup/initProxy';
 import container from '@/backend/ioc/inversify.config';

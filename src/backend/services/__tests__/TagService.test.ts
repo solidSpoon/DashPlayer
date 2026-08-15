@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Tag } from '@/backend/infrastructure/db/tables/tag';
-import TagService from '../TagService';
+import { TagServiceImpl } from '../TagService';
 
 // Mock inversify
 vi.mock('inversify', () => ({
@@ -9,7 +9,7 @@ vi.mock('inversify', () => ({
 }));
 
 describe('标签服务', () => {
-  let tagService: TagService;
+  let tagService: TagServiceImpl;
   let mockRepo: {
     ensureTag: ReturnType<typeof vi.fn>;
     deleteTagById: ReturnType<typeof vi.fn>;
@@ -18,7 +18,7 @@ describe('标签服务', () => {
   };
 
   beforeEach(() => {
-    tagService = new TagService();
+    tagService = new TagServiceImpl();
     mockRepo = {
       ensureTag: vi.fn(),
       deleteTagById: vi.fn(),

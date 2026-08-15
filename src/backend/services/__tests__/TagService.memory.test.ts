@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { tag } from '@/backend/infrastructure/db/tables/tag';
 import FavouriteClipsRepositoryImpl from '@/backend/infrastructure/db/repositories/FavouriteClipsRepositoryImpl';
-import TagService from '../TagService';
+import { TagServiceImpl } from '../TagService';
 import { createMemoryDb, type MemoryDb } from '@/test/database';
 
 // 场景测试不依赖 inversify 容器，直接把真实仓储注入服务；
@@ -14,12 +14,12 @@ vi.mock('inversify', () => ({
 
 describe('标签服务在内存数据库中的真实场景', () => {
     let memoryDb: MemoryDb;
-    let tagService: TagService;
+    let tagService: TagServiceImpl;
 
     beforeEach(() => {
         memoryDb = createMemoryDb();
         const repository = new FavouriteClipsRepositoryImpl(memoryDb.db);
-        tagService = new TagService();
+        tagService = new TagServiceImpl();
         (tagService as unknown as { favouriteClipsRepository: FavouriteClipsRepositoryImpl }).favouriteClipsRepository = repository;
     });
 

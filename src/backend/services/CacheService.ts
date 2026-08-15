@@ -12,10 +12,49 @@ export type CacheType = {
 };
 
 /**
+ * CacheService 的业务契约。
+ */
+export default interface CacheService {
+    /**
+     * 读取缓存值，并在值已过期时立即删除。
+     *
+     * @param type 缓存命名空间。
+     * @param key 业务键。
+     * @returns 缓存值；不存在或已过期时返回 `null`。
+     */
+    get<T extends keyof CacheType>(type: T, key: string): CacheType[T] | null;
+
+    /**
+     * 写入缓存值。
+     *
+     * @param type 缓存命名空间。
+     * @param key 业务键。
+     * @param value 缓存值。
+     * @param ttl 可选有效期，单位为毫秒；不传时不会自动过期。
+     */
+    set<T extends keyof CacheType>(type: T, key: string, value: CacheType[T], ttl?: number): void;
+
+    /**
+     * 删除指定缓存值。
+     *
+     * @param type 缓存命名空间。
+     * @param key 业务键。
+     */
+    delete<T extends keyof CacheType>(type: T, key: string): void;
+
+    /**
+     * 清空当前进程中的全部缓存。
+     */
+    clear(): void;
+}
+
+
+
+/**
  * 提供进程内的短期 JSON 缓存。
  */
 @injectable()
-export default class CacheService {
+export class CacheServiceImpl implements CacheService {
     private cache = new Map<string, { value: string; expires?: number }>();
 
     /**

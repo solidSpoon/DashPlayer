@@ -17,13 +17,42 @@ import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase
 const ARCHIVE_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-amy-low.tar.bz2';
 const DOWNLOAD_WORK_DIR = '.sherpa-tts-download';
 const ARCHIVE_FILE_NAME = 'model.tar.bz2';
-export const SHERPA_TTS_DOWNLOAD_CANCELLED_MESSAGE = 'Sherpa TTS 模型下载已取消';
+export const SHERPA_TTS_DOWNLOAD_CANCELLED_MESSAGE = 'Sherpa TTS 模型下载已取消';/**
+ * SherpaTtsModelService 的业务契约。
+ */
+export default interface SherpaTtsModelService {
+    /**
+     * 查询 TTS 模型是否完整安装。
+     * @returns 模型路径、就绪状态及下载状态。
+     */
+    getStatus(): Promise<SherpaTtsModelStatusVO>;
+
+    /**
+     * 下载并安装官方 Piper 英语 TTS 模型。
+     * @returns 下载操作结果。
+     */
+    download(): Promise<{ success: boolean; message: string }>;
+
+    /**
+     * 取消正在进行的模型下载。
+     * @returns 是否确实取消了下载任务。
+     */
+    cancelDownload(): Promise<{ cancelled: boolean }>;
+
+    /**
+     * 删除已安装的 TTS 模型。
+     * @returns 删除结果。
+     */
+    deleteModel(): Promise<{ success: boolean; message: string }>;
+}
+
+
 
 /**
  * 负责 Sherpa-ONNX Piper TTS 模型的状态检查、下载和原子安装。
  */
 @injectable()
-export class SherpaTtsModelService {
+export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
     private readonly logger = getMainLogger('SherpaTtsModelService');
     private activeDownload: Promise<{ success: boolean; message: string }> | null = null;
     private activeAbortController: AbortController | null = null;

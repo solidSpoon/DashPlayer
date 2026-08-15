@@ -7,13 +7,25 @@ import { SHERPA_TTS_MODEL_DIRECTORY } from '@/backend/services/models/sherpaTtsM
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import TYPES from '@/backend/ioc/types';
 import { SherpaOnnxTtsCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxTtsCli';
-import { SherpaTtsModelService } from '@/backend/services/SherpaTtsModelService';
+import SherpaTtsModelService from '@/backend/services/SherpaTtsModelService';/**
+ * LocalTtsService 的业务契约。
+ */
+export default interface LocalTtsService {
+    /**
+     * 将文本合成为 WAV 文件。
+     * @param text 待读取的英文文本；空文本直接失败。
+     * @returns 临时 WAV 文件路径。
+     */
+    synthesize(text: string): Promise<string>;
+}
+
+
 
 /**
  * 使用本地 Sherpa-ONNX Piper 模型生成语音。
  */
 @injectable()
-export class LocalTtsService {
+export class LocalTtsServiceImpl implements LocalTtsService {
     constructor(
         @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.SherpaTtsModelService) private readonly modelService: SherpaTtsModelService,
