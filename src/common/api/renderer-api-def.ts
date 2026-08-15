@@ -1,5 +1,5 @@
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
-import { RendererTranslationFailure, RendererTranslationItem } from '@/common/types/TranslationResult';
+import { RendererTranslationItem } from '@/common/types/TranslationResult';
 import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
 import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
@@ -39,9 +39,7 @@ interface UIRendererDef {
 
 // 翻译相关的前端API定义
 interface TranslationRendererDef {
-    'translation/result': { params: RendererTranslationItem, return: void };
     'translation/batch-result': { params: { translations: RendererTranslationItem[] }, return: void };
-    'translation/batch-failed': { params: RendererTranslationFailure, return: void };
 }
 
 // 字典相关的前端API定义
