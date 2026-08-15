@@ -16,10 +16,9 @@ import ProxySetting from '@/fronted/pages/setting/ProxySetting';
 import ServiceCredentialSetting from '@/fronted/pages/setting/ServiceCredentialSetting';
 import EngineSelectionSetting from '@/fronted/pages/setting/EngineSelectionSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
-import toast, { Toaster as HotToaster } from 'react-hot-toast';
+import { Toaster as HotToaster } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
 
-import { syncStatus } from '@/fronted/hooks/useSystem';
 import Transcript from '@/fronted/pages/transcript/Transcript';
 import Split from '@/fronted/pages/split/Split';
 import GlobalShortCut from '@/fronted/components/shared/shortcuts/GlobalShortCut';
@@ -27,13 +26,11 @@ import Convert from '@/fronted/pages/convert/Convert';
 import Eb from '@/fronted/components/shared/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
-import { startListeningToDpTasks } from '@/fronted/hooks/useDpTaskCenter';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { applyLanguageSetting } from '@/fronted/i18n';
 
-const api = window.electron;
 const UPDATE_CHECK_DELAY_MS = 6000;
 const UPDATE_TOAST_ID = 'update-available';
 const App = () => {
@@ -161,17 +158,16 @@ const App = () => {
     );
 };
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-    throw new Error('Root element not found');
+/**
+ * 将 React 应用挂载到 renderer 页面根节点。
+ *
+ * @throws 页面缺少 root 节点时抛出错误，避免应用在不完整的 HTML 中静默启动。
+ */
+export function mountApp(): void {
+    const rootElement = document.getElementById('root');
+    if (!rootElement) {
+        throw new Error('Root element not found');
+    }
+    const root = createRoot(rootElement);
+    root.render(<App />);
 }
-const root = createRoot(rootElement);
-root.render(<App />);
-syncStatus();
-api.onErrorMsg((error: Error) => {
-    toast.error(error.message);
-});
-api.onInfoMsg((info: string) => {
-    toast.success(info);
-});
-startListeningToDpTasks();

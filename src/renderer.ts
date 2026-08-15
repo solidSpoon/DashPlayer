@@ -27,8 +27,12 @@
  */
 
 import './index.css';
-// 初始化前端（renderer apis、settings sync等）
-import './fronted/init-controllers';
+import { startRendererRuntime } from './fronted/app/bootstrap/rendererRuntime';
+import { mountApp } from './app';
 
-// React App
-import './app';
+// 初始化 renderer 运行时（IPC、设置同步、任务监听等）。
+const stopRendererRuntime = startRendererRuntime();
+window.addEventListener('beforeunload', stopRendererRuntime, { once: true });
+
+// 基础运行时就绪后再挂载 React 应用。
+mountApp();

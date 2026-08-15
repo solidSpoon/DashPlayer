@@ -9,7 +9,7 @@ import {
     type Polygon,
 } from '@turf/helpers';
 import WordPop from './word-pop';
-import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
+import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import useSWR from 'swr';
 import Style from '@/fronted/styles/style';

@@ -1,11 +1,12 @@
 import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import { Nullable } from '@/common/types/Types';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { TypeGuards } from '@/common/utils/TypeGuards';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 
 const cache = new Map<string, string>();
-const api = window.electron;
+const api = backendClient;
 let player: HTMLAudioElement | null = null;
 
 async function getAudioUrl(outURl: string) {

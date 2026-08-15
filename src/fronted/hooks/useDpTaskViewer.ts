@@ -4,7 +4,7 @@
 import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { useEffect } from 'react';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { TypeGuards } from '@/common/utils/TypeGuards';
 import { Nullable } from '@/common/types/Types';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

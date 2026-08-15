@@ -42,6 +42,4 @@ export const syncStatus = () => {
     });
 };
 
-syncStatus();
-
 export default useSystem;
