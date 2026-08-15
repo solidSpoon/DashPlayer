@@ -2,15 +2,15 @@ import AbstractOssServiceImpl from '@/backend/infrastructure/storage/AbstractOss
 import { ClipMeta, ClipVersion, OssBaseMeta } from '@/common/types/clipMeta';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { ClipOssService } from '@/backend/application/services/OssService';
+import { ClipOssService } from '@/backend/services/OssService';
 import path from 'path';
-import FfmpegService from '@/backend/application/services/FfmpegService';
+import FfmpegService from '@/backend/services/FfmpegService';
 import fs from 'fs';
 import { MetaDataSchemaV1 } from '@/common/types/clipMeta/ClipMetaDataV1';
 import { OssBaseSchema } from '@/common/types/clipMeta/base';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
-} from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 @injectable()
 export default class VideoLearningOssServiceImpl extends AbstractOssServiceImpl<ClipMeta> implements ClipOssService {

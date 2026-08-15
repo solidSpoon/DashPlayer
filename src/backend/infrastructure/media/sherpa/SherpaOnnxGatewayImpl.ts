@@ -1,10 +1,10 @@
 import { inject, injectable } from 'inversify';
 import * as fs from 'fs';
 import * as path from 'path';
-import SpeechRecognitionGateway, { SpeechRecognitionRequest, SpeechRecognitionResult } from '@/backend/application/ports/gateways/media/SpeechRecognitionGateway';
+import SpeechRecognitionGateway, { SpeechRecognitionRequest, SpeechRecognitionResult } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
 import TYPES from '@/backend/ioc/types';
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
-import { PARAKEET_MODEL_DIRECTORY } from '@/backend/application/contracts/parakeetModel';
+import { PARAKEET_MODEL_DIRECTORY } from '@/backend/services/models/parakeetModel';
 
 /**
  * 基于 sherpa-onnx CLI 与 Parakeet v3 的本地英语识别网关。

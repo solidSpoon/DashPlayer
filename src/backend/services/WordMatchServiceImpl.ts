@@ -1,0 +1,96 @@
+import { Word } from '@/backend/infrastructure/db/tables/words';
+import { inject, injectable } from 'inversify';
+import {MatchedWord, WordMatchService} from '@/backend/services/WordMatchService';
+import TYPES from '@/backend/ioc/types';
+import WordsRepository from '@/backend/services/repositories/WordsRepository';
+import {
+    CompromiseVocabularyMatcher,
+    VocabularyEntry,
+    VocabularyMatcher,
+} from '@/backend/utils/language/VocabularyMatcher';
+
+@injectable()
+export default class WordMatchServiceImpl implements WordMatchService {
+
+    private vocabularyWordsCache: Word[] | null = null;
+    private vocabularyMatcherCache: VocabularyMatcher<Word> | null = null;
+
+    @inject(TYPES.WordsRepository)
+    private wordsRepository!: WordsRepository;
+
+    async matchWordsInText(text: string): Promise<MatchedWord[]> {
+        const results = await this.matchWordsInTexts([text]);
+        return results[0] || [];
+    }
+
+    async matchWordsInTexts(texts: string[]): Promise<MatchedWord[][]> {
+        if (!Array.isArray(texts) || texts.length === 0) {
+            return [];
+        }
+
+        const vocabularyWords = await this.getVocabularyWords();
+        if (!vocabularyWords || vocabularyWords.length === 0) {
+            return texts.map(() => []);
+        }
+
+        const vocabularyMatcher = this.getVocabularyMatcher(vocabularyWords);
+
+        return texts.map(text => this.matchSingleText(text, vocabularyMatcher));
+    }
+
+    /**
+     * 获取词表匹配器缓存。
+     *
+     * @param vocabularyWords 当前词表快照。
+     * @returns 已编译的词表匹配器。
+     */
+    private getVocabularyMatcher(vocabularyWords: Word[]): VocabularyMatcher<Word> {
+        if (this.vocabularyMatcherCache) {
+            return this.vocabularyMatcherCache;
+        }
+
+        const entries: VocabularyEntry<Word>[] = vocabularyWords.map((word) => ({
+            text: word.word,
+            payload: word,
+        }));
+        this.vocabularyMatcherCache = new CompromiseVocabularyMatcher(entries);
+        return this.vocabularyMatcherCache;
+    }
+
+    /**
+     * 匹配单段文本中的词表词条。
+     *
+     * 行为说明：
+     * - 统一交给词表匹配器处理。
+     * - 单词词条与词组词条会自动走各自的匹配策略。
+     *
+     * @param text 待匹配文本。
+     * @param vocabularyMatcher 已编译的词表匹配器。
+     * @returns 命中的词条列表。
+     */
+    private matchSingleText(text: string, vocabularyMatcher: VocabularyMatcher<Word>): MatchedWord[] {
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+            return [];
+        }
+
+        return vocabularyMatcher.match(text).map((match) => ({
+            original: match.original,
+            normalized: match.normalized,
+            databaseWord: match.payload,
+        }));
+    }
+
+    async getVocabularyWords(): Promise<Word[]> {
+        if (this.vocabularyWordsCache) {
+            return this.vocabularyWordsCache;
+        }
+
+        this.vocabularyWordsCache = await this.wordsRepository.getAll();
+        return this.vocabularyWordsCache;
+    }
+
+    invalidateVocabularyCache(): void {
+        this.vocabularyWordsCache = null;
+        this.vocabularyMatcherCache = null;
+    }
+}

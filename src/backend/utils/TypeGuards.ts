@@ -1,4 +1,4 @@
-import AssertionError from '@/backend/application/errors/AssertionError';
+import AssertionError from '@/backend/utils/errors/AssertionError';
 
 export class TypeGuards {
     /**

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
-import SubtitleTimestampAdjustmentsRepository from '@/backend/application/ports/repositories/SubtitleTimestampAdjustmentsRepository';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/services/repositories/SubtitleTimestampAdjustmentsRepository';
 import {
     InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustmentRow,

@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import RendererEvents from '@/backend/application/ports/gateways/renderer/RendererEvents';
+import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
 import { DpTask } from '@/common/contracts/dp-task';
 import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';

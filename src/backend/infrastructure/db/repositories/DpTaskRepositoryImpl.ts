@@ -5,7 +5,7 @@ import db from '@/backend/infrastructure/db';
 import { dpTask, DpTask as DpTaskRow, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
 import { DpTask } from '@/common/contracts/dp-task';
 import TimeUtil from '@/common/utils/TimeUtil';
-import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/application/ports/repositories/DpTaskRepository';
+import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/services/repositories/DpTaskRepository';
 
 @injectable()
 export default class DpTaskRepositoryImpl implements DpTaskRepository {

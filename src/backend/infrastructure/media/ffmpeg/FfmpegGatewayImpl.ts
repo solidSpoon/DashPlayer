@@ -10,7 +10,7 @@ import FfmpegGateway, {
     SplitVideoRangeArgs,
     TrimAudioArgs,
     TrimVideoArgs,
-} from '@/backend/application/ports/gateways/media/FfmpegGateway';
+} from '@/backend/services/gateways/media/FfmpegGateway';
 import { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
 import path from 'path';

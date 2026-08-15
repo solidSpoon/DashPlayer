@@ -35,8 +35,8 @@ src/backend/
   utils/                # 后端专用的轻量工具
 ```
 
-当前仓库中的 `adapters/controllers`、`application/services`、
-`application/ports` 等目录属于历史结构，不要求立即整体搬迁。
+历史目录已清理。新增后端代码统一落在 `controllers`、`services`、
+`infrastructure`、`startup`、`ioc` 或 `utils` 中。
 
 不要求每个功能都创建完整的一套目录。功能少时，一个文件就近放置即可。
 

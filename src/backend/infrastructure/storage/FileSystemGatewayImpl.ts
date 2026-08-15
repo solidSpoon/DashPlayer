@@ -3,7 +3,7 @@ import path from 'path';
 import jschardet from 'jschardet';
 import iconv from 'iconv-lite';
 import { injectable } from 'inversify';
-import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
+import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 
 /**
  * 基于 Node.js 文件系统 API 的文件访问实现。

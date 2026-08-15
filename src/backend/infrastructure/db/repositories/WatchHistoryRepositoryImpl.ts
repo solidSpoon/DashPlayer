@@ -14,7 +14,7 @@ import WatchHistoryRepository, {
     WatchHistoryProjectType,
     WatchHistoryRecord,
     WatchHistoryUpdatePatch,
-} from '@/backend/application/ports/repositories/WatchHistoryRepository';
+} from '@/backend/services/repositories/WatchHistoryRepository';
 
 /**
  * 使用 Drizzle 访问观看历史表，并将数据库行转换为 application 业务记录。

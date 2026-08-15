@@ -1,7 +1,7 @@
 import { injectable } from 'inversify';
 import path from 'path';
 import fs from 'fs';
-import { OssService } from '@/backend/application/services/OssService';
+import { OssService } from '@/backend/services/OssService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OssBaseMeta } from '@/common/types/clipMeta';
 

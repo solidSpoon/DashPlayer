@@ -5,8 +5,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
-} from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
-import {SettingsStore} from '@/backend/application/ports/gateways/SettingsStore';
+} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import {SettingsStore} from '@/backend/services/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import {
     canRecoverAccessFromSelection,

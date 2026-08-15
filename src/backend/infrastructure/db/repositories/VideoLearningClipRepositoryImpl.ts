@@ -5,7 +5,7 @@ import db from '@/backend/infrastructure/db';
 import { InsertVideoLearningClip, VideoLearningClip, videoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord, videoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 import TimeUtil from '@/common/utils/TimeUtil';
-import VideoLearningClipRepository, { VideoLearningClipCountQuery, VideoLearningClipPageQuery } from '@/backend/application/ports/repositories/VideoLearningClipRepository';
+import VideoLearningClipRepository, { VideoLearningClipCountQuery, VideoLearningClipPageQuery } from '@/backend/services/repositories/VideoLearningClipRepository';
 
 @injectable()
 export default class VideoLearningClipRepositoryImpl implements VideoLearningClipRepository {

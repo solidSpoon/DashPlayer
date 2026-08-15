@@ -10,7 +10,7 @@ import {InsertVideoClip, VideoClip, videoClip} from '@/backend/infrastructure/db
 import { ClipQuery } from '@/common/api/dto';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem, FavouriteClipsUpsertClipParams } from '@/backend/application/ports/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem, FavouriteClipsUpsertClipParams } from '@/backend/services/repositories/FavouriteClipsRepository';
 
 @injectable()
 export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepository {

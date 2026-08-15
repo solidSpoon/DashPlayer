@@ -3,7 +3,7 @@ import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
 import { InsertWord, Word, words } from '@/backend/infrastructure/db/tables/words';
-import WordsRepository, { GetAllWordsQuery } from '@/backend/application/ports/repositories/WordsRepository';
+import WordsRepository, { GetAllWordsQuery } from '@/backend/services/repositories/WordsRepository';
 
 /**
  * 单词仓储实现。

@@ -1,13 +1,13 @@
 # 并发内核使用说明
 
-本文档说明 `src/backend/application/kernel/concurrency` 的统一并发能力如何使用，以及重入与锁顺序规则。
+本文档说明 `src/backend/utils/concurrency` 的统一并发能力如何使用，以及重入与锁顺序规则。
 
 ## 1. 总览
 
 全局入口：
 
 ```ts
-import { concurrency } from '@/backend/application/kernel/concurrency';
+import { concurrency } from '@/backend/utils/concurrency';
 ```
 
 核心能力：
@@ -82,7 +82,7 @@ await concurrency.withSemaphore('ffmpeg', async () => {
 可使用装饰器简化服务层接入：
 
 ```ts
-import { WithSemaphore, WithRateLimit } from '@/backend/application/kernel/concurrency/decorators';
+import { WithSemaphore, WithRateLimit } from '@/backend/utils/concurrency/decorators';
 
 class ExampleService {
     @WithSemaphore('ffmpeg')

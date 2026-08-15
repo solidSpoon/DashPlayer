@@ -1,4 +1,4 @@
-import { SettingsStore } from '@/backend/application/ports/gateways/SettingsStore';
+import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import { storeGet, storeSet } from '@/backend/infrastructure/settings/store';
 import { SettingKey } from '@/common/types/store_schema';
 import { injectable } from 'inversify';
