@@ -1,4 +1,4 @@
-import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
 import type { Nullable } from '@/common/types/Types';
 
 

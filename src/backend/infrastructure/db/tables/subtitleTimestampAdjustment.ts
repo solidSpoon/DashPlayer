@@ -24,7 +24,7 @@ export const subtitleTimestampAdjustments = sqliteTable(
     }
 );
 
-export type SubtitleTimestampAdjustment =
+export type SubtitleTimestampAdjustmentRow =
     typeof subtitleTimestampAdjustments.$inferSelect; // return type when queried
 export type InsertSubtitleTimestampAdjustment =
     typeof subtitleTimestampAdjustments.$inferInsert; // insert type

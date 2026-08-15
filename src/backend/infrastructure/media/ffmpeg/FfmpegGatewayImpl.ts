@@ -10,7 +10,7 @@ import FfmpegGateway, {
     SplitVideoRangeArgs,
     TrimAudioArgs,
     TrimVideoArgs,
-} from '@/backend/application/ports/gateways/media/FfmpegGateway';
+} from '@/backend/services/gateways/media/FfmpegGateway';
 import { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
 import path from 'path';
@@ -237,10 +237,10 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
             },
             {
                 onStart: (commandLine) => {
-                    this.logger.info('Spawned Ffmpeg with command:', commandLine);
+                    this.logger.info('spawned ffmpeg', { command: commandLine });
                 },
                 onStderrLine: (line) => {
-                    this.logger.debug(`[FFmpeg] ${line}`);
+                    this.logger.debug('ffmpeg stderr line', { line });
                 },
                 onProgress: (event) => {
                     if (typeof event.percent !== 'number') return;

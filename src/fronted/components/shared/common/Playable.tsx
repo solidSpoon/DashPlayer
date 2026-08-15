@@ -1,5 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
-import { getTtsUrl, playAudioUrl } from '@/common/utils/AudioPlayer';
+import { getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
 import { useState } from 'react';
 import { Loader, Volume2 } from 'lucide-react';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

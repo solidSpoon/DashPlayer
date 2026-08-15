@@ -5,7 +5,7 @@ import db from '@/backend/infrastructure/db';
 import { wordTranslates } from '@/backend/infrastructure/db/tables/wordTranslates';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import WordTranslatesRepository from '@/backend/application/ports/repositories/WordTranslatesRepository';
+import WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
 
 @injectable()
 export default class WordTranslatesRepositoryImpl implements WordTranslatesRepository {

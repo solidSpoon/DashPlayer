@@ -1,10 +1,10 @@
 /**
  * 根据任务 ID 订阅任务中心里的任务，并在需要时解析出结构化结果。
  */
-import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { useEffect } from 'react';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { TypeGuards } from '@/common/utils/TypeGuards';
 import { Nullable } from '@/common/types/Types';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

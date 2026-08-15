@@ -6,22 +6,22 @@ import fs from 'fs';
 import path from 'path';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
-import { setConcurrencyLogger } from '@/backend/application/kernel/concurrency';
+import { setConcurrencyLogger } from '@/backend/utils/concurrency';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
-import DpTaskServiceImpl from '@/backend/application/services/impl/DpTaskServiceImpl';
+import { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
 import { initProxyFeature } from '@/backend/startup/initProxy';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
-import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
-import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
+import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { storeGet } from '@/backend/infrastructure/settings/store';
 
 // 导入日志 IPC 监听
-import '@/backend/adapters/ipc/renderer-log';
+import '@/backend/controllers/ipc/renderer-log';
 
 if (squirrelStartup) {
     app.quit();
@@ -29,7 +29,7 @@ if (squirrelStartup) {
 
 const logger = getMainLogger('MainStartup');
 const devtoolsLogger = getMainLogger('devtools');
-// 组合根运行期注入并发内核日志端口，保持 application/kernel 不依赖 infrastructure。
+// 组合根运行期注入并发工具日志端口，保持通用工具不依赖基础设施。
 setConcurrencyLogger(getMainLogger('concurrency'));
 
 const mainWindowRef = {

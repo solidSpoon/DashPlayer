@@ -1,13 +1,8 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { DpTaskState } from '@/common/contracts/dp-task';
 
-export enum DpTaskState {
-    INIT = 'init',
-    IN_PROGRESS = 'in_progress',
-    DONE = 'done',
-    CANCELLED = 'cancelled',
-    FAILED = 'failed',
-}
+export { DpTaskState };
 
 export const dpTask = sqliteTable('dp_task', {
     id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
@@ -22,5 +17,5 @@ export const dpTask = sqliteTable('dp_task', {
         .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export type DpTask = typeof dpTask.$inferSelect; // return type when queried
+export type DpTask = typeof dpTask.$inferSelect;
 export type InsertDpTask = typeof dpTask.$inferInsert; // insert type

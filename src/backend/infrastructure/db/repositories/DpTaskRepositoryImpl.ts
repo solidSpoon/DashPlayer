@@ -2,23 +2,44 @@ import { eq, or } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
-import { DpTask, dpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import { dpTask, DpTask as DpTaskRow, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask } from '@/common/contracts/dp-task';
 import TimeUtil from '@/common/utils/TimeUtil';
-import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/application/ports/repositories/DpTaskRepository';
+import DpTaskRepository, { CreateDpTaskParams, DpTaskUpdatePatch } from '@/backend/services/repositories/DpTaskRepository';
 
 @injectable()
 export default class DpTaskRepositoryImpl implements DpTaskRepository {
 
+    /**
+     * 将数据库行转换为业务任务，并拒绝未知状态。
+     *
+     * @param row Drizzle 查询返回的数据库行。
+     * @returns 可跨层传递的后台任务。
+     * @throws 数据库中的状态不属于已知任务状态时抛出。
+     */
+    private mapRow(row: DpTaskRow): DpTask {
+        switch (row.status) {
+            case DpTaskState.INIT:
+            case DpTaskState.IN_PROGRESS:
+            case DpTaskState.DONE:
+            case DpTaskState.CANCELLED:
+            case DpTaskState.FAILED:
+                return row as DpTask;
+            default:
+                throw new Error(`数据库中的后台任务状态无效: ${row.status}`);
+        }
+    }
+
     public async findById(id: number): Promise<DpTask | null> {
-        const rows: DpTask[] = await db
+        const rows: DpTaskRow[] = await db
             .select()
             .from(dpTask)
             .where(eq(dpTask.id, id));
-        return rows[0] ?? null;
+        return rows[0] ? this.mapRow(rows[0]) : null;
     }
 
     public async create(params: CreateDpTaskParams): Promise<DpTask> {
-        const rows: DpTask[] = await db
+        const rows: DpTaskRow[] = await db
             .insert(dpTask)
             .values({
                 status: params.status ?? DpTaskState.INIT,
@@ -31,7 +52,7 @@ export default class DpTaskRepositoryImpl implements DpTaskRepository {
         if (!row) {
             throw new Error('create dp task failed');
         }
-        return row;
+        return this.mapRow(row);
     }
 
     public async updateById(id: number, patch: DpTaskUpdatePatch): Promise<void> {
@@ -55,4 +76,3 @@ export default class DpTaskRepositoryImpl implements DpTaskRepository {
             .where(or(eq(dpTask.status, DpTaskState.INIT), eq(dpTask.status, DpTaskState.IN_PROGRESS)));
     }
 }
-

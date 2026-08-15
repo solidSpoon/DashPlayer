@@ -1,16 +1,13 @@
-import {DpTask} from '@/backend/infrastructure/db/tables/dpTask';
+import {DpTask} from '@/common/contracts/dp-task';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence} from '@/common/types/SentenceC';
 import {WindowState} from '@/common/types/Types';
-import {
-    InsertSubtitleTimestampAdjustment
-} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
-import {SettingKey} from '@/common/types/store_schema';
+import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
-import {FolderVideos} from '@/common/types/tonvert-type';
+import { FolderVideos } from '@/common/contracts/convert';
 
-import {Tag} from '@/backend/infrastructure/db/tables/tag';
+import {Tag} from '@/common/contracts/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
 import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
@@ -24,8 +21,15 @@ import {
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
+import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import {
+    RuntimeSettingSaveRequest,
+    RuntimeSettingsSnapshot,
+} from '@/common/contracts/runtime-settings';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
+import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 
@@ -39,6 +43,13 @@ interface AiFuncDef {
     'ai-func/format-split': { params: string, return: number };
     'ai-func/transcript': { params: { filePath: string }, return: void };
     'ai-func/cancel-transcription': { params: { filePath: string }, return: boolean };
+}
+
+interface SherpaTtsModelDef {
+    'sherpa-tts/models/status': { params: void, return: SherpaTtsModelStatusVO };
+    'sherpa-tts/models/download': { params: void, return: { success: boolean; message: string } };
+    'sherpa-tts/models/cancel-download': { params: void, return: { cancelled: boolean } };
+    'sherpa-tts/models/delete': { params: void, return: { success: boolean; message: string } };
 }
 
 interface DpTaskDef {
@@ -133,6 +144,8 @@ interface WatchHistoryDef {
     'watch-history/create/from-library': { params: string[], return: string[] };
     'watch-history/group-delete': { params: string, return: void };
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
+    'watch-history/player-detail': { params: string, return: WatchHistoryVO | null };
+    'watch-history/player-subtitle': { params: string, return: string };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/suggest-srt': { params: string, return: string[] };
     'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };
@@ -143,24 +156,45 @@ interface WatchHistoryDef {
 }
 
 interface SubtitleControllerDef {
-    'subtitle/srt/parse-to-sentences': { params: string, return: SrtSentence | null };
+    'subtitle/srt/parse-to-sentences': {
+        params: {
+            subtitlePath: string | null;
+            videoId: string;
+            playbackSessionId: string;
+        };
+        return: SrtSentence | null;
+    };
+    'subtitle/srt/match-vocabulary': {
+        params: {
+            fileHash: string;
+            videoId: string;
+            playbackSessionId: string;
+        };
+        return: {
+            videoId: string;
+            playbackSessionId: string;
+            fileHash: string;
+            vocabularyWords: string[];
+            cancelled: boolean;
+        };
+    };
 }
 
 interface SubtitleTimestampAdjustmentControllerDef {
     'subtitle-timestamp/delete/by-file-hash': { params: string, return: void };
     'subtitle-timestamp/delete/by-key': { params: string, return: void };
-    'subtitle-timestamp/update': { params: InsertSubtitleTimestampAdjustment, return: void };
+    'subtitle-timestamp/update': { params: SubtitleTimestampAdjustmentInput, return: void };
 }
 
 interface StorageDef {
-    'storage/put': { params: { key: SettingKey, value: string }, return: void };
-    'storage/get': { params: SettingKey, return: string };
     'storage/cache/size': { params: void, return: string };
     'storage/status': { params: void, return: StorageStatusVO };
     'storage/collection/paths': { params: void, return: string[] };
 }
 
 interface SettingsDef {
+    'settings/runtime/detail': { params: void, return: RuntimeSettingsSnapshot };
+    'settings/runtime/save': { params: RuntimeSettingSaveRequest, return: void };
     'settings/service-credentials/detail': { params: void, return: ServiceCredentialSettingDetailVO };
     'settings/service-credentials/save': { params: ServiceCredentialSettingSaveVO, return: void };
     'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };
@@ -169,11 +203,13 @@ interface SettingsDef {
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
     'settings/shortcuts/detail': { params: void, return: ShortcutSettingDetailVO };
-    'settings/appearance/update': { params: { theme: string; fontSize: string }, return: void };
-    'settings/shortcuts/update': { params: ShortcutSettingSaveVO, return: void };
-    'settings/storage/update': { params: { path: string; collection: string }, return: void };
+    'settings/shortcuts/save': { params: ShortcutSettingSaveVO, return: void };
+    'settings/appearance/detail': { params: void, return: AppearanceSettingVO };
+    'settings/appearance/save': { params: AppearanceSettingVO, return: void };
+    'settings/storage/detail': { params: void, return: StorageSettingVO };
+    'settings/storage/save': { params: StorageSettingVO, return: void };
     'settings/proxy/detail': { params: void, return: ProxySettingDetailVO };
-    'settings/proxy/update': { params: { mode: string; url: string; bypassRules: string }, return: void };
+    'settings/proxy/save': { params: ProxySettingSaveVO, return: void };
 }
 
 interface ParakeetModelDef {
@@ -183,13 +219,18 @@ interface ParakeetModelDef {
     'parakeet/models/delete': { params: void, return: { success: boolean; message: string } };
 }
 
+/** 视频切分 IPC 定义。 */
 interface SplitVideoDef {
     'split-video/preview': { params: string, return: ChapterParseResult[] };
     'split-video/split': {
         params: { videoPath: string, srtPath: string | null, chapters: ChapterParseResult[] },
         return: string
     };
-    'split-video/thumbnail': {
+}
+
+/** 通用媒体信息和缩略图 IPC 定义。 */
+interface MediaDef {
+    'media/thumbnail': {
         params: {
             filePath: string,
             time: number,
@@ -199,14 +240,13 @@ interface SplitVideoDef {
         },
         return: string
     };
-    'split-video/video-length': { params: string, return: number };
+    'media/duration': { params: string, return: number };
+    'media/info': { params: string, return: VideoInfo };
 }
 
 interface ConvertDef {
     'convert/to-mp4': { params: string, return: number };
     'convert/from-folder': { params: string[], return: FolderVideos[] };
-    'convert/video-length': { params: string, return: number };
-    'convert/video-info': { params: string, return: VideoInfo };
     'convert/suggest-html5-video': { params: string, return: string | null };
 
 }
@@ -297,7 +337,9 @@ export type ApiDefinitions = ApiDefinition
     & ChatAnalysisDef
     & WatchHistoryDef
     & SubtitleControllerDef
+    & SherpaTtsModelDef
     & SplitVideoDef
+    & MediaDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
     & SettingsDef

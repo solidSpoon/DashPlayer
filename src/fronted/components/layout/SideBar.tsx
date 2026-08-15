@@ -3,8 +3,8 @@ import React, { cloneElement, ReactElement } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import logoLight from '../../../../assets/logo-light.png';
 import logoDark from '../../../../assets/logo-dark.png';
-import useFile from '@/fronted/hooks/useFile';
-import useSetting from '@/fronted/hooks/useSetting';
+import useFile from '@/fronted/features/file-browser/fileStore';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import { BookOpen, Captions, Rotate3D, Settings, SquareSplitHorizontal, Star, User, Video } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 

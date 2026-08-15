@@ -34,6 +34,7 @@ interface UIRendererDef {
         return: void
     };
     'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
+    'settings/sherpa-tts-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
 }
 
 // 翻译相关的前端API定义
@@ -59,16 +60,6 @@ interface DictionaryRendererDef {
 // 转录相关的前端API定义
 interface TranscriptRendererDef {
     'transcript/batch-result': { params: { updates: TranscriptTaskUpdate[] }, return: void };
-}
-
-// 词汇匹配相关的前端API定义
-interface VocabularyRendererDef {
-    'vocabulary/match-result': { 
-        params: { 
-            vocabularyWords: string[]; // 未还原的复数等形态的单词数组
-        }, 
-        return: void 
-    };
 }
 
 // 视频学习裁切状态更新的前端API定义
@@ -105,7 +96,6 @@ export type RendererApiDefinitions = RendererApiDefinition
     & TranslationRendererDef
     & DictionaryRendererDef
     & TranscriptRendererDef
-    & VocabularyRendererDef
     & VideoLearningRendererDef
     & ChatRendererDef
     & AnalysisRendererDef;

@@ -1,135 +1,145 @@
-// src/fronted/log/simple-logger.ts
 import type { SimpleLevel } from '@/common/log/simple-types';
-import { logWriter } from '@/fronted/application/bootstrap/logWriter';
+import { writeRendererLog } from '@/fronted/infrastructure/electron/logWriter';
 
-type RendererLogger = {
-  debug: (msg: string, data?: unknown) => void;
-  info: (msg: string, data?: unknown) => void;
-  warn: (msg: string, data?: unknown) => void;
-  error: (msg: string, data?: unknown) => void;
-  withFocus: (focusToken: string) => RendererLogger;
-};
+/** renderer 日志器；显式 `withTrace` 可关联已知的跨进程调用链。 */
+interface RendererLogger {
+    debug: (msg: string, data?: unknown) => void;
+    info: (msg: string, data?: unknown) => void;
+    warn: (msg: string, data?: unknown) => void;
+    error: (msg: string, data?: unknown) => void;
+    withTrace: (traceId: string) => RendererLogger;
+}
 
 const levelOrder: Record<SimpleLevel, number> = {
-  debug: 20, info: 30, warn: 40, error: 50,
+    debug: 20,
+    info: 30,
+    warn: 40,
+    error: 50,
 };
-const FOCUS_PREFIX_PATTERN = /^\[FOCUS:([^\]]+)\]\s*/;
 
+/**
+ * 将环境变量中的日志级别解析为受支持值。
+ * @param level 候选日志级别。
+ * @returns 合法级别；无法识别时返回 null。
+ */
 function normalizeLevel(level?: string): SimpleLevel | null {
-  if (level === 'debug' || level === 'info' || level === 'warn' || level === 'error') {
-    return level;
-  }
-  return null;
-}
-
-function getDefaultLevel(): SimpleLevel {
-  const envLevel = normalizeLevel(import.meta.env.VITE_DP_LOG_LEVEL);
-  return envLevel ?? 'info';
-}
-
-function normalizeCsvInput(input?: string): string[] {
-  if (!input) return [];
-  return input.split(',').map(item => item.trim()).filter(Boolean);
-}
-
-function createModuleFilterSet(input?: string): Set<string> | null {
-  const modules = normalizeCsvInput(input);
-  if (modules.length === 0) {
+    if (level === 'debug' || level === 'info' || level === 'warn' || level === 'error') {
+        return level;
+    }
     return null;
-  }
-  return new Set(modules);
 }
 
-function normalizeFocusToken(input?: string): string | null {
-  const token = input?.trim();
-  return token ? token : null;
+/**
+ * 获取 renderer 的默认日志级别。
+ * @returns Vite 配置值；未配置时返回 info。
+ */
+function getDefaultLevel(): SimpleLevel {
+    return normalizeLevel(import.meta.env.VITE_DP_LOG_LEVEL) ?? 'info';
 }
 
-function extractFocusToken(msg: string): string | undefined {
-  const matched = msg.match(FOCUS_PREFIX_PATTERN);
-  return matched?.[1]?.trim() || undefined;
+/**
+ * 解析逗号分隔的模块过滤配置。
+ * @param input 环境变量原始值。
+ * @returns 去除空白和空项后的模块名。
+ */
+function normalizeCsvInput(input?: string): string[] {
+    if (!input) return [];
+    return input.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-const CURRENT_LEVEL: SimpleLevel = getDefaultLevel();
-const INCLUDE_MODULE_FILTER: Set<string> | null = createModuleFilterSet(import.meta.env.VITE_DP_LOG_INCLUDE_MODULES);
-const EXCLUDE_MODULE_FILTER: Set<string> | null = createModuleFilterSet(import.meta.env.VITE_DP_LOG_EXCLUDE_MODULES);
-const FOCUS_TOKEN_FILTER: string | null = normalizeFocusToken(import.meta.env.VITE_DP_LOG_FOCUS_TOKEN);
+/**
+ * 创建模块过滤集合。
+ * @param input 逗号分隔的模块名。
+ * @returns 模块集合；未配置时返回 null。
+ */
+function createModuleFilterSet(input?: string): Set<string> | null {
+    const modules = normalizeCsvInput(input);
+    return modules.length > 0 ? new Set(modules) : null;
+}
 
+const CURRENT_LEVEL = getDefaultLevel();
+const INCLUDE_MODULE_FILTER = createModuleFilterSet(import.meta.env.VITE_DP_LOG_INCLUDE_MODULES);
+const EXCLUDE_MODULE_FILTER = createModuleFilterSet(import.meta.env.VITE_DP_LOG_EXCLUDE_MODULES);
 const RENDERER_LOGGER_CACHE = new Map<string, RendererLogger>();
 
+/**
+ * 判断模块是否通过 allowlist/denylist。
+ * @param moduleName 日志模块名。
+ * @returns 应输出时返回 true。
+ */
 function shouldLogModule(moduleName: string): boolean {
-  if (INCLUDE_MODULE_FILTER && !INCLUDE_MODULE_FILTER.has(moduleName)) {
-    return false;
-  }
-  if (EXCLUDE_MODULE_FILTER && EXCLUDE_MODULE_FILTER.has(moduleName)) {
-    return false;
-  }
-  return true;
-}
-
-function shouldLogFocus(msg: string, focus?: string): boolean {
-  if (!FOCUS_TOKEN_FILTER) {
+    if (INCLUDE_MODULE_FILTER && !INCLUDE_MODULE_FILTER.has(moduleName)) {
+        return false;
+    }
+    if (EXCLUDE_MODULE_FILTER && EXCLUDE_MODULE_FILTER.has(moduleName)) {
+        return false;
+    }
     return true;
-  }
-  return (focus || extractFocusToken(msg)) === FOCUS_TOKEN_FILTER;
 }
 
-function prependFocusToken(msg: string, focusToken?: string) {
-  if (!focusToken) return msg;
-  if (FOCUS_PREFIX_PATTERN.test(msg)) return msg;
-  return `[FOCUS:${focusToken}] ${msg}`;
+/**
+ * 输出 renderer 日志到开发控制台并发送给 main 进程落盘。
+ * @param moduleName 日志模块名。
+ * @param level 日志级别。
+ * @param msg 事件描述。
+ * @param data 可选结构化上下文。
+ * @param traceId 可选 trace ID。
+ */
+function write(moduleName: string, level: SimpleLevel, msg: string, data?: unknown, traceId?: string): void {
+    if (import.meta.env.DEV) {
+        const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : level === 'debug' ? 'debug' : 'log';
+        // eslint-disable-next-line no-console
+        console[method](`[renderer|${moduleName}|${level}]`, msg, data ?? '');
+    }
+
+    try {
+        writeRendererLog({
+            ts: new Date().toISOString(),
+            level,
+            process: 'renderer',
+            module: moduleName,
+            msg,
+            data,
+            traceId,
+        });
+    } catch {
+        // renderer 日志失败不能反向打断用户操作。
+    }
 }
 
-function write(processName: 'renderer', moduleName: string, level: SimpleLevel, msg: string, data?: unknown, focus?: string) {
-  const focusToken = focus || extractFocusToken(msg);
-  const plainMsg = msg.replace(FOCUS_PREFIX_PATTERN, '');
-  const focusPart = focusToken ? `|focus:${focusToken}` : '';
-  const prefix = `[${processName}|${moduleName}|${level}${focusPart}]`;
-  // 控制台输出仅用于开发定位；生产环境 console 无观众且双写拖累性能，跳过。
-  if (import.meta.env.DEV) {
-    const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : level === 'debug' ? 'debug' : 'log';
-    // eslint-disable-next-line no-console
-    console[method](prefix, plainMsg, data ?? '');
-  }
-
-  // 发给主进程落盘
-  try {
-    logWriter.write({
-      ts: new Date().toISOString(),
-      level,
-      process: processName,
-      module: moduleName,
-      msg,
-      data,
-      focus: focusToken,
-    });
-  } catch {
-    // ignore
-  }
-}
-
-export function getRendererLogger(moduleName: string): RendererLogger {
-  const cached = RENDERER_LOGGER_CACHE.get(moduleName);
-  if (cached) return cached;
-
-  const createLogger = (focusToken?: string): RendererLogger => {
-    const at = (level: SimpleLevel, msg: string, data?: unknown) => {
-      const focusedMsg = prependFocusToken(msg, focusToken);
-      if (levelOrder[level] < levelOrder[CURRENT_LEVEL]) return;
-      if (!shouldLogModule(moduleName)) return;
-      if (!shouldLogFocus(focusedMsg, focusToken)) return;
-      write('renderer', moduleName, level, focusedMsg, data, focusToken);
+/**
+ * 创建 renderer 日志器。
+ * @param moduleName 稳定模块名。
+ * @param traceId 可选的显式 trace ID。
+ * @returns 可复用日志器。
+ */
+function createLogger(moduleName: string, traceId?: string): RendererLogger {
+    const at = (level: SimpleLevel, msg: string, data?: unknown): void => {
+        if (levelOrder[level] < levelOrder[CURRENT_LEVEL] || !shouldLogModule(moduleName)) {
+            return;
+        }
+        write(moduleName, level, msg, data, traceId);
     };
+
     return {
-      debug: (msg: string, data?: unknown) => at('debug', msg, data),
-      info:  (msg: string, data?: unknown) => at('info',  msg, data),
-      warn:  (msg: string, data?: unknown) => at('warn',  msg, data),
-      error: (msg: string, data?: unknown) => at('error', msg, data),
-      withFocus: (nextFocusToken: string) => createLogger(nextFocusToken),
+        debug: (msg, data) => at('debug', msg, data),
+        info: (msg, data) => at('info', msg, data),
+        warn: (msg, data) => at('warn', msg, data),
+        error: (msg, data) => at('error', msg, data),
+        withTrace: (nextTraceId) => createLogger(moduleName, nextTraceId),
     };
-  };
-  const logger: RendererLogger = createLogger();
+}
 
-  RENDERER_LOGGER_CACHE.set(moduleName, logger);
-  return logger;
+/**
+ * 获取指定模块的 renderer 日志器。
+ * @param moduleName 稳定模块名。
+ * @returns 可复用日志器。
+ */
+export function getRendererLogger(moduleName: string): RendererLogger {
+    const cached = RENDERER_LOGGER_CACHE.get(moduleName);
+    if (cached) return cached;
+
+    const logger = createLogger(moduleName);
+    RENDERER_LOGGER_CACHE.set(moduleName, logger);
+    return logger;
 }

@@ -1,6 +1,6 @@
 import moment from 'moment';
 import StrUtil from '@/common/utils/str-util';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
+import { TypeGuards } from '@/common/utils/TypeGuards';
 import { Nullable } from '@/common/types/Types';
 
 export default class TimeUtil {

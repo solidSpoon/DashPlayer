@@ -25,9 +25,6 @@ Use Conventional Commits for commit messages (e.g., `feat: ...`, `fix: ...`, `ch
 ## Service Configuration & Security
 External integrations drive key features: Youdao, Tencent, OpenAI, Sherpa ONNX. Configure credentials through the in-app Settings UI or local secure storage—never commit keys or generated data. Ensure `lib/` binaries match the branch (rerun `yarn run download` after upgrades) and review `forge.config.ts` plus `drizzle.config.ts` whenever changing build or database behavior.
 
-## Logging & Debug Filters
-Use module and focus-token filters to reduce noise during debugging. Set `DP_LOG_INCLUDE_MODULES` / `DP_LOG_EXCLUDE_MODULES` and `VITE_DP_LOG_INCLUDE_MODULES` / `VITE_DP_LOG_EXCLUDE_MODULES` in `.env` to filter by module. For temporary feature-focused debugging, set `DP_LOG_FOCUS_TOKEN` and `VITE_DP_LOG_FOCUS_TOKEN`, and use `getMainLogger('Module').withFocus('token')` / `getRendererLogger('Module').withFocus('token')` or a temporary `[FOCUS:token]` message prefix. Prefer top-level `const logger = getMainLogger('Module')` in main and `const logger = getRendererLogger('Module')` in renderer. Dev-time log level and filters must be set in env: `DP_LOG_LEVEL=debug`, `VITE_DP_LOG_LEVEL=debug`.
-
 ## Agent Notes
 - Drizzle migrations under `drizzle/migrations/` are auto-generated; never edit them manually. Change the schema in `src/backend/infrastructure/db/tables/` and run `yarn drizzle-kit generate` afterwards.
 - This is a personal open-source project. Favor simple, pragmatic designs; avoid over-engineering architecture.

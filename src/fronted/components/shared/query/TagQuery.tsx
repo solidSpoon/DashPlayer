@@ -1,6 +1,6 @@
 import { Tag as TagIcon, X } from 'lucide-react';
 import React from 'react';
-import { Tag } from '@/backend/infrastructure/db/tables/tag';
+import { Tag } from '@/common/contracts/tag';
 import useSWR from 'swr';
 import { cn } from '@/fronted/lib/utils';
 import { Badge } from '@/fronted/components/ui/badge';
@@ -15,7 +15,7 @@ import {
   CommandList
 } from '@/fronted/components/ui/command';
 import { apiPath } from '@/fronted/lib/swr-util';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 const TagQuery = ({

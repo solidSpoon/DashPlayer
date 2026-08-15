@@ -1,23 +1,29 @@
 import { and, count, desc, eq, gte, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 
-import db from '@/backend/infrastructure/db';
+import TYPES from '@/backend/ioc/types';
+import type { Db } from '@/backend/infrastructure/db/createDb';
 import { clipTagRelation } from '@/backend/infrastructure/db/tables/clipTagRelation';
-import { InsertTag, Tag, tag } from '@/backend/infrastructure/db/tables/tag';
+import { InsertTag, TagRow, tag } from '@/backend/infrastructure/db/tables/tag';
+import { Tag } from '@/common/contracts/tag';
 import {InsertVideoClip, VideoClip, videoClip} from '@/backend/infrastructure/db/tables/videoClip';
 import { ClipQuery } from '@/common/api/dto';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem, FavouriteClipsUpsertClipParams } from '@/backend/application/ports/repositories/FavouriteClipsRepository';
+import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem, FavouriteClipsUpsertClipParams } from '@/backend/services/repositories/FavouriteClipsRepository';
 
 @injectable()
 export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepository {
+    /**
+     * @param db 由依赖容器注入的 drizzle 实例；测试中可替换为内存库。
+     */
+    constructor(@inject(TYPES.Database) private readonly db: Db) {}
 
     public async listExistingClipKeys(keys: string[]): Promise<string[]> {
         if (keys.length === 0) {
             return [];
         }
-        const rows: { key: string }[] = await db
+        const rows: { key: string }[] = await this.db
             .select({ key: videoClip.key })
             .from(videoClip)
             .where(inArray(videoClip.key, keys));
@@ -25,7 +31,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async existsClipKey(key: string): Promise<boolean> {
-        const rows: { key: string }[] = await db
+        const rows: { key: string }[] = await this.db
             .select({ key: videoClip.key })
             .from(videoClip)
             .where(eq(videoClip.key, key));
@@ -43,7 +49,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
      * @param tagNames 该片段关联的标签名列表。
      */
     public async saveClipWithTags(values: FavouriteClipsUpsertClipParams, tagNames: string[]): Promise<void> {
-        db.transaction((tx) => {
+        this.db.transaction((tx) => {
             tx.insert(videoClip)
                 .values({
                     ...values,
@@ -97,7 +103,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
      * @param clips 重灌的片段列表，每项包含片段内容和关联标签名。
      */
     public async replaceAll(clips: FavouriteClipsReplaceAllItem[]): Promise<void> {
-        db.transaction((tx) => {
+        this.db.transaction((tx) => {
             tx.delete(videoClip).where(sql`1=1`).run();
             tx.delete(clipTagRelation).where(sql`1=1`).run();
             tx.delete(tag).where(sql`1=1`).run();
@@ -154,7 +160,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
      * @param clipKey 片段 key。
      */
     public async deleteClipAndPruneTags(clipKey: string): Promise<void> {
-        await db.transaction((tx) => {
+        await this.db.transaction((tx) => {
             const tagIds: { tag_id: number | null }[] = tx
                 .select({ tag_id: clipTagRelation.tag_id })
                 .from(clipTagRelation)
@@ -217,7 +223,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
             }
         }
 
-        const rows: { key: string }[] = await db
+        const rows: { key: string }[] = await this.db
             .select({
                 key: videoClip.key,
             })
@@ -234,7 +240,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async listTagsByClipKey(clipKey: string): Promise<Tag[]> {
-        const rows: { dp_tag: Tag | null }[] = await db
+        const rows: { dp_tag: TagRow | null }[] = await this.db
             .select()
             .from(clipTagRelation)
             .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
@@ -245,7 +251,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async ensureTag(name: string): Promise<Tag> {
-        const e: Tag[] = await db
+        const e: TagRow[] = await this.db
             .insert(tag)
             .values({ name } satisfies InsertTag)
             .onConflictDoUpdate({
@@ -261,22 +267,23 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async deleteTagById(tagId: number): Promise<void> {
-        await db.delete(tag).where(eq(tag.id, tagId));
+        await this.db.delete(tag).where(eq(tag.id, tagId));
     }
 
     public async updateTagName(tagId: number, name: string): Promise<void> {
-        await db.update(tag).set({ name }).where(eq(tag.id, tagId));
+        await this.db.update(tag).set({ name }).where(eq(tag.id, tagId));
     }
 
     public async searchTagsByPrefix(keyword: string): Promise<Tag[]> {
-        return db
+        const rows: TagRow[] = await this.db
             .select()
             .from(tag)
             .where(like(tag.name, `${keyword}%`));
+        return rows;
     }
 
     public async insertClipTagIgnore(clipKey: string, tagId: number): Promise<void> {
-        await db
+        await this.db
             .insert(clipTagRelation)
             .values({
                 clip_key: clipKey,
@@ -295,7 +302,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
      * @param tagId 标签 id。
      */
     public async deleteClipTagAndPruneTag(clipKey: string, tagId: number): Promise<void> {
-        await db.transaction((tx) => {
+        await this.db.transaction((tx) => {
             tx.delete(clipTagRelation).where(
                 and(
                     eq(clipTagRelation.clip_key, clipKey),
@@ -314,7 +321,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async listClipKeysByTagId(tagId: number): Promise<string[]> {
-        const rows: { dp_video_clip: Pick<VideoClip, 'key'> | null }[] = await db
+        const rows: { dp_video_clip: Pick<VideoClip, 'key'> | null }[] = await this.db
             .select({
                 dp_video_clip: {
                     key: videoClip.key,

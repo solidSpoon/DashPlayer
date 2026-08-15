@@ -4,7 +4,7 @@ import { app } from 'electron';
 import { getEnvironmentSuffix } from '@/backend/utils/runtimeEnv';
 import StrUtil from '@/common/utils/str-util';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
-import { StorageDirectoryTarget } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 const DEFAULT_STORAGE_FOLDER_NAME = 'DashPlayer';
 const DEFAULT_COLLECTION = 'default';

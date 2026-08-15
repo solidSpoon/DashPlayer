@@ -1,6 +1,6 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
 import { injectable } from 'inversify';
-import ClientProviderService from '@/backend/application/services/ClientProviderService';
+import ClientProviderService from '@/backend/services/ClientProviderService';
 import StrUtil from '@/common/utils/str-util';
 import YouDaoClient, { YouDaoConfig } from '@/backend/infrastructure/translate/clients/YouDaoClient';
 

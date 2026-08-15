@@ -1,0 +1,152 @@
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
+import { cn } from '@/fronted/lib/utils';
+import useLayout from '@/fronted/hooks/useLayout';
+import useFile from '@/fronted/features/file-browser/fileStore';
+import ProjectListCard from '@/fronted/features/file-browser/components/project-list-card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { Button } from '@/fronted/components/ui/button';
+import useSWR from 'swr';
+import { apiPath } from '@/fronted/lib/swr-util';
+import ProjectListItem from '@/fronted/features/file-browser/components/project-list-item';
+import { ChevronsDown } from 'lucide-react';
+import FolderSelector, { FolderSelectAction } from '@/fronted/features/file-browser/components/FolderSelector';
+import FileSelector, { FileAction } from '@/fronted/features/file-browser/components/FileSelector';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+
+const logger = getRendererLogger('HomePage');
+const HomePage = () => {
+    const { t } = useI18nTranslation('nav');
+    const navigate = useNavigate();
+    const changeSideBar = useLayout((s) => s.changeSideBar);
+
+    async function handleClickById(vId: string) {
+        await fileBrowserApi.changeWindowSize('player');
+        changeSideBar(false);
+        navigate(`/player/${vId}`);
+    }
+
+    const { data: vpsBasic } = useSWR(apiPath('watch-history/list/basic'), fileBrowserApi.listBasicWatchHistory);
+    const [vpsFull, setVpsFull] = React.useState<typeof vpsBasic>(undefined);
+    const vps = vpsFull ?? vpsBasic;
+    const clear = useFile((s) => s.clear);
+    const [num, setNum] = React.useState(4);
+    // 从第四个开始截取num个
+    const rest = vps?.slice(3, num + 3);
+    useEffect(() => {
+        fileBrowserApi.changeWindowSize('home').then();
+        clear();
+    }, [clear]);
+    useEffect(() => {
+        let cancelled = false;
+        let idleId: number | null = null;
+
+        const loadFullList = async () => {
+            try {
+                const full = await fileBrowserApi.listWatchHistory();
+                if (!cancelled) {
+                    setVpsFull(full);
+                }
+            } catch (error) {
+                logger.warn('failed to load full watch history list', { error: error instanceof Error ? error.message : String(error) });
+            }
+        };
+
+        idleId = window.requestIdleCallback(() => {
+            void loadFullList();
+        }, { timeout: 1500 });
+
+        return () => {
+            cancelled = true;
+            if (idleId !== null && 'cancelIdleCallback' in window) {
+                window.cancelIdleCallback(idleId);
+            }
+        };
+    }, []);
+    return (
+        <div className="flex h-screen w-full flex-col text-foreground bg-muted/40">
+            <header className="top-0 flex h-9 items-center">
+                <TitleBar
+                    maximizable={false}
+                    className="top-0 left-0 w-full h-9 z-50"
+                />
+            </header>
+            <main
+                className="flex h-0 flex-1 gap-4 p-4 md:gap-8">
+
+
+                <nav
+                    className="flex flex-col gap-4 text-sm text-muted-foreground font-semibold md:p-10 md:pr-0"
+                >
+                    <h1 className="text-3xl font-semibold -translate-x-1">DashPlayer</h1>
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/favorite'}
+                          className="font-semibold mt-28">{t('savedMoments')}</Link>
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/transcript'}
+                          className="font-semibold ">{t('subtitleWorkspace')}</Link>
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to="/split"
+                          className="font-semibold ">{t('sentenceSplitter')}</Link>
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/convert'}
+                          className="font-semibold ">{t('formatConverter')}</Link>
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/vocabulary'}
+                          className="font-semibold ">{t('vocabularyStudio')}</Link>
+                    <Link onClick={() => fileBrowserApi.changeWindowSize('player')} to={'/settings'}
+                          className="font-semibold ">{t('settingsCenter')}</Link>
+                </nav>
+                <div className="flex flex-col overflow-y-auto scrollbar-none md:p-10 md:pl-0 w-0 flex-1">
+                    <div
+                        className={cn('justify-self-end flex flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
+                    >
+                        <FileSelector
+                            onSelected={FileAction.playerAction2(navigate)}
+                            withMkv
+                        />
+                        <FolderSelector
+                            onSelected={FolderSelectAction.defaultAction2(async (vid) => {
+                                await fileBrowserApi.changeWindowSize('player');
+                                changeSideBar(false);
+                                navigate(`/player/${vid}`);
+                            })}
+                        />
+                    </div>
+
+                    <Card x-chunk="dashboard-04-chunk-1" className={'mt-16 '}>
+                        <CardHeader>
+                            <CardTitle>Recent Watch</CardTitle>
+                            <CardDescription>
+                                Pick up where you left off
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className={'grid grid-cols-3 gap-8'}>
+                            {vps?.slice(0, 3)
+                                .map((v) => (
+                                    <ProjectListCard
+                                        key={v.id}
+                                        onSelected={() => handleClickById(v.id)}
+                                        video={v} />
+                                ))}
+                        </CardContent>
+                    </Card>
+                    <div className={'flex flex-col mt-10'}>
+                        {rest?.map((v) => (
+                            <ProjectListItem
+                                key={v.id}
+                                onSelected={() => handleClickById(v.id)}
+                                video={v} />
+                        ))}
+                    </div>
+                    <Button
+                        onClick={() => setNum(num + 10)}
+                        disabled={num + 3 >= (vps?.length ?? 0)}
+                        variant={'ghost'}>
+                        <ChevronsDown className={'text-muted-foreground'} />
+                    </Button>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default HomePage;

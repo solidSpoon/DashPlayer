@@ -5,8 +5,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
-} from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
-import {SettingsStore} from '@/backend/application/ports/gateways/SettingsStore';
+} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import {SettingsStore} from '@/backend/services/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import {
     canRecoverAccessFromSelection,
@@ -66,6 +66,18 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
         }
 
         await this.ensureAccessibleWithRecovery(path.dirname(resolvedTargetPath));
+    }
+
+    /**
+     * 解析指定配置路径对应的媒体库根目录状态。
+     *
+     * 仅做状态检查，不触发目录创建或权限恢复弹窗。
+     *
+     * @param configuredPath 用户保存的原始路径。
+     * @returns 媒体库根目录健康状态。
+     */
+    public async getRootStatus(configuredPath?: string): Promise<StorageStatusVO> {
+        return getStorageRootStatus(configuredPath);
     }
 
     /**

@@ -4,13 +4,13 @@ import { storeGet } from '@/backend/infrastructure/settings/store';
 import { readSystemProxy } from './readSystemProxy';
 import { Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from 'undici';
 import { socksDispatcher } from 'fetch-socks';
-import { createProxyBypassMatcher, ProxyBypassMatcher } from '@/backend/application/kernel/proxy/ProxyBypassMatcher';
+import { createProxyBypassMatcher, ProxyBypassMatcher } from '@/backend/utils/proxy/ProxyBypassMatcher';
 import {
     ProxyMode,
     ProxySettingValues,
     proxyConfigKey,
     resolveProxyConfig,
-} from '@/backend/application/kernel/proxy/ProxyConfigResolver';
+} from '@/backend/utils/proxy/ProxyConfigResolver';
 
 const logger = getMainLogger('ProxyService');
 

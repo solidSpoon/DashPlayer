@@ -174,7 +174,10 @@
         "description": "管理云端 API 凭据与本地模型资源。",
         "intro": "凭据只负责连接能力，功能开关请在“功能设置”页面调整。",
         "openai": {
-            "description": "用于字幕翻译、词典与整句学习能力。",
+            "description": "支持 OpenAI 兼容接口，用于字幕翻译、词典与整句学习能力。",
+            "autoAppendV1": "是否自动追加 /v1",
+            "autoAppendV1Hint": "开启后自动在接口地址后追加 /v1；关闭时请在地址中自行包含 /v1。",
+            "chatCompletionOnly": "仅支持 chat completion API 格式。",
             "modelsLabel": "可用模型列表",
             "tableModel": "模型",
             "tableUsage": "占用功能",

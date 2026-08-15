@@ -2,20 +2,29 @@ import { eq } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
-import SubtitleTimestampAdjustmentsRepository from '@/backend/application/ports/repositories/SubtitleTimestampAdjustmentsRepository';
+import SubtitleTimestampAdjustmentsRepository from '@/backend/services/repositories/SubtitleTimestampAdjustmentsRepository';
 import {
     InsertSubtitleTimestampAdjustment,
-    SubtitleTimestampAdjustment,
+    SubtitleTimestampAdjustmentRow,
     subtitleTimestampAdjustments,
 } from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
+import {
+    SubtitleTimestampAdjustment,
+    SubtitleTimestampAdjustmentInput,
+} from '@/common/contracts/subtitle-timestamp-adjustment';
 import TimeUtil from '@/common/utils/TimeUtil';
 
 @injectable()
 export default class SubtitleTimestampAdjustmentsRepositoryImpl implements SubtitleTimestampAdjustmentsRepository {
-    public async upsert(values: InsertSubtitleTimestampAdjustment): Promise<void> {
+    /**
+     * 新增或覆盖字幕时间调整记录。
+     *
+     * @param values 业务层提交的调整字段。
+     */
+    public async upsert(values: SubtitleTimestampAdjustmentInput): Promise<void> {
         await db
             .insert(subtitleTimestampAdjustments)
-            .values(values)
+            .values(values satisfies InsertSubtitleTimestampAdjustment)
             .onConflictDoUpdate({
                 target: subtitleTimestampAdjustments.key,
                 set: {
@@ -40,7 +49,7 @@ export default class SubtitleTimestampAdjustmentsRepositoryImpl implements Subti
     }
 
     public async findByKey(key: string): Promise<SubtitleTimestampAdjustment | undefined> {
-        const values: SubtitleTimestampAdjustment[] = await db
+        const values: SubtitleTimestampAdjustmentRow[] = await db
             .select()
             .from(subtitleTimestampAdjustments)
             .where(eq(subtitleTimestampAdjustments.key, key))
@@ -48,18 +57,19 @@ export default class SubtitleTimestampAdjustmentsRepositoryImpl implements Subti
         return values[0];
     }
 
-    public findByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]> {
-        return db
+    public async findByPath(subtitlePath: string): Promise<SubtitleTimestampAdjustment[]> {
+        const values: SubtitleTimestampAdjustmentRow[] = await db
             .select()
             .from(subtitleTimestampAdjustments)
             .where(eq(subtitleTimestampAdjustments.subtitle_path, subtitlePath));
+        return values;
     }
 
-    public findByHash(hash: string): Promise<SubtitleTimestampAdjustment[]> {
-        return db
+    public async findByHash(hash: string): Promise<SubtitleTimestampAdjustment[]> {
+        const values: SubtitleTimestampAdjustmentRow[] = await db
             .select()
             .from(subtitleTimestampAdjustments)
             .where(eq(subtitleTimestampAdjustments.subtitle_hash, hash));
+        return values;
     }
 }
-

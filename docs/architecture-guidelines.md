@@ -1,263 +1,430 @@
-# DashPlayer 架构规范（目标态）
+# DashPlayer 后端代码规范（务实版）
 
-> 本文档用于指导 **后续开发** 的文件落位、依赖方向与模块边界。
+> 这是一份轻量的代码落位和依赖边界说明。
 >
-> 原则：不迁就历史债务；新增与重构代码以本文为准。
+> 目标不是把 DashPlayer 做成大型企业系统，而是让代码容易找到、容易修改，并避免业务逻辑和 Electron、数据库、第三方 SDK 互相缠绕。
 
-## 1. 目标与非目标
+## 1. 基本结构
 
-### 1.1 目标
-
-- 明确每层职责与依赖方向，避免“能跑就行”的跨层调用。
-- 让新增功能可以按模板落位，减少目录与命名争议。
-- 让业务逻辑可测试，外部依赖可替换（DB、Electron、第三方 API、文件系统）。
-
-### 1.2 非目标
-
-- 不要求一次性重写历史代码。
-- 不追求形式化 DDD 全套术语。
-- 不为低价值工具代码强行抽象。
-
-## 2. 全局架构边界
-
-DashPlayer 是 Electron 应用，分为三条主线：
-
-- `main` 进程（后端业务 + IPC 路由 + 系统能力）
-- `preload`（安全桥接层）
-- `renderer` 进程（前端 UI + 状态管理）
-
-统一约束：
-
-- 跨进程通信契约统一放在 `src/common/api/**`。
-- 共享业务类型（DTO/VO）统一放在 `src/common/contracts/**`（新建时使用；历史 `common/types` 可逐步迁移）。
-- 任一层都不得 import 另一层的基础设施实现细节（例如前端 import 后端 `db/tables`）。
-
-## 3. 目标目录（规范）
-
-以下为目标态目录，后续新增代码按此组织。
+后端主要运行在 Electron main 进程中。新增代码优先遵循下面的关系：
 
 ```text
-src/
-  main.ts
-  preload.ts
-  app.tsx
-  renderer.ts
-
-  backend/
-    adapters/
-      controllers/            # IPC Controller：参数校验、调用 application、错误映射
-      ipc/                    # registerRoute、IPC 事件桥接
-
-    application/
-      services/               # 业务用例（按领域分组）
-      kernel/                 # 纯内存策略/算法内核（无外部副作用）
-      ports/
-        repositories/         # 持久化端口接口
-        gateways/             # 外部能力端口接口（renderer/settings/media/http）
-      contracts/              # 仅后端内部使用的 DTO/Command/Result
-      errors/
-
-    infrastructure/
-      db/
-        db.ts
-        migrate.ts
-        tables/               # Drizzle schema（仅 infra 内可见）
-        repositories/         # repositories 实现
-      media/                  # ffmpeg/whisper/yt-dlp 适配实现
-      settings/               # electron-store 适配实现
-      renderer/               # 发送到 renderer 的 gateway 实现
-      openai/                 # OpenAI SDK 适配实现
-      logger/                 # 日志实现
-      config/                 # 配置文件存储实现（非系统设置）
-      system/                 # BrowserWindow/app/shell 等系统能力
-
-    startup/                  # 启动迁移、seed、启动时修复逻辑
-    ioc/                      # 依赖注入装配
-    utils/                    # 后端纯工具函数
-
-  fronted/
-    pages/                    # 页面级 UI 组合
-    components/               # 复用组件
-    hooks/                    # 视图状态/交互逻辑
-    application/
-      usecases/               # 前端用例（可选，复杂场景使用）
-      ports/                  # BackendClient/Event/Logger 等端口
-      bootstrap/              # 初始化与装配
-    infrastructure/
-      electron/               # 对 window.electron 的实现
-    log/
-    i18n/
-    lib/
-
-  common/
-    api/                      # IPC 契约（主<->渲）
-    contracts/                # 共享 DTO/VO（目标位置）
-    constants/
-    utils/                    # 纯工具
-    log/
+IPC Controller
+    ↓
+Service
+    ↓
+Infrastructure
 ```
 
-## 4. 依赖方向（强约束）
+目标目录：
 
-允许依赖：
+```text
+src/backend/
+  controllers/          # IPC 请求适配
+  services/             # 业务流程
+    <domain>/            # 功能较多时按业务分组
+  infrastructure/       # 外部依赖的具体实现
+    db/
+    media/
+    settings/
+    system/
+    translate/
+    renderer/
+  startup/              # 启动初始化
+  ioc/                  # 依赖装配
+  utils/                # 后端专用的轻量工具
+```
 
-- `backend/adapters -> backend/application`
-- `backend/application -> backend/application/ports`
-- `backend/application/services -> backend/application/kernel -> backend/application/ports`
-- `backend/infrastructure -> backend/application/ports`
-- `backend/ioc -> backend/adapters + backend/application + backend/infrastructure`
-- `fronted/application -> common`
-- `fronted/infrastructure -> fronted/application/ports`
-- `fronted/pages|components|hooks -> fronted/application + common`
+历史目录已清理。新增后端代码统一落在 `controllers`、`services`、
+`infrastructure`、`startup`、`ioc` 或 `utils` 中。
 
-禁止依赖：
+不要求每个功能都创建完整的一套目录。功能少时，一个文件就近放置即可。
 
-- `application` import `infrastructure/**`（包括 logger、db tables、store、ffmpeg 命令等）
-- `fronted/**` import `backend/**`
-- `common/**` import `backend/**` 或 `fronted/**`
-- `ports` 引用 ORM/SDK 专属类型（如 drizzle table row）
+## 1.1 前端结构
 
-一句话：**依赖指向抽象，不指向实现。**
+前端运行在 Electron renderer 进程中。前端目录以业务功能为中心组织，
+不要把所有业务代码继续按 `pages`、`hooks`、`components` 做全局分类。
 
-## 5. 文件放置规则（最实用）
+推荐结构：
 
-### 5.1 新增一个“后端功能”放哪里
+```text
+src/fronted/
+  app/                  # React 入口、路由和 renderer 启动初始化
+    bootstrap/
 
-以“字幕时间轴修正”为例，应包含：
+  features/             # 按业务功能聚合
+    player/
+      components/
+      hooks/
+      playerApi.ts       # 当前功能调用后端
+      playerEvents.ts    # 当前功能处理后端推送
+      playerStore.ts
+      types.ts
+    transcript/
+    favourite/
+    video-learning/
+    convert/
+    settings/
+    chat/
 
-- Controller：`src/backend/adapters/controllers/SubtitleTimingController.ts`
-- Service：`src/backend/application/services/subtitle/AdjustSubtitleTimingService.ts`
-- Port（如需持久化）：`src/backend/application/ports/repositories/SubtitleTimingRepository.ts`
-- Infra 实现：`src/backend/infrastructure/db/repositories/SubtitleTimingRepositoryImpl.ts`
-- IPC 契约：`src/common/api/api-def.ts`（仅新增路径与参数返回类型）
-- 共享 DTO：`src/common/contracts/subtitle/*.ts`
+  components/           # 不属于某个业务的布局、UI 和共享组件
+    layout/
+    shared/
+    ui/
 
-### 5.2 新增一个“前端功能”放哪里
+  infrastructure/       # Electron、日志等外部实现
+    electron/
 
-以“设置页新增选项卡”为例：
+  i18n/
+  styles/
+```
 
-- Page：`src/fronted/pages/setting/<Feature>Setting.tsx`
-- 复用组件：`src/fronted/pages/setting/components/<Feature>*.tsx`
-- 调后端端口：通过 `fronted/application/ports/backend/BackendClientPort.ts`
-- Electron 实现保持在 `fronted/infrastructure/electron/**`
-- 禁止直接依赖 `window.electron`（只能通过 port 封装）
+历史目录可以逐步迁移，不要求一次性搬迁。新增代码或重构某个功能时，
+优先放入 `features/<domain>/`。全局 `hooks/` 只保留真正跨业务复用的
+通用 Hook，例如视口、可见性等基础能力。
 
-### 5.3 数据类型放哪里
+前端结构的目标是让一个功能的页面、组件、状态和请求尽量靠近，便于阅读
+和修改；不为了形式上的分层创建大量空目录或包装文件。
 
-- IPC 请求/响应类型：`src/common/api/**`
-- 跨进程 DTO/VO：`src/common/contracts/**`
-- 后端内部命令对象：`src/backend/application/contracts/**`
-- ORM 行类型：只在 `src/backend/infrastructure/db/**`
+### 1.1.1 前端调用后端
 
-### 5.4 纯策略/算法代码放哪里
+前端调用后端属于请求或命令，遵循下面的方向：
 
-以“并发调度内核”为例：
+```text
+组件
+  ↓
+Feature Hook / Command
+  ↓
+Feature API
+  ↓
+Backend Client
+  ↓
+window.electron.call
+```
 
-- 策略与状态机（纯内存、可单测）：`src/backend/application/kernel/concurrency/**`
-- 外部采样与系统能力（如 CPU 负载采样、定时器适配）：`src/backend/infrastructure/concurrency/**`
-- 业务用例编排：`src/backend/application/services/**`
+约定：
 
-## 6. 命名规范
+- Electron 的具体调用只放在 `fronted/infrastructure/electron/`；
+- 每个业务功能可以提供自己的 `<feature>Api.ts`，封装 IPC 路径和业务参数；
+- 组件不直接散落调用 `window.electron` 或拼接 IPC 路径；
+- `common/api/` 只声明 IPC 路径、请求和响应类型，不放调用逻辑；
+- 不要求为每个 API 创建一套 Port、Adapter、Gateway；
+- 只有确实需要替换实现、隔离外部依赖或被多个功能复用时，才增加接口。
 
-- Controller：`<Domain>Controller`
-- Service（用例）：`<Verb><Domain>Service`
-- Repository Port：`<Domain>Repository`
-- Repository Impl：`<Domain>RepositoryImpl`
-- Gateway Port：`<Capability>Gateway` / `*Store`
-- Gateway Impl：`<Capability>GatewayImpl` / `*StoreImpl`
-- DTO：`<Domain><Action>Request|Response|VO`
+例如：
 
-避免：
+```text
+features/player/playerApi.ts
+  → infrastructure/electron/backendClient.ts
+    → window.electron.call(...)
+```
 
-- `Impl` 出现在 application 层（除兼容历史，新增代码不再使用）
-- `ServiceImpl` 文件名与接口名分离导致跳转困难
+### 1.1.2 后端推送前端
 
-## 7. Controller / Service / Repository 职责边界
+后端主动通知前端属于事件或流式推送，遵循下面的方向：
 
-### 7.1 Controller
+```text
+后端 Service
+  ↓
+Electron IPC 推送
+  ↓
+Renderer Event Bridge
+  ↓
+Feature Events
+  ↓
+Feature Store / SWR Cache
+  ↓
+React Component
+```
 
-- 只做参数校验、调用 service、错误映射。
-- 不写业务流程，不访问 DB，不操作文件系统。
+约定：
 
-### 7.2 Service
+- `fronted/infrastructure/electron/` 负责接收 Electron 事件；
+- 具体业务事件处理放在对应的 `features/<domain>/<feature>Events.ts`；
+- 事件处理器负责更新对应 Store 或 SWR 缓存；
+- 组件不直接注册 Electron 事件；
+- 所有事件注册和清理由 `app/bootstrap/` 统一启动和管理；
+- 跨进程事件的类型继续放在 `common/api/renderer-api-def.ts`；
+- 高频流式事件不能记录完整内容或大对象，日志只记录必要的生命周期和数量信息。
 
-- 负责用例编排与业务决策。
-- 通过 ports 调用持久化、外部服务、渲染通知。
-- 不直接 import Electron/Drizzle/fs/axios SDK。
+简单功能可以省略 `Feature API` 或 `Feature Events` 文件，直接在功能附近
+实现；目录和文件数量应由实际复杂度决定。
 
-### 7.3 Repository / Gateway
+## 2. 各部分负责什么
 
-- Repository：数据持久化细节。
-- Gateway：系统能力和第三方能力适配。
-- 实现层负责“脏活”，application 只感知接口。
+### 2.1 Controller
 
-### 7.4 Application Kernel（策略内核）
+Controller 负责：
 
-- 承载纯内存、可复用、可测试的策略逻辑（如调度策略、优先级规则、状态机）。
-- 可依赖 `application/ports` 抽象，不可依赖 `infrastructure/**` 实现。
-- 不直接访问 DB、文件系统、Electron API、第三方 SDK。
-- 需要环境数据时通过 ports 输入，保持可替换与可测试。
+- 注册 IPC 路径；
+- 接收和整理 IPC 参数；
+- 调用 Service；
+- 将结果返回给 renderer。
 
-## 8. IPC 规范
+Controller 不负责：
 
-- 所有 IPC 路径在 `src/common/api/api-def.ts` 统一声明。
-- 路径命名：`<domain>/<action>`，例如 `settings/update-appearance`。
-- Controller 注册路径，Service 不感知 IPC。
-- Renderer 回调事件在 `src/common/api/renderer-api-def.ts` 声明。
+- 编写业务流程；
+- 直接查询数据库；
+- 直接调用 ffmpeg 或第三方 SDK；
+- 组合多个业务 Service。
 
-## 9. 数据与持久化规范
+简单的系统操作，例如打开文件选择框、获取应用版本，可以直接放在
+Controller 中，不必为了几行代码强行新建 Service。
 
-- Drizzle `tables` 仅 `infrastructure/db/**` 可 import。
-- application ports 只使用领域 DTO，不暴露 drizzle row 类型。
-- 迁移文件由 drizzle 生成，禁止手改 `drizzle/migrations/**`。
-- 系统设置继续走 `SettingsStore`（electron-store）。
-- 任务级临时上下文可走 `ConfigStore`（JSON 文件）。
+### 2.2 Service
 
-## 10. 日志规范
+Service 负责一个功能的业务流程和决策，例如：
 
-- main：`getMainLogger('<Module>')`
-- renderer：`getRendererLogger('<Module>')`
-- application 层仅依赖 `LoggerPort`（目标态）。
-- 新增代码不要直接 import `infrastructure/logger`。
-- 临时排障优先使用 focus token，不在业务代码长期保留噪声日志。
+- 创建观看记录；
+- 执行翻译并写入缓存；
+- 自动裁切学习片段；
+- 更新任务状态。
 
-## 11. 测试规范（架构相关）
+Service 可以调用：
 
-- Service 测试优先：mock ports，验证业务分支。
-- Repository 测试次之：验证 SQL/映射逻辑。
-- Controller 测试：验证参数与错误映射，不重复测业务。
-- 新增复杂功能至少配一个 Service 级用例测试。
+- Repository；
+- Gateway；
+- 基础能力 Service；
+- 普通工具函数。
 
-## 12. 代码评审检查清单（PR 必看）
+Service 不应直接依赖：
 
-- 是否出现 `fronted -> backend/infrastructure` 依赖？
-- 是否出现 `application -> infrastructure` 依赖？
-- 新增类型是否放在 `common/contracts` 而非 db tables？
-- Controller 是否只做路由与参数处理？
-- Service 是否只依赖 ports？
-- 新增 IPC 是否同步更新 `common/api` 契约？
+- `electron`；
+- `drizzle-orm` 和数据库表定义；
+- `fs`、`child_process`；
+- OpenAI、axios 等第三方 SDK；
+- 具体的 logger 实现。
 
-任一项为“是（违规）”，PR 不应合并。
+一个 Service 如果同时负责业务决策、文件处理、第三方请求、数据库映射和
+后台调度，并且已经难以理解，应拆出职责明确的辅助模块或 Service。
 
-## 13. 渐进治理策略（不一次性推倒）
+### 2.3 Infrastructure
 
-- 新功能：100% 按本规范。
-- 修改旧功能：触达到的文件顺手修正边界，不额外扩大重构面。
-- 禁止新增“债务复制代码”（例如继续在前端引用后端表类型）。
+Infrastructure 负责外部世界的具体实现：
 
-这意味着：历史问题可以暂存，但不能继续扩散。
+- 数据库查询和数据映射；
+- 文件系统操作；
+- ffmpeg、whisper 进程；
+- Electron API；
+- 第三方网络服务；
+- renderer 事件发送；
+- 日志写入。
 
-## 14. 当前已识别的高优先级治理项（下一阶段）
+Infrastructure 可以依赖 Service 使用的类型，但 Service 不应反过来依赖
+Infrastructure 的具体实现。
 
-- 清理 `fronted/**` 对 `backend/infrastructure/db/tables/**` 的类型依赖，迁移到 `common/contracts/**`。
-- 清理 `application/**` 对 `infrastructure/**` 的直接依赖，补齐 ports。
-- 将 `application/ports/repositories/**` 中基于 drizzle table 的类型替换为领域 DTO。
-- 收敛 service 命名与目录（按领域分组，减少 `impl` 平铺）。
+### 2.4 纯逻辑
 
----
+复杂且适合脱离外部环境测试的逻辑，可以放在 Service 附近的普通模块中，
+例如：
 
-如果新增需求无法判断放置位置，按以下优先级决策：
+- 并发调度；
+- 限流；
+- 字幕解析；
+- 词形匹配；
+- 状态机。
 
-1. 先问“这是业务规则还是技术细节？”（业务进 application，技术进 infrastructure）
-2. 再问“是否跨进程共享？”（是则进 common/contracts）
-3. 最后问“是否有外部副作用？”（有则必须通过 port）
+简单的纯函数继续放在普通工具文件中。不要为了“分层完整”而创建
+`kernel`、`manager` 等目录。
+
+## 3. Service 之间如何调用
+
+Service 之间可以调用，但必须保持单向关系：
+
+```text
+Controller
+    ↓
+用例 Service
+    ↓
+基础能力 Service / Repository / Gateway
+```
+
+用例 Service 是 Controller 直接调用的入口，代表一个完整用户动作，例如：
+
+- `ConvertService`
+- `WatchHistoryService`
+- `VideoLearningService`
+- `TranslationService`
+
+基础能力负责可复用的单一能力，例如：
+
+- `DpTaskService`
+- `FfmpegService`
+- `WordMatchService`
+- `CacheService`
+- `StorageService`
+
+约定：
+
+- Controller 尽量只调用一个用例 Service；
+- 用例 Service 可以调用多个基础能力；
+- 基础能力不要反过来调用用例 Service；
+- Service 之间不能形成循环依赖；
+- 两个 Service 需要共享逻辑时，提取普通函数或独立能力模块；
+- 不为了禁止互调而引入事件总线、CQRS 等复杂机制。
+
+例如：
+
+```text
+ConvertController
+    → ConvertService
+        → DpTaskService
+        → FfmpegService
+```
+
+下面这种关系应当避免：
+
+```text
+TagService
+    → FavouriteClipsService
+        → TagService
+```
+
+如果一个 Controller 同时调用多个 Service，通常说明编排逻辑应该下沉到
+一个用例 Service。
+
+## 4. 什么时候需要抽接口
+
+不是所有依赖都必须创建 Port 或接口。只有在下面情况使用：
+
+- 业务代码需要隔离数据库、文件系统或第三方服务；
+- 测试需要替换真实依赖；
+- 外部实现比较复杂或未来可能更换；
+- 一个能力被多个业务模块复用。
+
+适合抽接口的例子：
+
+- `FfmpegGateway`
+- `RendererGateway`
+- `SettingsStore`
+- `WatchHistoryRepository`
+- `SpeechRecognitionGateway`
+
+不必抽接口的例子：
+
+- 纯函数；
+- 简单的字符串或对象转换；
+- 只使用一次的小工具；
+- 没有业务判断的简单路径处理。
+
+接口中只使用业务类型或普通 TypeScript 类型，不要暴露 Drizzle 表类型、
+SDK 类型或 Electron 类型。
+
+## 5. 类型放置
+
+- IPC 请求和响应：`src/common/api/**`；
+- 跨进程共享的 DTO/VO：`src/common/contracts/**`；
+- 后端内部类型：靠近对应的 Service；
+- 数据库表、插入类型、查询行类型：只放在 `infrastructure/db/**`；
+- 纯工具类型：放在 `common/utils` 或后端自己的 `utils`。
+
+新代码不要继续往 `common/types` 增加跨进程类型。历史类型可以在修改
+相关功能时逐步迁移，不要求一次性清理。
+
+## 6. IPC 约定
+
+- IPC 路径统一在 `src/common/api/api-def.ts` 声明；
+- 路径使用 `<domain>/<action>` 格式，例如 `watch-history/update-progress`；
+- Controller 负责注册路径；
+- Service 不感知 IPC；
+- 高频请求和敏感数据避免记录完整参数或返回值；
+- 用户取消任务和真正失败要区分处理。
+
+IPC 类型只是编译期约束。文件路径、设置项、枚举值等外部输入，仍要在
+进入业务逻辑前进行必要的运行时检查。
+
+## 7. 数据库和迁移
+
+- Drizzle 表定义只能放在 `src/backend/infrastructure/db/tables/`；
+- 数据库查询和映射放在 `src/backend/infrastructure/db/`；
+- Service 不直接写 SQL；
+- 迁移文件由 Drizzle 生成，不手动修改 `drizzle/migrations/`；
+- 修改表结构时，先改 schema，再运行 `yarn drizzle-kit generate`。
+
+简单查询不必过度抽象。查询涉及多个表、数据映射或业务规则时，再放入
+Repository。
+
+## 8. 并发和后台任务
+
+遇到以下问题时，先阅读 `docs/concurrency-kernel-usage.md`：
+
+- ffmpeg、ffprobe、whisper 并发；
+- 翻译、TTS、腾讯 API 限流；
+- 视频分析队列；
+- 锁、重入、取消和让步调度。
+
+后台任务要明确：
+
+- 谁负责启动；
+- 是否允许重复启动；
+- 如何取消；
+- 应用退出时如何清理。
+
+不要在普通 IPC 请求中偷偷启动长期后台循环。简单任务可以直接由 Service
+管理；复杂队列再拆出调度模块。
+
+## 9. 日志
+
+- main 进程使用 `getMainLogger('<Module>')`；
+- renderer 使用 `getRendererLogger('<Module>')`；
+- 日志文件使用 JSON Lines（`.jsonl`），每行必须是一个完整 JSON 对象；
+- 稳定字段包括 `schemaVersion`、`timestamp`、`level`、`process`、`module`、`message`，请求链路按需包含 `traceId` 和 `data`；
+- renderer 发起 IPC 时生成 trace ID，main 进程在 IPC 边界通过异步上下文自动贯穿后端日志；
+- 日志参数应放进结构化 `data`，不要把 `path=value`、对象预览等信息拼进 `message`；
+- 不要在业务代码中留下长期的临时调试日志；
+- 日志中不能写入 API Key、Authorization、完整敏感配置或不必要的大对象。
+
+## 10. 依赖方向
+
+推荐依赖方向：
+
+```text
+controllers → services
+services → infrastructure / common
+infrastructure → common
+ioc → controllers / services / infrastructure
+common → 不依赖 backend 和 fronted
+```
+
+禁止出现：
+
+- Service 依赖 Infrastructure 中不必要的具体实现；
+- `fronted → backend`；
+- `common → backend`；
+- Service 或接口直接引用 Drizzle、Electron、第三方 SDK 类型。
+
+这里的目标是控制依赖方向，不是要求每个调用都经过三层。
+
+## 11. 历史代码和重构原则
+
+不要求一次性重写历史代码。
+
+修改旧代码时遵循以下顺序：
+
+1. 先修正当前功能的根本问题；
+2. 新增代码遵守本规范；
+3. 如果旧代码阻碍修改，再进行必要的局部拆分；
+4. 删除已经没有用途的兼容分支和死代码；
+5. 不为了“看起来分层”而增加无实际价值的接口和目录。
+
+旧目录中的 `services/impl`、`common/types` 等历史结构可以逐步迁移。
+除非正在修改相关功能，不需要专门发起全项目搬迁。
+
+## 12. 最简单的判断方法
+
+新增代码时，只问自己四个问题：
+
+1. 这是 IPC 适配，还是业务流程？
+2. 它是否直接依赖 Electron、数据库、文件系统或第三方服务？
+3. 如果依赖外部能力，它是否应该放到 Infrastructure？
+4. 这个依赖是否真的需要抽成接口？
+
+通常按下面方式处理即可：
+
+```text
+接收 IPC 参数        → Controller
+做业务判断和编排     → Service
+访问数据库/文件/SDK   → Infrastructure
+复杂纯逻辑           → 普通模块
+跨进程共享类型       → common
+```

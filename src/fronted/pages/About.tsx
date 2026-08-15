@@ -5,7 +5,7 @@ import AboutBg from '@/fronted/components/shared/background/AboutBg';
 import Separator from '@/fronted/components/shared/common/Separator';
 import logoLight from '../../../assets/logo-light.png';
 import useSWR from "swr";
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 const About = () => {

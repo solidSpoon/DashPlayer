@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
+import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';

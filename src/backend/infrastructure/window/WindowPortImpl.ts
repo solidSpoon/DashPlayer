@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import WindowPort from '@/backend/application/ports/gateways/window/WindowPort';
+import WindowPort from '@/backend/services/gateways/window/WindowPort';
 import TYPES from '@/backend/ioc/types';
 import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 import { WindowState } from '@/common/types/Types';

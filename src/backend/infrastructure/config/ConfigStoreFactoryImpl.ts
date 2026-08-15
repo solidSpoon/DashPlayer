@@ -1,7 +1,7 @@
 import { injectable } from 'inversify';
 import { z } from 'zod';
 
-import { ConfigStore, ConfigStoreFactory, ConfigStoreReadOptions } from '@/backend/application/ports/gateways/ConfigStore';
+import { ConfigStore, ConfigStoreFactory, ConfigStoreReadOptions } from '@/backend/services/gateways/ConfigStore';
 import { ConfigTender } from '@/backend/infrastructure/config/ConfigTender';
 
 @injectable()

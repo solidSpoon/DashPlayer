@@ -4,9 +4,11 @@ const TYPES = {
     FavouriteClips: Symbol('FavouriteClips'),
     VideoLearningService: Symbol('VideoLearningService'),
     Controller: Symbol('Controller'),
+    Database: Symbol('Database'),
     WatchProject: Symbol('WatchProject'),
     TagService: Symbol('TagService'),
     SubtitleService: Symbol('SubtitleService'),
+    SubtitleVocabularyAnalysisService: Symbol('SubtitleVocabularyAnalysisService'),
     SrtTimeAdjustService: Symbol('SubtitleTimestampAdjustmentService'),
     MainWindowRegistry: Symbol('MainWindowRegistry'),
     WindowPort: Symbol('WindowPort'),
@@ -14,6 +16,7 @@ const TYPES = {
     CacheService: Symbol('CacheService'),
     SettingService: Symbol('SettingService'),
     StorageDirectoryProvider: Symbol('StorageDirectoryProvider'),
+    FileSystemGateway: Symbol('FileSystemGateway'),
     DpTaskService: Symbol('DpTaskService'),
     ChatService: Symbol('ChatService'),
     ChatSessionService: Symbol('ChatSessionService'),
@@ -34,6 +37,9 @@ const TYPES = {
     ParakeetModelService: Symbol('ParakeetModelService'),
     SherpaOnnxCli: Symbol('SherpaOnnxCli'),
     SpeechRecognitionGateway: Symbol('SpeechRecognitionGateway'),
+    SherpaTtsModelService: Symbol('SherpaTtsModelService'),
+    SherpaOnnxTtsCli: Symbol('SherpaOnnxTtsCli'),
+    LocalTtsService: Symbol('LocalTtsService'),
     WordsRepository: Symbol('WordsRepository'),
     DpTaskRepository: Symbol('DpTaskRepository'),
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
@@ -52,7 +58,6 @@ const TYPES = {
     ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
-    SettingsKeyValueService: Symbol('SettingsKeyValueService'),
 };
 
 export default TYPES;

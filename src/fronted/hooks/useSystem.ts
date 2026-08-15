@@ -4,7 +4,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import PathUtil from '@/common/utils/PathUtil';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 type State = {
@@ -41,7 +41,5 @@ export const syncStatus = () => {
         PathUtil.SEPARATOR = sysInfo.pathSeparator;
     });
 };
-
-syncStatus();
 
 export default useSystem;

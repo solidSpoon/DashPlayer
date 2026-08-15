@@ -4,7 +4,7 @@ import './TitleBarWindows.css';
 import useLayout from '@/fronted/hooks/useLayout';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import useTrafficLightsVisibility from './useTrafficLightsVisibility';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 export interface TitleBarWindowsProps {
     maximizable?: boolean;

@@ -14,6 +14,8 @@ export type AiSdkTestConfig = {
     key: string;
     /** OpenAI 兼容接口的 base URL（不含 /v1 后缀）。 */
     endpoint: string;
+    /** 是否自动追加 /v1（与 apiKeys.openAi.autoAppendV1 一致，配置缺失时视为开启）。 */
+    autoAppendV1: string;
     /** 本次验证使用的模型 id。 */
     model: string;
     /** config.dev.json 的 models.openai.available 解析出的模型清单（可能为空）。 */
@@ -57,7 +59,7 @@ export const loadAiSdkTestConfig = (): AiSdkTestConfig | null => {
         return null;
     }
     const config = raw as {
-        apiKeys?: { openAi?: { key?: string; endpoint?: string } };
+        apiKeys?: { openAi?: { key?: string; endpoint?: string; autoAppendV1?: string } };
         models?: { openai?: { sentenceLearning?: string; available?: string } };
     };
     const key = config.apiKeys?.openAi?.key?.trim() ?? '';
@@ -65,6 +67,8 @@ export const loadAiSdkTestConfig = (): AiSdkTestConfig | null => {
     if (!key || !endpoint) {
         return null;
     }
+    // 与生产 storeGet 默认值一致：未配置时按开启处理。
+    const autoAppendV1 = config.apiKeys?.openAi?.autoAppendV1?.trim() || 'true';
     const sentenceModel = config.models?.openai?.sentenceLearning?.trim() ?? '';
     const availableModels = (config.models?.openai?.available ?? '')
         .split(/[\n,]/)
@@ -74,5 +78,5 @@ export const loadAiSdkTestConfig = (): AiSdkTestConfig | null => {
     const model = sentenceModel && availableModels.includes(sentenceModel)
         ? sentenceModel
         : (availableModels[0] ?? 'gpt-5.4-nano');
-    return { key, endpoint, model, availableModels, sentenceLearningModel: sentenceModel };
+    return { key, endpoint, autoAppendV1, model, availableModels, sentenceLearningModel: sentenceModel };
 };
