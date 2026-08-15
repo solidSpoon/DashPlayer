@@ -1,5 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
-import useChatPanel from '@/fronted/hooks/useChatPanel';
+import useChatPanel from '@/fronted/features/chat/chatStore';
 import { useMemo } from 'react';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

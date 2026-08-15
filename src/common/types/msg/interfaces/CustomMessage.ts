@@ -1,4 +1,4 @@
-import { Topic } from '@/fronted/hooks/useChatPanel';
+import { Topic } from '@/common/types/chat';
 import { ModelMessage } from 'ai';
 
 export default interface CustomMessage<T> {

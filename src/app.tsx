@@ -1,20 +1,20 @@
 import { createRoot } from 'react-dom/client';
 import React, { useEffect } from 'react';
-import useSetting from '@/fronted/hooks/useSetting';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import { HashRouter, Route, Routes } from 'react-router-dom';
-import HomePage from '@/fronted/pages/HomePage';
+import HomePage from '@/fronted/features/file-browser/HomePage';
 import TitleBarLayout from '@/fronted/pages/TieleBarLayout';
-import PlayerWithControlsPage from '@/fronted/pages/player/PlayerWithControlsPage';
+import PlayerPage from '@/fronted/features/player/PlayerPage';
 import Layout from '@/fronted/pages/Layout';
 import About from '@/fronted/pages/About';
-import SettingLayout from '@/fronted/pages/setting/SettingLayout';
-import ShortcutSetting from '@/fronted/pages/setting/ShortcutSetting';
-import StorageSetting from '@/fronted/pages/setting/StorageSetting';
-import CheckUpdate from '@/fronted/pages/setting/CheckUpdate';
-import AppearanceSetting from '@/fronted/pages/setting/AppearanceSetting';
-import ProxySetting from '@/fronted/pages/setting/ProxySetting';
-import ServiceCredentialSetting from '@/fronted/pages/setting/ServiceCredentialSetting';
-import EngineSelectionSetting from '@/fronted/pages/setting/EngineSelectionSetting';
+import SettingLayout from '@/fronted/features/settings/SettingLayout';
+import ShortcutSetting from '@/fronted/features/settings/ShortcutSetting';
+import StorageSetting from '@/fronted/features/settings/StorageSetting';
+import CheckUpdate from '@/fronted/features/settings/CheckUpdate';
+import AppearanceSetting from '@/fronted/features/settings/AppearanceSetting';
+import ProxySetting from '@/fronted/features/settings/ProxySetting';
+import ServiceCredentialSetting from '@/fronted/features/settings/ServiceCredentialSetting';
+import EngineSelectionSetting from '@/fronted/features/settings/EngineSelectionSetting';
 import { Toaster } from '@/fronted/components/ui/sonner';
 import { Toaster as HotToaster } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
@@ -24,8 +24,8 @@ import SplitPage from '@/fronted/features/split/SplitPage';
 import GlobalShortCut from '@/fronted/components/shared/shortcuts/GlobalShortCut';
 import ConvertPage from '@/fronted/features/convert/ConvertPage';
 import Eb from '@/fronted/components/shared/common/Eb';
-import Favorite from '@/fronted/pages/favourite';
-import VideoLearningPage from '@/fronted/pages/video-learning';
+import FavouritePage from '@/fronted/features/favourite/FavouritePage';
+import VideoLearningPage from '@/fronted/features/video-learning/VideoLearningPage';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -84,7 +84,7 @@ const App = () => {
                         <Route element={<TitleBarLayout />}>
                             <Route
                                 path="player/:videoId"
-                                element={<PlayerWithControlsPage />}
+                                element={<PlayerPage />}
                             />
                             <Route path="*" element={<Layout />}>
                                 <Route
@@ -93,7 +93,7 @@ const App = () => {
                                 />
                                 <Route
                                     path="favorite"
-                                    element={<Eb key="favorite"><Favorite /></Eb>}
+                                    element={<Eb key="favorite"><FavouritePage /></Eb>}
                                 />
                                 <Route
                                     path="split"

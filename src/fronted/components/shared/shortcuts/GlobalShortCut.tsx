@@ -1,5 +1,5 @@
 import React from 'react';
-import useSetting from '@/fronted/hooks/useSetting';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import {useHotkeys} from "react-hotkeys-hook";
 
 /**

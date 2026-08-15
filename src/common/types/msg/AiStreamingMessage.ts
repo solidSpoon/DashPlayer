@@ -1,5 +1,5 @@
 import CustomMessage, { MsgType } from '@/common/types/msg/interfaces/CustomMessage';
-import { Topic } from '@/fronted/hooks/useChatPanel';
+import { Topic } from '@/common/types/chat';
 import { ModelMessage } from 'ai';
 
 class AiStreamingMessage implements CustomMessage<AiStreamingMessage> {

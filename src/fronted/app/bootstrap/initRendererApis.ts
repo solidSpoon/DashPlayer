@@ -1,9 +1,9 @@
 import { RendererApiDefinitions, RendererApiMap } from '@/common/api/renderer-api-def';
-import useDictionaryStream from '@/fronted/hooks/useDictionaryStream';
-import useChatPanel from '@/fronted/hooks/useChatPanel';
+import useDictionaryStream from '@/fronted/features/player/dictionaryStore';
+import useChatPanel from '@/fronted/features/chat/chatStore';
 import useTranscript from '@/fronted/features/transcript/transcriptStore';
-import useTranslation from '@/fronted/hooks/useTranslation';
-import useVocabulary from '@/fronted/hooks/useVocabulary';
+import useTranslation from '@/fronted/features/player/translationStore';
+import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

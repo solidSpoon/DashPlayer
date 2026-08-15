@@ -1,7 +1,7 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { rendererEvents } from '@/fronted/infrastructure/electron/rendererEvents';
-import useSetting from '@/fronted/hooks/useSetting';
-import useTranslation from '@/fronted/hooks/useTranslation';
+import useSetting from '@/fronted/features/settings/settingsStore';
+import useTranslation from '@/fronted/features/player/translationStore';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
     RuntimeSettingKey,
