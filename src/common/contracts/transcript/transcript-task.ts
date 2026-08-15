@@ -43,8 +43,8 @@ export interface TranscriptTask {
     status?: TranscriptTaskState;
     /** 最近一次状态对应的展示结果。 */
     result?: TranscriptTaskResult;
-    /** 入队时间（ISO 字符串）。 */
-    created_at?: string;
-    /** 最近更新时间（ISO 字符串）。 */
-    updated_at?: string;
+    /** 入队时间（UTC 数据库时间字符串）。 */
+    created_at: string;
+    /** 最近更新时间（UTC 数据库时间字符串）。 */
+    updated_at: string;
 }

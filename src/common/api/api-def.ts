@@ -32,6 +32,7 @@ import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -41,8 +42,14 @@ interface ApiDefinition {
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string };
     'ai-func/format-split': { params: string, return: number };
-    'ai-func/transcript': { params: { filePath: string }, return: void };
-    'ai-func/cancel-transcription': { params: { filePath: string }, return: boolean };
+}
+
+interface TranscriptDef {
+    'transcript/list': { params: void, return: TranscriptTask[] };
+    'transcript/enqueue': { params: { filePath: string }, return: TranscriptTask };
+    'transcript/remove': { params: { filePath: string }, return: void };
+    'transcript/start': { params: { filePath: string }, return: 'started' | 'model_missing' };
+    'transcript/cancel': { params: { filePath: string }, return: boolean };
 }
 
 interface SherpaTtsModelDef {
@@ -330,6 +337,7 @@ interface VideoLearningDef {
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
+    & TranscriptDef
     & DpTaskDef
     & SystemDef
     & AiTransDef

@@ -14,7 +14,10 @@ export default class AiFuncController implements Controller {
     registerRoutes(): void {
         registerRoute('ai-func/format-split', (p) => this.aiFuncService.formatSplit(p));
         registerRoute('ai-func/tts', (p) => this.aiFuncService.tts(p));
-        registerRoute('ai-func/transcript', (p) => this.aiFuncService.transcript(p));
-        registerRoute('ai-func/cancel-transcription', (p) => this.aiFuncService.cancelTranscription(p));
+        registerRoute('transcript/list', () => this.aiFuncService.listTranscriptionTasks());
+        registerRoute('transcript/enqueue', (p) => this.aiFuncService.enqueueTranscription(p));
+        registerRoute('transcript/remove', (p) => this.aiFuncService.removeTranscription(p));
+        registerRoute('transcript/start', (p) => this.aiFuncService.transcript(p));
+        registerRoute('transcript/cancel', (p) => this.aiFuncService.cancelTranscription(p));
     }
 }

@@ -8,19 +8,24 @@ import {
 import { cn } from "@/fronted/lib/utils";
 import TranscriptItem from './TranscriptItem';
 import React from 'react';
-import useTranscript from '../transcriptStore';
-import { useShallow } from 'zustand/react/shallow';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 
-const TranscriptTable = () => {
+/** 转录任务列表属性。 */
+export interface TranscriptTableProps {
+    /** 后端返回的全部转录任务。 */
+    tasks: TranscriptTask[];
+    /** 启动指定任务。 */
+    onStart: (filePath: string) => Promise<'started' | 'model_missing'>;
+    /** 删除指定任务。 */
+    onDelete: (filePath: string) => Promise<void>;
+}
+
+/** 展示后端持久化的转录任务列表。 */
+const TranscriptTable = ({ tasks, onStart, onDelete }: TranscriptTableProps) => {
     const { t } = useI18nTranslation('pages');
-    const { files, onDelFromQueue, onTranscript } = useTranscript(useShallow(s => ({
-        files: s.files,
-        onDelFromQueue: s.onDelFromQueue,
-        onTranscript: s.onTranscript
-    })));
 
-    if (files.length === 0) {
+    if (tasks.length === 0) {
         return (
             <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground rounded-lg border bg-muted/20">
                 {t('subtitleWorkspace.table.empty')}
@@ -39,12 +44,12 @@ const TranscriptTable = () => {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {files.map((f) => (
+                    {tasks.map((task) => (
                         <TranscriptItem
-                            key={f.file}
-                            file={f.file}
-                            onStart={() => onTranscript(f.file)}
-                            onDelete={() => onDelFromQueue(f.file)}
+                            key={task.file}
+                            task={task}
+                            onStart={() => onStart(task.file)}
+                            onDelete={() => onDelete(task.file)}
                         />
                     ))}
                 </TableBody>

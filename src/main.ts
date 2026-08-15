@@ -19,6 +19,7 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { storeGet } from '@/backend/infrastructure/settings/store';
+import { TranscriptionService } from '@/backend/services/TranscriptionService';
 
 // 导入日志 IPC 监听
 import '@/backend/controllers/ipc/renderer-log';
@@ -188,6 +189,9 @@ app.on('ready', async () => {
     await runStartupMigrations();
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
+    await container
+        .get<TranscriptionService>(TYPES.LocalTranscriptionService)
+        .recoverInterruptedTasks();
     await runResyncAfterResetDbIfNeeded();
     await initProxyFeature();
     // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。

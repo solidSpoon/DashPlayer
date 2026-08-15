@@ -2,35 +2,50 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
 import { Captions } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
-import useTranscript from '@/fronted/features/transcript/transcriptStore';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import useSWR from 'swr';
+import { SWR_KEY } from '@/fronted/lib/swr-util';
+import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
 
 const logger = getRendererLogger('TranscriptButton');
 
+/** 播放器转录按钮属性。 */
 interface TranscriptButtonProps {
+  /** 外部样式类名。 */
   className?: string;
 }
 
+/**
+ * 展示当前视频的后端转录状态，并允许直接启动转录。
+ *
+ * @param props 按钮样式属性。
+ * @returns 播放器转录按钮。
+ */
 export default function TranscriptButton({ className }: TranscriptButtonProps) {
   const { t } = useI18nTranslation('player');
   const videoPath = useFile((s) => s.videoPath);
-  const { files, onTranscript } = useTranscript(
-    useShallow((s) => ({
-      files: s.files,
-      onTranscript: s.onTranscript,
-    }))
+  const { data: tasks = [], error, mutate } = useSWR(
+    SWR_KEY.TRANSCRIPTION_TASKS,
+    transcriptApi.listTasks,
   );
+  if (error) {
+    throw error;
+  }
 
-  const currentVideoTask = files.find((f) => f.file === videoPath);
+  const currentVideoTask = tasks.find((task) => task.file === videoPath);
   const isInProgress =
     currentVideoTask?.status === 'in_progress' || currentVideoTask?.status === 'init';
 
-  const getStatusText = () => {
+  /**
+   * 根据后端任务状态生成按钮短文案。
+   *
+   * @returns 当前按钮文案。
+   */
+  const getStatusText = (): string => {
     if (!currentVideoTask || !currentVideoTask.status) return t('transcript.button');
     switch (currentVideoTask.status) {
       case 'init':
@@ -57,13 +72,17 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
   ${t('transcript.tooltipBody')}
   `;
 
-  const handleClick = async () => {
+  /**
+   * 启动当前视频的后端转录任务。
+   */
+  const handleClick = async (): Promise<void> => {
     const srtPath = videoPath;
     if (StrUtil.isBlank(srtPath)) {
       toast.error(t('transcript.noVideoSelected'));
       return;
     }
-    const result = await onTranscript(srtPath);
+    const result = await transcriptApi.startTranscription(srtPath);
+    await mutate();
     if (result === 'model_missing') {
       toast.error(t('transcript.modelMissing'));
       return;
