@@ -30,18 +30,25 @@ export default interface FileSystemGateway {
      */
     directoryExists(directoryPath: string): Promise<boolean>;
     /**
-     * 获取文件大小。
+     * 获取普通文件大小。
      * @param filePath 文件绝对路径。
      * @returns 文件大小，单位为字节。
      */
     getFileSize(filePath: string): Promise<number>;
 
     /**
-     * 读取 UTF-8 文本文件。
+     * 读取文本文件，并自动识别常见字符编码。
      * @param filePath 文件绝对路径。
      * @returns 文件文本内容。
      */
     readTextFile(filePath: string): Promise<string>;
+
+    /**
+     * 计算目录内所有普通文件的总大小。
+     * @param directoryPath 目录绝对路径。
+     * @returns 文件总大小，单位为字节；遍历失败时直接抛出错误。
+     */
+    getDirectorySize(directoryPath: string): Promise<number>;
 
     /**
      * 写入 UTF-8 文本文件。

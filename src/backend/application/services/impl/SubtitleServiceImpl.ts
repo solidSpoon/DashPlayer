@@ -1,22 +1,20 @@
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
 import StrUtil from '@/common/utils/str-util';
-import fs from 'fs';
 import { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
 import SubtitleService from '@/backend/application/services/SubtitleService';
 import TYPES from '@/backend/ioc/types';
 import SrtTimeAdjustService from '@/backend/application/services/SrtTimeAdjustService';
-import FileUtil from '@/backend/utils/FileUtil';
 import CacheService from '@/backend/application/services/CacheService';
 import { SubtitleTimestampAdjustment } from '@/common/contracts/subtitle-timestamp-adjustment';
-import { TypeGuards } from '@/backend/utils/TypeGuards';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
 import MediaUtil from '@/common/utils/MediaUtil';
 import {WordMatchService} from '@/backend/application/services/WordMatchService';
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 import {
     CompromiseSentenceElementParser,
     SentenceElement,
@@ -74,14 +72,15 @@ export class SubtitleServiceImpl implements SubtitleService {
     private rendererGateway!: RendererGateway;
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
+    @inject(TYPES.FileSystemGateway)
+    private fileSystemGateway!: FileSystemGateway;
 
     public async parseSrt(path: string): Promise<SrtSentence> {
-        if (!fs.existsSync(path)) {
-            throw new Error('file not exists');
+        if (!(await this.fileSystemGateway.fileExists(path))) {
+            throw new Error(`字幕文件不存在：${path}`);
         }
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(path);
-        const content = await FileUtil.read(path);
-        TypeGuards.assertNotNull(content, 'read file error');
+        const content = await this.fileSystemGateway.readTextFile(path);
         const hashKey = ObjUtil.hash(content);
         const cache = this.cacheService.get('cache:srt', hashKey);
         if (cache) {

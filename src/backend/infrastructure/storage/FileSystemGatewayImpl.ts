@@ -1,5 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
+import jschardet from 'jschardet';
+import iconv from 'iconv-lite';
 import { injectable } from 'inversify';
 import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 
@@ -67,12 +69,37 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
     }
 
     /**
-     * 读取 UTF-8 文本文件。
+     * 读取文本文件，并根据文件内容识别常见字符编码。
      * @param filePath 文件绝对路径。
-     * @returns 文件文本内容。
+     * @returns 解码后的文件文本。
      */
     public async readTextFile(filePath: string): Promise<string> {
-        return fs.readFile(filePath, 'utf8');
+        const buffer = await fs.readFile(filePath);
+        const detected = jschardet.detect(buffer);
+        const encoding = detected.encoding || 'utf-8';
+        return iconv.decode(buffer, encoding);
+    }
+
+    /**
+     * 计算目录内所有普通文件的总大小。
+     * @param directoryPath 目录绝对路径。
+     * @returns 文件总大小，单位为字节。
+     */
+    public async getDirectorySize(directoryPath: string): Promise<number> {
+        const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+        let totalSize = 0;
+        for (const entry of entries) {
+            const entryPath = path.join(directoryPath, entry.name);
+            if (entry.isDirectory()) {
+                totalSize += await this.getDirectorySize(entryPath);
+                continue;
+            }
+            if (entry.isFile()) {
+                const stat = await fs.stat(entryPath);
+                totalSize += stat.size;
+            }
+        }
+        return totalSize;
     }
 
     /**
