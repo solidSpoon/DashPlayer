@@ -6,7 +6,7 @@ import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 /**

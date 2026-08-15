@@ -25,7 +25,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/fronted/components/ui/dropdown-menu';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import useInView from '@/fronted/hooks/useInView';
 
 const api = backendClient;

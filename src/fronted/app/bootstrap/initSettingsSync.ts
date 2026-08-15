@@ -1,5 +1,5 @@
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { rendererEvents } from '@/fronted/infrastructure/electron/rendererEvents';
 import useSetting from '@/fronted/hooks/useSetting';
 import useTranslation from '@/fronted/hooks/useTranslation';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -40,7 +40,7 @@ export function initSettingsSync(): () => void {
         logger.error('failed to sync runtime settings', { error });
     });
 
-    const unsubscribe = storeEvents.onStoreUpdate((key: RuntimeSettingKey, value: string) => {
+    const unsubscribe = rendererEvents.onStoreUpdate((key: RuntimeSettingKey, value: string) => {
         const oldValue = useSetting.getState().values.get(key);
         if (oldValue !== value) {
             useSetting.getState().setLocalSetting(key, value);

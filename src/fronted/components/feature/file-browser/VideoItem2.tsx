@@ -19,7 +19,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import MusicCard from '@/fronted/components/feature/file-browser/music-card';
 import { motion } from 'framer-motion';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import useInView from '@/fronted/hooks/useInView';
 
 const api = backendClient;

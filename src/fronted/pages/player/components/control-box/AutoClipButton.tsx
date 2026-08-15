@@ -7,8 +7,8 @@ import TooltippedButton from '@/fronted/components/shared/common/TooltippedButto
 import useFile from '@/fronted/hooks/useFile';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-import { rendererApiRegistry } from '@/fronted/application/bootstrap/rendererApiRegistry';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('AutoClipButton');
@@ -91,7 +91,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
    * 监听当前字幕对应的后端状态推送。
    */
   useEffect(() => {
-    const unregister = rendererApiRegistry.register(
+    const unregister = registerRendererApi(
       'video-learning/clip-status-update',
       (params: {
         videoPath: string;

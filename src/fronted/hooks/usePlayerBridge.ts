@@ -9,7 +9,7 @@ import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { computeResumeTime } from '@/fronted/lib/playerResume';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import useTranslation from '@/fronted/hooks/useTranslation';
 
 const api = backendClient;

@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/fronted/components/ui/tooltip';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 interface WordItem {
   id: number;

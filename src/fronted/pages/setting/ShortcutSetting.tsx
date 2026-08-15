@@ -29,7 +29,7 @@ import {
 import { Eraser, Pencil, X } from 'lucide-react';
 import { SettingKeyObj } from '@/common/types/store_schema';
 import { useForm, Controller } from 'react-hook-form';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';

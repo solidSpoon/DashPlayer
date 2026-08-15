@@ -6,7 +6,7 @@ import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 

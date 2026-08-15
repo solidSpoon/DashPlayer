@@ -13,7 +13,7 @@ import { Tag } from '@/common/contracts/tag';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/hooks/useFavouriteClip';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import toast from 'react-hot-toast';
 import { Button } from '@/fronted/components/ui/button';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';

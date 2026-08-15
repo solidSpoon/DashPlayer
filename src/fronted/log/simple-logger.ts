@@ -1,5 +1,5 @@
 import type { SimpleLevel } from '@/common/log/simple-types';
-import { logWriter } from '@/fronted/application/bootstrap/logWriter';
+import { writeRendererLog } from '@/fronted/infrastructure/electron/logWriter';
 
 /** renderer 日志器；显式 `withTrace` 可关联已知的跨进程调用链。 */
 interface RendererLogger {
@@ -93,7 +93,7 @@ function write(moduleName: string, level: SimpleLevel, msg: string, data?: unkno
     }
 
     try {
-        logWriter.write({
+        writeRendererLog({
             ts: new Date().toISOString(),
             level,
             process: 'renderer',

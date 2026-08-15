@@ -8,7 +8,7 @@ import SettingsPageShell from '@/fronted/pages/setting/components/form/SettingsP
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm } from 'react-hook-form';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';

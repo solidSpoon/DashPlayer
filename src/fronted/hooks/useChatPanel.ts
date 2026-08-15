@@ -15,7 +15,7 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
 import { ChatBackgroundContext, ChatStreamEvent, ChatWelcomeParams } from '@/common/types/chat';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';

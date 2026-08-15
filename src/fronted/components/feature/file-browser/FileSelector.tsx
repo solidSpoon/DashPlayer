@@ -12,7 +12,7 @@ import useLayout from '@/fronted/hooks/useLayout';
 import useConvert from '@/fronted/features/convert/convertStore';
 import { toast } from 'sonner';
 import StrUtil from '@/common/utils/str-util';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import i18n from '@/fronted/i18n';
 
 const api = backendClient;

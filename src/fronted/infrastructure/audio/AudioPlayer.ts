@@ -3,7 +3,7 @@ import StrUtil from '@/common/utils/str-util';
 import { Nullable } from '@/common/types/Types';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const cache = new Map<string, string>();
 const api = backendClient;

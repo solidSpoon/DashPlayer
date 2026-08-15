@@ -14,7 +14,7 @@ import { ChevronsDown } from 'lucide-react';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/feature/file-browser/FolderSelector';
 import FileSelector, { FileAction } from '@/fronted/components/feature/file-browser/FileSelector';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('HomePage');

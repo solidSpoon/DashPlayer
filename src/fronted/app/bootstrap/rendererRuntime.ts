@@ -1,6 +1,6 @@
-import { initRendererApis } from '@/fronted/application/bootstrap/initRendererApis';
-import { initSettingsSync } from '@/fronted/application/bootstrap/initSettingsSync';
-import { initIpcMessageToasts } from '@/fronted/application/bootstrap/initIpcMessageToasts';
+import { initRendererApis } from '@/fronted/app/bootstrap/initRendererApis';
+import { initSettingsSync } from '@/fronted/app/bootstrap/initSettingsSync';
+import { initIpcMessageToasts } from '@/fronted/app/bootstrap/initIpcMessageToasts';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
     startListeningToDpTasks,

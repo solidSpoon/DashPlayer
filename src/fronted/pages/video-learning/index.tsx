@@ -6,7 +6,7 @@ import { VideoClip } from './types';
 import ClipGrid from '@/fronted/pages/video-learning/ClipGrid';
 import VideoPlayerPane from '@/fronted/pages/video-learning/VideoPlayerPane';
 import WordSidebar from '@/fronted/pages/video-learning/WordSidebar';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
   Pagination,

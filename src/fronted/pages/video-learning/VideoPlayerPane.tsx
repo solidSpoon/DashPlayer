@@ -10,7 +10,7 @@ import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConv
 import { useVocabularyState } from '@/fronted/hooks/useVocabulary';
 import { Sentence } from '@/common/types/SentenceC';
 import { ClipSrtLine } from '@/common/types/clipMeta';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
 
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({

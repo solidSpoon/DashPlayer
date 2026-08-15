@@ -5,7 +5,7 @@ import { cn } from '@/fronted/lib/utils';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const logger = getRendererLogger('ProjectListComp');
 

@@ -4,9 +4,14 @@ import useChatPanel from '@/fronted/hooks/useChatPanel';
 import useTranscript from '@/fronted/features/transcript/transcriptStore';
 import useTranslation from '@/fronted/hooks/useTranslation';
 import useVocabulary from '@/fronted/hooks/useVocabulary';
+import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { rendererApiRegistry } from './rendererApiRegistry';
 
+/**
+ * 注册 main 进程可调用的 renderer 接口。
+ *
+ * @returns 注销本次全部 renderer 接口的函数。
+ */
 export function initRendererApis(): () => void {
     const logger = getRendererLogger('RendererApis');
     const unregisters: Array<() => void> = [];
@@ -27,7 +32,7 @@ export function initRendererApis(): () => void {
             }
         };
 
-        unregisters.push(rendererApiRegistry.register(path, wrappedHandler as RendererApiMap[K]));
+        unregisters.push(registerRendererApi(path, wrappedHandler as RendererApiMap[K]));
     };
 
     register('ui/show-notification', async (params) => {

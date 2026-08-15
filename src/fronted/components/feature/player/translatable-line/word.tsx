@@ -22,7 +22,7 @@ import { useTransLineTheme } from './translatable-theme';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/hooks/useDictionaryStream';
 import useSetting from '@/fronted/hooks/useSetting';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 const logger = getRendererLogger('Word');

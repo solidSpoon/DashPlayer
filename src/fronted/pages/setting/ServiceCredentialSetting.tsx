@@ -14,7 +14,7 @@ import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCrede
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';

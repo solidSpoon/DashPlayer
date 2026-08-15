@@ -11,7 +11,7 @@ import TransHolder from '@/common/utils/TransHolder';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayer } from '@/fronted/hooks/usePlayer';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 

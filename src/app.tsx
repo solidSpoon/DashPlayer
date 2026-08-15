@@ -27,7 +27,7 @@ import Eb from '@/fronted/components/shared/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
 import { toast as sonnerToast } from 'sonner';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { applyLanguageSetting } from '@/fronted/i18n';
 

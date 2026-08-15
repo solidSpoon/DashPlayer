@@ -8,7 +8,7 @@ import StrUtil from '@/common/utils/str-util';
 import useFile from '@/fronted/hooks/useFile';
 import usePlayerToaster from '@/fronted/hooks/usePlayerToaster';
 import useSetting from '@/fronted/hooks/useSetting';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 

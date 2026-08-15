@@ -1,4 +1,4 @@
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 export const transcriptApi = {
     /**

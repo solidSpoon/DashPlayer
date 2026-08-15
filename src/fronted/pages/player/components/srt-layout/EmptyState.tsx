@@ -10,7 +10,7 @@ import PathUtil from '@/common/utils/PathUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;

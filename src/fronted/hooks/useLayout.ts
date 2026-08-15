@@ -3,7 +3,7 @@
  */
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 export type ScreenSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';

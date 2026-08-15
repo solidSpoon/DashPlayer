@@ -5,7 +5,7 @@ import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const logger = getRendererLogger('FolderSelector');
 

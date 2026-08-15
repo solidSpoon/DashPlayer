@@ -7,7 +7,7 @@ import hash from 'object-hash';
 import { Sentence } from '@/common/types/SentenceC';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { RendererTranslationFailure, RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 // 每句话的翻译状态
 export type TranslationStatus = 'untranslated' | 'translating' | 'completed';

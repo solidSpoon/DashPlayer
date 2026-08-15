@@ -15,7 +15,7 @@ import useSWR from 'swr';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import BackNavItem from '@/fronted/components/feature/file-browser/BackNavItem';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
 const api = backendClient;
 const logger = getRendererLogger('FileBrowser');

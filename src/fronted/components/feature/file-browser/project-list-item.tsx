@@ -17,7 +17,7 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/components/feature/file-browser/music-card';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import useInView from '@/fronted/hooks/useInView';
 
 const api = backendClient;

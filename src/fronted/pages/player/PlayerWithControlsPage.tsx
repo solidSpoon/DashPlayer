@@ -24,7 +24,7 @@ import {ModeSwitchToast} from '@/fronted/components/shared/toasts/ModeSwitchToas
 import useSystem from '@/fronted/hooks/useSystem';
 import useConvert from '@/fronted/features/convert/convertStore';
 import { toast as sonnerToast } from 'sonner';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 const api = backendClient;

@@ -7,7 +7,7 @@ import useSWR from 'swr';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import NewTips from '@/fronted/pages/setting/components/NewTips';
 import { cn } from '@/fronted/lib/utils';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { UpdateCheckResult } from '@/common/types/update-check';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 

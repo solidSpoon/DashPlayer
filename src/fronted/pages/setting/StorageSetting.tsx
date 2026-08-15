@@ -13,7 +13,7 @@ import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/fronted/components/ui/input';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/hooks/useAutoSaveSettingsForm';
 import useSWR from 'swr';

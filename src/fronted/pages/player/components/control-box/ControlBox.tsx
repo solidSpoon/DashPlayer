@@ -11,7 +11,7 @@ import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
 import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
 import { SettingToggle, TranscriptButton, AutoClipButton, ClearAdjustButton } from './index';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 /**
