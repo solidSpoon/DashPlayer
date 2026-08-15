@@ -1,10 +1,11 @@
 import React from 'react';
-import TranscriptFile from './TranscriptFile';
-import TranscriptTable from '@/fronted/pages/transcript/TranscriptTable';
+import TranscriptFile from './components/TranscriptFile';
+import TranscriptTable from './components/TranscriptTable';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const Transcript = () => {
+/** 展示转录文件浏览区与任务队列。 */
+const TranscriptPage = () => {
     const { t } = useI18nTranslation('pages');
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
@@ -27,4 +28,4 @@ const Transcript = () => {
     );
 };
 
-export default Transcript;
+export default TranscriptPage;

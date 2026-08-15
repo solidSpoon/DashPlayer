@@ -8,7 +8,7 @@ import {
     TableRow
 } from '@/fronted/components/ui/table';
 import React from 'react';
-import useSplit, { TaskChapterParseResult } from '@/fronted/hooks/useSplit';
+import useSplit, { TaskChapterParseResult } from '../splitStore';
 import { ErrorBoundary } from 'react-error-boundary';
 import FallBack from '@/fronted/components/shared/common/FallBack';
 import StrUtil from '@/common/utils/str-util';

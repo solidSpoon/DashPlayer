@@ -8,22 +8,29 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
 import StrUtil from '@/common/utils/str-util';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { splitApi } from './splitApi';
 
-const api = backendClient;
-
+/** 带有前端任务关联信息的章节解析结果。 */
 export interface TaskChapterParseResult extends ChapterParseResult {
+    /** 当前章节关联的任务编号，尚未执行时为 null。 */
     taskId: number | null;
 }
 
+/** 视频切分页面的输入和预览状态。 */
 export type UseSplitState = {
+    /** 待切分视频的绝对路径。 */
     videoPath: string | null;
+    /** 可选字幕文件的绝对路径。 */
     srtPath: string | null;
+    /** 用户输入或 AI 格式化后的章节文本。 */
     userInput: string;
+    /** 当前章节预览结果。 */
     parseResult: TaskChapterParseResult[];
+    /** 章节文本当前是否允许编辑。 */
     inputable: boolean;
 };
 
+/** 视频切分功能对页面暴露的操作。 */
 export type UseSplitAction = {
     updateFile(filePath: string): void;
     setUseInput(input: string): void;
@@ -31,7 +38,6 @@ export type UseSplitAction = {
     runSplitAll(): Promise<void>;
     aiFormat: () => void;
 };
-
 
 const useSplit = create(
     persist(
@@ -65,7 +71,9 @@ const useSplit = create(
                 }
             },
             runSplitAll: async () => {
-                if (!useSplit.getState().videoPath) {
+                const currentState = useSplit.getState();
+                const videoPath = currentState.videoPath;
+                if (!videoPath) {
                     throw new Error('Please select a video file first');
                 }
                 for (const chapter of get().parseResult) {
@@ -73,12 +81,12 @@ const useSplit = create(
                         throw new Error('请修正红色部分');
                     }
                 }
-                const folderName = await api.call('split-video/split', {
-                    videoPath: useSplit.getState().videoPath ?? '',
-                    srtPath: useSplit.getState().srtPath,
-                    chapters: useSplit.getState().parseResult
+                const folderName = await splitApi.splitVideo({
+                    videoPath,
+                    srtPath: currentState.srtPath,
+                    chapters: currentState.parseResult
                 });
-                await api.call('watch-history/create', [folderName]);
+                await splitApi.createWatchHistory([folderName]);
                 await swrApiMutate('watch-history/list');
             },
             aiFormat: async () => {
@@ -87,10 +95,9 @@ const useSplit = create(
                 }
                 const userInput = get().userInput;
                 set({ inputable: false });
-                await useDpTaskCenter.getState().register(() => api.call('ai-func/format-split', userInput), {
+                await useDpTaskCenter.getState().register(() => splitApi.formatSplit(userInput), {
                     onUpdated: (task) => {
                         if (StrUtil.isBlank(task?.result)) return;
-                        // const res = JSON.parse(task.result) as AiFuncFormatSplitRes;
                         useSplit.setState({
                             userInput: task.result
                         });
@@ -111,14 +118,21 @@ useSplit.setState({
     inputable: true
 });
 
+// 用递增序号丢弃过期响应，避免旧预览覆盖用户最新输入。
+let previewRequestSequence = 0;
+
 useSplit.subscribe(
     (s) => s.userInput,
     async (topic) => {
+        const requestSequence = ++previewRequestSequence;
         if (StrUtil.isBlank(topic)) {
             useSplit.setState({ parseResult: [] });
             return;
         }
-        const result = await api.call('split-video/preview', topic);
+        const result = await splitApi.previewSplit(topic);
+        if (requestSequence !== previewRequestSequence) {
+            return;
+        }
         const oldState: Map<string, TaskChapterParseResult> = new Map(useSplit.getState().parseResult.map(r => [r.original, r]));
         useSplit.setState({
             parseResult: result.map(r => ({

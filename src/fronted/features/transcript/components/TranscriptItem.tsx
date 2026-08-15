@@ -6,19 +6,21 @@ import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-ta
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
-import useTranscript from '@/fronted/hooks/useTranscript';
-import useSWR from "swr";
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import useTranscript from '../transcriptStore';
+import useSWR from 'swr';
+import { transcriptApi } from '../transcriptApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
+/** 单个转录任务行的输入属性。 */
 export interface TranscriptItemProps {
+    /** 视频文件绝对路径。 */
     file: string;
+    /** 启动转录并返回启动结果。 */
     onStart: () => Promise<'started' | 'model_missing'>;
+    /** 从转录队列移除任务。 */
     onDelete: () => void;
 }
-
-const api = backendClient;
 
 const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
     const { t } = useI18nTranslation('pages');
@@ -26,13 +28,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
     const [cancelling, setCancelling] = React.useState(false);
     const logger = getRendererLogger('TranscriptItem');
     const files = useTranscript((state) => state.files);
-    const { data: fInfo } = useSWR(['system/path-info', file], ([_k, f]) => api.call('system/path-info', f), {
-        fallbackData: {
-            baseName: '',
-            dirName: '',
-            extName: ''
-        }
-    });
+    const { data: fInfo } = useSWR(['system/path-info', file], ([_k, f]) => transcriptApi.getPathInfo(f));
 
     const task = files.find(f => f.file === file);
     logger.debug('task status updated', { task });
@@ -82,7 +78,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
     const handleCancelTranscription = async () => {
         setCancelling(true);
         try {
-            const success = await api.call('ai-func/cancel-transcription', { filePath: file });
+            const success = await transcriptApi.cancelTranscription(file);
             if (success) {
                 logger.info('Transcription cancelled successfully', { file });
             } else {
@@ -110,7 +106,7 @@ const TranscriptItem = ({ file, onStart, onDelete }: TranscriptItemProps) => {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger className="text-left">
-                            {fInfo.baseName}
+                            {fInfo?.baseName}
                         </TooltipTrigger>
                         <TooltipContent>
                             {file}

@@ -7,18 +7,21 @@ import { FolderVideos } from '@/common/contracts/convert';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { convertApi } from './convertApi';
 
-const api = backendClient;
-
-
+/** 转码功能持久化的队列与运行时任务状态。 */
 export type UseConvertState = {
+    /** 文件路径到后端任务编号的映射。 */
     tasks: Map<string, number>;
+    /** 文件路径到任务状态的映射。 */
     taskStats: Map<string, DpTaskState>;
+    /** 单独加入队列的视频绝对路径。 */
     files: string[];
+    /** 按文件夹加入队列的视频集合。 */
     folders: FolderVideos[];
 };
 
+/** 转码功能对页面暴露的操作。 */
 export type UseConvertAction = {
     addFiles: (files: string[]) => void;
     addFolders: (folders: FolderVideos[]) => void;
@@ -27,7 +30,6 @@ export type UseConvertAction = {
     convert: (file: string) => void;
     convertFolder: (folder: string) => void;
 };
-
 
 const useConvert = create(
     persist(
@@ -70,7 +72,7 @@ const useConvert = create(
                     return;
                 }
                 const taskId = await useDpTaskCenter.getState()
-                    .register(()=> api.call('convert/to-mp4', file),{
+                    .register(() => convertApi.startConversion(file), {
                         onUpdated: (t) => {
                             set({ taskStats: new Map([...get().taskStats, [file, t.status as DpTaskState]]) });
                         },
@@ -81,8 +83,11 @@ const useConvert = create(
                 set({ tasks: new Map([...get().tasks, [file, taskId]]) });
             },
             convertFolder: async (folder) => {
-                //videos for
-                const videos = get().folders.find(f => f.folder === folder)?.videos ?? [];
+                const folderEntry = get().folders.find(f => f.folder === folder);
+                if (!folderEntry) {
+                    throw new Error(`转换队列中不存在文件夹：${folder}`);
+                }
+                const videos = folderEntry.videos;
                 for (const video of videos) {
                     getRendererLogger('useConvert').debug('task stats', { taskStats: Object.fromEntries(get().taskStats) });
                     if (get().taskStats.get(video) === DpTaskState.IN_PROGRESS) {

@@ -13,17 +13,15 @@ import {
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
 import { Button } from '@/fronted/components/ui/button';
-import useConvert from '@/fronted/hooks/useConvert';
+import useConvert from '../convertStore';
 import { useShallow } from 'zustand/react/shallow';
 import { emptyFunc } from '@/common/utils/Util';
 import { ConvertResult } from '@/common/contracts/convert';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
-import UrlUtil from "@/common/utils/UrlUtil";
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-
-const api = backendClient;
+import UrlUtil from '@/common/utils/UrlUtil';
+import { convertApi } from '../convertApi';
 
 const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
     file: string,
@@ -36,15 +34,12 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
     const { data: url } = useSWR(file ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([, path, time]) => {
-            return await api.call('media/thumbnail', { filePath: path, time });
+            return await convertApi.getThumbnail(path, time);
         }
     );
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
-        return await api.call('media/duration', f);
-    }, {
-        revalidateOnFocus: false,
-        fallbackData: 0
-    });
+        return await convertApi.getDuration(f);
+    }, { revalidateOnFocus: false });
     const {
         taskId,
         convert
@@ -104,7 +99,10 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                             <Button
                                 onClick={async () => {
                                     if (dpTask?.status === DpTaskState.IN_PROGRESS) {
-                                        await api.call('dp-task/cancel', taskId);
+                                        if (taskId === undefined) {
+                                            throw new Error(`转换任务缺少任务编号：${file}`);
+                                        }
+                                        await convertApi.cancelTask(taskId);
                                     } else {
                                         onDeleted?.();
                                     }
@@ -138,15 +136,9 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
             <ContextMenuContent>
                 <ContextMenuItem
                     onClick={async () => {
-                        await api.call('system/open-folder', file);
+                        await convertApi.openFolder(file);
                     }}
                 >Show In Explorer</ContextMenuItem>
-                {/*<ContextMenuItem*/}
-                {/*    onClick={async () => {*/}
-                {/*        await api.call('watch-project/delete', proj.id);*/}
-                {/*        await swrApiMutate('watch-history/list');*/}
-                {/*    }}*/}
-                {/*>Delete</ContextMenuItem>*/}
             </ContextMenuContent>
         </ContextMenu>
     );

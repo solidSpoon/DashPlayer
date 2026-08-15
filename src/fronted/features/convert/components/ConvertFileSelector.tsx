@@ -3,9 +3,7 @@ import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronte
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
 import { UnsupportedVideoFormats } from '@/common/utils/MediaUtil';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-
-const api = backendClient;
+import { convertApi } from '../convertApi';
 
 export default function ConvertFileSelector({
                                          onSelected
@@ -13,8 +11,8 @@ export default function ConvertFileSelector({
     onSelected: (ps: string[]) => Promise<void>;
 }) {
     const handleClick = async () => {
-        const ps = await api.call('system/select-file', UnsupportedVideoFormats);
-        if (ps?.length > 0) {
+        const ps = await convertApi.selectFiles(UnsupportedVideoFormats);
+        if (ps.length > 0) {
             await onSelected(ps);
         }
     };

@@ -4,7 +4,7 @@ import { codeBlock } from 'common-tags';
 import { Captions } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
-import useTranscript from '@/fronted/hooks/useTranscript';
+import useTranscript from '@/fronted/features/transcript/transcriptStore';
 import useFile from '@/fronted/hooks/useFile';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

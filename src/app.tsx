@@ -19,10 +19,10 @@ import { Toaster } from '@/fronted/components/ui/sonner';
 import { Toaster as HotToaster } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
 
-import Transcript from '@/fronted/pages/transcript/Transcript';
-import Split from '@/fronted/pages/split/Split';
+import TranscriptPage from '@/fronted/features/transcript/TranscriptPage';
+import SplitPage from '@/fronted/features/split/SplitPage';
 import GlobalShortCut from '@/fronted/components/shared/shortcuts/GlobalShortCut';
-import Convert from '@/fronted/pages/convert/Convert';
+import ConvertPage from '@/fronted/features/convert/ConvertPage';
 import Eb from '@/fronted/components/shared/common/Eb';
 import Favorite from '@/fronted/pages/favourite';
 import VideoLearningPage from '@/fronted/pages/video-learning';
@@ -89,7 +89,7 @@ const App = () => {
                             <Route path="*" element={<Layout />}>
                                 <Route
                                     path="transcript"
-                                    element={<Eb key="transcript"><Transcript /></Eb>}
+                                    element={<Eb key="transcript"><TranscriptPage /></Eb>}
                                 />
                                 <Route
                                     path="favorite"
@@ -97,11 +97,11 @@ const App = () => {
                                 />
                                 <Route
                                     path="split"
-                                    element={<Eb key="split"><Split /></Eb>}
+                                    element={<Eb key="split"><SplitPage /></Eb>}
                                 />
                                 <Route
                                     path="convert"
-                                    element={<Eb key="convert"><Convert /></Eb>}
+                                    element={<Eb key="convert"><ConvertPage /></Eb>}
                                 />
                                 <Route
                                     path="vocabulary"

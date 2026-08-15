@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { transcriptApi } from './transcriptApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
     TranscriptTask,
@@ -13,7 +13,6 @@ import {
     TranscriptTaskUpdate,
 } from '@/common/contracts/transcript/transcript-task';
 
-const api = backendClient;
 const logger = getRendererLogger('useTranscript');
 
 /** 持久化状态中处于非终态（重启后不可能再收到后端更新）的任务的中断提示。 */
@@ -44,17 +43,19 @@ function normalizePersistedFiles(persistedFiles: TranscriptTask[] | undefined): 
     });
 }
 
+/** 转录功能持久化的任务队列。 */
 export type UseTranscriptState = {
+    /** 等待处理或已完成的转录任务。 */
     files: TranscriptTask[];
 };
 
+/** 转录功能对页面与 renderer 事件桥接层暴露的操作。 */
 export type UseTranscriptAction = {
     onAddToQueue(p: string): void;
     onDelFromQueue(p: string): void;
     onTranscript(p: string): Promise<'started' | 'model_missing'>;
     updateTranscriptTasks: (updates: TranscriptTaskUpdate[]) => void;
 };
-
 
 const useTranscript = create(
     persist(
@@ -74,7 +75,7 @@ const useTranscript = create(
                 set({ files: newFiles });
             },
             onTranscript: async (file: string) => {
-                const modelStatus = await api.call('parakeet/models/status');
+                const modelStatus = await transcriptApi.getModelStatus();
                 if (!modelStatus.ready) {
                     return 'model_missing';
                 }
@@ -89,7 +90,7 @@ const useTranscript = create(
                     return 'started';
                 }
 
-                await api.call('ai-func/transcript', { filePath: file });
+                await transcriptApi.startTranscription(file);
                 // 如果没有就新增，有就更新状态
                 if (!currentFiles.includes(file)) {
                     set({ files: [...get().files, { file, status: TranscriptTaskState.INIT }] });
@@ -137,10 +138,7 @@ const useTranscript = create(
                             // 使用 setTimeout 避免在 set 回调中执行异步操作
                             setTimeout(async () => {
                                 try {
-                                    await api.call('watch-history/attach-srt', {
-                                        videoPath: filePath,
-                                        srtPath: 'same'
-                                    });
+                                    await transcriptApi.attachSubtitle(filePath, 'same');
                                     await swrMutate(SWR_KEY.PLAYER_P);
                                     toast('Transcript done', {
                                         icon: '🚀'

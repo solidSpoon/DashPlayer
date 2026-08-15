@@ -3,20 +3,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { convertApi } from '../convertApi';
 
-const api = backendClient;
-
+/** 转码文件夹选择器的输入属性。 */
 export interface FolderSelectorProps {
+    /** 用户完成选择后的回调。 */
     onSelected?: (folders: string[]) => void;
+    /** 附加到按钮的样式类。 */
     className?: string;
 }
 
 const ConvertFolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
     const handleClick = async () => {
-        const ps = await api.call('system/select-folder', {});
-        if (!ps) return;
-        if (ps?.length > 0) {
+        const ps = await convertApi.selectFolders();
+        if (ps.length > 0) {
             onSelected?.(ps);
         }
     };

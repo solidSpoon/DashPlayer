@@ -22,7 +22,7 @@ import {getRendererLogger} from '@/fronted/log/simple-logger';
 import toast, { Toast } from 'react-hot-toast';
 import {ModeSwitchToast} from '@/fronted/components/shared/toasts/ModeSwitchToast';
 import useSystem from '@/fronted/hooks/useSystem';
-import useConvert from '@/fronted/hooks/useConvert';
+import useConvert from '@/fronted/features/convert/convertStore';
 import { toast as sonnerToast } from 'sonner';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';

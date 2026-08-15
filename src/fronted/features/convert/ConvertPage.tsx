@@ -1,24 +1,23 @@
 import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import ConvertFileSelector from '@/fronted/pages/convert/ConvertFileSelector';
-import ConvertFolderSelector from '@/fronted/pages/convert/FolderSelector';
-import ConvertItem from '@/fronted/pages/convert/convert-item';
-import useConvert from '@/fronted/hooks/useConvert';
+import ConvertFileSelector from './components/ConvertFileSelector';
+import ConvertFolderSelector from './components/ConvertFolderSelector';
+import ConvertItem from './components/ConvertItem';
+import useConvert from './convertStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/fronted/components/ui/button';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import Eb from '@/fronted/components/shared/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { convertApi } from './convertApi';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Wrench } from 'lucide-react';
 
 const logger = getRendererLogger('Convert');
 
-const api = backendClient;
-
-const Convert = () => {
+/** 展示转码队列并组织文件、文件夹选择与批量转换操作。 */
+const ConvertPage = () => {
     const { t } = useI18nTranslation('pages');
     const {
         files,
@@ -57,7 +56,7 @@ const Convert = () => {
                             />
                             <ConvertFolderSelector
                                 onSelected={async (fp) => {
-                                    const folderList = await api.call('convert/from-folder', fp);
+                                    const folderList = await convertApi.scanFolders(fp);
                                     addFolders(folderList);
                                 }}
                             />
@@ -89,8 +88,8 @@ const Convert = () => {
                 ) : (
                     <div className="flex flex-col gap-4">
                         {folders.map((folder) => {
-                            const hasP = (folder.videos ?? []).some(v => taskStats.get(v) === DpTaskState.IN_PROGRESS);
-                            const allP = (folder.videos ?? []).every(v => taskStats.get(v) === DpTaskState.IN_PROGRESS);
+                            const hasP = folder.videos.some(v => taskStats.get(v) === DpTaskState.IN_PROGRESS);
+                            const allP = folder.videos.every(v => taskStats.get(v) === DpTaskState.IN_PROGRESS);
                             return (
                                 <Eb key={folder.folder}>
                                     <div className="flex flex-col gap-4 border p-4 rounded-xl bg-muted/50">
@@ -157,4 +156,4 @@ const Convert = () => {
     );
 };
 
-export default Convert;
+export default ConvertPage;

@@ -4,7 +4,7 @@ import ProjectListComp from '@/fronted/components/feature/file-browser/project-l
 import { Folder } from 'lucide-react';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import MediaUtil from '@/common/utils/MediaUtil';
-import useTranscript from '@/fronted/hooks/useTranscript';
+import useTranscript from '../transcriptStore';
 import { useShallow } from 'zustand/react/shallow';
 import FolderSelector, { FolderSelectAction } from '@/fronted/components/feature/file-browser/FolderSelector';
 import FileSelector from '@/fronted/components/feature/file-browser/FileSelector';
@@ -13,9 +13,7 @@ import VideoItem2 from '@/fronted/components/feature/file-browser/VideoItem2';
 import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/components/feature/file-browser/BackNavItem';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-
-const api = backendClient;
+import { transcriptApi } from '../transcriptApi';
 const TranscriptFile = () => {
     const { files, onAddToQueue } = useTranscript(useShallow(s => ({
         files: s.files,
@@ -31,11 +29,11 @@ const TranscriptFile = () => {
                     const vp = ps.find(MediaUtil.isMedia);
                     const sp = ps.find(MediaUtil.isSrt);
                     if (vp) {
-                        await api.call('watch-history/create', ps);
+                        await transcriptApi.createWatchHistory(ps);
                     }
                     if (sp) {
                         if (StrUtil.isNotBlank(vp)) {
-                            await api.call('watch-history/attach-srt', { videoPath: vp, srtPath: sp });
+                            await transcriptApi.attachSubtitle(vp, sp);
                         }
                     }
                     await swrApiMutate('watch-history/list');
@@ -58,7 +56,7 @@ const TranscriptFile = () => {
                             icon: <Folder />,
                             text: 'Show In Explorer',
                             onClick: async () => {
-                                await api.call('system/open-folder', pv.basePath);
+                                await transcriptApi.openFolder(pv.basePath);
                             }
                         }
                     ];
@@ -75,7 +73,7 @@ const TranscriptFile = () => {
                             icon: <Folder />,
                             text: 'Show In Explorer',
                             onClick: async () => {
-                                await api.call('system/open-folder', p.basePath);
+                                await transcriptApi.openFolder(p.basePath);
                             }
                         }
                     ];

@@ -1,7 +1,7 @@
 import React from 'react';
 import {cn} from '@/fronted/lib/utils';
 import ProjectListComp from '@/fronted/components/feature/file-browser/project-list-comp';
-import useSplit from '@/fronted/hooks/useSplit';
+import useSplit from '../splitStore';
 import {useShallow} from 'zustand/react/shallow';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {Folder, X} from 'lucide-react';
@@ -13,9 +13,7 @@ import VideoItem2 from '@/fronted/components/feature/file-browser/VideoItem2';
 import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/components/feature/file-browser/BackNavItem';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
-
-const api = backendClient;
+import { splitApi } from '../splitApi';
 const SplitFile = () => {
 
     const {updateFile, videoPath} = useSplit(useShallow(s => ({
@@ -33,12 +31,12 @@ const SplitFile = () => {
                     const sp = ps.find(MediaUtil.isSrt);
                     if (vp) {
                         updateFile(vp);
-                        await api.call('watch-history/create', ps);
+                        await splitApi.createWatchHistory(ps);
                     }
                     if (sp) {
                         updateFile(sp);
                         if (StrUtil.isNotBlank(videoPath)) {
-                            await api.call('watch-history/attach-srt', {videoPath, srtPath: sp});
+                            await splitApi.attachSubtitle(videoPath, sp);
                         }
                     }
                     await swrApiMutate('watch-history/list');
@@ -63,7 +61,7 @@ const SplitFile = () => {
                                                icon: <Folder/>,
                                                text: 'Show In Explorer',
                                                onClick: async () => {
-                                                   await api.call('system/open-folder', pv.basePath);
+                                                   await splitApi.openFolder(pv.basePath);
                                                }
                                            }
                                        ]}
@@ -79,7 +77,7 @@ const SplitFile = () => {
                             icon: <Folder/>,
                             text: 'Show In Explorer',
                             onClick: async () => {
-                                await api.call('system/open-folder', p.basePath);
+                                await splitApi.openFolder(p.basePath);
                             }
                         },
                         {
@@ -87,7 +85,7 @@ const SplitFile = () => {
                             text: 'Delete',
                             disabled: false,
                             onClick: async () => {
-                                await api.call('watch-history/group-delete', p.id);
+                                await splitApi.deleteWatchHistoryGroup(p.id);
                                 await swrApiMutate('watch-history/list');
                             }
                         }

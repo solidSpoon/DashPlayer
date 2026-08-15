@@ -6,18 +6,16 @@ import { Label } from '@/fronted/components/ui/label';
 import { FileQuestion, FileType2, FileVideo2, Stethoscope, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
-import SplitFile from '@/fronted/pages/split/SplitFile';
-import SplitPreview from '@/fronted/pages/split/split-preview';
-import useSplit from '@/fronted/hooks/useSplit';
+import SplitFile from './components/SplitFile';
+import SplitPreview from './components/SplitPreview';
+import useSplit from './splitStore';
 import { useShallow } from 'zustand/react/shallow';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { AllFormats } from '@/common/utils/MediaUtil';
-import { backendClient } from '@/fronted/application/bootstrap/backendClient';
+import { splitApi } from './splitApi';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-
-const api = backendClient;
 
 const example = `
 00:00:00 Intro
@@ -30,7 +28,7 @@ const example = `
  * 切分长视频页面。
  * 负责组织左右两栏布局，并确保预览区在窄窗口下优先内部滚动，而不是把整页撑出屏幕。
  */
-const Split = () => {
+const SplitPage = () => {
     const { t } = useI18nTranslation('pages');
     const {
         userInput,
@@ -53,10 +51,10 @@ const Split = () => {
         inputable: s.inputable,
         runSplitAll: s.runSplitAll
     })));
-    const { data: video } = useSWR(videoPath ? ['system/select-file', videoPath] : null, ([_key, path]) => api.call('system/path-info', path));
-    const { data: srt } = useSWR(srtPath ? ['system/select-file', srtPath] : null, ([_key, path]) => api.call('system/path-info', path));
+    const { data: video } = useSWR(videoPath ? ['system/select-file', videoPath] : null, ([_key, path]) => splitApi.getPathInfo(path));
+    const { data: srt } = useSWR(srtPath ? ['system/select-file', srtPath] : null, ([_key, path]) => splitApi.getPathInfo(path));
     const onSelect = async () => {
-        const files = await api.call('system/select-file', AllFormats);
+        const files = await splitApi.selectFiles(AllFormats);
         files.forEach(updateFile);
     };
 
@@ -78,7 +76,7 @@ const Split = () => {
                 'flex-1 min-h-0 grid gap-6 px-6 py-5 overflow-hidden',
                 '[grid-template-columns:minmax(0,1fr)_minmax(0,1.2fr)]'
             )}>
-                {/* Left Column: input + files + action buttons */}
+                {/* 左栏：章节输入、文件选择和辅助操作。 */}
                 <div className="flex min-w-0 flex-col gap-4 min-h-0">
                     <div className="flex flex-col gap-1.5 flex-1 min-h-0">
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -106,7 +104,12 @@ const Split = () => {
                                         variant="ghost"
                                         size="icon"
                                         className="w-5 h-5 shrink-0"
-                                        onClick={() => deleteFile(videoPath ?? '')}
+                                        onClick={() => {
+                                            if (!videoPath) {
+                                                throw new Error('视频路径不存在，无法从切分队列移除');
+                                            }
+                                            deleteFile(videoPath);
+                                        }}
                                     ><X className="w-3 h-3" /></Button>
                                 </> : <span
                                     className="text-sm text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
@@ -129,7 +132,12 @@ const Split = () => {
                                         variant="ghost"
                                         size="icon"
                                         className="w-5 h-5 shrink-0"
-                                        onClick={() => deleteFile(srtPath ?? '')}
+                                        onClick={() => {
+                                            if (!srtPath) {
+                                                throw new Error('字幕路径不存在，无法从切分队列移除');
+                                            }
+                                            deleteFile(srtPath);
+                                        }}
                                     ><X className="w-3 h-3" /></Button>
                                 </> : <span
                                     className="text-sm text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
@@ -175,7 +183,7 @@ const Split = () => {
                     </div>
                 </div>
 
-                {/* Right Column: tabs + split button */}
+                {/* 右栏：切分预览、快速选择和执行入口。 */}
                 <div className="flex min-w-0 flex-col gap-3 min-h-0">
                     <Tabs
                         defaultValue="preview"
@@ -224,4 +232,4 @@ const Split = () => {
         </div>
     );
 };
-export default Split;
+export default SplitPage;

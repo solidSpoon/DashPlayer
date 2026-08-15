@@ -6,9 +6,9 @@ import {
     TableRow
 } from '@/fronted/components/ui/table';
 import { cn } from "@/fronted/lib/utils";
-import TranscriptItem from '@/fronted/pages/transcript/TranscriptItem';
+import TranscriptItem from './TranscriptItem';
 import React from 'react';
-import useTranscript from '@/fronted/hooks/useTranscript';
+import useTranscript from '../transcriptStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
