@@ -97,6 +97,46 @@ function formatTransportLine(data: unknown[], level: string, timestamp: Date): s
     } satisfies JsonLogRecord);
 }
 
+/**
+ * 将结构化日志压缩为适合开发控制台阅读的单行文本。
+ * @param data electron-log 收到的原始参数。
+ * @param level electron-log 日志级别。
+ * @param message electron-log 的日志消息元数据。
+ * @returns 控制台 transport 要输出的单行文本数组。
+ */
+function formatConsoleLine({
+    data,
+    level,
+    message,
+}: {
+    data: unknown[];
+    level: string;
+    message: { date: Date };
+}): string[] {
+    const date = message.date;
+    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+    const levelText = level.toUpperCase().padEnd(5, ' ');
+    const rawMessage = data.length === 1 && typeof data[0] === 'string'
+        ? data[0]
+        : util.format(...data);
+
+    try {
+        const record = JSON.parse(rawMessage) as Partial<JsonLogRecord>;
+        if (record.schemaVersion === 1
+            && typeof record.process === 'string'
+            && typeof record.module === 'string'
+            && typeof record.message === 'string') {
+            const context = record.data === undefined ? '' : ` ${JSON.stringify(record.data)}`;
+            const line = `${time} ${levelText} [${record.process}/${record.module}] ${record.message}${context}`;
+            return [`${line.slice(0, 1200)}${line.length > 1200 ? '…' : ''}`];
+        }
+    } catch {
+        // 非结构化消息直接按 electron-log 原始内容输出。
+    }
+
+    return [`${time} ${levelText} ${rawMessage}`];
+}
+
 log.initialize({ preload: true });
 log.transports.file.resolvePathFn = todayFile;
 log.transports.file.level = 'silly';
@@ -104,6 +144,7 @@ log.transports.file.format = ({ data, level, message }) => [
     formatTransportLine(data, level, message.date),
 ];
 log.transports.console.level = isDevelopmentMode() ? 'silly' : 'warn';
+log.transports.console.format = formatConsoleLine;
 log.errorHandler.startCatching();
 
 const levelOrder: Record<SimpleLevel, number> = {
