@@ -40,6 +40,116 @@ src/backend/
 
 不要求每个功能都创建完整的一套目录。功能少时，一个文件就近放置即可。
 
+## 1.1 前端结构
+
+前端运行在 Electron renderer 进程中。前端目录以业务功能为中心组织，
+不要把所有业务代码继续按 `pages`、`hooks`、`components` 做全局分类。
+
+推荐结构：
+
+```text
+src/fronted/
+  app/                  # React 入口、路由和 renderer 启动初始化
+    bootstrap/
+
+  features/             # 按业务功能聚合
+    player/
+      components/
+      hooks/
+      playerApi.ts       # 当前功能调用后端
+      playerEvents.ts    # 当前功能处理后端推送
+      playerStore.ts
+      types.ts
+    transcript/
+    favourite/
+    video-learning/
+    convert/
+    settings/
+    chat/
+
+  components/           # 不属于某个业务的布局、UI 和共享组件
+    layout/
+    shared/
+    ui/
+
+  infrastructure/       # Electron、日志等外部实现
+    electron/
+
+  i18n/
+  styles/
+```
+
+历史目录可以逐步迁移，不要求一次性搬迁。新增代码或重构某个功能时，
+优先放入 `features/<domain>/`。全局 `hooks/` 只保留真正跨业务复用的
+通用 Hook，例如视口、可见性等基础能力。
+
+前端结构的目标是让一个功能的页面、组件、状态和请求尽量靠近，便于阅读
+和修改；不为了形式上的分层创建大量空目录或包装文件。
+
+### 1.1.1 前端调用后端
+
+前端调用后端属于请求或命令，遵循下面的方向：
+
+```text
+组件
+  ↓
+Feature Hook / Command
+  ↓
+Feature API
+  ↓
+Backend Client
+  ↓
+window.electron.call
+```
+
+约定：
+
+- Electron 的具体调用只放在 `fronted/infrastructure/electron/`；
+- 每个业务功能可以提供自己的 `<feature>Api.ts`，封装 IPC 路径和业务参数；
+- 组件不直接散落调用 `window.electron` 或拼接 IPC 路径；
+- `common/api/` 只声明 IPC 路径、请求和响应类型，不放调用逻辑；
+- 不要求为每个 API 创建一套 Port、Adapter、Gateway；
+- 只有确实需要替换实现、隔离外部依赖或被多个功能复用时，才增加接口。
+
+例如：
+
+```text
+features/player/playerApi.ts
+  → infrastructure/electron/backendClient.ts
+    → window.electron.call(...)
+```
+
+### 1.1.2 后端推送前端
+
+后端主动通知前端属于事件或流式推送，遵循下面的方向：
+
+```text
+后端 Service
+  ↓
+Electron IPC 推送
+  ↓
+Renderer Event Bridge
+  ↓
+Feature Events
+  ↓
+Feature Store / SWR Cache
+  ↓
+React Component
+```
+
+约定：
+
+- `fronted/infrastructure/electron/` 负责接收 Electron 事件；
+- 具体业务事件处理放在对应的 `features/<domain>/<feature>Events.ts`；
+- 事件处理器负责更新对应 Store 或 SWR 缓存；
+- 组件不直接注册 Electron 事件；
+- 所有事件注册和清理由 `app/bootstrap/` 统一启动和管理；
+- 跨进程事件的类型继续放在 `common/api/renderer-api-def.ts`；
+- 高频流式事件不能记录完整内容或大对象，日志只记录必要的生命周期和数量信息。
+
+简单功能可以省略 `Feature API` 或 `Feature Events` 文件，直接在功能附近
+实现；目录和文件数量应由实际复杂度决定。
+
 ## 2. 各部分负责什么
 
 ### 2.1 Controller
