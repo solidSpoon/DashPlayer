@@ -1,17 +1,17 @@
 import type { Config } from 'drizzle-kit';
-import os from 'os';
+import fs from 'fs';
 import path from 'path';
 
 const workspaceRoot = process.cwd();
 const configuredDbPath = process.env.DRIZZLE_DB_PATH;
-const configuredStorageBase = process.env.DP_STORAGE_PATH;
+// Drizzle 默认使用仓库内的独立工具库，禁止再隐式连接用户媒体库或应用运行数据库。
+const toolingDbDirectory = path.join(workspaceRoot, '.local', 'drizzle');
+const toolingDbPath = path.join(toolingDbDirectory, 'dp_db.sqlite3');
+const drizzleDbPath = configuredDbPath ? path.resolve(configuredDbPath) : toolingDbPath;
 
-const defaultStorageBase = configuredStorageBase
-    ? path.resolve(configuredStorageBase)
-    : path.join(os.homedir(), 'Documents', 'DashPlayer-dev');
-
-const defaultDbPath = path.join(defaultStorageBase, 'data', 'dp_db.sqlite3');
-const drizzleDbPath = configuredDbPath ? path.resolve(configuredDbPath) : defaultDbPath;
+if (!configuredDbPath) {
+    fs.mkdirSync(toolingDbDirectory, { recursive: true });
+}
 
 export default {
     dialect: 'sqlite',
