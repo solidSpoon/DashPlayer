@@ -4,7 +4,6 @@ import {TranscriptionService} from '@/backend/application/services/Transcription
 import RendererGateway from '@/backend/application/ports/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
-import * as fsPromises from 'fs/promises';
 import FfmpegService from '@/backend/application/services/FfmpegService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
@@ -16,6 +15,7 @@ import SpeechRecognitionGateway, {
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import FileSystemGateway from '@/backend/application/ports/gateways/storage/FileSystemGateway';
 import EnglishSubtitleSegmenter from '@/backend/application/kernel/subtitle/EnglishSubtitleSegmenter';
 import { concurrency } from '@/backend/application/kernel/concurrency';
 import { TranscriptTaskResult, TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
@@ -47,6 +47,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
         @inject(TYPES.SpeechRecognitionGateway) private speechRecognitionGateway: SpeechRecognitionGateway,
         @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider: StorageDirectoryProvider,
+        @inject(TYPES.FileSystemGateway) private fileSystemGateway: FileSystemGateway,
     ) {}
 
     private readonly subtitleSegmenter = new EnglishSubtitleSegmenter();
@@ -157,7 +158,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const folderName = objectHash(`${filePath}::${Date.now()}`);
             const tempRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.TEMP);
             tempFolder = path.join(tempRoot, 'parakeet', folderName);
-            await fsPromises.mkdir(tempFolder, {recursive: true});
+            await this.fileSystemGateway.ensureDirectory(tempFolder);
 
             await this.transcribeWithSherpaOnnx({
                 filePath,
@@ -176,7 +177,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         } finally {
             // 清理临时文件
             try {
-                if (tempFolder) await fsPromises.rm(tempFolder, {recursive: true, force: true});
+                if (tempFolder) await this.fileSystemGateway.removeDirectoryIfExists(tempFolder);
             } catch (cleanupError) {
                 this.logger.warn('Failed to cleanup temporary files', {cleanupError});
             }
@@ -236,7 +237,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const finalSrt = SrtUtil.srtLinesToSrt(lines, { reindex: true });
         const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
-        await fsPromises.writeFile(srtFileName, finalSrt);
+        await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);
 
         this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
     }

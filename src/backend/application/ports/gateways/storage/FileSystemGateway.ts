@@ -74,6 +74,13 @@ export default interface FileSystemGateway {
     removeFileIfExists(filePath: string): Promise<void>;
 
     /**
+     * 删除目录及其全部内容；目录不存在时不报错。
+     *
+     * @param directoryPath 待删除的目录绝对路径。
+     */
+    removeDirectoryIfExists(directoryPath: string): Promise<void>;
+
+    /**
      * 列出目录中的普通文件名。
      * @param directoryPath 目录绝对路径。
      * @returns 目录下普通文件的名称，不包含目录路径。

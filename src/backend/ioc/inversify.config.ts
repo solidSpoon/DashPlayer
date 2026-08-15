@@ -27,8 +27,8 @@ import { FavouriteClipsService } from '@/backend/application/services/FavouriteC
 import FavouriteClipsServiceImpl from '@/backend/application/services/impl/FavouriteClipsServiceImpl';
 import CacheService from '@/backend/application/services/CacheService';
 import { ClipOssService } from '@/backend/application/services/OssService';
-import ClipOssServiceImpl from '@/backend/application/services/impl/ClipOssServiceImpl';
-import VideoLearningOssServiceImpl from '@/backend/application/services/impl/VideoLearningOssServiceImpl';
+import ClipOssServiceImpl from '@/backend/infrastructure/storage/ClipOssServiceImpl';
+import VideoLearningOssServiceImpl from '@/backend/infrastructure/storage/VideoLearningOssServiceImpl';
 import { VideoLearningService } from '@/backend/application/services/VideoLearningService';
 import VideoLearningServiceImpl from '@/backend/application/services/impl/VideoLearningServiceImpl';
 import VideoLearningApiController from '@/backend/adapters/controllers/VideoLearningApiController';
