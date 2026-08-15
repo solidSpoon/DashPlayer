@@ -1,13 +1,20 @@
-import { SettingKey, SettingKeyObj } from '@/common/types/store_schema';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { storeEvents } from '@/fronted/application/bootstrap/storeEvents';
 import useSetting from '@/fronted/hooks/useSetting';
 import useTranslation from '@/fronted/hooks/useTranslation';
-import type { TranslationMode } from '@/common/types/TranslationResult';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import {
+    RuntimeSettingKey,
+    RuntimeSettingsSnapshot,
+} from '@/common/contracts/runtime-settings';
 
 let cleanupFn: (() => void) | null = null;
 
+/**
+ * 初始化运行时设置快照和设置变化监听。
+ *
+ * @returns 清理设置监听并重置初始化状态的函数。
+ */
 export function initSettingsSync(): () => void {
     const logger = getRendererLogger('SettingsSync');
 
@@ -16,45 +23,43 @@ export function initSettingsSync(): () => void {
         return cleanupFn;
     }
 
-    for (const key in SettingKeyObj) {
-        const settingKey = key as SettingKey;
-        backendClient.call('storage/get', settingKey).then((value: string) => {
-            useSetting.getState().setLocalSetting(settingKey, value);
-        }).catch((error) => {
-            logger.error('failed to sync initial setting', { key: settingKey, error });
-        });
-    }
-
-    backendClient.call('storage/get', 'providers.subtitleTranslation').then((engine: string) => {
-        if (engine === 'openai' || engine === 'tencent' || engine === 'none') {
-            useTranslation.getState().setEngine(engine);
+    backendClient.call('settings/runtime/detail').then((snapshot: RuntimeSettingsSnapshot) => {
+        useSetting.getState().initialize(snapshot);
+        const subtitleProvider = snapshot['providers.subtitleTranslation'];
+        if (subtitleProvider !== 'openai' && subtitleProvider !== 'tencent' && subtitleProvider !== 'none') {
+            throw new Error(`运行时字幕翻译引擎无效: ${subtitleProvider}`);
         }
+        useTranslation.getState().setEngine(subtitleProvider);
+
+        const subtitleMode = snapshot['features.openai.subtitleTranslationMode'];
+        if (subtitleMode !== 'zh' && subtitleMode !== 'simple_en' && subtitleMode !== 'custom') {
+            throw new Error(`运行时字幕翻译模式无效: ${subtitleMode}`);
+        }
+        useTranslation.getState().setOpenAiMode(subtitleMode);
     }).catch((error) => {
-        logger.error('failed to sync providers.subtitleTranslation', { error });
+        logger.error('failed to sync runtime settings', { error });
     });
 
-    backendClient.call('storage/get', 'features.openai.subtitleTranslationMode').then((mode: string) => {
-        const normalized: TranslationMode = mode === 'simple_en' || mode === 'custom' ? mode : 'zh';
-        useTranslation.getState().setOpenAiMode(normalized);
-    }).catch((error) => {
-        logger.error('failed to sync features.openai.subtitleTranslationMode', { error });
-    });
-
-    const unsubscribe = storeEvents.onStoreUpdate((key: SettingKey, value: string) => {
+    const unsubscribe = storeEvents.onStoreUpdate((key: RuntimeSettingKey, value: string) => {
         const oldValue = useSetting.getState().values.get(key);
         if (oldValue !== value) {
             useSetting.getState().setLocalSetting(key, value);
         }
 
         if (key === 'providers.subtitleTranslation') {
-            if (value === 'openai' || value === 'tencent' || value === 'none') {
-                useTranslation.getState().setEngine(value);
+            if (value !== 'openai' && value !== 'tencent' && value !== 'none') {
+                logger.error('invalid subtitle translation provider', {value});
+                return;
             }
+            useTranslation.getState().setEngine(value);
         }
 
         if (key === 'features.openai.subtitleTranslationMode') {
-            const normalized: TranslationMode = value === 'simple_en' || value === 'custom' ? value : 'zh';
-            useTranslation.getState().setOpenAiMode(normalized);
+            if (value !== 'zh' && value !== 'simple_en' && value !== 'custom') {
+                logger.error('invalid OpenAI subtitle translation mode', {value});
+                return;
+            }
+            useTranslation.getState().setOpenAiMode(value);
         }
     });
 

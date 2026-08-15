@@ -13,6 +13,10 @@ import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/v
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import {
+    RuntimeSettingSaveRequest,
+    RuntimeSettingsSnapshot,
+} from '@/common/contracts/runtime-settings';
 
 /**
  * 设置页 IPC 控制器：只负责接收参数并委托给 SettingService。
@@ -21,6 +25,24 @@ import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 export default class SettingsController implements Controller {
     @inject(TYPES.SettingService) private settingService!: SettingService;
     private logger = getMainLogger('SettingsController');
+
+    /**
+     * 获取渲染进程启动所需的非敏感设置。
+     *
+     * @returns 完整运行时设置快照。
+     */
+    public async getRuntimeSettings(): Promise<RuntimeSettingsSnapshot> {
+        return this.settingService.getRuntimeSettings();
+    }
+
+    /**
+     * 保存播放器运行期间允许直接修改的设置。
+     *
+     * @param request 设置键和值。
+     */
+    public async saveRuntimeSetting(request: RuntimeSettingSaveRequest): Promise<void> {
+        await this.settingService.saveRuntimeSetting(request);
+    }
 
     /**
      * 获取服务凭据页面详情。
@@ -124,6 +146,8 @@ export default class SettingsController implements Controller {
     }
 
     registerRoutes(): void {
+        registerRoute('settings/runtime/detail', () => this.getRuntimeSettings());
+        registerRoute('settings/runtime/save', (p) => this.saveRuntimeSetting(p));
         registerRoute('settings/service-credentials/detail', () => this.getServiceCredentialsDetail());
         registerRoute('settings/service-credentials/save', (p) => this.saveServiceCredentials(p));
         registerRoute('settings/service-credentials/test-openai', () => this.testOpenAi());

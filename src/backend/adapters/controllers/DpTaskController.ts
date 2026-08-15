@@ -1,5 +1,5 @@
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
-import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask } from '@/common/contracts/dp-task';
 import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';

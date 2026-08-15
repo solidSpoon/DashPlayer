@@ -1,7 +1,7 @@
 import {
-    InsertSubtitleTimestampAdjustment,
     SubtitleTimestampAdjustment,
-} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
+    SubtitleTimestampAdjustmentInput,
+} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { inject, injectable } from 'inversify';
 
 import SubtitleTimestampAdjustmentsRepository
@@ -21,7 +21,7 @@ export default class SrtTimeAdjustService {
      *
      * @param adjustment 待保存的调整记录。
      */
-    public async record(adjustment: InsertSubtitleTimestampAdjustment): Promise<void> {
+    public async record(adjustment: SubtitleTimestampAdjustmentInput): Promise<void> {
         await this.subtitleTimestampAdjustmentsRepository.upsert(adjustment);
     }
 

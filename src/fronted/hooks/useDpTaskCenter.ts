@@ -3,7 +3,7 @@
  */
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
-import {DpTask, DpTaskState} from '@/backend/infrastructure/db/tables/dpTask';
+import {DpTask, DpTaskState} from '@/common/contracts/dp-task';
 import {emptyFunc} from '@/common/utils/Util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';

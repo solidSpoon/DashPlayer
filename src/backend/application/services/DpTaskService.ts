@@ -1,7 +1,9 @@
-import { DpTask, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask, DpTaskUpdate } from '@/common/contracts/dp-task';
 import { Cancelable } from '@/common/interfaces';
 
-
+/**
+ * 后台任务业务服务。
+ */
 export default interface DpTaskService {
     detail(id: number): Promise<DpTask | null>;
 
@@ -9,13 +11,13 @@ export default interface DpTaskService {
 
     create(): Promise<number>;
 
-    update(task: InsertDpTask): void;
+    update(task: DpTaskUpdate): void;
 
-    process(id: number, info: InsertDpTask): void;
+    process(id: number, info: DpTaskUpdate): void;
 
-    finish(id: number, info: InsertDpTask): void;
+    finish(id: number, info: DpTaskUpdate): void;
 
-    fail(id: number, info: InsertDpTask): void;
+    fail(id: number, info: DpTaskUpdate): void;
 
     cancel(id: number): void;
 

@@ -1,5 +1,5 @@
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { DpTask, DpTaskState, InsertDpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask, DpTaskState, DpTaskUpdate } from '@/common/contracts/dp-task';
 
 import { LRUCache } from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -33,7 +33,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
     /** 普通进度更新的合并等待计时器。 */
     private flushTimer: ReturnType<typeof setTimeout> | undefined;
     private readonly cancelQueue = new Set<number>();
-    private readonly cache: LRUCache<number, InsertDpTask> = new LRUCache({
+    private readonly cache: LRUCache<number, DpTaskUpdate> = new LRUCache({
         maxSize: 2000,
         sizeCalculation: () => {
             return 1;
@@ -101,7 +101,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
      *
      * @param task 本次需要更新的字段，必须包含任务编号。
      */
-    public update(task: InsertDpTask): void {
+    public update(task: DpTaskUpdate): void {
         if (task.id === undefined || task.id === null) {
             return;
         }
@@ -126,8 +126,8 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * @param id 任务编号。
      * @param info 进度或结果补充信息。
      */
-    public process(id: number, info: InsertDpTask) {
-        const task: InsertDpTask = {
+    public process(id: number, info: DpTaskUpdate) {
+        const task: DpTaskUpdate = {
             id,
             status: DpTaskState.IN_PROGRESS,
         };
@@ -141,8 +141,8 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * @param id 任务编号。
      * @param info 最终进度或结果。
      */
-    public finish(id: number, info: InsertDpTask) {
-        const task: InsertDpTask = {
+    public finish(id: number, info: DpTaskUpdate) {
+        const task: DpTaskUpdate = {
             id,
             status: DpTaskState.DONE,
         };
@@ -158,8 +158,8 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * @param id 任务编号。
      * @param info 失败结果或进度说明。
      */
-    public fail(id: number, info: InsertDpTask) {
-        const task: InsertDpTask = {
+    public fail(id: number, info: DpTaskUpdate) {
+        const task: DpTaskUpdate = {
             id,
             status: DpTaskState.FAILED,
         };
@@ -174,7 +174,7 @@ export default class DpTaskServiceImpl implements DpTaskService {
      * @param task 将被更新的任务。
      * @param info 调用方提供的补充字段。
      */
-    private updateTaskInfo(task: InsertDpTask, info: InsertDpTask): void {
+    private updateTaskInfo(task: DpTaskUpdate, info: DpTaskUpdate): void {
         if (info.progress !== undefined) {
             // 进度更新频率高，降为 debug 避免刷屏。
             this.logger.debug('task progress updated', { taskId: task.id, progress: info.progress });

@@ -1,9 +1,9 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
-import {SettingKey} from './common/types/store_schema';
+import {RuntimeSettingKey} from './common/contracts/runtime-settings';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
-import {DpTask} from "@/backend/infrastructure/db/tables/dpTask";
+import {DpTask} from '@/common/contracts/dp-task';
 import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
 import type { SimpleEvent, TraceCarrier } from '@/common/log/simple-types';
 
@@ -32,7 +32,7 @@ const createTraceCarrier = (): TraceCarrier => ({
 });
 
 const electronHandler = {
-    onStoreUpdate: (func: (key: SettingKey, value: string) => void) => {
+    onStoreUpdate: (func: (key: RuntimeSettingKey, value: string) => void) => {
         return on('store-update', func as never);
     },
     onErrorMsg: (func: (error: Error) => void) => {

@@ -1,16 +1,13 @@
-import {DpTask} from '@/backend/infrastructure/db/tables/dpTask';
+import {DpTask} from '@/common/contracts/dp-task';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence} from '@/common/types/SentenceC';
 import {WindowState} from '@/common/types/Types';
-import {
-    InsertSubtitleTimestampAdjustment
-} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
-import {SettingKey} from '@/common/types/store_schema';
+import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
 import { FolderVideos } from '@/common/contracts/convert';
 
-import {Tag} from '@/backend/infrastructure/db/tables/tag';
+import {Tag} from '@/common/contracts/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
 import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
@@ -27,6 +24,10 @@ import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/v
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import {
+    RuntimeSettingSaveRequest,
+    RuntimeSettingsSnapshot,
+} from '@/common/contracts/runtime-settings';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
@@ -151,18 +152,18 @@ interface SubtitleControllerDef {
 interface SubtitleTimestampAdjustmentControllerDef {
     'subtitle-timestamp/delete/by-file-hash': { params: string, return: void };
     'subtitle-timestamp/delete/by-key': { params: string, return: void };
-    'subtitle-timestamp/update': { params: InsertSubtitleTimestampAdjustment, return: void };
+    'subtitle-timestamp/update': { params: SubtitleTimestampAdjustmentInput, return: void };
 }
 
 interface StorageDef {
-    'storage/put': { params: { key: SettingKey, value: string }, return: void };
-    'storage/get': { params: SettingKey, return: string };
     'storage/cache/size': { params: void, return: string };
     'storage/status': { params: void, return: StorageStatusVO };
     'storage/collection/paths': { params: void, return: string[] };
 }
 
 interface SettingsDef {
+    'settings/runtime/detail': { params: void, return: RuntimeSettingsSnapshot };
+    'settings/runtime/save': { params: RuntimeSettingSaveRequest, return: void };
     'settings/service-credentials/detail': { params: void, return: ServiceCredentialSettingDetailVO };
     'settings/service-credentials/save': { params: ServiceCredentialSettingSaveVO, return: void };
     'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };

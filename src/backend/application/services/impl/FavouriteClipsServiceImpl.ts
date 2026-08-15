@@ -17,7 +17,7 @@ import FfmpegService from '@/backend/application/services/FfmpegService';
 import { concurrency } from '@/backend/application/kernel/concurrency';
 import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
 import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
-import { Tag } from '@/backend/infrastructure/db/tables/tag';
+import { Tag } from '@/common/contracts/tag';
 import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem } from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,

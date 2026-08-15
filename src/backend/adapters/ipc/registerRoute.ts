@@ -12,7 +12,6 @@ const logger = getMainLogger('ipc');
 /** 高频/敏感路径的日志策略：降为 debug，并按需跳过 param/result，避免噪音与密钥落盘。 */
 const QUIET_PATH_POLICIES: Partial<Record<string, { logParam: boolean; logResult: boolean }>> = {
     'watch-history/progress/update': { logParam: false, logResult: false },
-    'storage/get': { logParam: true, logResult: false },
 };
 
 /**

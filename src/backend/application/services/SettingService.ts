@@ -7,8 +7,17 @@ import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/v
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import {
+    RuntimeSettingSaveRequest,
+    RuntimeSettingsSnapshot,
+} from '@/common/contracts/runtime-settings';
 
+/**
+ * 管理设置页数据和渲染进程需要的非敏感运行时设置。
+ */
 export default interface SettingService {
+    getRuntimeSettings(): Promise<RuntimeSettingsSnapshot>;
+    saveRuntimeSetting(request: RuntimeSettingSaveRequest): Promise<void>;
     getServiceCredentialsDetail(): Promise<ServiceCredentialSettingDetailVO>;
     saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void>;
     getEngineSelectionDetail(): Promise<EngineSelectionSettingVO>;
@@ -21,16 +30,11 @@ export default interface SettingService {
     saveStorageSettings(settings: StorageSettingVO): Promise<void>;
     getProxySettingDetail(): Promise<ProxySettingDetailVO>;
     saveProxySettings(settings: ProxySettingSaveVO): Promise<void>;
-    migrateProviderSettings(): Promise<void>;
-    
-    // Service provider queries
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;
     getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
     getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'>;
     getOpenAiSubtitleCustomStyle(): Promise<string>;
     getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null>;
-    
-    // Test service connections
     testOpenAi(): Promise<{ success: boolean, message: string }>;
     testTencent(): Promise<{ success: boolean, message: string }>;
     testYoudao(): Promise<{ success: boolean, message: string }>;

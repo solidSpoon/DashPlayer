@@ -1,4 +1,4 @@
-import { DpTask } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask } from '@/common/contracts/dp-task';
 import DpTaskEventsPort from '@/fronted/application/ports/events/DpTaskEventsPort';
 
 export class ElectronDpTaskEvents implements DpTaskEventsPort {
@@ -6,4 +6,3 @@ export class ElectronDpTaskEvents implements DpTaskEventsPort {
         return window.electron.onTaskUpdate(handler);
     }
 }
-

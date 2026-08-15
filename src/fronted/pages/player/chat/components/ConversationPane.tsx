@@ -11,7 +11,7 @@ import UserTextMessage from "@/fronted/pages/player/chat/components/messages/Use
 import HumanNormalMessage from "@/common/types/msg/HumanNormalMessage";
 import { useShallow } from 'zustand/react/shallow';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
-import { DpTask, DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
 import { Send } from 'lucide-react';
 import AiStreamingMessage from '@/fronted/pages/player/chat/components/messages/AiStreamingMessage';
 import AiStreamingMessageModel from '@/common/types/msg/AiStreamingMessage';

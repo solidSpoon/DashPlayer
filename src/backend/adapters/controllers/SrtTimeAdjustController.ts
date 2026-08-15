@@ -1,4 +1,4 @@
-import {InsertSubtitleTimestampAdjustment} from '@/backend/infrastructure/db/tables/subtitleTimestampAdjustment';
+import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import Controller from '@/backend/adapters/controllers/Controller';
 import { inject, injectable } from 'inversify';
@@ -17,7 +17,7 @@ export default class SrtTimeAdjustController implements Controller {
      * 记录调整时间
      * @param e
      */
-    public async record(e: InsertSubtitleTimestampAdjustment): Promise<void> {
+    public async record(e: SubtitleTimestampAdjustmentInput): Promise<void> {
         await this.srtTimeAdjustService.record(e);
     }
 

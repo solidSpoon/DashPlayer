@@ -2,7 +2,7 @@ import Controller from '@/backend/adapters/controllers/Controller';
 import registerRoute from '@/backend/adapters/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { Tag } from '@/backend/infrastructure/db/tables/tag';
+import { Tag } from '@/common/contracts/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { FavouriteClipsService } from '@/backend/application/services/FavouriteClipsService';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';

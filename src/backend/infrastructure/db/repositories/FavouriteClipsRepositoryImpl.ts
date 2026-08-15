@@ -4,7 +4,8 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import type { Db } from '@/backend/infrastructure/db/createDb';
 import { clipTagRelation } from '@/backend/infrastructure/db/tables/clipTagRelation';
-import { InsertTag, Tag, tag } from '@/backend/infrastructure/db/tables/tag';
+import { InsertTag, TagRow, tag } from '@/backend/infrastructure/db/tables/tag';
+import { Tag } from '@/common/contracts/tag';
 import {InsertVideoClip, VideoClip, videoClip} from '@/backend/infrastructure/db/tables/videoClip';
 import { ClipQuery } from '@/common/api/dto';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -239,7 +240,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async listTagsByClipKey(clipKey: string): Promise<Tag[]> {
-        const rows: { dp_tag: Tag | null }[] = await this.db
+        const rows: { dp_tag: TagRow | null }[] = await this.db
             .select()
             .from(clipTagRelation)
             .leftJoin(tag, eq(clipTagRelation.tag_id, tag.id))
@@ -250,7 +251,7 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async ensureTag(name: string): Promise<Tag> {
-        const e: Tag[] = await this.db
+        const e: TagRow[] = await this.db
             .insert(tag)
             .values({ name } satisfies InsertTag)
             .onConflictDoUpdate({
@@ -274,10 +275,11 @@ export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepos
     }
 
     public async searchTagsByPrefix(keyword: string): Promise<Tag[]> {
-        return this.db
+        const rows: TagRow[] = await this.db
             .select()
             .from(tag)
             .where(like(tag.name, `${keyword}%`));
+        return rows;
     }
 
     public async insertClipTagIgnore(clipKey: string, tagId: number): Promise<void> {

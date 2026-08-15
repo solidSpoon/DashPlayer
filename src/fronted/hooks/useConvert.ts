@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { FolderVideos } from '@/common/contracts/convert';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
-import { DpTaskState } from '@/backend/infrastructure/db/tables/dpTask';
+import { DpTaskState } from '@/common/contracts/dp-task';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 

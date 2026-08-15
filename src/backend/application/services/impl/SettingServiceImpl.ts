@@ -23,7 +23,16 @@ import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import ModelRoutingService from '@/backend/application/services/ModelRoutingService';
 import StorageDirectoryProvider from '@/backend/application/ports/gateways/storage/StorageDirectoryProvider';
+import {
+    isRuntimeSettingKey,
+    runtimeSettingKeys,
+    RuntimeSettingSaveRequest,
+    RuntimeSettingsSnapshot,
+} from '@/common/contracts/runtime-settings';
 
+/**
+ * 管理设置页数据、运行时设置快照和服务配置查询。
+ */
 @injectable()
 export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
@@ -35,12 +44,26 @@ export default class SettingServiceImpl implements SettingService {
     @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider!: StorageDirectoryProvider;
     private logger = getMainLogger('SettingServiceImpl');
 
+    /**
+     * 写入设置，并仅向渲染进程推送非敏感运行时设置。
+     *
+     * @param key 设置键。
+     * @param value 设置值。
+     */
     private async setValue(key: SettingKey, value: string): Promise<void> {
         if (this.settingsStore.set(key, value)) {
-            this.rendererEvents.storeUpdate(key, value);
+            if (isRuntimeSettingKey(key)) {
+                this.rendererEvents.storeUpdate(key, value);
+            }
         }
     }
 
+    /**
+     * 读取设置仓库中的原始字符串值。
+     *
+     * @param key 设置键。
+     * @returns 当前设置值。
+     */
     private getValue(key: SettingKey): string {
         return this.settingsStore.get(key);
     }
@@ -70,20 +93,6 @@ export default class SettingServiceImpl implements SettingService {
             return false;
         }
         throw new Error(`设置项 ${fieldName} 非法: ${value}`);
-    }
-
-    private normalizeSubtitleEngine(value: string): 'openai' | 'tencent' | 'none' {
-        if (value === 'openai' || value === 'tencent' || value === 'none') {
-            return value;
-        }
-        return 'none';
-    }
-
-    private normalizeDictionaryEngine(value: string): 'openai' | 'youdao' | 'none' {
-        if (value === 'openai' || value === 'youdao' || value === 'none') {
-            return value;
-        }
-        return 'none';
     }
 
     /**
@@ -143,8 +152,91 @@ export default class SettingServiceImpl implements SettingService {
         return candidate;
     }
 
-    public async migrateProviderSettings(): Promise<void> {
-        return Promise.resolve();
+    /**
+     * 查询渲染进程启动所需的非敏感设置，并严格校验有枚举约束的字段。
+     *
+     * @returns 完整运行时设置快照。
+     */
+    public async getRuntimeSettings(): Promise<RuntimeSettingsSnapshot> {
+        const values = Object.fromEntries(
+            runtimeSettingKeys.map((key) => [key, this.getValue(key)]),
+        ) as RuntimeSettingsSnapshot;
+
+        values['appearance.theme'] = this.requireEnumValue(
+            values['appearance.theme'],
+            ['dark', 'light'] as const,
+            'appearance.theme',
+        );
+        values['appearance.fontSize'] = this.requireEnumValue(
+            values['appearance.fontSize'],
+            ['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge'] as const,
+            'appearance.fontSize',
+        );
+        values['i18n.language'] = this.requireEnumValue(
+            values['i18n.language'],
+            ['system', 'zh-CN', 'en-US'] as const,
+            'i18n.language',
+        );
+        values['player.autoPlayNext'] = this.requireBooleanString(
+            values['player.autoPlayNext'],
+            'player.autoPlayNext',
+        ) ? 'true' : 'false';
+        values['providers.subtitleTranslation'] = this.requireEnumValue(
+            values['providers.subtitleTranslation'],
+            ['openai', 'tencent', 'none'] as const,
+            'providers.subtitleTranslation',
+        );
+        values['providers.dictionary'] = this.requireEnumValue(
+            values['providers.dictionary'],
+            ['openai', 'youdao', 'none'] as const,
+            'providers.dictionary',
+        );
+        values['features.openai.subtitleTranslationMode'] = this.requireEnumValue(
+            values['features.openai.subtitleTranslationMode'],
+            ['zh', 'simple_en', 'custom'] as const,
+            'features.openai.subtitleTranslationMode',
+        );
+        this.requirePlaybackRateStack(values['userSelect.playbackRateStack']);
+        return values;
+    }
+
+    /**
+     * 保存播放器运行期间允许直接修改的设置。
+     *
+     * @param request 设置键和值。
+     */
+    public async saveRuntimeSetting(request: RuntimeSettingSaveRequest): Promise<void> {
+        let value = request.value;
+        switch (request.key) {
+            case 'appearance.theme':
+                value = this.requireEnumValue(value, ['dark', 'light'] as const, request.key);
+                break;
+            case 'player.autoPlayNext':
+                value = this.requireBooleanString(value, request.key) ? 'true' : 'false';
+                break;
+            case 'userSelect.playbackRateStack':
+                this.requirePlaybackRateStack(value);
+                break;
+            default:
+                throw new Error(`不允许直接修改运行时设置: ${String(request.key)}`);
+        }
+        await this.setValue(request.key, value);
+    }
+
+    /**
+     * 校验常用播放速度列表的序列化值。
+     *
+     * @param value 逗号分隔的播放速度。
+     */
+    private requirePlaybackRateStack(value: string): void {
+        if (value.length === 0) {
+            return;
+        }
+        const allowedRates = new Set(['0.25', '0.5', '0.75', '1', '1.25', '1.5', '1.75', '2']);
+        const rates = value.split(',');
+        if (rates.some((rate) => !allowedRates.has(rate)) || new Set(rates).size !== rates.length) {
+            throw new Error(`设置项 userSelect.playbackRateStack 非法: ${value}`);
+        }
     }
 
     /**
@@ -505,7 +597,11 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
-        const engine = this.normalizeSubtitleEngine(this.getValue('providers.subtitleTranslation'));
+        const engine = this.requireEnumValue(
+            this.getValue('providers.subtitleTranslation'),
+            ['openai', 'tencent', 'none'] as const,
+            'providers.subtitleTranslation',
+        );
         if (engine === 'openai' || engine === 'tencent') {
             return engine;
         }
@@ -513,11 +609,11 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'> {
-        const mode = this.getValue('features.openai.subtitleTranslationMode');
-        if (mode === 'simple_en' || mode === 'custom') {
-            return mode;
-        }
-        return 'zh';
+        return this.requireEnumValue(
+            this.getValue('features.openai.subtitleTranslationMode'),
+            ['zh', 'simple_en', 'custom'] as const,
+            'features.openai.subtitleTranslationMode',
+        );
     }
 
     public async getOpenAiSubtitleCustomStyle(): Promise<string> {
@@ -529,7 +625,11 @@ export default class SettingServiceImpl implements SettingService {
     }
 
     public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
-        const engine = this.normalizeDictionaryEngine(this.getValue('providers.dictionary'));
+        const engine = this.requireEnumValue(
+            this.getValue('providers.dictionary'),
+            ['openai', 'youdao', 'none'] as const,
+            'providers.dictionary',
+        );
         if (engine === 'openai' || engine === 'youdao') {
             return engine;
         }

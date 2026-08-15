@@ -54,7 +54,6 @@ const TYPES = {
     ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
-    SettingsKeyValueService: Symbol('SettingsKeyValueService'),
 };
 
 export default TYPES;

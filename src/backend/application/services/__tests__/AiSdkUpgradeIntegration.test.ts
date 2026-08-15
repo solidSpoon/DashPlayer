@@ -560,6 +560,8 @@ const runTests = (): void => {
                 const settingService: SettingService = {
                     getServiceCredentialsDetail: vi.fn(),
                     saveServiceCredentials: vi.fn(),
+                    getRuntimeSettings: vi.fn(),
+                    saveRuntimeSetting: vi.fn(),
                     getEngineSelectionDetail: vi.fn(),
                     saveEngineSelection: vi.fn(),
                     getShortcutSettingsDetail: vi.fn(),
@@ -570,7 +572,6 @@ const runTests = (): void => {
                     saveStorageSettings: vi.fn(),
                     getProxySettingDetail: vi.fn(),
                     saveProxySettings: vi.fn(),
-                    migrateProviderSettings: vi.fn(),
                     getCurrentSentenceLearningProvider: vi.fn().mockResolvedValue('openai'),
                     getCurrentTranslationProvider: vi.fn().mockResolvedValue(overrides.getCurrentTranslationProvider?.() ?? Promise.resolve('openai')),
                     getOpenAiSubtitleTranslationMode: vi.fn().mockResolvedValue(overrides.getOpenAiSubtitleTranslationMode?.() ?? Promise.resolve<'zh' | 'simple_en' | 'custom'>('zh')),

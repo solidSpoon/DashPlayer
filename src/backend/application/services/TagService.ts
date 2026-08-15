@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 
 import FavouriteClipsRepository from '@/backend/application/ports/repositories/FavouriteClipsRepository';
 import TYPES from '@/backend/ioc/types';
-import type { Tag } from '@/backend/infrastructure/db/tables/tag';
+import type { Tag } from '@/common/contracts/tag';
 import StrUtil from '@/common/utils/str-util';
 
 /**

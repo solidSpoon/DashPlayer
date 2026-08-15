@@ -9,12 +9,18 @@ import { usePlayer } from '@/fronted/hooks/usePlayer';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/hooks/useFile';
 import useSetting from '@/fronted/hooks/useSetting';
-import { SettingKey } from '@/common/types/store_schema';
+import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
 import { SettingToggle, TranscriptButton, AutoClipButton, ClearAdjustButton } from './index';
 import { backendClient } from '@/fronted/application/bootstrap/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const getShortcut = (key: SettingKey) => {
+/**
+ * 从运行时设置缓存读取快捷键。
+ *
+ * @param key 快捷键对应的运行时设置键。
+ * @returns 当前快捷键文本。
+ */
+const getShortcut = (key: RuntimeSettingKey) => {
   return useSetting.getState().setting(key);
 };
 

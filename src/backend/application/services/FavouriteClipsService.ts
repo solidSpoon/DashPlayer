@@ -1,4 +1,4 @@
-import { Tag } from '@/backend/infrastructure/db/tables/tag';
+import { Tag } from '@/common/contracts/tag';
 import { ClipQuery } from '@/common/api/dto';
 import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 
