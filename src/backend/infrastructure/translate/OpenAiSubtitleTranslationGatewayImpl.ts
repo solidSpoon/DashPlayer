@@ -9,7 +9,7 @@ import OpenAiSubtitleTranslationGateway, {
 } from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
 import { concurrency } from '@/backend/utils/concurrency';
 
-const OPENAI_SUBTITLE_REQUEST_TIMEOUT_MS = 15_000;
+const OPENAI_SUBTITLE_REQUEST_TIMEOUT_MS = 40_000;
 
 /**
  * 使用当前配置的 OpenAI 兼容模型执行字幕翻译。

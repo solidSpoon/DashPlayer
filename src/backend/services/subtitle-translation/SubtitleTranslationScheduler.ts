@@ -41,6 +41,14 @@ export interface SubtitleTranslationBatchRequest<TContext> {
 }
 
 /**
+ * 调度器发出的字幕批次生命周期事件。
+ */
+export type SubtitleTranslationBatchLifecycleEvent<TContext> = Omit<
+    SubtitleTranslationBatchRequest<TContext>,
+    'signal'
+>;
+
+/**
  * 字幕翻译需求更新参数。
  */
 export interface SubtitleTranslationDemand<TContext> {
@@ -79,7 +87,31 @@ export interface SubtitleTranslationSchedulerOptions<TContext> {
      */
     onBatchError?: (
         error: unknown,
-        request: Omit<SubtitleTranslationBatchRequest<TContext>, 'signal'>
+        request: SubtitleTranslationBatchLifecycleEvent<TContext>
+    ) => void;
+    /**
+     * 批次失败后重新进入当前窗口队列时触发。
+     *
+     * @param request 即将重试的批次参数。
+     */
+    onBatchRequeued?: (
+        request: SubtitleTranslationBatchLifecycleEvent<TContext>
+    ) => void;
+    /**
+     * 批次超过最大重试次数并进入死信状态时触发。
+     *
+     * @param request 最后一次执行的批次参数。
+     */
+    onBatchDeadLetter?: (
+        request: SubtitleTranslationBatchLifecycleEvent<TContext>
+    ) => void;
+    /**
+     * 批次失败后已经离开当前播放窗口、不再重试时触发。
+     *
+     * @param request 最后一次执行的批次参数。
+     */
+    onBatchDropped?: (
+        request: SubtitleTranslationBatchLifecycleEvent<TContext>
     ) => void;
 }
 
@@ -406,7 +438,7 @@ export default class SubtitleTranslationScheduler<TContext> {
                     !session.completedIndices.has(index)
                 );
                 if (failedIndices.length > 0) {
-                    this.requeueOrDeadLetter(session, job, failedIndices);
+                    this.requeueOrDeadLetter(session, job, failedIndices, request);
                 }
             })
             .catch((error: unknown) => {
@@ -422,7 +454,7 @@ export default class SubtitleTranslationScheduler<TContext> {
                     requeueCount: request.requeueCount,
                     context: request.context,
                 });
-                this.requeueOrDeadLetter(session, job, job.indices);
+                this.requeueOrDeadLetter(session, job, job.indices, request);
             })
             .finally(() => {
                 job.indices.forEach((index) => session.inFlightIndices.delete(index));
@@ -440,11 +472,13 @@ export default class SubtitleTranslationScheduler<TContext> {
      * @param session 当前字幕翻译会话。
      * @param job 已完成一次执行的任务。
      * @param indices 本次需要重试的句子索引。
+     * @param request 本次执行使用的稳定批次参数。
      */
     private requeueOrDeadLetter(
         session: SubtitleTranslationSession<TContext>,
         job: SubtitleTranslationJob<TContext>,
-        indices: number[]
+        indices: number[],
+        request: SubtitleTranslationBatchRequest<TContext>
     ): void {
         const retryableIndices = indices.filter((index) =>
             !session.completedIndices.has(index)
@@ -455,21 +489,39 @@ export default class SubtitleTranslationScheduler<TContext> {
         }
 
         if (!this.isBatchInCurrentWindow(session, job.batchStart)) {
+            this.options.onBatchDropped?.({
+                ...request,
+                indices: retryableIndices,
+            });
             return;
         }
 
         if (job.requeueCount >= MAX_REQUEUE_COUNT) {
             retryableIndices.forEach((index) => session.deadIndices.add(index));
+            this.options.onBatchDeadLetter?.({
+                ...request,
+                indices: retryableIndices,
+            });
             return;
         }
 
-        session.pendingJobs.push({
+        const retryJob: SubtitleTranslationJob<TContext> = {
             batchId: job.batchId,
             batchStart: job.batchStart,
             indices: retryableIndices,
             priority: this.getPriority(job.batchStart, session.currentBatchStart),
             requeueCount: job.requeueCount + 1,
             context: session.context,
+        };
+        session.pendingJobs.push(retryJob);
+        this.options.onBatchRequeued?.({
+            fileHash: session.fileHash,
+            batchId: retryJob.batchId,
+            indices: retryJob.indices,
+            demandId: session.demandId,
+            priority: retryJob.priority,
+            requeueCount: retryJob.requeueCount,
+            context: retryJob.context,
         });
     }
 

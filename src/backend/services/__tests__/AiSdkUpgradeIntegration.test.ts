@@ -48,9 +48,7 @@ import type DpTaskService from '../DpTaskService';
 import type AiProviderService from '../AiProviderService';
 import type ModelRoutingService from '../ModelRoutingService';
 import type SettingService from '../SettingService';
-import type CacheService from '../CacheService';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import type SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
 import type WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
 import type ClientProviderService from '@/backend/services/ClientProviderService';
 
@@ -542,14 +540,11 @@ const runTests = (): void => {
             }, 60000);
         });
 
-        describe('TranslateServiceImpl（字幕翻译 / 词典路径）', () => {
+        describe('TranslateServiceImpl（词典路径）', () => {
             const rendererEvents: Array<{ path: string; params: Record<string, unknown> }> = [];
 
             const buildService = (overrides: {
                 getModel?: (scene: string) => LanguageModel | null;
-                getCurrentTranslationProvider?: () => Promise<'openai' | 'tencent' | null>;
-                getOpenAiSubtitleTranslationMode?: () => Promise<'zh' | 'simple_en' | 'custom'>;
-                findTranslatedBySentencesAndMode?: () => Promise<unknown[]>;
                 findOne?: () => Promise<unknown>;
             } = {}): TranslateServiceImpl => {
                 const aiProvider: AiProviderService = {
@@ -573,8 +568,8 @@ const runTests = (): void => {
                     getProxySettingDetail: vi.fn(),
                     saveProxySettings: vi.fn(),
                     getCurrentSentenceLearningProvider: vi.fn().mockResolvedValue('openai'),
-                    getCurrentTranslationProvider: vi.fn().mockResolvedValue(overrides.getCurrentTranslationProvider?.() ?? Promise.resolve('openai')),
-                    getOpenAiSubtitleTranslationMode: vi.fn().mockResolvedValue(overrides.getOpenAiSubtitleTranslationMode?.() ?? Promise.resolve<'zh' | 'simple_en' | 'custom'>('zh')),
+                    getCurrentTranslationProvider: vi.fn().mockResolvedValue('openai'),
+                    getOpenAiSubtitleTranslationMode: vi.fn().mockResolvedValue('zh'),
                     getOpenAiSubtitleCustomStyle: vi.fn().mockResolvedValue(''),
                     getCurrentDictionaryProvider: vi.fn().mockResolvedValue('openai'),
                     testOpenAi: vi.fn(),
@@ -587,49 +582,21 @@ const runTests = (): void => {
                     }) as RendererGateway['call'],
                     fireAndForget: vi.fn(),
                 };
-                const cacheService: Pick<CacheService, 'get' | 'set' | 'delete' | 'clear'> = {
-                    get: vi.fn(),
-                    set: vi.fn(),
-                    delete: vi.fn(),
-                    clear: vi.fn(),
-                };
                 const wordRepo: WordTranslatesRepository = {
                     findOne: vi.fn().mockResolvedValue(overrides.findOne?.() ?? null),
                     upsert: vi.fn(),
                 };
-                const sentenceRepo: SentenceTranslatesRepository = {
-                    findBySentencesAndMode: vi.fn().mockResolvedValue([]),
-                    findTranslatedBySentencesAndMode: vi.fn().mockResolvedValue(overrides.findTranslatedBySentencesAndMode?.() ?? []),
-                    upsert: vi.fn(),
-                    upsertMany: vi.fn(),
-                };
                 const youDaoProvider: ClientProviderService<{ translate: (s: string) => Promise<string> }> = {
-                    getClient: vi.fn().mockReturnValue(null),
-                };
-                const tencentProvider: ClientProviderService<{ batchTrans: (s: string[]) => Promise<Map<string, string>> }> = {
                     getClient: vi.fn().mockReturnValue(null),
                 };
                 const service = new TranslateServiceImpl();
                 (service as unknown as { youDaoProvider: typeof youDaoProvider }).youDaoProvider = youDaoProvider;
-                (service as unknown as { tencentProvider: typeof tencentProvider }).tencentProvider = tencentProvider;
                 (service as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
                 (service as unknown as { aiProviderService: AiProviderService }).aiProviderService = aiProvider;
-                (service as unknown as {
-                    cacheService: Pick<CacheService, 'get' | 'set' | 'delete' | 'clear'>;
-                }).cacheService = cacheService;
                 (service as unknown as { settingService: SettingService }).settingService = settingService;
                 (service as unknown as { wordTranslatesRepository: WordTranslatesRepository }).wordTranslatesRepository = wordRepo;
-                (service as unknown as { sentenceTranslatesRepository: SentenceTranslatesRepository }).sentenceTranslatesRepository = sentenceRepo;
                 return service;
             };
-
-            it('真实连接：transSentences() 通过结构化输出批量翻译并返回结果', async () => {
-                const service = buildService();
-                const result = await service.transSentences(['Hello world']);
-                expect(result.size).toBeGreaterThan(0);
-                const translation = Array.from(result.values())[0];
-                expect(translation.trim().length).toBeGreaterThan(0);
-            }, 60000);
 
             it('真实连接：transWord() 通过结构化输出返回词典结果', async () => {
                 const service = buildService();

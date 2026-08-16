@@ -28,6 +28,7 @@ import {
     TranslationProvider,
 } from '@/common/types/TranslationResult';
 import TimeUtil from '@/common/utils/TimeUtil';
+import { p } from '@/common/utils/Util';
 
 type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}`;
 
@@ -50,6 +51,16 @@ interface SubtitleTranslationExecutionContext {
 }
 
 /**
+ * 不依赖播放窗口的独立字幕翻译目标。
+ */
+interface DirectTranslationTarget {
+    /** 用于缓存和结果映射的归一化原文键。 */
+    key: string;
+    /** 保留原始大小写的待翻译文本。 */
+    text: string;
+}
+
+/**
  * 后端接收的当前字幕翻译需求。
  */
 export interface SubtitleTranslationDemandInput {
@@ -65,6 +76,14 @@ export interface SubtitleTranslationDemandInput {
  * 管理当前字幕翻译需求与内存会话。
  */
 export default interface SubtitleTranslationService {
+    /**
+     * 使用当前字幕翻译配置直接翻译一组文本。
+     *
+     * @param texts 待翻译文本；重复项会按忽略大小写的文本键合并。
+     * @returns 归一化原文到翻译结果的映射。
+     */
+    translateTexts(texts: string[]): Promise<Map<string, string>>;
+
     /**
      * 更新当前播放位置；方法只负责提交需求，不等待远端翻译完成。
      *
@@ -200,11 +219,138 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                     demandId: request.demandId,
                     priority: request.priority,
                     requeueCount: request.requeueCount,
+                    indexStart: request.indices[0],
+                    indexEnd: request.indices[request.indices.length - 1],
                     batchSize: request.indices.length,
                     error,
                 });
             },
+            onBatchRequeued: (request) => {
+                this.logger.warn('字幕翻译批次重新入队', {
+                    fileHash: request.fileHash,
+                    batchId: request.batchId,
+                    demandId: request.demandId,
+                    provider: request.context.provider,
+                    mode: request.context.mode,
+                    priority: request.priority,
+                    requeueCount: request.requeueCount,
+                    indexStart: request.indices[0],
+                    indexEnd: request.indices[request.indices.length - 1],
+                    batchSize: request.indices.length,
+                });
+            },
+            onBatchDeadLetter: (request) => {
+                this.logger.error('字幕翻译批次进入死信状态', {
+                    fileHash: request.fileHash,
+                    batchId: request.batchId,
+                    demandId: request.demandId,
+                    provider: request.context.provider,
+                    mode: request.context.mode,
+                    priority: request.priority,
+                    requeueCount: request.requeueCount,
+                    indexStart: request.indices[0],
+                    indexEnd: request.indices[request.indices.length - 1],
+                    batchSize: request.indices.length,
+                });
+            },
+            onBatchDropped: (request) => {
+                this.logger.info('字幕翻译失败批次已离开播放窗口', {
+                    fileHash: request.fileHash,
+                    batchId: request.batchId,
+                    demandId: request.demandId,
+                    provider: request.context.provider,
+                    mode: request.context.mode,
+                    priority: request.priority,
+                    requeueCount: request.requeueCount,
+                    indexStart: request.indices[0],
+                    indexEnd: request.indices[request.indices.length - 1],
+                    batchSize: request.indices.length,
+                });
+            },
         });
+
+    /**
+     * 使用当前 provider 对独立文本批次执行一次结构化翻译。
+     *
+     * 该入口供收藏片段等非播放窗口场景使用，与播放调度共用缓存、Provider
+     * 网关、批量 Prompt 和结果校验，但不会创建播放位置会话。
+     *
+     * @param texts 待翻译文本；空白项会被忽略，重复项按归一化文本键合并。
+     * @returns 归一化原文到翻译结果的映射。
+     */
+    public async translateTexts(texts: string[]): Promise<Map<string, string>> {
+        const targetsByKey = new Map<string, DirectTranslationTarget>();
+        texts.forEach((text) => {
+            const trimmed = text.trim();
+            const key = p(trimmed);
+            if (key && !targetsByKey.has(key)) {
+                targetsByKey.set(key, { key, text: trimmed });
+            }
+        });
+        if (targetsByKey.size === 0) {
+            return new Map();
+        }
+
+        const provider = await this.settingService.getCurrentTranslationProvider();
+        if (!provider) {
+            throw new Error('未启用字幕翻译服务');
+        }
+
+        let mode: TranslationMode = 'zh';
+        let storageMode: SubtitleTranslationStorageMode = 'tencent';
+        let style: string | undefined;
+        if (provider === 'openai') {
+            mode = await this.settingService.getOpenAiSubtitleTranslationMode();
+            const customStyle = mode === 'custom'
+                ? await this.settingService.getOpenAiSubtitleCustomStyle()
+                : undefined;
+            const resolved = resolveSubtitleStyleWithSignature(mode, customStyle);
+            style = resolved.style;
+            storageMode = mapOpenAiModeToStorage(mode, resolved.signature);
+            if (!this.modelRoutingService.resolveOpenAiModel('subtitleTranslation')) {
+                throw new Error('OpenAI 字幕翻译模型未配置');
+            }
+        }
+
+        const targets = Array.from(targetsByKey.values());
+        const cached = await this.getTranslations(
+            targets.map((target) => target.key),
+            storageMode
+        );
+        const result = new Map(cached);
+        const freshResults = new Map<string, string>();
+        const pending = targets.filter((target) => !cached.has(target.key));
+        const skipped = pending.filter((target) => !shouldTranslateSubtitleText(target.text));
+        skipped.forEach((target) => {
+            result.set(target.key, target.text);
+            freshResults.set(target.key, target.text);
+        });
+
+        const onlineTargets = pending.filter(
+            (target) => shouldTranslateSubtitleText(target.text)
+        );
+        if (onlineTargets.length > 0) {
+            const batchId = `direct-${Date.now()}`;
+            const startedAt = Date.now();
+            const onlineResults = provider === 'tencent'
+                ? await this.translateDirectWithTencent(onlineTargets, batchId)
+                : await this.translateDirectWithOpenAi(onlineTargets, mode, style);
+            onlineResults.forEach((translation, key) => {
+                result.set(key, translation);
+                freshResults.set(key, translation);
+            });
+            this.logger.info('独立字幕批次翻译完成', {
+                batchId,
+                provider,
+                mode,
+                targetCount: onlineTargets.length,
+                elapsedMs: Date.now() - startedAt,
+            });
+        }
+
+        await this.saveTranslations(freshResults, storageMode);
+        return result;
+    }
 
     /**
      * 解析当前设置并提交字幕翻译需求。
@@ -311,11 +457,12 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             .map((index) => request.context.sentences[index])
             .filter((sentence): sentence is Sentence => Boolean(sentence));
 
-        this.logger.debug('字幕翻译批次开始', {
+        this.logger.info('字幕翻译批次开始', {
             fileHash: request.fileHash,
             batchId: request.batchId,
             demandId: request.demandId,
             provider: request.context.provider,
+            mode: request.context.mode,
             priority: request.priority,
             requeueCount: request.requeueCount,
             indexStart: request.indices[0],
@@ -337,11 +484,17 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 completedIndices
             );
             if (pending.length === 0) {
-                this.logger.debug('字幕翻译批次缓存完成', {
+                this.logger.info('字幕翻译批次缓存完成', {
                     fileHash: request.fileHash,
                     batchId: request.batchId,
                     demandId: request.demandId,
                     provider: request.context.provider,
+                    mode: request.context.mode,
+                    priority: request.priority,
+                    requeueCount: request.requeueCount,
+                    indexStart: request.indices[0],
+                    indexEnd: request.indices[request.indices.length - 1],
+                    batchSize: request.indices.length,
                     completedCount: completedIndices.size,
                     failedCount: failedIndices.size,
                     elapsedMs: Date.now() - batchStartedAt,
@@ -369,11 +522,17 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 }
             });
 
-            this.logger.debug('字幕翻译批次完成', {
+            this.logger.info('字幕翻译批次完成', {
                 fileHash: request.fileHash,
                 batchId: request.batchId,
                 demandId: request.demandId,
                 provider: request.context.provider,
+                mode: request.context.mode,
+                priority: request.priority,
+                requeueCount: request.requeueCount,
+                indexStart: request.indices[0],
+                indexEnd: request.indices[request.indices.length - 1],
+                batchSize: request.indices.length,
                 completedCount: completedIndices.size,
                 failedCount: failedIndices.size,
                 onlineTargetCount: pending.length,
@@ -408,7 +567,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                     failedIndices.add(sentence.index);
                 }
             });
-            this.logger.error('字幕翻译批次最终失败', {
+            this.logger.warn('字幕翻译批次执行失败', {
                 fileHash: request.fileHash,
                 batchId: request.batchId,
                 demandId: request.demandId,
@@ -416,6 +575,8 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 requeueCount: request.requeueCount,
                 provider: request.context.provider,
                 mode: request.context.mode,
+                indexStart: request.indices[0],
+                indexEnd: request.indices[request.indices.length - 1],
                 batchSize: request.indices.length,
                 elapsedMs: Date.now() - batchStartedAt,
                 error,
@@ -523,6 +684,39 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     }
 
     /**
+     * 使用腾讯接口翻译不属于播放窗口的独立文本批次。
+     *
+     * @param targets 使用归一化原文作为 key 的目标条目。
+     * @param batchId 日志关联批次编号。
+     * @returns 归一化原文到翻译结果的映射。
+     */
+    private async translateDirectWithTencent(
+        targets: DirectTranslationTarget[],
+        batchId: string
+    ): Promise<Map<string, string>> {
+        const client = this.tencentProvider.getClient();
+        if (!client) {
+            throw new Error('腾讯翻译客户端未初始化，请检查密钥配置');
+        }
+
+        const holder = await client.batchTrans(
+            targets.map((target) => target.text),
+            {
+                batchId,
+                fileHash: 'direct',
+            }
+        );
+        const translations = new Map<string, string>();
+        targets.forEach((target) => {
+            const translation = holder.get(target.text)?.trim();
+            if (translation) {
+                translations.set(target.key, translation);
+            }
+        });
+        return translations;
+    }
+
+    /**
      * 使用 OpenAI 非流式结构化输出翻译当前目标。
      *
      * 失败后的重新执行由窗口调度器统一控制，当前方法本身只发起一次请求。
@@ -558,7 +752,6 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             contextAfter: contextAfter ? [contextAfter] : [],
         }, style);
         const translationDescription = this.getTranslationDescription(request.context.mode);
-        const startedAt = Date.now();
         this.throwIfAborted(request.signal);
         const items = await this.openAiGateway.translate({
             prompt,
@@ -566,15 +759,36 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             signal: request.signal,
         });
         const validated = this.validateOpenAiItems(targetItems, items);
-        this.logger.info('OpenAI 字幕批次翻译完成', {
-            fileHash: request.fileHash,
-            priority: request.priority,
-            requeueCount: request.requeueCount,
-            targetCount: targetItems.length,
-            contextCount: Number(Boolean(contextBefore)) + Number(Boolean(contextAfter)),
-            elapsedMs: Date.now() - startedAt,
-        });
         return validated;
+    }
+
+    /**
+     * 使用当前批量 Prompt 翻译不属于播放窗口的独立文本批次。
+     *
+     * @param targets 使用归一化原文作为 key 的目标条目。
+     * @param mode 当前字幕翻译模式。
+     * @param style 已解析的 OpenAI 风格约束。
+     * @returns 归一化原文到翻译结果的映射。
+     */
+    private async translateDirectWithOpenAi(
+        targets: DirectTranslationTarget[],
+        mode: TranslationMode,
+        style?: string
+    ): Promise<Map<string, string>> {
+        if (!style) {
+            throw new Error('OpenAI 字幕翻译风格配置缺失');
+        }
+        const prompt = buildSubtitleBatchPrompt({
+            targets,
+            contextBefore: [],
+            contextAfter: [],
+        }, style);
+        const items = await this.openAiGateway.translate({
+            prompt,
+            translationDescription: this.getTranslationDescription(mode),
+            signal: new AbortController().signal,
+        });
+        return this.validateOpenAiItems(targets, items);
     }
 
     /**

@@ -1,12 +1,5 @@
 import { TranslationMode } from '@/common/types/TranslationResult';
 
-type PromptContext = {
-    current: string;
-    prev?: string;
-    next?: string;
-    style?: string;
-};
-
 type BatchPromptItem = {
     key: string;
     text: string;
@@ -17,39 +10,6 @@ type SubtitleBatchPromptInput = {
     contextBefore: BatchPromptItem[];
     contextAfter: BatchPromptItem[];
 };
-
-export const OPENAI_SUBTITLE_BASE_PROMPT = `You are a professional subtitle assistant.
-
-Follow these style guidelines closely:
-{{style}}
-
-Use the surrounding context to keep the tone, intent, and terminology aligned.
-
-Previous sentence: "{{prev}}"
-Next sentence: "{{next}}"
-
-Translate or rewrite the current sentence according to the style.
-Respond with JSON only in the following format:
-{"translation":"..."}
-
-Current sentence:
-"{{current}}"`;
-
-export const OPENAI_SUBTITLE_PLAIN_PROMPT = `You are a professional subtitle assistant.
-
-Follow these style guidelines closely:
-{{style}}
-
-Use the surrounding context to keep the tone, intent, and terminology aligned.
-
-Previous sentence: "{{prev}}"
-Next sentence: "{{next}}"
-
-Translate or rewrite the current sentence according to the style.
-Only output the processed sentence, without quotes or extra commentary.
-
-Current sentence:
-"{{current}}"`;
 
 export const OPENAI_SUBTITLE_BATCH_PROMPT = `You are a professional subtitle assistant.
 
@@ -80,9 +40,6 @@ export const OPENAI_SUBTITLE_DEFAULT_STYLES: Record<TranslationMode, string> = {
 
 export const OPENAI_SUBTITLE_CUSTOM_STYLE_KEY = 'subtitle.openai.customStyle';
 
-const formatContextValue = (value?: string): string =>
-    value && value.trim().length > 0 ? value : '(None)';
-
 const normalizeStyle = (value: string): string =>
     value
         .replace(/\r\n/g, '\n')
@@ -105,8 +62,6 @@ const formatStyleValue = (value: string | undefined, fallback: string): string =
     return trimmed.length > 0 ? trimmed : fallback;
 };
 
-export const getSubtitlePromptTemplate = (): string => OPENAI_SUBTITLE_BASE_PROMPT;
-
 export const getSubtitleDefaultStyle = (mode: TranslationMode): string =>
     OPENAI_SUBTITLE_DEFAULT_STYLES[mode];
 
@@ -125,21 +80,6 @@ export const resolveSubtitleStyleWithSignature = (
     const normalized = normalizeStyle(style);
     const signature = `${mode}_${hashString(`${mode}::${normalized}`)}`;
     return { style, signature };
-};
-
-export const fillSubtitlePrompt = (
-    template: string,
-    context: PromptContext,
-    fallbackStyle?: string
-): string => {
-    const safeTemplate = template ?? '';
-    const resolvedStyle = formatStyleValue(context.style, fallbackStyle ?? OPENAI_SUBTITLE_DEFAULT_STYLES.custom);
-
-    return safeTemplate
-        .replace(/{{\s*current\s*}}/gi, context.current ?? '')
-        .replace(/{{\s*prev\s*}}/gi, formatContextValue(context.prev))
-        .replace(/{{\s*next\s*}}/gi, formatContextValue(context.next))
-        .replace(/{{\s*style\s*}}/gi, resolvedStyle);
 };
 
 /**

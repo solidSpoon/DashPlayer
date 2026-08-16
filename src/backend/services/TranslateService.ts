@@ -2,13 +2,10 @@ import { inject, injectable } from 'inversify';
 import { z } from 'zod';
 import { Output, streamText } from 'ai';
 import TYPES from '@/backend/ioc/types';
-import { SentenceTranslate } from '@/backend/infrastructure/db/tables/sentenceTranslates';
 import { WordTranslate, InsertWordTranslate } from '@/backend/infrastructure/db/tables/wordTranslates';
-import SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
 import WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
-import TransHolder from '@/common/utils/TransHolder';
 import { p } from '@/common/utils/Util';
 import { YdRes, OpenAIDictionaryResult, OpenAIDictionaryDefinition, OpenAIDictionaryExample } from '@/common/types/YdRes';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
@@ -16,15 +13,7 @@ import AiProviderService from '@/backend/services/AiProviderService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import SettingService from '@/backend/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
-import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import {
-    fillSubtitlePrompt,
-    getSubtitlePromptTemplate,
-    OPENAI_SUBTITLE_PLAIN_PROMPT,
-    resolveSubtitleStyleWithSignature
-} from '@/common/constants/openaiSubtitlePrompts';
-import { TranslationMode } from '@/common/types/TranslationResult';
 
 export default interface TranslateService {
     transWord(
@@ -32,7 +21,6 @@ export default interface TranslateService {
         forceRefresh?: boolean,
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null>;
-    transSentences(sentences: string[]): Promise<Map<string, string>>;
 }
 
 
@@ -74,27 +62,6 @@ const openAIDictionaryCacheSchema = z.object({
     examples: z.array(openAIDictionaryCacheExampleSchema).optional().describe('General example sentences with translations'),
     pronunciation: z.string().optional().nullable().describe('Pronunciation audio URL if available')
 });
-
-type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}`;
-
-type SubtitlePromptConfig = {
-    template: string;
-    style: string;
-    styleSignature: string;
-};
-
-const mapOpenAiModeToStorage = (mode: TranslationMode, signature: string): SubtitleTranslationStorageMode => {
-    const hashedSuffix = signature && signature.trim().length > 0 ? `#${signature}` : '';
-    switch (mode) {
-        case 'simple_en':
-            return `openai_simple_en${hashedSuffix}`;
-        case 'custom':
-            return `openai_custom${hashedSuffix}`;
-        case 'zh':
-        default:
-            return `openai_zh${hashedSuffix}`;
-    }
-};
 
 const sanitizeString = (value?: unknown): string | undefined => {
     if (typeof value !== 'string') {
@@ -197,8 +164,6 @@ export class TranslateServiceImpl implements TranslateService {
     private readonly wordLookupInFlight = new Map<string, Promise<YdRes | OpenAIDictionaryResult | null>>();
     @inject(TYPES.YouDaoClientProvider)
     private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
-    @inject(TYPES.TencentClientProvider)
-    private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.RendererGateway)
     private rendererGateway!: RendererGateway;
     @inject(TYPES.AiProviderService)
@@ -207,58 +172,6 @@ export class TranslateServiceImpl implements TranslateService {
     private settingService!: SettingService;
     @inject(TYPES.WordTranslatesRepository)
     private wordTranslatesRepository!: WordTranslatesRepository;
-    @inject(TYPES.SentenceTranslatesRepository)
-    private sentenceTranslatesRepository!: SentenceTranslatesRepository;
-
-    private buildOpenAISchema(mode: TranslationMode) {
-        const description = (() => {
-            switch (mode) {
-                case 'zh':
-                    return 'The translated sentence in Simplified Chinese.';
-                case 'simple_en':
-                    return 'The simplified English sentence that preserves the original wording order and punctuation.';
-                case 'custom':
-                default:
-                    return 'The generated text produced according to the custom subtitle prompt.';
-            }
-        })();
-
-        return z.object({
-            translation: z.string().describe(description)
-        });
-    }
-
-    private async resolveOpenAiPromptConfig(mode: TranslationMode): Promise<SubtitlePromptConfig> {
-        const template = getSubtitlePromptTemplate();
-        if (mode === 'custom') {
-            const styleOverride = await this.settingService.getOpenAiSubtitleCustomStyle();
-            const { style, signature } = resolveSubtitleStyleWithSignature(mode, styleOverride);
-            return { template, style, styleSignature: signature };
-        }
-        const { style, signature } = resolveSubtitleStyleWithSignature(mode);
-        return { template, style, styleSignature: signature };
-    }
-
-    private buildOpenAIPrompt(current: string, prev: string, next: string, config: SubtitlePromptConfig): string {
-        return fillSubtitlePrompt(config.template, {
-            current,
-            prev,
-            next,
-            style: config.style
-        });
-    }
-
-    private buildOpenAIPlainPrompt(current: string, prev: string, next: string, config: SubtitlePromptConfig): string {
-        return fillSubtitlePrompt(OPENAI_SUBTITLE_PLAIN_PROMPT, {
-            current,
-            prev,
-            next,
-            style: config.style
-        });
-    }
-
-
-    // --- 保留的旧方法 (兼容旧版或特定功能) ---
 
     public async transWord(
         str: string,
@@ -518,134 +431,6 @@ Output example (field names and nesting must match exactly):
         }
     }
 
-    /**
-     * 兼容仍按句子原文调用的旧批量翻译入口。
-     *
-     * @param sentences 待翻译的句子原文。
-     * @returns 原文到翻译结果的映射。
-     */
-    public async transSentences(sentences: string[]): Promise<Map<string, string>> {
-        const processedSentences = sentences.map((s) => p(s));
-        const currentProvider = await this.settingService.getCurrentTranslationProvider();
-        let openAiMode: TranslationMode | null = null;
-        let storageMode: SubtitleTranslationStorageMode = 'tencent';
-        let promptConfig: SubtitlePromptConfig | null = null;
-
-        if (currentProvider === 'openai') {
-            openAiMode = await this.settingService.getOpenAiSubtitleTranslationMode();
-            if (openAiMode) {
-                promptConfig = await this.resolveOpenAiPromptConfig(openAiMode);
-                storageMode = mapOpenAiModeToStorage(openAiMode, promptConfig.styleSignature);
-            }
-        } else if (currentProvider === 'tencent') {
-            storageMode = 'tencent';
-        }
-
-        const cache: TransHolder<string> = await this.sentenceLoadBatch(processedSentences, storageMode);
-        this.logger.info('旧版句子翻译-缓存命中', { mapping: cache.getMapping() });
-
-        const retries = processedSentences.filter((e) => !cache.get(e));
-        this.logger.info('旧版句子翻译-需要在线翻译', { retries });
-
-        if (retries.length === 0) {
-            return cache.getMapping();
-        }
-
-        try {
-            if (!currentProvider) {
-                this.logger.info('没有启用的翻译服务');
-                return cache.getMapping();
-            }
-
-            if (currentProvider === 'tencent') {
-                const tencentClient = this.tencentProvider.getClient();
-                if (!tencentClient) {
-                    return cache.getMapping();
-                }
-                const transResult: TransHolder<string> = await tencentClient.batchTrans(retries);
-                await this.sentenceRecordBatch(transResult, storageMode);
-                return cache.merge(transResult).getMapping();
-            } else if (currentProvider === 'openai') {
-                if (!openAiMode || !promptConfig) {
-                    this.logger.error('OpenAI 翻译配置缺失，无法执行旧版翻译流程');
-                    return cache.getMapping();
-                }
-                const transResult = await this.processOpenAIBatchLegacy(retries, openAiMode, promptConfig);
-                await this.sentenceRecordBatch(transResult, storageMode);
-                return cache.merge(transResult).getMapping();
-            }
-        } catch (e) {
-            this.logger.error('旧版 transSentences 失败', { error: e });
-            return cache.getMapping();
-        }
-        return cache.getMapping();
-    }
-
-    private async processOpenAIBatchLegacy(
-        sentences: string[],
-        openAiMode: TranslationMode,
-        promptConfig: SubtitlePromptConfig
-    ): Promise<TransHolder<string>> {
-        const result = new TransHolder<string>();
-        const model = this.aiProviderService.getModel('subtitleTranslation');
-        if (!model) {
-            this.logger.error('OpenAI 模型未配置');
-            return result;
-        }
-
-        const schema = this.buildOpenAISchema(openAiMode);
-
-        const streamLogger = this.logger;
-        const translationPromises = sentences.map(async (sentence) => {
-            try {
-                const prompt = this.buildOpenAIPrompt(sentence, '', '', promptConfig);
-                const { partialOutputStream } = streamText({
-                    model,
-                    output: Output.object({ schema }),
-                    prompt,
-                });
-
-                let finalTranslation = '';
-                for await (const partialObject of partialOutputStream) {
-                    streamLogger.debug('subtitle legacy json chunk', {
-                        sentence: sentence.slice(0, 40),
-                        keys: Object.keys(partialObject ?? {}),
-                    });
-                    const sanitized = sanitizeString(partialObject.translation);
-                    if (sanitized) {
-                        finalTranslation = sanitized;
-                    }
-                }
-
-                if (!finalTranslation) {
-                    const plainPrompt = this.buildOpenAIPlainPrompt(sentence, '', '', promptConfig);
-                    const textStream = streamText({ model, prompt: plainPrompt });
-                    let collected = '';
-                    for await (const chunk of textStream.textStream) {
-                        collected += chunk;
-                    }
-                    finalTranslation = sanitizeString(collected) ?? '';
-                }
-
-                if (finalTranslation) {
-                    return { sentence, translation: finalTranslation };
-                }
-            } catch (error) {
-                this.logger.error('OpenAI 翻译句子失败', { sentence, error });
-            }
-            return null;
-        });
-
-        const settledResults = await Promise.all(translationPromises);
-        settledResults.forEach(res => {
-            if (res) {
-                result.add(res.sentence, res.translation);
-            }
-        });
-
-        return result;
-    }
-
     private async wordLoad(word: string, provider: 'youdao' | 'openai'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
         const value: WordTranslate | null = await this.wordTranslatesRepository.findOne(p(word), provider);
         if (!value) return undefined;
@@ -694,31 +479,4 @@ Output example (field names and nesting must match exactly):
         await this.wordTranslatesRepository.upsert(wt.word, 'openai', value, TimeUtil.timeUtc());
     }
 
-    private async sentenceLoadBatch(sentences: string[], mode: SubtitleTranslationStorageMode): Promise<TransHolder<string>> {
-        const result = new TransHolder<string>();
-        if (sentences.length === 0) return result;
-
-        const normalizedSentences = sentences.map(w => p(w));
-        const values: SentenceTranslate[] = await this.sentenceTranslatesRepository.findTranslatedBySentencesAndMode(normalizedSentences, mode);
-
-        values
-            .filter((e) => e.sentence && !StrUtil.isBlank(e.translate))
-            .forEach((e) => {
-                result.add(e.sentence!, e.translate!);
-            });
-
-        return result;
-    }
-
-    private async sentenceRecordBatch(validTrans: TransHolder<string>, mode: SubtitleTranslationStorageMode): Promise<void> {
-        const params = [];
-        for (const [key, value] of validTrans.getMapping().entries()) {
-            params.push({
-                sentence: p(key),
-                translate: value,
-                mode,
-            });
-        }
-        await this.sentenceTranslatesRepository.upsertMany(params);
-    }
 }

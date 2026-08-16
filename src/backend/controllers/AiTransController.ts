@@ -18,10 +18,13 @@ export default class AiTransController implements Controller {
     private subtitleTranslationService!: SubtitleTranslationService;
 
     /**
-     * @deprecated 旧版批量翻译接口，建议使用新的 group-translation
+     * 使用当前字幕翻译配置翻译独立文本批次。
+     *
+     * @param sentences 收藏片段等非播放窗口场景的字幕文本。
+     * @returns 归一化原文到翻译结果的映射。
      */
     public async batchTranslate(sentences: string[]): Promise<Map<string, string>> {
-        return this.translateService.transSentences(sentences);
+        return this.subtitleTranslationService.translateTexts(sentences);
     }
 
     /**
