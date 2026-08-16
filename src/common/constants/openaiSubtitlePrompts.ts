@@ -1,68 +1,36 @@
 import { TranslationMode } from '@/common/types/TranslationResult';
 
-type PromptContext = {
-    current: string;
-    prev?: string;
-    next?: string;
-    style?: string;
-};
-
 type BatchPromptItem = {
     key: string;
     text: string;
 };
 
-export const OPENAI_SUBTITLE_BASE_PROMPT = `You are a professional subtitle assistant.
-
-Follow these style guidelines closely:
-{{style}}
-
-Use the surrounding context to keep the tone, intent, and terminology aligned.
-
-Previous sentence: "{{prev}}"
-Next sentence: "{{next}}"
-
-Translate or rewrite the current sentence according to the style.
-Respond with JSON only in the following format:
-{"translation":"..."}
-
-Current sentence:
-"{{current}}"`;
-
-export const OPENAI_SUBTITLE_PLAIN_PROMPT = `You are a professional subtitle assistant.
-
-Follow these style guidelines closely:
-{{style}}
-
-Use the surrounding context to keep the tone, intent, and terminology aligned.
-
-Previous sentence: "{{prev}}"
-Next sentence: "{{next}}"
-
-Translate or rewrite the current sentence according to the style.
-Only output the processed sentence, without quotes or extra commentary.
-
-Current sentence:
-"{{current}}"`;
+type SubtitleBatchPromptInput = {
+    targets: BatchPromptItem[];
+    contextBefore: BatchPromptItem[];
+    contextAfter: BatchPromptItem[];
+};
 
 export const OPENAI_SUBTITLE_BATCH_PROMPT = `You are a professional subtitle assistant.
 
 Follow these style guidelines closely:
 {{style}}
 
-You will receive a short subtitle window in JSON format.
-Use the surrounding lines to keep tone, intent, and terminology aligned.
+You will receive target subtitle lines and optional surrounding context in JSON format.
+Use contextBefore and contextAfter only to understand tone, intent, references, and terminology.
 
 Rules:
-1. Return one translation per input item.
-2. Keep every item mapped to the same key.
-3. Do not merge lines or omit lines.
-4. Do not add explanations.
-5. Respond with JSON only in the following format:
+1. Return exactly one translation for every item in targets.
+2. Copy every target key exactly; never change, omit, duplicate, or invent a key.
+3. Do not translate or return contextBefore or contextAfter.
+4. Do not merge or split target lines.
+5. Every translation must be a non-empty string. If a target should remain unchanged, return its original text.
+6. Do not add Markdown, code fences, comments, or explanations.
+7. Respond with JSON only in the following format:
 {"items":[{"key":"...","translation":"..."}]}
 
-Subtitle window:
-{{items}}`;
+Subtitle request:
+{{request}}`;
 
 export const OPENAI_SUBTITLE_DEFAULT_STYLES: Record<TranslationMode, string> = {
     zh: '将原句自然、口语化地翻译成简体中文，语序可适度调整以保证流畅易读，保留原句语气与情感。',
@@ -71,9 +39,6 @@ export const OPENAI_SUBTITLE_DEFAULT_STYLES: Record<TranslationMode, string> = {
 };
 
 export const OPENAI_SUBTITLE_CUSTOM_STYLE_KEY = 'subtitle.openai.customStyle';
-
-const formatContextValue = (value?: string): string =>
-    value && value.trim().length > 0 ? value : '(None)';
 
 const normalizeStyle = (value: string): string =>
     value
@@ -97,8 +62,6 @@ const formatStyleValue = (value: string | undefined, fallback: string): string =
     return trimmed.length > 0 ? trimmed : fallback;
 };
 
-export const getSubtitlePromptTemplate = (): string => OPENAI_SUBTITLE_BASE_PROMPT;
-
 export const getSubtitleDefaultStyle = (mode: TranslationMode): string =>
     OPENAI_SUBTITLE_DEFAULT_STYLES[mode];
 
@@ -119,30 +82,15 @@ export const resolveSubtitleStyleWithSignature = (
     return { style, signature };
 };
 
-export const fillSubtitlePrompt = (
-    template: string,
-    context: PromptContext,
-    fallbackStyle?: string
-): string => {
-    const safeTemplate = template ?? '';
-    const resolvedStyle = formatStyleValue(context.style, fallbackStyle ?? OPENAI_SUBTITLE_DEFAULT_STYLES.custom);
-
-    return safeTemplate
-        .replace(/{{\s*current\s*}}/gi, context.current ?? '')
-        .replace(/{{\s*prev\s*}}/gi, formatContextValue(context.prev))
-        .replace(/{{\s*next\s*}}/gi, formatContextValue(context.next))
-        .replace(/{{\s*style\s*}}/gi, resolvedStyle);
-};
-
 /**
  * 生成字幕窗口批量翻译提示词。
  *
- * @param items 当前窗口内的字幕条目。
+ * @param input 当前批次的目标字幕与只读上下文。
  * @param style 风格约束文本。
  * @returns 可直接发送给 OpenAI 的批量翻译 prompt。
  */
-export const buildSubtitleBatchPrompt = (items: BatchPromptItem[], style: string): string => {
+export const buildSubtitleBatchPrompt = (input: SubtitleBatchPromptInput, style: string): string => {
     return OPENAI_SUBTITLE_BATCH_PROMPT
         .replace(/{{\s*style\s*}}/gi, formatStyleValue(style, OPENAI_SUBTITLE_DEFAULT_STYLES.custom))
-        .replace(/{{\s*items\s*}}/gi, JSON.stringify(items, null, 2));
+        .replace(/{{\s*request\s*}}/gi, JSON.stringify(input, null, 2));
 };

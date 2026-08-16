@@ -135,7 +135,7 @@ useFavouriteClip.subscribe(
 
     if (param.length === 0) return;
 
-    const transHolder = TransHolder.from(await favouriteApi.batchTranslate(param));
+    const transHolder = TransHolder.from(await favouriteApi.translate(param));
     useFavouriteClip.setState({
       transMap: transHolder.merge(currentHolder)
     });

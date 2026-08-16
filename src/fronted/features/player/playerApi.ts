@@ -41,15 +41,31 @@ export const playerApi = {
         backendClient.call('watch-history/set-podcast-mode-preference', { videoId, podcastMode }),
 
     /**
-     * 请求一组字幕的异步翻译。
+     * 向后端报告当前字幕播放位置。
      *
      * @param fileHash 字幕文件哈希。
-     * @param indices 待翻译字幕索引。
-     * @param useCache 是否允许使用翻译缓存。
-     * @returns 后端接受请求后结束。
+     * @param currentIndex 当前播放字幕索引。
+     * @param demandId 前端递增的需求标记。
+     * @returns 后端接受需求后结束。
      */
-    requestGroupTranslation: (fileHash: string, indices: number[], useCache: boolean) =>
-        backendClient.call('ai-trans/request-group-translation', { fileHash, indices, useCache }),
+    updateSubtitleTranslationDemand: (
+        fileHash: string,
+        currentIndex: number,
+        demandId: number
+    ) => backendClient.call('ai-trans/update-subtitle-demand', {
+        fileHash,
+        currentIndex,
+        demandId,
+    }),
+
+    /**
+     * 释放指定字幕文件的后端翻译会话。
+     *
+     * @param fileHash 字幕文件哈希。
+     * @returns 后端释放会话后结束。
+     */
+    releaseSubtitleTranslationSession: (fileHash: string) =>
+        backendClient.call('ai-trans/release-subtitle-session', { fileHash }),
 
     /**
      * 查询播放页启动所需的轻量详情。

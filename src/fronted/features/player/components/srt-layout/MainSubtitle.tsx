@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect , useMemo } from 'react';
+import React, { ReactElement, useEffect, useMemo } from 'react';
 import TranslatableLine from '@/fronted/features/player/components/subtitles/TranslatableLineWrapper';
 import NormalLine from './NormalLine';
 import useTranslation from '@/fronted/features/player/translationStore';
@@ -9,11 +9,12 @@ import { playerActions } from '@/fronted/features/player/components/PlayerAction
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
     const sentence = usePlayerState((s) => s.currentSentence);
-    const subtitle = usePlayerState((s) => s.sentences);
     const srtTender = usePlayerState((s) => s.srtTender);
     const adjusted = useMemo(() => (sentence && srtTender ? (srtTender.adjusted(sentence) ?? false) : false), [sentence, srtTender]);
 
-    const loadTranslationGroup = useTranslation(state => state.loadTranslationGroup);
+    const requestTranslation = useTranslation(state => state.requestTranslation);
+    const engine = useTranslation(state => state.engine);
+    const openAiMode = useTranslation(state => state.openAiMode);
 
     // 在组件顶层获取当前句子的翻译
     const translationKey = sentence?.translationKey || '';
@@ -21,11 +22,10 @@ export default function MainSubtitle() {
     // 当前句子改变时，触发懒加载翻译
     useEffect(() => {
         logger.debug('sentence changed', { sentence: sentence?.text, index: sentence?.index });
-        if (sentence && subtitle.length > 0) {
-            // 使用 transGroup 字段判断是否需要加载翻译
-            loadTranslationGroup(subtitle, sentence.index);
+        if (sentence && engine !== 'none') {
+            requestTranslation(sentence.fileHash, sentence.index);
         }
-    }, [logger, sentence, subtitle, loadTranslationGroup]);
+    }, [logger, sentence, engine, openAiMode, requestTranslation]);
 
     const ele = (): ReactElement[] => {
         if (!sentence) {

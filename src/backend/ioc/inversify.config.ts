@@ -45,8 +45,13 @@ import ClientProviderService from '@/backend/services/ClientProviderService';
 import YouDaoProvider from '@/backend/infrastructure/translate/providers/YouDaoProvider';
 import TencentProvider from '@/backend/infrastructure/translate/providers/TencentProvider';
 import TranslateService, { TranslateServiceImpl } from '@/backend/services/TranslateService';
+import SubtitleTranslationService, {
+    SubtitleTranslationServiceImpl,
+} from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
+import OpenAiSubtitleTranslationGateway from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
+import OpenAiSubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/OpenAiSubtitleTranslationGatewayImpl';
 import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreFactoryImpl';
 import { ConfigStoreFactory } from '@/backend/services/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -118,6 +123,9 @@ container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFacto
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
+container.bind<OpenAiSubtitleTranslationGateway>(TYPES.OpenAiSubtitleTranslationGateway)
+    .to(OpenAiSubtitleTranslationGatewayImpl)
+    .inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();
@@ -185,6 +193,9 @@ container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSi
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
+container.bind<SubtitleTranslationService>(TYPES.SubtitleTranslationService)
+    .to(SubtitleTranslationServiceImpl)
+    .inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
 container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();

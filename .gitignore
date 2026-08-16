@@ -97,3 +97,6 @@ out/
 /dist/
 /my-new-app/
 .cindy-worktrees/
+
+# 本地开发工具状态
+.local/

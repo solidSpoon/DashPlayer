@@ -74,20 +74,10 @@ export function initRendererApis(): () => void {
         window.dispatchEvent(new CustomEvent('sherpa-tts-model-download-progress', { detail: params }));
     });
 
-    register('translation/result', async (params) => {
-        logger.debug('Translation result', { params });
-        useTranslation.getState().updateTranslation(params);
-    });
-
     register('translation/batch-result', async (params) => {
-        // 流式回推会高频到达，这里只记录条数与是否终态，不写完整译文。
+        // 字幕批次只回推最终结果，日志不记录完整译文。
         logger.debug('Batch translation result', { count: params.translations.length });
         useTranslation.getState().updateTranslations(params.translations);
-    });
-
-    register('translation/batch-failed', async (params) => {
-        logger.debug('Batch translation failed', { params });
-        useTranslation.getState().markTranslationFailed(params);
     });
 
     register('transcript/batch-result', async (params) => {

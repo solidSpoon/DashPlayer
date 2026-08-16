@@ -111,17 +111,23 @@ interface SystemDef {
 }
 
 interface AiTransDef {
-    'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
     'ai-trans/word': {
         params: { word: string; forceRefresh?: boolean; requestId?: string },
         return: YdRes | OpenAIDictionaryResult | null
     };
-    // 新的翻译接口 - 按组请求翻译(立即返回，后端异步处理)
-    'ai-trans/request-group-translation': {
+    /** 更新当前字幕播放位置，后端异步处理当前批次与预取批次。 */
+    'ai-trans/update-subtitle-demand': {
         params: {
             fileHash: string,
-            indices: number[],
-            useCache?: boolean
+            currentIndex: number,
+            demandId: number
+        },
+        return: void
+    };
+    /** 释放字幕文件对应的后端翻译会话。 */
+    'ai-trans/release-subtitle-session': {
+        params: {
+            fileHash: string
         },
         return: void
     };
@@ -268,6 +274,7 @@ interface FavoriteClipsDef {
     'favorite-clips/exists': { params: { srtKey: string, linesInSrt: number[] }, return: Map<number, boolean> };
     'favorite-clips/task-info': { params: void, return: number };
     'favorite-clips/delete': { params: string, return: void };
+    'favorite-clips/translate': { params: string[], return: Map<string, string> };
     'favorite-clips/sync-from-oss': { params: void, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }

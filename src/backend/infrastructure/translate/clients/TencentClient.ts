@@ -4,6 +4,7 @@ import TransHolder from '@/common/utils/TransHolder';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
+import { TencentTranslateBatchLogContext } from '@/backend/services/gateways/translate/TencentTranslateClient';
 
 class TencentClient extends Client {
     private readonly SIZE_LIMIT: number;
@@ -16,11 +17,12 @@ class TencentClient extends Client {
 
 
     public async batchTrans(
-      source: string[]
+      source: string[],
+      logContext?: TencentTranslateBatchLogContext
     ): Promise<TransHolder<string>> {
         let res = new TransHolder<string>();
         for await (const batch of this.batchGenerator(source)) {
-            const r = await this.trans(batch);
+            const r = await this.trans(batch, logContext);
             res = res.merge(r);
         }
         return res;
@@ -44,7 +46,10 @@ class TencentClient extends Client {
     }
 
     @WithRateLimit('tencent')
-    private async trans(source: string[]) {
+    private async trans(
+        source: string[],
+        logContext?: TencentTranslateBatchLogContext
+    ) {
         const startedAt = Date.now();
         const batchSize = source.length;
         const charCount = source.reduce((sum, item) => sum + item.length, 0);
@@ -55,12 +60,17 @@ class TencentClient extends Client {
             SourceTextList: source
         };
         // 只记批次要点，译文内容不进日志。
-        this.logger.debug('tencent batch trans start', { batchSize, charCount });
+        this.logger.debug('tencent batch trans start', {
+            ...logContext,
+            batchSize,
+            charCount,
+        });
         try {
             const transResult: string[] | undefined = await super
                 .TextTranslateBatch(param)
                 .then((resp: TextTranslateBatchResponse) => resp.TargetTextList);
             this.logger.debug('tencent batch trans ok', {
+                ...logContext,
                 batchSize,
                 resultCount: transResult?.length ?? 0,
                 costMs: Date.now() - startedAt,
@@ -75,6 +85,7 @@ class TencentClient extends Client {
             return res;
         } catch (error) {
             this.logger.warn('tencent batch trans failed', {
+                ...logContext,
                 batchSize,
                 costMs: Date.now() - startedAt,
                 error,

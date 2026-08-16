@@ -9,6 +9,7 @@ import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import SubtitleTranslationService from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 
 @injectable()
 export default class FavoriteClipsController implements Controller {
@@ -16,6 +17,8 @@ export default class FavoriteClipsController implements Controller {
     private favouriteClipsService!: FavouriteClipsService;
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
+    @inject(TYPES.SubtitleTranslationService)
+    private subtitleTranslationService!: SubtitleTranslationService;
 
     public async addClip({ videoPath, srtKey, indexInSrt }: {
         videoPath: string,
@@ -61,6 +64,16 @@ export default class FavoriteClipsController implements Controller {
     }
 
     /**
+     * 使用当前字幕翻译配置批量翻译收藏片段文本。
+     *
+     * @param sentences 收藏片段中的待翻译文本。
+     * @returns 归一化原文到翻译结果的映射。
+     */
+    public async translate(sentences: string[]): Promise<Map<string, string>> {
+        return this.subtitleTranslationService.translateTexts(sentences);
+    }
+
+    /**
      * 从外部媒体库重新回灌收藏片段索引。
      *
      * 行为说明：
@@ -82,6 +95,7 @@ export default class FavoriteClipsController implements Controller {
         registerRoute('favorite-clips/delete-clip-tag', (p) => this.deleteClipTag(p));
         registerRoute('favorite-clips/task-info', () => this.taskInfo());
         registerRoute('favorite-clips/delete', (p) => this.delete(p));
+        registerRoute('favorite-clips/translate', (p) => this.translate(p));
         registerRoute('favorite-clips/sync-from-oss', () => this.syncFromOss());
     }
 
