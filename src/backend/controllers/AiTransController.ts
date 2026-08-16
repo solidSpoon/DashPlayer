@@ -18,16 +18,6 @@ export default class AiTransController implements Controller {
     private subtitleTranslationService!: SubtitleTranslationService;
 
     /**
-     * 使用当前字幕翻译配置翻译独立文本批次。
-     *
-     * @param sentences 收藏片段等非播放窗口场景的字幕文本。
-     * @returns 归一化原文到翻译结果的映射。
-     */
-    public async batchTranslate(sentences: string[]): Promise<Map<string, string>> {
-        return this.subtitleTranslationService.translateTexts(sentences);
-    }
-
-    /**
      * 单独的单词翻译（有道）
      */
     public async youDaoTrans(params: { word: string; forceRefresh?: boolean; requestId?: string }): Promise<YdRes | OpenAIDictionaryResult | null> {
@@ -60,7 +50,6 @@ export default class AiTransController implements Controller {
      * 注册IPC路由
      */
     registerRoutes(): void {
-        registerRoute('ai-trans/batch-translate', (p) => this.batchTranslate(p));
         registerRoute('ai-trans/word', (p) => this.youDaoTrans(p));
 
         registerRoute('ai-trans/update-subtitle-demand', (p) => this.updateSubtitleDemand(p));

@@ -118,5 +118,5 @@ export const favouriteApi = {
      * @param params 翻译请求参数。
      * @returns 翻译结果。
      */
-    batchTranslate: (params: string[]) => backendClient.call('ai-trans/batch-translate', params),
+    translate: (params: string[]) => backendClient.call('favorite-clips/translate', params),
 };

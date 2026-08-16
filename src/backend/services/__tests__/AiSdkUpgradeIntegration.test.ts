@@ -353,17 +353,6 @@ const runTests = (): void => {
                 expect(collected.toLowerCase()).toContain('hello');
             }, 60000);
 
-            it('真实连接：prompt 输入能流式产出文本（旧版字幕纯文本翻译路径）', async () => {
-                const result = streamText({
-                    model: buildLiveModel(testConfig!.model),
-                    prompt: 'Reply with exactly: ok',
-                });
-                let collected = '';
-                for await (const chunk of result.textStream) {
-                    collected += chunk;
-                }
-                expect(collected.trim().length).toBeGreaterThan(0);
-            }, 60000);
         });
 
         describe('Output.object 结构化输出（分析/字幕/词典等路径）', () => {

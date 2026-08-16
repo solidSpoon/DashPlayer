@@ -111,7 +111,6 @@ interface SystemDef {
 }
 
 interface AiTransDef {
-    'ai-trans/batch-translate': { params: string[], return: Map<string, string> };
     'ai-trans/word': {
         params: { word: string; forceRefresh?: boolean; requestId?: string },
         return: YdRes | OpenAIDictionaryResult | null
@@ -275,6 +274,7 @@ interface FavoriteClipsDef {
     'favorite-clips/exists': { params: { srtKey: string, linesInSrt: number[] }, return: Map<number, boolean> };
     'favorite-clips/task-info': { params: void, return: number };
     'favorite-clips/delete': { params: string, return: void };
+    'favorite-clips/translate': { params: string[], return: Map<string, string> };
     'favorite-clips/sync-from-oss': { params: void, return: void };
     // 'favorite-clips/get': { params: string, return: { metadata: MetaData, clipPath: string } };
 }
