@@ -1,8 +1,20 @@
 import { ModelMessage } from 'ai';
-import { ChatBackgroundContext, ChatWelcomeParams } from '@/common/types/chat';
+import { ChatBackgroundContext } from '@/common/types/chat';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
-export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] => {
+/**
+ * 欢迎消息提示词所需的后端内部上下文。
+ */
+type ChatWelcomePromptParams = {
+    /** 会话 ID，当前仅用于保持调用语义完整。 */
+    sessionId: string;
+    /** 用户选择的原始学习文本。 */
+    originalTopic: string;
+    /** 创建会话时冻结的完整段落。 */
+    fullText?: string;
+};
+
+export const buildWelcomeMessages = (params: ChatWelcomePromptParams): ModelMessage[] => {
     const system = [
         '你是用户的英语学习伙伴，帮助他们理解和掌握英语表达。',
         '',

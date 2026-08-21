@@ -18,7 +18,7 @@ export type AnalysisStartResult = {
 export type AnalysisStreamEvent = {
     sessionId: string;
     messageId: string;
-    event: 'start' | 'chunk' | 'done' | 'error';
+    event: 'start' | 'chunk' | 'done' | 'error' | 'cancelled';
     partial?: DeepPartial<AiUnifiedAnalysisRes>;
     error?: string;
 };

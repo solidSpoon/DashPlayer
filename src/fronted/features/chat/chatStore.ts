@@ -8,16 +8,13 @@ import { engEqual, p } from '@/common/utils/Util';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
 import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
-import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
-import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { chatApi } from '@/fronted/features/chat/chatApi';
-import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
-import { ChatBackgroundContext, ChatStreamEvent, ChatWelcomeParams, Topic } from '@/common/types/chat';
+import { Topic } from '@/common/types/chat';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
@@ -31,7 +28,8 @@ export type ChatPanelState = {
         chatTaskQueue: CustomMessage<unknown>[];
     }
     chatSessionId: string;
-    streamingMessageId: string | null;
+    topicText: string;
+    queuedMessage: { id: number; content: string } | null;
     analysis: Partial<AiUnifiedAnalysisRes> | null;
     analysisMessageId: string | null;
     analysisStatus: 'idle' | 'streaming' | 'done' | 'error';
@@ -52,7 +50,6 @@ export type ChatPanelActions = {
     createFromCurrent: () => void;
     clear: () => void;
     sent: (msg: string) => void;
-    receiveChatStream: (event: ChatStreamEvent) => void;
     receiveAnalysisStream: (event: AnalysisStreamEvent) => void;
     startAnalysis: () => Promise<void>;
     updateInternalContext: (value: string) => void;
@@ -65,13 +62,7 @@ export type ChatPanelActions = {
     deleteMessage: (msg: CustomMessage<unknown>) => void;
     retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
-};
-
-const createChatSessionId = (): string => {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-        return crypto.randomUUID();
-    }
-    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    consumeQueuedMessage: (id: number) => void;
 };
 
 const copy = (state: ChatPanelState): ChatPanelState => {
@@ -83,7 +74,8 @@ const copy = (state: ChatPanelState): ChatPanelState => {
             chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy() as CustomMessage<unknown>)
         },
         chatSessionId: state.chatSessionId,
-        streamingMessageId: state.streamingMessageId,
+        topicText: state.topicText,
+        queuedMessage: state.queuedMessage,
         analysis: state.analysis,
         analysisMessageId: state.analysisMessageId,
         analysisStatus: state.analysisStatus,
@@ -107,8 +99,9 @@ const empty = (): ChatPanelState => {
             },
             chatTaskQueue: []
         },
-        chatSessionId: createChatSessionId(),
-        streamingMessageId: null,
+        chatSessionId: '',
+        topicText: '',
+        queuedMessage: null,
         analysis: null,
         analysisMessageId: null,
         analysisStatus: 'idle',
@@ -185,8 +178,25 @@ const useChatPanel = create(
             const context: string[] = subtitles
                 .filter(TypeGuards.isNotNull)
                 .map(e => e.text ?? '');
+            const videoId = useFile.getState().videoId;
+            if (!videoId) {
+                throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
+            }
+            const previousSessionId = get().chatSessionId;
+            if (previousSessionId) {
+                chatApi.closeSession(previousSessionId).catch((error) => {
+                    getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
+                });
+            }
+            const { sessionId } = await chatApi.createSession({
+                videoId,
+                originalTopic: text,
+                paragraphLines: context,
+            });
             set({
                 ...empty(),
+                chatSessionId: sessionId,
+                topicText: text,
                 topic: topic,
                 messages: [
                     tt
@@ -194,11 +204,6 @@ const useChatPanel = create(
                 canRedo: undoRedo.canRedo(),
                 canUndo: undoRedo.canUndo()
             });
-            scheduleWelcomeMessage({
-                sessionId: get().chatSessionId,
-                originalTopic: text,
-                fullText: context.join(' '),
-            }, topic);
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for selected topic', { error });
             });
@@ -208,11 +213,6 @@ const useChatPanel = create(
             const ct = usePlayer.getState().currentSentence;
             if (!ct) return;
             const tt = new HumanTopicMessage(get().topic, ct.text ?? '');
-            // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const url = useFile.getState().subtitlePath ?? '';
-            getRendererLogger('useChatPanel').debug('subtitle file url', { url });
-            const text = await fetch(UrlUtil.toUrl(url)).then((res) => res.text());
-            getRendererLogger('useChatPanel').debug('subtitle file content', { length: text.length });
             const topic = {
                 content: {
                     start: {
@@ -234,94 +234,53 @@ const useChatPanel = create(
                 const right = Math.min(sentences.length - 1, idx + 5);
                 return sentences.slice(left, right + 1);
             })();
+            const videoId = useFile.getState().videoId;
+            if (!videoId) {
+                throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
+            }
+            const previousSessionId = get().chatSessionId;
+            if (previousSessionId) {
+                chatApi.closeSession(previousSessionId).catch((error) => {
+                    getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
+                });
+            }
+            const paragraphLines = subtitles.map(e => e.text);
+            const { sessionId } = await chatApi.createSession({
+                videoId,
+                originalTopic: ct.text,
+                paragraphLines,
+            });
             set({
                 ...empty(),
+                chatSessionId: sessionId,
+                topicText: ct.text,
                 topic,
                 messages: [
                     tt
                 ]
             });
-            scheduleWelcomeMessage({
-                sessionId: get().chatSessionId,
-                originalTopic: ct.text,
-                fullText: subtitles.map(e => e.text).join(' '),
-            }, topic);
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for current topic', { error });
             });
         },
         clear: () => {
+            const sessionId = get().chatSessionId;
+            if (sessionId) {
+                chatApi.closeSession(sessionId).catch((error) => {
+                    getRendererLogger('useChatPanel').error('failed to close chat session', { error });
+                });
+            }
             undoRedo.clear();
             set(empty());
         },
         sent: async (msg: string) => {
             if (StrUtil.isBlank(msg)) return;
-            const requestMsg = new HumanNormalMessage(get().topic, msg);
-            const baseMessages = await Promise.all(
-                get().messages.map(e => e.toMsg())
-            ).then(results => results.flat());
-            const requestMessages = await requestMsg.toMsg();
-            const background = buildChatBackgroundContext(get().analysis ?? null);
-            const history = [...baseMessages, ...requestMessages];
-            getRendererLogger('useChatPanel').debug('chat history', { messageCount: history.length });
-            const { messageId } = await chatApi.start({
-                sessionId: get().chatSessionId,
-                messages: history,
-                background: background ?? undefined,
-            });
             set({
-                messages: [
-                    ...get().messages,
-                    requestMsg
-                ],
-                streamingMessage: new AiStreamingMessage(get().topic, messageId, '', true),
-                streamingMessageId: messageId
+                queuedMessage: {
+                    id: Date.now(),
+                    content: msg,
+                },
             });
-        },
-        receiveChatStream: (event: ChatStreamEvent) => {
-            if (event.sessionId !== get().chatSessionId) {
-                return;
-            }
-            const currentStreaming = get().streamingMessage;
-            if (event.event === 'start') {
-                if (!currentStreaming || (currentStreaming as AiStreamingMessage).messageId !== event.messageId) {
-                    set({
-                        streamingMessage: new AiStreamingMessage(get().topic, event.messageId, '', true),
-                        streamingMessageId: event.messageId
-                    });
-                }
-                return;
-            }
-
-            if (!currentStreaming || (currentStreaming as AiStreamingMessage).messageId !== event.messageId) {
-                return;
-            }
-
-            const streaming = currentStreaming as AiStreamingMessage;
-            if (event.event === 'chunk') {
-                set({
-                    streamingMessage: streaming.withUpdate(`${streaming.content}${event.chunk ?? ''}`, true)
-                });
-                return;
-            }
-            if (event.event === 'done') {
-                const finished = streaming.withUpdate(streaming.content, false);
-                set({
-                    messages: [...get().messages, finished],
-                    streamingMessage: null,
-                    streamingMessageId: null
-                });
-                return;
-            }
-            if (event.event === 'error') {
-                const errorMsg = event.error ? `\n\n[Error] ${event.error}` : '\n\n[Error]';
-                const failed = streaming.withUpdate(`${streaming.content}${errorMsg}`, false);
-                set({
-                    messages: [...get().messages, failed],
-                    streamingMessage: null,
-                    streamingMessageId: null
-                });
-            }
         },
         receiveAnalysisStream: (event: AnalysisStreamEvent) => {
             if (event.sessionId !== get().chatSessionId) {
@@ -370,6 +329,13 @@ const useChatPanel = create(
                 set({
                     analysisStatus: 'error',
                     analysisError: event.error ?? 'analysis error',
+                });
+                return;
+            }
+            if (event.event === 'cancelled') {
+                set({
+                    analysisStatus: 'idle',
+                    analysisMessageId: null,
                 });
             }
         },
@@ -469,6 +435,11 @@ const useChatPanel = create(
             set({
                 input
             });
+        },
+        consumeQueuedMessage: (id: number) => {
+            if (get().queuedMessage?.id === id) {
+                set({ queuedMessage: null });
+            }
         }
     }))
 );
@@ -515,38 +486,6 @@ const mergeAnalysisPartial = (
     return mergeValue(current, partial) as Partial<AiUnifiedAnalysisRes>;
 };
 
-const getCurrentParagraphLines = (): string[] => {
-    const currentSentence = usePlayer.getState().currentSentence;
-    const sentences = usePlayer.getState().sentences;
-    const subtitles = (() => {
-        if (!currentSentence) return [] as typeof sentences;
-        const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
-        if (idx < 0) return [];
-        const left = Math.max(0, idx - 5);
-        const right = Math.min(sentences.length - 1, idx + 5);
-        return sentences.slice(left, right + 1);
-    })();
-
-    return subtitles
-        .filter(TypeGuards.isNotNull)
-        .map(s => s.text ?? '')
-        .filter(text => text.trim().length > 0);
-};
-
-const buildChatBackgroundContext = (
-    analysis: Partial<AiUnifiedAnalysisRes> | null
-): ChatBackgroundContext | null => {
-    const paragraphLines = getCurrentParagraphLines();
-    if (paragraphLines.length === 0 && !analysis) {
-        return null;
-    }
-    return {
-        paragraphLines,
-        analysis: analysis ?? undefined,
-    };
-};
-
-
 const extractTopic = (t: Topic): string => {
     getRendererLogger('useChatPanel').debug('extract topic', { topic: t });
     if (t === 'offscreen') return 'offscreen';
@@ -575,22 +514,4 @@ const extractTopic = (t: Topic): string => {
     return `${st} ${et}`;
 };
 
-const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic) => {
-    chatApi.getWelcome(params)
-        .then(({ messageId }) => {
-            if (useChatPanel.getState().chatSessionId !== params.sessionId) {
-                return;
-            }
-            const nextMessages = useChatPanel.getState().messages
-                .filter(msg => msg.msgType !== 'ai-streaming');
-            useChatPanel.setState({
-                messages: nextMessages,
-                streamingMessage: new AiStreamingMessage(topic, messageId, '', true),
-                streamingMessageId: messageId,
-            });
-        })
-        .catch((error) => {
-            getRendererLogger('useChatPanel').error('failed to stream welcome message', { error });
-        });
-};
 export default useChatPanel;

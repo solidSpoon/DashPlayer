@@ -13,7 +13,15 @@ import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
-import { ChatStartParams, ChatStartResult, ChatWelcomeParams } from '@/common/types/chat';
+import {
+    ChatSessionCloseParams,
+    ChatSessionCreateParams,
+    ChatSessionCreateResult,
+    ChatSessionStopParams,
+    ChatStartParams,
+    ChatStartResult,
+    ChatWelcomeParams,
+} from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import {
     ServiceCredentialSettingDetailVO,
@@ -138,6 +146,9 @@ interface AiTransDef {
 }
 
 interface ChatDef {
+    'chat/session/create': { params: ChatSessionCreateParams, return: ChatSessionCreateResult };
+    'chat/session/close': { params: ChatSessionCloseParams, return: void };
+    'chat/session/stop': { params: ChatSessionStopParams, return: void };
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
     'chat/welcome': { params: ChatWelcomeParams, return: ChatStartResult };
 }

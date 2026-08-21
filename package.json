@@ -81,6 +81,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.62",
+    "@ai-sdk/react": "^4.0.76",
     "@electron-forge/publisher-github": "^7.11.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@floating-ui/react": "^0.26.9",
