@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 
 const reactCompilerEnv = process.env.REACT_COMPILER?.toLowerCase();
@@ -9,6 +10,7 @@ const enableReactCompiler =
 // https://vitejs.dev/config
 export default defineConfig({
     plugins: [
+        tailwindcss(),
         react(
             enableReactCompiler
                 ? {

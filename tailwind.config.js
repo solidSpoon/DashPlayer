@@ -110,5 +110,5 @@ module.exports = {
   	}
   },
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  plugins: [require("tailwindcss-animate"), require('tailwind-scrollbar')({ nocompatible: true,preferredStrategy: 'pseudoelements' }), require('@tailwindcss/typography')],
+  plugins: [require("tailwindcss-animate"), require('@tailwindcss/typography')],
 }
