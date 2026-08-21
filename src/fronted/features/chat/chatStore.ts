@@ -6,8 +6,6 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { engEqual, p } from '@/common/utils/Util';
 import { usePlayer } from '@/fronted/features/player/playerStore';
-import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
-import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
 import StrUtil from '@/common/utils/str-util';
@@ -19,30 +17,46 @@ import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
 const undoRedo = new UndoRedo<ChatPanelState>();
+
+/** 整句学习面板中需要跨组件共享和撤销恢复的状态。 */
 export type ChatPanelState = {
+    /** 仅供右键菜单在短时间内读取的内部上下文。 */
     internal: {
+        /** 最近一次被业务组件标记的文本及标记时间。 */
         context: {
+            /** 被标记的原始文本。 */
             value: string | null;
+            /** 标记时间，Unix 毫秒。 */
             time: number;
         }
-        chatTaskQueue: CustomMessage<unknown>[];
     }
+    /** 后端整句学习会话 ID；空字符串表示当前没有会话。 */
     chatSessionId: string;
+    /** 创建会话时冻结的主题原文。 */
     topicText: string;
+    /** 由上下文菜单排队、等待聊天组件发送的追问。 */
     queuedMessage: { id: number; content: string } | null;
+    /** 流式合并中的句子分析结果。 */
     analysis: Partial<AiUnifiedAnalysisRes> | null;
+    /** 当前分析请求的消息 ID，用于过滤过期事件。 */
     analysisMessageId: string | null;
+    /** 当前句子分析生命周期状态。 */
     analysisStatus: 'idle' | 'streaming' | 'done' | 'error';
+    /** 分析失败时返回的显式错误信息。 */
     analysisError: string | null;
+    /** 当前学习主题的字幕位置或直接文本。 */
     topic: Topic
-    messages: CustomMessage<unknown>[];
-    streamingMessage: CustomMessage<unknown> | null;
+    /** 是否可以撤销到上一个学习主题。 */
     canUndo: boolean;
+    /** 是否可以重做到下一个学习主题。 */
     canRedo: boolean;
+    /** 右键菜单打开时冻结的操作上下文。 */
     context: string | null;
+    /** 受控聊天输入框文本。 */
     input: string;
 };
 
+/** 整句学习面板对外暴露的状态操作。 */
 export type ChatPanelActions = {
     backward: () => void;
     forward: () => void;
@@ -59,19 +73,22 @@ export type ChatPanelActions = {
     ctxMenuPolish: () => void;
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
-    deleteMessage: (msg: CustomMessage<unknown>) => void;
     retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
     consumeQueuedMessage: (id: number) => void;
 };
 
+/**
+ * 创建可交给撤销栈保存的状态副本。
+ * @param state 当前面板状态。
+ * @returns 与外部可变引用隔离的状态副本。
+ */
 const copy = (state: ChatPanelState): ChatPanelState => {
     return {
         internal: {
             context: {
                 ...state.internal.context
             },
-            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy() as CustomMessage<unknown>)
         },
         chatSessionId: state.chatSessionId,
         topicText: state.topicText,
@@ -81,8 +98,6 @@ const copy = (state: ChatPanelState): ChatPanelState => {
         analysisStatus: state.analysisStatus,
         analysisError: state.analysisError,
         topic: state.topic,
-        messages: state.messages,
-        streamingMessage: state.streamingMessage,
         canUndo: state.canUndo,
         canRedo: state.canRedo,
         context: state.context,
@@ -90,6 +105,10 @@ const copy = (state: ChatPanelState): ChatPanelState => {
     };
 };
 
+/**
+ * 创建没有活动会话的初始面板状态。
+ * @returns 全字段显式初始化的空状态。
+ */
 const empty = (): ChatPanelState => {
     return {
         internal: {
@@ -97,7 +116,6 @@ const empty = (): ChatPanelState => {
                 value: null,
                 time: 0
             },
-            chatTaskQueue: []
         },
         chatSessionId: '',
         topicText: '',
@@ -107,8 +125,6 @@ const empty = (): ChatPanelState => {
         analysisStatus: 'idle',
         analysisError: null,
         topic: 'offscreen',
-        messages: [],
-        streamingMessage: null,
         canUndo: false,
         canRedo: false,
         context: null,
@@ -164,7 +180,6 @@ const useChatPanel = create(
             }
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
-            const tt = new HumanTopicMessage(get().topic, text);
             const topic = { content: text };
             const currentSentence = usePlayer.getState().currentSentence;
             const sentences = usePlayer.getState().sentences;
@@ -198,9 +213,6 @@ const useChatPanel = create(
                 chatSessionId: sessionId,
                 topicText: text,
                 topic: topic,
-                messages: [
-                    tt
-                ],
                 canRedo: undoRedo.canRedo(),
                 canUndo: undoRedo.canUndo()
             });
@@ -212,7 +224,6 @@ const useChatPanel = create(
             undoRedo.add(copy(get()));
             const ct = usePlayer.getState().currentSentence;
             if (!ct) return;
-            const tt = new HumanTopicMessage(get().topic, ct.text ?? '');
             const topic = {
                 content: {
                     start: {
@@ -255,9 +266,6 @@ const useChatPanel = create(
                 chatSessionId: sessionId,
                 topicText: ct.text,
                 topic,
-                messages: [
-                    tt
-                ]
             });
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for current topic', { error });
@@ -397,11 +405,6 @@ const useChatPanel = create(
             }
             if (StrUtil.isBlank(text)) return;
             await get().sent(`帮我把这句话改写得更地道一些：\n"""\n${text}\n"""`);
-        },
-        deleteMessage: (msg: CustomMessage<unknown>) => {
-            set({
-                messages: get().messages.filter(e => e !== msg)
-            });
         },
         retry: async (type: 'analysis' | 'topic') => {
             if (type === 'analysis' || type === 'topic') {

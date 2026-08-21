@@ -121,6 +121,30 @@
 
 /* Tailwind 4 不再加载旧版 tailwind-scrollbar 插件，保留项目现有类名。 */
 @layer utilities {
+  .conversation-scrollbar {
+    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-width: thin;
+  }
+
+  .conversation-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .conversation-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .conversation-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+
+  .conversation-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+  }
+
   [class~="scrollbar-none"] {
     scrollbar-width: none;
   }

@@ -1,10 +1,15 @@
 import React from 'react';
-import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import StrUtil from '@/common/utils/str-util';
 
+/**
+ * 按分析结果把原句拆成普通文本与带标注的短语片段。
+ * @param original 原始主题句。
+ * @param phraseGroups AI 返回的短语分组。
+ * @returns 保持原句顺序的文本和短语片段。
+ */
 const process = (
     original: string,
     phraseGroups?: AiUnifiedAnalysisRes['structure']['phraseGroups']
@@ -34,10 +39,27 @@ const process = (
 
     return res;
 };
-const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
+
+/** 首条主题消息的业务内容参数。 */
+type UserTopicMessageProps = {
+    /** 需要展示句法分组的原始主题句。 */
+    content: string;
+};
+
+/**
+ * 展示首条主题句的句法分组、标签和翻译信息。
+ * @param props 主题句内容。
+ * @returns 主题句业务可视化内容。
+ */
+const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) => {
     const analysis = useChatPanel(state => state.analysis);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
 
+    /**
+     * 根据中文句法标签选择分组底色。
+     * @param tags 当前短语的句法标签。
+     * @returns 对应的 Tailwind 背景色类名。
+     */
     const mapColor = (tags: string[]): string => {
         if (!tags || tags.length === 0) return 'bg-secondary/50';
         const comment = tags.join(',');
@@ -51,40 +73,40 @@ const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
         return 'bg-secondary/50';
     };
 
-    const content = process(msg.content, analysis?.structure?.phraseGroups);
+    const content = process(messageContent, analysis?.structure?.phraseGroups);
     
     return (
         <div
             onContextMenu={() => {
-                updateInternalContext(msg.content);
+                updateInternalContext(messageContent);
             }}
             className="flex flex-wrap items-start gap-x-2 gap-y-6 px-4 py-1 relative"
         >
             {content.map((group, i) => {
                 if (typeof group === 'string') {
-                    // Plain text (punctuation, connectors)
+                    // 普通文本包含标点和连接词，需要保持原句中的相对位置。
                     const isPunctuation = /^[.,!?;:]+$/.test(group.trim());
                     return (
                         <div key={`text:${i}`} className={cn(
                             "flex flex-col justify-center self-stretch pt-4",
-                            isPunctuation && "-ml-2" // Pull punctuation closer to the previous bubble
+                            isPunctuation && "-ml-2" // 让标点贴近前一个短语块。
                         )}>
                              <span className="text-xl font-medium text-foreground/80">{group}</span>
                         </div>
                     );
                 } else {
-                    // Phrase Group
+                    // 短语分组同时展示句法标签、原文和翻译。
                     const tags = group.tags ?? [];
                     return (
                         <div key={`group:${i}:${group.original}`} className="flex flex-col group cursor-default">
-                            {/* Top: Tags */}
+                            {/* 顶部：句法标签。 */}
                             <div className="flex items-end px-1 -mb-3 relative z-10">
                                 <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight leading-none whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
                                     {tags.join(', ')}
                                 </span>
                             </div>
                             
-                            {/* Middle: Text Bubble */}
+                            {/* 中部：原文短语。 */}
                             <div 
                                 className={cn(
                                     "px-2 py-1 pt-2.5 pb-1.5 rounded-md text-lg font-medium transition-colors relative z-0",
@@ -97,7 +119,7 @@ const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
                                 </span>
                             </div>
 
-                            {/* Bottom: Translation */}
+                            {/* 底部：短语翻译。 */}
                             <div className="flex items-start px-1 -mt-2.5 relative z-10">
                                 <span className="text-[10px] text-muted-foreground dark:text-muted-foreground/90 font-normal leading-tight whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
                                     {group.translation}
