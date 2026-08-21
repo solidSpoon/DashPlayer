@@ -68,7 +68,7 @@ const renderMessage = (
         return (
             <section
                 aria-label="当前学习主题"
-                className="w-full"
+                className="mx-auto w-full max-w-4xl"
                 key={message.id}
                 onContextMenu={() => useChatPanel.getState().updateInternalContext(content)}
             >
@@ -78,8 +78,15 @@ const renderMessage = (
     }
 
     return (
-        <Message from={message.role} key={message.id}>
-            <MessageContent onContextMenu={() => useChatPanel.getState().updateInternalContext(content)}>
+        <Message
+            className="mx-auto w-full max-w-3xl"
+            from={message.role}
+            key={message.id}
+        >
+            <MessageContent
+                className="group-[.is-assistant]:w-full group-[.is-assistant]:max-w-3xl group-[.is-assistant]:px-1 group-[.is-assistant]:py-1 group-[.is-user]:rounded-3xl group-[.is-user]:px-5 group-[.is-user]:py-3"
+                onContextMenu={() => useChatPanel.getState().updateInternalContext(content)}
+            >
                 {isStreaming && !content ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <Spinner />
@@ -161,10 +168,10 @@ const ConversationPane = () => {
     };
 
     return (
-        <div className="flex h-full min-h-0 flex-col bg-muted/30">
+        <div className="flex h-full min-h-0 flex-col bg-background">
             <Conversation>
                 <ConversationContent
-                    className="px-6 pb-8 pt-4"
+                    className="gap-8 px-4 pb-10 pt-6 sm:px-6"
                     scrollClassName="conversation-scrollbar"
                 >
                     {messages.map((message, index) => renderMessage(
@@ -173,8 +180,8 @@ const ConversationPane = () => {
                         status === 'streaming' && index === messages.length - 1,
                     ))}
                     {status === 'submitted' && (
-                        <Message from="assistant">
-                            <MessageContent className="flex-row items-center text-muted-foreground">
+                        <Message className="mx-auto w-full max-w-3xl" from="assistant">
+                            <MessageContent className="flex-row items-center px-1 py-1 text-muted-foreground">
                                 <Spinner />
                                 <span>正在思考...</span>
                             </MessageContent>
@@ -183,17 +190,20 @@ const ConversationPane = () => {
                 </ConversationContent>
                 <ConversationScrollButton />
             </Conversation>
-            <div className="px-4 pb-3 pt-2">
-                <PromptInput className="mx-auto max-w-3xl" onSubmit={handleSubmit}>
+            <div className="bg-background px-4 pb-5 pt-2 sm:px-6">
+                <PromptInput
+                    className="mx-auto max-w-3xl [&_[data-slot=input-group]]:rounded-3xl [&_[data-slot=input-group]]:shadow-sm"
+                    onSubmit={handleSubmit}
+                >
                     <PromptInputBody>
                         <PromptInputTextarea
-                            className="min-h-12 max-h-36 py-3"
+                            className="min-h-14 max-h-40 px-5 py-3.5 text-base"
                             value={input}
                             onChange={(event) => setInput(event.currentTarget.value)}
                             placeholder="输入你的问题..."
                         />
                     </PromptInputBody>
-                    <PromptInputFooter className="justify-end pt-0">
+                    <PromptInputFooter className="justify-end px-3 pb-2 pt-0">
                         <PromptInputSubmit
                             disabled={!isBusy && !input.trim()}
                             onStop={stop}

@@ -24,18 +24,18 @@ const process = (
             // res.push(group);
             continue;
         }
-        text = text.trim();
         const analyse = group.original.trim();
         const lowerCaseText = text.toLowerCase();
         const lowerCaseOriginal = analyse.toLowerCase();
         const index = lowerCaseText.indexOf(lowerCaseOriginal);
+        if (index < 0) continue;
         const before = text.substring(0, index);
-        const after = text.substring(index + group.original.length);
+        const after = text.substring(index + analyse.length);
         if (before) res.push(before);
         res.push(group);
         text = after;
     }
-    if (text) res.push(text.trim());
+    if (text) res.push(text);
 
     return res;
 };
@@ -64,11 +64,15 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
         if (!tags || tags.length === 0) return 'bg-secondary/50';
         const comment = tags.join(',');
         if (StrUtil.isBlank(comment)) return 'bg-secondary/50';
-        
+
         if (comment.includes('主语')) return 'bg-red-100 dark:bg-red-900/30';
         if (comment.includes('谓语')) return 'bg-green-100 dark:bg-green-900/30';
         if (comment.includes('宾语')) return 'bg-blue-100 dark:bg-blue-900/30';
         if (comment.includes('表语')) return 'bg-yellow-100 dark:bg-yellow-900/30';
+        if (comment.includes('主句')) return 'bg-sky-100 dark:bg-sky-900/30';
+        if (comment.includes('从句')) return 'bg-indigo-100 dark:bg-indigo-900/30';
+        if (comment.includes('介词短语')) return 'bg-amber-100 dark:bg-amber-900/30';
+        if (comment.includes('状语')) return 'bg-cyan-100 dark:bg-cyan-900/30';
 
         return 'bg-secondary/50';
     };
@@ -80,52 +84,30 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
             onContextMenu={() => {
                 updateInternalContext(messageContent);
             }}
-            className="flex flex-wrap items-start gap-x-2 gap-y-6 px-4 py-1 relative"
+            className="relative px-1 py-1 text-base leading-relaxed"
         >
             {content.map((group, i) => {
                 if (typeof group === 'string') {
                     // 普通文本包含标点和连接词，需要保持原句中的相对位置。
                     const isPunctuation = /^[.,!?;:]+$/.test(group.trim());
                     return (
-                        <div key={`text:${i}`} className={cn(
-                            "flex flex-col justify-center self-stretch pt-4",
-                            isPunctuation && "-ml-2" // 让标点贴近前一个短语块。
-                        )}>
-                             <span className="text-xl font-medium text-foreground/80">{group}</span>
-                        </div>
+                        <span key={`text:${i}`} className={cn('font-medium text-foreground/80', isPunctuation && '-ml-1')}>
+                            {group}
+                        </span>
                     );
                 } else {
-                    // 短语分组同时展示句法标签、原文和翻译。
+                    // 短语分组只保留背景色，文本仍参与普通行内排版。
                     const tags = group.tags ?? [];
                     return (
-                        <div key={`group:${i}:${group.original}`} className="flex flex-col group cursor-default">
-                            {/* 顶部：句法标签。 */}
-                            <div className="flex items-end px-1 -mb-3 relative z-10">
-                                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight leading-none whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
-                                    {tags.join(', ')}
-                                </span>
-                            </div>
-                            
-                            {/* 中部：原文短语。 */}
-                            <div 
-                                className={cn(
-                                    "px-2 py-1 pt-2.5 pb-1.5 rounded-md text-lg font-medium transition-colors relative z-0",
-                                    "border border-transparent hover:border-border/50", 
-                                    mapColor(tags)
-                                )}
-                            >
-                                <span className="text-foreground">
-                                    {group.original}
-                                </span>
-                            </div>
-
-                            {/* 底部：短语翻译。 */}
-                            <div className="flex items-start px-1 -mt-2.5 relative z-10">
-                                <span className="text-[10px] text-muted-foreground dark:text-muted-foreground/90 font-normal leading-tight whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
-                                    {group.translation}
-                                </span>
-                            </div>
-                        </div>
+                        <span
+                            key={`group:${i}:${group.original}`}
+                            className={cn(
+                                'box-decoration-clone rounded-md py-0.5 font-medium',
+                                mapColor(tags)
+                            )}
+                        >
+                            {group.original}
+                        </span>
                     );
                 }
             })}
