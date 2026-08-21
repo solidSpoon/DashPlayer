@@ -289,6 +289,11 @@ export const ensureChatRoleMessage = (messages: ModelMessage[]): ModelMessage[] 
                 '- 问单词/短语：音标、中文意思、英文解释、3 个例句（带中文），英文都用 [[tts:...]]',
                 '- 问句子里的词：先说整句意思，再讲这个词在句子里的用法，给 3 个例句',
                 '- 要同义句/润色：给 3 个改写，每个单独一行用 - 开头，英文用 [[tts:...]]',
+                '',
+                '字幕上下文工具：',
+                '- 当用户询问前文、后文、人物或事件，而当前上下文不足时，先使用 search_subtitles 搜索关键词。',
+                '- 搜索结果中的 index 可以交给 get_subtitle_context 读取该句前后的连续字幕。',
+                '- get_subtitle_context 的 limit 是返回总条数，避免一次读取过多字幕。',
             ].join('\n'),
         },
         ...messages

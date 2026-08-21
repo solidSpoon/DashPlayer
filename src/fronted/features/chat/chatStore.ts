@@ -197,6 +197,9 @@ const useChatPanel = create(
             if (!videoId) {
                 throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
             }
+            if (!currentSentence) {
+                throw new Error('当前字幕句不存在，无法创建带上下文工具的整句学习会话');
+            }
             const previousSessionId = get().chatSessionId;
             if (previousSessionId) {
                 chatApi.closeSession(previousSessionId).catch((error) => {
@@ -207,6 +210,8 @@ const useChatPanel = create(
                 videoId,
                 originalTopic: text,
                 paragraphLines: context,
+                subtitleFileHash: currentSentence.fileHash,
+                anchorSentenceIndex: currentSentence.index,
             });
             set({
                 ...empty(),
@@ -260,6 +265,8 @@ const useChatPanel = create(
                 videoId,
                 originalTopic: ct.text,
                 paragraphLines,
+                subtitleFileHash: ct.fileHash,
+                anchorSentenceIndex: ct.index,
             });
             set({
                 ...empty(),

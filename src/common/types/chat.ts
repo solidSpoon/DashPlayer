@@ -39,6 +39,10 @@ export type ChatSessionCreateParams = {
     originalTopic: string;
     /** 创建会话时的周边字幕快照。 */
     paragraphLines: string[];
+    /** 当前字幕缓存的 fileHash，用于 Agent 工具读取完整字幕。 */
+    subtitleFileHash: string;
+    /** 当前学习句在字幕缓存中的索引。 */
+    anchorSentenceIndex: number;
 };
 
 /**

@@ -16,6 +16,10 @@ export type ChatSession = {
     originalTopic: string;
     /** 创建会话时冻结的周边字幕。 */
     paragraphLines: string[];
+    /** 当前字幕缓存的 fileHash。 */
+    subtitleFileHash: string;
+    /** 当前学习句在字幕缓存中的索引。 */
+    anchorSentenceIndex: number;
     /** 已完成并可用于后续请求的模型消息历史。 */
     messages: ModelMessage[];
     /** 已校验的最终句子分析结果。 */
@@ -60,6 +64,8 @@ export class InMemoryChatSessionStore implements ChatSessionStore {
             videoId: params.videoId,
             originalTopic: params.originalTopic,
             paragraphLines: [...params.paragraphLines],
+            subtitleFileHash: params.subtitleFileHash,
+            anchorSentenceIndex: params.anchorSentenceIndex,
             messages: [{
                 role: 'user',
                 content: `请帮我分析 "${params.originalTopic}"`,

@@ -1,6 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { randomUUID } from 'node:crypto';
-import { ModelMessage, Output, streamText, toUIMessageStream, UIMessageChunk } from 'ai';
+import { isStepCount, ModelMessage, Output, streamText, toUIMessageStream, tool, UIMessageChunk } from 'ai';
+import { z } from 'zod';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
@@ -21,6 +22,7 @@ import {
     splitSystemMessages,
 } from '@/backend/services/chat/ChatPromptBuilder';
 import ChatSessionStore from '@/backend/services/chat/ChatSessionStore';
+import CacheService from '@/backend/services/CacheService';
 
 export default interface ChatSessionService {
     create(params: ChatSessionCreateParams): ChatSessionCreateResult;
@@ -44,6 +46,9 @@ export class ChatSessionServiceImpl implements ChatSessionService {
 
     @inject(TYPES.ChatSessionStore)
     private chatSessionStore!: ChatSessionStore;
+
+    @inject(TYPES.CacheService)
+    private cacheService!: CacheService;
 
     /**
      * 创建由 main 进程持有的内存会话。
@@ -209,6 +214,8 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             model,
             system,
             messages: promptMessages,
+            tools: this.buildSubtitleTools(sessionId),
+            stopWhen: isStepCount(5),
             abortSignal,
         });
         let chunkCount = 0;
@@ -244,6 +251,89 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      */
     private createMessageId(): string {
         return randomUUID();
+    }
+
+    /**
+     * 创建整句学习聊天可调用的字幕工具。
+     * 工具只暴露字幕索引和窗口大小，具体缓存定位由后端会话完成；所有结果都限制为精简字幕投影。
+     * @param sessionId 当前整句学习会话 ID。
+     * @returns AI SDK 工具集合。
+     */
+    private buildSubtitleTools(sessionId: string) {
+        const getSentences = () => {
+            const session = this.chatSessionStore.get(sessionId);
+            const cached = this.cacheService.get('cache:srt', session.subtitleFileHash);
+            if (!cached) {
+                throw new Error('当前会话的字幕缓存不存在');
+            }
+            return cached.sentences;
+        };
+
+        const projectSentence = (sentence: {
+            index: number;
+            start: number;
+            end: number;
+            text: string;
+        }) => ({
+            index: sentence.index,
+            start: sentence.start,
+            end: sentence.end,
+            text: sentence.text,
+        });
+
+        return {
+            search_subtitles: tool({
+                description: '在当前视频的完整字幕中搜索一个或多个关键词，返回命中字幕的索引、时间和文本。默认任意关键词命中即可。',
+                inputSchema: z.object({
+                    queries: z.array(z.string().trim().min(1)).min(1).max(5),
+                    match: z.enum(['any', 'all']).default('any'),
+                    limit: z.number().int().min(1).max(20).default(10),
+                    skip: z.number().int().min(0).max(10000).default(0),
+                }),
+                execute: async ({ queries, match, limit, skip }) => {
+                    const normalizedQueries = queries.map((query) => query.toLowerCase());
+                    const allMatches = getSentences()
+                        .map((sentence) => {
+                            const text = sentence.text.toLowerCase();
+                            const matchedQueries = normalizedQueries.filter((query) => text.includes(query));
+                            return matchedQueries.length > 0 && (match === 'any' || matchedQueries.length === normalizedQueries.length)
+                                ? { ...projectSentence(sentence), matchedQueries }
+                                : null;
+                        })
+                        .filter((sentence): sentence is NonNullable<typeof sentence> => sentence !== null)
+                    return {
+                        matches: allMatches.slice(skip, skip + limit),
+                        total: allMatches.length,
+                        skip,
+                        limit,
+                    };
+                },
+            }),
+            get_subtitle_context: tool({
+                description: '根据字幕索引读取该句附近的连续字幕。返回结果以目标索引为中心，limit 是返回总条数。',
+                inputSchema: z.object({
+                    index: z.number().int().min(0),
+                    limit: z.number().int().min(1).max(50).default(20),
+                }),
+                execute: async ({ index, limit }) => {
+                    const sentences = getSentences();
+                    const anchorPosition = sentences.findIndex((sentence) => sentence.index === index);
+                    if (anchorPosition < 0) {
+                        throw new Error(`字幕索引不存在：${index}`);
+                    }
+                    const size = Math.min(limit, sentences.length);
+                    const before = Math.floor((size - 1) / 2);
+                    const start = Math.max(0, Math.min(anchorPosition - before, sentences.length - size));
+                    const items = sentences.slice(start, start + size).map(projectSentence);
+                    return {
+                        anchorIndex: index,
+                        startIndex: items[0]?.index ?? index,
+                        endIndex: items.at(-1)?.index ?? index,
+                        items,
+                    };
+                },
+            }),
+        };
     }
 
 
