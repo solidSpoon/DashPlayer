@@ -47,7 +47,7 @@ type UserTopicMessageProps = {
 };
 
 /**
- * 展示首条主题句的句法分组、标签和翻译信息。
+ * 展示首条主题句的意群分组和翻译信息。
  * @param props 主题句内容。
  * @returns 主题句业务可视化内容。
  */
@@ -55,27 +55,16 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
     const analysis = useChatPanel(state => state.analysis);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
 
-    /**
-     * 根据中文句法标签选择分组底色。
-     * @param tags 当前短语的句法标签。
-     * @returns 对应的 Tailwind 背景色类名。
-     */
-    const mapColor = (tags: string[]): string => {
-        if (!tags || tags.length === 0) return 'bg-secondary/50';
-        const comment = tags.join(',');
-        if (StrUtil.isBlank(comment)) return 'bg-secondary/50';
-
-        if (comment.includes('主语')) return 'bg-red-100 dark:bg-red-900/30';
-        if (comment.includes('谓语')) return 'bg-green-100 dark:bg-green-900/30';
-        if (comment.includes('宾语')) return 'bg-blue-100 dark:bg-blue-900/30';
-        if (comment.includes('表语')) return 'bg-yellow-100 dark:bg-yellow-900/30';
-        if (comment.includes('主句')) return 'bg-sky-100 dark:bg-sky-900/30';
-        if (comment.includes('从句')) return 'bg-indigo-100 dark:bg-indigo-900/30';
-        if (comment.includes('介词短语')) return 'bg-amber-100 dark:bg-amber-900/30';
-        if (comment.includes('状语')) return 'bg-cyan-100 dark:bg-cyan-900/30';
-
-        return 'bg-secondary/50';
-    };
+    const groupColors = [
+        'bg-red-100 dark:bg-red-900/30',
+        'bg-green-100 dark:bg-green-900/30',
+        'bg-blue-100 dark:bg-blue-900/30',
+        'bg-yellow-100 dark:bg-yellow-900/30',
+        'bg-sky-100 dark:bg-sky-900/30',
+        'bg-indigo-100 dark:bg-indigo-900/30',
+        'bg-amber-100 dark:bg-amber-900/30',
+        'bg-cyan-100 dark:bg-cyan-900/30',
+    ];
 
     const content = process(messageContent, analysis?.structure?.phraseGroups);
     
@@ -96,14 +85,13 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
                         </span>
                     );
                 } else {
-                    // 短语分组只保留背景色，文本仍参与普通行内排版。
-                    const tags = group.tags ?? [];
+                    // 意群颜色只用于视觉分组，按出现顺序轮换，不承载句法语义。
                     return (
                         <span
                             key={`group:${i}:${group.original}`}
                             className={cn(
                                 'box-decoration-clone rounded-md py-0.5 font-medium',
-                                mapColor(tags)
+                                groupColors[i % groupColors.length]
                             )}
                         >
                             {group.original}

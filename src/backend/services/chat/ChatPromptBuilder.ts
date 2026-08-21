@@ -158,8 +158,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         text,
         '',
         '要求:',
-        '- structure: 句子意群拆解，phraseGroups 按原句顺序排列，并给出中文翻译与必要标签。',
-        '- structure: phraseGroups 的 tags 字段必须存在；没有标签时返回空数组。',
+        '- structure: 句子意群拆解，phraseGroups 按原句顺序排列，并给出每个意群的中文翻译。',
         '- vocab: 提取对中级学习者可能生僻的新词，给出音标与中文释义；没有就返回空数组并 hasNewWord=false。',
         '- phrases: 提取常用词组/固定搭配，给出中文释义；没有就返回空数组并 hasPhrase=false。',
         '- grammar: 用中文 Markdown 简洁解释语法点，避免使用标题语法（如 #/##/###），用加粗或列表代替。',
@@ -168,7 +167,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         '- examples 结构必须是 sentences 数组，每项包含 sentence/meaning/points，禁止额外字段。',
         '',
         '输出结构（紧凑字段契约）:',
-        '- structure → phraseGroups[]（original / translation / tags[]）',
+        '- structure → phraseGroups[]（original / translation）',
         '- vocab → hasNewWord + words[]（word / phonetic / meaning）',
         '- phrases → hasPhrase + phrases[]（phrase / meaning）',
         '- grammar → hasGrammar + grammarsMd',
@@ -180,7 +179,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         '  "structure": {',
         '    "sentence": "目标句子的完整原文",',
         '    "phraseGroups": [',
-        '      { "original": "意群原文", "translation": "意群的中文翻译", "tags": ["标签"] }',
+        '      { "original": "意群原文", "translation": "意群的中文翻译" }',
         '    ]',
         '  },',
         '  "vocab": {',
@@ -312,8 +311,7 @@ export const buildChatBackgroundMessage = (
     if (analysis?.structure?.phraseGroups?.length) {
         const lines = analysis.structure.phraseGroups.map(
             (group: AiUnifiedAnalysisRes['structure']['phraseGroups'][number]) => {
-            const tags = group.tags?.length ? ` (${group.tags.join('、')})` : '';
-            return `- ${group.original ?? ''} -> ${group.translation ?? ''}${tags}`;
+            return `- ${group.original ?? ''} -> ${group.translation ?? ''}`;
         });
         parts.push(['知识点-意群拆解:', ...lines].join('\n'));
     }

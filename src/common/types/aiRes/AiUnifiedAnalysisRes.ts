@@ -7,7 +7,6 @@ export const AiUnifiedAnalysisSchema = z.object({
             z.object({
                 original: z.string().describe('The original text of the phrase group.'),
                 translation: z.string().describe('The translation of the phrase group in Chinese(简体中文).'),
-                tags: z.array(z.string()).describe('Tags for the phrase group in Chinese(简体中文).'),
             })
         ).describe('Phrase groups that compose the sentence.'),
     }),
