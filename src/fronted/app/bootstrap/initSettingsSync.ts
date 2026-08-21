@@ -29,13 +29,11 @@ export function initSettingsSync(): () => void {
         if (subtitleProvider !== 'openai' && subtitleProvider !== 'tencent' && subtitleProvider !== 'none') {
             throw new Error(`运行时字幕翻译引擎无效: ${subtitleProvider}`);
         }
-        useTranslation.getState().setEngine(subtitleProvider);
-
         const subtitleMode = snapshot['features.openai.subtitleTranslationMode'];
         if (subtitleMode !== 'zh' && subtitleMode !== 'simple_en' && subtitleMode !== 'custom') {
             throw new Error(`运行时字幕翻译模式无效: ${subtitleMode}`);
         }
-        useTranslation.getState().setOpenAiMode(subtitleMode);
+        useTranslation.getState().initializeRuntimeSettings(subtitleProvider, subtitleMode);
     }).catch((error) => {
         logger.error('failed to sync runtime settings', { error });
     });
