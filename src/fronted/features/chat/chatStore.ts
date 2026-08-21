@@ -294,11 +294,11 @@ const useChatPanel = create(
             if (event.sessionId !== get().chatSessionId) {
                 return;
             }
-            if (event.event === 'start') {
+            if (event.chunk.type === 'start') {
                 analysisStreamChunkCount = 0;
                 set({
                     analysis: {},
-                    analysisMessageId: event.messageId,
+                    analysisMessageId: event.chunk.messageId ?? event.messageId,
                     analysisStatus: 'streaming',
                     analysisError: null,
                 });
@@ -309,10 +309,11 @@ const useChatPanel = create(
                 return;
             }
 
-            if (event.event === 'chunk' && event.partial) {
+            if (event.chunk.type === 'data-analysis') {
+                const partial = event.chunk.data as DeepPartial<AiUnifiedAnalysisRes>;
                 analysisStreamChunkCount += 1;
                 const logger = getRendererLogger('useChatPanel');
-                const partialExamples = event.partial.examples;
+                const partialExamples = partial.examples;
                 // chunk 频率极高且带示例句全文，仅首 chunk 与每 20 个采样一次。
                 if (partialExamples && (analysisStreamChunkCount === 1 || analysisStreamChunkCount % 20 === 0)) {
                     logger.debug('analysis examples chunk', {
@@ -322,25 +323,25 @@ const useChatPanel = create(
                     });
                 }
                 set({
-                    analysis: mergeAnalysisPartial(get().analysis ?? {}, event.partial),
+                    analysis: mergeAnalysisPartial(get().analysis ?? {}, partial),
                     analysisStatus: 'streaming',
                 });
                 return;
             }
-            if (event.event === 'done') {
+            if (event.chunk.type === 'finish') {
                 set({
                     analysisStatus: 'done',
                 });
                 return;
             }
-            if (event.event === 'error') {
+            if (event.chunk.type === 'error') {
                 set({
                     analysisStatus: 'error',
-                    analysisError: event.error ?? 'analysis error',
+                    analysisError: event.chunk.errorText,
                 });
                 return;
             }
-            if (event.event === 'cancelled') {
+            if (event.chunk.type === 'abort') {
                 set({
                     analysisStatus: 'idle',
                     analysisMessageId: null,
@@ -354,7 +355,6 @@ const useChatPanel = create(
             }
             const { messageId } = await chatApi.startAnalysis({
                 sessionId: get().chatSessionId,
-                text,
             });
             set({
                 analysis: {},
@@ -495,26 +495,33 @@ const extractTopic = (t: Topic): string => {
     if (typeof t.content === 'string') return t.content;
     const content = t.content;
     const subtitle = usePlayer.getState().sentences;
-    const length = subtitle?.length ?? 0;
-    if (length === 0 || content.start.sIndex > length || content.end.sIndex > length) {
-        return 'extractTopic failed';
+    const getSubtitle = (index: number) => {
+        const direct = subtitle[index];
+        if (direct?.index === index) return direct;
+        return subtitle.find((sentence) => sentence.index === index);
+    };
+    const startSentence = getSubtitle(content.start.sIndex);
+    const endSentence = getSubtitle(content.end.sIndex);
+    if (!startSentence || !endSentence || content.start.sIndex > content.end.sIndex) {
+        throw new Error('字幕范围无效，无法提取整句学习主题');
     }
-    let st = subtitle[content.start.sIndex].text;
+
+    const startOffset = Math.max(0, Math.min(content.start.cIndex, startSentence.text.length));
+    const endOffset = Math.max(0, Math.min(content.end.cIndex, endSentence.text.length));
     if (content.start.sIndex === content.end.sIndex) {
-        if (content.start.cIndex > 0 && content.end.cIndex <= st.length && content.start.cIndex < content.end.cIndex) {
-            st = st.slice(content.start.cIndex, content.end.cIndex);
+        return startSentence.text.slice(startOffset, endOffset);
+    }
+
+    const range: string[] = [startSentence.text.slice(startOffset)];
+    for (let index = content.start.sIndex + 1; index < content.end.sIndex; index += 1) {
+        const sentence = getSubtitle(index);
+        if (!sentence) {
+            throw new Error(`字幕范围缺少第 ${index} 条字幕`);
         }
-        return st;
+        range.push(sentence.text);
     }
-    // from t.start.cIndex to end of st
-    if (content.start.cIndex > 0 && content.start.cIndex <= st.length) {
-        st = st.slice(content.start.cIndex);
-    }
-    let et = subtitle[content.end.sIndex].text;
-    if (content.end.cIndex > 0 && content.end.cIndex <= et.length) {
-        et = et.slice(0, content.end.cIndex);
-    }
-    return `${st} ${et}`;
+    range.push(endSentence.text.slice(0, endOffset));
+    return range.filter((text) => text.length > 0).join(' ');
 };
 
 export default useChatPanel;

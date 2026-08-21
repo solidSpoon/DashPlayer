@@ -47,7 +47,6 @@ export default interface ChatSessionStore {
 @injectable()
 export class InMemoryChatSessionStore implements ChatSessionStore {
     private readonly sessions = new Map<string, ChatSession>();
-    private readonly sessionIdsByVideo = new Map<string, string[]>();
 
     /**
      * 创建新会话并把它加入对应视频的会话组。
@@ -69,8 +68,6 @@ export class InMemoryChatSessionStore implements ChatSessionStore {
             runs: new Map(),
         };
         this.sessions.set(id, session);
-        const videoSessionIds = this.sessionIdsByVideo.get(params.videoId) ?? [];
-        this.sessionIdsByVideo.set(params.videoId, [...videoSessionIds, id]);
         return session;
     }
 

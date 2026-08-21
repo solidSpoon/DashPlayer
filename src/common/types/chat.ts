@@ -64,10 +64,6 @@ export type ChatStartResult = {
 export type ChatWelcomeParams = {
     /** 已由 main 进程持有上下文的会话 ID。 */
     sessionId: string;
-    /** 仅供生成提示词的内部调用使用，renderer 不应传入。 */
-    originalTopic?: string;
-    /** 仅供生成提示词的内部调用使用，renderer 不应传入。 */
-    fullText?: string;
 };
 
 /**

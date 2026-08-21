@@ -44,31 +44,55 @@ const normalizeCustomProtocolLinks = (value: string): string => {
 };
 
 /**
- * 预处理 AI 自定义标记，并转成统一的 Markdown 链接格式。
+ * 逐个解析 AI 标记，避免用正则吞掉后续 Markdown 或被标记内容中的特殊字符干扰。
+ * 未闭合或空标记会原样保留，便于流式文本在下一次更新时继续解析。
  */
 const preprocessMarkers = (value: string): string => {
-    const withMarkersExpanded = value.replace(/\[\[(tts|switch):([\s\S]*?)\]\]/g, (_full, markerType, markerValue) => {
+    const markerStart = /\[\[(tts|switch):/g;
+    let result = '';
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = markerStart.exec(value)) !== null) {
+        result += value.slice(cursor, match.index);
+        const end = value.indexOf(']]', markerStart.lastIndex);
+        if (end < 0) {
+            result += value.slice(match.index);
+            cursor = value.length;
+            break;
+        }
+
+        const markerType = match[1];
+        const markerValue = value.slice(markerStart.lastIndex, end);
+        const text = markerValue.trim();
+        if (!text) {
+            cursor = end + 2;
+            markerStart.lastIndex = cursor;
+            continue;
+        }
+
         if (markerType === 'tts') {
-            const text = markerValue.trim();
-            if (!text) {
-                return '';
-            }
             const label = escapeLinkText(text);
-            const href = `${TTS_LINK_PREFIX}${encodeURIComponent(text)}`;
-            return `[${label}](${href})`;
-        }
-        if (markerType === 'switch') {
-            const [encoded, rawLabel] = markerValue.split('|');
-            const safeEncoded = (encoded ?? '').trim();
-            if (!safeEncoded) {
-                return '';
+            result += `[${label}](${TTS_LINK_PREFIX}${encodeURIComponent(text)})`;
+        } else {
+            const separator = markerValue.indexOf('|');
+            const target = (separator < 0 ? markerValue : markerValue.slice(0, separator)).trim();
+            const label = (separator < 0 ? '' : markerValue.slice(separator + 1)).trim() || '点击切换';
+            if (!target) {
+                result += value.slice(match.index, end + 2);
+            } else {
+                result += `[${escapeLinkText(label)}](${SWITCH_LINK_PREFIX}${encodeURIComponent(target)})`;
             }
-            const label = escapeLinkText((rawLabel ?? '').trim() || '点击切换');
-            return `[${label}](${SWITCH_LINK_PREFIX}${safeEncoded})`;
         }
-        return _full;
-    });
-    return normalizeCustomProtocolLinks(withMarkersExpanded);
+
+        cursor = end + 2;
+        markerStart.lastIndex = cursor;
+    }
+
+    if (cursor < value.length) {
+        result += value.slice(cursor);
+    }
+    return normalizeCustomProtocolLinks(result);
 };
 
 /**

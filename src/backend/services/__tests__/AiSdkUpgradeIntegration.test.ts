@@ -219,7 +219,8 @@ const runTests = (): void => {
                 const gateway: RendererGateway = {
                     call: vi.fn(),
                     fireAndForget: vi.fn((_path: never, params: Record<string, unknown>) => {
-                        events.push({ event: String(params.event), payload: params });
+                        const chunk = params.chunk as { type?: string } | undefined;
+                        events.push({ event: chunk?.type ?? 'unknown', payload: params });
                     }) as RendererGateway['fireAndForget'],
                 };
                 const sessionService = new ChatSessionServiceImpl();
@@ -228,17 +229,16 @@ const runTests = (): void => {
 
                 await sessionService.startWelcome({
                     sessionId: 's-welcome',
-                    originalTopic: 'The monkeys start off by expecting zero reward.',
                 });
                 // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
                 const deadline = Date.now() + 10000;
-                while (!events.some((e) => e.event === 'done') && Date.now() < deadline) {
+                while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 10));
                 }
-                const chunks = events.filter((e) => e.event === 'chunk');
-                const done = events.find((e) => e.event === 'done');
+                const chunks = events.filter((e) => e.event === 'text-delta');
+                const done = events.find((e) => e.event === 'finish');
                 expect(chunks.length).toBeGreaterThan(0);
-                expect(chunks.map((c) => String(c.payload.chunk)).join('')).toContain('你好');
+                expect(chunks.map((c) => String((c.payload.chunk as { delta?: string }).delta ?? '')).join('')).toContain('你好');
                 expect(done).toBeDefined();
             }, 15000);
         });
@@ -483,7 +483,8 @@ const runTests = (): void => {
                 gateway = {
                     call: vi.fn(),
                     fireAndForget: vi.fn((_path: never, params: Record<string, unknown>) => {
-                        events.push({ event: String(params.event), payload: params });
+                        const chunk = params.chunk as { type?: string } | undefined;
+                        events.push({ event: chunk?.type ?? 'unknown', payload: params });
                     }) as RendererGateway['fireAndForget'],
                 };
                 sessionService = new ChatSessionServiceImpl();
@@ -495,35 +496,34 @@ const runTests = (): void => {
                 events.length = 0;
                 await sessionService.startAnalysis({
                     sessionId: 's1',
-                    text: 'The quick brown fox jumps over the lazy dog.',
                 });
                 // startAnalysis 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
                 const deadline = Date.now() + 45000;
-                while (!events.some((e) => e.event === 'done') && Date.now() < deadline) {
+                while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 100));
                 }
-                const chunks = events.filter((e) => e.event === 'chunk');
-                const done = events.find((e) => e.event === 'done');
+                const chunks = events.filter((e) => e.event === 'data-analysis');
+                const done = events.find((e) => e.event === 'finish');
                 expect(chunks.length).toBeGreaterThan(0);
                 expect(done).toBeDefined();
                 const lastChunk = chunks[chunks.length - 1];
-                const partial = lastChunk.payload.partial as { structure?: unknown };
-                expect(partial.structure).toBeDefined();
+                const partial = (lastChunk.payload.chunk as { data?: { structure?: unknown } }).data;
+                expect(partial).toBeDefined();
+                expect(partial?.structure).toBeDefined();
             }, 60000);
 
             it('真实连接：startWelcome() 能流式产出欢迎语并通过事件回推', async () => {
                 events.length = 0;
                 await sessionService.startWelcome({
                     sessionId: 's2',
-                    originalTopic: 'The quick brown fox jumps over the lazy dog.',
                 });
                 // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
                 const deadline = Date.now() + 45000;
-                while (!events.some((e) => e.event === 'done') && Date.now() < deadline) {
+                while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 100));
                 }
-                const chunks = events.filter((e) => e.event === 'chunk');
-                const done = events.find((e) => e.event === 'done');
+                const chunks = events.filter((e) => e.event === 'text-delta');
+                const done = events.find((e) => e.event === 'finish');
                 expect(chunks.length).toBeGreaterThan(0);
                 expect(done).toBeDefined();
             }, 60000);

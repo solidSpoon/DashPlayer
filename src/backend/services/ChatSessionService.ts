@@ -111,7 +111,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
-            event: 'start',
+            chunk: { type: 'start', messageId },
         });
 
         const model = this.aiProviderService.getModel('sentenceLearning');
@@ -119,8 +119,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
-                event: 'error',
-                error: 'OpenAI api key or endpoint is empty',
+                chunk: { type: 'error', errorText: 'OpenAI api key or endpoint is empty' },
             });
             return { messageId };
         }
@@ -288,8 +287,11 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
-                event: 'chunk',
-                partial: this.normalizeAnalysisPartial(partial),
+                chunk: {
+                    type: 'data-analysis',
+                    id: messageId,
+                    data: this.normalizeAnalysisPartial(partial),
+                },
             });
         }
         streamLogger.info('analysis stream done', { sessionId, messageId, chunkCount });
@@ -299,13 +301,12 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
-            event: 'chunk',
-            partial: finalObject,
+            chunk: { type: 'data-analysis', id: messageId, data: finalObject },
         });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
-            event: 'done',
+            chunk: { type: 'finish', finishReason: 'stop' },
         });
     }
 
@@ -348,8 +349,9 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
-            event: cancelled ? 'cancelled' : 'error',
-            error: cancelled ? undefined : errorMessage,
+            chunk: cancelled
+                ? { type: 'abort', reason: '用户已取消分析' }
+                : { type: 'error', errorText: errorMessage },
         });
     }
 

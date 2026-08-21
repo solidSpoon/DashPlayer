@@ -123,12 +123,11 @@ export function initRendererApis(): () => void {
     });
 
     register('chat/analysis/stream', async (params) => {
-        if (params.event !== 'chunk') {
+        if (params.chunk.type !== 'data-analysis') {
             logger.debug('Analysis stream event', {
                 sessionId: params.sessionId,
                 messageId: params.messageId,
-                event: params.event,
-                error: params.error,
+                event: params.chunk.type,
             });
         }
         useChatPanel.getState().receiveAnalysisStream(params);
