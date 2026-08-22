@@ -12,6 +12,7 @@ import {
     ChatStartResult,
     ChatWelcomeParams,
 } from '@/common/types/chat';
+import type { ChatReasoningEffort } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
@@ -28,7 +29,7 @@ export default interface ChatSessionService {
     create(params: ChatSessionCreateParams): ChatSessionCreateResult;
     close(sessionId: string): void;
     stop(sessionId: string): void;
-    start(sessionId: string, content: string): Promise<ChatStartResult>;
+    start(sessionId: string, content: string, reasoningEffort?: ChatReasoningEffort): Promise<ChatStartResult>;
     startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult>;
     startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult>;
 }
@@ -98,8 +99,9 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             sessionId,
             originalTopic: session.originalTopic,
             fullText: session.paragraphLines.join(' '),
+            subtitleOverview: this.getSubtitleOverview(session.subtitleFileHash, session.anchorSentenceIndex),
         });
-        this.startTextRun(sessionId, messageId, messages, 'welcome');
+        this.startTextRun(sessionId, messageId, messages, 'welcome', params.reasoningEffort ?? 'medium');
 
         return { messageId };
     }
@@ -142,19 +144,24 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * 向会话追加用户消息并基于 main 进程持有的历史启动回答。
      * @param sessionId 会话 ID。
      * @param content 新增的用户文本。
+     * @param reasoningEffort 本次回答的推理强度，未传时使用中档。
      * @returns 新 assistant 消息的 ID。
      */
     @WithRateLimit('gpt')
     public async start(
         sessionId: string,
         content: string,
+        reasoningEffort: ChatReasoningEffort = 'medium',
     ): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
         this.chatSessionStore.appendMessage(sessionId, { role: 'user', content });
         const session = this.chatSessionStore.get(sessionId);
         const enrichedMessages = appendBackgroundMessage(
             [...session.messages],
-            this.chatSessionStore.getBackground(sessionId),
+            {
+                ...this.chatSessionStore.getBackground(sessionId),
+                subtitleOverview: this.getSubtitleOverview(session.subtitleFileHash, session.anchorSentenceIndex),
+            },
         );
         const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
@@ -165,7 +172,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             return { messageId };
         }
 
-        this.startTextRun(sessionId, messageId, enrichedMessages, 'chat');
+        this.startTextRun(sessionId, messageId, enrichedMessages, 'chat', reasoningEffort);
 
         return { messageId };
     }
@@ -182,9 +189,10 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         messageId: string,
         messages: ModelMessage[],
         runType: 'welcome' | 'chat',
+        reasoningEffort: ChatReasoningEffort,
     ): void {
         const abortSignal = this.chatSessionStore.startRun(sessionId, messageId);
-        this.runStream(sessionId, messageId, messages, abortSignal)
+        this.runStream(sessionId, messageId, messages, abortSignal, reasoningEffort)
             .catch((error) => this.handleTextError(sessionId, messageId, runType, error))
             .finally(() => this.chatSessionStore.finishRun(sessionId, messageId));
     }
@@ -195,14 +203,16 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * @param messageId assistant 消息 ID。
      * @param messages 本次模型消息。
      * @param abortSignal 会话生命周期对应的取消信号。
+     * @param reasoningEffort 本次回答的推理强度。
      */
     private async runStream(
         sessionId: string,
         messageId: string,
         messages: ModelMessage[],
         abortSignal: AbortSignal,
+        reasoningEffort: ChatReasoningEffort,
     ): Promise<void> {
-        const model = this.aiProviderService.getModel('sentenceLearning');
+        const model = this.aiProviderService.getModel('sentenceLearning', reasoningEffort);
         if (!model) {
             return;
         }
@@ -333,6 +343,30 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                     };
                 },
             }),
+        };
+    }
+
+    /**
+     * 从后端字幕缓存生成给 Agent 的全局概览，避免把完整字幕正文重复塞进提示词。
+     * @param subtitleFileHash 当前会话绑定的字幕缓存键。
+     * @param anchorIndex 当前学习句的字幕索引。
+     * @returns 字幕行数、字符数和索引范围。
+     */
+    private getSubtitleOverview(
+        subtitleFileHash: string,
+        anchorIndex: number,
+    ) {
+        const cached = this.cacheService.get('cache:srt', subtitleFileHash);
+        if (!cached || cached.sentences.length === 0) {
+            throw new Error('当前会话的字幕缓存不存在或为空');
+        }
+        const indexes = cached.sentences.map((sentence) => sentence.index);
+        return {
+            lineCount: cached.sentences.length,
+            characterCount: cached.sentences.reduce((total, sentence) => total + Array.from(sentence.text).length, 0),
+            minIndex: Math.min(...indexes),
+            maxIndex: Math.max(...indexes),
+            anchorIndex,
         };
     }
 

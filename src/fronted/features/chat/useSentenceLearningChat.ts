@@ -1,8 +1,16 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { getToolName, isToolUIPart, type UIMessage } from 'ai';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { ElectronChatTransport } from '@/fronted/features/chat/chatTransport';
+import type { ChatReasoningEffort } from '@/common/types/chat';
+
+const REASONING_EFFORT_STORAGE_KEY = 'dashplayer.sentence-learning.reasoning-effort';
+const reasoningEfforts: ChatReasoningEffort[] = ['low', 'medium', 'high'];
+
+/** 判断持久化值是否属于整句学习支持的推理档位。 */
+const isChatReasoningEffort = (value: string | null): value is ChatReasoningEffort =>
+    value !== null && reasoningEfforts.includes(value as ChatReasoningEffort);
 
 /** 整句学习聊天消息的 UI 元数据。 */
 export type SentenceLearningMessageMetadata = {
@@ -98,6 +106,11 @@ const getSubtitleAgentView = (
  */
 export const useSentenceLearningChat = () => {
     const { chatSessionId, topicText, queuedMessage, consumeQueuedMessage, input, setInput } = useChatPanel();
+    const [reasoningEffort, setReasoningEffortState] = useState<ChatReasoningEffort>(() => {
+        const stored = window.localStorage.getItem(REASONING_EFFORT_STORAGE_KEY);
+        return isChatReasoningEffort(stored) ? stored : 'medium';
+    });
+    const welcomeSentSessionRef = useRef<string | null>(null);
     const transport = useMemo(() => new ElectronChatTransport<SentenceLearningMessage>(), []);
     const chat = useChat<SentenceLearningMessage>({
         id: chatSessionId || 'inactive-chat-session',
@@ -108,11 +121,20 @@ export const useSentenceLearningChat = () => {
     const isBusy = status === 'submitted' || status === 'streaming';
 
     useEffect(() => {
-        if (!chatSessionId || !topicText || messages.length > 0 || status !== 'ready') {
+        if (
+            !chatSessionId
+            || !topicText
+            || messages.length > 0
+            || status !== 'ready'
+            || welcomeSentSessionRef.current === chatSessionId
+        ) {
             return;
         }
-        sendMessage({ text: topicText, metadata: { kind: 'topic' } }, { body: { mode: 'welcome' } }).catch(() => undefined);
-    }, [chatSessionId, messages.length, sendMessage, status, topicText]);
+        welcomeSentSessionRef.current = chatSessionId;
+        sendMessage({ text: topicText, metadata: { kind: 'topic' } }, {
+            body: { mode: 'welcome', reasoningEffort },
+        }).catch(() => undefined);
+    }, [chatSessionId, messages.length, reasoningEffort, sendMessage, status, topicText]);
 
     useEffect(() => {
         if (!queuedMessage || status !== 'ready') {
@@ -120,8 +142,14 @@ export const useSentenceLearningChat = () => {
         }
         const { id, content } = queuedMessage;
         consumeQueuedMessage(id);
-        sendMessage({ text: content, metadata: { kind: 'chat' } }).catch(() => undefined);
-    }, [consumeQueuedMessage, queuedMessage, sendMessage, status]);
+        sendMessage({ text: content, metadata: { kind: 'chat' } }, { body: { reasoningEffort } }).catch(() => undefined);
+    }, [consumeQueuedMessage, queuedMessage, reasoningEffort, sendMessage, status]);
+
+    /** 更新并持久化整句学习聊天的推理强度，不影响其它 AI 场景。 */
+    const setReasoningEffort = (value: ChatReasoningEffort) => {
+        setReasoningEffortState(value);
+        window.localStorage.setItem(REASONING_EFFORT_STORAGE_KEY, value);
+    };
 
     /**
      * 提交输入框内容；生成期间拒绝重复提交，并在发起请求前清空受控输入值。
@@ -133,7 +161,7 @@ export const useSentenceLearningChat = () => {
             return;
         }
         setInput('');
-        await sendMessage({ text: trimmedInput, metadata: { kind: 'chat' } });
+        await sendMessage({ text: trimmedInput, metadata: { kind: 'chat' } }, { body: { reasoningEffort } });
     };
 
     return {
@@ -146,6 +174,8 @@ export const useSentenceLearningChat = () => {
         setInput,
         handleSubmit,
         isBusy,
+        reasoningEffort,
+        setReasoningEffort,
         subtitleAgentView: getSubtitleAgentView(messages, status),
     };
 };

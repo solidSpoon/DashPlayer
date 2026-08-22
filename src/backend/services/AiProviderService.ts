@@ -6,11 +6,12 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { LanguageModel, wrapLanguageModel } from 'ai';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import TYPES from '@/backend/ioc/types';
+import type { ChatReasoningEffort } from '@/common/types/chat';
 
 export type AiModelScene = 'sentenceLearning' | 'subtitleTranslation' | 'dictionary';
 
 export default interface AiProviderService {
-    getModel(scene: AiModelScene): LanguageModel | null;
+    getModel(scene: AiModelScene, reasoningEffort?: ChatReasoningEffort): LanguageModel | null;
 }
 
 
@@ -51,7 +52,7 @@ export class AiProviderServiceImpl implements AiProviderService {
     @inject(TYPES.ModelRoutingService)
     private modelRoutingService!: ModelRoutingService;
 
-    public getModel(scene: AiModelScene): LanguageModel | null {
+    public getModel(scene: AiModelScene, reasoningEffort?: ChatReasoningEffort): LanguageModel | null {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         const routedModel = this.modelRoutingService.resolveOpenAiModel(scene);
@@ -91,7 +92,7 @@ export class AiProviderServiceImpl implements AiProviderService {
                     ...params,
                     providerOptions: {
                         ...params.providerOptions,
-                        openai: { reasoningEffort: 'none' },
+                        openai: { reasoningEffort: reasoningEffort ?? 'none' },
                     },
                 }),
             },

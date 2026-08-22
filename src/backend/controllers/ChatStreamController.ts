@@ -34,7 +34,7 @@ export default class ChatStreamController implements Controller {
         });
 
         registerRoute('chat/start', async (params: ChatStartParams): Promise<ChatStartResult> => {
-            return this.chatSessionService.start(params.sessionId, params.content);
+            return this.chatSessionService.start(params.sessionId, params.content, params.reasoningEffort);
         });
 
         registerRoute('chat/welcome', async (params: ChatWelcomeParams): Promise<ChatStartResult> => {

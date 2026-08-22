@@ -1,5 +1,6 @@
 import { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatApi } from '@/fronted/features/chat/chatApi';
+import type { ChatReasoningEffort } from '@/common/types/chat';
 
 /**
  * Electron transport 当前正在消费的标准 UI 消息流。
@@ -51,6 +52,7 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
             .map((part) => part.text)
             .join('') ?? '';
         const mode = (options.body as { mode?: unknown } | undefined)?.mode;
+        const reasoningEffort = (options.body as { reasoningEffort?: ChatReasoningEffort } | undefined)?.reasoningEffort;
 
         return new ReadableStream<UIMessageChunk>({
             start: (controller) => {
@@ -64,8 +66,8 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                 });
 
                 const request = mode === 'welcome'
-                    ? chatApi.getWelcome({ sessionId })
-                    : chatApi.start({ sessionId, content });
+                    ? chatApi.getWelcome({ sessionId, reasoningEffort })
+                    : chatApi.start({ sessionId, content, reasoningEffort });
                 request.catch((error) => {
                     const active = activeStreams.get(sessionId);
                     if (!active) {

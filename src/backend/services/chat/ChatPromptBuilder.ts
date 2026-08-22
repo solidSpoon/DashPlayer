@@ -12,6 +12,8 @@ type ChatWelcomePromptParams = {
     originalTopic: string;
     /** 创建会话时冻结的完整段落。 */
     fullText?: string;
+    /** 完整字幕的统计概览，不包含字幕正文。 */
+    subtitleOverview?: ChatBackgroundContext['subtitleOverview'];
 };
 
 export const buildWelcomeMessages = (params: ChatWelcomePromptParams): ModelMessage[] => {
@@ -62,6 +64,16 @@ export const buildWelcomeMessages = (params: ChatWelcomePromptParams): ModelMess
             '完整段落（用于判断句子是否被字幕换行截断）：',
             '',
             params.fullText,
+        );
+    }
+
+    if (params.subtitleOverview) {
+        userLines.push(
+            '',
+            '字幕全局概览（用于决定是否需要继续查找）：',
+            `- 共 ${params.subtitleOverview.lineCount} 行，约 ${params.subtitleOverview.characterCount} 个字符`,
+            `- 字幕索引范围 ${params.subtitleOverview.minIndex} 至 ${params.subtitleOverview.maxIndex}`,
+            `- 当前学习句索引为 ${params.subtitleOverview.anchorIndex}`,
         );
     }
 
@@ -305,6 +317,17 @@ export const buildChatBackgroundMessage = (
 ): ModelMessage | null => {
     const parts: string[] = [];
     const paragraphLines = background?.paragraphLines ?? [];
+    const subtitleOverview = background?.subtitleOverview;
+    if (subtitleOverview) {
+        parts.push([
+            '字幕全局概览（完整字幕可通过工具查找和读取）:',
+            `- 总行数：${subtitleOverview.lineCount}`,
+            `- 总字符数：${subtitleOverview.characterCount}`,
+            `- 字幕索引范围：${subtitleOverview.minIndex} - ${subtitleOverview.maxIndex}`,
+            `- 当前学习句索引：${subtitleOverview.anchorIndex}`,
+            '- 需要查找前文、后文、人物或事件时，先搜索关键词，再用索引读取连续上下文。',
+        ].join('\n'));
+    }
     if (paragraphLines.length > 0) {
         parts.push([
             '原始段落（上下文 11 句）:',

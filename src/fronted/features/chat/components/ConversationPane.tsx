@@ -1,7 +1,7 @@
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import UserTopicMessage from '@/fronted/features/chat/components/messages/UserTopicMessage';
 import { getToolName, isToolUIPart } from 'ai';
-import { AlertCircle, LoaderCircle } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { SentenceLearningChat, SentenceLearningMessage } from '@/fronted/features/chat/useSentenceLearningChat';
 import {
     Conversation,
@@ -20,6 +20,21 @@ import {
     PromptInputTextarea,
 } from '@/fronted/components/ai-elements/prompt-input';
 import { Spinner } from '@/fronted/components/ui/spinner';
+import {
+    Tool,
+    ToolContent,
+    ToolHeader,
+    ToolInput,
+    ToolOutput,
+} from '@/fronted/components/ai-elements/tool';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/fronted/components/ui/select';
+import type { ChatReasoningEffort } from '@/common/types/chat';
 import Markdown from '@/fronted/components/shared/markdown/Markdown';
 
 /**
@@ -56,45 +71,75 @@ const getToolTitle = (toolName: string): string => {
  * @returns 消息片段节点。
  */
 const renderMessageParts = (message: SentenceLearningMessage) => {
-    const activeToolIndexes = message.parts.reduce<number[]>((indexes, part, index) => {
-        if (isToolUIPart(part) && part.state !== 'output-available') {
-            indexes.push(index);
-        }
-        return indexes;
-    }, []);
-    const firstActiveToolIndex = activeToolIndexes[0];
-
-    return message.parts.map((part, partIndex) => {
+    const renderedParts: ReactNode[] = [];
+    message.parts.forEach((part, partIndex) => {
         if (part.type === 'text') {
-            return <Markdown key={`text-${partIndex}`}>{part.text}</Markdown>;
+            renderedParts.push(<Markdown key={`text-${partIndex}`}>{part.text}</Markdown>);
+            return;
         }
         if (!isToolUIPart(part)) {
-            return null;
+            return;
         }
-        if (partIndex !== firstActiveToolIndex) {
-            return null;
+        if (partIndex > 0 && isToolUIPart(message.parts[partIndex - 1])) {
+            return;
         }
-
-        const toolName = getToolName(part);
-        const hasError = activeToolIndexes.some(index => {
-            const activePart = message.parts[index];
-            return isToolUIPart(activePart) && activePart.state === 'output-error';
-        });
-        return (
-            <div
-                key={`tool-status-${part.toolCallId}`}
-                className="flex items-center gap-2 text-xs text-muted-foreground"
-                role="status"
+        const toolParts = [] as typeof part[];
+        for (let index = partIndex; index < message.parts.length; index += 1) {
+            const groupedPart = message.parts[index];
+            if (!isToolUIPart(groupedPart)) {
+                break;
+            }
+            toolParts.push(groupedPart);
+        }
+        const activePart = toolParts.find((toolPart) => toolPart.state !== 'output-available') ?? toolParts[0];
+        const toolTitles = toolParts.reduce<string[]>((titles, toolPart) => {
+            const title = getToolTitle(getToolName(toolPart));
+            if (!titles.includes(title)) {
+                titles.push(title);
+            }
+            return titles;
+        }, []);
+        const toolCountLabel = `${toolTitles.join(' · ')}${toolParts.length > 1 ? ` · ${toolParts.length} 次` : ''}`;
+        renderedParts.push(
+            <Tool
+                key={`tool-group-${part.toolCallId}`}
+                className="my-1 w-fit max-w-full rounded-md border-0 bg-transparent shadow-none"
+                defaultOpen={false}
             >
-                {hasError ? (
-                    <AlertCircle className="size-3.5 text-destructive" />
+                {activePart.type === 'dynamic-tool' ? (
+                    <ToolHeader
+                        type={activePart.type}
+                        state={activePart.state}
+                        toolName={getToolName(activePart)}
+                        className="h-7 justify-start gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-normal hover:bg-muted/50"
+                        title={toolCountLabel}
+                    />
                 ) : (
-                    <LoaderCircle className="size-3.5 animate-spin" />
+                    <ToolHeader
+                        type={activePart.type}
+                        state={activePart.state}
+                        className="h-7 justify-start gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-normal hover:bg-muted/50"
+                        title={toolCountLabel}
+                    />
                 )}
-                <span>{hasError ? '字幕上下文读取失败' : `正在${getToolTitle(toolName)}…`}</span>
-            </div>
+                <ToolContent>
+                    {toolParts.map((toolPart) => (
+                        <div key={toolPart.toolCallId} className="space-y-2 border-b pb-3 last:border-b-0 last:pb-0">
+                            <div className="text-xs font-medium text-muted-foreground">
+                                {getToolTitle(getToolName(toolPart))}
+                            </div>
+                            {toolPart.input !== undefined && <ToolInput input={toolPart.input} />}
+                            <ToolOutput
+                                output={toolPart.state === 'output-available' ? toolPart.output : undefined}
+                                errorText={toolPart.state === 'output-error' ? toolPart.errorText : undefined}
+                            />
+                        </div>
+                    ))}
+                </ToolContent>
+            </Tool>,
         );
     });
+    return renderedParts;
 };
 
 /**
@@ -153,7 +198,17 @@ const renderMessage = (
  * @returns 完整的聊天列。
  */
 const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
-    const { messages, status, stop, input, setInput, handleSubmit, isBusy } = chat;
+    const {
+        messages,
+        status,
+        stop,
+        input,
+        setInput,
+        handleSubmit,
+        isBusy,
+        reasoningEffort,
+        setReasoningEffort,
+    } = chat;
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-background">
@@ -191,7 +246,23 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                             placeholder="输入你的问题..."
                         />
                     </PromptInputBody>
-                    <PromptInputFooter className="justify-end px-3 pb-2 pt-0">
+                    <PromptInputFooter className="items-center justify-between px-3 pb-2 pt-0">
+                        <Select
+                            value={reasoningEffort}
+                            onValueChange={(value) => setReasoningEffort(value as ChatReasoningEffort)}
+                        >
+                            <SelectTrigger
+                                aria-label="推理强度"
+                                className="h-7 w-auto min-w-20 gap-1 border-0 bg-transparent px-2 text-xs text-muted-foreground shadow-none focus:ring-0"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="low">低推理</SelectItem>
+                                <SelectItem value="medium">中推理</SelectItem>
+                                <SelectItem value="high">高推理</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <PromptInputSubmit
                             disabled={!isBusy && !input.trim()}
                             onStop={stop}
