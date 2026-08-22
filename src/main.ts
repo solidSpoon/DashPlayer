@@ -30,8 +30,20 @@ if (squirrelStartup) {
 
 const logger = getMainLogger('MainStartup');
 const devtoolsLogger = getMainLogger('devtools');
+const startupStartedAt = performance.now();
 // 组合根运行期注入并发工具日志端口，保持通用工具不依赖基础设施。
 setConcurrencyLogger(getMainLogger('concurrency'));
+
+/**
+ * 记录主进程启动阶段耗时，统一使用进程启动后的相对毫秒数。
+ * @param phase 已完成的启动阶段名称。
+ */
+const logStartupPhase = (phase: string): void => {
+    logger.info('startup phase completed', {
+        phase,
+        durationMs: Math.round(performance.now() - startupStartedAt),
+    });
+};
 
 const mainWindowRef = {
     current: null as BrowserWindow | null
@@ -166,6 +178,16 @@ const createWindow = () => {
             }),
     });
     mainWindowRef.current = mainWindow;
+    mainWindow.webContents.once('dom-ready', () => {
+        logger.info('renderer dom ready', {
+            durationMs: Math.round(performance.now() - startupStartedAt),
+        });
+    });
+    mainWindow.webContents.once('did-finish-load', () => {
+        logger.info('renderer finished loading', {
+            durationMs: Math.round(performance.now() - startupStartedAt),
+        });
+    });
     // and load the index.html of the app.
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         void installReactDevTools(mainWindow.webContents.session).then(() => {
@@ -187,15 +209,19 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
     await runStartupMigrations();
+    logStartupPhase('migrations');
     // 数据库迁移完成后再解析控制器，避免服务的 postConstruct 提前访问未建表数据库。
     registerHandler(mainWindowRef);
+    logStartupPhase('controllers');
     await seedDefaultVocabularyIfNeeded();
     await DpTaskServiceImpl.cancelAll();
     await container
         .get<TranscriptionService>(TYPES.LocalTranscriptionService)
         .recoverInterruptedTasks();
+    logStartupPhase('background recovery');
     await runResyncAfterResetDbIfNeeded();
     await initProxyFeature();
+    logStartupPhase('proxy');
     // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。
     logger.info('app ready', {
         version: app.getVersion(),
