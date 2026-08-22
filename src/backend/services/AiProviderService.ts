@@ -52,9 +52,18 @@ export class AiProviderServiceImpl implements AiProviderService {
     @inject(TYPES.ModelRoutingService)
     private modelRoutingService!: ModelRoutingService;
 
+    /**
+     * 获取指定场景当前配置的模型，并校验整句学习功能是否启用。
+     * @param scene AI 使用场景。
+     * @param reasoningEffort 整句学习请求的可选推理强度。
+     * @returns 可调用的语言模型；仅凭据不完整时返回 null，配置异常直接抛错。
+     */
     public getModel(scene: AiModelScene, reasoningEffort?: ChatReasoningEffort): LanguageModel | null {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
+        if (scene === 'sentenceLearning' && storeGet('features.openai.enableSentenceLearning') !== 'true') {
+            throw new Error('整句学习功能未启用，请先在功能设置中启用');
+        }
         const routedModel = this.modelRoutingService.resolveOpenAiModel(scene);
         if (StrUtil.hasBlank(apiKey, endpoint)) {
             return null;

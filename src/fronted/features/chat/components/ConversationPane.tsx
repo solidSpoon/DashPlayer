@@ -1,4 +1,5 @@
 import useChatPanel from '@/fronted/features/chat/chatStore';
+import useSWR, { useSWRConfig } from 'swr';
 import UserTopicMessage from '@/fronted/features/chat/components/messages/UserTopicMessage';
 import { getToolName, isToolUIPart } from 'ai';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -40,6 +41,10 @@ import {
     SelectValue,
 } from '@/fronted/components/ui/select';
 import type { ChatReasoningEffort } from '@/common/types/chat';
+import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { useToast } from '@/fronted/components/ui/use-toast';
 import Markdown from '@/fronted/components/shared/markdown/Markdown';
 
 /**
@@ -344,6 +349,17 @@ const renderMessage = (
  * @returns 完整的聊天列。
  */
 const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
+    const { toast } = useToast();
+    const { mutate } = useSWRConfig();
+    const { data: engineSettings, mutate: mutateEngineSettings } = useSWR<EngineSelectionSettingVO>(
+        'settings/engine-selection/detail',
+        settingsApi.getEngineSelection,
+    );
+    const { data: credentialSettings } = useSWR<ServiceCredentialSettingDetailVO>(
+        'settings/service-credentials/detail',
+        settingsApi.getServiceCredentials,
+    );
+    const [savingModel, setSavingModel] = useState(false);
     const {
         messages,
         status,
@@ -355,6 +371,50 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
         reasoningEffort,
         setReasoningEffort,
     } = chat;
+
+    /**
+     * 保存整句学习模型选择，并刷新服务配置中的模型占用标记。
+     * @param model 服务配置中已启用的模型标识。
+     */
+    const selectModel = async (model: string) => {
+        if (!engineSettings || !credentialSettings) {
+            throw new Error('模型配置尚未加载完成');
+        }
+        if (!engineSettings.openai.enableSentenceLearning) {
+            throw new Error('整句学习功能未启用，请先在功能设置中启用');
+        }
+        if (!credentialSettings.openai.models.some((item) => item.model === model)) {
+            throw new Error(`模型未在服务配置中启用: ${model}`);
+        }
+
+        const nextSettings: EngineSelectionSettingVO = {
+            ...engineSettings,
+            openai: {
+                ...engineSettings.openai,
+                featureModels: {
+                    ...engineSettings.openai.featureModels,
+                    sentenceLearning: model,
+                },
+            },
+        };
+        setSavingModel(true);
+        try {
+            await settingsApi.saveEngineSelection(nextSettings);
+            await mutateEngineSettings(nextSettings, { revalidate: false });
+            await mutate('settings/service-credentials/detail');
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: '模型切换失败',
+                description: error instanceof Error ? error.message : String(error),
+            });
+        } finally {
+            setSavingModel(false);
+        }
+    };
+
+    const sentenceLearningEnabled = engineSettings?.openai.enableSentenceLearning === true;
+    const availableModels = credentialSettings?.openai.models ?? [];
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-background">
@@ -414,22 +474,47 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                         />
                     </PromptInputBody>
                     <PromptInputFooter className="items-center justify-between px-3 pb-2 pt-0">
-                        <Select
-                            value={reasoningEffort}
-                            onValueChange={(value) => setReasoningEffort(value as ChatReasoningEffort)}
-                        >
-                            <SelectTrigger
-                                aria-label="推理强度"
-                                className="h-7 w-auto min-w-20 gap-1 border-0 bg-transparent px-2 text-xs text-muted-foreground shadow-none focus:ring-0"
+                        <div className="flex min-w-0 items-center gap-1">
+                            <Select
+                                disabled={!sentenceLearningEnabled || savingModel || availableModels.length === 0}
+                                value={engineSettings?.openai.featureModels.sentenceLearning}
+                                onValueChange={(value) => selectModel(value).catch((error) => {
+                                    toast({
+                                        variant: 'destructive',
+                                        title: '模型切换失败',
+                                        description: error instanceof Error ? error.message : String(error),
+                                    });
+                                })}
                             >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent align="start">
-                                <SelectItem value="low">低推理</SelectItem>
-                                <SelectItem value="medium">中推理</SelectItem>
-                                <SelectItem value="high">高推理</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                <SelectTrigger
+                                    aria-label="整句学习模型"
+                                    className="h-7 max-w-48 gap-1 border-0 bg-transparent px-2 text-xs text-muted-foreground shadow-none focus:ring-0"
+                                >
+                                    <SelectValue placeholder={sentenceLearningEnabled ? '选择模型' : '整句学习未启用'} />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                    {availableModels.map((item) => (
+                                        <SelectItem key={item.model} value={item.model}>{item.model}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={reasoningEffort}
+                                onValueChange={(value) => setReasoningEffort(value as ChatReasoningEffort)}
+                            >
+                                <SelectTrigger
+                                    aria-label="推理强度"
+                                    className="h-7 w-auto min-w-20 gap-1 border-0 bg-transparent px-2 text-xs text-muted-foreground shadow-none focus:ring-0"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                    <SelectItem value="low">低推理</SelectItem>
+                                    <SelectItem value="medium">中推理</SelectItem>
+                                    <SelectItem value="high">高推理</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <PromptInputSubmit
                             disabled={!isBusy && !input.trim()}
                             onStop={stop}
