@@ -128,7 +128,8 @@ interface AiTransDef {
         params: {
             fileHash: string,
             currentIndex: number,
-            demandId: number
+            demandId: number,
+            rendererSessionId: string,
         },
         return: void
     };

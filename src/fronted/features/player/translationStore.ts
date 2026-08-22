@@ -4,6 +4,7 @@ import hash from 'object-hash';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { rendererSessionId } from '@/fronted/infrastructure/electron/rendererSession';
 
 /**
  * 字幕翻译状态仓库。
@@ -81,7 +82,7 @@ export interface TranslationActions {
 
 const logger = getRendererLogger('useTranslation');
 
-/** 保证后端只接受最新播放位置的全局递增需求标记。 */
+/** 保证后端只接受当前 renderer 会话内最新播放位置的递增需求标记。 */
 let nextSubtitleDemandId = 1;
 
 /**
@@ -162,7 +163,12 @@ const useTranslation = create(
                 engine: state.engine,
                 openAiMode: state.openAiMode,
             });
-            playerApi.updateSubtitleTranslationDemand(fileHash, currentIndex, demandId)
+            playerApi.updateSubtitleTranslationDemand(
+                fileHash,
+                currentIndex,
+                demandId,
+                rendererSessionId,
+            )
                 .catch((error) => showRequestFailure(state.engine, error));
         },
 

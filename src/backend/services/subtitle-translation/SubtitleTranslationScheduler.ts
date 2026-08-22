@@ -59,6 +59,8 @@ export interface SubtitleTranslationDemand<TContext> {
     currentIndex: number;
     /** 前端按播放位置递增的需求标记。 */
     demandId: number;
+    /** 发起需求的 renderer 进程会话标识。 */
+    rendererSessionId: string;
     /** 当前字幕总句数。 */
     sentenceCount: number;
     /** 标识翻译引擎、模式和提示词版本的稳定键。 */
@@ -143,6 +145,8 @@ interface SubtitleTranslationSession<TContext> {
     profileKey: string;
     /** 当前翻译需求标记。 */
     demandId: number;
+    /** 当前需求所属的 renderer 进程会话标识。 */
+    rendererSessionId: string;
     /** 当前翻译配置上下文。 */
     context: TContext;
     /** 当前播放字幕索引。 */
@@ -205,7 +209,12 @@ export default class SubtitleTranslationScheduler<TContext> {
         );
         const existing = this.sessions.get(demand.fileHash);
 
-        if (existing && demand.demandId <= existing.demandId) {
+        // 同一 renderer 会话内按数字防止异步请求回退；新 renderer 会话需要重置游标。
+        if (
+            existing
+            && demand.rendererSessionId === existing.rendererSessionId
+            && demand.demandId <= existing.demandId
+        ) {
             return;
         }
 
@@ -221,6 +230,7 @@ export default class SubtitleTranslationScheduler<TContext> {
         }
 
         existing.demandId = demand.demandId;
+        existing.rendererSessionId = demand.rendererSessionId;
         existing.currentIndex = currentIndex;
         existing.sentenceCount = demand.sentenceCount;
         existing.context = demand.context;
@@ -259,6 +269,7 @@ export default class SubtitleTranslationScheduler<TContext> {
             fileHash: demand.fileHash,
             profileKey: demand.profileKey,
             demandId: demand.demandId,
+            rendererSessionId: demand.rendererSessionId,
             context: demand.context,
             currentIndex,
             sentenceCount: demand.sentenceCount,

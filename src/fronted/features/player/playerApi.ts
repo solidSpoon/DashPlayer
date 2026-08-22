@@ -45,17 +45,20 @@ export const playerApi = {
      *
      * @param fileHash 字幕文件哈希。
      * @param currentIndex 当前播放字幕索引。
-     * @param demandId 前端递增的需求标记。
+     * @param demandId 当前 renderer 会话内递增的需求标记。
+     * @param rendererSessionId 当前 renderer 进程的稳定会话标识。
      * @returns 后端接受需求后结束。
      */
     updateSubtitleTranslationDemand: (
         fileHash: string,
         currentIndex: number,
-        demandId: number
+        demandId: number,
+        rendererSessionId: string,
     ) => backendClient.call('ai-trans/update-subtitle-demand', {
         fileHash,
         currentIndex,
         demandId,
+        rendererSessionId,
     }),
 
     /**

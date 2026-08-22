@@ -70,6 +70,8 @@ export interface SubtitleTranslationDemandInput {
     currentIndex: number;
     /** 前端按播放位置递增的需求标记。 */
     demandId: number;
+    /** 发起需求的 renderer 进程会话标识。 */
+    rendererSessionId: string;
 }
 
 /**
@@ -368,6 +370,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         if (!Number.isInteger(input.demandId) || input.demandId < 1) {
             throw new Error(`字幕需求标记无效: ${input.demandId}`);
         }
+        if (!input.rendererSessionId.trim()) {
+            throw new Error('renderer 会话标识不能为空');
+        }
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData) {
@@ -386,6 +391,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 fileHash,
                 currentIndex: input.currentIndex,
                 demandId: input.demandId,
+                rendererSessionId: input.rendererSessionId,
                 sentenceCount: srtData.sentences.length,
                 profileKey: 'tencent',
                 context: {
@@ -415,6 +421,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             fileHash,
             currentIndex: input.currentIndex,
             demandId: input.demandId,
+            rendererSessionId: input.rendererSessionId,
             sentenceCount: srtData.sentences.length,
             profileKey: `${storageMode}:${routedModel.fullModelId}`,
             context: {

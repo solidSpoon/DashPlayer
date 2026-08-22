@@ -33,6 +33,7 @@ export default class AiTransController implements Controller {
         fileHash: string;
         currentIndex: number;
         demandId: number;
+        rendererSessionId: string;
     }): Promise<void> {
         await this.subtitleTranslationService.updateDemand(params);
     }
