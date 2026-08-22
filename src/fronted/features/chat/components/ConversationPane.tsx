@@ -3,7 +3,7 @@ import useChatPanel from '@/fronted/features/chat/chatStore';
 import UserTopicMessage from '@/fronted/features/chat/components/messages/UserTopicMessage';
 import { useShallow } from 'zustand/react/shallow';
 import { useChat } from '@ai-sdk/react';
-import type { UIMessage } from 'ai';
+import { getToolName, isToolUIPart, type UIMessage } from 'ai';
 import { ElectronChatTransport } from '@/fronted/features/chat/chatTransport';
 import {
     Conversation,
@@ -14,6 +14,14 @@ import {
     Message,
     MessageContent,
 } from '@/fronted/components/ai-elements/message';
+import {
+    Tool,
+    ToolContent,
+    ToolHeader,
+    ToolInput,
+    ToolOutput,
+    type ToolPart,
+} from '@/fronted/components/ai-elements/tool';
 import {
     PromptInput,
     PromptInputBody,
@@ -47,6 +55,72 @@ const getMessageText = (message: SentenceLearningMessage): string => {
         .filter((part) => part.type === 'text')
         .map((part) => part.text)
         .join('');
+};
+
+/**
+ * 获取工具的用户可读标题，避免把内部 snake_case 名称直接暴露给用户。
+ * @param toolName AI SDK 工具名称。
+ * @returns 工具展示标题。
+ */
+const getToolTitle = (toolName: string): string => {
+    switch (toolName) {
+        case 'search_subtitles':
+            return '搜索字幕';
+        case 'get_subtitle_context':
+            return '读取字幕上下文';
+        default:
+            return toolName;
+    }
+};
+
+/**
+ * 渲染 AI SDK 消息片段，工具调用与文本保持原始流顺序。
+ * @param message 当前消息。
+ * @returns 消息片段节点。
+ */
+const renderMessageParts = (message: SentenceLearningMessage) => {
+    return message.parts.map((part, partIndex) => {
+        if (part.type === 'text') {
+            return <Markdown key={`text-${partIndex}`}>{part.text}</Markdown>;
+        }
+        if (!isToolUIPart(part)) {
+            return null;
+        }
+
+        const toolPart = part as ToolPart;
+        const toolName = getToolName(toolPart);
+        const toolHeader = toolPart.type === 'dynamic-tool'
+            ? (
+                <ToolHeader
+                    type="dynamic-tool"
+                    state={toolPart.state}
+                    toolName={toolPart.toolName}
+                    title={getToolTitle(toolName)}
+                    className="px-0 py-1 text-xs [&>svg:last-child]:size-3"
+                />
+            )
+            : (
+                <ToolHeader
+                    type={toolPart.type}
+                    state={toolPart.state}
+                    title={getToolTitle(toolName)}
+                    className="px-0 py-1 text-xs [&>svg:last-child]:size-3"
+                />
+            );
+        return (
+            <Tool
+                key={toolPart.toolCallId || `tool-${partIndex}`}
+                className="mb-0 rounded-none border-0 bg-transparent shadow-none"
+                defaultOpen={false}
+            >
+                {toolHeader}
+                <ToolContent>
+                    {toolPart.input !== undefined && <ToolInput input={toolPart.input} />}
+                    <ToolOutput output={toolPart.output} errorText={toolPart.errorText} />
+                </ToolContent>
+            </Tool>
+        );
+    });
 };
 
 /**
@@ -87,13 +161,13 @@ const renderMessage = (
                 className="group-[.is-assistant]:w-full group-[.is-assistant]:max-w-3xl group-[.is-assistant]:px-1 group-[.is-assistant]:py-1 group-[.is-user]:rounded-3xl group-[.is-user]:px-5 group-[.is-user]:py-3"
                 onContextMenu={() => useChatPanel.getState().updateInternalContext(content)}
             >
-                {isStreaming && !content ? (
+                {isStreaming && !content && message.parts.length === 0 ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <Spinner />
                         <span>正在思考...</span>
                     </div>
                 ) : (
-                    <Markdown>{content}</Markdown>
+                    renderMessageParts(message)
                 )}
             </MessageContent>
         </Message>
