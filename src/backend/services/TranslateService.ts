@@ -30,7 +30,7 @@ const openAIDictionaryExampleSchema = z.object({
 });
 
 const openAIDictionaryDefinitionSchema = z.object({
-    partOfSpeech: z.string().describe('Part of speech, e.g. noun, verb, adjective; empty string when unavailable'),
+    partOfSpeech: z.string().describe('Part of speech, e.g. n., v., adj.; empty string when unavailable'),
     meaning: z.string().describe('Meaning or translation in Simplified Chinese'),
     examples: z.array(openAIDictionaryExampleSchema).describe('Examples illustrating this specific meaning')
 });
@@ -41,27 +41,55 @@ const openAIDictionaryResultSchema = z.object({
     definitions: z.array(openAIDictionaryDefinitionSchema).describe('Array of structured definitions'),
 });
 
-const openAIDictionaryCacheExampleSchema = z.object({
-    sentence: z.string().describe('Example sentence in English'),
-    translation: z.string().optional().describe('Translation of the example sentence in Simplified Chinese'),
-    explanation: z.string().optional().describe('Usage notes or explanation in Simplified Chinese')
-});
-
-const openAIDictionaryCacheDefinitionSchema = z.object({
-    partOfSpeech: z.string().optional().describe('Part of speech, e.g. noun, verb, adjective'),
-    meaning: z.string().optional().describe('Meaning or translation in Simplified Chinese'),
-    examples: z.array(openAIDictionaryCacheExampleSchema).optional().describe('Examples illustrating this specific meaning')
-});
-
+/**
+ * 历史缓存兼容 Schema（允许可选字段与不同格式的音标）。
+ */
 const openAIDictionaryCacheSchema = z.object({
     word: z.string().describe('The input word'),
-    phonetic: z.string().optional().nullable().describe('International phonetic alphabet pronunciation'),
-    ukPhonetic: z.string().optional().nullable().describe('UK pronunciation in IPA'),
-    usPhonetic: z.string().optional().nullable().describe('US pronunciation in IPA'),
-    definitions: z.array(openAIDictionaryCacheDefinitionSchema).optional().describe('Array of structured definitions'),
-    examples: z.array(openAIDictionaryCacheExampleSchema).optional().describe('General example sentences with translations'),
-    pronunciation: z.string().optional().nullable().describe('Pronunciation audio URL if available')
+    phonetic: z.string().optional().nullable(),
+    ukPhonetic: z.string().optional().nullable(),
+    usPhonetic: z.string().optional().nullable(),
+    definitions: z.array(z.object({
+        partOfSpeech: z.string().optional(),
+        meaning: z.string().optional(),
+        examples: z.array(z.object({
+            sentence: z.string(),
+            translation: z.string().optional(),
+            explanation: z.string().optional(),
+        })).optional(),
+    })).optional(),
+    examples: z.array(z.object({
+        sentence: z.string(),
+        translation: z.string().optional(),
+    })).optional(),
+    pronunciation: z.string().optional().nullable(),
 });
+
+/**
+ * 构建高兼容性词典 JSON 输出提示词（兼容不支持 json_schema 的各类大模型服务商）。
+ *
+ * @param word 查询的英文单词。
+ * @returns 提示词文本。
+ */
+export const buildDictionaryPrompt = (word: string): string => {
+    return [
+        'You are a professional English-Chinese dictionary.',
+        `Provide concise, structured dictionary information for the word "${word}".`,
+        '',
+        'Requirements:',
+        '1. Respond with valid JSON only. Do not include markdown fences or any explanation.',
+        '2. Structure format:',
+        '   - word: The word itself.',
+        '   - phonetic: IPA pronunciation (e.g. "/.../"). Empty string if unavailable.',
+        '   - definitions: Array of definitions. Each contains partOfSpeech (e.g. "n.", "v."), meaning (in Simplified Chinese), and 1-2 practical examples.',
+        '   - examples: Array of { sentence, translation } illustrating that definition.',
+        '3. If any field is unavailable, provide empty string for text and empty array for lists.',
+        '4. Keep content concise, practical, and clear for a quick word popup.',
+        '',
+        'Output template (field names and nesting must match exactly):',
+        '{"word":"serendipity","phonetic":"/ˌserənˈdɪpəti/","definitions":[{"partOfSpeech":"n.","meaning":"意外发现美好事物的运气","examples":[{"sentence":"Meeting her was a stroke of serendipity.","translation":"遇见她纯属偶然的好运。"}]}]}',
+    ].join('\n');
+};
 
 const sanitizeString = (value?: unknown): string | undefined => {
     if (typeof value !== 'string') {
@@ -284,18 +312,7 @@ export class TranslateServiceImpl implements TranslateService {
                 return null;
             }
 
-            const prompt = `You are a professional English-Chinese dictionary. Provide concise, structured dictionary information for the word "${word}".
-
-Requirements:
-1. Respond with JSON only, using this exact compact shape: { word, phonetic, definitions }.
-2. Every field is required; do not omit any field.
-3. definitions item shape: { partOfSpeech, meaning, examples }.
-4. examples item shape: { sentence, translation }.
-5. If unavailable, use empty string for text fields and empty array for list fields.
-6. Keep output concise and practical for a word popup.
-
-Output example (field names and nesting must match exactly):
-{"word":"serendipity","phonetic":"/ˌserənˈdɪpəti/","definitions":[{"partOfSpeech":"n.","meaning":"意外发现美好事物的运气","examples":[{"sentence":"Meeting her was a stroke of serendipity.","translation":"遇见她纯属偶然的好运。"}]}]}`;
+            const prompt = buildDictionaryPrompt(word);
 
             const { partialOutputStream } = streamText({
                 model,
