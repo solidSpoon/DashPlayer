@@ -34,7 +34,6 @@ interface ReasoningContextValue {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   duration: number | undefined;
-  onCollapseComplete?: () => void;
 }
 
 const ReasoningContext = createContext<ReasoningContextValue | null>(null);
@@ -53,8 +52,6 @@ export type ReasoningProps = ComponentProps<typeof Collapsible> & {
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   duration?: number;
-  /** 折叠内容的 CSS 动画真正结束后触发。 */
-  onCollapseComplete?: () => void;
 };
 
 const AUTO_CLOSE_DELAY = 1000;
@@ -68,7 +65,6 @@ export const Reasoning = memo(
     defaultOpen,
     onOpenChange,
     duration: durationProp,
-    onCollapseComplete,
     children,
     ...props
   }: ReasoningProps) => {
@@ -135,8 +131,8 @@ export const Reasoning = memo(
     );
 
     const contextValue = useMemo(
-      () => ({ duration, isOpen, isStreaming, setIsOpen, onCollapseComplete }),
-      [duration, isOpen, isStreaming, onCollapseComplete, setIsOpen]
+      () => ({ duration, isOpen, isStreaming, setIsOpen }),
+      [duration, isOpen, isStreaming, setIsOpen]
     );
 
     return (
@@ -213,27 +209,18 @@ export type ReasoningContentProps = ComponentProps<
 const streamdownPlugins = { cjk, code, math, mermaid };
 
 export const ReasoningContent = memo(
-  ({ className, children, onAnimationEnd, ...props }: ReasoningContentProps) => {
-    const { onCollapseComplete } = useReasoning();
-    return (
+  ({ className, children, ...props }: ReasoningContentProps) => (
       <CollapsibleContent
         className={cn(
           "mt-4 text-sm",
           "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
           className
         )}
-        onAnimationEnd={(event) => {
-          onAnimationEnd?.(event);
-          if (event.currentTarget.getAttribute('data-state') === 'closed') {
-            onCollapseComplete?.();
-          }
-        }}
         {...props}
       >
         <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
       </CollapsibleContent>
-    );
-  }
+  )
 );
 
 Reasoning.displayName = "Reasoning";
