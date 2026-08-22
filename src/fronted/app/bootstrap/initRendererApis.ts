@@ -77,8 +77,14 @@ export function initRendererApis(): () => void {
 
     register('translation/batch-result', async (params) => {
         // 字幕批次只回推最终结果，日志不记录完整译文。
-        logger.debug('Batch translation result', { count: params.translations.length });
+        logger.info('字幕翻译回推已到达 renderer handler', {
+            count: params.translations.length,
+            fileHashes: Array.from(new Set(params.translations.map((item) => item.fileHash))),
+        });
         useTranslation.getState().updateTranslations(params.translations);
+        logger.info('字幕翻译回推已写入状态仓库', {
+            count: params.translations.length,
+        });
     });
 
     register('transcript/batch-result', async (params) => {
