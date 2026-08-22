@@ -137,6 +137,64 @@ function formatConsoleLine({
     return [`${time} ${levelText} ${rawMessage}`];
 }
 
+// 终端管道关闭后不再发起新的输出写入。
+let isDevelopmentConsoleAvailable = true;
+
+/**
+ * 处理开发终端输出流错误。
+ * @param error stdout 或 stderr 发出的异步错误。
+ * @throws 非终端断开导致的错误，避免掩盖真正的运行时问题。
+ */
+function handleDevelopmentConsoleStreamError(error: Error): void {
+    if (isBrokenConsolePipeError(error)) {
+        isDevelopmentConsoleAvailable = false;
+        return;
+    }
+
+    throw error;
+}
+
+/**
+ * 将日志写入开发终端。
+ *
+ * 开发服务器终止时，Electron 主进程可能仍在处理任务取消日志，而 Forge 已关闭
+ * stdout/stderr 对应的管道。socket 会以 error 事件报告异步 EIO，因此在初始化时
+ * 注册监听器并在管道断开后停止输出；日志文件 transport 不受影响。
+ *
+ * @param options electron-log 已格式化的控制台日志消息。
+ */
+function writeToDevelopmentConsole({ message }: { message: { data: unknown[]; level: string } }): void {
+    if (!isDevelopmentConsoleAvailable) {
+        return;
+    }
+
+    const stream = message.level === 'error' || message.level === 'warn' ? process.stderr : process.stdout;
+
+    try {
+        stream.write(`${util.format(...message.data)}\n`, () => undefined);
+    } catch (error) {
+        if (isBrokenConsolePipeError(error)) {
+            return;
+        }
+        throw error;
+    }
+}
+
+/**
+ * 判断终端输出管道是否已被开发服务器关闭。
+ * @param error 写入 stdout 或 stderr 时抛出的错误。
+ * @returns 管道关闭导致的 EIO、EPIPE 或已销毁流错误时返回 true。
+ */
+function isBrokenConsolePipeError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+
+    return error.name === 'Error'
+        && ('code' in error)
+        && (error.code === 'EIO' || error.code === 'EPIPE' || error.code === 'ERR_STREAM_DESTROYED');
+}
+
 log.initialize({ preload: true });
 log.transports.file.resolvePathFn = todayFile;
 log.transports.file.level = 'silly';
@@ -145,6 +203,11 @@ log.transports.file.format = ({ data, level, message }) => [
 ];
 log.transports.console.level = isDevelopmentMode() ? 'silly' : 'warn';
 log.transports.console.format = formatConsoleLine;
+log.transports.console.writeFn = writeToDevelopmentConsole;
+if (isDevelopmentMode()) {
+    process.stdout.on('error', handleDevelopmentConsoleStreamError);
+    process.stderr.on('error', handleDevelopmentConsoleStreamError);
+}
 log.errorHandler.startCatching();
 
 const levelOrder: Record<SimpleLevel, number> = {
