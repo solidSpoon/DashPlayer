@@ -223,9 +223,29 @@ const runTests = (): void => {
                         events.push({ event: chunk?.type ?? 'unknown', payload: params });
                     }) as RendererGateway['fireAndForget'],
                 };
+                const store = {
+                    get: vi.fn(() => ({
+                        originalTopic: 'Hello world',
+                        fullText: 'Hello world',
+                        paragraphLines: ['Hello world'],
+                        subtitleFileHash: 'hash',
+                        anchorSentenceIndex: 0,
+                    })),
+                    getBackground: vi.fn(() => ({})),
+                    startRun: vi.fn(() => new AbortController().signal),
+                    finishRun: vi.fn(),
+                    appendMessage: vi.fn(),
+                };
+                const cacheService = {
+                    get: vi.fn(() => ({
+                        sentences: [{ index: 0, start: 0, end: 1000, text: 'Hello world' }],
+                    })),
+                };
                 const sessionService = new ChatSessionServiceImpl();
                 (sessionService as unknown as { aiProviderService: AiProviderService }).aiProviderService = provider;
                 (sessionService as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
+                (sessionService as unknown as { chatSessionStore: typeof store }).chatSessionStore = store as never;
+                (sessionService as unknown as { cacheService: typeof cacheService }).cacheService = cacheService as never;
 
                 await sessionService.startWelcome({
                     sessionId: 's-welcome',

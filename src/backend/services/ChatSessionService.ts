@@ -361,9 +361,10 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             throw new Error('当前会话的字幕缓存不存在或为空');
         }
         const indexes = cached.sentences.map((sentence) => sentence.index);
+        const countWords = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
         return {
             lineCount: cached.sentences.length,
-            characterCount: cached.sentences.reduce((total, sentence) => total + Array.from(sentence.text).length, 0),
+            wordCount: cached.sentences.reduce((total, sentence) => total + countWords(sentence.text), 0),
             minIndex: Math.min(...indexes),
             maxIndex: Math.max(...indexes),
             anchorIndex,

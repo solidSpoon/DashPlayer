@@ -31,8 +31,8 @@ export type ChatBackgroundContext = {
     subtitleOverview?: {
         /** 字幕行数。 */
         lineCount: number;
-        /** 所有字幕文本的字符数。 */
-        characterCount: number;
+        /** 所有字幕文本的单词数（按空格分词统计）。 */
+        wordCount: number;
         /** 字幕索引的最小值。 */
         minIndex: number;
         /** 字幕索引的最大值。 */
