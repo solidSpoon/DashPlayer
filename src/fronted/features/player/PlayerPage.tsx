@@ -24,6 +24,8 @@ import useConvert from '@/fronted/features/convert/convertStore';
 import { toast as sonnerToast } from 'sonner';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import useSubtitleTranslation from '@/fronted/features/player/translationStore';
+import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
@@ -122,6 +124,12 @@ const PlayerWithControlsPage = () => {
         const runEffect = () => {
             logger.debug('video effect triggered', {video});
             if (!video) {
+                // 菜单页与播放器共用同一页面实例，离开播放器时必须清理旧媒体上下文，
+                // 否则返回同一个视频时路径和 videoId 不变，播放器不会重新触发 ready。
+                useFile.getState().clear();
+                useSubtitleTranslation.getState().clearTranslations();
+                playerActions.clearSubtitles();
+                playerActions.setSource(null);
                 return;
             }
             const previousVideoId = useFile.getState().videoId;
@@ -276,8 +284,17 @@ const PlayerWithControlsPage = () => {
                     return;
                 }
                 if (subtitlePath) {
+                    logger.info('player subtitle resolved', {
+                        videoId: video.id,
+                        subtitlePath,
+                        videoPath,
+                    });
                     latestFileState.updateFile(subtitlePath);
                 } else {
+                    logger.info('player subtitle not found', {
+                        videoId: video.id,
+                        videoPath,
+                    });
                     latestFileState.clearSrt();
                 }
             } catch (error) {

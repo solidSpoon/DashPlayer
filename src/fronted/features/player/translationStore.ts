@@ -145,10 +145,23 @@ const useTranslation = create(
         requestTranslation: (fileHash: string, currentIndex: number) => {
             const state = get();
             if (state.engine === 'none' || state.activeFileHash !== fileHash) {
+                logger.warn('subtitle translation request skipped by state guard', {
+                    fileHash,
+                    currentIndex,
+                    activeFileHash: state.activeFileHash,
+                    engine: state.engine,
+                });
                 return;
             }
             const demandId = nextSubtitleDemandId;
             nextSubtitleDemandId += 1;
+            logger.info('subtitle translation request sent', {
+                fileHash,
+                currentIndex,
+                demandId,
+                engine: state.engine,
+                openAiMode: state.openAiMode,
+            });
             playerApi.updateSubtitleTranslationDemand(fileHash, currentIndex, demandId)
                 .catch((error) => showRequestFailure(state.engine, error));
         },

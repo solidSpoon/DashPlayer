@@ -67,6 +67,11 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             }
             const currentPath = StrUtil.isBlank(subtitlePath) ? null : subtitlePath!;
             const playbackSessionId = crypto.randomUUID();
+            logger.info('subtitle parsing started', {
+                videoId: currentVideoId,
+                subtitlePath: currentPath,
+                playbackSessionId,
+            });
             useFile.setState({
                 srtHash: null,
                 subtitleSessionId: null,
@@ -98,6 +103,13 @@ export function usePlayerBridge(navigate: (path: string) => void) {
                 });
                 useTranslation.getState().setActiveFileHash(result.fileHash);
                 playerActions.loadSubtitles(result.sentences);
+                logger.info('subtitle parsing completed', {
+                    videoId: currentVideoId,
+                    subtitlePath: currentPath,
+                    fileHash: result.fileHash,
+                    sentenceCount: result.sentences.length,
+                    playbackSessionId,
+                });
             } catch (error) {
                 logger.error('failed to load subtitles', { error: error instanceof Error ? error.message : String(error) });
             }
@@ -211,10 +223,24 @@ export function usePlayerBridge(navigate: (path: string) => void) {
     const handlePlayerReady = useCallback(async () => {
         const file = useFile.getState().videoPath;
         const currentVideoId = useFile.getState().videoId;
+        logger.info('player ready callback entered', {
+            videoId: currentVideoId,
+            videoPath: file,
+            lastLoadedFile: lastLoadedFileRef.current,
+            videoLoaded: useFile.getState().videoLoaded,
+        });
         if (StrUtil.isBlank(file) || StrUtil.isBlank(currentVideoId)) {
+            logger.warn('player ready callback skipped: missing file context', {
+                videoId: currentVideoId,
+                videoPath: file,
+            });
             return;
         }
         if (lastLoadedFileRef.current === file) {
+            logger.warn('player ready callback skipped: file already loaded', {
+                videoId: currentVideoId,
+                videoPath: file,
+            });
             return;
         }
         try {
@@ -235,6 +261,11 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             logger.error('failed to jump to history progress', { error: error instanceof Error ? error.message : String(error) });
         }
         useFile.getState().loadedVideo(file);
+        logger.info('player ready callback completed', {
+            videoId: currentVideoId,
+            videoPath: file,
+            videoLoaded: useFile.getState().videoLoaded,
+        });
     }, []);
 
     const handleAutoPlayNext = useCallback(async () => {
