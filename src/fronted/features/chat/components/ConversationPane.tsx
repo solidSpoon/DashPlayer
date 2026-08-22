@@ -1,10 +1,8 @@
-import { useEffect, useMemo } from 'react';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import UserTopicMessage from '@/fronted/features/chat/components/messages/UserTopicMessage';
-import { useShallow } from 'zustand/react/shallow';
-import { useChat } from '@ai-sdk/react';
-import { getToolName, isToolUIPart, type UIMessage } from 'ai';
-import { ElectronChatTransport } from '@/fronted/features/chat/chatTransport';
+import { getToolName, isToolUIPart } from 'ai';
+import { AlertCircle, LoaderCircle } from 'lucide-react';
+import type { SentenceLearningChat, SentenceLearningMessage } from '@/fronted/features/chat/useSentenceLearningChat';
 import {
     Conversation,
     ConversationContent,
@@ -15,14 +13,6 @@ import {
     MessageContent,
 } from '@/fronted/components/ai-elements/message';
 import {
-    Tool,
-    ToolContent,
-    ToolHeader,
-    ToolInput,
-    ToolOutput,
-    type ToolPart,
-} from '@/fronted/components/ai-elements/tool';
-import {
     PromptInput,
     PromptInputBody,
     PromptInputFooter,
@@ -31,19 +21,6 @@ import {
 } from '@/fronted/components/ai-elements/prompt-input';
 import { Spinner } from '@/fronted/components/ui/spinner';
 import Markdown from '@/fronted/components/shared/markdown/Markdown';
-
-/**
- * 整句学习聊天消息的 UI 元数据。
- */
-type SentenceLearningMessageMetadata = {
-    /** 首条主题消息与普通追问的展示类型。 */
-    kind: 'topic' | 'chat';
-};
-
-/**
- * AI SDK useChat 使用的标准消息类型。
- */
-type SentenceLearningMessage = UIMessage<SentenceLearningMessageMetadata>;
 
 /**
  * 提取标准 UI 消息里的所有文本片段。
@@ -79,6 +56,14 @@ const getToolTitle = (toolName: string): string => {
  * @returns 消息片段节点。
  */
 const renderMessageParts = (message: SentenceLearningMessage) => {
+    const activeToolIndexes = message.parts.reduce<number[]>((indexes, part, index) => {
+        if (isToolUIPart(part) && part.state !== 'output-available') {
+            indexes.push(index);
+        }
+        return indexes;
+    }, []);
+    const firstActiveToolIndex = activeToolIndexes[0];
+
     return message.parts.map((part, partIndex) => {
         if (part.type === 'text') {
             return <Markdown key={`text-${partIndex}`}>{part.text}</Markdown>;
@@ -86,39 +71,28 @@ const renderMessageParts = (message: SentenceLearningMessage) => {
         if (!isToolUIPart(part)) {
             return null;
         }
+        if (partIndex !== firstActiveToolIndex) {
+            return null;
+        }
 
-        const toolPart = part as ToolPart;
-        const toolName = getToolName(toolPart);
-        const toolHeader = toolPart.type === 'dynamic-tool'
-            ? (
-                <ToolHeader
-                    type="dynamic-tool"
-                    state={toolPart.state}
-                    toolName={toolPart.toolName}
-                    title={getToolTitle(toolName)}
-                    className="px-0 py-1 text-xs [&>svg:last-child]:size-3"
-                />
-            )
-            : (
-                <ToolHeader
-                    type={toolPart.type}
-                    state={toolPart.state}
-                    title={getToolTitle(toolName)}
-                    className="px-0 py-1 text-xs [&>svg:last-child]:size-3"
-                />
-            );
+        const toolName = getToolName(part);
+        const hasError = activeToolIndexes.some(index => {
+            const activePart = message.parts[index];
+            return isToolUIPart(activePart) && activePart.state === 'output-error';
+        });
         return (
-            <Tool
-                key={toolPart.toolCallId || `tool-${partIndex}`}
-                className="mb-0 rounded-none border-0 bg-transparent shadow-none"
-                defaultOpen={false}
+            <div
+                key={`tool-status-${part.toolCallId}`}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+                role="status"
             >
-                {toolHeader}
-                <ToolContent>
-                    {toolPart.input !== undefined && <ToolInput input={toolPart.input} />}
-                    <ToolOutput output={toolPart.output} errorText={toolPart.errorText} />
-                </ToolContent>
-            </Tool>
+                {hasError ? (
+                    <AlertCircle className="size-3.5 text-destructive" />
+                ) : (
+                    <LoaderCircle className="size-3.5 animate-spin" />
+                )}
+                <span>{hasError ? '字幕上下文读取失败' : `正在${getToolTitle(toolName)}…`}</span>
+            </div>
         );
     });
 };
@@ -178,68 +152,8 @@ const renderMessage = (
  * 渲染整句学习会话，负责连接 AI SDK 会话状态与 AI Elements 的消息、滚动和输入组件。
  * @returns 完整的聊天列。
  */
-const ConversationPane = () => {
-    const {chatSessionId, topicText, queuedMessage, consumeQueuedMessage, input, setInput} = useChatPanel(useShallow(s => ({
-        chatSessionId: s.chatSessionId,
-        topicText: s.topicText,
-        queuedMessage: s.queuedMessage,
-        consumeQueuedMessage: s.consumeQueuedMessage,
-        input: s.input,
-        setInput: s.setInput,
-    })));
-    const transport = useMemo(() => new ElectronChatTransport<SentenceLearningMessage>(), []);
-    const {
-        messages,
-        sendMessage,
-        status,
-        stop,
-    } = useChat<SentenceLearningMessage>({
-        id: chatSessionId || 'inactive-chat-session',
-        transport,
-        throttle: 40,
-    });
-
-    const isBusy = status === 'submitted' || status === 'streaming';
-
-    useEffect(() => {
-        if (!chatSessionId || !topicText || messages.length > 0 || status !== 'ready') {
-            return;
-        }
-        sendMessage({
-            text: topicText,
-            metadata: { kind: 'topic' },
-        }, {
-            body: { mode: 'welcome' },
-        }).catch(() => undefined);
-    }, [chatSessionId, messages.length, sendMessage, status, topicText]);
-
-    useEffect(() => {
-        if (!queuedMessage || status !== 'ready') {
-            return;
-        }
-        const { id, content } = queuedMessage;
-        consumeQueuedMessage(id);
-        sendMessage({
-            text: content,
-            metadata: { kind: 'chat' },
-        }).catch(() => undefined);
-    }, [consumeQueuedMessage, queuedMessage, sendMessage, status]);
-
-    /**
-     * 提交输入框内容；生成期间拒绝重复提交，并在发起请求前清空已捕获的受控输入值。
-     * @param message PromptInput 汇总出的文本和附件，本功能仅接收文本。
-     */
-    const handleSubmit = async (message: { text: string }) => {
-        const trimmedInput = message.text.trim();
-        if (!trimmedInput || isBusy) {
-            return;
-        }
-        setInput('');
-        await sendMessage({
-            text: trimmedInput,
-            metadata: { kind: 'chat' },
-        });
-    };
+const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
+    const { messages, status, stop, input, setInput, handleSubmit, isBusy } = chat;
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-background">

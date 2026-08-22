@@ -7,6 +7,7 @@ import UnifiedAnalysisPane from '@/fronted/features/chat/components/UnifiedAnaly
 import SentencesPane from '@/fronted/features/chat/components/SentencesPane';
 import ConversationPane from '@/fronted/features/chat/components/ConversationPane';
 import TopicSelector from '@/fronted/features/chat/components/TopicSelector';
+import { useSentenceLearningChat } from '@/fronted/features/chat/useSentenceLearningChat';
 
 import {
     ContextMenu,
@@ -21,6 +22,7 @@ import {useShallow} from 'zustand/react/shallow';
 import {useHotkeys} from "react-hotkeys-hook";
 
 const ChatPanel = () => {
+    const chat = useSentenceLearningChat();
     const {createFromSelect, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
         createFromSelect: s.createFromSelect,
         clear: s.clear,
@@ -145,10 +147,10 @@ const ChatPanel = () => {
                                 className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
                                 <UnifiedAnalysisPane className={cn('flex-shrink-0 py-2')}/>
                             </div>
-                            <ConversationPane/>
+                            <ConversationPane chat={chat}/>
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <TopicSelector />
+                                <TopicSelector agentView={chat.subtitleAgentView} />
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
                                 <SentencesPane className={cn('flex-shrink-0')}/>
                             </div>
