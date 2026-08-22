@@ -1,32 +1,32 @@
 {
     "savedMoments": {
-        "title": "Saved Moments",
-        "description": "Manage and revisit the clips you marked as important",
+        "title": "Saved Clips",
+        "description": "Manage and revisit your saved video clips and highlight sentences",
         "recover": {
-            "loading": "Restoring Saved Moments from local files...",
-            "success": "Saved Moments restored successfully",
-            "error": "Restore failed. Please try again later.",
-            "button": "Restore Saved Moments from local"
+            "loading": "Restoring saved clips from local files...",
+            "success": "Saved clips restored successfully",
+            "error": "Failed to restore. Please try again later.",
+            "button": "Restore Saved Clips from Local"
         },
         "empty": {
-            "title": "No Saved Moments yet",
-            "guideAdd": "Use \"Add favorite clip\" in the player to save the current sentence, then manage and replay it here.",
-            "guideRecover": "If local files already exist but this list is empty, use the button below to rebuild the index from local storage."
+            "title": "No saved clips yet",
+            "guideAdd": "Use \"Add favorite clip\" in the player to bookmark current sentences for review.",
+            "guideRecover": "If local files exist under favourite_clips but the list is empty, click below to rebuild the index."
         }
     },
     "vocabularyStudio": {
         "title": "Vocabulary Studio",
-        "description": "Focus on vocabulary clips and quickly revisit key contexts",
+        "description": "Focus on vocabulary clips and quickly revisit authentic contexts",
         "recover": {
             "loading": "Restoring Vocabulary Studio clips from local files...",
             "success": "Vocabulary Studio clips restored successfully",
-            "error": "Restore failed. Please try again later.",
-            "button": "Restore Vocabulary Studio clips from local"
+            "error": "Failed to restore. Please try again later.",
+            "button": "Restore Vocabulary Studio Clips from Local"
         },
         "empty": {
             "title": "No Vocabulary Studio clips yet",
-            "guideAdd": "Use vocabulary clipping in the player to generate study clips that contain your target words, then review them here.",
-            "guideRecover": "If word_video files already exist but this page is empty, use the button below to rebuild records from local storage."
+            "guideAdd": "Use \"Extract vocabulary clips\" in the player to generate study cuts for target words, then review them here.",
+            "guideRecover": "If files exist under word_video but this page is empty, click below to rebuild the database records."
         },
         "pagination": {
             "summary": "Showing clips {{start}}-{{end}} of {{total}}",
@@ -35,10 +35,10 @@
     },
     "formatConverter": {
         "title": "Fix Playback Issues",
-        "description": "Convert videos to a compatible format and fix no audio, stuttering, or unplayable issues",
+        "description": "Convert video encoding to resolve silent audio, stuttering, or playback failures",
         "empty": {
             "title": "No videos to fix yet",
-            "guide": "Click the buttons above to add video files or a folder for batch processing"
+            "guide": "Click the buttons above to add video files or import folders in batch"
         },
         "fix": "Fix",
         "cancel": "Cancel",
@@ -46,7 +46,7 @@
     },
     "sentenceSplitter": {
         "title": "Split Long Videos",
-        "description": "Split long videos and subtitles into smaller segments by timestamps",
+        "description": "Split long videos and subtitles into smaller chapters by timestamps",
         "inputLabel": "Split Configuration",
         "inputPlaceholder": "Enter one timestamp and title per line, e.g.: 00:01:30 Chapter Title",
         "filesLabel": "Video Files",
@@ -63,17 +63,17 @@
             "quickSelect": "Quick Select"
         },
         "preview": {
-            "startTime": "Start",
-            "endTime": "End",
+            "startTime": "Start Time",
+            "endTime": "End Time",
             "title": "Title",
-            "empty": "No configuration yet — enter timestamps on the left",
-            "shortDuration": "Interval less than 1 minute"
+            "empty": "No configuration yet — enter timestamps on the left to preview",
+            "shortDuration": "Segment duration is less than 1 minute"
         }
     },
     "subtitleWorkspace": {
         "title": "Subtitle Generator",
-        "description": "Generate subtitles for videos with AI speech recognition",
-        "modelMissing": "Download the subtitle model first in Settings Center > Service Credentials",
+        "description": "Generate high-accuracy subtitles for videos using AI speech recognition",
+        "modelMissing": "Please download the subtitle model first in Settings Center > Service Credentials.",
         "table": {
             "videoColumn": "Video",
             "statusColumn": "Status",

@@ -40,10 +40,10 @@ const SideBar = ({ compact }: SideBarProps) => {
                     }
                 }}
                 className={cn(
-                    'w-full px-2 flex justify-start items-center gap-2 rounded-xl h-10',
+                    'w-full px-2 flex justify-start items-center gap-2 rounded-xl h-10 transition-all',
                     isActive
-                        ? 'bg-zinc-100 drop-shadow dark:bg-neutral-900 shadow-white shadow-inner dark:shadow-none'
-                        : 'hover:bg-stone-300 dark:hover:bg-neutral-800',
+                        ? 'bg-white dark:bg-neutral-900 shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-none text-foreground font-medium'
+                        : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5',
                     compact && 'justify-center'
                 )}
             >

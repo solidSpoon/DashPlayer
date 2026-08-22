@@ -1,22 +1,22 @@
 {
     "savedMoments": {
-        "title": "收藏时刻",
-        "description": "统一管理和回看你保存的重点片段",
+        "title": "收藏片段",
+        "description": "集中管理和回看你保存的视频金句片段",
         "recover": {
-            "loading": "正在从本地恢复收藏时刻...",
-            "success": "收藏时刻恢复完成",
+            "loading": "正在从本地恢复收藏片段...",
+            "success": "收藏片段恢复完成",
             "error": "恢复失败，请稍后重试",
-            "button": "从本地恢复收藏时刻"
+            "button": "从本地恢复收藏片段"
         },
         "empty": {
-            "title": "还没有收藏时刻",
-            "guideAdd": "你可以在播放器中使用“添加收藏片段”把当前句子加入收藏，之后会在这里统一管理与回看。",
-            "guideRecover": "如果你已经有本地文件但列表为空，可点击下面按钮从本地文件夹重新恢复索引。"
+            "title": "暂无收藏片段",
+            "guideAdd": "在播放器中使用“添加收藏片段”快捷键或按钮，即可将当前句子收录于此集中复习。",
+            "guideRecover": "如果本地已存在 favourite_clips 文件但列表为空，可点击下方按钮重新构建索引。"
         }
     },
     "vocabularyStudio": {
-        "title": "词汇学习工坊",
-        "description": "聚焦生词片段，快速定位并回看关键语境",
+        "title": "词汇工坊",
+        "description": "聚焦生词片段，快速定位并回看真实语境",
         "recover": {
             "loading": "正在从本地恢复词汇工坊片段...",
             "success": "词汇工坊片段恢复完成",
@@ -24,9 +24,9 @@
             "button": "从本地恢复词汇工坊片段"
         },
         "empty": {
-            "title": "还没有词汇工坊片段",
-            "guideAdd": "你可以在播放器中使用词汇裁切功能，自动生成包含目标单词的学习片段，并在这里集中复习。",
-            "guideRecover": "如果本地已有 word_video 文件但页面为空，可点击下面按钮从本地重新恢复记录。"
+            "title": "暂无生词片段",
+            "guideAdd": "在播放器中使用“提取生词片段”功能，即可自动生成包含目标词汇的学习切片并在此集中复习。",
+            "guideRecover": "如果本地已有 word_video 文件但列表为空，可点击下方按钮重新恢复记录。"
         },
         "pagination": {
             "summary": "显示第 {{start}}-{{end}} 个片段，共 {{total}} 个",
@@ -35,10 +35,10 @@
     },
     "formatConverter": {
         "title": "修复播放问题",
-        "description": "自动转换视频格式，解决无声、卡顿或无法播放等兼容性问题",
+        "description": "自动转换视频编码格式，解决无声、卡顿或黑屏等兼容性问题",
         "empty": {
             "title": "暂无待修复的视频",
-            "guide": "点击右上角按钮添加视频文件，支持单文件与批量文件夹"
+            "guide": "点击上方按钮添加视频文件，支持单文件与文件夹批量导入"
         },
         "fix": "修复",
         "cancel": "取消",
@@ -46,48 +46,48 @@
     },
     "sentenceSplitter": {
         "title": "切分长视频",
-        "description": "将长视频与字幕按时间戳拆分为更小的片段",
+        "description": "按时间戳将长视频与对应字幕切分为独立学习小节",
         "inputLabel": "切分配置",
-        "inputPlaceholder": "每行输入一个时间戳和标题，格式：HH:MM:SS 标题",
+        "inputPlaceholder": "每行输入一个时间戳和标题，例如：00:01:30 章节标题",
         "filesLabel": "视频文件",
-        "clickToSelect": "点击以选择文件",
-        "loadExample": "加载示例配置",
-        "aiFormat": "使用 AI 格式化输入",
+        "clickToSelect": "点击选择文件",
+        "loadExample": "载入示例配置",
+        "aiFormat": "使用 AI 整理格式",
         "selectFile": "选择文件",
         "splitAll": "开始切分",
         "splitting": "切分中...",
         "splitSuccess": "切分完成",
         "splitFailed": "切分失败",
         "tabs": {
-            "preview": "预览",
+            "preview": "效果预览",
             "quickSelect": "快捷选择"
         },
         "preview": {
             "startTime": "开始时间",
             "endTime": "结束时间",
             "title": "标题",
-            "empty": "暂无切分配置，在左侧输入时间戳开始",
-            "shortDuration": "时间间隔小于 1 分钟"
+            "empty": "暂无切分配置，请在左侧输入时间戳",
+            "shortDuration": "片段时长小于 1 分钟"
         }
     },
     "subtitleWorkspace": {
         "title": "视频字幕生成",
-        "description": "使用 AI 语音识别为视频自动生成字幕",
-        "modelMissing": "需要先下载字幕模型，请到“设置中心 > 服务凭据”中完成下载",
+        "description": "基于 AI 语音识别，为视频自动生成高精度时间轴字幕",
+        "modelMissing": "需要先下载字幕模型，请前往“设置中心 > 服务凭据”中下载",
         "table": {
             "videoColumn": "视频",
             "statusColumn": "状态",
             "actionColumn": "操作",
-            "empty": "暂无待转录的视频，从左侧选择文件加入队列"
+            "empty": "暂无待转录的视频，请从左侧选择文件添加至队列"
         },
         "status": {
             "notStarted": "未开始",
             "initializing": "初始化中...",
-            "processing": "处理中...",
-            "done": "完成",
-            "doneWithDuration": "完成（{{duration}}s）",
+            "processing": "转录处理中...",
+            "done": "已完成",
+            "doneWithDuration": "已完成（耗时 {{duration}}s）",
             "cancelled": "已取消",
-            "failed": "失败",
+            "failed": "转录失败",
             "unknown": "未知状态",
             "cancelling": "取消中..."
         },

@@ -3,7 +3,7 @@ const SUBTITLE_WINDOW_BATCH_COUNT = 4;
 const SUBTITLE_WINDOW_BATCH_BEFORE_COUNT = 1;
 const HIGH_PRIORITY_BATCH_COUNT = 2;
 const MAX_CONSUMERS = 4;
-const MAX_REQUEUE_COUNT = 1;
+const MAX_REQUEUE_COUNT = 2;
 
 export type SubtitleTranslationPriority = 'high' | 'low';
 
@@ -408,7 +408,7 @@ export default class SubtitleTranslationScheduler<TContext> {
     }
 
     /**
-     * 执行一个已被消费者认领的批次，并按规则最多重新入队一次。
+     * 执行一个已被消费者认领的批次，并按规则最多重新入队两次。
      *
      * @param session 当前字幕翻译会话。
      * @param job 已认领的批次任务。
