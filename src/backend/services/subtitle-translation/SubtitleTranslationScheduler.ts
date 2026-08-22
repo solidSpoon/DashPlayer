@@ -147,6 +147,8 @@ interface SubtitleTranslationSession<TContext> {
     demandId: number;
     /** 当前需求所属的 renderer 进程会话标识。 */
     rendererSessionId: string;
+    /** 已被更新会话替换、后续请求必须忽略的 renderer 会话标识。 */
+    retiredRendererSessionIds: Set<string>;
     /** 当前翻译配置上下文。 */
     context: TContext;
     /** 当前播放字幕索引。 */
@@ -209,6 +211,10 @@ export default class SubtitleTranslationScheduler<TContext> {
         );
         const existing = this.sessions.get(demand.fileHash);
 
+        if (existing?.retiredRendererSessionIds.has(demand.rendererSessionId)) {
+            return;
+        }
+
         // 同一 renderer 会话内按数字防止异步请求回退；新 renderer 会话需要重置游标。
         if (
             existing
@@ -229,6 +235,9 @@ export default class SubtitleTranslationScheduler<TContext> {
             return;
         }
 
+        if (existing.rendererSessionId !== demand.rendererSessionId) {
+            existing.retiredRendererSessionIds.add(existing.rendererSessionId);
+        }
         existing.demandId = demand.demandId;
         existing.rendererSessionId = demand.rendererSessionId;
         existing.currentIndex = currentIndex;
@@ -270,6 +279,7 @@ export default class SubtitleTranslationScheduler<TContext> {
             profileKey: demand.profileKey,
             demandId: demand.demandId,
             rendererSessionId: demand.rendererSessionId,
+            retiredRendererSessionIds: new Set(),
             context: demand.context,
             currentIndex,
             sentenceCount: demand.sentenceCount,
