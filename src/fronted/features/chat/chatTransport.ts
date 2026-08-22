@@ -1,6 +1,7 @@
 import { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatApi } from '@/fronted/features/chat/chatApi';
 import type { ChatReasoningEffort } from '@/common/types/chat';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 /**
  * Electron transport 当前正在消费的标准 UI 消息流。
@@ -10,7 +11,13 @@ type ActiveChatStream = {
     controller: ReadableStreamDefaultController<UIMessageChunk>;
     /** 移除外部取消监听器。 */
     removeAbortListener: () => void;
+    /** 当前流的前端观测起点与首个可见阶段。 */
+    startedAt: number;
+    firstReasoningAt: number | null;
+    firstTextAt: number | null;
 };
+
+const logger = getRendererLogger('SentenceLearningTransport');
 
 const activeStreams = new Map<string, ActiveChatStream>();
 
@@ -23,6 +30,21 @@ export const receiveChatChunk = (sessionId: string, chunk: UIMessageChunk): void
     const active = activeStreams.get(sessionId);
     if (!active) {
         return;
+    }
+    if (chunk.type === 'reasoning-delta' && active.firstReasoningAt === null) {
+        active.firstReasoningAt = Date.now();
+        logger.info('chat first reasoning chunk', { sessionId, elapsedMs: active.firstReasoningAt - active.startedAt });
+    }
+    if (chunk.type === 'text-delta' && active.firstTextAt === null) {
+        active.firstTextAt = Date.now();
+        logger.info('chat first text chunk', { sessionId, elapsedMs: active.firstTextAt - active.startedAt });
+    }
+    if (chunk.type === 'finish' || chunk.type === 'error' || chunk.type === 'abort') {
+        logger.info('chat stream received terminal chunk', {
+            sessionId,
+            chunkType: chunk.type,
+            elapsedMs: Date.now() - active.startedAt,
+        });
     }
     active.controller.enqueue(chunk);
     if (chunk.type === 'finish' || chunk.type === 'error' || chunk.type === 'abort') {
@@ -63,7 +85,11 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                 activeStreams.set(sessionId, {
                     controller,
                     removeAbortListener: () => options.abortSignal?.removeEventListener('abort', abort),
+                    startedAt: Date.now(),
+                    firstReasoningAt: null,
+                    firstTextAt: null,
                 });
+                logger.info('chat stream request started', { sessionId, mode: mode ?? 'chat' });
 
                 const request = mode === 'welcome'
                     ? chatApi.getWelcome({ sessionId, reasoningEffort })

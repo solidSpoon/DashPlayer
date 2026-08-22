@@ -219,6 +219,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         // v7 起 system 不能放在 messages 里，需拆出来走 system 参数，否则流会静默空转
         const { system, messages: promptMessages } = splitSystemMessages(messages);
         // 生命周期日志记 info：生产环境默认 info 级，只有这样"流是否开始/完成、生成了多少 chunk"才可回溯。
+        const startedAt = Date.now();
         this.logger.info('chat stream start', { sessionId, messageId });
         const result = streamText({
             model,
@@ -231,6 +232,10 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         let chunkCount = 0;
         let content = '';
         let aborted = false;
+        let reasoningChars = 0;
+        let reasoningContent = '';
+        let firstReasoningAt: number | null = null;
+        let firstTextAt: number | null = null;
         const uiStream = toUIMessageStream({
             stream: result.stream,
             generateMessageId: () => messageId,
@@ -240,6 +245,12 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             chunkCount += 1;
             if (chunk.type === 'text-delta') {
                 content += chunk.delta;
+                firstTextAt ??= Date.now();
+            }
+            if (chunk.type === 'reasoning-delta') {
+                reasoningChars += chunk.delta.length;
+                reasoningContent += chunk.delta;
+                firstReasoningAt ??= Date.now();
             }
             if (chunk.type === 'abort') {
                 aborted = true;
@@ -252,7 +263,19 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         if (!aborted) {
             this.chatSessionStore.appendMessage(sessionId, { role: 'assistant', content });
         }
-        this.logger.info('chat stream done', { sessionId, messageId, chunkCount });
+        this.logger.info('chat stream done', {
+            sessionId,
+            messageId,
+            chunkCount,
+            durationMs: Date.now() - startedAt,
+            firstReasoningMs: firstReasoningAt === null ? null : firstReasoningAt - startedAt,
+            firstTextMs: firstTextAt === null ? null : firstTextAt - startedAt,
+            reasoningChars,
+            reasoningText: reasoningContent,
+            responseLength: content.length,
+            responseText: content,
+            aborted,
+        });
     }
 
     /**
@@ -295,9 +318,20 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             search_subtitles: tool({
                 description: '在当前视频的完整字幕中搜索一个或多个关键词，返回命中字幕的索引、时间和文本。默认任意关键词命中即可。',
                 inputSchema: z.object({
-                    queries: z.array(z.string().trim().min(1)).min(1).max(5),
+                    queries: z.preprocess(
+                        (val) => {
+                            if (typeof val === 'string') {
+                                return [val.trim()];
+                            }
+                            if (Array.isArray(val)) {
+                                return val.map((v) => (typeof v === 'string' ? v.trim() : '')).filter(Boolean);
+                            }
+                            return val;
+                        },
+                        z.array(z.string().min(1)).min(1)
+                    ),
                     match: z.enum(['any', 'all']).default('any'),
-                    limit: z.number().int().min(1).max(20).default(10),
+                    limit: z.number().int().min(1).max(50).default(10),
                     skip: z.number().int().min(0).max(10000).default(0),
                 }),
                 execute: async ({ queries, match, limit, skip }) => {
@@ -310,7 +344,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                                 ? { ...projectSentence(sentence), matchedQueries }
                                 : null;
                         })
-                        .filter((sentence): sentence is NonNullable<typeof sentence> => sentence !== null)
+                        .filter((sentence): sentence is NonNullable<typeof sentence> => sentence !== null);
                     return {
                         matches: allMatches.slice(skip, skip + limit),
                         total: allMatches.length,
@@ -390,6 +424,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             return;
         }
         const streamLogger = this.logger;
+        const startedAt = Date.now();
         streamLogger.info('analysis stream start', { sessionId, messageId });
         const result = streamText({
             model,
@@ -419,7 +454,12 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                 },
             });
         }
-        streamLogger.info('analysis stream done', { sessionId, messageId, chunkCount });
+        streamLogger.info('analysis stream done', {
+            sessionId,
+            messageId,
+            chunkCount,
+            durationMs: Date.now() - startedAt,
+        });
         const finalObject = await result.output;
         this.chatSessionStore.setAnalysis(sessionId, finalObject);
         streamLogger.debug('analysis stream done', { sessionId, messageId });

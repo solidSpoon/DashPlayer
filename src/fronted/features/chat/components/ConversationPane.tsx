@@ -1,7 +1,7 @@
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import UserTopicMessage from '@/fronted/features/chat/components/messages/UserTopicMessage';
 import { getToolName, isToolUIPart } from 'ai';
-import type { ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SentenceLearningChat, SentenceLearningMessage } from '@/fronted/features/chat/useSentenceLearningChat';
 import {
     Conversation,
@@ -28,6 +28,11 @@ import {
     ToolOutput,
 } from '@/fronted/components/ai-elements/tool';
 import {
+    Reasoning,
+    ReasoningContent,
+    ReasoningTrigger,
+} from '@/fronted/components/ai-elements/reasoning';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -49,9 +54,46 @@ const getMessageText = (message: SentenceLearningMessage): string => {
         .join('');
 };
 
-/** 判断文本片段是否真的包含用户可见内容，忽略工具步骤间的空白换行。 */
-const isVisibleTextPart = (part: SentenceLearningMessage['parts'][number]): boolean =>
-    part.type === 'text' && part.text.trim().length > 0;
+/**
+ * 将持续增长的流式文本排队后逐字符释放，避免网络 chunk 集中到达时正文瞬间跳变。
+ * @param children 当前已收到的完整 Markdown 文本。
+ * @param animate 是否启用逐字播放；历史消息直接完整展示。
+ * @returns 按播放进度渲染的 Markdown 内容。
+ */
+const QueuedMarkdown = ({ children, animate }: { children: string; animate: boolean }) => {
+    const characters = useMemo(() => Array.from(children), [children]);
+    const [visibleText, setVisibleText] = useState(animate ? '' : children);
+    const visibleLengthRef = useRef(animate ? 0 : characters.length);
+
+    useEffect(() => {
+        if (!animate) {
+            visibleLengthRef.current = characters.length;
+            setVisibleText(children);
+            return;
+        }
+        if (visibleLengthRef.current >= characters.length) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            setVisibleText((current) => {
+                const remaining = characters.length - visibleLengthRef.current;
+                if (remaining <= 0) {
+                    window.clearInterval(timer);
+                    return current;
+                }
+                // 正常状态接近自然打字速度，积压较多时分档追赶。
+                const step = remaining > 300 ? 6 : remaining > 120 ? 3 : 1;
+                const nextLength = Math.min(characters.length, visibleLengthRef.current + step);
+                visibleLengthRef.current = nextLength;
+                return characters.slice(0, nextLength).join('');
+            });
+        }, 10);
+        return () => window.clearInterval(timer);
+    }, [animate, characters, children]);
+
+    return <Markdown>{visibleText}</Markdown>;
+};
 
 /** 判断消息是否只包含工具片段，便于把同一轮多步工具调用合并展示。 */
 const isToolOnlyMessage = (message: SentenceLearningMessage): boolean =>
@@ -80,27 +122,53 @@ const getToolTitle = (toolName: string): string => {
  * @param message 当前消息。
  * @returns 消息片段节点。
  */
-const renderMessageParts = (message: SentenceLearningMessage) => {
+const renderMessageParts = (
+    message: SentenceLearningMessage,
+    showText = true,
+    onLastReasoningCollapse?: () => void,
+    animateText = false,
+) => {
+    const lastReasoningIndex = message.parts.findLastIndex((part) => part.type === 'reasoning');
     const renderedParts: ReactNode[] = [];
     message.parts.forEach((part, partIndex) => {
         if (part.type === 'text') {
-            renderedParts.push(<Markdown key={`text-${partIndex}`}>{part.text}</Markdown>);
+            if (showText) {
+                renderedParts.push(
+                    <QueuedMarkdown key={`text-${partIndex}`} animate={animateText}>
+                        {part.text}
+                    </QueuedMarkdown>,
+                );
+            }
+            return;
+        }
+        if (part.type === 'reasoning') {
+            const reasoningStreaming = part.state === 'streaming';
+            renderedParts.push(
+                <Reasoning
+                    key={`reasoning-${partIndex}`}
+                    isStreaming={reasoningStreaming}
+                    defaultOpen={reasoningStreaming}
+                    onCollapseComplete={partIndex === lastReasoningIndex ? onLastReasoningCollapse : undefined}
+                >
+                    <ReasoningTrigger
+                        getThinkingMessage={(streaming, duration) => {
+                            if (streaming) return '正在思考...';
+                            return duration === undefined ? '思考过程' : `思考了 ${duration} 秒`;
+                        }}
+                    />
+                    <ReasoningContent>{part.text}</ReasoningContent>
+                </Reasoning>,
+            );
             return;
         }
         if (!isToolUIPart(part)) {
             return;
         }
-        const previousTextIndex = message.parts
-            .slice(0, partIndex)
-            .findLastIndex(isVisibleTextPart);
-        const nextTextOffset = message.parts
-            .slice(partIndex)
-            .findIndex((candidatePart) => isVisibleTextPart(candidatePart));
-        const nextTextIndex = nextTextOffset < 0 ? message.parts.length : partIndex + nextTextOffset;
-        const toolParts = message.parts
-            .slice(previousTextIndex + 1, nextTextIndex)
-            .filter(isToolUIPart);
-        if (toolParts[0] !== part) {
+        const toolStart = message.parts.slice(0, partIndex).findLastIndex((candidatePart) => !isToolUIPart(candidatePart)) + 1;
+        const nextNonToolOffset = message.parts.slice(partIndex).findIndex((candidatePart) => !isToolUIPart(candidatePart));
+        const toolEnd = nextNonToolOffset < 0 ? message.parts.length : partIndex + nextNonToolOffset;
+        const toolParts = message.parts.slice(toolStart, toolEnd).filter(isToolUIPart);
+        if (toolStart !== partIndex) {
             return;
         }
         const activePart = toolParts.find((toolPart) => toolPart.state !== 'output-available') ?? toolParts[0];
@@ -155,6 +223,53 @@ const renderMessageParts = (message: SentenceLearningMessage) => {
 };
 
 /**
+ * 控制思考片段与正文的交接，等待思考折叠动画结束后再揭示正文。
+ * @param message 当前 assistant 消息。
+ * @param isStreaming 当前消息是否仍在流式生成。
+ * @returns 按原始片段顺序渲染的思考、工具和正文内容。
+ */
+const AssistantMessageParts = ({
+    message,
+    isStreaming,
+}: {
+    message: SentenceLearningMessage;
+    isStreaming: boolean;
+}) => {
+    const reasoningParts = message.parts.filter((part) => part.type === 'reasoning');
+    const hasStreamingReasoning = reasoningParts.some((part) => part.state === 'streaming');
+    const hasText = getMessageText(message).trim().length > 0;
+    // 推理尚未结束时只延迟已经到达的正文；工具阶段没有正文时仍应保持工具过程可见。
+    const [canRevealText, setCanRevealText] = useState(
+        reasoningParts.length === 0 || !hasStreamingReasoning || !hasText,
+    );
+
+    useEffect(() => {
+        if (reasoningParts.length === 0) {
+            setCanRevealText(true);
+            return;
+        }
+        if (hasStreamingReasoning && hasText) {
+            setCanRevealText(false);
+        }
+    }, [hasStreamingReasoning, hasText, reasoningParts.length]);
+
+    const hasReasoning = reasoningParts.some((part) => part.text.trim().length > 0);
+    const hasTool = message.parts.some(isToolUIPart);
+
+    return (
+        <>
+            {renderMessageParts(message, canRevealText, () => setCanRevealText(true), isStreaming)}
+            {isStreaming && !hasText && !hasReasoning && !hasTool && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Spinner />
+                    <span>正在思考...</span>
+                </div>
+            )}
+        </>
+    );
+};
+
+/**
  * 渲染一条整句学习消息；消息外壳使用 AI Elements，正文保留项目的 TTS 与主题切换协议解析。
  * @param message AI SDK 管理的消息。
  * @param index 消息在当前会话中的顺序。
@@ -192,14 +307,7 @@ const renderMessage = (
                 className="group-[.is-assistant]:w-full group-[.is-assistant]:max-w-3xl group-[.is-assistant]:px-1 group-[.is-assistant]:py-1 group-[.is-user]:rounded-3xl group-[.is-user]:px-5 group-[.is-user]:py-3"
                 onContextMenu={() => useChatPanel.getState().updateInternalContext(content)}
             >
-                {isStreaming && !content && message.parts.length === 0 ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Spinner />
-                        <span>正在思考...</span>
-                    </div>
-                ) : (
-                    renderMessageParts(message)
-                )}
+                <AssistantMessageParts message={message} isStreaming={isStreaming} />
             </MessageContent>
         </Message>
     );
@@ -245,7 +353,9 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                             if (!isToolOnlyMessage(messages[cursor])) {
                                 break;
                             }
-                            toolParts.push(...messages[cursor].parts.filter(isToolUIPart));
+                            toolParts.push(...messages[cursor].parts.filter((part) => (
+                                isToolUIPart(part) || part.type === 'reasoning'
+                            )));
                         }
                         return renderMessage(
                             { ...message, parts: toolParts },

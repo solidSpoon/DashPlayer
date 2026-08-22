@@ -4,6 +4,7 @@ import { getToolName, isToolUIPart, type UIMessage } from 'ai';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { ElectronChatTransport } from '@/fronted/features/chat/chatTransport';
 import type { ChatReasoningEffort } from '@/common/types/chat';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const REASONING_EFFORT_STORAGE_KEY = 'dashplayer.sentence-learning.reasoning-effort';
 const reasoningEfforts: ChatReasoningEffort[] = ['low', 'medium', 'high'];
@@ -45,6 +46,30 @@ const emptySubtitleAgentView: SubtitleAgentView = {
     error: false,
     running: false,
 };
+
+/** 获取消息中的正文长度，用于记录前端首屏响应进度。 */
+const getMessageTextLength = (message: SentenceLearningMessage): number => message.parts
+    .filter((part) => part.type === 'text')
+    .reduce((length, part) => length + part.text.length, 0);
+
+/** 获取消息中的推理长度，用于区分模型思考和正文生成阶段。 */
+const getMessageReasoningLength = (message: SentenceLearningMessage): number => message.parts
+    .filter((part) => part.type === 'reasoning')
+    .reduce((length, part) => length + part.text.length, 0);
+
+/** 获取当前消息的有序片段摘要，用于定位推理、工具和正文之间的空档。 */
+const getMessagePartSummary = (message: SentenceLearningMessage): string[] => message.parts.map((part) => {
+    if (part.type === 'reasoning') {
+        return `reasoning:${part.state}:${part.text.length}`;
+    }
+    if (part.type === 'text') {
+        return `text:${part.state}:${part.text.length}`;
+    }
+    if (isToolUIPart(part)) {
+        return `tool:${getToolName(part)}:${part.state}`;
+    }
+    return part.type;
+});
 
 /**
  * 从最近一条助手消息中提取字幕查看器状态。
@@ -114,6 +139,7 @@ export const useSentenceLearningChat = () => {
         return isChatReasoningEffort(stored) ? stored : 'medium';
     });
     const welcomeSentSessionRef = useRef<string | null>(null);
+    const logger = useMemo(() => getRendererLogger('SentenceLearningChat'), []);
     const transport = useMemo(() => new ElectronChatTransport<SentenceLearningMessage>(), []);
     const chat = useChat<SentenceLearningMessage>({
         id: chatSessionId || 'inactive-chat-session',
@@ -122,6 +148,21 @@ export const useSentenceLearningChat = () => {
     });
     const { messages, sendMessage, status, stop } = chat;
     const isBusy = status === 'submitted' || status === 'streaming';
+
+    useEffect(() => {
+        if (!chatSessionId) return;
+        const latest = messages.at(-1);
+        logger.debug('chat view state changed', {
+            sessionId: chatSessionId,
+            status,
+            messageCount: messages.length,
+            latestRole: latest?.role ?? null,
+            latestPartCount: latest?.parts.length ?? 0,
+            latestParts: latest ? getMessagePartSummary(latest) : [],
+            latestTextLength: latest ? getMessageTextLength(latest) : 0,
+            latestReasoningLength: latest ? getMessageReasoningLength(latest) : 0,
+        });
+    }, [chatSessionId, logger, messages, status]);
 
     useEffect(() => {
         if (

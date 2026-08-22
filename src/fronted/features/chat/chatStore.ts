@@ -140,8 +140,12 @@ const startAnalysisForTopic = async () => {
     await useChatPanel.getState().startAnalysis();
 };
 
+const chatLogger = getRendererLogger('useChatPanel');
+
 // 流式分析 chunk 计数：仅在收到 start 时归零，用于节流 chunk 级调试日志。
 let analysisStreamChunkCount = 0;
+// 防止快捷键重复触发时并发创建多个整句学习会话。
+let sessionCreationInFlight = false;
 
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
@@ -200,17 +204,34 @@ const useChatPanel = create(
             if (!currentSentence) {
                 throw new Error('当前字幕句不存在，无法创建带上下文工具的整句学习会话');
             }
+            if (sessionCreationInFlight) {
+                chatLogger.warn('忽略重复的整句学习会话创建请求');
+                return;
+            }
+            sessionCreationInFlight = true;
             const previousSessionId = get().chatSessionId;
             if (previousSessionId) {
                 chatApi.closeSession(previousSessionId).catch((error) => {
                     getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
                 });
             }
-            const { sessionId } = await chatApi.createSession({
-                videoId,
-                originalTopic: text,
-                paragraphLines: context,
-                subtitleFileHash: currentSentence.fileHash,
+            let sessionId: string;
+            try {
+                ({ sessionId } = await chatApi.createSession({
+                    videoId,
+                    originalTopic: text,
+                    paragraphLines: context,
+                    subtitleFileHash: currentSentence.fileHash,
+                    anchorSentenceIndex: currentSentence.index,
+                }));
+            } catch (error) {
+                sessionCreationInFlight = false;
+                throw error;
+            }
+            chatLogger.info('sentence learning session created', {
+                sessionId,
+                topicLength: text.length,
+                paragraphLineCount: context.length,
                 anchorSentenceIndex: currentSentence.index,
             });
             set({
@@ -221,6 +242,7 @@ const useChatPanel = create(
                 canRedo: undoRedo.canRedo(),
                 canUndo: undoRedo.canUndo()
             });
+            sessionCreationInFlight = false;
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for selected topic', { error });
             });
@@ -254,6 +276,11 @@ const useChatPanel = create(
             if (!videoId) {
                 throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
             }
+            if (sessionCreationInFlight) {
+                chatLogger.warn('忽略重复的整句学习会话创建请求');
+                return;
+            }
+            sessionCreationInFlight = true;
             const previousSessionId = get().chatSessionId;
             if (previousSessionId) {
                 chatApi.closeSession(previousSessionId).catch((error) => {
@@ -261,11 +288,23 @@ const useChatPanel = create(
                 });
             }
             const paragraphLines = subtitles.map(e => e.text);
-            const { sessionId } = await chatApi.createSession({
-                videoId,
-                originalTopic: ct.text,
-                paragraphLines,
-                subtitleFileHash: ct.fileHash,
+            let sessionId: string;
+            try {
+                ({ sessionId } = await chatApi.createSession({
+                    videoId,
+                    originalTopic: ct.text,
+                    paragraphLines,
+                    subtitleFileHash: ct.fileHash,
+                    anchorSentenceIndex: ct.index,
+                }));
+            } catch (error) {
+                sessionCreationInFlight = false;
+                throw error;
+            }
+            chatLogger.info('sentence learning session created', {
+                sessionId,
+                topicLength: ct.text.length,
+                paragraphLineCount: paragraphLines.length,
                 anchorSentenceIndex: ct.index,
             });
             set({
@@ -274,6 +313,7 @@ const useChatPanel = create(
                 topicText: ct.text,
                 topic,
             });
+            sessionCreationInFlight = false;
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for current topic', { error });
             });
@@ -303,6 +343,10 @@ const useChatPanel = create(
             }
             if (event.chunk.type === 'start') {
                 analysisStreamChunkCount = 0;
+                chatLogger.info('analysis stream started in renderer', {
+                    sessionId: event.sessionId,
+                    messageId: event.chunk.messageId ?? event.messageId,
+                });
                 set({
                     analysis: {},
                     analysisMessageId: event.chunk.messageId ?? event.messageId,
@@ -336,12 +380,22 @@ const useChatPanel = create(
                 return;
             }
             if (event.chunk.type === 'finish') {
+                chatLogger.info('analysis stream finished in renderer', {
+                    sessionId: event.sessionId,
+                    messageId: event.messageId,
+                    chunkCount: analysisStreamChunkCount,
+                });
                 set({
                     analysisStatus: 'done',
                 });
                 return;
             }
             if (event.chunk.type === 'error') {
+                chatLogger.error('analysis stream failed in renderer', {
+                    sessionId: event.sessionId,
+                    messageId: event.messageId,
+                    errorText: event.chunk.errorText,
+                });
                 set({
                     analysisStatus: 'error',
                     analysisError: event.chunk.errorText,
