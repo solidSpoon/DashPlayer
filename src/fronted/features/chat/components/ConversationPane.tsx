@@ -48,6 +48,9 @@ import i18n from '@/fronted/i18n';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import Markdown from '@/fronted/components/shared/markdown/Markdown';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('SentenceLearningConversation');
 
 /**
  * 提取标准 UI 消息里的所有文本片段。
@@ -60,6 +63,14 @@ const getMessageText = (message: SentenceLearningMessage): string => {
         .map((part) => part.text)
         .join('');
 };
+
+/**
+ * 判断片段是否包含真正的用户可见正文，用于切分多轮工具调用。
+ * @param part 当前消息片段。
+ * @returns 只有非空文本片段才会结束工具组。
+ */
+const isNonEmptyTextPart = (part: SentenceLearningMessage['parts'][number]): boolean =>
+    part.type === 'text' && part.text.trim().length > 0;
 
 // 按消息片段保存播放进度，避免工具步骤插入后正文组件重新挂载并从头播放。
 const queuedMarkdownProgress = new Map<string, number>();
@@ -123,11 +134,39 @@ const QueuedMarkdown = ({
     return <Markdown>{visibleText}</Markdown>;
 };
 
-/** 判断消息是否只包含工具片段，便于把同一轮多步工具调用合并展示。 */
-const isToolOnlyMessage = (message: SentenceLearningMessage): boolean =>
+/**
+ * 判断消息是否属于没有正文的工具活动，用于把同一轮连续工具调用合并展示。
+ * @param message 待判断的助手消息。
+ * @returns 消息仅包含工具活动与可选推理时返回 true。
+ */
+const isToolActivityMessage = (message: SentenceLearningMessage): boolean =>
     message.role === 'assistant'
     && getMessageText(message).trim().length === 0
     && message.parts.some((part) => isToolUIPart(part));
+
+/**
+ * 汇总连续工具活动消息，忽略思考和步骤标记，仅在出现用户可见正文时结束分组。
+ * @param messages 当前会话的全部消息。
+ * @param startIndex 当前工具活动消息的起始位置。
+ * @returns 已合并的工具活动片段及分组结束位置。
+ */
+const collectToolActivityParts = (
+    messages: SentenceLearningMessage[],
+    startIndex: number,
+): { parts: SentenceLearningMessage['parts']; endIndex: number } => {
+    const parts = [] as SentenceLearningMessage['parts'];
+    let endIndex = startIndex;
+    for (let cursor = startIndex; cursor < messages.length; cursor += 1) {
+        if (!isToolActivityMessage(messages[cursor])) {
+            break;
+        }
+        parts.push(...messages[cursor].parts.filter((part) => (
+            isToolUIPart(part) || part.type === 'reasoning'
+        )));
+        endIndex = cursor;
+    }
+    return { parts, endIndex };
+};
 
 /**
  * 获取工具的用户可读标题，避免把内部 snake_case 名称直接暴露给用户。
@@ -155,7 +194,7 @@ const getReasoningPreview = (content: string): string => {
 };
 
 /**
- * 渲染 AI SDK 消息片段，工具调用与文本保持原始流顺序。
+ * 渲染 AI SDK 消息片段；无正文工具活动中的所有工具调用合并为一个可展开面板。
  * @param message 当前消息。
  * @returns 消息片段节点。
  */
@@ -168,6 +207,8 @@ const renderMessageParts = (
         (part) => part.type === 'reasoning' && part.state === 'streaming',
     );
     const renderedParts: ReactNode[] = [];
+    const shouldMergeAllToolParts = getMessageText(message).trim().length === 0
+        && message.parts.some((part) => isToolUIPart(part));
     message.parts.forEach((part, partIndex) => {
         if (part.type === 'text') {
             // 后续推理只阻塞它之后的正文，前面已经完成的正文不能被整条消息级开关隐藏。
@@ -215,11 +256,17 @@ const renderMessageParts = (
         if (!isToolUIPart(part)) {
             return;
         }
-        const toolStart = message.parts.slice(0, partIndex).findLastIndex((candidatePart) => !isToolUIPart(candidatePart)) + 1;
-        const nextNonToolOffset = message.parts.slice(partIndex).findIndex((candidatePart) => !isToolUIPart(candidatePart));
-        const toolEnd = nextNonToolOffset < 0 ? message.parts.length : partIndex + nextNonToolOffset;
-        const toolParts = message.parts.slice(toolStart, toolEnd).filter(isToolUIPart);
-        if (toolStart !== partIndex) {
+        // 推理片段属于同一轮活动，不应切断工具组；只有正文片段才是工具组边界。
+        const toolStart = shouldMergeAllToolParts
+            ? message.parts.findIndex((candidatePart) => isToolUIPart(candidatePart))
+            : message.parts.slice(0, partIndex).findLastIndex(isNonEmptyTextPart) + 1;
+        const nextTextOffset = message.parts.slice(partIndex).findIndex(isNonEmptyTextPart);
+        const toolEnd = shouldMergeAllToolParts
+            ? message.parts.length
+            : nextTextOffset < 0 ? message.parts.length : partIndex + nextTextOffset;
+        const toolParts = (shouldMergeAllToolParts ? message.parts : message.parts.slice(toolStart, toolEnd))
+            .filter(isToolUIPart);
+        if (toolParts[0] !== part) {
             return;
         }
         const activePart = toolParts.find((toolPart) => toolPart.state !== 'output-available') ?? toolParts[0];
@@ -433,25 +480,23 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                     scrollClassName="conversation-scrollbar"
                 >
                     {messages.map((message, index) => {
-                        if (!isToolOnlyMessage(message)) {
+                        if (!isToolActivityMessage(message)) {
                             return renderMessage(
                                 message,
                                 index,
                                 status === 'streaming' && index === messages.length - 1,
                             );
                         }
-                        if (index > 0 && isToolOnlyMessage(messages[index - 1])) {
+                        if (index > 0 && isToolActivityMessage(messages[index - 1])) {
                             return null;
                         }
-                        const toolParts = [] as SentenceLearningMessage['parts'];
-                        for (let cursor = index; cursor < messages.length; cursor += 1) {
-                            if (!isToolOnlyMessage(messages[cursor])) {
-                                break;
-                            }
-                            toolParts.push(...messages[cursor].parts.filter((part) => (
-                                isToolUIPart(part) || part.type === 'reasoning'
-                            )));
-                        }
+                        const { parts: toolParts, endIndex } = collectToolActivityParts(messages, index);
+                        logger.debug('tool activity messages merged for display', {
+                            startIndex: index,
+                            endIndex,
+                            toolCount: toolParts.filter(isToolUIPart).length,
+                            reasoningCount: toolParts.filter((part) => part.type === 'reasoning').length,
+                        });
                         return renderMessage(
                             { ...message, parts: toolParts },
                             index,
