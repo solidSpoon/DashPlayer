@@ -185,11 +185,13 @@ export const ReasoningTrigger = memo(
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4" />
-            {getThinkingMessage(isStreaming, duration)}
+            <BrainIcon className="size-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-left">
+              {getThinkingMessage(isStreaming, duration)}
+            </span>
             <ChevronDownIcon
               className={cn(
-                "size-4 transition-transform",
+                "size-4 shrink-0 transition-transform",
                 isOpen ? "rotate-180" : "rotate-0"
               )}
             />
