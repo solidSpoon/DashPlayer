@@ -6,12 +6,14 @@ import { Skeleton } from '@/fronted/components/ui/skeleton';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { useTranslation } from 'react-i18next';
 import { Separator } from '@/fronted/components/ui/separator';
 
 const UnifiedAnalysisPane = ({ className }: {
     className?: string,
 }) => {
     const logger = getRendererLogger('UnifiedAnalysisPane');
+    const { t } = useTranslation('common');
     const analysis = useChatPanel(state => state.analysis);
     const status = useChatPanel(state => state.analysisStatus);
     const vocabDetail = analysis?.vocab;
@@ -110,7 +112,7 @@ const UnifiedAnalysisPane = ({ className }: {
             {/* Empty State (if analysis is done but nothing found) */}
             {status === 'done' && !vocabDetail?.hasNewWord && !phraseDetail?.hasPhrase && !StrUtil.isNotBlank(grammarDetail?.grammarsMd) && (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                    <p>本句没有特别的生词或语法点</p>
+                    <p>{t('noAnalysisPoints')}</p>
                 </div>
             )}
         </div>

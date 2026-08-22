@@ -43,6 +43,8 @@ import {
 import type { ChatReasoningEffort } from '@/common/types/chat';
 import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/fronted/i18n';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import Markdown from '@/fronted/components/shared/markdown/Markdown';
@@ -135,9 +137,9 @@ const isToolOnlyMessage = (message: SentenceLearningMessage): boolean =>
 const getToolTitle = (toolName: string): string => {
     switch (toolName) {
         case 'search_subtitles':
-            return '搜索字幕';
+            return i18n.t('common:searchSubtitles');
         case 'get_subtitle_context':
-            return '读取字幕上下文';
+            return i18n.t('common:readSubtitleContext');
         default:
             return toolName;
     }
@@ -195,8 +197,14 @@ const renderMessageParts = (
                 >
                     <ReasoningTrigger
                         getThinkingMessage={(streaming, duration) => {
-                            if (streaming) return reasoningPreview ? `思考中 · ${reasoningPreview}` : '思考中...';
-                            return duration === undefined ? '思考过程' : `思考了 ${duration} 秒`;
+                            if (streaming) {
+                                return reasoningPreview
+                                    ? i18n.t('common:reasoningStreamingWithPreview', { preview: reasoningPreview })
+                                    : i18n.t('common:reasoningStreaming');
+                            }
+                            return duration === undefined
+                                ? i18n.t('common:reasoningProcess')
+                                : i18n.t('common:reasoningDuration', { seconds: duration });
                         }}
                     />
                     <ReasoningContent>{part.text}</ReasoningContent>
@@ -222,7 +230,7 @@ const renderMessageParts = (
             }
             return titles;
         }, []);
-        const toolCountLabel = `${toolTitles.join(' · ')}${toolParts.length > 1 ? ` · ${toolParts.length} 次` : ''}`;
+        const toolCountLabel = `${toolTitles.join(' · ')}${toolParts.length > 1 ? ` · ${i18n.t('common:toolCount', { count: toolParts.length })}` : ''}`;
         renderedParts.push(
             <Tool
                 key={`tool-group-${part.toolCallId}`}
@@ -293,7 +301,7 @@ const AssistantMessageParts = ({
             {isStreaming && !hasText && !hasReasoning && !hasTool && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Spinner />
-                    <span>正在思考...</span>
+                    <span>{i18n.t('common:thinking')}</span>
                 </div>
             )}
         </>
@@ -349,6 +357,7 @@ const renderMessage = (
  * @returns 完整的聊天列。
  */
 const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
+    const { t } = useTranslation('common');
     const { toast } = useToast();
     const { mutate } = useSWRConfig();
     const { data: engineSettings, mutate: mutateEngineSettings } = useSWR<EngineSelectionSettingVO>(
@@ -453,7 +462,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                         <Message className="mx-auto w-full max-w-3xl" from="assistant">
                             <MessageContent className="flex-row items-center px-1 py-1 text-muted-foreground">
                                 <Spinner />
-                                <span>正在思考...</span>
+                    <span>{t('thinking')}</span>
                             </MessageContent>
                         </Message>
                     )}
@@ -470,7 +479,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                             className="min-h-14 max-h-40 px-5 py-3.5 text-base"
                             value={input}
                             onChange={(event) => setInput(event.currentTarget.value)}
-                            placeholder="输入你的问题..."
+                            placeholder={t('questionPlaceholder')}
                         />
                     </PromptInputBody>
                     <PromptInputFooter className="items-center justify-between px-3 pb-2 pt-0">
@@ -490,7 +499,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                                     aria-label="整句学习模型"
                                     className="h-7 max-w-48 gap-1 border-0 bg-transparent px-2 text-xs text-muted-foreground shadow-none focus:ring-0"
                                 >
-                                    <SelectValue placeholder={sentenceLearningEnabled ? '选择模型' : '整句学习未启用'} />
+                                    <SelectValue placeholder={sentenceLearningEnabled ? t('selectModel') : t('learningDisabled')} />
                                 </SelectTrigger>
                                 <SelectContent align="start">
                                     {availableModels.map((item) => (
@@ -509,9 +518,9 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="start">
-                                    <SelectItem value="low">低推理</SelectItem>
-                                    <SelectItem value="medium">中推理</SelectItem>
-                                    <SelectItem value="high">高推理</SelectItem>
+                                    <SelectItem value="low">{t('reasoningLow')}</SelectItem>
+                                    <SelectItem value="medium">{t('reasoningMedium')}</SelectItem>
+                                    <SelectItem value="high">{t('reasoningHigh')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

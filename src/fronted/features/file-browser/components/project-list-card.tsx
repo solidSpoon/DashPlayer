@@ -20,6 +20,7 @@ import MusicCard from '@/fronted/features/file-browser/components/music-card';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import useInView from '@/fronted/hooks/useInView';
+import i18n from '@/fronted/i18n';
 
     const logger = getRendererLogger('ProjectListCard');
 
@@ -161,7 +162,7 @@ import useInView from '@/fronted/hooks/useInView';
                                     await fileBrowserApi.openFolder(video.basePath);
                     }}
                 >
-                    Show In Explorer
+                    {i18n.t('common:showInExplorer')}
                 </ContextMenuItem>
                 <ContextMenuItem
                     onClick={async () => {
@@ -169,7 +170,7 @@ import useInView from '@/fronted/hooks/useInView';
                         await swrApiMutate('watch-history/list');
                     }}
                 >
-                    Delete
+                    {i18n.t('common:delete')}
                 </ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>

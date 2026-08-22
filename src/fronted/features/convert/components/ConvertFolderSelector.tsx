@@ -4,6 +4,7 @@ import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { convertApi } from '../convertApi';
+import { useTranslation } from 'react-i18next';
 
 /** 转码文件夹选择器的输入属性。 */
 export interface FolderSelectorProps {
@@ -14,6 +15,7 @@ export interface FolderSelectorProps {
 }
 
 const ConvertFolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
+    const { t } = useTranslation('common');
     const handleClick = async () => {
         const ps = await convertApi.selectFolders();
         if (ps.length > 0) {
@@ -29,7 +31,7 @@ const ConvertFolderSelector = ({ onSelected, className }: FolderSelectorProps) =
                         onClick={() => handleClick()}
                         variant={'outline'}
                         className={cn('w-28', className)}
-                    >Add Folder</Button>
+                    >{t('addFolder')}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     文件夹内的视频和对应的字幕文件名称最好保持一致

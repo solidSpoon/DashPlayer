@@ -19,6 +19,7 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/features/file-browser/components/music-card';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import useInView from '@/fronted/hooks/useInView';
+import i18n from '@/fronted/i18n';
 
 const ProjectListItem = ({ video, onSelected }: {
     video: WatchHistoryVO,
@@ -129,13 +130,13 @@ const ProjectListItem = ({ video, onSelected }: {
                     onClick={async () => {
                         await fileBrowserApi.openFolder(video.basePath);
                     }}
-                >Show In Explorer</ContextMenuItem>
+                >{i18n.t('common:showInExplorer')}</ContextMenuItem>
                 <ContextMenuItem
                     onClick={async () => {
                         await fileBrowserApi.deleteWatchHistoryGroup(video.id);
                         await swrApiMutate('watch-history/list');
                     }}
-                >Delete</ContextMenuItem>
+                >{i18n.t('common:delete')}</ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>
     );

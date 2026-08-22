@@ -14,6 +14,7 @@ import { Calendar } from '@/fronted/components/ui/calendar';
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { useTranslation } from 'react-i18next';
 
 const DatePickerWithRange = ({
                                  className,
@@ -24,6 +25,7 @@ const DatePickerWithRange = ({
     dateRange?: DateRange;
     onDateRangeChange?: (dateRange: DateRange) => void;
 }) => {
+    const { t } = useTranslation('common');
     const logger = getRendererLogger('DatePickerWithRange');
     const dateEmpty: boolean = !dateRange || (!dateRange.from && !dateRange.to);
 
@@ -68,7 +70,7 @@ const DatePickerWithRange = ({
                                 format(displayDateRange.from, 'LLL dd, y')
                             )
                         ) : (
-                            <span>Pick a date</span>
+                            <span>{t('pickDate')}</span>
                         )}
                     </Button>
                 </PopoverTrigger>

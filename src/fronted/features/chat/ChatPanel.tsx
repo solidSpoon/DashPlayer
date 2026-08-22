@@ -20,8 +20,10 @@ import {Button} from '@/fronted/components/ui/button';
 import {ChevronLeft, ChevronRight, X} from 'lucide-react';
 import {useShallow} from 'zustand/react/shallow';
 import {useHotkeys} from "react-hotkeys-hook";
+import { useTranslation } from 'react-i18next';
 
 const ChatPanel = () => {
+    const { t } = useTranslation('common');
     const chat = useSentenceLearningChat();
     const {createFromSelect, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
         createFromSelect: s.createFromSelect,
@@ -164,22 +166,22 @@ const ChatPanel = () => {
                         onClick={async () => {
                             ctxMenuPlayAudio();
                         }}
-                    >朗读文本</ContextMenuItem>
+                    >{t('speakText')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuExplain}
-                    >解释所选单词</ContextMenuItem>
+                    >{t('explainWord')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuPolish}
-                    >润色句子</ContextMenuItem>
+                    >{t('polishSentence')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuQuote}
-                    >引用这段文本</ContextMenuItem>
+                    >{t('quoteText')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuCopy}
-                    >复制</ContextMenuItem>
+                    >{t('copy')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={() => createFromSelect()}
-                    >用选择内容新建对话</ContextMenuItem>
+                    >{t('newChatFromSelection')}</ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
         </motion.div>

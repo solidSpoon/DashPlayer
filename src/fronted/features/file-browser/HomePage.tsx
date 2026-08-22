@@ -20,6 +20,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 const logger = getRendererLogger('HomePage');
 const HomePage = () => {
     const { t } = useI18nTranslation('nav');
+    const { t: tc } = useI18nTranslation('common');
     const navigate = useNavigate();
     const changeSideBar = useLayout((s) => s.changeSideBar);
 
@@ -114,10 +115,8 @@ const HomePage = () => {
 
                     <Card x-chunk="dashboard-04-chunk-1" className={'mt-16 '}>
                         <CardHeader>
-                            <CardTitle>Recent Watch</CardTitle>
-                            <CardDescription>
-                                Pick up where you left off
-                            </CardDescription>
+                            <CardTitle>{tc('recentWatch')}</CardTitle>
+                            <CardDescription>{tc('pickUpWhereLeftOff')}</CardDescription>
                         </CardHeader>
                         <CardContent className={'grid grid-cols-3 gap-8'}>
                             {vps?.slice(0, 3)

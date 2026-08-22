@@ -6,6 +6,7 @@ import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
+import { useTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('FolderSelector');
 
@@ -38,6 +39,7 @@ export class FolderSelectAction {
 }
 
 const FolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
+    const { t } = useTranslation('common');
     const handleClick = async () => {
         const ps = await fileBrowserApi.selectFolder({});
         logger.debug('Selected folder projects', { projectCount: ps.length, firstProject: ps[0] });
@@ -54,7 +56,7 @@ const FolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
                         onClick={() => handleClick()}
                         variant={'outline'}
                         className={cn('w-28', className)}
-                    >Open Folder</Button>
+                    >{t('openFolder')}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     文件夹内的视频和对应的字幕文件名称最好保持一致

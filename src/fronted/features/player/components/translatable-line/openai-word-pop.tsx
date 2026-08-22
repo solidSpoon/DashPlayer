@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Playable from '@/fronted/components/shared/common/Playable';
 import { cn } from '@/fronted/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * 统一音标显示格式，自动补齐首尾斜杠。
@@ -27,6 +28,7 @@ interface OpenAIWordPopProps {
 }
 
 const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, isStreaming = false, onRefresh, className }) => {
+    const { t } = useTranslation('common');
     const hasDefinitions = !!data && Array.isArray(data.definitions) && data.definitions.length > 0;
     const hasContent = !!data && (Boolean(data.word) || hasDefinitions);
 
@@ -154,7 +156,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                                 ))
                             ) : (
                                 <div className="text-sm text-gray-400 pl-3 border-l-2 border-dashed border-blue-200 select-none">
-                                    {isStreaming ? '等待释义生成…' : '暂无释义'}
+                                    {isStreaming ? t('generatingDefinition') : t('noDefinition')}
                                 </div>
                             )}
                         </div>
@@ -174,7 +176,7 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({ data, isLoading = false, 
                         'absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 shadow-sm transition-colors z-10',
                         (isLoading || isStreaming) && 'opacity-50'
                     )}
-                    title="强制刷新"
+                    title={t('forceRefresh')}
                 >
                     <RefreshCw size={16} className={isLoading || isStreaming ? 'animate-spin' : ''} />
                 </button>

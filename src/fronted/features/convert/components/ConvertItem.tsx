@@ -22,6 +22,7 @@ import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { convertApi } from '../convertApi';
+import i18n from '@/fronted/i18n';
 
 const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
     file: string,
@@ -138,7 +139,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                     onClick={async () => {
                         await convertApi.openFolder(file);
                     }}
-                >Show In Explorer</ContextMenuItem>
+                >{i18n.t('common:showInExplorer')}</ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>
     );
