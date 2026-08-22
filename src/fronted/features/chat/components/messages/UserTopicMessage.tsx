@@ -5,37 +5,51 @@ import useChatPanel from '@/fronted/features/chat/chatStore';
 import StrUtil from '@/common/utils/str-util';
 
 /**
- * 按分析结果把原句拆成普通文本与带标注的短语片段。
+ * 意群组数据项类型（兼容字符串或历史对象结构）。
+ */
+type PhraseGroupItem = string | { original?: string };
+
+/**
+ * 按分析结果把原句拆成普通文本与意群片段。
  * @param original 原始主题句。
  * @param phraseGroups AI 返回的短语分组。
  * @returns 保持原句顺序的文本和短语片段。
  */
 const process = (
     original: string,
-    phraseGroups?: AiUnifiedAnalysisRes['structure']['phraseGroups']
-): (string | AiUnifiedAnalysisRes['structure']['phraseGroups'][0])[] => {
-    if (!phraseGroups || phraseGroups.length === 0) return [original];
+    phraseGroups?: AiUnifiedAnalysisRes['structure']['phraseGroups'] | PhraseGroupItem[]
+): { text: string; isGroup: boolean }[] => {
+    if (!phraseGroups || phraseGroups.length === 0) {
+        return [{ text: original, isGroup: false }];
+    }
     if (StrUtil.isBlank(original)) return [];
-    const res = [];
-    let text = original;
+    const res: { text: string; isGroup: boolean }[] = [];
+    let remaining = original;
+
     for (const group of phraseGroups) {
-        if (StrUtil.isBlank(group?.original)) continue;
-        if (StrUtil.isBlank(text)) {
-            // res.push(group);
-            continue;
-        }
-        const analyse = group.original.trim();
-        const lowerCaseText = text.toLowerCase();
+        const rawGroupText = typeof group === 'string' ? group : group?.original;
+        if (!rawGroupText || StrUtil.isBlank(rawGroupText)) continue;
+        if (StrUtil.isBlank(remaining)) continue;
+
+        const analyse = rawGroupText.trim();
+        const lowerCaseText = remaining.toLowerCase();
         const lowerCaseOriginal = analyse.toLowerCase();
         const index = lowerCaseText.indexOf(lowerCaseOriginal);
         if (index < 0) continue;
-        const before = text.substring(0, index);
-        const after = text.substring(index + analyse.length);
-        if (before) res.push(before);
-        res.push(group);
-        text = after;
+
+        const before = remaining.substring(0, index);
+        const matched = remaining.substring(index, index + analyse.length);
+        const after = remaining.substring(index + analyse.length);
+
+        if (before) {
+            res.push({ text: before, isGroup: false });
+        }
+        res.push({ text: matched, isGroup: true });
+        remaining = after;
     }
-    if (text) res.push(text);
+    if (remaining) {
+        res.push({ text: remaining, isGroup: false });
+    }
 
     return res;
 };
@@ -67,6 +81,7 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
     ];
 
     const content = process(messageContent, analysis?.structure?.phraseGroups);
+    let groupIndex = 0;
     
     return (
         <div
@@ -75,26 +90,27 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
             }}
             className="relative px-1 py-1 text-base leading-relaxed"
         >
-            {content.map((group, i) => {
-                if (typeof group === 'string') {
+            {content.map((item, i) => {
+                if (!item.isGroup) {
                     // 普通文本包含标点和连接词，需要保持原句中的相对位置。
-                    const isPunctuation = /^[.,!?;:]+$/.test(group.trim());
+                    const isPunctuation = /^[.,!?;:]+$/.test(item.text.trim());
                     return (
                         <span key={`text:${i}`} className={cn('font-medium text-foreground/80', isPunctuation && '-ml-1')}>
-                            {group}
+                            {item.text}
                         </span>
                     );
                 } else {
-                    // 意群颜色只用于视觉分组，按出现顺序轮换，不承载句法语义。
+                    const colorClass = groupColors[groupIndex % groupColors.length];
+                    groupIndex += 1;
                     return (
                         <span
-                            key={`group:${i}:${group.original}`}
+                            key={`group:${i}:${item.text}`}
                             className={cn(
                                 'box-decoration-clone rounded-md py-0.5 font-medium',
-                                groupColors[i % groupColors.length]
+                                colorClass
                             )}
                         >
-                            {group.original}
+                            {item.text}
                         </span>
                     );
                 }

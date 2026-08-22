@@ -119,7 +119,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         text,
         '',
         '# 分析要求',
-        '- structure: 意群拆解。phraseGroups 按原句自然顺序切分，并给出每个意群的中文翻译。',
+        '- structure: 意群拆解。phraseGroups 为字符串数组，按原句自然阅读顺序切分出 2~5 个英文意群片段。',
         '- vocab: 提取中级学习者可能不熟悉的生词，提供标准音标与中文释义；如无生词则 words 为空数组且 hasNewWord=false。',
         '- phrases: 提取重点词组或搭配，提供中文释义；如无短语则 phrases 为空数组且 hasPhrase=false。',
         '- grammar: 用清晰的中文 Markdown 解释关键语法结构，不要使用 # 级标题，使用加粗或列表即可。',
@@ -129,10 +129,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         '```json',
         '{',
         '  "structure": {',
-        '    "sentence": "目标句子完整原文",',
-        '    "phraseGroups": [',
-        '      { "original": "意群英文", "translation": "意群中文翻译" }',
-        '    ]',
+        '    "phraseGroups": ["意群片段1", "意群片段2", "意群片段3"]',
         '  },',
         '  "vocab": {',
         '    "hasNewWord": true,',
@@ -221,6 +218,10 @@ export const ensureChatRoleMessage = (messages: ModelMessage[]): ModelMessage[] 
 /**
  * 将已有的背景分析与段落上下文装配进消息队列中。
  */
+/**
+ * 将已有的背景分析与段落上下文装配为一条稳定的上下文参考消息。
+ * 采用 user 角色或上下文数据包装，避免作为 dynamic system 消息污染顶层 System Prompt 从而破坏 KV 前缀缓存。
+ */
 export const buildChatBackgroundMessage = (
     background?: ChatBackgroundContext
 ): ModelMessage | null => {
@@ -241,8 +242,7 @@ export const buildChatBackgroundMessage = (
     const analysis = background?.analysis;
     if (analysis?.structure?.phraseGroups?.length) {
         const lines = analysis.structure.phraseGroups.map(
-            (group: AiUnifiedAnalysisRes['structure']['phraseGroups'][number]) =>
-                `- ${group.original ?? ''} -> ${group.translation ?? ''}`
+            (group: string) => `- ${group}`
         );
         parts.push(['已解析的意群拆解：', ...lines].join('\n'));
     }
@@ -286,9 +286,9 @@ export const buildChatBackgroundMessage = (
     }
 
     return {
-        role: 'system',
+        role: 'user',
         content: [
-            '以下是本次对话所关联的背景材料与语言分析数据，请在与用户交流时参考：',
+            '【背景参考材料与语言分析】（已自动解析就绪，后续对话请据此参考）：',
             '',
             parts.join('\n\n'),
         ].join('\n'),
@@ -296,7 +296,9 @@ export const buildChatBackgroundMessage = (
 };
 
 /**
- * 将背景信息注入到用户最后一条消息之前。
+ * 带有缓存友好特性的背景信息注入器：
+ * 1. 顶层 System Prompt（ensureChatRoleMessage）保持绝对固定，保证最前缀 100% 命中 KV Cache。
+ * 2. 背景材料只在第一轮（Welcome 答复之后）作为第 2 条上下文消息注入一次，历史消息单调向后追加，绝不在后续轮次中间插队篡改前缀。
  */
 export const appendBackgroundMessage = (
     messages: ModelMessage[],
@@ -307,13 +309,35 @@ export const appendBackgroundMessage = (
     if (!backgroundMessage) {
         return withRole;
     }
-    const insertIndex = withRole.findLastIndex((message) => message.role === 'user');
-    if (insertIndex < 0) {
-        return [...withRole, backgroundMessage];
+
+    // 检查历史中是否已经注入过背景参考材料，若已存在则直接返回，保证历史序列不变
+    const alreadyInjected = withRole.some(
+        (msg) => typeof msg.content === 'string' && msg.content.startsWith('【背景参考材料与语言分析】')
+    );
+    if (alreadyInjected) {
+        return withRole;
     }
-    return [
-        ...withRole.slice(0, insertIndex),
-        backgroundMessage,
-        ...withRole.slice(insertIndex),
-    ];
+
+    // 找到首轮 welcome 的 assistant 回复位置（通常在第 2 或第 3 条），固定插入在其后；若不存在则插入在最前一条 user 消息之后
+    const firstAssistantIndex = withRole.findIndex((msg) => msg.role === 'assistant');
+    if (firstAssistantIndex >= 0) {
+        return [
+            ...withRole.slice(0, firstAssistantIndex + 1),
+            backgroundMessage,
+            { role: 'assistant', content: '收到，已同步本次学习的完整背景与语言分析材料。' },
+            ...withRole.slice(firstAssistantIndex + 1),
+        ];
+    }
+
+    // 若尚未有 assistant 消息，插入在第一条 user 消息之后或直接追加
+    const firstUserIndex = withRole.findIndex((msg) => msg.role === 'user');
+    if (firstUserIndex >= 0) {
+        return [
+            ...withRole.slice(0, firstUserIndex + 1),
+            backgroundMessage,
+            ...withRole.slice(firstUserIndex + 1),
+        ];
+    }
+
+    return [...withRole, backgroundMessage];
 };
