@@ -70,6 +70,8 @@ export interface SubtitleTranslationDemandInput {
     currentIndex: number;
     /** 前端按播放位置递增的需求标记。 */
     demandId: number;
+    /** 发起需求的 renderer 进程会话标识。 */
+    rendererSessionId: string;
 }
 
 /**
@@ -95,8 +97,9 @@ export default interface SubtitleTranslationService {
      * 释放指定字幕文件的内存会话并取消过期请求。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 当前 renderer 进程的会话标识。
      */
-    releaseSession(fileHash: string): void;
+    releaseSession(fileHash: string, rendererSessionId: string): void;
 }
 
 /**
@@ -368,16 +371,19 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         if (!Number.isInteger(input.demandId) || input.demandId < 1) {
             throw new Error(`字幕需求标记无效: ${input.demandId}`);
         }
+        if (!input.rendererSessionId.trim()) {
+            throw new Error('renderer 会话标识不能为空');
+        }
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData) {
-            this.scheduler.release(fileHash);
+            this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('未找到字幕缓存，请重新加载字幕或重新打开视频');
         }
 
         const provider = await this.settingService.getCurrentTranslationProvider();
         if (!provider) {
-            this.scheduler.release(fileHash);
+            this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('未启用字幕翻译服务');
         }
 
@@ -386,6 +392,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 fileHash,
                 currentIndex: input.currentIndex,
                 demandId: input.demandId,
+                rendererSessionId: input.rendererSessionId,
                 sentenceCount: srtData.sentences.length,
                 profileKey: 'tencent',
                 context: {
@@ -406,7 +413,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const { style, signature } = resolveSubtitleStyleWithSignature(mode, customStyle);
         const routedModel = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
         if (!routedModel) {
-            this.scheduler.release(fileHash);
+            this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('OpenAI 字幕翻译模型未配置');
         }
 
@@ -415,6 +422,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             fileHash,
             currentIndex: input.currentIndex,
             demandId: input.demandId,
+            rendererSessionId: input.rendererSessionId,
             sentenceCount: srtData.sentences.length,
             profileKey: `${storageMode}:${routedModel.fullModelId}`,
             context: {
@@ -432,13 +440,14 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      * 释放指定字幕文件的翻译会话。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 当前 renderer 进程的会话标识。
      */
-    public releaseSession(fileHash: string): void {
+    public releaseSession(fileHash: string, rendererSessionId: string): void {
         const normalized = fileHash.trim();
         if (!normalized) {
             return;
         }
-        this.scheduler.release(normalized);
+        this.scheduler.release(normalized, rendererSessionId);
     }
 
     /**

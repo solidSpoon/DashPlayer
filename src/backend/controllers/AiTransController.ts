@@ -33,6 +33,7 @@ export default class AiTransController implements Controller {
         fileHash: string;
         currentIndex: number;
         demandId: number;
+        rendererSessionId: string;
     }): Promise<void> {
         await this.subtitleTranslationService.updateDemand(params);
     }
@@ -40,10 +41,10 @@ export default class AiTransController implements Controller {
     /**
      * 释放指定字幕文件的后端翻译会话。
      *
-     * @param params 待释放的字幕文件哈希。
+     * @param params 待释放的字幕文件哈希与 renderer 会话标识。
      */
-    public async releaseSubtitleSession(params: { fileHash: string }): Promise<void> {
-        this.subtitleTranslationService.releaseSession(params.fileHash);
+    public async releaseSubtitleSession(params: { fileHash: string; rendererSessionId: string }): Promise<void> {
+        this.subtitleTranslationService.releaseSession(params.fileHash, params.rendererSessionId);
     }
 
     /**
