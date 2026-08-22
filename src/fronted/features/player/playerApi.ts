@@ -9,6 +9,7 @@ export const playerApi = {
      * 删除指定字幕文件的时间轴调整记录。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 当前 renderer 进程的稳定会话标识。
      * @returns 删除完成后结束。
      */
     deleteTimestampAdjustment: (fileHash: string) =>
@@ -65,10 +66,11 @@ export const playerApi = {
      * 释放指定字幕文件的后端翻译会话。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 当前 renderer 进程的稳定会话标识。
      * @returns 后端释放会话后结束。
      */
-    releaseSubtitleTranslationSession: (fileHash: string) =>
-        backendClient.call('ai-trans/release-subtitle-session', { fileHash }),
+    releaseSubtitleTranslationSession: (fileHash: string, rendererSessionId: string) =>
+        backendClient.call('ai-trans/release-subtitle-session', { fileHash, rendererSessionId }),
 
     /**
      * 查询播放页启动所需的轻量详情。

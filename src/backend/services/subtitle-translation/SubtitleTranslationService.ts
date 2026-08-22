@@ -97,8 +97,9 @@ export default interface SubtitleTranslationService {
      * 释放指定字幕文件的内存会话并取消过期请求。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 当前 renderer 进程的会话标识。
      */
-    releaseSession(fileHash: string): void;
+    releaseSession(fileHash: string, rendererSessionId: string): void;
 }
 
 /**
@@ -376,13 +377,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
 
         const srtData = this.cacheService.get('cache:srt', fileHash);
         if (!srtData) {
-            this.scheduler.release(fileHash);
+            this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('未找到字幕缓存，请重新加载字幕或重新打开视频');
         }
 
         const provider = await this.settingService.getCurrentTranslationProvider();
         if (!provider) {
-            this.scheduler.release(fileHash);
+            this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('未启用字幕翻译服务');
         }
 
@@ -412,7 +413,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const { style, signature } = resolveSubtitleStyleWithSignature(mode, customStyle);
         const routedModel = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
         if (!routedModel) {
-            this.scheduler.release(fileHash);
+            this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('OpenAI 字幕翻译模型未配置');
         }
 
@@ -439,13 +440,14 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      * 释放指定字幕文件的翻译会话。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 当前 renderer 进程的会话标识。
      */
-    public releaseSession(fileHash: string): void {
+    public releaseSession(fileHash: string, rendererSessionId: string): void {
         const normalized = fileHash.trim();
         if (!normalized) {
             return;
         }
-        this.scheduler.release(normalized);
+        this.scheduler.release(normalized, rendererSessionId);
     }
 
     /**

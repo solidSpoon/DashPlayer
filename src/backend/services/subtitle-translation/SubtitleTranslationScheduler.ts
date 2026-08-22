@@ -147,8 +147,6 @@ interface SubtitleTranslationSession<TContext> {
     demandId: number;
     /** 当前需求所属的 renderer 进程会话标识。 */
     rendererSessionId: string;
-    /** 已被更新会话替换、后续请求必须忽略的 renderer 会话标识。 */
-    retiredRendererSessionIds: Set<string>;
     /** 当前翻译配置上下文。 */
     context: TContext;
     /** 当前播放字幕索引。 */
@@ -201,7 +199,7 @@ export default class SubtitleTranslationScheduler<TContext> {
      */
     public updateDemand(demand: SubtitleTranslationDemand<TContext>): void {
         if (demand.sentenceCount <= 0) {
-            this.release(demand.fileHash);
+            this.release(demand.fileHash, demand.rendererSessionId);
             return;
         }
 
@@ -210,10 +208,6 @@ export default class SubtitleTranslationScheduler<TContext> {
             Math.min(demand.currentIndex, demand.sentenceCount - 1)
         );
         const existing = this.sessions.get(demand.fileHash);
-
-        if (existing?.retiredRendererSessionIds.has(demand.rendererSessionId)) {
-            return;
-        }
 
         // 同一 renderer 会话内按数字防止异步请求回退；新 renderer 会话需要重置游标。
         if (
@@ -224,7 +218,11 @@ export default class SubtitleTranslationScheduler<TContext> {
             return;
         }
 
-        if (!existing || existing.profileKey !== demand.profileKey) {
+        if (
+            !existing
+            || existing.profileKey !== demand.profileKey
+            || existing.rendererSessionId !== demand.rendererSessionId
+        ) {
             if (existing) {
                 this.abortSession(existing);
             }
@@ -235,9 +233,6 @@ export default class SubtitleTranslationScheduler<TContext> {
             return;
         }
 
-        if (existing.rendererSessionId !== demand.rendererSessionId) {
-            existing.retiredRendererSessionIds.add(existing.rendererSessionId);
-        }
         existing.demandId = demand.demandId;
         existing.rendererSessionId = demand.rendererSessionId;
         existing.currentIndex = currentIndex;
@@ -252,10 +247,14 @@ export default class SubtitleTranslationScheduler<TContext> {
      * 释放指定字幕文件的翻译会话并取消仍在执行的请求。
      *
      * @param fileHash 字幕文件哈希。
+     * @param rendererSessionId 仅释放对应 renderer 会话，避免旧窗口误删新会话。
      */
-    public release(fileHash: string): void {
+    public release(fileHash: string, rendererSessionId?: string): void {
         const session = this.sessions.get(fileHash);
         if (!session) {
+            return;
+        }
+        if (rendererSessionId && session.rendererSessionId !== rendererSessionId) {
             return;
         }
         this.sessions.delete(fileHash);
@@ -279,7 +278,6 @@ export default class SubtitleTranslationScheduler<TContext> {
             profileKey: demand.profileKey,
             demandId: demand.demandId,
             rendererSessionId: demand.rendererSessionId,
-            retiredRendererSessionIds: new Set(),
             context: demand.context,
             currentIndex,
             sentenceCount: demand.sentenceCount,

@@ -136,7 +136,8 @@ interface AiTransDef {
     /** 释放字幕文件对应的后端翻译会话。 */
     'ai-trans/release-subtitle-session': {
         params: {
-            fileHash: string
+            fileHash: string,
+            rendererSessionId: string,
         },
         return: void
     };
