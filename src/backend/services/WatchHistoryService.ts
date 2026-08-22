@@ -28,6 +28,7 @@ import WatchHistoryLibrary from '@/backend/services/WatchHistoryLibrary';
 import WatchHistoryViewBuilder from '@/backend/services/WatchHistoryViewBuilder';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import SubtitleService from '@/backend/services/SubtitleService';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 interface WatchHistoryService {
     list(basePath: string): Promise<WatchHistoryVO[]>;
@@ -98,6 +99,7 @@ type WatchHistoryItemBuilder = (history: WatchHistoryRecord) => Promise<WatchHis
  */
 @injectable()
 export class WatchHistoryServiceImpl implements WatchHistoryService {
+    private readonly logger = getMainLogger('WatchHistoryServiceImpl');
     private readonly watchHistoryLibrary: WatchHistoryLibrary;
     private readonly watchHistoryViewBuilder: WatchHistoryViewBuilder;
 
@@ -537,10 +539,17 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
     }
 
     @postConstruct()
+    /**
+     * 启动观看历史维护任务。
+     *
+     * 迁移完成后由控制器解析触发；后台任务失败时记录错误，避免产生未处理拒绝。
+     */
     public init(): void {
         this.watchHistoryLibrary.cleanDeletedRecords()
             .then(() => this.watchHistoryLibrary.sync())
-            .then();
+            .catch((error: unknown) => {
+                this.logger.error('watch history startup sync failed', { error });
+            });
     }
 
     /**
