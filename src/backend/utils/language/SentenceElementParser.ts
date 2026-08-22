@@ -1,174 +1,63 @@
-import nlp from 'compromise/one';
+import winkNLP from 'wink-nlp';
+import model from 'wink-eng-lite-web-model';
 
-/**
- * 句子中的结构化元素。
- */
+const nlp = winkNLP(model);
+
+/** 句子中的结构化元素。 */
 export interface SentenceElement {
-    /**
-     * 元素类型。
-     */
+    /** 元素类型。 */
     kind: 'word' | 'text';
-    /**
-     * 原文中的文本片段。
-     */
+    /** 字幕中的原文片段，始终用于展示。 */
     text: string;
-    /**
-     * compromise 推导出的隐式形态；仅 `word` 元素会提供。
-     */
+    /** wink 根据上下文和词性推导出的 lemma，仅用于内部匹配。 */
     implicit?: string;
-    /**
-     * 在原句中的起始位置。
-     */
+    /** wink 识别出的词性。 */
+    pos?: string;
+    /** wink 识别出的 token 类型。 */
+    type?: string;
+    /** 在原句中的起始位置。 */
     start: number;
-    /**
-     * 在原句中的文本长度。
-     */
+    /** 在原句中的文本长度。 */
     length: number;
 }
 
-/**
- * 将句子解析为完整元素流。
- */
-export interface SentenceElementParser {
-    parse(text: string): SentenceElement[];
-}
-
-type RawWordToken = {
-    text: string;
-    implicit: string;
-    start: number;
-    length: number;
-};
+/** 将句子解析为完整元素流。 */
+export interface SentenceElementParser { parse(text: string): SentenceElement[]; }
 
 /**
- * 基于 compromise 的句子元素解析器。
+ * 基于 wink-nlp 的句子元素解析器。
+ * wink 对整句进行分词、词性标注和归一化，同时通过原文偏移保留展示文本。
  */
-export class CompromiseSentenceElementParser implements SentenceElementParser {
-
+export class WinkSentenceElementParser implements SentenceElementParser {
     /**
-     * 解析句子并返回完整元素流。
-     *
-     * 行为说明：
-     * - 输出会完整覆盖原句内容。
-     * - 单词片段使用 `kind='word'` 表示。
-     * - 空格、标点与其他未命中部分使用 `kind='text'` 表示。
-     *
-     * @param text 待解析句子。
-     * @returns 按原文顺序排列的元素列表。
+     * 分析一整句字幕并保留原文覆盖范围。
+     * @param text 待解析字幕原文。
+     * @returns 按原文顺序排列、完整覆盖输入文本的元素。
      */
     parse(text: string): SentenceElement[] {
-        if (!text) {
-            return [];
-        }
-
-        const wordTokens = normalizeContractions(this.extractWordTokens(text));
-        const elements: SentenceElement[] = [];
+        if (!text) return [];
+        const doc = nlp.readDoc(text);
+        const values = doc.tokens().out(nlp.its.value as any) as string[];
+        const lemmas = doc.tokens().out(nlp.its.lemma as any) as string[];
+        const types = doc.tokens().out(nlp.its.type as any) as string[];
+        const poses = doc.tokens().out(nlp.its.pos as any) as string[];
+        const tokens: Array<{ text: string; lemma: string; type: string; pos: string; start: number }> = [];
         let cursor = 0;
-
-        for (const token of wordTokens) {
-            if (token.start > cursor) {
-                elements.push({
-                    kind: 'text',
-                    text: text.slice(cursor, token.start),
-                    start: cursor,
-                    length: token.start - cursor,
-                });
-            }
-
-            elements.push({
-                kind: 'word',
-                text: token.text,
-                implicit: token.implicit,
-                start: token.start,
-                length: token.length,
-            });
-            cursor = token.start + token.length;
-        }
-
-        if (cursor < text.length) {
-            elements.push({
-                kind: 'text',
-                text: text.slice(cursor),
-                start: cursor,
-                length: text.length - cursor,
-            });
-        }
-
+        values.forEach((value, index) => {
+            const start = text.indexOf(value, cursor);
+            if (start < 0) return;
+            tokens.push({ text: value, lemma: lemmas[index] ?? value, type: types[index] ?? 'text', pos: poses[index] ?? '', start });
+            cursor = start + value.length;
+        });
+        const elements: SentenceElement[] = [];
+        cursor = 0;
+        tokens.forEach((token) => {
+            if (token.start > cursor) elements.push({ kind: 'text', text: text.slice(cursor, token.start), start: cursor, length: token.start - cursor });
+            const isWord = token.type === 'word';
+            elements.push({ kind: isWord ? 'word' : 'text', text: token.text, implicit: isWord ? token.lemma : undefined, pos: token.pos, type: token.type, start: token.start, length: token.text.length });
+            cursor = token.start + token.text.length;
+        });
+        if (cursor < text.length) elements.push({ kind: 'text', text: text.slice(cursor), start: cursor, length: text.length - cursor });
         return elements.filter((element) => element.length > 0);
     }
-
-    /**
-     * 提取原始单词 token。
-     *
-     * @param text 待解析句子。
-     * @returns 原始单词 token 列表。
-     */
-    private extractWordTokens(text: string): RawWordToken[] {
-        const doc = nlp(text);
-        const offset = doc.out('offset') as {
-            terms: {
-                text: string;
-                implicit: string | undefined;
-                offset: {
-                    start: number;
-                    length: number;
-                };
-            }[];
-        }[];
-
-        return offset.map(item => item.terms ?? [])
-            .flat()
-            .map((item) => ({
-                text: item.text,
-                implicit: item.implicit ?? item.text,
-                start: item.offset.start,
-                length: item.offset.length,
-            }));
-    }
-}
-
-/**
- * 修正缩写拆分后的位置信息。
- *
- * @param tokens 原始 token 列表。
- * @returns 规整后的 token 列表。
- */
-function normalizeContractions(tokens: RawWordToken[]): RawWordToken[] {
-    const results: RawWordToken[] = [];
-
-    for (const token of tokens) {
-        if (token.length > 0) {
-            results.push(token);
-            continue;
-        }
-
-        if (token.text.length === 0) {
-            continue;
-        }
-
-        const last = results.pop();
-        if (!last) {
-            continue;
-        }
-
-        const parts = last.text.split('\'');
-        if (parts.length === 1) {
-            results.push(last);
-            continue;
-        }
-
-        const prefix = parts[0];
-        const suffix = parts.slice(1).join('\'');
-        last.text = prefix;
-        last.length = prefix.length;
-
-        token.text = `${suffix}${token.text}`;
-        token.start -= suffix.length;
-        token.length += suffix.length;
-
-        results.push(last);
-        results.push(token);
-    }
-
-    return results;
 }

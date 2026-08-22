@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import WordsRepository from '@/backend/services/repositories/WordsRepository';
 import {
-    CompromiseVocabularyMatcher,
+    WinkVocabularyMatcher,
     VocabularyEntry,
     VocabularyMatcher,
 } from '@/backend/utils/language/VocabularyMatcher';
@@ -21,7 +21,8 @@ export interface WordMatchService {
 
 export interface MatchedWord {
     original: string;      // 原始形态（如复数、时态等）
-    normalized: string;    // 标准化形态
+    normalized: string;    // canonical lemma
+    lemma: string;         // canonical lemma，供调用方明确区分原文
     databaseWord?: Word;   // 数据库中匹配的单词
 }
 
@@ -72,7 +73,7 @@ export class WordMatchServiceImpl implements WordMatchService {
             text: word.word,
             payload: word,
         }));
-        this.vocabularyMatcherCache = new CompromiseVocabularyMatcher(entries);
+        this.vocabularyMatcherCache = new WinkVocabularyMatcher(entries);
         return this.vocabularyMatcherCache;
     }
 
@@ -95,6 +96,7 @@ export class WordMatchServiceImpl implements WordMatchService {
         return vocabularyMatcher.match(text).map((match) => ({
             original: match.original,
             normalized: match.normalized,
+            lemma: match.normalized,
             databaseWord: match.payload,
         }));
     }

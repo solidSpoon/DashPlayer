@@ -19,6 +19,10 @@ interface TranslatableSubtitleLineCoreParam {
     }; // 新增：Word 的 classNames
 }
 
+/**
+ * 按后端 wink token 结构渲染字幕，原文间隔由 source text 保持。
+ * @param props 字幕句子和显示交互配置。
+ */
 const TranslatableLine = ({
     sentence,
     show,
@@ -70,38 +74,27 @@ const TranslatableLine = ({
             )}
             onMouseDown={handleLineMouseDown}
         >
-            {text.split(/(\s+|[.,!?;:"()])/).filter(Boolean).map((part, partIndex) => {
-                const partId = `${textHash}:${partIndex}`;
-                const isWord = /^[a-zA-Z]+(?:-[a-zA-Z]+)*$/.test(part);
-
-                if (isWord) {
-                    return (
-                        <Word
-                            key={partId}
-                            word={part}
-                            original={part}
-                            pop={popELe === partId}
-                            requestPop={() =>
-                                handleRequestPop(partId)
-                            }
-                            show={show}
-                            alwaysDark={hoverDark}
-                            classNames={wordClassNames}
-                        />
-                    );
+            {(() => {
+                let sourceCursor = 0;
+                const parts = sentence.struct.blocks.flatMap((block) => block.blockParts);
+                const rendered = parts.flatMap((part, partIndex) => {
+                    const start = text.indexOf(part.content, sourceCursor);
+                    const gap = start >= sourceCursor ? text.slice(sourceCursor, start) : '';
+                    sourceCursor = start >= sourceCursor ? start + part.content.length : sourceCursor;
+                    const partId = `${textHash}:${partIndex}`;
+                    const gapElement = gap ? <span className={cn('whitespace-pre', !show && 'text-transparent')} key={`${partId}:gap`}>{gap}</span> : null;
+                if (part.isWord) {
+                    return [gapElement, <Word key={partId} word={part.content} original={part.content} lemma={part.lemma}
+                        pop={popELe === partId} requestPop={() => handleRequestPop(partId)} show={show}
+                        alwaysDark={hoverDark} classNames={wordClassNames} />];
                 }
-                return (
-                    <span
-                        className={cn(
-                            'whitespace-pre',
-                            !show && 'text-transparent',
-                        )}
-                        key={partId}
-                    >
-                        {part}
-                    </span>
-                );
-            })}
+                return [gapElement, <span className={cn('whitespace-pre', !show && 'text-transparent')} key={partId}>{part.content}</span>];
+                });
+                if (sourceCursor < text.length) {
+                    rendered.push(<span className={cn('whitespace-pre', !show && 'text-transparent')} key={`${textHash}:tail`}>{text.slice(sourceCursor)}</span>);
+                }
+                return rendered;
+            })()}
         </div>
     );
 };

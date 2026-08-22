@@ -11,6 +11,10 @@ export interface SentenceBlockPart {
      * 例如，对于缩写 "'m"，其 implicit 可能是 "am"。对于普通单词，它和 `content` 相同。
      */
     implicit: string;
+    /** wink 根据上下文和词性计算的 canonical lemma，仅用于生词匹配。 */
+    lemma?: string;
+    /** wink 的词性标签。 */
+    pos?: string;
     /**
      * 标记此部分是否被识别为一个单词（而不是标点、数字或空格）。
      */

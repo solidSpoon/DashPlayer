@@ -28,6 +28,7 @@ const logger = getRendererLogger('Word');
 export interface WordParam {
     word: string;
     original: string;
+    lemma?: string;
     pop: boolean;
     requestPop: () => void;
     show: boolean;
@@ -58,7 +59,11 @@ export const getBox = (ele: HTMLElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
+/**
+ * 渲染单个字幕原文词，并使用 lemma 判断生词高亮；词典查询仍传递原文。
+ * @param props 字幕词原文、lemma 及交互状态。
+ */
+const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
     const pause = usePlayer((s) => s.pause);
     const vocabularyStore = useVocabulary();
     const [hovered, setHovered] = useState(false);
@@ -68,7 +73,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
     const theme = useTransLineTheme();
 
     // 检查是否是词汇单词
-    const cleanWord = word.toLowerCase().replace(/[^\w-]/g, '');
+    const cleanWord = (lemma ?? word).toLowerCase().trim();
     const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
 
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
