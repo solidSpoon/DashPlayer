@@ -49,6 +49,16 @@ const getMessageText = (message: SentenceLearningMessage): string => {
         .join('');
 };
 
+/** 判断文本片段是否真的包含用户可见内容，忽略工具步骤间的空白换行。 */
+const isVisibleTextPart = (part: SentenceLearningMessage['parts'][number]): boolean =>
+    part.type === 'text' && part.text.trim().length > 0;
+
+/** 判断消息是否只包含工具片段，便于把同一轮多步工具调用合并展示。 */
+const isToolOnlyMessage = (message: SentenceLearningMessage): boolean =>
+    message.role === 'assistant'
+    && getMessageText(message).trim().length === 0
+    && message.parts.some((part) => isToolUIPart(part));
+
 /**
  * 获取工具的用户可读标题，避免把内部 snake_case 名称直接暴露给用户。
  * @param toolName AI SDK 工具名称。
@@ -80,16 +90,18 @@ const renderMessageParts = (message: SentenceLearningMessage) => {
         if (!isToolUIPart(part)) {
             return;
         }
-        if (partIndex > 0 && isToolUIPart(message.parts[partIndex - 1])) {
+        const previousTextIndex = message.parts
+            .slice(0, partIndex)
+            .findLastIndex(isVisibleTextPart);
+        const nextTextOffset = message.parts
+            .slice(partIndex)
+            .findIndex((candidatePart) => isVisibleTextPart(candidatePart));
+        const nextTextIndex = nextTextOffset < 0 ? message.parts.length : partIndex + nextTextOffset;
+        const toolParts = message.parts
+            .slice(previousTextIndex + 1, nextTextIndex)
+            .filter(isToolUIPart);
+        if (toolParts[0] !== part) {
             return;
-        }
-        const toolParts = [] as typeof part[];
-        for (let index = partIndex; index < message.parts.length; index += 1) {
-            const groupedPart = message.parts[index];
-            if (!isToolUIPart(groupedPart)) {
-                break;
-            }
-            toolParts.push(groupedPart);
         }
         const activePart = toolParts.find((toolPart) => toolPart.state !== 'output-available') ?? toolParts[0];
         const toolTitles = toolParts.reduce<string[]>((titles, toolPart) => {
@@ -217,11 +229,30 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                     className="gap-8 px-4 pb-10 pt-6 sm:px-6"
                     scrollClassName="conversation-scrollbar"
                 >
-                    {messages.map((message, index) => renderMessage(
-                        message,
-                        index,
-                        status === 'streaming' && index === messages.length - 1,
-                    ))}
+                    {messages.map((message, index) => {
+                        if (!isToolOnlyMessage(message)) {
+                            return renderMessage(
+                                message,
+                                index,
+                                status === 'streaming' && index === messages.length - 1,
+                            );
+                        }
+                        if (index > 0 && isToolOnlyMessage(messages[index - 1])) {
+                            return null;
+                        }
+                        const toolParts = [] as SentenceLearningMessage['parts'];
+                        for (let cursor = index; cursor < messages.length; cursor += 1) {
+                            if (!isToolOnlyMessage(messages[cursor])) {
+                                break;
+                            }
+                            toolParts.push(...messages[cursor].parts.filter(isToolUIPart));
+                        }
+                        return renderMessage(
+                            { ...message, parts: toolParts },
+                            index,
+                            status === 'streaming' && index === messages.length - 1,
+                        );
+                    })}
                     {status === 'submitted' && (
                         <Message className="mx-auto w-full max-w-3xl" from="assistant">
                             <MessageContent className="flex-row items-center px-1 py-1 text-muted-foreground">

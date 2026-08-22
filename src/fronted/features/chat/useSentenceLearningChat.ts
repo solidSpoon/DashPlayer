@@ -33,6 +33,8 @@ export type SubtitleAgentView = {
     active: boolean;
     /** 最近一次字幕工具是否出错。 */
     error: boolean;
+    /** 当前回答流是否仍在进行，用于回答结束后的现场还原。 */
+    running: boolean;
 };
 
 const emptySubtitleAgentView: SubtitleAgentView = {
@@ -41,6 +43,7 @@ const emptySubtitleAgentView: SubtitleAgentView = {
     focusIndex: null,
     active: false,
     error: false,
+    running: false,
 };
 
 /**
@@ -97,7 +100,7 @@ const getSubtitleAgentView = (
         }
     });
 
-    return { searchQuery, searchMatches, focusIndex, active, error };
+    return { searchQuery, searchMatches, focusIndex, active, error, running: status !== 'ready' };
 };
 
 /**

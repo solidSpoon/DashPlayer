@@ -25,6 +25,8 @@ const TopicSelector = ({ agentView }: TopicSelectorProps) => {
     const updateInternalContext = useChatPanel((state) => state.updateInternalContext);
     const virtuosoRef = useRef<VirtuosoHandle>(null);
     const initialScrollDoneRef = useRef(false);
+    const agentOriginRowIndexRef = useRef<number | null>(null);
+    const agentWasRunningRef = useRef(false);
     const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
     const [awayFromCurrent, setAwayFromCurrent] = useState(false);
 
@@ -69,6 +71,21 @@ const TopicSelector = ({ agentView }: TopicSelectorProps) => {
         const timer = window.setTimeout(() => setHighlightedIndex(null), 2400);
         return () => window.clearTimeout(timer);
     }, [agentView.focusIndex, sentences]);
+
+    useEffect(() => {
+        if (agentView.running && !agentWasRunningRef.current) {
+            agentOriginRowIndexRef.current = currentRowIndex >= 0 ? currentRowIndex : null;
+        }
+        if (!agentView.running && agentWasRunningRef.current && agentOriginRowIndexRef.current !== null) {
+            virtuosoRef.current?.scrollToIndex({
+                index: agentOriginRowIndexRef.current,
+                align: 'center',
+                behavior: 'smooth',
+            });
+            agentOriginRowIndexRef.current = null;
+        }
+        agentWasRunningRef.current = agentView.running;
+    }, [agentView.running, currentRowIndex]);
 
     const handleRangeChanged = ({ startIndex, endIndex }: { startIndex: number; endIndex: number }) => {
         setAwayFromCurrent(

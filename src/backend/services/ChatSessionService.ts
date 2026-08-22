@@ -225,7 +225,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             system,
             messages: promptMessages,
             tools: this.buildSubtitleTools(sessionId),
-            stopWhen: isStepCount(5),
+            stopWhen: isStepCount(20),
             abortSignal,
         });
         let chunkCount = 0;
