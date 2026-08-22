@@ -1,6 +1,7 @@
 import { RendererApiDefinitions, RendererApiMap } from '@/common/api/renderer-api-def';
 import useDictionaryStream from '@/fronted/features/player/dictionaryStore';
 import useChatPanel from '@/fronted/features/chat/chatStore';
+import { receiveChatChunk } from '@/fronted/features/chat/chatTransport';
 import useTranslation from '@/fronted/features/player/translationStore';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -111,25 +112,22 @@ export function initRendererApis(): () => void {
     });
 
     register('chat/stream', async (params) => {
-        // 逐 token 流式更新：只记录生命周期事件（start/done/error），chunk 不落日志。
-        if (params.event !== 'chunk') {
+        // 标准消息流只记录生命周期片段，文本增量不落日志。
+        if (params.chunk.type !== 'text-delta') {
             logger.debug('Chat stream event', {
                 sessionId: params.sessionId,
-                messageId: params.messageId,
-                event: params.event,
-                error: params.error,
+                event: params.chunk.type,
             });
         }
-        useChatPanel.getState().receiveChatStream(params);
+        receiveChatChunk(params.sessionId, params.chunk);
     });
 
     register('chat/analysis/stream', async (params) => {
-        if (params.event !== 'chunk') {
+        if (params.chunk.type !== 'data-analysis') {
             logger.debug('Analysis stream event', {
                 sessionId: params.sessionId,
                 messageId: params.messageId,
-                event: params.event,
-                error: params.error,
+                event: params.chunk.type,
             });
         }
         useChatPanel.getState().receiveAnalysisStream(params);

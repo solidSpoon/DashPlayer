@@ -18,6 +18,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/fronted/components/ui/popover"
+import { useTranslation } from 'react-i18next';
 
 export interface ComboboxDemoProps {
     options: { value: string; label: string }[],
@@ -27,6 +28,7 @@ export interface ComboboxDemoProps {
 
 export default function Combobox({ options, value, onSelect }: ComboboxDemoProps) {
     const [open, setOpen] = React.useState(false)
+    const { t } = useTranslation('common');
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -39,15 +41,15 @@ export default function Combobox({ options, value, onSelect }: ComboboxDemoProps
                 >
                     {value
                         ? options.find((framework) => framework.value === value)?.label
-                        : "Select framework..."}
+                        : t('selectModel')}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0">
                 <Command>
-                    <CommandInput placeholder="Type to search..." />
+                    <CommandInput placeholder={t('search')} />
                     <CommandList>
-                        <CommandEmpty>No framework found.</CommandEmpty>
+                        <CommandEmpty>{t('noResults')}</CommandEmpty>
                         <CommandGroup>
                             {options.map((framework) => (
                                 <CommandItem

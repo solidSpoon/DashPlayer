@@ -24,6 +24,20 @@ export interface TranslationState {
  */
 export interface TranslationActions {
     /**
+     * 用启动时的运行时设置快照初始化字幕翻译配置。
+     *
+     * 此操作不释放当前字幕会话：首屏字幕可能已完成解析，但此时还未提交
+     * 翻译需求。若异步释放会话，会与随后提交的首个需求发生竞态。
+     *
+     * @param engine 启动快照中的字幕翻译引擎。
+     * @param mode 启动快照中的 OpenAI 字幕模式。
+     */
+    initializeRuntimeSettings: (
+        engine: 'tencent' | 'openai' | 'none',
+        mode: TranslationMode
+    ) => void;
+
+    /**
      * 向后端报告当前播放位置。
      *
      * @param fileHash 字幕文件哈希。
@@ -118,13 +132,36 @@ const useTranslation = create(
         activeFileHash: null,
         translations: new Map(),
 
+        initializeRuntimeSettings: (engine, openAiMode) => {
+            const state = get();
+            set({
+                ...state,
+                engine,
+                openAiMode,
+                translations: new Map(),
+            });
+        },
+
         requestTranslation: (fileHash: string, currentIndex: number) => {
             const state = get();
             if (state.engine === 'none' || state.activeFileHash !== fileHash) {
+                logger.warn('subtitle translation request skipped by state guard', {
+                    fileHash,
+                    currentIndex,
+                    activeFileHash: state.activeFileHash,
+                    engine: state.engine,
+                });
                 return;
             }
             const demandId = nextSubtitleDemandId;
             nextSubtitleDemandId += 1;
+            logger.info('subtitle translation request sent', {
+                fileHash,
+                currentIndex,
+                demandId,
+                engine: state.engine,
+                openAiMode: state.openAiMode,
+            });
             playerApi.updateSubtitleTranslationDemand(fileHash, currentIndex, demandId)
                 .catch((error) => showRequestFailure(state.engine, error));
         },

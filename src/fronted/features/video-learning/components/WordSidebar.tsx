@@ -10,6 +10,7 @@ import {
   TooltipTrigger
 } from '@/fronted/components/ui/tooltip';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
+import { useTranslation } from 'react-i18next';
 
 interface WordItem {
   id: number;
@@ -44,6 +45,7 @@ export default function WordSidebar({
   onImportWords,
 }: Props) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const { t } = useTranslation('common');
 
   const filteredWords = useMemo(() => {
     if (!searchTerm) return words;
@@ -83,7 +85,7 @@ export default function WordSidebar({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             className="pl-10"
-            placeholder="搜索单词..."
+            placeholder={t('wordSearch')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -91,57 +93,57 @@ export default function WordSidebar({
         <TooltipProvider>
           <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
             <div className="mr-auto">
-              共 {words.length} 个单词
-              {searchTerm && <span className="ml-2 text-primary">搜索到 {filteredWords.length} 个</span>}
+              {t('wordCount', { count: words.length })}
+              {searchTerm && <span className="ml-2 text-primary">{t('foundWords', { count: filteredWords.length })}</span>}
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  aria-label="导出模板"
+                  aria-label={t('exportTemplate')}
                   type="button"
                   onClick={onExportTemplate}
                 >
                   <Download className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>导出模板</TooltipContent>
+              <TooltipContent>{t('exportTemplate')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  aria-label="导入 Excel"
+                  aria-label={t('importExcel')}
                   type="button"
                   onClick={handleImportClick}
                 >
                   <Upload className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>导入 Excel</TooltipContent>
+              <TooltipContent>{t('importExcel')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={selectedWord ? 'outline' : 'default'}
                   size="icon"
-                  aria-label="显示全部视频"
+                  aria-label={t('showAllVideos')}
                   type="button"
                   onClick={handleShowAll}
                 >
                   <List className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>显示全部视频</TooltipContent>
+              <TooltipContent>{t('showAllVideos')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  aria-label="定位到当前单词"
+                  aria-label={t('locateCurrentWord')}
                   type="button"
                   onClick={handleLocateCurrent}
                   disabled={!selectedWord}
@@ -149,7 +151,7 @@ export default function WordSidebar({
                   <LocateFixed className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>定位到当前单词</TooltipContent>
+              <TooltipContent>{t('locateCurrentWord')}</TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
@@ -161,12 +163,12 @@ export default function WordSidebar({
           <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              加载中...
+            {t('loading')}
             </div>
           </div>
         ) : filteredWords.length === 0 ? (
           <div className="text-center text-muted-foreground py-8 text-sm">
-            {searchTerm ? '未找到匹配的单词' : '暂无生词记录'}
+            {searchTerm ? t('noMatchingWords') : t('noVocabulary')}
           </div>
         ) : (
           <Virtuoso
@@ -206,12 +208,12 @@ export default function WordSidebar({
                             : 'bg-secondary text-secondary-foreground border-transparent'
                         ].join(' ')}
                       >
-                        {word.videoCount}个视频
+                        {t('videoCount', { count: word.videoCount })}
                       </div>
                     )}
                   </div>
                   <div className={['text-xs truncate', active ? 'text-primary-foreground/80' : 'text-muted-foreground'].join(' ')}>
-                    {word.translate || '暂无释义'}
+                    {word.translate || t('noDefinition')}
                   </div>
                 </div>
               );

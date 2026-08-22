@@ -36,6 +36,7 @@ import FfmpegService, { FfmpegServiceImpl } from '@/backend/services/FfmpegServi
 import DpTaskService, { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import ChatService, { ChatServiceImpl } from '@/backend/services/ChatService';
 import ChatSessionService, { ChatSessionServiceImpl } from '@/backend/services/ChatSessionService';
+import ChatSessionStore, { InMemoryChatSessionStore } from '@/backend/services/chat/ChatSessionStore';
 import AiProviderService, { AiProviderServiceImpl } from '@/backend/services/AiProviderService';
 import ModelRoutingService, { ModelRoutingServiceImpl } from '@/backend/services/ModelRoutingService';
 import ConvertService, { ConvertServiceImpl } from '@/backend/services/ConvertService';
@@ -188,6 +189,7 @@ container.bind<FfmpegGateway>(TYPES.FfmpegGateway).to(FfmpegGatewayImpl).inSingl
 container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingletonScope();
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
+container.bind<ChatSessionStore>(TYPES.ChatSessionStore).to(InMemoryChatSessionStore).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
 container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();

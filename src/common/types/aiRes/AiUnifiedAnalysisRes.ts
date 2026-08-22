@@ -2,14 +2,7 @@ import { z } from 'zod';
 
 export const AiUnifiedAnalysisSchema = z.object({
     structure: z.object({
-        sentence: z.string().describe('The complete sentence being analyzed.'),
-        phraseGroups: z.array(
-            z.object({
-                original: z.string().describe('The original text of the phrase group.'),
-                translation: z.string().describe('The translation of the phrase group in Chinese(简体中文).'),
-                tags: z.array(z.string()).describe('Tags for the phrase group in Chinese(简体中文).'),
-            })
-        ).describe('Phrase groups that compose the sentence.'),
+        phraseGroups: z.array(z.string()).describe('Phrase groups that compose the sentence in natural reading order.'),
     }),
     vocab: z.object({
         hasNewWord: z.boolean().describe('Whether the sentence has new words for an intermediate English learner.'),

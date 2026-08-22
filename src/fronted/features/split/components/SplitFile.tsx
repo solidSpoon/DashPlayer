@@ -14,6 +14,7 @@ import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/features/file-browser/components/BackNavItem';
 import { splitApi } from '../splitApi';
+import i18n from '@/fronted/i18n';
 const SplitFile = () => {
 
     const {updateFile, videoPath} = useSplit(useShallow(s => ({
@@ -59,7 +60,7 @@ const SplitFile = () => {
                                        ctxMenus={[
                                            {
                                                icon: <Folder/>,
-                                               text: 'Show In Explorer',
+                                               text: i18n.t('common:showInExplorer'),
                                                onClick: async () => {
                                                    await splitApi.openFolder(pv.basePath);
                                                }
@@ -75,14 +76,14 @@ const SplitFile = () => {
                     const ctxMenus = [
                         {
                             icon: <Folder/>,
-                            text: 'Show In Explorer',
+                            text: i18n.t('common:showInExplorer'),
                             onClick: async () => {
                                 await splitApi.openFolder(p.basePath);
                             }
                         },
                         {
                             icon: <X/>,
-                            text: 'Delete',
+                            text: i18n.t('common:delete'),
                             disabled: false,
                             onClick: async () => {
                                 await splitApi.deleteWatchHistoryGroup(p.id);

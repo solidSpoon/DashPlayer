@@ -13,6 +13,7 @@ import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/features/file-browser/components/BackNavItem';
 import { transcriptApi } from '../transcriptApi';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+import i18n from '@/fronted/i18n';
 
 /** 转录文件浏览区属性。 */
 export interface TranscriptFileProps {
@@ -59,7 +60,7 @@ const TranscriptFile = ({ tasks, onEnqueue }: TranscriptFileProps) => {
                     const ctxMenus = [
                         {
                             icon: <Folder />,
-                            text: 'Show In Explorer',
+                            text: i18n.t('common:showInExplorer'),
                             onClick: async () => {
                                 await transcriptApi.openFolder(pv.basePath);
                             }
@@ -76,7 +77,7 @@ const TranscriptFile = ({ tasks, onEnqueue }: TranscriptFileProps) => {
                     const ctxMenus = [
                         {
                             icon: <Folder />,
-                            text: 'Show In Explorer',
+                            text: i18n.t('common:showInExplorer'),
                             onClick: async () => {
                                 await transcriptApi.openFolder(p.basePath);
                             }

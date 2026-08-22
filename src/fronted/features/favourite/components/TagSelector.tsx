@@ -24,6 +24,7 @@ import { Badge } from '@/fronted/components/ui/badge';
 import useFavouriteClip from '@/fronted/features/favourite/favouriteStore';
 import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
+import { useTranslation } from 'react-i18next';
 
 export default function TagSelector() {
     const playInfo = useFavouriteClip(state => state.playInfo);
@@ -145,6 +146,7 @@ function StatusList({
     onCreate: (name: string) => void;
     clipTags: Tag[];
 }) {
+    const { t } = useTranslation('common');
     const [query, setQuery] = React.useState('');
     const { data: tags } = useSWR(['api/tags', query], () => favouriteApi.searchTags(query), {
         fallbackData: []
@@ -169,7 +171,7 @@ function StatusList({
     return (
         <Command>
             <CommandInput
-                placeholder="搜索标签..."
+                placeholder={t('searchTags')}
                 value={inputValue}
                 onValueChange={(value) => {
                     setInputValue(value);
@@ -180,13 +182,13 @@ function StatusList({
             <CommandList>
                 <CommandEmpty>
                     <div className="flex flex-col items-center justify-center p-4">
-                        <span>没有找到相关标签</span>
+                        <span>{t('noResults')}</span>
                         <Button
                             variant="link"
                             onClick={handleCreate}
                             className="mt-2 text-blue-600"
                         >
-                            创建标签 &quot;{inputValue}&quot;
+                            {t('createTag', { name: inputValue })}
                         </Button>
                     </div>
                 </CommandEmpty>
@@ -231,6 +233,7 @@ function RenameTagForm({
     onRename: (id: number, newName: string) => void;
     onClose: () => void;
 }) {
+    const { t } = useTranslation('common');
     const [newName, setNewName] = React.useState(tag?.name || '');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -244,13 +247,13 @@ function RenameTagForm({
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-            <h3 className="text-lg font-semibold">重命名标签</h3>
+            <h3 className="text-lg font-semibold">{t('renameTag')}</h3>
             <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 className="border p-2 rounded"
-                placeholder="新的标签名称"
+                placeholder={t('newTagName')}
                 required
             />
             <div className="flex justify-end space-x-2">

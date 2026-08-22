@@ -5,6 +5,7 @@ import useLayout from '@/fronted/hooks/useLayout';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import useTrafficLightsVisibility from './useTrafficLightsVisibility';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { useTranslation } from 'react-i18next';
 
 export interface TitleBarWindowsProps {
     maximizable?: boolean;
@@ -13,6 +14,7 @@ export interface TitleBarWindowsProps {
 
 const api = backendClient;
 const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
+    const { t } = useTranslation('common');
     const showSideBar = useLayout((s) => s.showSideBar);
     const { visible, onMouseEnter, onMouseLeave, onMouseMove } = useTrafficLightsVisibility(showSideBar);
 
@@ -43,8 +45,8 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
                         className="traffic-light traffic-light-minimize"
                         id="minimize"
                         type="button"
-                        aria-label="Minimize window"
-                        title="Minimize"
+                        aria-label={t('minimize')}
+                        title={t('minimize')}
                     />
                     <button
                         onClick={async () => {
@@ -78,8 +80,8 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
                         id="maximize"
                         type="button"
                         disabled={!canMaximize}
-                        aria-label="Maximize window"
-                        title={canMaximize ? 'Maximize' : 'Maximize disabled'}
+                        aria-label={t('maximize')}
+                        title={t('maximize')}
                     />
                     <button
                         onClick={async () => {
@@ -89,8 +91,8 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
                         className="traffic-light traffic-light-close"
                         id="close"
                         type="button"
-                        aria-label="Close window"
-                        title="Close"
+                        aria-label={t('close')}
+                        title={t('close')}
                     />
                 </div>
             </div>

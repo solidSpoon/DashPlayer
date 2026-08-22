@@ -1,45 +1,86 @@
 import { ModelMessage } from 'ai';
-import { ChatBackgroundContext, ChatWelcomeParams } from '@/common/types/chat';
+import { ChatBackgroundContext } from '@/common/types/chat';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
-export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] => {
+/**
+ * 格式化通用 TTS 朗读与排版规范指令，供 Welcome 与 Chat System Prompt 复用。
+ */
+const TTS_FORMAT_GUIDELINES = [
+    '## 朗读标记规范（重要）：',
+    '- 遇到英文词汇、短语、句子或例句时，必须使用 [[tts:英文内容]] 包裹以支持点击朗读。',
+    '- 严禁重复英文：英文内容仅在 [[tts:...]] 中出现一次，标记外部严禁重复输出相同英文。',
+    '- 标记内仅包含纯英文字符，不要夹带中文翻译，也不要使用 [] 或 | 等特殊符号。',
+    '- 示例：[[tts:This is an example.]] 这是一个示例。',
+].join('\n');
+
+/**
+ * 格式化字幕概览文本，统一输出结构。
+ */
+export const formatSubtitleOverview = (
+    overview?: ChatBackgroundContext['subtitleOverview']
+): string | null => {
+    if (!overview) {
+        return null;
+    }
+    const currentPosition = overview.anchorIndex - overview.minIndex + 1;
+    return [
+        '字幕全局概览：',
+        `- 全片字幕：共 ${overview.lineCount} 句（索引 ${overview.minIndex} ~ ${overview.maxIndex}，约 ${overview.wordCount} 词）`,
+        `- 当前学习句：索引 ${overview.anchorIndex}（全片第 ${currentPosition} / ${overview.lineCount} 句）`,
+    ].join('\n');
+};
+
+/**
+ * 欢迎消息提示词所需的后端内部上下文。
+ */
+type ChatWelcomePromptParams = {
+    /** 会话 ID，保持调用语义完整。 */
+    sessionId: string;
+    /** 用户选择的原始学习文本。 */
+    originalTopic: string;
+    /** 创建会话时冻结的完整段落。 */
+    fullText?: string;
+    /** 完整字幕的统计概览。 */
+    subtitleOverview?: ChatBackgroundContext['subtitleOverview'];
+};
+
+/**
+ * 构建整句学习面板的欢迎语提示词。
+ */
+export const buildWelcomeMessages = (params: ChatWelcomePromptParams): ModelMessage[] => {
     const system = [
-        '你是用户的英语学习伙伴，帮助他们理解和掌握英语表达。',
+        '你是用户的英语学习伙伴，以亲切、自然的口吻引导用户理解和掌握当前选中的英语表达。',
         '',
-        '# 身份与语气',
-        '- 用自然、亲切的对话方式交流，就像和朋友聊天一样',
-        '- 不要用"报告"、"分析"这类正式词汇，也不要提及自己是 AI 或助手',
-        '- 每次的表达方式可以略有不同，保持新鲜感',
+        '# 身份与交流风格',
+        '- 像和朋友聊天一样自然交流，避免刻板或机械式的报告词汇。',
+        '- 保持启发与鼓励，每次表达自然灵动。',
         '',
-        '# 输出格式',
-        '- 使用 Markdown 格式（不要用 HTML）',
-        '- 当需要让英文可以被朗读时，用 [[tts:英文内容]] 包裹',
-        '  - 英文句子、短语、单词、例句都应该用 [[tts:...]] 包裹，方便用户点击朗读',
-        '  - 即使是在解释中顺带提到的英文词汇，也建议加上 [[tts:...]]',
-        '- 句子原文和中文翻译之间应该换行，让格式更清晰',
-        '- 同义句建议使用 Markdown 列表格式（-），每个一行',
-        '- **关于 [[switch:...]] 标记**（用于切换到完整句子）：',
-        '  - 字幕文件通常会把长句子按固定宽度换行，导致一句话被拆成多行',
-        '  - 如果提供了"完整段落"，用它来判断目标句子是否只是某个完整句子的一部分',
-        '  - 如果确实被截断了，用 [[switch:完整句子原文|显示文字]] 让用户切换',
-        '  - switch 冒号后面跟完整句子的英文原文，竖线后面是显示给用户的提示文字（如"点击查看完整句"）',
-        '  - 如果原文包含 | 或 ] 可能导致解析问题，可微调避免',
-        '  - 如果没有提供完整段落，或者无法确定是否被截断，就不要输出 switch 标记',
-        '- 除了以上标记，不要引入其他自定义标记',
+        '# 格式与标记要求',
+        '- 严格使用 Markdown 格式（不要使用 HTML 标签）。',
+        TTS_FORMAT_GUIDELINES,
         '',
-        '# 重要约束',
-        '- **严禁重复英文原文**：',
-        '  - 英文句子只能在 [[tts:...]] 标记内出现，不要在标记外以任何形式输出',
-        '  - 不要使用"英文原句："、"原文："等标签后再跟英文，应该直接用 [[tts:...]] 展示',
-        '  - 错误示例 1：英文原句：Hello world [[tts:Hello world]]',
-        '  - 错误示例 2：[[tts:Hello world]] 你好世界。这句话 "Hello world" 是...',
-        '  - 正确示例：[[tts:Hello world]] 你好世界。这句话是...',
-        '- 只有在确信句子不完整且能推断出完整版本时，才提供 switch 标记',
-        '- 如果无法确定句子是否完整，就不要提供 switch 标记',
+        '## 完整句切换标记（[[switch:...]]）：',
+        '- 字幕常因排版将长句切分到多行。若提供了“完整段落”且目标句明显只是被截断的片段：',
+        '  - 使用 [[switch:完整句子原文|提示文本]] 引导用户切换（如 [[switch:Full sentence here.|点击查看完整句]]）。',
+        '  - 若无法确信或无完整段落，不要输出 switch 标记。',
+        '',
+        '# 消息内容结构（自然衔接，避免生硬的小标题列举）',
+        '1. 轻松问候开场：简述本句的语言特色、地道之处或使用场景。',
+        '2. 展示并解析句子：',
+        '   - 直接以 [[tts:英文原句]] 起始，换行后提供准确自然的中文意译。',
+        '   - 禁止在 [[tts:...]] 前后重复写英文原句或使用“原文：”等冗余标签。',
+        '   - 如被截断，附加 [[switch:...]] 切换建议。',
+        '3. 地道同义表达：',
+        '   - 给出 2~3 个地道改写，使用 Markdown 列表（- 开头），每项英文均用 [[tts:...]] 包裹并简要说明语境差异。',
+        '4. 引导侧边材料：',
+        '   - 自然提示界面中已同步解析的意群拆解、生词音标、常用短语及例句，鼓励用户随心查看。',
+        '',
+        '# 长度控制',
+        '- 整体长度保持在 12~18 行 Markdown 之间，充实且不冗长。',
     ].join('\n');
 
     const userLines = [
-        '用户选择了这句话来学习：',
+        '用户选择了以下内容开始学习：',
         '',
         params.originalTopic,
     ];
@@ -47,129 +88,48 @@ export const buildWelcomeMessages = (params: ChatWelcomeParams): ModelMessage[] 
     if (params.fullText && params.fullText.trim() !== params.originalTopic.trim()) {
         userLines.push(
             '',
-            '完整段落（用于判断句子是否被字幕换行截断）：',
-            '',
+            '完整段落（供判断是否被换行截断）：',
             params.fullText,
         );
     }
 
-    userLines.push(
-        '',
-        '请生成一段开场消息，像和朋友聊天那样自然地引导他开始学习这句话。',
-        '',
-        '# 内容要求',
-        '',
-        '消息需要涵盖这几个方面，但要用自然流畅的语言连接起来，而不是机械地列举：',
-        '',
-        '1. **打个招呼，开启话题**',
-        '   - 用一两句话轻松开场，可以简单说说这句话的特点、使用场景，或者为什么值得学',
-        '   - 自然地过渡到展示句子本身',
-        '',
-        '2. **展示句子**',
-        '   - 直接用 [[tts:...]] 包裹英文原句（如果判断句子被截断，则展示完整版本）',
-        '   - **禁止**在 [[tts:...]] 之前或之后再次输出英文原文，不要用"英文原句："、"原文："等标签',
-        '   - 在 [[tts:...]] 标记之后，换一行，然后用一句话概括中文意思',
-        '   - 不要用"翻译："、"意思是："这种标签，自然地表达即可',
-        '   - 如果句子明显不完整（比如被换行打断），要提供 [[switch:完整句子|切换到完整版]] 让用户切换',
-        '',
-        '3. **提供同义表达**',
-        '   - 自然地过渡，比如"这句话还可以这样说"、"换个方式表达的话"',
-        '   - 给出 2-3 个同义或更地道的改写，使用 Markdown 列表格式（- 开头）',
-        '   - 每个改写都用 [[tts:...]] 包裹，方便用户点击朗读',
-        '   - **注意**：每个改写句也只在对应的 [[tts:...]] 中出现一次，不要在后续文本中重复',
-        '   - 可以简单说明不同表达之间的细微差异或使用场景（提到的英文短语、单词也建议用 [[tts:...]]）',
-        '',
-        '4. **引导进一步学习**',
-        '   - 自然地提一句，系统已经分析好了这句话的详细学习材料',
-        '   - 比如生词解释、短语用法、语法结构、实用例句等',
-        '   - 告诉用户这些内容已经展示在界面左右两侧',
-        '   - 语气轻松，简单提醒用户可以去查看，不要过于强调',
-        '',
-        '# 风格要求',
-        '',
-        '- 总长度控制在 12-18 行 Markdown 左右，给用户足够的信息量但不要太啰嗦',
-        '- 各部分之间要有自然的过渡和衔接，像说话一样娓娓道来',
-        '- 避免使用编号、大标题或严格的分段，让内容读起来像一段连贯的对话',
-        '- 语气友好、鼓励，但不要过度夸张或过于正式',
-        '- 可以根据句子的具体内容调整表达方式，保持灵活性',
-        '',
-        '# 再次强调：严禁重复英文',
-        '',
-        '- 所有英文句子只在 [[tts:...]] 标记内出现，标记外的任何地方都不要重复',
-        '- 不要使用"英文原句："、"原文："、"原话是："等标签后再输出英文',
-        '- 展示句子时，直接从 [[tts:...]] 开始，然后换行，再输出中文解释',
-        '- 示例格式：',
-        '  ```',
-        '  [[tts:英文句子]]',
-        '  中文解释。',
-        '  ',
-        '  这句话还可以这样说：',
-        '  - [[tts:同义句1]]',
-        '  - [[tts:同义句2]]',
-        '  ```',
-        '- 在解释中提到英文短语、单词时，也建议用 [[tts:...]] 包裹，方便用户朗读',
-    );
+    const overviewText = formatSubtitleOverview(params.subtitleOverview);
+    if (overviewText) {
+        userLines.push('', overviewText);
+    }
 
-    const user = userLines.join('\n');
+    userLines.push('', '请生成一段自然、生动的开场欢迎与导学消息。');
 
     return [
-        {
-            role: 'system',
-            content: system,
-        },
-        {
-            role: 'user',
-            content: user,
-        },
+        { role: 'system', content: system },
+        { role: 'user', content: userLines.join('\n') },
     ];
 };
 
 /**
- * 生成整句分析提示词。
- *
- * json_object 协议（见 AiProviderServiceImpl 的说明）不会把 Output.object 的 zod schema
- * 传给服务端，模型能看到的唯一结构约束就是提示词本身；此前提示词只说"与给定 schema 字段
- * 一致"却从未贴出结构，导致模型靠猜字段名（实测 phraseGroups 用 text、phrases 缺失等
- * 固定跑偏，而唯一给了 JSON 示例的 examples 永远正确）。因此这里贴出紧凑字段契约 + 完整
- * 输出示例模板（覆盖全部字段名与嵌套层级），比贴冗长的 JSON Schema 更可读、对齐更稳。
- *
- * @param text 要分析的句子。
- * @returns 拼接后的分析提示词。
+ * 构建整句深度分析的结构化 JSON 提示词。
  */
 export const buildAnalysisPrompt = (text: string): string => {
     return [
-        '你是一个专业、冷静的英语学习助手。',
-        '请严格输出 JSON，字段名与嵌套结构必须与下面的字段契约和示例模板完全一致，不要包含多余字段。',
-        '所有中文内容使用简体中文。',
+        '你是一个专业、严谨的英语语言分析助手。',
+        '请对目标句子进行全面的语言学与教学分析，并严格输出符合指定 JSON 契约的数据，不要包含任何额外字段或 markdown 外层包裹。',
+        '所有中文解释均使用简体中文。',
         '',
         '分析目标句子:',
         text,
         '',
-        '要求:',
-        '- structure: 句子意群拆解，phraseGroups 按原句顺序排列，并给出中文翻译与必要标签。',
-        '- structure: phraseGroups 的 tags 字段必须存在；没有标签时返回空数组。',
-        '- vocab: 提取对中级学习者可能生僻的新词，给出音标与中文释义；没有就返回空数组并 hasNewWord=false。',
-        '- phrases: 提取常用词组/固定搭配，给出中文释义；没有就返回空数组并 hasPhrase=false。',
-        '- grammar: 用中文 Markdown 简洁解释语法点，避免使用标题语法（如 #/##/###），用加粗或列表代替。',
-        '- examples: 必须给出 5 个例句，sentences 数组长度必须为 5。',
-        '- examples: 尽量使用 vocab/phrases 中的点，points 列出用到的词或短语；如果没有合适的点，points 返回空数组但例句仍必须给出。',
-        '- examples 结构必须是 sentences 数组，每项包含 sentence/meaning/points，禁止额外字段。',
+        '# 分析要求',
+        '- structure: 意群拆解。phraseGroups 为字符串数组，按原句自然阅读顺序切分出 2~5 个英文意群片段。',
+        '- vocab: 提取中级学习者可能不熟悉的生词，提供标准音标与中文释义；如无生词则 words 为空数组且 hasNewWord=false。',
+        '- phrases: 提取重点词组或搭配，提供中文释义；如无短语则 phrases 为空数组且 hasPhrase=false。',
+        '- grammar: 用清晰的中文 Markdown 解释关键语法结构，不要使用 # 级标题，使用加粗或列表即可。',
+        '- examples: 必须给出 5 个例句（sentences 数组长度固定为 5）。尽量结合本句词汇与短语，points 标明所用考点，meaning 提供中文释义。',
         '',
-        '输出结构（紧凑字段契约）:',
-        '- structure → phraseGroups[]（original / translation / tags[]）',
-        '- vocab → hasNewWord + words[]（word / phonetic / meaning）',
-        '- phrases → hasPhrase + phrases[]（phrase / meaning）',
-        '- grammar → hasGrammar + grammarsMd',
-        '- examples → sentences[]（sentence / meaning / points[]）',
-        '',
-        '输出示例模板（字段名与嵌套必须与此完全一致，内容按目标句子实际填写）:',
+        '# 字段契约与示例模板（请完全遵循此 JSON 结构与字段命名）:',
         '```json',
         '{',
         '  "structure": {',
-        '    "sentence": "目标句子的完整原文",',
-        '    "phraseGroups": [',
-        '      { "original": "意群原文", "translation": "意群的中文翻译", "tags": ["标签"] }',
-        '    ]',
+        '    "phraseGroups": ["意群片段1", "意群片段2", "意群片段3"]',
         '  },',
         '  "vocab": {',
         '    "hasNewWord": true,',
@@ -180,16 +140,16 @@ export const buildAnalysisPrompt = (text: string): string => {
         '  "phrases": {',
         '    "hasPhrase": true,',
         '    "phrases": [',
-        '      { "phrase": "词组", "meaning": "中文释义" }',
+        '      { "phrase": "词组/搭配", "meaning": "中文释义" }',
         '    ]',
         '  },',
         '  "grammar": {',
         '    "hasGrammar": true,',
-        '    "grammarsMd": "中文语法说明（Markdown，不用标题语法）"',
+        '    "grammarsMd": "语法要点说明（Markdown）"',
         '  },',
         '  "examples": {',
         '    "sentences": [',
-        '      { "sentence": "英文例句", "meaning": "中文释义", "points": ["用到的词或短语"] }',
+        '      { "sentence": "英文例句", "meaning": "例句中文翻译", "points": ["考点词/短语"] }',
         '    ]',
         '  }',
         '}',
@@ -198,14 +158,7 @@ export const buildAnalysisPrompt = (text: string): string => {
 };
 
 /**
- * 把消息列表中的 system 角色消息拆出来，返回 system 内容与剩余消息。
- *
- * AI SDK v7 起 messages 里不允许再带 system 角色消息（standardizePrompt 会直接抛
- * InvalidPromptError），需要把 system 内容通过 streamText 的 system 参数单独传入。
- * 多个 system 消息按原顺序用空行拼接为一个字符串。
- *
- * @param messages 原始消息列表（可能包含 system 角色消息）。
- * @returns system 拼接后的内容（没有 system 时为 undefined），以及去掉 system 后的剩余消息。
+ * 把消息列表中的 system 角色消息拆分出来，供 AI SDK v7 的 streamText(system, messages) 使用。
  */
 export const splitSystemMessages = (
     messages: ModelMessage[]
@@ -225,6 +178,128 @@ export const splitSystemMessages = (
     };
 };
 
+/**
+ * 确保消息流包含完整的角色人设与字幕工具调用指南。
+ */
+export const ensureChatRoleMessage = (messages: ModelMessage[]): ModelMessage[] => {
+    if (messages.some((message) => message.role === 'system')) {
+        return messages;
+    }
+    return [
+        {
+            role: 'system',
+            content: [
+                '你是用户的影视英语学习专属伙伴，陪伴用户看剧学英语。',
+                '',
+                '# 交流原则与风格',
+                '- 语气自然、亲切、像朋友交流，简洁直接，避免冗长陈述。',
+                '- 遵循问什么答什么的原则，重点突出，切中要害。',
+                '- 中文回答为主，英文内容保持原汁原味。',
+                '',
+                TTS_FORMAT_GUIDELINES,
+                '',
+                '# 典型问题处理模式',
+                '- 单词/词组解析：提供音标、中文释义、英文释义及 2~3 个地道双语例句（英文使用 [[tts:...]]）。',
+                '- 句意/句式解析：先说明句子语境含义，再拆解关键结构或词汇在句中的具体用法。',
+                '- 表达改写/润色：提供 2~3 个不同语域的地道改写（Markdown 列表 - 开头），英文均包裹 [[tts:...]]。',
+                '',
+                '# 字幕上下文工具调用指南（ReAct 工作流）',
+                '当用户询问需要超越当前单句的信息（如剧情发展、人物对话、前因后果、某人是否说过某话等）时，请按以下策略主动调用工具：',
+                '1. 【定位线索】：使用 `search_subtitles` 工具搜索关键词（可提供一个或多个关键词，支持 any/all 匹配）。',
+                '2. 【展开上下文】：根据搜索结果中的命中索引 `index`，使用 `get_subtitle_context` 读取该句前后的连续字幕（通过 `limit` 控制跨度）。',
+                '3. 【综合回答】：结合检索到的影视台词上下文，给出准确、有依据的回答。',
+                '注：如果用户仅询问当前句的语法、词汇或通用英语知识，直接回答即可，无需调用字幕工具。',
+            ].join('\n'),
+        },
+        ...messages,
+    ];
+};
+
+/**
+ * 将已有的背景分析与段落上下文装配进消息队列中。
+ */
+/**
+ * 将已有的背景分析与段落上下文装配为一条稳定的上下文参考消息。
+ * 采用 user 角色或上下文数据包装，避免作为 dynamic system 消息污染顶层 System Prompt 从而破坏 KV 前缀缓存。
+ */
+export const buildChatBackgroundMessage = (
+    background?: ChatBackgroundContext
+): ModelMessage | null => {
+    const parts: string[] = [];
+    const overviewText = formatSubtitleOverview(background?.subtitleOverview);
+    if (overviewText) {
+        parts.push(overviewText);
+    }
+
+    const paragraphLines = background?.paragraphLines ?? [];
+    if (paragraphLines.length > 0) {
+        parts.push([
+            '原始段落上下文（当前句及前后台词）：',
+            paragraphLines.map((line, index) => `${index + 1}. ${line}`).join('\n'),
+        ].join('\n'));
+    }
+
+    const analysis = background?.analysis;
+    if (analysis?.structure?.phraseGroups?.length) {
+        const lines = analysis.structure.phraseGroups.map(
+            (group: string) => `- ${group}`
+        );
+        parts.push(['已解析的意群拆解：', ...lines].join('\n'));
+    }
+
+    if (analysis?.vocab?.words?.length) {
+        const lines = analysis.vocab.words.map(
+            (word: AiUnifiedAnalysisRes['vocab']['words'][number]) => {
+                const phonetic = word.phonetic ? ` ${word.phonetic}` : '';
+                return `- ${word.word}${phonetic}: ${word.meaning ?? ''}`;
+            }
+        );
+        parts.push(['已提取的生词：', ...lines].join('\n'));
+    }
+
+    if (analysis?.phrases?.phrases?.length) {
+        const lines = analysis.phrases.phrases.map(
+            (phrase: AiUnifiedAnalysisRes['phrases']['phrases'][number]) =>
+                `- ${phrase.phrase ?? ''}: ${phrase.meaning ?? ''}`
+        );
+        parts.push(['已提取的短语：', ...lines].join('\n'));
+    }
+
+    if (analysis?.grammar?.grammarsMd) {
+        parts.push(['已总结的语法要点：', analysis.grammar.grammarsMd].join('\n'));
+    }
+
+    if (analysis?.examples?.sentences?.length) {
+        const lines = analysis.examples.sentences.map(
+            (example: AiUnifiedAnalysisRes['examples']['sentences'][number], index) => {
+                const sentence = example.sentence ?? '';
+                const meaning = example.meaning ?? '';
+                const points = example.points?.length ? ` [${example.points.join('、')}]` : '';
+                return `${index + 1}. ${sentence}${meaning ? ` / ${meaning}` : ''}${points}`;
+            }
+        );
+        parts.push(['关联参考例句：', ...lines].join('\n'));
+    }
+
+    if (parts.length === 0) {
+        return null;
+    }
+
+    return {
+        role: 'user',
+        content: [
+            '【背景参考材料与语言分析】（已自动解析就绪，后续对话请据此参考）：',
+            '',
+            parts.join('\n\n'),
+        ].join('\n'),
+    };
+};
+
+/**
+ * 带有缓存友好特性的背景信息注入器：
+ * 1. 顶层 System Prompt（ensureChatRoleMessage）保持绝对固定，保证最前缀 100% 命中 KV Cache。
+ * 2. 背景材料只在第一轮（Welcome 答复之后）作为第 2 条上下文消息注入一次，历史消息单调向后追加，绝不在后续轮次中间插队篡改前缀。
+ */
 export const appendBackgroundMessage = (
     messages: ModelMessage[],
     background?: ChatBackgroundContext
@@ -234,127 +309,35 @@ export const appendBackgroundMessage = (
     if (!backgroundMessage) {
         return withRole;
     }
-    const insertIndex = withRole.findLastIndex((message) => message.role === 'user');
-    if (insertIndex < 0) {
-        return [...withRole, backgroundMessage];
-    }
-    return [
-        ...withRole.slice(0, insertIndex),
-        backgroundMessage,
-        ...withRole.slice(insertIndex)
-    ];
-};
 
-export const ensureChatRoleMessage = (messages: ModelMessage[]): ModelMessage[] => {
-    if (messages.some((message) => message.role === 'system')) {
-        return messages;
-    }
-    return [
-        {
-            role: 'system',
-            content: [
-                '你是用户的英语学习伙伴，帮他看剧学英语。',
-                '',
-                '说话风格：',
-                '- 像朋友聊天一样自然，别太正式',
-                '- 简洁直接，别啰嗦',
-                '- 解释语法或词汇时举个例子就好，别长篇大论',
-                '- 用户问什么答什么，别自作主张展开太多',
-                '- 可以适当用"哈""啊""嗯"这类语气词，但别过度',
-                '',
-                '回答格式：',
-                '- 用中文回答，英文内容保持原样',
-                '- 不需要分太多小标题，自然地说就行',
-                '- 如果要举例，一两个就够了',
-                '',
-                '朗读功能（重要）：',
-                '- 碰到英文就用 [[tts:...]] 包起来，里面只放英文，别加中文解释',
-                '- 单词、短语、句子、例句都这样包，用户想听就能点',
-                '- 英文只在 [[tts:...]] 里写一次，外面就不用重复了',
-                '- 别在标记里用方括号 []、竖线 | 这些特殊符号，会出问题',
-                '- 像这样：[[tts:This is a sample sentence.]]',
-                '',
-                '回答用户的常见问题：',
-                '- 问单词/短语：音标、中文意思、英文解释、3 个例句（带中文），英文都用 [[tts:...]]',
-                '- 问句子里的词：先说整句意思，再讲这个词在句子里的用法，给 3 个例句',
-                '- 要同义句/润色：给 3 个改写，每个单独一行用 - 开头，英文用 [[tts:...]]',
-            ].join('\n'),
-        },
-        ...messages
-    ];
-};
-
-export const buildChatBackgroundMessage = (
-    background?: ChatBackgroundContext
-): ModelMessage | null => {
-    const parts: string[] = [];
-    const paragraphLines = background?.paragraphLines ?? [];
-    if (paragraphLines.length > 0) {
-        parts.push([
-            '原始段落（上下文 11 句）:',
-            paragraphLines.map((line, index) => `${index + 1}. ${line}`).join('\n')
-        ].join('\n'));
+    // 检查历史中是否已经注入过背景参考材料，若已存在则直接返回，保证历史序列不变
+    const alreadyInjected = withRole.some(
+        (msg) => typeof msg.content === 'string' && msg.content.startsWith('【背景参考材料与语言分析】')
+    );
+    if (alreadyInjected) {
+        return withRole;
     }
 
-    const analysis = background?.analysis;
-    if (analysis?.structure?.phraseGroups?.length) {
-        const lines = analysis.structure.phraseGroups.map(
-            (group: AiUnifiedAnalysisRes['structure']['phraseGroups'][number]) => {
-            const tags = group.tags?.length ? ` (${group.tags.join('、')})` : '';
-            return `- ${group.original ?? ''} -> ${group.translation ?? ''}${tags}`;
-        });
-        parts.push(['知识点-意群拆解:', ...lines].join('\n'));
+    // 找到首轮 welcome 的 assistant 回复位置（通常在第 2 或第 3 条），固定插入在其后；若不存在则插入在最前一条 user 消息之后
+    const firstAssistantIndex = withRole.findIndex((msg) => msg.role === 'assistant');
+    if (firstAssistantIndex >= 0) {
+        return [
+            ...withRole.slice(0, firstAssistantIndex + 1),
+            backgroundMessage,
+            { role: 'assistant', content: '收到，已同步本次学习的完整背景与语言分析材料。' },
+            ...withRole.slice(firstAssistantIndex + 1),
+        ];
     }
 
-    if (analysis?.vocab?.words?.length) {
-        const lines = analysis.vocab.words.map(
-            (word: AiUnifiedAnalysisRes['vocab']['words'][number]) => {
-            const phonetic = word.phonetic ? ` ${word.phonetic}` : '';
-            return `- ${word.word}${phonetic}: ${word.meaning ?? ''}`;
-        });
-        parts.push(['知识点-生词:', ...lines].join('\n'));
+    // 若尚未有 assistant 消息，插入在第一条 user 消息之后或直接追加
+    const firstUserIndex = withRole.findIndex((msg) => msg.role === 'user');
+    if (firstUserIndex >= 0) {
+        return [
+            ...withRole.slice(0, firstUserIndex + 1),
+            backgroundMessage,
+            ...withRole.slice(firstUserIndex + 1),
+        ];
     }
 
-    if (analysis?.phrases?.phrases?.length) {
-        const lines = analysis.phrases.phrases.map(
-            (phrase: AiUnifiedAnalysisRes['phrases']['phrases'][number]) => {
-            return `- ${phrase.phrase ?? ''}: ${phrase.meaning ?? ''}`;
-        });
-        parts.push(['知识点-短语:', ...lines].join('\n'));
-    }
-
-    if (analysis?.grammar?.grammarsMd) {
-        parts.push(['知识点-语法要点:', analysis.grammar.grammarsMd].join('\n'));
-    }
-
-    if (analysis?.examples?.sentences?.length) {
-        const lines = analysis.examples.sentences.map(
-            (example: AiUnifiedAnalysisRes['examples']['sentences'][number], index) => {
-            const sentence = example.sentence ?? '';
-            const meaning = example.meaning ?? '';
-            const points = example.points?.length ? ` [${example.points.join('、')}]` : '';
-            return `${index + 1}. ${sentence}${meaning ? ` / ${meaning}` : ''}${points}`;
-        });
-        parts.push(['右下角例句列表:', ...lines].join('\n'));
-    }
-
-    if (parts.length === 0) {
-        return null;
-    }
-
-    return {
-        role: 'system',
-        content: [
-            '以下是本次对话的背景信息，请在回答时参考：',
-            '页面元素位置说明:',
-            '- 顶部: 意群结构',
-            '- 左上: 本句生词',
-            '- 左中: 本句词组',
-            '- 左下: 本句语法',
-            '- 右上: 原始段落',
-            '- 右下: 例句',
-            '',
-            parts.join('\n\n')
-        ].join('\n'),
-    };
+    return [...withRole, backgroundMessage];
 };

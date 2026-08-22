@@ -13,5 +13,8 @@
   "aliases": {
     "components": "@/fronted/components",
     "utils": "@/fronted/lib/utils"
+  },
+  "registries": {
+    "@ai-elements": "https://ai-sdk.dev/elements/api/registry/{name}.json"
   }
 }

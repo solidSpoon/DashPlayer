@@ -6,45 +6,57 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import UndoRedo from '@/common/utils/UndoRedo';
 import { engEqual, p } from '@/common/utils/Util';
 import { usePlayer } from '@/fronted/features/player/playerStore';
-import CustomMessage from '@/common/types/msg/interfaces/CustomMessage';
-import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
-import HumanNormalMessage from '@/common/types/msg/HumanNormalMessage';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
-import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { chatApi } from '@/fronted/features/chat/chatApi';
-import AiStreamingMessage from '@/common/types/msg/AiStreamingMessage';
-import { ChatBackgroundContext, ChatStreamEvent, ChatWelcomeParams, Topic } from '@/common/types/chat';
+import { Topic } from '@/common/types/chat';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
 const undoRedo = new UndoRedo<ChatPanelState>();
+
+/** 整句学习面板中需要跨组件共享和撤销恢复的状态。 */
 export type ChatPanelState = {
+    /** 仅供右键菜单在短时间内读取的内部上下文。 */
     internal: {
+        /** 最近一次被业务组件标记的文本及标记时间。 */
         context: {
+            /** 被标记的原始文本。 */
             value: string | null;
+            /** 标记时间，Unix 毫秒。 */
             time: number;
         }
-        chatTaskQueue: CustomMessage<unknown>[];
     }
+    /** 后端整句学习会话 ID；空字符串表示当前没有会话。 */
     chatSessionId: string;
-    streamingMessageId: string | null;
+    /** 创建会话时冻结的主题原文。 */
+    topicText: string;
+    /** 由上下文菜单排队、等待聊天组件发送的追问。 */
+    queuedMessage: { id: number; content: string } | null;
+    /** 流式合并中的句子分析结果。 */
     analysis: Partial<AiUnifiedAnalysisRes> | null;
+    /** 当前分析请求的消息 ID，用于过滤过期事件。 */
     analysisMessageId: string | null;
+    /** 当前句子分析生命周期状态。 */
     analysisStatus: 'idle' | 'streaming' | 'done' | 'error';
+    /** 分析失败时返回的显式错误信息。 */
     analysisError: string | null;
+    /** 当前学习主题的字幕位置或直接文本。 */
     topic: Topic
-    messages: CustomMessage<unknown>[];
-    streamingMessage: CustomMessage<unknown> | null;
+    /** 是否可以撤销到上一个学习主题。 */
     canUndo: boolean;
+    /** 是否可以重做到下一个学习主题。 */
     canRedo: boolean;
+    /** 右键菜单打开时冻结的操作上下文。 */
     context: string | null;
+    /** 受控聊天输入框文本。 */
     input: string;
 };
 
+/** 整句学习面板对外暴露的状态操作。 */
 export type ChatPanelActions = {
     backward: () => void;
     forward: () => void;
@@ -52,7 +64,6 @@ export type ChatPanelActions = {
     createFromCurrent: () => void;
     clear: () => void;
     sent: (msg: string) => void;
-    receiveChatStream: (event: ChatStreamEvent) => void;
     receiveAnalysisStream: (event: AnalysisStreamEvent) => void;
     startAnalysis: () => Promise<void>;
     updateInternalContext: (value: string) => void;
@@ -62,35 +73,31 @@ export type ChatPanelActions = {
     ctxMenuPolish: () => void;
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
-    deleteMessage: (msg: CustomMessage<unknown>) => void;
     retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
+    consumeQueuedMessage: (id: number) => void;
 };
 
-const createChatSessionId = (): string => {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-        return crypto.randomUUID();
-    }
-    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-};
-
+/**
+ * 创建可交给撤销栈保存的状态副本。
+ * @param state 当前面板状态。
+ * @returns 与外部可变引用隔离的状态副本。
+ */
 const copy = (state: ChatPanelState): ChatPanelState => {
     return {
         internal: {
             context: {
                 ...state.internal.context
             },
-            chatTaskQueue: state.internal.chatTaskQueue.map(e => e.copy() as CustomMessage<unknown>)
         },
         chatSessionId: state.chatSessionId,
-        streamingMessageId: state.streamingMessageId,
+        topicText: state.topicText,
+        queuedMessage: state.queuedMessage,
         analysis: state.analysis,
         analysisMessageId: state.analysisMessageId,
         analysisStatus: state.analysisStatus,
         analysisError: state.analysisError,
         topic: state.topic,
-        messages: state.messages,
-        streamingMessage: state.streamingMessage,
         canUndo: state.canUndo,
         canRedo: state.canRedo,
         context: state.context,
@@ -98,6 +105,10 @@ const copy = (state: ChatPanelState): ChatPanelState => {
     };
 };
 
+/**
+ * 创建没有活动会话的初始面板状态。
+ * @returns 全字段显式初始化的空状态。
+ */
 const empty = (): ChatPanelState => {
     return {
         internal: {
@@ -105,17 +116,15 @@ const empty = (): ChatPanelState => {
                 value: null,
                 time: 0
             },
-            chatTaskQueue: []
         },
-        chatSessionId: createChatSessionId(),
-        streamingMessageId: null,
+        chatSessionId: '',
+        topicText: '',
+        queuedMessage: null,
         analysis: null,
         analysisMessageId: null,
         analysisStatus: 'idle',
         analysisError: null,
         topic: 'offscreen',
-        messages: [],
-        streamingMessage: null,
         canUndo: false,
         canRedo: false,
         context: null,
@@ -131,8 +140,12 @@ const startAnalysisForTopic = async () => {
     await useChatPanel.getState().startAnalysis();
 };
 
+const chatLogger = getRendererLogger('useChatPanel');
+
 // 流式分析 chunk 计数：仅在收到 start 时归零，用于节流 chunk 级调试日志。
 let analysisStreamChunkCount = 0;
+// 防止快捷键重复触发时并发创建多个整句学习会话。
+let sessionCreationInFlight = false;
 
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
@@ -171,7 +184,6 @@ const useChatPanel = create(
             }
             undoRedo.update(copy(get()));
             undoRedo.add(empty());
-            const tt = new HumanTopicMessage(get().topic, text);
             const topic = { content: text };
             const currentSentence = usePlayer.getState().currentSentence;
             const sentences = usePlayer.getState().sentences;
@@ -185,20 +197,52 @@ const useChatPanel = create(
             const context: string[] = subtitles
                 .filter(TypeGuards.isNotNull)
                 .map(e => e.text ?? '');
+            const videoId = useFile.getState().videoId;
+            if (!videoId) {
+                throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
+            }
+            if (!currentSentence) {
+                throw new Error('当前字幕句不存在，无法创建带上下文工具的整句学习会话');
+            }
+            if (sessionCreationInFlight) {
+                chatLogger.warn('忽略重复的整句学习会话创建请求');
+                return;
+            }
+            sessionCreationInFlight = true;
+            const previousSessionId = get().chatSessionId;
+            if (previousSessionId) {
+                chatApi.closeSession(previousSessionId).catch((error) => {
+                    getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
+                });
+            }
+            let sessionId: string;
+            try {
+                ({ sessionId } = await chatApi.createSession({
+                    videoId,
+                    originalTopic: text,
+                    paragraphLines: context,
+                    subtitleFileHash: currentSentence.fileHash,
+                    anchorSentenceIndex: currentSentence.index,
+                }));
+            } catch (error) {
+                sessionCreationInFlight = false;
+                throw error;
+            }
+            chatLogger.info('sentence learning session created', {
+                sessionId,
+                topicLength: text.length,
+                paragraphLineCount: context.length,
+                anchorSentenceIndex: currentSentence.index,
+            });
             set({
                 ...empty(),
+                chatSessionId: sessionId,
+                topicText: text,
                 topic: topic,
-                messages: [
-                    tt
-                ],
                 canRedo: undoRedo.canRedo(),
                 canUndo: undoRedo.canUndo()
             });
-            scheduleWelcomeMessage({
-                sessionId: get().chatSessionId,
-                originalTopic: text,
-                fullText: context.join(' '),
-            }, topic);
+            sessionCreationInFlight = false;
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for selected topic', { error });
             });
@@ -207,12 +251,6 @@ const useChatPanel = create(
             undoRedo.add(copy(get()));
             const ct = usePlayer.getState().currentSentence;
             if (!ct) return;
-            const tt = new HumanTopicMessage(get().topic, ct.text ?? '');
-            // const subtitleAround = usePlayerController.getState().getSubtitleAround(5).map(e => e.text);
-            const url = useFile.getState().subtitlePath ?? '';
-            getRendererLogger('useChatPanel').debug('subtitle file url', { url });
-            const text = await fetch(UrlUtil.toUrl(url)).then((res) => res.text());
-            getRendererLogger('useChatPanel').debug('subtitle file content', { length: text.length });
             const topic = {
                 content: {
                     start: {
@@ -234,104 +272,84 @@ const useChatPanel = create(
                 const right = Math.min(sentences.length - 1, idx + 5);
                 return sentences.slice(left, right + 1);
             })();
+            const videoId = useFile.getState().videoId;
+            if (!videoId) {
+                throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
+            }
+            if (sessionCreationInFlight) {
+                chatLogger.warn('忽略重复的整句学习会话创建请求');
+                return;
+            }
+            sessionCreationInFlight = true;
+            const previousSessionId = get().chatSessionId;
+            if (previousSessionId) {
+                chatApi.closeSession(previousSessionId).catch((error) => {
+                    getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
+                });
+            }
+            const paragraphLines = subtitles.map(e => e.text);
+            let sessionId: string;
+            try {
+                ({ sessionId } = await chatApi.createSession({
+                    videoId,
+                    originalTopic: ct.text,
+                    paragraphLines,
+                    subtitleFileHash: ct.fileHash,
+                    anchorSentenceIndex: ct.index,
+                }));
+            } catch (error) {
+                sessionCreationInFlight = false;
+                throw error;
+            }
+            chatLogger.info('sentence learning session created', {
+                sessionId,
+                topicLength: ct.text.length,
+                paragraphLineCount: paragraphLines.length,
+                anchorSentenceIndex: ct.index,
+            });
             set({
                 ...empty(),
+                chatSessionId: sessionId,
+                topicText: ct.text,
                 topic,
-                messages: [
-                    tt
-                ]
             });
-            scheduleWelcomeMessage({
-                sessionId: get().chatSessionId,
-                originalTopic: ct.text,
-                fullText: subtitles.map(e => e.text).join(' '),
-            }, topic);
+            sessionCreationInFlight = false;
             startAnalysisForTopic().catch((error) => {
                 getRendererLogger('useChatPanel').error('failed to start analysis for current topic', { error });
             });
         },
         clear: () => {
+            const sessionId = get().chatSessionId;
+            if (sessionId) {
+                chatApi.closeSession(sessionId).catch((error) => {
+                    getRendererLogger('useChatPanel').error('failed to close chat session', { error });
+                });
+            }
             undoRedo.clear();
             set(empty());
         },
         sent: async (msg: string) => {
             if (StrUtil.isBlank(msg)) return;
-            const requestMsg = new HumanNormalMessage(get().topic, msg);
-            const baseMessages = await Promise.all(
-                get().messages.map(e => e.toMsg())
-            ).then(results => results.flat());
-            const requestMessages = await requestMsg.toMsg();
-            const background = buildChatBackgroundContext(get().analysis ?? null);
-            const history = [...baseMessages, ...requestMessages];
-            getRendererLogger('useChatPanel').debug('chat history', { messageCount: history.length });
-            const { messageId } = await chatApi.start({
-                sessionId: get().chatSessionId,
-                messages: history,
-                background: background ?? undefined,
-            });
             set({
-                messages: [
-                    ...get().messages,
-                    requestMsg
-                ],
-                streamingMessage: new AiStreamingMessage(get().topic, messageId, '', true),
-                streamingMessageId: messageId
+                queuedMessage: {
+                    id: Date.now(),
+                    content: msg,
+                },
             });
-        },
-        receiveChatStream: (event: ChatStreamEvent) => {
-            if (event.sessionId !== get().chatSessionId) {
-                return;
-            }
-            const currentStreaming = get().streamingMessage;
-            if (event.event === 'start') {
-                if (!currentStreaming || (currentStreaming as AiStreamingMessage).messageId !== event.messageId) {
-                    set({
-                        streamingMessage: new AiStreamingMessage(get().topic, event.messageId, '', true),
-                        streamingMessageId: event.messageId
-                    });
-                }
-                return;
-            }
-
-            if (!currentStreaming || (currentStreaming as AiStreamingMessage).messageId !== event.messageId) {
-                return;
-            }
-
-            const streaming = currentStreaming as AiStreamingMessage;
-            if (event.event === 'chunk') {
-                set({
-                    streamingMessage: streaming.withUpdate(`${streaming.content}${event.chunk ?? ''}`, true)
-                });
-                return;
-            }
-            if (event.event === 'done') {
-                const finished = streaming.withUpdate(streaming.content, false);
-                set({
-                    messages: [...get().messages, finished],
-                    streamingMessage: null,
-                    streamingMessageId: null
-                });
-                return;
-            }
-            if (event.event === 'error') {
-                const errorMsg = event.error ? `\n\n[Error] ${event.error}` : '\n\n[Error]';
-                const failed = streaming.withUpdate(`${streaming.content}${errorMsg}`, false);
-                set({
-                    messages: [...get().messages, failed],
-                    streamingMessage: null,
-                    streamingMessageId: null
-                });
-            }
         },
         receiveAnalysisStream: (event: AnalysisStreamEvent) => {
             if (event.sessionId !== get().chatSessionId) {
                 return;
             }
-            if (event.event === 'start') {
+            if (event.chunk.type === 'start') {
                 analysisStreamChunkCount = 0;
+                chatLogger.info('analysis stream started in renderer', {
+                    sessionId: event.sessionId,
+                    messageId: event.chunk.messageId ?? event.messageId,
+                });
                 set({
                     analysis: {},
-                    analysisMessageId: event.messageId,
+                    analysisMessageId: event.chunk.messageId ?? event.messageId,
                     analysisStatus: 'streaming',
                     analysisError: null,
                 });
@@ -342,10 +360,11 @@ const useChatPanel = create(
                 return;
             }
 
-            if (event.event === 'chunk' && event.partial) {
+            if (event.chunk.type === 'data-analysis') {
+                const partial = event.chunk.data as DeepPartial<AiUnifiedAnalysisRes>;
                 analysisStreamChunkCount += 1;
                 const logger = getRendererLogger('useChatPanel');
-                const partialExamples = event.partial.examples;
+                const partialExamples = partial.examples;
                 // chunk 频率极高且带示例句全文，仅首 chunk 与每 20 个采样一次。
                 if (partialExamples && (analysisStreamChunkCount === 1 || analysisStreamChunkCount % 20 === 0)) {
                     logger.debug('analysis examples chunk', {
@@ -355,21 +374,38 @@ const useChatPanel = create(
                     });
                 }
                 set({
-                    analysis: mergeAnalysisPartial(get().analysis ?? {}, event.partial),
+                    analysis: mergeAnalysisPartial(get().analysis ?? {}, partial),
                     analysisStatus: 'streaming',
                 });
                 return;
             }
-            if (event.event === 'done') {
+            if (event.chunk.type === 'finish') {
+                chatLogger.info('analysis stream finished in renderer', {
+                    sessionId: event.sessionId,
+                    messageId: event.messageId,
+                    chunkCount: analysisStreamChunkCount,
+                });
                 set({
                     analysisStatus: 'done',
                 });
                 return;
             }
-            if (event.event === 'error') {
+            if (event.chunk.type === 'error') {
+                chatLogger.error('analysis stream failed in renderer', {
+                    sessionId: event.sessionId,
+                    messageId: event.messageId,
+                    errorText: event.chunk.errorText,
+                });
                 set({
                     analysisStatus: 'error',
-                    analysisError: event.error ?? 'analysis error',
+                    analysisError: event.chunk.errorText,
+                });
+                return;
+            }
+            if (event.chunk.type === 'abort') {
+                set({
+                    analysisStatus: 'idle',
+                    analysisMessageId: null,
                 });
             }
         },
@@ -380,7 +416,6 @@ const useChatPanel = create(
             }
             const { messageId } = await chatApi.startAnalysis({
                 sessionId: get().chatSessionId,
-                text,
             });
             set({
                 analysis: {},
@@ -432,11 +467,6 @@ const useChatPanel = create(
             if (StrUtil.isBlank(text)) return;
             await get().sent(`帮我把这句话改写得更地道一些：\n"""\n${text}\n"""`);
         },
-        deleteMessage: (msg: CustomMessage<unknown>) => {
-            set({
-                messages: get().messages.filter(e => e !== msg)
-            });
-        },
         retry: async (type: 'analysis' | 'topic') => {
             if (type === 'analysis' || type === 'topic') {
                 get().startAnalysis();
@@ -469,6 +499,11 @@ const useChatPanel = create(
             set({
                 input
             });
+        },
+        consumeQueuedMessage: (id: number) => {
+            if (get().queuedMessage?.id === id) {
+                set({ queuedMessage: null });
+            }
         }
     }))
 );
@@ -515,82 +550,39 @@ const mergeAnalysisPartial = (
     return mergeValue(current, partial) as Partial<AiUnifiedAnalysisRes>;
 };
 
-const getCurrentParagraphLines = (): string[] => {
-    const currentSentence = usePlayer.getState().currentSentence;
-    const sentences = usePlayer.getState().sentences;
-    const subtitles = (() => {
-        if (!currentSentence) return [] as typeof sentences;
-        const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
-        if (idx < 0) return [];
-        const left = Math.max(0, idx - 5);
-        const right = Math.min(sentences.length - 1, idx + 5);
-        return sentences.slice(left, right + 1);
-    })();
-
-    return subtitles
-        .filter(TypeGuards.isNotNull)
-        .map(s => s.text ?? '')
-        .filter(text => text.trim().length > 0);
-};
-
-const buildChatBackgroundContext = (
-    analysis: Partial<AiUnifiedAnalysisRes> | null
-): ChatBackgroundContext | null => {
-    const paragraphLines = getCurrentParagraphLines();
-    if (paragraphLines.length === 0 && !analysis) {
-        return null;
-    }
-    return {
-        paragraphLines,
-        analysis: analysis ?? undefined,
-    };
-};
-
-
 const extractTopic = (t: Topic): string => {
     getRendererLogger('useChatPanel').debug('extract topic', { topic: t });
     if (t === 'offscreen') return 'offscreen';
     if (typeof t.content === 'string') return t.content;
     const content = t.content;
     const subtitle = usePlayer.getState().sentences;
-    const length = subtitle?.length ?? 0;
-    if (length === 0 || content.start.sIndex > length || content.end.sIndex > length) {
-        return 'extractTopic failed';
+    const getSubtitle = (index: number) => {
+        const direct = subtitle[index];
+        if (direct?.index === index) return direct;
+        return subtitle.find((sentence) => sentence.index === index);
+    };
+    const startSentence = getSubtitle(content.start.sIndex);
+    const endSentence = getSubtitle(content.end.sIndex);
+    if (!startSentence || !endSentence || content.start.sIndex > content.end.sIndex) {
+        throw new Error('字幕范围无效，无法提取整句学习主题');
     }
-    let st = subtitle[content.start.sIndex].text;
+
+    const startOffset = Math.max(0, Math.min(content.start.cIndex, startSentence.text.length));
+    const endOffset = Math.max(0, Math.min(content.end.cIndex, endSentence.text.length));
     if (content.start.sIndex === content.end.sIndex) {
-        if (content.start.cIndex > 0 && content.end.cIndex <= st.length && content.start.cIndex < content.end.cIndex) {
-            st = st.slice(content.start.cIndex, content.end.cIndex);
+        return startSentence.text.slice(startOffset, endOffset);
+    }
+
+    const range: string[] = [startSentence.text.slice(startOffset)];
+    for (let index = content.start.sIndex + 1; index < content.end.sIndex; index += 1) {
+        const sentence = getSubtitle(index);
+        if (!sentence) {
+            throw new Error(`字幕范围缺少第 ${index} 条字幕`);
         }
-        return st;
+        range.push(sentence.text);
     }
-    // from t.start.cIndex to end of st
-    if (content.start.cIndex > 0 && content.start.cIndex <= st.length) {
-        st = st.slice(content.start.cIndex);
-    }
-    let et = subtitle[content.end.sIndex].text;
-    if (content.end.cIndex > 0 && content.end.cIndex <= et.length) {
-        et = et.slice(0, content.end.cIndex);
-    }
-    return `${st} ${et}`;
+    range.push(endSentence.text.slice(0, endOffset));
+    return range.filter((text) => text.length > 0).join(' ');
 };
 
-const scheduleWelcomeMessage = (params: ChatWelcomeParams, topic: Topic) => {
-    chatApi.getWelcome(params)
-        .then(({ messageId }) => {
-            if (useChatPanel.getState().chatSessionId !== params.sessionId) {
-                return;
-            }
-            const nextMessages = useChatPanel.getState().messages
-                .filter(msg => msg.msgType !== 'ai-streaming');
-            useChatPanel.setState({
-                messages: nextMessages,
-                streamingMessage: new AiStreamingMessage(topic, messageId, '', true),
-                streamingMessageId: messageId,
-            });
-        })
-        .catch((error) => {
-            getRendererLogger('useChatPanel').error('failed to stream welcome message', { error });
-        });
-};
 export default useChatPanel;

@@ -1,8 +1,9 @@
 const SUBTITLE_BATCH_SIZE = 5;
 const SUBTITLE_WINDOW_BATCH_COUNT = 4;
+const SUBTITLE_WINDOW_BATCH_BEFORE_COUNT = 1;
 const HIGH_PRIORITY_BATCH_COUNT = 2;
-const MAX_CONSUMERS = 3;
-const MAX_REQUEUE_COUNT = 1;
+const MAX_CONSUMERS = 4;
+const MAX_REQUEUE_COUNT = 2;
 
 export type SubtitleTranslationPriority = 'high' | 'low';
 
@@ -187,7 +188,7 @@ export default class SubtitleTranslationScheduler<TContext> {
     /**
      * 更新播放位置并重建当前有效翻译窗口。
      *
-     * 当前批次和下一批次为高优先级，其余窗口批次为低优先级。
+     * 前一批次、当前批次、下一批次和下下批次组成窗口；当前批次和下一批次为高优先级，前一批次与下下批次为低优先级。
      * 需求标记倒退时直接忽略，避免异步 IPC 返回顺序导致播放位置回退。
      *
      * @param demand 当前字幕翻译需求。
@@ -278,9 +279,13 @@ export default class SubtitleTranslationScheduler<TContext> {
      */
     private refreshWindow(session: SubtitleTranslationSession<TContext>): void {
         const desiredBatchStarts = new Set<number>();
-        for (let offset = 0; offset < SUBTITLE_WINDOW_BATCH_COUNT; offset += 1) {
+        for (
+            let offset = -SUBTITLE_WINDOW_BATCH_BEFORE_COUNT;
+            offset < SUBTITLE_WINDOW_BATCH_COUNT - SUBTITLE_WINDOW_BATCH_BEFORE_COUNT;
+            offset += 1
+        ) {
             const batchStart = session.currentBatchStart + offset * SUBTITLE_BATCH_SIZE;
-            if (batchStart < session.sentenceCount) {
+            if (batchStart >= 0 && batchStart < session.sentenceCount) {
                 desiredBatchStarts.add(batchStart);
             }
         }
@@ -403,7 +408,7 @@ export default class SubtitleTranslationScheduler<TContext> {
     }
 
     /**
-     * 执行一个已被消费者认领的批次，并按规则最多重新入队一次。
+     * 执行一个已被消费者认领的批次，并按规则最多重新入队两次。
      *
      * @param session 当前字幕翻译会话。
      * @param job 已认领的批次任务。
@@ -569,7 +574,7 @@ export default class SubtitleTranslationScheduler<TContext> {
     }
 
     /**
-     * 判断批次是否仍在当前四批窗口内。
+     * 判断批次是否仍在当前四批窗口内（包含前一批次）。
      *
      * @param session 当前字幕翻译会话。
      * @param batchStart 批次起点。
@@ -580,8 +585,10 @@ export default class SubtitleTranslationScheduler<TContext> {
         batchStart: number
     ): boolean {
         return batchStart >= session.currentBatchStart
+            - SUBTITLE_WINDOW_BATCH_BEFORE_COUNT * SUBTITLE_BATCH_SIZE
             && batchStart < session.currentBatchStart
-            + SUBTITLE_WINDOW_BATCH_COUNT * SUBTITLE_BATCH_SIZE;
+            + (SUBTITLE_WINDOW_BATCH_COUNT - SUBTITLE_WINDOW_BATCH_BEFORE_COUNT)
+            * SUBTITLE_BATCH_SIZE;
     }
 
     /**
@@ -589,7 +596,7 @@ export default class SubtitleTranslationScheduler<TContext> {
      *
      * @param batchStart 批次起点。
      * @param currentBatchStart 当前播放批次起点。
-     * @returns 当前批次和下一批次为 high，其余为 low。
+     * @returns 当前批次和下一批次为 high，前一批次与下下批次为 low。
      */
     private getPriority(
         batchStart: number,
@@ -598,7 +605,9 @@ export default class SubtitleTranslationScheduler<TContext> {
         const batchOffset = Math.floor(
             (batchStart - currentBatchStart) / SUBTITLE_BATCH_SIZE
         );
-        return batchOffset < HIGH_PRIORITY_BATCH_COUNT ? 'high' : 'low';
+        return batchOffset >= 0 && batchOffset < HIGH_PRIORITY_BATCH_COUNT
+            ? 'high'
+            : 'low';
     }
 
     /**

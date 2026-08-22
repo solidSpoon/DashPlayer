@@ -16,6 +16,7 @@ import {
 } from '@/fronted/components/ui/command';
 import { apiPath } from '@/fronted/lib/swr-util';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { useTranslation } from 'react-i18next';
 
 const api = backendClient;
 const TagQuery = ({
@@ -29,6 +30,7 @@ const TagQuery = ({
   const [relation, setRelation] = React.useState<'and' | 'or'>('and');
   const [includeNoTag, setIncludeNoTag] = React.useState(false);
   const [popoverOpen, setPopoverOpen] = React.useState(false);
+  const { t } = useTranslation('common');
 
 
   const handleSelectedUpdate = (tags: Tag[]) => {
@@ -47,7 +49,7 @@ const TagQuery = ({
             'flex p-1 pl-2 rounded-lg h-full z-10 bg-background'
           )}
         >
-          {'No Tag'}
+          {t('noTag')}
           <Button variant="ghost" size="icon" className="m-0.5 h-5 w-5"
                   onClick={async () => {
                     setIncludeNoTag(false);
@@ -91,7 +93,7 @@ const TagQuery = ({
                   className="w-full h-full absolute top-0 left-0 justify-start text-muted-foreground">
             {selectedTags.length === 0 && !includeNoTag && (<>
                 <TagIcon className={'ml-2 mr-2 w-4 h-4'} />
-                pick tags
+                {t('pickTags')}
               </>
             )}
           </Button>
@@ -125,6 +127,7 @@ function StatusList({
   includeNoTag: boolean;
   onIncludeNoTagChange: (includeNoTag: boolean) => void;
 }) {
+  const { t } = useTranslation('common');
   const [query, setQuery] = React.useState('');
   const { data: tags } = useSWR([apiPath('tag/search'), query], ([_, q]) => api.call('tag/search', q), {
     fallbackData: []
@@ -136,7 +139,7 @@ function StatusList({
   return (
     <Command>
       <CommandInput
-        placeholder="搜索标签..."
+        placeholder={t('searchTags')}
         value={inputValue}
         onValueChange={(value) => {
           setInputValue(value);
@@ -146,7 +149,7 @@ function StatusList({
       <CommandList>
         <CommandEmpty>
           <div className="flex flex-col items-center justify-center p-4">
-            <span>没有找到相关标签</span>
+            <span>{t('noResults')}</span>
           </div>
         </CommandEmpty>
         {!includeNoTag && (
@@ -157,7 +160,7 @@ function StatusList({
                 onIncludeNoTagChange(true);
               }}
             >
-              No Tag
+              {t('noTag')}
             </CommandItem>
           </CommandGroup>
         )}

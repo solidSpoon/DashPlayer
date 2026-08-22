@@ -16,10 +16,12 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import BackNavItem from '@/fronted/features/file-browser/components/BackNavItem';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
+import { useTranslation } from 'react-i18next';
 
 const logger = getRendererLogger('FileBrowser');
 const FileBrowser = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation('common');
     const file = useFile(state => state.videoPath);
     const videoId = useFile(state => state.videoId);
     const cardRef = useRef<HTMLDivElement>(null);
@@ -57,8 +59,8 @@ const FileBrowser = () => {
         >
             {showTitle && (
                 <CardHeader className="pb-3">
-                    <CardTitle>Video Explorer</CardTitle>
-                    <CardDescription>Browse and play your favorite videos</CardDescription>
+                    <CardTitle>{t('videoExplorer')}</CardTitle>
+                    <CardDescription>{t('browseVideos')}</CardDescription>
                 </CardHeader>
             )}
             <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-2 p-4')}>
@@ -99,7 +101,7 @@ const FileBrowser = () => {
                                 ctxMenus={[
                                     {
                                         icon: <Folder />,
-                                        text: 'Show In Explorer',
+                                        text: t('showInExplorer'),
                                         onClick: async () => {
                                             await fileBrowserApi.openFolder(pv.basePath);
                                         }
@@ -111,14 +113,14 @@ const FileBrowser = () => {
                         const ctxMenus = [
                             {
                                 icon: <Folder />,
-                                text: 'Show In Explorer',
+                                text: t('showInExplorer'),
                                 onClick: async () => {
                                     await fileBrowserApi.openFolder(p.basePath);
                                 }
                             },
                             {
                                 icon: <X />,
-                                text: 'Delete',
+                                text: t('delete'),
                                 disabled: file === PathUtil.join(p.basePath, p.fileName),
                                 onClick: async () => {
                                     await fileBrowserApi.deleteWatchHistoryGroup(p.id);

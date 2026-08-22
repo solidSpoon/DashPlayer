@@ -4,12 +4,14 @@ import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
 import { UnsupportedVideoFormats } from '@/common/utils/MediaUtil';
 import { convertApi } from '../convertApi';
+import { useTranslation } from 'react-i18next';
 
 export default function ConvertFileSelector({
                                          onSelected
                                      }: {
     onSelected: (ps: string[]) => Promise<void>;
 }) {
+    const { t } = useTranslation('common');
     const handleClick = async () => {
         const ps = await convertApi.selectFiles(UnsupportedVideoFormats);
         if (ps.length > 0) {
@@ -25,7 +27,7 @@ export default function ConvertFileSelector({
                         onClick={() => handleClick()}
                         variant={'outline'}
                         className={cn('w-28')}
-                    >Add File</Button>
+                    >{t('addFile')}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     可以同时选择一个视频文件及其对应的字幕文件

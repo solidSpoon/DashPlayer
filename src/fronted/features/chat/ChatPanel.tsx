@@ -7,6 +7,7 @@ import UnifiedAnalysisPane from '@/fronted/features/chat/components/UnifiedAnaly
 import SentencesPane from '@/fronted/features/chat/components/SentencesPane';
 import ConversationPane from '@/fronted/features/chat/components/ConversationPane';
 import TopicSelector from '@/fronted/features/chat/components/TopicSelector';
+import { useSentenceLearningChat } from '@/fronted/features/chat/useSentenceLearningChat';
 
 import {
     ContextMenu,
@@ -19,8 +20,11 @@ import {Button} from '@/fronted/components/ui/button';
 import {ChevronLeft, ChevronRight, X} from 'lucide-react';
 import {useShallow} from 'zustand/react/shallow';
 import {useHotkeys} from "react-hotkeys-hook";
+import { useTranslation } from 'react-i18next';
 
 const ChatPanel = () => {
+    const { t } = useTranslation('common');
+    const chat = useSentenceLearningChat();
     const {createFromSelect, clear, forward, backward, canUndo, canRedo} = useChatPanel(useShallow(s => ({
         createFromSelect: s.createFromSelect,
         clear: s.clear,
@@ -145,10 +149,10 @@ const ChatPanel = () => {
                                 className={cn('w-full flex overflow-y-auto h-full flex-col gap-4 pl-6 pr-10 scrollbar-none')}>
                                 <UnifiedAnalysisPane className={cn('flex-shrink-0 py-2')}/>
                             </div>
-                            <ConversationPane/>
+                            <ConversationPane chat={chat}/>
                             <div
                                 className={cn('w-full flex flex-col gap-10 pr-6 px-10 overflow-y-auto scrollbar-none')}>
-                                <TopicSelector />
+                                <TopicSelector agentView={chat.subtitleAgentView} />
                                 {/*<ChatRightAlternative className={cn('flex-shrink-0')}/>*/}
                                 <SentencesPane className={cn('flex-shrink-0')}/>
                             </div>
@@ -162,22 +166,22 @@ const ChatPanel = () => {
                         onClick={async () => {
                             ctxMenuPlayAudio();
                         }}
-                    >朗读文本</ContextMenuItem>
+                    >{t('speakText')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuExplain}
-                    >解释所选单词</ContextMenuItem>
+                    >{t('explainWord')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuPolish}
-                    >润色句子</ContextMenuItem>
+                    >{t('polishSentence')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuQuote}
-                    >引用这段文本</ContextMenuItem>
+                    >{t('quoteText')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={ctxMenuCopy}
-                    >复制</ContextMenuItem>
+                    >{t('copy')}</ContextMenuItem>
                     <ContextMenuItem
                         onClick={() => createFromSelect()}
-                    >用选择内容新建对话</ContextMenuItem>
+                    >{t('newChatFromSelection')}</ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
         </motion.div>

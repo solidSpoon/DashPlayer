@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 
 
@@ -118,4 +117,95 @@
     content: "»";
     /*color: hsl(var(--primary));*/
     padding-right: 0.4rem;
+}
+
+/* Tailwind 4 不再加载旧版 tailwind-scrollbar 插件，保留项目现有类名。 */
+@layer utilities {
+  .conversation-scrollbar {
+    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-width: thin;
+  }
+
+  .conversation-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .conversation-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .conversation-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+
+  .conversation-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+  }
+
+  [class~="scrollbar-none"] {
+    scrollbar-width: none;
+  }
+
+  [class~="scrollbar-none"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  [class~="scrollbar-thin"] {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb, #a1a1aa) var(--scrollbar-track, transparent);
+  }
+
+  [class~="scrollbar-thin"]::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  [class~="scrollbar-thin"]::-webkit-scrollbar-track {
+    background: var(--scrollbar-track, transparent);
+    border-radius: var(--scrollbar-track-radius, 9999px);
+  }
+
+  [class~="scrollbar-thin"]::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb, #a1a1aa);
+    border-radius: var(--scrollbar-thumb-radius, 9999px);
+  }
+
+  [class~="scrollbar-thin"]::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover, var(--scrollbar-thumb, #71717a));
+  }
+
+  [class~="scrollbar-thumb-rounded"] {
+    --scrollbar-thumb-radius: 0.375rem;
+  }
+
+  [class~="scrollbar-thumb-rounded-full"] {
+    --scrollbar-thumb-radius: 9999px;
+  }
+
+  [class~="scrollbar-track-rounded"] {
+    --scrollbar-track-radius: 0.375rem;
+  }
+
+  [class~="scrollbar-thumb-gray-300"] { --scrollbar-thumb: #d4d4d8; }
+  [class~="scrollbar-thumb-gray-400"] { --scrollbar-thumb: #a1a1aa; }
+  [class~="scrollbar-thumb-gray-400\/25"] { --scrollbar-thumb: rgb(161 161 170 / 25%); }
+  [class~="scrollbar-thumb-gray-600"] { --scrollbar-thumb: #52525b; }
+  [class~="scrollbar-thumb-stone-200"] { --scrollbar-thumb: #e7e5e4; }
+  [class~="scrollbar-thumb-stone-300"] { --scrollbar-thumb: #d6d3d1; }
+  [class~="scrollbar-thumb-stone-400"] { --scrollbar-thumb: #a8a29e; }
+  [class~="scrollbar-thumb-zinc-400"] { --scrollbar-thumb: #a1a1aa; }
+  [class~="scrollbar-thumb-zinc-500"] { --scrollbar-thumb: #71717a; }
+  [class~="scrollbar-track-gray-100"] { --scrollbar-track: #f3f4f6; }
+  [class~="scrollbar-track-gray-200"] { --scrollbar-track: #e5e7eb; }
+  [class~="scrollbar-track-gray-800"] { --scrollbar-track: #1f2937; }
+
+  [class~="hover:scrollbar-thumb-zinc-500"]:hover { --scrollbar-thumb-hover: #71717a; }
+  [class~="dark:hover:scrollbar-thumb-stone-300"]:hover { --scrollbar-thumb-hover: #d6d3d1; }
+  .dark [class~="dark:scrollbar-thumb-gray-600"] { --scrollbar-thumb: #52525b; }
+  .dark [class~="dark:scrollbar-thumb-stone-400"] { --scrollbar-thumb: #a8a29e; }
+  .dark [class~="dark:scrollbar-track-gray-600"] { --scrollbar-track: #52525b; }
+  .dark [class~="dark:scrollbar-track-gray-800"] { --scrollbar-track: #1f2937; }
 }

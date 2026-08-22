@@ -1,109 +1,117 @@
 import React from 'react';
-import HumanTopicMessage from '@/common/types/msg/HumanTopicMessage';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { cn } from '@/fronted/lib/utils';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import StrUtil from '@/common/utils/str-util';
 
+/**
+ * 意群组数据项类型（兼容字符串或历史对象结构）。
+ */
+type PhraseGroupItem = string | { original?: string };
+
+/**
+ * 按分析结果把原句拆成普通文本与意群片段。
+ * @param original 原始主题句。
+ * @param phraseGroups AI 返回的短语分组。
+ * @returns 保持原句顺序的文本和短语片段。
+ */
 const process = (
     original: string,
-    phraseGroups?: AiUnifiedAnalysisRes['structure']['phraseGroups']
-): (string | AiUnifiedAnalysisRes['structure']['phraseGroups'][0])[] => {
-    if (!phraseGroups || phraseGroups.length === 0) return [original];
+    phraseGroups?: AiUnifiedAnalysisRes['structure']['phraseGroups'] | PhraseGroupItem[]
+): { text: string; isGroup: boolean }[] => {
+    if (!phraseGroups || phraseGroups.length === 0) {
+        return [{ text: original, isGroup: false }];
+    }
     if (StrUtil.isBlank(original)) return [];
-    const res = [];
-    let text = original;
+    const res: { text: string; isGroup: boolean }[] = [];
+    let remaining = original;
+
     for (const group of phraseGroups) {
-        if (StrUtil.isBlank(group?.original)) continue;
-        if (StrUtil.isBlank(text)) {
-            // res.push(group);
-            continue;
-        }
-        text = text.trim();
-        const analyse = group.original.trim();
-        const lowerCaseText = text.toLowerCase();
+        const rawGroupText = typeof group === 'string' ? group : group?.original;
+        if (!rawGroupText || StrUtil.isBlank(rawGroupText)) continue;
+        if (StrUtil.isBlank(remaining)) continue;
+
+        const analyse = rawGroupText.trim();
+        const lowerCaseText = remaining.toLowerCase();
         const lowerCaseOriginal = analyse.toLowerCase();
         const index = lowerCaseText.indexOf(lowerCaseOriginal);
-        const before = text.substring(0, index);
-        const after = text.substring(index + group.original.length);
-        if (before) res.push(before);
-        res.push(group);
-        text = after;
+        if (index < 0) continue;
+
+        const before = remaining.substring(0, index);
+        const matched = remaining.substring(index, index + analyse.length);
+        const after = remaining.substring(index + analyse.length);
+
+        if (before) {
+            res.push({ text: before, isGroup: false });
+        }
+        res.push({ text: matched, isGroup: true });
+        remaining = after;
     }
-    if (text) res.push(text.trim());
+    if (remaining) {
+        res.push({ text: remaining, isGroup: false });
+    }
 
     return res;
 };
-const UserTopicMessage = ({ msg }: { msg: HumanTopicMessage }) => {
+
+/** 首条主题消息的业务内容参数。 */
+type UserTopicMessageProps = {
+    /** 需要展示句法分组的原始主题句。 */
+    content: string;
+};
+
+/**
+ * 展示首条主题句的意群分组和翻译信息。
+ * @param props 主题句内容。
+ * @returns 主题句业务可视化内容。
+ */
+const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) => {
     const analysis = useChatPanel(state => state.analysis);
     const updateInternalContext = useChatPanel(s => s.updateInternalContext);
 
-    const mapColor = (tags: string[]): string => {
-        if (!tags || tags.length === 0) return 'bg-secondary/50';
-        const comment = tags.join(',');
-        if (StrUtil.isBlank(comment)) return 'bg-secondary/50';
-        
-        if (comment.includes('主语')) return 'bg-red-100 dark:bg-red-900/30';
-        if (comment.includes('谓语')) return 'bg-green-100 dark:bg-green-900/30';
-        if (comment.includes('宾语')) return 'bg-blue-100 dark:bg-blue-900/30';
-        if (comment.includes('表语')) return 'bg-yellow-100 dark:bg-yellow-900/30';
+    const groupColors = [
+        'bg-red-100 dark:bg-red-900/30',
+        'bg-green-100 dark:bg-green-900/30',
+        'bg-blue-100 dark:bg-blue-900/30',
+        'bg-yellow-100 dark:bg-yellow-900/30',
+        'bg-sky-100 dark:bg-sky-900/30',
+        'bg-indigo-100 dark:bg-indigo-900/30',
+        'bg-amber-100 dark:bg-amber-900/30',
+        'bg-cyan-100 dark:bg-cyan-900/30',
+    ];
 
-        return 'bg-secondary/50';
-    };
-
-    const content = process(msg.content, analysis?.structure?.phraseGroups);
+    const content = process(messageContent, analysis?.structure?.phraseGroups);
+    let groupIndex = 0;
     
     return (
         <div
             onContextMenu={() => {
-                updateInternalContext(msg.content);
+                updateInternalContext(messageContent);
             }}
-            className="flex flex-wrap items-start gap-x-2 gap-y-6 px-4 py-1 relative"
+            className="relative px-1 py-1 text-base leading-relaxed"
         >
-            {content.map((group, i) => {
-                if (typeof group === 'string') {
-                    // Plain text (punctuation, connectors)
-                    const isPunctuation = /^[.,!?;:]+$/.test(group.trim());
+            {content.map((item, i) => {
+                if (!item.isGroup) {
+                    // 普通文本包含标点和连接词，需要保持原句中的相对位置。
+                    const isPunctuation = /^[.,!?;:]+$/.test(item.text.trim());
                     return (
-                        <div key={`text:${i}`} className={cn(
-                            "flex flex-col justify-center self-stretch pt-4",
-                            isPunctuation && "-ml-2" // Pull punctuation closer to the previous bubble
-                        )}>
-                             <span className="text-xl font-medium text-foreground/80">{group}</span>
-                        </div>
+                        <span key={`text:${i}`} className={cn('font-medium text-foreground/80', isPunctuation && '-ml-1')}>
+                            {item.text}
+                        </span>
                     );
                 } else {
-                    // Phrase Group
-                    const tags = group.tags ?? [];
+                    const colorClass = groupColors[groupIndex % groupColors.length];
+                    groupIndex += 1;
                     return (
-                        <div key={`group:${i}:${group.original}`} className="flex flex-col group cursor-default">
-                            {/* Top: Tags */}
-                            <div className="flex items-end px-1 -mb-3 relative z-10">
-                                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight leading-none whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
-                                    {tags.join(', ')}
-                                </span>
-                            </div>
-                            
-                            {/* Middle: Text Bubble */}
-                            <div 
-                                className={cn(
-                                    "px-2 py-1 pt-2.5 pb-1.5 rounded-md text-lg font-medium transition-colors relative z-0",
-                                    "border border-transparent hover:border-border/50", 
-                                    mapColor(tags)
-                                )}
-                            >
-                                <span className="text-foreground">
-                                    {group.original}
-                                </span>
-                            </div>
-
-                            {/* Bottom: Translation */}
-                            <div className="flex items-start px-1 -mt-2.5 relative z-10">
-                                <span className="text-[10px] text-muted-foreground dark:text-muted-foreground/90 font-normal leading-tight whitespace-nowrap bg-background/95 px-1 rounded-sm backdrop-blur-md shadow-sm">
-                                    {group.translation}
-                                </span>
-                            </div>
-                        </div>
+                        <span
+                            key={`group:${i}:${item.text}`}
+                            className={cn(
+                                'box-decoration-clone rounded-md py-0.5 font-medium',
+                                colorClass
+                            )}
+                        >
+                            {item.text}
+                        </span>
                     );
                 }
             })}

@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import StrUtil from '@/common/utils/str-util';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import i18n from '@/fronted/i18n';
+import { useTranslation } from 'react-i18next';
 
 export class FileAction {
 
@@ -155,6 +156,7 @@ export default function FileSelector({
     onSelected: (ps: string[]) => Promise<void>;
     withMkv?: boolean;
 }) {
+    const { t } = useTranslation('common');
     const handleClick = async () => {
         const ps = await fileBrowserApi.selectFiles(withMkv ? AllFormats : SupportedFormats);
         if (ps?.length > 0) {
@@ -170,7 +172,7 @@ export default function FileSelector({
                         onClick={() => handleClick()}
                         variant={'outline'}
                         className={cn('w-28')}
-                    >Open File</Button>
+                    >{t('openFile')}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     可以同时选择一个视频文件及其对应的字幕文件

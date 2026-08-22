@@ -15,17 +15,25 @@ export default function MainSubtitle() {
     const requestTranslation = useTranslation(state => state.requestTranslation);
     const engine = useTranslation(state => state.engine);
     const openAiMode = useTranslation(state => state.openAiMode);
+    const activeFileHash = useTranslation(state => state.activeFileHash);
 
     // 在组件顶层获取当前句子的翻译
     const translationKey = sentence?.translationKey || '';
     const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
-    // 当前句子改变时，触发懒加载翻译
+    // 当前句子、翻译引擎或字幕上下文完成初始化时，触发懒加载翻译。
     useEffect(() => {
-        logger.debug('sentence changed', { sentence: sentence?.text, index: sentence?.index });
-        if (sentence && engine !== 'none') {
+        logger.debug('subtitle translation trigger evaluated', {
+            sentenceIndex: sentence?.index,
+            sentenceFileHash: sentence?.fileHash,
+            activeFileHash,
+            engine,
+            openAiMode,
+            canRequest: Boolean(sentence && engine !== 'none' && activeFileHash === sentence?.fileHash),
+        });
+        if (sentence && engine !== 'none' && activeFileHash === sentence.fileHash) {
             requestTranslation(sentence.fileHash, sentence.index);
         }
-    }, [logger, sentence, engine, openAiMode, requestTranslation]);
+    }, [logger, sentence, engine, openAiMode, activeFileHash, requestTranslation]);
 
     const ele = (): ReactElement[] => {
         if (!sentence) {
