@@ -54,22 +54,42 @@ const getMessageText = (message: SentenceLearningMessage): string => {
         .join('');
 };
 
+// 按消息片段保存播放进度，避免工具步骤插入后正文组件重新挂载并从头播放。
+const queuedMarkdownProgress = new Map<string, number>();
+
 /**
  * 将持续增长的流式文本排队后逐字符释放，避免网络 chunk 集中到达时正文瞬间跳变。
  * @param children 当前已收到的完整 Markdown 文本。
  * @param animate 是否启用逐字播放；历史消息直接完整展示。
  * @returns 按播放进度渲染的 Markdown 内容。
  */
-const QueuedMarkdown = ({ children, animate }: { children: string; animate: boolean }) => {
+const QueuedMarkdown = ({
+    children,
+    animate,
+    queueKey,
+}: {
+    children: string;
+    animate: boolean;
+    queueKey: string;
+}) => {
     const characters = useMemo(() => Array.from(children), [children]);
-    const [visibleText, setVisibleText] = useState(animate ? '' : children);
-    const visibleLengthRef = useRef(animate ? 0 : characters.length);
+    const initialLength = animate
+        ? Math.min(queuedMarkdownProgress.get(queueKey) ?? 0, characters.length)
+        : characters.length;
+    const [visibleText, setVisibleText] = useState(() => characters.slice(0, initialLength).join(''));
+    const visibleLengthRef = useRef(initialLength);
 
     useEffect(() => {
         if (!animate) {
             visibleLengthRef.current = characters.length;
+            queuedMarkdownProgress.set(queueKey, characters.length);
             setVisibleText(children);
             return;
+        }
+        if (visibleLengthRef.current > characters.length) {
+            visibleLengthRef.current = characters.length;
+            queuedMarkdownProgress.set(queueKey, characters.length);
+            setVisibleText(children);
         }
         if (visibleLengthRef.current >= characters.length) {
             return;
@@ -86,11 +106,12 @@ const QueuedMarkdown = ({ children, animate }: { children: string; animate: bool
                 const step = remaining > 300 ? 6 : remaining > 120 ? 3 : 1;
                 const nextLength = Math.min(characters.length, visibleLengthRef.current + step);
                 visibleLengthRef.current = nextLength;
+                queuedMarkdownProgress.set(queueKey, nextLength);
                 return characters.slice(0, nextLength).join('');
             });
         }, 10);
         return () => window.clearInterval(timer);
-    }, [animate, characters, children]);
+    }, [animate, characters, children, queueKey]);
 
     return <Markdown>{visibleText}</Markdown>;
 };
@@ -117,6 +138,15 @@ const getToolTitle = (toolName: string): string => {
     }
 };
 
+/** 将推理内容压缩成折叠状态下的一行摘要，避免只显示没有信息量的状态词。 */
+const getReasoningPreview = (content: string): string => {
+    const normalized = content.replace(/\s+/g, ' ').trim();
+    if (normalized.length <= 72) {
+        return normalized;
+    }
+    return `${normalized.slice(0, 72)}...`;
+};
+
 /**
  * 渲染 AI SDK 消息片段，工具调用与文本保持原始流顺序。
  * @param message 当前消息。
@@ -125,16 +155,24 @@ const getToolTitle = (toolName: string): string => {
 const renderMessageParts = (
     message: SentenceLearningMessage,
     showText = true,
-    onLastReasoningCollapse?: () => void,
     animateText = false,
 ) => {
-    const lastReasoningIndex = message.parts.findLastIndex((part) => part.type === 'reasoning');
+    const lastStreamingReasoningIndex = message.parts.findLastIndex(
+        (part) => part.type === 'reasoning' && part.state === 'streaming',
+    );
     const renderedParts: ReactNode[] = [];
     message.parts.forEach((part, partIndex) => {
         if (part.type === 'text') {
-            if (showText) {
+            // 后续推理只阻塞它之后的正文，前面已经完成的正文不能被整条消息级开关隐藏。
+            const isAfterStreamingReasoning = lastStreamingReasoningIndex >= 0
+                && partIndex > lastStreamingReasoningIndex;
+            if (showText || !isAfterStreamingReasoning) {
                 renderedParts.push(
-                    <QueuedMarkdown key={`text-${partIndex}`} animate={animateText}>
+                    <QueuedMarkdown
+                        key={`text-${partIndex}`}
+                        queueKey={`${message.id}:text-${partIndex}`}
+                        animate={animateText}
+                    >
                         {part.text}
                     </QueuedMarkdown>,
                 );
@@ -143,16 +181,16 @@ const renderMessageParts = (
         }
         if (part.type === 'reasoning') {
             const reasoningStreaming = part.state === 'streaming';
+            const reasoningPreview = getReasoningPreview(part.text);
             renderedParts.push(
                 <Reasoning
                     key={`reasoning-${partIndex}`}
                     isStreaming={reasoningStreaming}
-                    defaultOpen={reasoningStreaming}
-                    onCollapseComplete={partIndex === lastReasoningIndex ? onLastReasoningCollapse : undefined}
+                    defaultOpen={false}
                 >
                     <ReasoningTrigger
                         getThinkingMessage={(streaming, duration) => {
-                            if (streaming) return '正在思考...';
+                            if (streaming) return reasoningPreview ? `思考中 · ${reasoningPreview}` : '思考中...';
                             return duration === undefined ? '思考过程' : `思考了 ${duration} 秒`;
                         }}
                     />
@@ -239,26 +277,14 @@ const AssistantMessageParts = ({
     const hasStreamingReasoning = reasoningParts.some((part) => part.state === 'streaming');
     const hasText = getMessageText(message).trim().length > 0;
     // 推理尚未结束时只延迟已经到达的正文；工具阶段没有正文时仍应保持工具过程可见。
-    const [canRevealText, setCanRevealText] = useState(
-        reasoningParts.length === 0 || !hasStreamingReasoning || !hasText,
-    );
-
-    useEffect(() => {
-        if (reasoningParts.length === 0) {
-            setCanRevealText(true);
-            return;
-        }
-        if (hasStreamingReasoning && hasText) {
-            setCanRevealText(false);
-        }
-    }, [hasStreamingReasoning, hasText, reasoningParts.length]);
+    const canRevealText = !hasStreamingReasoning || !hasText;
 
     const hasReasoning = reasoningParts.some((part) => part.text.trim().length > 0);
     const hasTool = message.parts.some(isToolUIPart);
 
     return (
         <>
-            {renderMessageParts(message, canRevealText, () => setCanRevealText(true), isStreaming)}
+            {renderMessageParts(message, canRevealText, isStreaming)}
             {isStreaming && !hasText && !hasReasoning && !hasTool && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Spinner />
