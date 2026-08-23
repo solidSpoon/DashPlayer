@@ -36,7 +36,7 @@ const About = () => {
     };
 
     return (
-        <div className="h-full w-full select-none overflow-hidden rounded-2xl border border-border/70 bg-card text-foreground flex flex-col">
+        <div className="h-full w-full select-none overflow-hidden rounded-2xl bg-card text-foreground flex flex-col">
             {/* 内容区域：大屏优雅居中，小屏安全滚动 */}
             <div className="flex-1 overflow-y-auto px-6 py-10 flex flex-col justify-center items-center min-h-0">
                 <div className="max-w-2xl w-full mx-auto my-auto flex flex-col items-center text-center space-y-8 py-6">

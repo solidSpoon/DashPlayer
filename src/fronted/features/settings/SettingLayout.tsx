@@ -54,7 +54,7 @@ const SettingLayout = () => {
     );
 
     return (
-        <div className="flex h-full w-full select-none overflow-hidden rounded-2xl border border-border/70 bg-card text-foreground p-3 gap-4">
+        <div className="flex h-full w-full select-none overflow-hidden rounded-2xl bg-card text-foreground p-3 gap-4">
             {/* 浮动在白色大背景上的独立侧边栏卡片 */}
             <aside className="flex h-full w-60 flex-col rounded-xl border border-border/70 bg-card/90 shadow-sm shrink-0 overflow-hidden">
                 {/* 导航菜单列表 */}
