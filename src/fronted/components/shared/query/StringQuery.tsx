@@ -15,22 +15,24 @@ const StringQuery = ({
     const [keywordRange, setKeywordRange] = React.useState<'clip' | 'context'>('clip');
     const { t } = useTranslation('common');
     return (
-        <div className="relative md:grow-0 ">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className="relative md:grow-0">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
                 type="search"
                 placeholder={t('search')}
-                className="w-full rounded-lg bg-background pl-8 pr-10 md:w-[200px] lg:w-[336px]"
+                className="w-full h-9 rounded-xl bg-background pl-9 pr-14 text-sm border-border/80 md:w-[200px] lg:w-[280px]"
                 value={query}
                 onChange={(e) => setQuery?.(e.target.value)}
             />
-            <Button variant={'ghost'}
-                    onClick={() => {
-                        setKeywordRange(keywordRange === 'clip' ? 'context' : 'clip');
-                        onKeywordRangeChange?.(keywordRange === 'clip' ? 'context' : 'clip');
-                    }}
-                    size="icon"
-                    className="absolute right-1 top-1 h-8 w-8">
+            <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                    setKeywordRange(keywordRange === 'clip' ? 'context' : 'clip');
+                    onKeywordRangeChange?.(keywordRange === 'clip' ? 'context' : 'clip');
+                }}
+                className="absolute right-1 top-1 h-7 px-2 text-xs font-medium rounded-lg text-muted-foreground hover:text-foreground"
+            >
                 {keywordRange === 'clip' ? t('clip') : t('context')}
             </Button>
         </div>

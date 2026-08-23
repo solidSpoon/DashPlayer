@@ -40,62 +40,60 @@ const TagQuery = ({
   };
 
   return (
-    <div className={cn('w-full border rounded-lg flex flex-wrap gap-1 p-1 h-10 relative pr-20')}>
+    <div className={cn('flex-1 min-w-[200px] border border-border/80 rounded-xl flex items-center flex-wrap gap-1.5 px-2 py-1 min-h-9 relative')}>
       {includeNoTag && (
         <Badge
           key={'no-tag'}
-          variant="outline"
+          variant="secondary"
           className={cn(
-            'flex p-1 pl-2 rounded-lg h-full z-10 bg-background'
+            'flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-normal z-10'
           )}
         >
           {t('noTag')}
-          <Button variant="ghost" size="icon" className="m-0.5 h-5 w-5"
-                  onClick={async () => {
-                    setIncludeNoTag(false);
-                    onUpdate?.(selectedTags, relation, false);
-                  }}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 p-0 hover:bg-muted/80 rounded-full"
+            onClick={async () => {
+              setIncludeNoTag(false);
+              onUpdate?.(selectedTags, relation, false);
+            }}
           >
-            <X className={'h-3 w-3'} />
+            <X className="h-3 w-3" />
           </Button>
         </Badge>
       )}
       {selectedTags.map((tag) => (
         <Badge
           key={tag.id}
-          variant="outline"
+          variant="secondary"
           className={cn(
-            'flex p-1 pl-2 rounded-lg h-full z-10 bg-background'
+            'flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-normal z-10'
           )}
         >
           {tag.name}
-          <Button variant="ghost" size="icon" className="m-0.5 h-5 w-5"
-                  onClick={async () => {
-                    handleSelectedUpdate(selectedTags.filter((t) => t.id !== tag.id));
-                  }}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 p-0 hover:bg-muted/80 rounded-full"
+            onClick={async () => {
+              handleSelectedUpdate(selectedTags.filter((t) => t.id !== tag.id));
+            }}
           >
-            <X className={'h-3 w-3'} />
+            <X className="h-3 w-3" />
           </Button>
         </Badge>
       ))}
-      <Button variant={'ghost'} size={'icon'}
-              onClick={() => {
-                setRelation(relation === 'and' ? 'or' : 'and');
-                onUpdate?.(selectedTags, relation === 'and' ? 'or' : 'and', includeNoTag);
-              }}
-              className="absolute top-0 right-0 h-full z-10">
-        {relation === 'and' ? 'AND' : 'OR'}
-      </Button>
+
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost"
-                  size={'icon'}
-                  className="w-full h-full absolute top-0 left-0 justify-start text-muted-foreground">
-            {selectedTags.length === 0 && !includeNoTag && (<>
-                <TagIcon className={'ml-2 mr-2 w-4 h-4'} />
-                {t('pickTags')}
-              </>
-            )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground justify-start gap-1.5"
+          >
+            <TagIcon className="w-3.5 h-3.5" />
+            {selectedTags.length === 0 && !includeNoTag && t('pickTags')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[250px] p-0" align="start">
@@ -112,6 +110,21 @@ const TagQuery = ({
           />
         </PopoverContent>
       </Popover>
+
+      <div className="ml-auto flex items-center pl-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const nextRelation = relation === 'and' ? 'or' : 'and';
+            setRelation(nextRelation);
+            onUpdate?.(selectedTags, nextRelation, includeNoTag);
+          }}
+          className="h-6 px-2 text-[11px] font-medium rounded-lg text-muted-foreground hover:text-foreground"
+        >
+          {relation === 'and' ? 'AND (全部匹配)' : 'OR (任一匹配)'}
+        </Button>
+      </div>
     </div>
   );
 };

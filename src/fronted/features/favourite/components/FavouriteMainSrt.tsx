@@ -14,28 +14,30 @@ const FavouriteMainSrt = () => {
   }
 
   return (
-    <div className="w-full flex flex-col py-2 gap-2 select-text">
+    <div className="w-full flex flex-col p-4 rounded-xl border border-border/70 bg-card/60 gap-3 select-text shadow-2xs">
       {/* 英文可翻译字幕行 */}
-      <TranslatableLine
-        sentence={currentSentence}
-        show={true}
-        className="flex justify-center text-2xl text-center"
-        wordClassNames={{
-          hover: 'hover:bg-blue-100 dark:hover:bg-blue-900/30',
-          vocab: '!text-purple-500 !underline !decoration-purple-500 !decoration-1 !bg-purple-500/10 px-0.5 rounded hover:!bg-purple-500/30'
-        }}
-      />
+      <div className="flex justify-center text-center">
+        <TranslatableLine
+          sentence={currentSentence}
+          show={true}
+          className="text-xl sm:text-2xl font-medium tracking-tight text-foreground"
+          wordClassNames={{
+            hover: 'hover:bg-primary/20 rounded px-0.5 transition-colors',
+            vocab: '!text-purple-600 dark:!text-purple-400 !underline !decoration-purple-500 !decoration-1 !bg-purple-500/10 px-1 py-0.5 rounded font-semibold hover:!bg-purple-500/25'
+          }}
+        />
+      </div>
 
       {/* 显示翻译 */}
       {(transMap.get(currentSentence.text) || currentSentence.textZH) && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-border/40">
           {transMap.get(currentSentence.text) && (
-            <div className="flex justify-center text-center text-gray-600 dark:text-gray-400">
+            <div className="flex justify-center text-center text-sm text-muted-foreground">
               {transMap.get(currentSentence.text)}
             </div>
           )}
           {currentSentence.textZH && (
-            <div className="flex justify-center text-center text-gray-600 dark:text-gray-400">
+            <div className="flex justify-center text-center text-sm text-muted-foreground">
               {currentSentence.textZH}
             </div>
           )}

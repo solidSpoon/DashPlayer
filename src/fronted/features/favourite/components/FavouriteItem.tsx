@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { Button } from '@/fronted/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Play } from 'lucide-react';
 import { ClipMeta, OssBaseMeta, ClipSrtLine } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
@@ -40,67 +40,108 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
     }
   }, [playInfo?.video.key, item.key, currentSentence, lines, currentLine]);
 
+  const isCurrentPlaying = playInfo?.video.key === item.key;
+
   return (
-    <div key={item.key} className={cn('flex max-w-3xl items-start gap-4 rounded-xl pb-8')}>
-      <div className="flex flex-col w-44 gap-1 h-full overflow-hidden p-2 select-text">
+    <div
+      key={item.key}
+      className={cn(
+        'group relative flex items-start gap-3.5 rounded-xl p-3 mb-2.5 transition-all duration-200 border border-border/60 bg-card/60 hover:bg-card hover:border-border hover:shadow-xs select-text',
+        isCurrentPlaying && 'bg-primary/5 border-primary/40 shadow-xs ring-1 ring-primary/20'
+      )}
+    >
+      {/* 缩略图区域 */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          setPlayInfo({
+            video: item,
+            time: lines[0]?.start ?? 0,
+            timeUpdated: Date.now(),
+            sentenceIndex: 0
+          });
+        }}
+        className="relative flex flex-col w-36 sm:w-40 shrink-0 aspect-video rounded-lg overflow-hidden border border-border/60 bg-muted cursor-pointer group/thumb"
+      >
         <img
-          className={cn('w-full rounded-lg')}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
           src={UrlUtil.toUrl(item.baseDir, item.thumbnail_file)}
-          style={{ aspectRatio: '16/9' }}
           alt=""
+          loading="lazy"
         />
+        <div className="absolute inset-0 bg-black/20 group-hover/thumb:bg-black/35 flex items-center justify-center transition-colors">
+          <div className={cn(
+            'w-7 h-7 rounded-full bg-background/90 text-foreground flex items-center justify-center shadow-xs transition-transform group-hover/thumb:scale-110',
+            isCurrentPlaying && 'bg-primary text-primary-foreground'
+          )}>
+            <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
+          </div>
+        </div>
       </div>
-      <div className="w-0 flex-1 flex flex-col gap h-full overflow-hidden select-text">
-        <div className={cn('text-base cursor-pointer')}>
-          {lines.map((contextLine: ClipSrtLine, index) => (
-            <span
-              key={`${item.key}-${index}`}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
+
+      {/* 文本内容与信息 */}
+      <div className="min-w-0 flex-1 flex flex-col justify-between self-stretch gap-2.5">
+        {/* 字幕上下文段落 */}
+        <div className="text-sm leading-relaxed text-foreground/90 space-x-1 cursor-pointer">
+          {lines.map((contextLine: ClipSrtLine, index) => {
+            const isHighlight = contextLine === currentLine && isCurrentPlaying;
+            return (
+              <span
+                key={`${item.key}-${index}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setPlayInfo({
+                      video: item,
+                      time: contextLine.start,
+                      timeUpdated: Date.now(),
+                      sentenceIndex: index
+                    });
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
                   setPlayInfo({
                     video: item,
                     time: contextLine.start,
                     timeUpdated: Date.now(),
                     sentenceIndex: index
                   });
-                }
-              }}
-              onClick={() => {
-                // 重复点击也会触发：timeUpdated 确保状态变化
-                setPlayInfo({
-                  video: item,
-                  time: contextLine.start,
-                  timeUpdated: Date.now(),
-                  sentenceIndex: index
-                });
-                logger.debug('Setting play info for line', { startTime: contextLine.start, sentenceIndex: index });
-              }}
-              className={cn(
-                'hover:underline',
-                contextLine === currentLine && 'text-primary',
-                contextLine.isClip && 'font-bold'
-              )}
-            >
-              {contextLine.contentEn}
-            </span>
-          ))}
+                  logger.debug('Setting play info for line', { startTime: contextLine.start, sentenceIndex: index });
+                }}
+                className={cn(
+                  'rounded px-1 py-0.5 transition-colors',
+                  contextLine.isClip ? 'font-semibold text-foreground bg-primary/10' : 'text-muted-foreground hover:text-foreground',
+                  isHighlight && 'bg-primary text-primary-foreground font-bold shadow-xs'
+                )}
+              >
+                {contextLine.contentEn}
+              </span>
+            );
+          })}
         </div>
-        <div className="flex gap-2 items-start">
-          <div className={cn('text-sm text-muted-foreground flex-1 w-0')}>
-            {new Date(item.created_at).toLocaleString() + '     ' + item.video_name}
+
+        {/* 底部元数据栏与操作 */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+            <span className="shrink-0">{new Date(item.created_at).toLocaleDateString()}</span>
+            <span className="opacity-40">•</span>
+            <span className="truncate" title={item.video_name}>{item.video_name}</span>
           </div>
+
           <Button
-            variant={'outline'}
-            size={'icon'}
-            className={'w-5 h-5 hover:bg-red-100'}
-            onClick={async () => {
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+            onClick={async (e) => {
+              e.stopPropagation();
               deleteClip(item.key);
             }}
           >
-            <Trash2 className={'w-3 h-3'} />
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>

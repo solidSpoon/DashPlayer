@@ -73,13 +73,13 @@ export default function TagSelector() {
     };
 
     return (
-        <div className={cn('w-full border rounded-lg flex flex-wrap gap-2 p-2')}>
+        <div className={cn('w-full border border-border/70 rounded-xl bg-card/60 flex flex-wrap items-center gap-1.5 p-2')}>
             {clipTags.map((tag) => (
                 <Badge
                     key={tag.id}
-                    variant="outline"
+                    variant="secondary"
                     className={cn(
-                        'relative flex gap-1 p-1 pl-2 rounded-lg'
+                        'relative flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-normal bg-background/80 border border-border/60 hover:bg-background'
                     )}
                     onContextMenu={(e) => {
                         e.preventDefault();
@@ -88,30 +88,36 @@ export default function TagSelector() {
                     }}
                 >
                     {tag.name}
-                    <Button variant="ghost" size="icon" className="m-0.5 h-5 w-5"
-                            onClick={async () => {
-                                const key = playInfo?.video.key;
-                                if (!key) return;
-                                await favouriteApi.deleteClipTag({
-                                    key: key,
-                                    tagId: tag.id
-                                });
-                                await clipTagMutate();
-                                await swrApiMutate('favorite-clips/query-clip-tags');
-                                await swrApiMutate('favorite-clips/search');
-                            }}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-3.5 w-3.5 p-0 hover:bg-muted/80 rounded-full"
+                        onClick={async () => {
+                            const key = playInfo?.video.key;
+                            if (!key) return;
+                            await favouriteApi.deleteClipTag({
+                                key: key,
+                                tagId: tag.id
+                            });
+                            await clipTagMutate();
+                            await swrApiMutate('favorite-clips/query-clip-tags');
+                            await swrApiMutate('favorite-clips/search');
+                        }}
                     >
-                        <X />
+                        <X className="h-2.5 w-2.5" />
                     </Button>
                 </Badge>
             ))}
 
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger asChild>
-                    <Button variant="outline"
-                            size={'sm'}
-                            className="w-fit">
-                        <Plus />
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-lg gap-1 border-dashed"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        添加标签
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[250px] p-0" align="start">

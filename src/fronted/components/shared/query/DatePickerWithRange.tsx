@@ -54,12 +54,14 @@ const DatePickerWithRange = ({
                     <Button
                         id="date"
                         variant={'outline'}
+                        size="sm"
                         className={cn(
-                            'w-[300px] justify-start text-left font-normal',
-                            dateEmpty && 'text-muted-foreground'
+                            'h-9 justify-start text-left font-normal rounded-xl border-border/80 text-sm px-3',
+                            dateEmpty && 'text-muted-foreground',
+                            className
                         )}
                     >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                         {displayDateRange.from ? (
                             displayDateRange.to ? (
                                 <>

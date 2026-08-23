@@ -114,7 +114,7 @@ const Favorite = () => {
     return (
         <div
             className={cn(
-                'w-full h-full flex flex-col overflow-hidden select-none bg-background px-6 py-4 gap-4 text-foreground'
+                'w-full h-full flex flex-col overflow-hidden select-none bg-background p-4 sm:p-5 gap-3.5 text-foreground'
             )}
         >
             <PageHeader
@@ -122,7 +122,8 @@ const Favorite = () => {
                 description={t('savedMoments.description')}
                 rightSlot={<Loader />}
             />
-            <div className="w-full p-2 flex gap-2">
+            {/* 顶部搜索与筛选控制条 */}
+            <div className="w-full flex flex-wrap items-center gap-2.5">
                 <StringQuery
                     query={keyword}
                     setQuery={setKeyword}
@@ -135,34 +136,41 @@ const Favorite = () => {
                     setIncludeNoTag(includeNoTag);
                 }} />
             </div>
-            <div className="flex-1 h-0 pl-10 pb-6 pr-16 grid gap-8"
-                 style={{
-                     gridTemplateColumns: '55% 45%',
-                     gridTemplateRows: '100%'
-                 }}
+
+            {/* 内容主体：左侧列表 + 右侧播放器与金句 */}
+            <div
+                className="flex-1 min-h-0 grid gap-5"
+                style={{
+                    gridTemplateColumns: 'minmax(0, 1.15fr) minmax(360px, 0.85fr)',
+                    gridTemplateRows: '100%'
+                }}
             >
                 {data.length === 0 ? (
-                    <div className="max-w-3xl rounded-xl border border-dashed border-border p-8 flex flex-col gap-4 items-start justify-center">
-                        <h3 className="text-xl font-semibold">{t('savedMoments.empty.title')}</h3>
-                        <p className="text-sm text-muted-foreground leading-6">
+                    <div className="w-full h-full rounded-2xl border border-dashed border-border/80 p-8 flex flex-col gap-4 items-center justify-center text-center bg-card/30">
+                        <h3 className="text-lg font-semibold">{t('savedMoments.empty.title')}</h3>
+                        <p className="text-xs text-muted-foreground max-w-md leading-5">
                             {t('savedMoments.empty.guideAdd')}
                         </p>
-                        <p className="text-sm text-muted-foreground leading-6">
+                        <p className="text-xs text-muted-foreground max-w-md leading-5">
                             {t('savedMoments.empty.guideRecover')}
                         </p>
-                        <Button type="button" variant="outline" onClick={recoverSavedMoments}>
+                        <Button type="button" variant="outline" size="sm" className="rounded-xl mt-2" onClick={recoverSavedMoments}>
                             {t('savedMoments.recover.button')}
                         </Button>
                     </div>
                 ) : (
-                    <Virtuoso
-                        ref={virtuosoRef}
-                        className={cn('max-w-3xl scrollbar-none')}
-                        data={data}
-                        itemContent={(_index, item) => <FavouriteItem item={item} />}
-                    />
+                    <div className="w-full h-full min-h-0 overflow-hidden pr-1">
+                        <Virtuoso
+                            ref={virtuosoRef}
+                            className="w-full h-full scrollbar-thin"
+                            data={data}
+                            itemContent={(_index, item) => <FavouriteItem item={item} />}
+                        />
+                    </div>
                 )}
-                <FavouritePlayer />
+                <div className="w-full h-full min-h-0 overflow-y-auto pr-1 scrollbar-thin">
+                    <FavouritePlayer />
+                </div>
             </div>
         </div>
     );
