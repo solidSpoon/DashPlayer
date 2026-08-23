@@ -15,12 +15,17 @@
         "download": "下载",
         "ready": "就绪",
         "notDownloaded": "未下载"
+        ,"copy": "复制"
         ,"copied": "已复制下载地址"
         ,"manualDownloadTitle": "网络不稳定时，也可以手动下载模型："
+        ,"manualDownloadUrlLabel": "下载地址"
         ,"manualDownloadSaveTo": "下载完成后，将文件保存到："
         ,"manualDownloadNextStep": "保存后，回到这里点击“下载”，完成模型安装。"
         ,"openFolder": "打开文件夹"
         ,"openFolderFailed": "打开文件夹失败"
+        ,"openInBrowser": "在浏览器中打开"
+        ,"openUrlFailed": "打开链接失败"
+        ,"copyFailed": "复制失败"
     },
     "sections": {
         "shortcut": "快捷键",

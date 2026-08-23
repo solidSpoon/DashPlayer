@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
-import { Book, Bot, CheckCircle2, Copy, Cpu, Download, FolderOpen, Languages, Loader2, Plus, ShieldCheck, Square, TestTube, Trash2, XCircle } from 'lucide-react';
+import { Book, Bot, CheckCircle2, Copy, Cpu, Download, ExternalLink, FolderOpen, Languages, Loader2, Plus, ShieldCheck, Square, TestTube, Trash2, XCircle } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
@@ -18,6 +18,12 @@ import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useToast } from '@/fronted/components/ui/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from '@/fronted/components/ui/context-menu';
 
 /**
  * 服务凭据设置页。
@@ -67,10 +73,35 @@ const ServiceCredentialSetting = () => {
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
 
-    /** 复制模型下载地址，并用提示反馈复制结果。 */
-    const copyDownloadUrl = async (url: string) => {
-        await navigator.clipboard.writeText(url);
-        toast({ title: t('common.copied') });
+    /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
+    const downloadingRef = React.useRef(false);
+    const sherpaTtsDownloadingRef = React.useRef(false);
+
+    /** 将文本写入剪贴板；右键菜单操作失败时向用户明确反馈。 */
+    const copyText = async (value: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            toast({ title: t('common.copied') });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('common.copyFailed'),
+                description: error instanceof Error ? error.message : String(error),
+            });
+        }
+    };
+
+    /** 在系统默认浏览器中打开模型下载地址。 */
+    const openDownloadUrl = async (url: string) => {
+        try {
+            await settingsApi.openUrl(url);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('common.openUrlFailed'),
+                description: error instanceof Error ? error.message : String(error),
+            });
+        }
     };
 
     /** 打开模型归档所在的文件夹。 */
@@ -85,9 +116,6 @@ const ServiceCredentialSetting = () => {
             });
         }
     };
-    /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
-    const downloadingRef = React.useRef(false);
-    const sherpaTtsDownloadingRef = React.useRef(false);
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('engineSelection.sentenceLearning.title'),
         subtitleTranslation: t('engineSelection.subtitleTranslation.title'),
@@ -643,22 +671,31 @@ const ServiceCredentialSetting = () => {
                             )
                         )}
                         {parakeetModelStatus && (
-                            <div className="space-y-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                                <p>{t('common.manualDownloadTitle')}</p>
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1" title={parakeetModelStatus.downloadUrl}>{parakeetModelStatus.downloadUrl}</code>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(parakeetModelStatus.downloadUrl).catch(() => null)}>
-                                        <Copy className="h-3.5 w-3.5" />
-                                    </Button>
+                            <div className="mt-4 w-fit max-w-full space-y-0 text-xs text-muted-foreground">
+                                <p className="mb-3 font-medium text-foreground">{t('common.manualDownloadTitle')}</p>
+                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
+                                    <span className="shrink-0">{t('common.manualDownloadUrlLabel')}</span>
+                                    <ContextMenu>
+                                        <ContextMenuTrigger asChild>
+                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{parakeetModelStatus.downloadUrl}</code>
+                                        </ContextMenuTrigger>
+                                        <ContextMenuContent>
+                                            <ContextMenuItem onSelect={() => copyText(parakeetModelStatus.downloadUrl)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
+                                            <ContextMenuItem onSelect={() => openDownloadUrl(parakeetModelStatus.downloadUrl)}><ExternalLink className="mr-2 h-4 w-4" />{t('common.openInBrowser')}</ContextMenuItem>
+                                        </ContextMenuContent>
+                                    </ContextMenu>
                                 </div>
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <p className="min-w-0 flex-1">{t('common.manualDownloadSaveTo')} <code className="break-all rounded bg-muted px-1 py-0.5">{parakeetModelStatus.archivePath}</code></p>
-                                    <Button type="button" variant="secondary" size="sm" className="h-7 shrink-0" onClick={() => openModelFolder(parakeetModelStatus.archivePath).catch(() => null)}>
-                                        <FolderOpen className="h-3.5 w-3.5 mr-1.5" />{t('common.openFolder')}
-                                    </Button>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(parakeetModelStatus.archivePath).catch(() => null)}>
-                                        <Copy className="h-3.5 w-3.5" />
-                                    </Button>
+                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
+                                    <span className="shrink-0">{t('common.manualDownloadSaveTo')}</span>
+                                    <ContextMenu>
+                                        <ContextMenuTrigger asChild>
+                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{parakeetModelStatus.archivePath}</code>
+                                        </ContextMenuTrigger>
+                                        <ContextMenuContent>
+                                            <ContextMenuItem onSelect={() => copyText(parakeetModelStatus.archivePath)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
+                                            <ContextMenuItem onSelect={() => openModelFolder(parakeetModelStatus.archivePath)}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
+                                        </ContextMenuContent>
+                                    </ContextMenu>
                                 </div>
                                 <p>{t('common.manualDownloadNextStep')}</p>
                             </div>
@@ -706,22 +743,31 @@ const ServiceCredentialSetting = () => {
                                 : <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" />{sherpaTtsDownloadPhase === 'extracting' ? '正在解压模型…' : '正在安装模型…'}</p>
                         )}
                         {sherpaTtsModelStatus && (
-                            <div className="space-y-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                                <p>{t('common.manualDownloadTitle')}</p>
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1" title={sherpaTtsModelStatus.downloadUrl}>{sherpaTtsModelStatus.downloadUrl}</code>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(sherpaTtsModelStatus.downloadUrl).catch(() => null)}>
-                                        <Copy className="h-3.5 w-3.5" />
-                                    </Button>
+                            <div className="mt-4 w-fit max-w-full space-y-0 text-xs text-muted-foreground">
+                                <p className="mb-3 font-medium text-foreground">{t('common.manualDownloadTitle')}</p>
+                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
+                                    <span className="shrink-0">{t('common.manualDownloadUrlLabel')}</span>
+                                    <ContextMenu>
+                                        <ContextMenuTrigger asChild>
+                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{sherpaTtsModelStatus.downloadUrl}</code>
+                                        </ContextMenuTrigger>
+                                        <ContextMenuContent>
+                                            <ContextMenuItem onSelect={() => copyText(sherpaTtsModelStatus.downloadUrl)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
+                                            <ContextMenuItem onSelect={() => openDownloadUrl(sherpaTtsModelStatus.downloadUrl)}><ExternalLink className="mr-2 h-4 w-4" />{t('common.openInBrowser')}</ContextMenuItem>
+                                        </ContextMenuContent>
+                                    </ContextMenu>
                                 </div>
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <p className="min-w-0 flex-1">{t('common.manualDownloadSaveTo')} <code className="break-all rounded bg-muted px-1 py-0.5">{sherpaTtsModelStatus.archivePath}</code></p>
-                                    <Button type="button" variant="secondary" size="sm" className="h-7 shrink-0" onClick={() => openModelFolder(sherpaTtsModelStatus.archivePath).catch(() => null)}>
-                                        <FolderOpen className="h-3.5 w-3.5 mr-1.5" />{t('common.openFolder')}
-                                    </Button>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(sherpaTtsModelStatus.archivePath).catch(() => null)}>
-                                        <Copy className="h-3.5 w-3.5" />
-                                    </Button>
+                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
+                                    <span className="shrink-0">{t('common.manualDownloadSaveTo')}</span>
+                                    <ContextMenu>
+                                        <ContextMenuTrigger asChild>
+                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{sherpaTtsModelStatus.archivePath}</code>
+                                        </ContextMenuTrigger>
+                                        <ContextMenuContent>
+                                            <ContextMenuItem onSelect={() => copyText(sherpaTtsModelStatus.archivePath)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
+                                            <ContextMenuItem onSelect={() => openModelFolder(sherpaTtsModelStatus.archivePath)}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
+                                        </ContextMenuContent>
+                                    </ContextMenu>
                                 </div>
                                 <p>{t('common.manualDownloadNextStep')}</p>
                             </div>

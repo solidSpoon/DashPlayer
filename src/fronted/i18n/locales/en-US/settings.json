@@ -15,12 +15,17 @@
         "download": "Download",
         "ready": "Ready",
         "notDownloaded": "Not downloaded",
+        "copy": "Copy",
         "copied": "Download address copied",
         "manualDownloadTitle": "If the network is unstable, download the model manually:",
+        "manualDownloadUrlLabel": "Download address",
         "manualDownloadSaveTo": "Save the downloaded file to:",
         "manualDownloadNextStep": "Then return here and click Download to finish installing the model."
         ,"openFolder": "Open folder"
         ,"openFolderFailed": "Failed to open folder"
+        ,"openInBrowser": "Open in browser"
+        ,"openUrlFailed": "Failed to open link"
+        ,"copyFailed": "Copy failed"
     },
     "sections": {
         "shortcut": "Shortcuts",
