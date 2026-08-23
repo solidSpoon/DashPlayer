@@ -88,46 +88,44 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
 
       {/* 文本内容与信息 */}
       <div className="min-w-0 flex-1 flex flex-col justify-between self-stretch gap-1.5">
-        {/* 字幕上下文段落：自然行内连续排版 */}
-        <div className="text-sm leading-relaxed text-foreground/80 cursor-pointer select-text">
+        {/* 字幕上下文段落 */}
+        <div className="text-[13px] leading-relaxed text-foreground/80 space-x-1 cursor-pointer">
           {lines.map((contextLine: ClipSrtLine, index) => {
             const isHighlight = contextLine === currentLine && isCurrentPlaying;
             return (
-              <React.Fragment key={`${item.key}-${index}`}>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setPlayInfo({
-                        video: item,
-                        time: contextLine.start,
-                        timeUpdated: Date.now(),
-                        sentenceIndex: index
-                      });
-                    }
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
+              <span
+                key={`${item.key}-${index}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
                     setPlayInfo({
                       video: item,
                       time: contextLine.start,
                       timeUpdated: Date.now(),
                       sentenceIndex: index
                     });
-                    logger.debug('Setting play info for line', { startTime: contextLine.start, sentenceIndex: index });
-                  }}
-                  className={cn(
-                    'transition-colors duration-150 rounded-xs',
-                    contextLine.isClip ? 'font-semibold text-foreground underline decoration-primary/40 underline-offset-2' : 'text-muted-foreground hover:text-foreground hover:underline',
-                    isHighlight && 'bg-primary text-primary-foreground no-underline font-normal px-1 py-0.5 rounded-sm'
-                  )}
-                >
-                  {contextLine.contentEn}
-                </span>
-                {' '}
-              </React.Fragment>
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlayInfo({
+                    video: item,
+                    time: contextLine.start,
+                    timeUpdated: Date.now(),
+                    sentenceIndex: index
+                  });
+                  logger.debug('Setting play info for line', { startTime: contextLine.start, sentenceIndex: index });
+                }}
+                className={cn(
+                  'rounded-sm px-0.5 transition-colors duration-150 inline-block',
+                  contextLine.isClip ? 'font-medium text-foreground bg-primary/10' : 'text-muted-foreground hover:text-foreground',
+                  isHighlight && 'bg-primary text-primary-foreground'
+                )}
+              >
+                {contextLine.contentEn}
+              </span>
             );
           })}
         </div>
