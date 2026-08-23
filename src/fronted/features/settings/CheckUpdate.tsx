@@ -1,5 +1,6 @@
 import React from 'react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
+import { SettingCard } from '@/fronted/features/settings/components/form';
 import { Button } from '@/fronted/components/ui/button';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
@@ -10,6 +11,7 @@ import { cn } from '@/fronted/lib/utils';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { UpdateCheckResult } from '@/common/types/update-check';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { Compass, ExternalLink, Sparkles } from 'lucide-react';
 
 const CheckUpdate = () => {
     const { t } = useI18nTranslation('settings');
@@ -24,7 +26,7 @@ const CheckUpdate = () => {
     return (
         <SettingsPageShell
             title={t('checkUpdate.title')}
-            contentClassName="space-y-4"
+            contentClassName="space-y-6"
             actions={(
                 <Button
                     onClick={async () => {
@@ -32,48 +34,61 @@ const CheckUpdate = () => {
                             'https://github.com/solidSpoon/DashPlayer/releases/latest'
                         );
                     }}
+                    size="sm"
+                    variant="outline"
                 >
+                    <ExternalLink className="h-4 w-4 mr-1.5" />
                     {t('checkUpdate.openReleases')}
                 </Button>
             )}
         >
-                {checking && <div className={'flex w-full flex-col gap-4 pr-40'}>
-                    <Skeleton className="w-52 h-12 rounded-lg" />
-                    <Skeleton className=" h-8 rounded" />
-                    <Skeleton className=" h-8 rounded" />
-                    <Skeleton className=" h-8 rounded" />
-                    <Skeleton className="h-8 rounded" />
-                </div>}
-                {!checking && (
-                    <div
-                        className={cn('p-4 bg-muted/40 rounded border overflow-y-auto scrollbar-thin select-text min-h-[280px]'
-                        )}>
+            <SettingCard
+                title={t('checkUpdate.title')}
+                description={hasNewRelease ? t('checkUpdate.newVersionFound', { defaultValue: '发现新版本可用' }) : t('checkUpdate.latestTitle')}
+                icon={Compass}
+            >
+                <div className="p-4 select-text">
+                    {checking && (
+                        <div className="flex w-full flex-col gap-3 py-2">
+                            <Skeleton className="w-48 h-6 rounded-lg" />
+                            <Skeleton className="w-full h-4 rounded" />
+                            <Skeleton className="w-3/4 h-4 rounded" />
+                            <Skeleton className="w-1/2 h-4 rounded" />
+                        </div>
+                    )}
+                    {!checking && (
+                        <div className="min-h-[200px]">
+                            {hasError ? (
+                                <div className="w-full flex flex-col gap-2 text-destructive">
+                                    <h3 className="font-semibold text-sm">{t('checkUpdate.failedTitle')}</h3>
+                                    <p className="text-xs text-muted-foreground">
+                                        {updateResult?.error ?? t('checkUpdate.failedDescription')}
+                                    </p>
+                                </div>
+                            ) : hasNewRelease ? (
+                                <div className="space-y-4">
+                                    <Md>
+                                        {(updateResult?.releases ?? []).map((release) => (
+                                            codeBlock`
+                                        ## ${release.version}
 
-                        {hasError ? (
-                            <div className={'w-full h-full flex flex-col gap-3'}>
-                                <h1>{t('checkUpdate.failedTitle')}</h1>
-                                <p className="text-muted-foreground text-sm">
-                                    {updateResult?.error ?? t('checkUpdate.failedDescription')}
-                                </p>
-                            </div>
-                        ) : hasNewRelease ? <Md>
-                            {(updateResult?.releases ?? []).map((release) => (
-                                codeBlock`
-                            ## ${release.version}
-
-                            ${release.content}
-                            `
-                            )).join('\n---\n')}
-                        </Md> : <div className={'w-full min-h-[220px] flex flex-col'}>
-                            <h1>
-                                {t('checkUpdate.latestTitle')}
-                            </h1>
-                            <div className={'w-full flex flex-1 justify-center items-center'}>
-                                <NewTips />
-                            </div>
-                        </div>}
-                    </div>
-                )}
+                                        ${release.content}
+                                        `
+                                        )).join('\n---\n')}
+                                    </Md>
+                                </div>
+                            ) : (
+                                <div className="w-full min-h-[180px] flex flex-col items-center justify-center gap-3 py-4">
+                                    <NewTips />
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('checkUpdate.latestTitle')}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </SettingCard>
         </SettingsPageShell>
     );
 };

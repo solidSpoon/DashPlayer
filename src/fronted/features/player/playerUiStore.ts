@@ -7,6 +7,7 @@ import { useStoreWithEqualityFn } from 'zustand/traditional';
 type PlayerUiState = {
   showEn: boolean;
   showCn: boolean;
+  showSourceZh: boolean;
   syncSide: boolean;
   showWordLevel: boolean;
 };
@@ -14,6 +15,7 @@ type PlayerUiState = {
 type PlayerUiActions = {
   changeShowEn: () => void;
   changeShowCn: () => void;
+  changeShowSourceZh: () => void;
   changeShowEnCn: () => void;
   changeSyncSide: () => void;
   changeShowWordLevel: () => void;
@@ -22,11 +24,13 @@ type PlayerUiActions = {
 export const usePlayerUi = create<PlayerUiState & PlayerUiActions>((set) => ({
   showEn: true,
   showCn: true,
+  showSourceZh: true,
   syncSide: false,
   showWordLevel: false,
 
   changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
   changeShowCn: () => set((s) => ({ showCn: !s.showCn })),
+  changeShowSourceZh: () => set((s) => ({ showSourceZh: !s.showSourceZh })),
   changeShowEnCn: () => set((s) => ({ showEn: !s.showEn, showCn: !s.showEn })),
   changeSyncSide: () => set((s) => ({ syncSide: !s.syncSide })),
   changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),

@@ -9,6 +9,7 @@ import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
+import TimeUtil from '@/common/utils/TimeUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -134,25 +135,42 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
 
             {/* 内容区 */}
             <div className="relative flex h-full flex-col justify-end px-6 pb-12 sm:px-8 md:px-12 lg:px-16">
-                <div className="max-w-5xl space-y-8">
-                    <h1 className="line-clamp-3 text-white font-bold leading-tight text-5xl sm:text-6xl md:text-7xl">
+                <div className="max-w-5xl space-y-6">
+                    <h1 className="line-clamp-2 text-white font-bold leading-tight text-3xl sm:text-4xl md:text-5xl drop-shadow-md">
                         {featured.fileName}
                     </h1>
 
-                    <div className="flex flex-col gap-4 sm:flex-row">
+                    {hasProgress && featured.duration && featured.duration > 0 && (
+                        <div className="space-y-1.5 max-w-md">
+                            <div className="flex items-center justify-between text-xs font-mono font-medium text-white/80">
+                                <span>{t('emptyState.continueWatching')}</span>
+                                <span>
+                                    {TimeUtil.secondToTimeStrCompact(featured.current_position ?? 0)} / {TimeUtil.secondToTimeStrCompact(featured.duration)}
+                                </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
+                                <div
+                                    className="h-full bg-white transition-all duration-300 rounded-full"
+                                    style={{
+                                        width: `${Math.min(100, Math.max(0, ((featured.current_position ?? 0) / featured.duration) * 100))}%`
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col gap-4 sm:flex-row pt-1">
                         <Button
                             className="
-                                group flex items-center gap-3 h-auto rounded-xl
-                                bg-white px-10 py-5 text-2xl sm:text-3xl font-semibold text-black
+                                group flex items-center gap-2.5 h-12 rounded-xl
+                                bg-white px-7 text-base sm:text-lg font-semibold text-black
                                 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-white/40
-                                active:scale-95 transition
-                                min-h-[64px]
+                                active:scale-95 transition shadow-lg
                             "
-                            size="lg"
                             onClick={hasProgress && !isNearEnd ? handleContinue : handleRestart}
                             aria-label={hasProgress && !isNearEnd ? t('emptyState.continueWatching') : t('emptyState.restartWatching')}
                         >
-                            <Play className="h-7 w-7 sm:h-8 sm:w-8 fill-black" />
+                            <Play className="h-5 w-5 fill-black" />
                             {hasProgress && !isNearEnd ? t('emptyState.continueWatching') : t('emptyState.restartWatching')}
                         </Button>
                     </div>

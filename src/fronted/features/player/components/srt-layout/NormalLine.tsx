@@ -9,7 +9,6 @@ interface NormalLineParam {
 }
 
 const NormalLine = ({text, order}: NormalLineParam) => {
-    const show = usePlayerUi((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
 
     if (text === undefined) {
@@ -21,7 +20,6 @@ const NormalLine = ({text, order}: NormalLineParam) => {
                 fontSize === 'fontSizeSmall' && (order === 'second' ? FONT_SIZE["ms2-small"] : FONT_SIZE["ms3-small"]),
                 fontSize === 'fontSizeMedium' && (order === 'second' ? FONT_SIZE["ms2-medium"] : FONT_SIZE["ms3-medium"]),
                 fontSize === 'fontSizeLarge' && (order === 'second' ? FONT_SIZE["ms2-large"] : FONT_SIZE["ms3-large"]),
-                !show && 'text-transparent',
             )}
         >
             {text}

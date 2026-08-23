@@ -15,6 +15,17 @@
         "download": "下载",
         "ready": "就绪",
         "notDownloaded": "未下载"
+        ,"copy": "复制"
+        ,"copied": "已复制下载地址"
+        ,"manualDownloadTitle": "网络不稳定时，也可以手动下载模型："
+        ,"manualDownloadUrlLabel": "下载地址"
+        ,"manualDownloadSaveTo": "下载完成后，将文件保存到："
+        ,"manualDownloadNextStep": "保存后，回到这里点击“下载”，完成模型安装。"
+        ,"openFolder": "打开文件夹"
+        ,"openFolderFailed": "打开文件夹失败"
+        ,"openInBrowser": "在浏览器中打开"
+        ,"openUrlFailed": "打开链接失败"
+        ,"copyFailed": "复制失败"
     },
     "sections": {
         "shortcut": "快捷键",
@@ -30,6 +41,7 @@
         "description": "配置主题、界面字号与语言偏好，让播放器更贴合你的使用习惯。",
         "themeTitle": "主题风格",
         "themeDescription": "选择你偏好的视觉主题，切换后会立即应用到整个界面。",
+        "displayPreferencesTitle": "偏好与排版",
         "fontSizeTitle": "界面字号",
         "fontSizeDescription": "调整主要界面的文字尺寸，兼顾阅读舒适度与信息密度。",
         "fontSizeLabel": "字体大小",
@@ -68,18 +80,33 @@
     },
     "shortcut": {
         "title": "快捷键",
-        "description": "多个快捷键请用英文逗号 (,) 分隔",
+        "description": "自定义播放、字幕与工具操作的键盘快捷键，支持单个功能绑定多个按键组合。",
+        "searchPlaceholder": "搜索快捷键或功能名称...",
+        "groups": {
+            "playback": "播放与控制",
+            "playbackDesc": "控制视频播放、单句复读与跳转导航。",
+            "subtitles": "字幕显示",
+            "subtitlesDesc": "控制英文字幕、中文字幕与逐词高亮的显示模式。",
+            "timing": "时间轴微调",
+            "timingDesc": "微调当前句字幕的起始与结束时间点。",
+            "tools": "界面与工具",
+            "toolsDesc": "呼出 AI 助手、收藏片段与打开控制面板。"
+        },
         "record": "录制快捷键",
         "edit": "编辑快捷键",
         "resetDefault": "恢复默认",
-        "dialogTitle": "录入快捷键",
-        "dialogDescription": "点击下方输入框，然后按下快捷键组合即可完成录入。",
-        "dialogCurrentShortcuts": "当前快捷键",
-        "dialogNoShortcuts": "暂无快捷键",
-        "dialogAddRecorded": "录入并添加",
-        "dialogRemoveShortcut": "删除快捷键",
-        "dialogResetDefault": "恢复默认",
-        "saveChanges": "保存修改",
+        "dialogTitle": "录制快捷键",
+        "dialogDescription": "请直接按下键盘上的快捷键组合，完成后点击保存。",
+        "listeningPrompt": "请按下键盘按键...",
+        "clickToListen": "点击开始录制按键",
+        "dialogCurrentShortcuts": "已绑定的快捷键",
+        "dialogNoShortcuts": "暂无快捷键（点击上方录入添加）",
+        "dialogAddRecorded": "添加此按键",
+        "dialogRemoveShortcut": "移除",
+        "dialogResetDefault": "恢复默认按键",
+        "clearAll": "清空全部",
+        "saveChanges": "完成并保存",
+        "noMatches": "未找到匹配的快捷键",
         "tableHeader": {
             "action": "功能",
             "keys": "快捷键"
@@ -106,6 +133,33 @@
             "addClip": { "title": "添加收藏片段", "description": "将当前句子片段保存至收藏片段列表" },
             "openControlPanel": { "title": "打开控制面板", "description": "打开播放器控制面板" }
         }
+    },
+    "about": {
+        "title": "关于 DashPlayer",
+        "slogan": "专为语言学习与长视频精听打造的智能双语播放器",
+        "description": "DashPlayer 结合端侧离线语音识别模型与大语言模型，帮助你通过影视与演讲素材高效精学外语。",
+        "features": {
+            "asrTitle": "离线语音识别",
+            "asrDesc": "内置端侧神经 ASR 模型，无需联网即可秒级自动生成中英双语字幕。",
+            "aiTitle": "AI 语境助记",
+            "aiDesc": "结合大语言模型深度拆解长难句，智能分析词汇语法与原声音频。",
+            "listenTitle": "句子精听工坊",
+            "listenDesc": "支持单句单曲循环、AB 复读微调、自动暂停与个性化片段收藏。",
+            "privacyTitle": "本地数据与隐私",
+            "privacyDesc": "所有生词本、转录历史与收藏片段均保存在本机，安全无泄露风险。"
+        },
+        "links": {
+            "docs": "官方使用文档",
+            "docsDesc": "查看完整教程与快捷键指南",
+            "github": "GitHub 开源主页",
+            "githubDesc": "欢迎提交 Issue、功能建议或 Star",
+            "releases": "版本更新日志",
+            "releasesDesc": "查看最新版本发布与改进",
+            "license": "开源协议",
+            "licenseDesc": "基于 MIT License 自由开源"
+        },
+        "footer": "由 solidSpoon 用心打造",
+        "version": "版本 {{version}}"
     },
     "storage": {
         "title": "存储管理",
@@ -204,6 +258,10 @@
             "confirmDelete": "确认删除",
             "modelDeleted": "模型已删除",
             "deleteFailed": "删除失败"
+            ,"manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
+        },
+        "sherpaTts": {
+            "manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
         },
         "youdao": {
             "title": "有道词典",

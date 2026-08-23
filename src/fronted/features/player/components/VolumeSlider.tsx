@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import {Slider} from "@/fronted/components/ui/slider";
-import {Toggle} from "@/fronted/components/ui/toggle";
-import {cn} from "@/fronted/lib/utils";
-import {Volume, Volume1, Volume2, VolumeX} from "lucide-react";
+import { Slider } from '@/fronted/components/ui/slider';
+import { Button } from '@/fronted/components/ui/button';
+import { cn } from '@/fronted/lib/utils';
+import { Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
 
 export interface VolumeSliderProps {
     volume: number;
@@ -10,42 +10,52 @@ export interface VolumeSliderProps {
     muted: boolean;
     onMutedChange: (muted: boolean) => void;
 }
+
 const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSliderProps) => {
-    // const [bkVolume, setBkVolume] = useLocalStorage('volume', 0.5);
     const [localVolume, setLocalVolume] = useState<number>(volume);
-    // const[pressed, setPressed] = useState(false);
+
+    const getVolumeIcon = () => {
+        if (muted || localVolume === 0) {
+            return <VolumeX className="h-4 w-4" />;
+        }
+        if (localVolume <= 0.5) {
+            return <Volume1 className="h-4 w-4" />;
+        }
+        return <Volume2 className="h-4 w-4" />;
+    };
+
     return (
-        <div className="flex items-center gap-2 font-mono">
-            <Toggle
-                size={'sm'}
-                pressed={muted}
-                onPressedChange={() => {
-                    onMutedChange(!muted);
-                }}
-                className="flex items-center justify-center"
+        <div className="flex items-center gap-1.5 font-mono text-white/90">
+            <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onMutedChange(!muted)}
+                className="h-8 px-2 rounded-lg text-white/90 hover:text-white hover:bg-white/15 transition-colors gap-1.5"
+                title={muted ? '取消静音' : '静音'}
             >
-                {/*<IoVolumeOff className="h-6 w-6"/>*/}
-                {localVolume > 0.5 && !muted && <Volume2  className="h-6 w-6"/>}
-                {localVolume <= 0.5&& !muted && localVolume > 0 && (
-                    <Volume1 className="h-6 w-6"/>
-                )}
-                {(localVolume === 0 && !muted) && <Volume  className="h-6 w-6"/>}
-                {muted && <VolumeX  className="h-6 w-6"/>}
-                <span className={cn('w-7')}>{Math.floor(localVolume * 100)}</span>
-            </Toggle>
-            <Slider
-                className="w-24"
-                max={100}
-                min={0}
-                defaultValue={[volume * 100]}
-                onValueChange={(value) => {
-                    // 拖动过程中即时生效，无需等松手
-                    onVolumeChange(value[0] / 100);
-                    setLocalVolume(value[0] / 100);
-                }}
-            />
+                {getVolumeIcon()}
+                <span className="text-xs font-mono w-6 text-left tabular-nums">
+                    {muted ? '0' : Math.round(localVolume * 100)}
+                </span>
+            </Button>
+            <div className="w-20 flex items-center">
+                <Slider
+                    max={100}
+                    min={0}
+                    value={[muted ? 0 : localVolume * 100]}
+                    onValueChange={(value) => {
+                        const next = value[0] / 100;
+                        if (muted && next > 0) {
+                            onMutedChange(false);
+                        }
+                        onVolumeChange(next);
+                        setLocalVolume(next);
+                    }}
+                />
+            </div>
         </div>
     );
 };
 
 export default VolumeSlider;
+

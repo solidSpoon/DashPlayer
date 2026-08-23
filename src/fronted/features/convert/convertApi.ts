@@ -63,5 +63,5 @@ export const convertApi = {
      * @param path 文件或文件夹绝对路径。
      * @returns 文件管理器打开后结束。
      */
-    openFolder: (path: string) => backendClient.call('system/open-folder', path),
+    openFolder: (path: string) => backendClient.call('system/open-folder', { path }),
 };

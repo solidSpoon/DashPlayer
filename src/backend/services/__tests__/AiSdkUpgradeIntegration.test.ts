@@ -31,7 +31,7 @@ vi.mock('@/backend/infrastructure/settings/store', () => ({
 }));
 
 import { z } from 'zod';
-import { ModelMessage, Output, streamText, LanguageModel, wrapLanguageModel } from 'ai';
+import { ModelMessage, Output, streamText, LanguageModel } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
@@ -42,7 +42,7 @@ import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
 import { ChatServiceImpl } from '../ChatService';
 import { ChatSessionServiceImpl } from '../ChatSessionService';
 import { TranslateServiceImpl } from '../TranslateService';
-import { AiProviderServiceImpl, isNoneReasoningModel } from '../AiProviderService';
+import { AiProviderServiceImpl } from '../AiProviderService';
 import { ModelRoutingServiceImpl } from '../ModelRoutingService';
 import type DpTaskService from '../DpTaskService';
 import type AiProviderService from '../AiProviderService';
@@ -61,8 +61,7 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 /**
  * 构造一个与生产 getModel 完全一致的直连测试模型：
  * @ai-sdk/openai-compatible 的 chat 模型（只走 /chat/completions，避开官方 provider 默认的
- * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）+ 仅对已知支持 none 的
- * 模型族注入 reasoningEffort: 'none'（关闭推理，最快响应），其余模型不注入保持默认档位。
+ * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）。推理强度由调用方传入。
  *
  * @param modelId 要使用的模型 id。
  * @returns 可直接传给 streamText 的 LanguageModel。
@@ -73,22 +72,7 @@ const buildLiveModel = (modelId: string): LanguageModel => {
         baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
         apiKey: testConfig!.key,
     });
-    // 与生产 getModel 的门控一致：isNoneReasoningModel 为假时不注入（走模型默认档位）
-    if (!isNoneReasoningModel(modelId)) {
-        return provider.chatModel(modelId);
-    }
-    return wrapLanguageModel({
-        model: provider.chatModel(modelId),
-        middleware: {
-            transformParams: async ({ params }) => ({
-                ...params,
-                providerOptions: {
-                    ...params.providerOptions,
-                    openai: { reasoningEffort: 'none' },
-                },
-            }),
-        },
-    });
+    return provider.chatModel(modelId);
 };
 
 /**
@@ -135,46 +119,6 @@ const buildMockTextModel = (text: string): LanguageModel => {
 };
 
 const runTests = (): void => {
-    // 离线回归：不发真实请求，守护 getModel 的推理门控（只对已知支持 none 的模型族注入）。
-    describe('推理门控（isNoneReasoningModel）', () => {
-        it.each([
-            ['gpt-5.4-nano', true],
-            ['gpt-5.1', true],
-            ['gpt-5.2', true],
-            ['gpt-5.6-sol', true],
-            ['gpt-5', false],
-            ['gpt-5-mini', false],
-            ['gpt-5-chat-latest', false],
-            ['gpt-5.2-pro', false],
-            ['gpt-5.1-codex', false],
-            ['o3', false],
-            ['o4-mini', false],
-            ['gpt-oss-120b', false],
-            ['deepseek-v4-flash', true],
-            ['deepseek-v5', true],
-            ['deepseek-v10', true],
-            ['deepseek-chat', false],
-            ['deepseek-v3', false],
-            ['glm-5', true],
-            ['glm-5.2', true],
-            ['glm-5.5', true],
-            ['glm-4.6', false],
-            ['glm-4.7', false],
-            ['glm-z1', false],
-            ['doubao-seed-1-6', true],
-            ['doubao-1-5-thinking-pro-m', true],
-            ['doubao-seed-1-6-251015', false],
-            ['doubao-seed-1-6-flash', false],
-            ['mistral-small-2603', true],
-            ['mistral-small-2501', false],
-            ['grok-4.3', true],
-            ['grok-4.3-non-reasoning', false],
-            ['grok-4', false],
-        ])('模型 %s 的 none 注入判断应为 %s', (modelId, expected) => {
-            expect(isNoneReasoningModel(modelId)).toBe(expected);
-        });
-    });
-
     // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的欢迎语句路径。
     describe('整句学习欢迎语句（AI SDK v7 离线回归）', () => {
         describe('splitSystemMessages（system 消息拆分）', () => {
@@ -316,9 +260,9 @@ const runTests = (): void => {
                 }
             }, 120000);
 
-            it('真实连接：枚举每个可用模型支持的推理档位，并保证 none 通用', async () => {
+            it('真实连接：枚举每个可用模型支持的推理档位', async () => {
                 // 基线（不设置推理）用于对照：某些代理端模型即使成功也会在流里带 error part
-                const efforts = ['（不设置）', 'minimal', 'low', 'none'] as const;
+                const efforts = ['（不设置）', 'low', 'medium', 'high'] as const;
                 const matrix: Record<string, string[]> = {};
                 for (const modelId of testConfig!.availableModels) {
                     matrix[modelId] = [];
@@ -328,10 +272,10 @@ const runTests = (): void => {
                         // 所以只把带具体信息的真实错误（如 AI_APICallError）视为档位不被支持。
                         const result = streamText({
                             model: buildRawLiveModel(modelId),
-                            // 兼容 provider 不认顶层 reasoning 参数，档位必须走 providerOptions.<name>.reasoningEffort
+                            // 推理档位直接传给 AI SDK 7 的 reasoning
                             ...(effort === '（不设置）'
                                 ? {}
-                                : { providerOptions: { openai: { reasoningEffort: effort } } }),
+                                : { reasoning: effort }),
                             prompt: 'Reply with exactly: ok',
                             onError: () => {},
                         });
@@ -347,13 +291,7 @@ const runTests = (): void => {
                     }
                 }
                 console.log('[推理档位兼容矩阵]', JSON.stringify(matrix));
-                // 生产门控只对已知支持 none 的模型族注入（isNoneReasoningModel 为真），
-                // 其余模型保持默认档位；因此只断言这些模型必须接受 none
-                for (const modelId of testConfig!.availableModels) {
-                    if (isNoneReasoningModel(modelId)) {
-                        expect(matrix[modelId]).toContain('none');
-                    }
-                }
+                expect(Object.keys(matrix)).toHaveLength(testConfig!.availableModels.length);
             }, 120000);
         });
 

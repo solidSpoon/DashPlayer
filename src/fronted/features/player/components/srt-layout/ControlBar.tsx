@@ -77,8 +77,7 @@ const PlaybackControlBar = ({
             window.clearTimeout(mouseOverTimeout.current.pop());
         }
         if (!mouseOverOut) {
-            const timeout = window.setTimeout(() => setMouseOverOut(true), 50);
-            mouseOverTimeout.current.push(timeout);
+            setMouseOverOut(true);
         }
         const timeout = window.setTimeout(() => {
             setMouseOverOut(false);
@@ -91,8 +90,7 @@ const PlaybackControlBar = ({
             window.clearTimeout(mouseOverTimeout.current.pop());
         }
         if (!mouseOverOut) {
-            const timeout = window.setTimeout(() => setMouseOverOut(true), 100);
-            mouseOverTimeout.current.push(timeout);
+            setMouseOverOut(true);
         }
     };
 
@@ -101,81 +99,78 @@ const PlaybackControlBar = ({
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
             className={cn(
-                'w-full flex flex-col-reverse pt-10 h-full text-white/80 p-3 px-4',
+                'w-full flex flex-col-reverse h-36 text-white/90 p-4 pointer-events-auto',
                 className
             )}
         >
-            <Card
+            <div
                 className={cn(
-                    'p-5 pb-3',
-                    mouseOverOut && 'backdrop-blur bg-background/50',
-                    !mouseOverOut && 'backdrop-blur-0 bg-transparent h-20 border-0 shadow-none'
+                    'w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-all duration-150 ease-out pointer-events-auto',
+                    mouseOverOut ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'
                 )}
                 onMouseMove={(e) => {
                     e.stopPropagation();
                     handleMouseMoveIn();
                 }}
             >
-                <div className={cn('flex flex-col items-center justify-between w-full gap-4')}>
-                    {mouseOverOut && (
-                        <>
-                            <Slider
-                                max={duration}
-                                min={0}
-                                value={[currentValue]}
-                                onValueChange={(value) => {
-                                    const [next] = value;
-                                    logger.debug('time slider changing', { next });
-                                    setCurrentValue(next);
-                                    setSelecting(true);
-                                    onTimeChange?.(next);
-                                    playerActions.setAutoPause(false);
-                                    playerActions.setSingleRepeat(false);
+                <div className="flex flex-col items-center justify-between w-full gap-2.5">
+                    <Slider
+                        max={duration}
+                        min={0}
+                        value={[currentValue]}
+                        onValueChange={(value) => {
+                            const [next] = value;
+                            logger.debug('time slider changing', { next });
+                            setCurrentValue(next);
+                            setSelecting(true);
+                            onTimeChange?.(next);
+                            playerActions.setAutoPause(false);
+                            playerActions.setSingleRepeat(false);
+                        }}
+                        onValueCommit={() => {
+                            currentValueUpdateTime.current = Date.now();
+                            setSelecting(false);
+                        }}
+                    />
+                    <div className="w-full flex justify-between items-center">
+                        <div className="flex gap-2 items-center">
+                            <Button
+                                onClick={() => {
+                                    if (playing) {
+                                        onPause?.();
+                                    } else {
+                                        onPlay?.();
+                                    }
                                 }}
-                                onValueCommit={() => {
-                                    currentValueUpdateTime.current = Date.now();
-                                    setSelecting(false);
-                                }}
-                            />
-                            <div className="w-full flex justify-between items-center">
-                                <div className="flex gap-4 items-center">
-                                    <Button
-                                        onClick={() => {
-                                            if (playing) {
-                                                onPause?.();
-                                            } else {
-                                                onPlay?.();
-                                            }
-                                        }}
-                                        size="icon"
-                                        variant="ghost"
-                                        className="w-9 h-9"
-                                    >
-                                        {playing ? <Pause /> : <Play />}
-                                    </Button>
-                                    <div className="h-full flex items-center font-mono">
-                                        {`${TimeUtil.secondToTimeStr(currentValue)} / ${TimeUtil.secondToTimeStr(duration)}`}
-                                    </div>
-                                </div>
-                                <div className="h-full flex-1" />
-                                <div className="flex justify-center items-end gap-4">
-                                    <SpeedSlider
-                                        speed={playbackRate}
-                                        onSpeedChange={(speed) => playerActions.setPlaybackRate(speed)}
-                                    />
-                                    <VolumeSlider
-                                        muted={muted}
-                                        onMutedChange={(nextMuted) => playerActions.setMuted(nextMuted)}
-                                        volume={volume}
-                                        onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
-                                    />
-                                    <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
-                                </div>
+                                size="icon"
+                                variant="ghost"
+                                className="w-8 h-8 rounded-lg text-white/90 hover:text-white hover:bg-white/15 transition-colors"
+                            >
+                                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                            </Button>
+                            <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums">
+                                <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
+                                <span className="mx-1.5 text-white/40">/</span>
+                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
                             </div>
-                        </>
-                    )}
+                        </div>
+                        <div className="h-full flex-1" />
+                        <div className="flex justify-center items-center gap-2">
+                            <SpeedSlider
+                                speed={playbackRate}
+                                onSpeedChange={(speed) => playerActions.setPlaybackRate(speed)}
+                            />
+                            <VolumeSlider
+                                muted={muted}
+                                onMutedChange={(nextMuted) => playerActions.setMuted(nextMuted)}
+                                volume={volume}
+                                onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
+                            />
+                            <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
+                        </div>
+                    </div>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 };

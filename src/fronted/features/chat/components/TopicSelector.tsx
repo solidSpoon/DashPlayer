@@ -67,9 +67,12 @@ const TopicSelector = ({ agentView }: TopicSelectorProps) => {
             align: 'center',
             behavior: 'smooth',
         });
-        setHighlightedIndex(agentView.focusIndex);
+        const highlightTimer = window.setTimeout(() => setHighlightedIndex(agentView.focusIndex), 0);
         const timer = window.setTimeout(() => setHighlightedIndex(null), 2400);
-        return () => window.clearTimeout(timer);
+        return () => {
+            window.clearTimeout(highlightTimer);
+            window.clearTimeout(timer);
+        };
     }, [agentView.focusIndex, sentences]);
 
     useEffect(() => {

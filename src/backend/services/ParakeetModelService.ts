@@ -12,9 +12,9 @@ import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/serv
 import TYPES from '@/backend/ioc/types';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
-import { PARAKEET_MODEL_DIRECTORY, PARAKEET_REQUIRED_FILES } from '@/backend/services/models/parakeetModel';
+import { PARAKEET_MODEL_ARCHIVE_NAME, PARAKEET_MODEL_DIRECTORY, PARAKEET_MODEL_DOWNLOAD_URL, PARAKEET_REQUIRED_FILES } from '@/backend/services/models/parakeetModel';
 
-const ARCHIVE_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2';
+const ARCHIVE_URL = PARAKEET_MODEL_DOWNLOAD_URL;
 
 /** 下载被取消时抛出的错误信息（渲染层据此区分取消与真实失败）。 */
 export const PARAKEET_DOWNLOAD_CANCELLED_MESSAGE = 'Parakeet 模型下载已取消';
@@ -23,7 +23,7 @@ export const PARAKEET_DOWNLOAD_CANCELLED_MESSAGE = 'Parakeet 模型下载已取�
 const DOWNLOAD_WORK_DIR = '.parakeet-download';
 
 /** 模型归档临时文件名。 */
-const ARCHIVE_FILE_NAME = 'model.tar.bz2';/**
+const ARCHIVE_FILE_NAME = PARAKEET_MODEL_ARCHIVE_NAME;/**
  * ParakeetModelService 的业务契约。
  */
 export default interface ParakeetModelService {
@@ -80,6 +80,7 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
      */
     public async getStatus(): Promise<ParakeetModelStatusVO> {
         const modelPath = await this.getModelPath();
+        const archivePath = path.join(path.dirname(modelPath), DOWNLOAD_WORK_DIR, ARCHIVE_FILE_NAME);
         const missingFiles = PARAKEET_REQUIRED_FILES.filter((file) => !fs.existsSync(path.join(modelPath, file)));
         return {
             modelPath,
@@ -88,6 +89,8 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
             downloading: this.activeDownload !== null,
             phase: this.currentPhase,
             percent: this.currentPercent,
+            downloadUrl: ARCHIVE_URL,
+            archivePath,
         };
     }
 
@@ -163,6 +166,7 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
         const archivePath = path.join(workDir, ARCHIVE_FILE_NAME);
         const extractPath = path.join(workDir, 'extract');
         await fsPromises.mkdir(workDir, { recursive: true });
+        await fsPromises.rm(extractPath, { recursive: true, force: true });
         await fsPromises.mkdir(extractPath, { recursive: true });
         let installed = false;
         try {
@@ -185,12 +189,7 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
                 this.logger.warn('parakeet model download cancelled', { durationMs: Date.now() - startedAt });
             } else {
                 this.logger.error('parakeet model download failed', { durationMs: Date.now() - startedAt, error });
-                // 下载、校验或安装失败时清掉半成品，避免下次续传基于损坏文件。
-                try {
-                    await fsPromises.rm(workDir, { recursive: true, force: true });
-                } catch (cleanupError) {
-                    this.logger.warn('Failed to cleanup partial download', { cleanupError });
-                }
+                // 保留归档和工作目录，用户可手动补齐后再次点击下载，继续断点续传或直接安装。
             }
             throw error;
         } finally {
@@ -230,7 +229,14 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
         const existingSize = await this.getExistingArchiveSize(archivePath);
         // 续传：从已下载的字节数开始请求剩余部分。
         const headers = existingSize > 0 ? { Range: `bytes=${existingSize}-` } : {};
-        const response = await axios.get(ARCHIVE_URL, { responseType: 'stream', signal, headers });
+        let response;
+        try {
+            response = await axios.get(ARCHIVE_URL, { responseType: 'stream', signal, headers });
+        } catch (error) {
+            // 完整归档手动放置后，Range 请求可能得到 416；保留现有文件并交给解压校验。
+            if (existingSize > 0 && axios.isAxiosError(error) && error.response?.status === 416) return;
+            throw error;
+        }
         const total = Number(response.headers['content-length'] ?? 0) + (response.status === 206 ? existingSize : 0);
         // 服务器返回 200 说明不支持续传或远端文件已变化，此时应覆盖重写且进度从 0 计。
         const resuming = response.status === 206;

@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from '@/fronted/lib/utils';
 import ProjectListComp from '@/fronted/features/file-browser/components/project-list-comp';
 import { Folder } from 'lucide-react';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
@@ -26,76 +25,94 @@ export interface TranscriptFileProps {
 /** 浏览媒体文件，并将选中的视频加入后端转录列表。 */
 const TranscriptFile = ({ tasks, onEnqueue }: TranscriptFileProps) => {
     const queue = new Set(tasks.map((task) => task.file));
+
     return (
-        <div className={cn('flex-1 flex flex-col rounded-lg border bg-muted/20 p-4 min-h-0')}>
-            <div
-                className={cn('flex flex-wrap w-full justify-center items-center gap-2 min-h-14 rounded-lg border border-dashed p-2 mb-3')}
-            >
-                <FileSelector onSelected={async (ps) => {
-                    const vp = ps.find(MediaUtil.isMedia);
-                    const sp = ps.find(MediaUtil.isSrt);
-                    if (vp) {
-                        await transcriptApi.createWatchHistory(ps);
-                    }
-                    if (sp) {
-                        if (StrUtil.isNotBlank(vp)) {
-                            await transcriptApi.attachSubtitle(vp, sp);
-                        }
-                    }
-                    await swrApiMutate('watch-history/list');
-                    await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
-                }} />
-                <FolderSelector onSelected={FolderSelectAction.defaultAction()} />
+        <div className="flex-1 flex flex-col h-full min-h-0 rounded-2xl border border-border/70 bg-card p-3 overflow-hidden shadow-2xs">
+            {/* 顶部快速选择按钮 */}
+            <div className="flex items-center gap-2 pb-3 border-b border-border/50">
+                <div className="flex-1 min-w-0">
+                    <FileSelector
+                        onSelected={async (ps) => {
+                            const vp = ps.find(MediaUtil.isMedia);
+                            const sp = ps.find(MediaUtil.isSrt);
+                            if (vp) {
+                                await transcriptApi.createWatchHistory(ps);
+                            }
+                            if (sp) {
+                                if (StrUtil.isNotBlank(vp)) {
+                                    await transcriptApi.attachSubtitle(vp, sp);
+                                }
+                            }
+                            await swrApiMutate('watch-history/list');
+                            await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
+                        }}
+                    />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <FolderSelector onSelected={FolderSelectAction.defaultAction()} />
+                </div>
             </div>
 
-            <ProjectListComp
-                backEle={(root, currentPath, hc) => (
-                    <BackNavItem
-                        root={root}
-                        currentPath={currentPath}
-                        onClick={hc}
-                    />
-                )}
-                videoEle={(pv) => {
-                    const ctxMenus = [
-                        {
-                            icon: <Folder />,
-                            text: i18n.t('common:showInExplorer'),
-                            onClick: async () => {
-                                await transcriptApi.openFolder(pv.basePath);
+            {/* 最近浏览列表 */}
+            <div className="flex-1 min-h-0 pt-2 overflow-hidden">
+                <ProjectListComp
+                    backEle={(root, currentPath, hc) => (
+                        <BackNavItem
+                            root={root}
+                            currentPath={currentPath}
+                            onClick={hc}
+                        />
+                    )}
+                    videoEle={(pv) => {
+                        const ctxMenus = [
+                            {
+                                icon: <Folder />,
+                                text: i18n.t('common:showInExplorer'),
+                                onClick: async () => {
+                                    await transcriptApi.openFolder(pv.basePath);
+                                }
                             }
-                        }
-                    ];
-                    return <VideoItem2 pv={pv}
-                                       ctxMenus={ctxMenus}
-                                       onClick={() => {
-                                           void onEnqueue(PathUtil.join(pv.basePath, pv.fileName));
-                                       }}
-                                       variant={queue.has(PathUtil.join(pv.basePath, pv.fileName)) ? 'lowlight' : 'normal'} />;
-                }}
-                projEle={(p, hc) => {
-                    const ctxMenus = [
-                        {
-                            icon: <Folder />,
-                            text: i18n.t('common:showInExplorer'),
-                            onClick: async () => {
-                                await transcriptApi.openFolder(p.basePath);
+                        ];
+                        const isEnqueued = queue.has(PathUtil.join(pv.basePath, pv.fileName));
+                        return (
+                            <VideoItem2
+                                pv={pv}
+                                ctxMenus={ctxMenus}
+                                onClick={() => {
+                                    void onEnqueue(PathUtil.join(pv.basePath, pv.fileName));
+                                }}
+                                variant={isEnqueued ? 'lowlight' : 'normal'}
+                            />
+                        );
+                    }}
+                    projEle={(p, hc) => {
+                        const ctxMenus = [
+                            {
+                                icon: <Folder />,
+                                text: i18n.t('common:showInExplorer'),
+                                onClick: async () => {
+                                    await transcriptApi.openFolder(p.basePath);
+                                }
                             }
-                        }
-                    ];
-                    return <ProjItem2 v={p}
-                                      ctxMenus={ctxMenus}
-                                      variant={queue.has(PathUtil.join(p.basePath, p.fileName)) ? 'lowlight' : 'normal'}
-                                      onClick={() => {
-                                          hc();
-                                          if (!p.isFolder) {
-                                              void onEnqueue(PathUtil.join(p.basePath, p.fileName));
-                                          }
-                                      }} />;
-                }}
-
-                className={cn('w-full h-0 flex-1 scrollbar-none')}
-            />
+                        ];
+                        const isEnqueued = queue.has(PathUtil.join(p.basePath, p.fileName));
+                        return (
+                            <ProjItem2
+                                v={p}
+                                ctxMenus={ctxMenus}
+                                variant={isEnqueued ? 'lowlight' : 'normal'}
+                                onClick={() => {
+                                    hc();
+                                    if (!p.isFolder) {
+                                        void onEnqueue(PathUtil.join(p.basePath, p.fileName));
+                                    }
+                                }}
+                            />
+                        );
+                    }}
+                    className="w-full h-full scrollbar-none"
+                />
+            </div>
         </div>
     );
 };

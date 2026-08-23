@@ -31,7 +31,7 @@ const Layout = () => {
                 </div>
             )}
             <div
-                className={cn('p-2')}
+                className={cn('p-2.5 pl-1.5')}
                 style={{
                     gridArea: showSideBar
                         ? '1 / 2 / -1 / -1'
@@ -40,7 +40,7 @@ const Layout = () => {
             >
                 <div
                     className={cn(
-                        'w-full h-full drop-shadow-lg rounded overflow-hidden'
+                        'w-full h-full rounded-2xl border border-border/80 bg-background overflow-hidden shadow-xs'
                     )}
                 >
                     <Outlet />

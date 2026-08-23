@@ -81,21 +81,21 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                 }
                             }}
                             className={cn(
-                                'group/file-item w-full flex items-center gap-4 rounded-lg border border-transparent bg-background/60 px-3 py-2 transition-colors hover:bg-muted/70 dark:bg-muted/20 dark:hover:bg-muted/30',
-                                variant === 'highlight' && 'border-primary bg-primary/10 text-primary-foreground/90 hover:bg-primary/20',
-                                variant === 'lowlight' && 'text-muted-foreground',
-                                contextMenu && variant !== 'highlight' && 'border-border bg-muted/60 dark:bg-muted/40'
+                                'group/file-item w-full flex items-center gap-3.5 rounded-xl border border-transparent bg-background/50 px-2.5 py-2 transition-all duration-150 hover:bg-muted/60',
+                                variant === 'highlight' && 'border-primary/40 bg-primary/10 text-foreground ring-1 ring-primary/20 shadow-2xs hover:bg-primary/15',
+                                variant === 'lowlight' && 'text-muted-foreground/90',
+                                contextMenu && variant !== 'highlight' && 'border-border/70 bg-muted/60'
                             )}
                             onClick={async () => {
                                 onClick?.();
                             }}
                         >
                             <TooltipTrigger asChild>
-                                <div className="flex min-w-0 flex-1 items-center gap-4">
-                                    <div className="relative aspect-video w-32 flex-shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted">
+                                <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                                    <div className="relative aspect-video w-28 sm:w-32 flex-shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted/70 shadow-2xs">
                                         {isFolder ? (
-                                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                                <Folder className="h-8 w-8" />
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-muted/80 to-muted/40 text-muted-foreground">
+                                                <Folder className="h-7 w-7 stroke-[1.7] text-muted-foreground/80" />
                                             </div>
                                         ) : isAudio ? (
                                             <div className="absolute inset-0">
@@ -106,49 +106,55 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                                 <img
                                                     src={UrlUtil.toUrl(thumbnail)}
                                                     alt={v.fileName}
-                                                    className="absolute inset-0 h-full w-full object-cover"
+                                                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover/file-item:scale-105"
                                                 />
                                             ) : thumbnailLoading ? (
                                                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/70" />
                                                 </div>
                                             ) : (
                                                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                                    <FileVideo2 className="h-6 w-6" />
+                                                    <FileVideo2 className="h-6 w-6 stroke-[1.5] text-muted-foreground/70" />
                                                 </div>
                                             )
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                                <FileAudio2 className="h-6 w-6" />
+                                                <FileAudio2 className="h-6 w-6 stroke-[1.5] text-muted-foreground/70" />
                                             </div>
                                         )}
                                         {!isFolder && !isAudio && v?.duration > 0 && (
-                                            <div className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[10px] text-white">
+                                            <div className="pointer-events-none absolute bottom-1 right-1 rounded-md bg-black/75 backdrop-blur-md px-1.5 py-0.5 text-[10px] font-medium text-white/95 shadow-2xs">
                                                 {TimeUtil.secondToTimeStrCompact(v.duration)}
                                             </div>
                                         )}
                                         {progress > 0 && (
                                             <Progress
-                                                className="pointer-events-none absolute bottom-0 left-0 h-1 w-full rounded-none"
+                                                className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-full rounded-none bg-black/20"
                                                 value={progress}
                                             />
                                         )}
                                     </div>
                                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                                         <div
-                                            className="truncate text-sm font-medium"
+                                            className={cn(
+                                                'truncate text-xs font-semibold text-foreground/90 transition-colors group-hover/file-item:text-foreground',
+                                                variant === 'highlight' && 'text-primary font-bold'
+                                            )}
                                             title={isFolder ? PathUtil.parse(v.basePath).base : (v.displayFileName ?? v.fileName)}
                                         >
                                             {isFolder ? PathUtil.parse(v.basePath).base : (v.displayFileName ?? v.fileName)}
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                                             {v?.updatedAt && (
                                                 <span>{TimeUtil.dateToRelativeTime(v.updatedAt)}</span>
                                             )}
                                             {!isFolder && v?.duration > 0 && (
-                                                <span>
-                                                    {TimeUtil.secondToTimeStrCompact(v.current_position ?? 0)} / {TimeUtil.secondToTimeStrCompact(v.duration)}
-                                                </span>
+                                                <>
+                                                    <span className="text-muted-foreground/40">•</span>
+                                                    <span>
+                                                        {TimeUtil.secondToTimeStrCompact(v.current_position ?? 0)} / {TimeUtil.secondToTimeStrCompact(v.duration)}
+                                                    </span>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -162,12 +168,12 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"
-                                                    className="h-8 w-8"
+                                                    className="h-7 w-7 rounded-lg text-muted-foreground opacity-60 transition-opacity hover:opacity-100 hover:bg-muted group-hover/file-item:opacity-100 shrink-0"
                                                     onClick={(event) => {
                                                         event.stopPropagation();
                                                     }}
                                                 >
-                                                    <EllipsisVertical className="h-4 w-4" />
+                                                    <EllipsisVertical className="h-3.5 w-3.5" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>

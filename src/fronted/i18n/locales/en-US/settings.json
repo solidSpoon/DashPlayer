@@ -14,7 +14,18 @@
         "downloading": "Downloading...",
         "download": "Download",
         "ready": "Ready",
-        "notDownloaded": "Not downloaded"
+        "notDownloaded": "Not downloaded",
+        "copy": "Copy",
+        "copied": "Download address copied",
+        "manualDownloadTitle": "If the network is unstable, download the model manually:",
+        "manualDownloadUrlLabel": "Download address",
+        "manualDownloadSaveTo": "Save the downloaded file to:",
+        "manualDownloadNextStep": "Then return here and click Download to finish installing the model."
+        ,"openFolder": "Open folder"
+        ,"openFolderFailed": "Failed to open folder"
+        ,"openInBrowser": "Open in browser"
+        ,"openUrlFailed": "Failed to open link"
+        ,"copyFailed": "Copy failed"
     },
     "sections": {
         "shortcut": "Shortcuts",
@@ -30,6 +41,7 @@
         "description": "Configure theme, UI text size, and language preference so DashPlayer fits your workflow.",
         "themeTitle": "Theme Style",
         "themeDescription": "Pick the visual style you prefer. The selected theme is applied immediately.",
+        "displayPreferencesTitle": "Display & Typography",
         "fontSizeTitle": "UI Text Size",
         "fontSizeDescription": "Adjust interface text size to balance reading comfort and information density.",
         "fontSizeLabel": "Font Size",
@@ -68,21 +80,36 @@
     },
     "shortcut": {
         "title": "Shortcuts",
-        "description": "Use commas (,) to separate multiple shortcuts.",
+        "description": "Customize keyboard shortcuts for playback, subtitles, and tools. Supports multiple keybindings per action.",
+        "searchPlaceholder": "Search shortcuts or action names...",
+        "groups": {
+            "playback": "Playback & Control",
+            "playbackDesc": "Control video playback, loop repetitions, and navigation.",
+            "subtitles": "Subtitles Display",
+            "subtitlesDesc": "Toggle English, Chinese, and word-level highlighted subtitles.",
+            "timing": "Timeline Adjustment",
+            "timingDesc": "Fine-tune start and end timestamps for the current sentence.",
+            "tools": "Interface & Tools",
+            "toolsDesc": "Trigger AI assistant, save favorite clips, and open control panel."
+        },
         "record": "Record Shortcut",
         "edit": "Edit Shortcut",
         "resetDefault": "Reset to Default",
-        "dialogTitle": "Capture Shortcut",
-        "dialogDescription": "Click the input box below and press the desired shortcut key combination.",
-        "dialogCurrentShortcuts": "Current shortcuts",
-        "dialogNoShortcuts": "No shortcuts assigned",
-        "dialogAddRecorded": "Add Recorded Shortcut",
-        "dialogRemoveShortcut": "Remove Shortcut",
+        "dialogTitle": "Record Shortcut",
+        "dialogDescription": "Press key combinations directly on your keyboard, then click Save.",
+        "listeningPrompt": "Press keys on your keyboard...",
+        "clickToListen": "Click to start recording keys",
+        "dialogCurrentShortcuts": "Bound Shortcuts",
+        "dialogNoShortcuts": "No shortcuts bound (record above to add)",
+        "dialogAddRecorded": "Add Recorded Key",
+        "dialogRemoveShortcut": "Remove",
         "dialogResetDefault": "Reset to Default",
+        "clearAll": "Clear All",
         "saveChanges": "Save Changes",
+        "noMatches": "No matching shortcuts found",
         "tableHeader": {
             "action": "Action",
-            "keys": "Shortcut"
+            "keys": "Shortcuts"
         },
         "items": {
             "previousSentence": { "title": "Previous Subtitle", "description": "Jump to the previous subtitle line." },
@@ -106,6 +133,33 @@
             "addClip": { "title": "Add Favorite Clip", "description": "Bookmark current sentence segment to Saved Clips." },
             "openControlPanel": { "title": "Open Control Panel", "description": "Open the playback control panel." }
         }
+    },
+    "about": {
+        "title": "About DashPlayer",
+        "slogan": "The intelligent bilingual media player built for language learners",
+        "description": "DashPlayer combines on-device offline speech recognition with modern LLMs to help you master languages through real video content.",
+        "features": {
+            "asrTitle": "Offline Speech Recognition",
+            "asrDesc": "Built-in neural ASR model generates bilingual subtitles in seconds without network connections.",
+            "aiTitle": "Context-Aware AI Assistant",
+            "aiDesc": "Breaks down complex sentences and grammar rules with rich context and authentic pronunciations.",
+            "listenTitle": "Intensive Listening Lab",
+            "listenDesc": "Supports single-line looping, AB repeating, auto-pausing, and clip bookmarking.",
+            "privacyTitle": "Local-First Privacy",
+            "privacyDesc": "Vocabulary notes, transcription history, and saved clips stay completely on your machine."
+        },
+        "links": {
+            "docs": "Official Documentation",
+            "docsDesc": "Explore tutorials, workflows, and shortcut guides",
+            "github": "GitHub Repository",
+            "githubDesc": "Submit issues, suggest features, or star the project",
+            "releases": "Release Notes",
+            "releasesDesc": "Check latest updates and changelogs",
+            "license": "Open Source License",
+            "licenseDesc": "Free & open source under MIT License"
+        },
+        "footer": "Crafted with care by solidSpoon",
+        "version": "Version {{version}}"
     },
     "storage": {
         "title": "Storage",
@@ -203,7 +257,11 @@
             "cancelDelete": "Keep Model",
             "confirmDelete": "Delete",
             "modelDeleted": "Model deleted",
-            "deleteFailed": "Failed to delete model"
+            "deleteFailed": "Failed to delete model",
+            "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
+        },
+        "sherpaTts": {
+            "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
         },
         "youdao": {
             "title": "Youdao Dictionary",

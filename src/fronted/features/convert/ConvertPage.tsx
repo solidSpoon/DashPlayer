@@ -43,12 +43,13 @@ const ConvertPage = () => {
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
-            <div className="px-6 pt-6 pb-4 border-b border-border/50">
+            {/* 顶栏标题区：无分割线 */}
+            <div className="px-6 pt-5 pb-2">
                 <PageHeader
                     title={t('formatConverter.title')}
                     description={t('formatConverter.description')}
                     rightSlot={
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex items-center gap-2.5 shrink-0">
                             <ConvertFileSelector
                                 onSelected={async (ps) => {
                                     addFiles(ps);
@@ -66,24 +67,22 @@ const ConvertPage = () => {
             </div>
 
             <div className={cn(
-                'flex-1 h-0 px-6 pb-6',
+                'flex-1 min-h-0 px-6 pb-5 pt-1',
                 isEmpty
                     ? 'flex items-center justify-center'
-                    : 'overflow-y-auto scrollbar-none pt-5'
+                    : 'overflow-y-auto scrollbar-thin'
             )}>
                 {isEmpty ? (
-                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                            <Wrench size={28} className="text-muted-foreground/60" />
+                    <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-border/70 bg-card/40 shadow-2xs">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground border border-border/60 mb-3 shadow-2xs">
+                            <Wrench className="h-7 w-7 stroke-1 text-muted-foreground/80" />
                         </div>
-                        <div className="text-center space-y-1.5">
-                            <p className="text-sm font-medium text-foreground">
-                                {t('formatConverter.empty.title')}
-                            </p>
-                            <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-                                {t('formatConverter.empty.guide')}
-                            </p>
-                        </div>
+                        <h3 className="text-sm font-medium text-foreground mb-1">
+                            {t('formatConverter.empty.title')}
+                        </h3>
+                        <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                            {t('formatConverter.empty.guide')}
+                        </p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-4">
@@ -92,14 +91,15 @@ const ConvertPage = () => {
                             const allP = folder.videos.every(v => taskStats.get(v) === DpTaskState.IN_PROGRESS);
                             return (
                                 <Eb key={folder.folder}>
-                                    <div className="flex flex-col gap-4 border p-4 rounded-xl bg-muted/50">
-                                        <div className="flex items-center gap-2">
-                                            <h2 className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+                                    <div className="flex flex-col gap-3.5 border border-border/70 p-4 rounded-2xl bg-card shadow-2xs">
+                                        <div className="flex items-center gap-2 pb-1 border-b border-border/40">
+                                            <h2 className="text-xs font-semibold text-foreground truncate flex-1 min-w-0 tracking-wide">
                                                 {folder?.folder}
                                             </h2>
                                             <Button
-                                                variant="outline"
+                                                variant="ghost"
                                                 size="sm"
+                                                className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
                                                 onClick={() => deleteFolder(folder.folder)}
                                             >
                                                 {hasP ? t('formatConverter.cancel') : t('formatConverter.delete')}
@@ -107,18 +107,19 @@ const ConvertPage = () => {
                                             <Button
                                                 disabled={allP}
                                                 size="sm"
+                                                className="h-7 px-3 text-xs font-medium"
                                                 onClick={() => convertFolder(folder.folder)}
                                             >
                                                 {t('formatConverter.fix')}
                                             </Button>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {folder.videos.map((file) => (
                                                 <Eb key={file}>
                                                     <ConvertItem
                                                         buttonVariant="small"
-                                                        className="bg-background drop-shadow"
+                                                        className="border border-border/50 bg-muted/20 hover:bg-muted/35 transition-colors"
                                                         file={file}
                                                         onSelected={() => {
                                                             logger.debug('File selected in convert folder', { file });
@@ -135,20 +136,26 @@ const ConvertPage = () => {
                             );
                         })}
 
-                        {files.map((file) => (
-                            <Eb key={file}>
-                                <ConvertItem
-                                    className="border rounded-xl"
-                                    file={file}
-                                    onSelected={() => {
-                                        logger.debug('File selected in convert files', { file });
-                                    }}
-                                    onDeleted={() => {
-                                        deleteFile(file);
-                                    }}
-                                />
-                            </Eb>
-                        ))}
+                        {files.length > 0 && (
+                            <div className="flex flex-col gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {files.map((file) => (
+                                        <Eb key={file}>
+                                            <ConvertItem
+                                                className="border border-border/70 rounded-2xl bg-card shadow-2xs hover:border-border transition-colors"
+                                                file={file}
+                                                onSelected={() => {
+                                                    logger.debug('File selected in convert files', { file });
+                                                }}
+                                                onDeleted={() => {
+                                                    deleteFile(file);
+                                                }}
+                                            />
+                                        </Eb>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

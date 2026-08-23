@@ -55,100 +55,103 @@ const FileBrowser = () => {
             onClick={(e) => {
                 e.stopPropagation();
             }}
-            className={cn('h-full w-full flex flex-col')}
+            className={cn('h-full w-full flex flex-col rounded-2xl border border-border/70 bg-card shadow-2xs overflow-hidden')}
         >
             {showTitle && (
-                <CardHeader className="pb-3">
-                    <CardTitle>{t('videoExplorer')}</CardTitle>
-                    <CardDescription>{t('browseVideos')}</CardDescription>
+                <CardHeader className="pb-3.5 pt-4 px-4 shrink-0">
+                    <CardTitle className="text-base font-semibold tracking-tight text-foreground">{t('videoExplorer')}</CardTitle>
                 </CardHeader>
             )}
-            <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-2 p-4')}>
-                <div
-                    className={cn('flex mb-6 flex-wrap w-full justify-center items-center gap-2 min-h-20 rounded border border-dashed p-2')}
-                >
-                    <FileSelector
-                        withMkv
-                        onSelected={FileAction.playerAction(navigate)}
-                    />
-                    <FolderSelector
-                        onSelected={FolderSelectAction.defaultAction2(async (vid) => {
-                            navigate(`/player/${vid}`);
-                        })}
-                    />
+            <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-3.5 p-4 pt-0 overflow-hidden')}>
+                <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex-1 min-w-0">
+                        <FileSelector
+                            withMkv
+                            onSelected={FileAction.playerAction(navigate)}
+                        />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <FolderSelector
+                            onSelected={FolderSelectAction.defaultAction2(async (vid) => {
+                                navigate(`/player/${vid}`);
+                            })}
+                        />
+                    </div>
                 </div>
 
-                <ProjectListComp
-                    enterProj={data?.isFolder ? data?.basePath : ''}
-                    backEle={(root, currentPath, hc) => (
-                        <BackNavItem
-                            root={root}
-                            currentPath={currentPath}
-                            onClick={hc}
-                        />
-                    )}
-                    videoEle={(pv) => {
-                        let variant: BrowserItemVariant = 'normal';
-                        if (file === PathUtil.join(pv.basePath, pv.fileName)) {
-                            variant = 'highlight';
-                        } else if (pv.current_position > 5) {
-                            variant = 'lowlight';
-                        }
-                        return (
-                            <VideoItem2
-                                onClick={() => navigate(`/player/${pv.id}`)}
-                                pv={pv}
-                                ctxMenus={[
-                                    {
-                                        icon: <Folder />,
-                                        text: t('showInExplorer'),
-                                        onClick: async () => {
-                                            await fileBrowserApi.openFolder(pv.basePath);
-                                        }
-                                    }
-                                ]} variant={variant} />
-                        );
-                    }}
-                    projEle={(p, hc) => {
-                        const ctxMenus = [
-                            {
-                                icon: <Folder />,
-                                text: t('showInExplorer'),
-                                onClick: async () => {
-                                    await fileBrowserApi.openFolder(p.basePath);
-                                }
-                            },
-                            {
-                                icon: <X />,
-                                text: t('delete'),
-                                disabled: file === PathUtil.join(p.basePath, p.fileName),
-                                onClick: async () => {
-                                    await fileBrowserApi.deleteWatchHistoryGroup(p.id);
-                                    await swrApiMutate('watch-history/list');
-                                }
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <ProjectListComp
+                        enterProj={data?.isFolder ? data?.basePath : ''}
+                        backEle={(root, currentPath, hc) => (
+                            <BackNavItem
+                                root={root}
+                                currentPath={currentPath}
+                                onClick={hc}
+                            />
+                        )}
+                        videoEle={(pv) => {
+                            let variant: BrowserItemVariant = 'normal';
+                            if (file === PathUtil.join(pv.basePath, pv.fileName)) {
+                                variant = 'highlight';
+                            } else if (pv.current_position > 5) {
+                                variant = 'lowlight';
                             }
-                        ];
-                        let variant: BrowserItemVariant = 'normal';
-                        if (file === PathUtil.join(p.basePath, p.fileName)) {
-                            variant = 'highlight';
-                        } else if (!p.isFolder && p?.current_position > 5) {
-                            variant = 'lowlight';
-                        }
-                        return (
-                            <ProjItem2 v={p}
-                                       variant={variant}
-                                       onClick={async () => {
-                                           logger.debug('project clicked', { projectId: p.id });
-                                           hc();
-                                           if (!p.isFolder) {
-                                               navigate(`/player/${p.id}`);
-                                           }
-                                       }}
-                                       ctxMenus={ctxMenus} />
-                        );
-                    }}
-                    className={cn('w-full h-0 flex-1 scrollbar-none')}
-                />
+                            return (
+                                <VideoItem2
+                                    onClick={() => navigate(`/player/${pv.id}`)}
+                                    pv={pv}
+                                    ctxMenus={[
+                                        {
+                                            icon: <Folder />,
+                                            text: t('showInExplorer'),
+                                            onClick: async () => {
+                                                await fileBrowserApi.openFolder(pv.basePath);
+                                            }
+                                        }
+                                    ]} variant={variant} />
+                            );
+                        }}
+                        projEle={(p, hc) => {
+                            const ctxMenus = [
+                                {
+                                    icon: <Folder />,
+                                    text: t('showInExplorer'),
+                                    onClick: async () => {
+                                        await fileBrowserApi.openFolder(p.basePath);
+                                    }
+                                },
+                                {
+                                    icon: <X />,
+                                    text: t('delete'),
+                                    disabled: file === PathUtil.join(p.basePath, p.fileName),
+                                    onClick: async () => {
+                                        await fileBrowserApi.deleteWatchHistoryGroup(p.id);
+                                        await swrApiMutate('watch-history/list');
+                                    }
+                                }
+                            ];
+                            let variant: BrowserItemVariant = 'normal';
+                            if (file === PathUtil.join(p.basePath, p.fileName)) {
+                                variant = 'highlight';
+                            } else if (!p.isFolder && p?.current_position > 5) {
+                                variant = 'lowlight';
+                            }
+                            return (
+                                <ProjItem2 v={p}
+                                           variant={variant}
+                                           onClick={async () => {
+                                               logger.debug('project clicked', { projectId: p.id });
+                                               hc();
+                                               if (!p.isFolder) {
+                                                   navigate(`/player/${p.id}`);
+                                               }
+                                           }}
+                                           ctxMenus={ctxMenus} />
+                            );
+                        }}
+                        className="w-full h-full scrollbar-none"
+                    />
+                </div>
             </CardContent>
         </Card>
     );

@@ -46,6 +46,7 @@ implements OpenAiSubtitleTranslationGateway {
         const result = await concurrency.withRateLimit('gpt', () =>
             generateText({
                 model,
+                reasoning: 'low',
                 output: Output.object({ schema }),
                 prompt: request.prompt,
                 maxRetries: 0,

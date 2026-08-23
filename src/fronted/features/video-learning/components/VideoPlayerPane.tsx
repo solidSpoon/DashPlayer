@@ -360,30 +360,30 @@ export default function VideoPlayerPane({
   if (!clip) {
     // 空白骨架屏幕
     return (
-      <div className="rounded-xl bg-muted/30 p-4">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
+        <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
           {/* 视频播放器骨架 */}
           <div>
             <AspectRatio ratio={16 / 9}>
-              <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
+              <div className="w-full h-full bg-muted/40 rounded-xl flex items-center justify-center border border-border/40">
                 <div className="text-center text-muted-foreground">
-                  <div className="w-16 h-16 bg-muted/70 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <div className="w-8 h-8">▶</div>
+                  <div className="w-9 h-9 bg-muted/80 rounded-full mx-auto mb-1.5 flex items-center justify-center">
+                    <div className="w-4 h-4 text-muted-foreground/70">▶</div>
                   </div>
-                  <p className="text-sm">点击上方视频开始播放</p>
+                  <p className="text-[11px]">点击上方片段开始播放</p>
                 </div>
               </div>
             </AspectRatio>
           </div>
 
           {/* 字幕区域骨架 */}
-          <div className="overflow-auto max-h-64 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="p-2 rounded-lg bg-muted/60">
-                  <div className="h-3 bg-muted rounded w-16 mb-1"></div>
-                  <div className="h-4 bg-muted rounded w-full mb-1"></div>
-                  <div className="h-3 bg-muted rounded w-3/4"></div>
+          <div className="overflow-auto max-h-44 scrollbar-thin">
+            <div className="space-y-1.5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-2 rounded-xl bg-muted/30 border border-border/30">
+                  <div className="h-2.5 bg-muted/80 rounded w-16 mb-1"></div>
+                  <div className="h-3 bg-muted/80 rounded w-full mb-1"></div>
+                  <div className="h-2.5 bg-muted/60 rounded w-3/4"></div>
                 </div>
               ))}
             </div>
@@ -394,11 +394,11 @@ export default function VideoPlayerPane({
   }
 
   return (
-    <div className="rounded-xl bg-muted/30 p-4">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
+      <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
         <div>
           <AspectRatio ratio={16 / 9}>
-            <div className="w-full rounded-lg overflow-hidden bg-black">
+            <div className="w-full rounded-xl overflow-hidden bg-black shadow-inner border border-black/10">
               <PlayerEngine
                 width="100%"
                 height="100%"
@@ -409,7 +409,7 @@ export default function VideoPlayerPane({
           </AspectRatio>
         </div>
 
-        <div>
+        <div className="min-h-0">
           <SubtitleListWithProgress
             lines={clip.clipContent ?? []}
             activeIndex={activeLineIndex}

@@ -101,13 +101,13 @@ const QueuedMarkdown = ({
         if (!animate) {
             visibleLengthRef.current = characters.length;
             queuedMarkdownProgress.set(queueKey, characters.length);
-            setVisibleText(children);
+            window.setTimeout(() => setVisibleText(children), 0);
             return;
         }
         if (visibleLengthRef.current > characters.length) {
             visibleLengthRef.current = characters.length;
             queuedMarkdownProgress.set(queueKey, characters.length);
-            setVisibleText(children);
+            window.setTimeout(() => setVisibleText(children), 0);
         }
         if (visibleLengthRef.current >= characters.length) {
             return;
@@ -563,6 +563,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="start">
+                                    <SelectItem value="auto">{t('reasoningAuto')}</SelectItem>
                                     <SelectItem value="low">{t('reasoningLow')}</SelectItem>
                                     <SelectItem value="medium">{t('reasoningMedium')}</SelectItem>
                                     <SelectItem value="high">{t('reasoningHigh')}</SelectItem>

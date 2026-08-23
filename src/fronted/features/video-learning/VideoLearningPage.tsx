@@ -19,6 +19,7 @@ import {
 } from '@/fronted/components/ui/pagination';
 import { Button } from '@/fronted/components/ui/button';
 import toast from 'react-hot-toast';
+import { cn } from '@/fronted/lib/utils';
 
 const logger = getRendererLogger('VideoLearning');
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
@@ -377,39 +378,43 @@ export default function VideoLearningPage() {
       { length: Math.min(clips.length, PAGE_SIZE) },
       (_, idx) => idx
     );
-    ensureThumbnails(initialIndices);
+    const timer = window.setTimeout(() => ensureThumbnails(initialIndices), 0);
+    return () => window.clearTimeout(timer);
   }, [clips, ensureThumbnails]);
 
   // 初始化：有列表则默认播放第一个视频的中间句
   useEffect(() => {
     if (!clips.length) {
-      setCurrentClipIndex(-1);
-      setCurrentLineIndex(-1);
+      const timer = window.setTimeout(() => {
+        setCurrentClipIndex(-1);
+        setCurrentLineIndex(-1);
+      }, 0);
       if (pendingClip && pendingClip.page === loadedPage) {
-        setPendingClip(null);
+        window.setTimeout(() => setPendingClip(null), 0);
       }
-      return;
+      return () => window.clearTimeout(timer);
     }
 
     if (pendingClip && pendingClip.page === loadedPage) {
       const targetIndex = pendingClip.index === 'last'
         ? clips.length - 1
         : Math.max(0, Math.min(pendingClip.index, clips.length - 1));
-      playClip(targetIndex);
-      setPendingClip(null);
+      window.setTimeout(() => playClip(targetIndex), 0);
+      window.setTimeout(() => setPendingClip(null), 0);
       return;
     }
 
     if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
-      playClip(0);
+      window.setTimeout(() => playClip(0), 0);
     }
   }, [clips, currentClipIndex, loadedPage, pendingClip, playClip, setPendingClip]);
 
   // 初始化加载单词
   useEffect(() => {
-    fetchWords();
+    const timer = window.setTimeout(() => fetchWords(), 0);
     return () => {
-      setSelectedWord(null);
+      window.clearTimeout(timer);
+      window.setTimeout(() => setSelectedWord(null), 0);
     };
   }, [fetchWords]);
 
@@ -426,15 +431,19 @@ export default function VideoLearningPage() {
   }, [handlePageChange, setSelectedWord]);
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 py-4 gap-4 text-foreground">
-      <PageHeader
-        title={t('vocabularyStudio.title')}
-        description={t('vocabularyStudio.description')}
-      />
+    <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
+      {/* 顶栏标题区：统一排版 */}
+      <div className="px-6 pt-5 pb-2">
+        <PageHeader
+          title={t('vocabularyStudio.title')}
+          description={t('vocabularyStudio.description')}
+        />
+      </div>
 
-      {/* 主体内容区域 */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 flex-shrink-0 pr-4 border-r border-border/40">
+      {/* 主体内容区域：双栏现代化卡片工作台 */}
+      <div className="flex-1 min-h-0 grid grid-cols-[480px_minmax(0,1fr)] gap-5 px-6 pb-5 pt-1 overflow-hidden">
+        {/* 左栏卡片：生词库 */}
+        <div className="flex flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-2xs min-h-0">
           <WordSidebar
             words={words}
             loading={loading}
@@ -448,143 +457,164 @@ export default function VideoLearningPage() {
           />
         </div>
 
-        <div className="flex-1 flex flex-col gap-4 min-h-0 pl-6">
-          <div className="flex-1 min-h-0">
-            {clips.length === 0 ? (
-              <div className="h-full w-full rounded-xl border border-dashed border-border/60 p-8 flex flex-col gap-4 items-start justify-center">
-                <h3 className="text-xl font-semibold">{t('vocabularyStudio.empty.title')}</h3>
-                <p className="text-sm text-muted-foreground leading-6">
-                  {t('vocabularyStudio.empty.guideAdd')}
-                </p>
-                <p className="text-sm text-muted-foreground leading-6">
-                  {t('vocabularyStudio.empty.guideRecover')}
-                </p>
-                <Button type="button" variant="outline" onClick={recoverVocabularyStudio}>
-                  {t('vocabularyStudio.recover.button')}
-                </Button>
+        {/* 右栏工作区：片段探索与即时播放 */}
+        <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
+          {/* 上半部分：片段浏览卡片 */}
+          <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-2xs">
+            {/* 片段卡片头部栏：统计与紧凑分页 */}
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-border/40 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground tracking-tight">
+                  {selectedWord ? `${selectedWord.word}` : t('vocabularyStudio.title')}
+                </span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {totalClips > 0
+                    ? t('vocabularyStudio.pagination.summary', {
+                      start: clipRangeStart,
+                      end: clipRangeEnd,
+                      total: totalClips,
+                    })
+                    : t('vocabularyStudio.pagination.empty')}
+                </span>
               </div>
-            ) : (
-              <ClipGrid
-                clips={clips}
-                playingKey={playingKey}
-                thumbnails={thumbnailUrls}
-                onClickClip={(idx) => {
-                  playClip(idx);
-                }}
-              />
-            )}
-          </div>
-          <div className="px-1 py-2">
-            <div className="flex flex-nowrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground tabular-nums">
-                {totalClips > 0
-                  ? t('vocabularyStudio.pagination.summary', {
-                    start: clipRangeStart,
-                    end: clipRangeEnd,
-                    total: totalClips,
-                  })
-                  : t('vocabularyStudio.pagination.empty')}
-              </div>
-              <Pagination className="ml-auto w-auto tabular-nums">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      aria-disabled={!canPrev || isPageSwitching}
-                      className={!canPrev || isPageSwitching ? 'pointer-events-none opacity-50' : undefined}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (canPrev && !isPageSwitching) {
-                          handlePageChange(displayedPage - 1, { targetIndex: 0 });
-                        }
-                      }}
-                    />
-                  </PaginationItem>
-                  {hasPrevGap && (
-                    <>
-                      <PaginationItem>
-                        <PaginationLink
-                          href="#"
-                          isActive={displayedPage === 1}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            if (displayedPage !== 1 && !isPageSwitching) {
-                              handlePageChange(1, { targetIndex: 0 });
-                            }
-                          }}
-                        >
-                          1
-                        </PaginationLink>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    </>
-                  )}
-                  {pageNumbers.map((num) => (
-                    <PaginationItem key={num}>
-                      <PaginationLink
+
+              {totalPages > 1 && (
+                <Pagination className="ml-auto w-auto tabular-nums">
+                  <PaginationContent className="gap-1">
+                    <PaginationItem>
+                      <PaginationPrevious
                         href="#"
-                        isActive={num === displayedPage}
+                        aria-disabled={!canPrev || isPageSwitching}
+                        className={cn(
+                          'h-7 px-2 text-xs rounded-lg',
+                          (!canPrev || isPageSwitching) && 'pointer-events-none opacity-40'
+                        )}
                         onClick={(event) => {
                           event.preventDefault();
-                          if (num !== displayedPage && !isPageSwitching) {
-                            handlePageChange(num, { targetIndex: 0 });
+                          if (canPrev && !isPageSwitching) {
+                            handlePageChange(displayedPage - 1, { targetIndex: 0 });
                           }
                         }}
-                      >
-                        {num}
-                      </PaginationLink>
+                      />
                     </PaginationItem>
-                  ))}
-                  {hasNextGap && (
-                    <>
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                      <PaginationItem>
+                    {hasPrevGap && (
+                      <>
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            isActive={displayedPage === 1}
+                            className="h-7 w-7 text-xs rounded-lg"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              if (displayedPage !== 1 && !isPageSwitching) {
+                                handlePageChange(1, { targetIndex: 0 });
+                              }
+                            }}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                        <PaginationItem>
+                          <PaginationEllipsis className="h-7 w-7" />
+                        </PaginationItem>
+                      </>
+                    )}
+                    {pageNumbers.map((num) => (
+                      <PaginationItem key={num}>
                         <PaginationLink
                           href="#"
-                          isActive={displayedPage === safeTotalPages}
+                          isActive={num === displayedPage}
+                          className="h-7 w-7 text-xs rounded-lg"
                           onClick={(event) => {
                             event.preventDefault();
-                            if (displayedPage !== safeTotalPages && !isPageSwitching) {
-                              handlePageChange(safeTotalPages, { targetIndex: 0 });
+                            if (num !== displayedPage && !isPageSwitching) {
+                              handlePageChange(num, { targetIndex: 0 });
                             }
                           }}
                         >
-                          {safeTotalPages}
+                          {num}
                         </PaginationLink>
                       </PaginationItem>
-                    </>
-                  )}
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      aria-disabled={!canNext || isPageSwitching}
-                      className={!canNext || isPageSwitching ? 'pointer-events-none opacity-50' : undefined}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (canNext && !isPageSwitching) {
-                          handlePageChange(displayedPage + 1, { targetIndex: 0 });
-                        }
-                      }}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                    ))}
+                    {hasNextGap && (
+                      <>
+                        <PaginationItem>
+                          <PaginationEllipsis className="h-7 w-7" />
+                        </PaginationItem>
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            isActive={displayedPage === safeTotalPages}
+                            className="h-7 w-7 text-xs rounded-lg"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              if (displayedPage !== safeTotalPages && !isPageSwitching) {
+                                handlePageChange(safeTotalPages, { targetIndex: 0 });
+                              }
+                            }}
+                          >
+                            {safeTotalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </>
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        aria-disabled={!canNext || isPageSwitching}
+                        className={cn(
+                          'h-7 px-2 text-xs rounded-lg',
+                          (!canNext || isPageSwitching) && 'pointer-events-none opacity-40'
+                        )}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (canNext && !isPageSwitching) {
+                            handlePageChange(displayedPage + 1, { targetIndex: 0 });
+                          }
+                        }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-auto">
+              {clips.length === 0 ? (
+                <div className="h-full w-full rounded-xl border border-dashed border-border/60 p-8 flex flex-col gap-4 items-center justify-center text-center">
+                  <h3 className="text-base font-semibold">{t('vocabularyStudio.empty.title')}</h3>
+                  <p className="text-xs text-muted-foreground leading-5 max-w-sm">
+                    {t('vocabularyStudio.empty.guideAdd')}
+                  </p>
+                  <Button type="button" size="sm" variant="outline" className="text-xs h-8" onClick={recoverVocabularyStudio}>
+                    {t('vocabularyStudio.recover.button')}
+                  </Button>
+                </div>
+              ) : (
+                <ClipGrid
+                  clips={clips}
+                  playingKey={playingKey}
+                  thumbnails={thumbnailUrls}
+                  onClickClip={(idx) => {
+                    playClip(idx);
+                  }}
+                />
+              )}
             </div>
           </div>
 
-          <VideoPlayerPane
-            clip={currentClip}
-            lineIdx={currentLineIndex}
-            onLineIdxChange={goToLine}
-            onPrevSentence={prevSentence}
-            onNextSentence={nextSentence}
-            onEnded={onEnded}
-            forcePlayKey={forcePlayKey}
-          />
+          {/* 下半部分：内嵌播放器面板 */}
+          <div className="shrink-0">
+            <VideoPlayerPane
+              clip={currentClip}
+              lineIdx={currentLineIndex}
+              onLineIdxChange={goToLine}
+              onPrevSentence={prevSentence}
+              onNextSentence={nextSentence}
+              onEnded={onEnded}
+              forcePlayKey={forcePlayKey}
+            />
+          </div>
         </div>
       </div>
     </div>

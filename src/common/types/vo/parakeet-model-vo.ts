@@ -16,4 +16,8 @@ export interface ParakeetModelStatusVO {
     phase: ParakeetModelPhase | null;
     /** 当前下载进度百分比（0-100）；未在下载时为 0。 */
     percent: number;
+    /** 官方模型归档下载地址。 */
+    downloadUrl: string;
+    /** 手动下载时应保存的归档完整路径。 */
+    archivePath: string;
 }

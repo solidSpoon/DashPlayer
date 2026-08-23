@@ -81,8 +81,6 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
     ];
 
     const content = process(messageContent, analysis?.structure?.phraseGroups);
-    let groupIndex = 0;
-    
     return (
         <div
             onContextMenu={() => {
@@ -100,8 +98,8 @@ const UserTopicMessage = ({ content: messageContent }: UserTopicMessageProps) =>
                         </span>
                     );
                 } else {
+                    const groupIndex = content.slice(0, i + 1).filter((entry) => entry.isGroup).length - 1;
                     const colorClass = groupColors[groupIndex % groupColors.length];
-                    groupIndex += 1;
                     return (
                         <span
                             key={`group:${i}:${item.text}`}

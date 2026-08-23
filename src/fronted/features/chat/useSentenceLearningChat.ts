@@ -7,7 +7,7 @@ import type { ChatReasoningEffort } from '@/common/types/chat';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const REASONING_EFFORT_STORAGE_KEY = 'dashplayer.sentence-learning.reasoning-effort';
-const reasoningEfforts: ChatReasoningEffort[] = ['low', 'medium', 'high'];
+const reasoningEfforts: ChatReasoningEffort[] = ['auto', 'low', 'medium', 'high'];
 
 /** 判断持久化值是否属于整句学习支持的推理档位。 */
 const isChatReasoningEffort = (value: string | null): value is ChatReasoningEffort =>
@@ -136,7 +136,7 @@ export const useSentenceLearningChat = () => {
     const { chatSessionId, topicText, queuedMessage, consumeQueuedMessage, input, setInput } = useChatPanel();
     const [reasoningEffort, setReasoningEffortState] = useState<ChatReasoningEffort>(() => {
         const stored = window.localStorage.getItem(REASONING_EFFORT_STORAGE_KEY);
-        return isChatReasoningEffort(stored) ? stored : 'medium';
+        return isChatReasoningEffort(stored) ? stored : 'auto';
     });
     const welcomeSentSessionRef = useRef<string | null>(null);
     const logger = useMemo(() => getRendererLogger('SentenceLearningChat'), []);

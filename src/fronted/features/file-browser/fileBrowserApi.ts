@@ -66,7 +66,7 @@ export const fileBrowserApi = {
      * @param path 文件夹路径。
      * @returns 文件夹打开后结束。
      */
-    openFolder: (path: string) => backendClient.call('system/open-folder', path),
+    openFolder: (path: string) => backendClient.call('system/open-folder', { path }),
 
     /**
      * 选择文件。

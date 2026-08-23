@@ -74,11 +74,16 @@
         "title": "视频字幕生成",
         "description": "基于 AI 语音识别，为视频自动生成高精度时间轴字幕",
         "modelMissing": "需要先下载字幕模型，请前往“设置中心 > 服务凭据”中下载",
+        "importSectionTitle": "资源与文件",
+        "importSectionDesc": "选择本地媒体文件或已浏览的项目添加至转录队列",
+        "queueSectionTitle": "任务队列",
+        "queueSectionDesc": "管理视频转录任务与实时进度",
         "table": {
             "videoColumn": "视频",
             "statusColumn": "状态",
             "actionColumn": "操作",
-            "empty": "暂无待转录的视频，请从左侧选择文件添加至队列"
+            "empty": "暂无待转录的视频",
+            "emptyDesc": "从左侧选择媒体文件或点击已浏览项目，快速添加至转录队列"
         },
         "status": {
             "notStarted": "未开始",

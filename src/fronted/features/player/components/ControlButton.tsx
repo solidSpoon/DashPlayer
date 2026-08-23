@@ -33,7 +33,7 @@ export default function ControlButton() {
             {!fullScreen && (
                 <motion.div
                     className={cn(
-                        ' fixed bottom-12 right-12 z-[99]',
+                        ' fixed bottom-10 right-10 z-[99]',
                     )}
                     onClick={async () => {
                         await swrApiMutate('watch-history/list');
@@ -41,7 +41,7 @@ export default function ControlButton() {
                         changeSideBar(!showSideBar);
                     }}
                     transition={{
-                        delay: 0.2,
+                        delay: 0.15,
                         duration: 0.2,
                     }}
                     initial={{

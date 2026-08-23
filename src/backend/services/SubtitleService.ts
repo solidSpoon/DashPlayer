@@ -14,7 +14,7 @@ import StorageDirectoryProvider from '@/backend/services/gateways/storage/Storag
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
 import {
-    CompromiseSentenceElementParser,
+    WinkSentenceElementParser,
     SentenceElement,
     SentenceElementParser
 } from '@/backend/utils/language/SentenceElementParser';
@@ -29,7 +29,7 @@ export interface SubtitleVocabularyMatchResult {
     playbackSessionId: string;
     /** 字幕文件哈希，用于前端隔离过期结果。 */
     fileHash: string;
-    /** 当前字幕中命中的原始词形。 */
+    /** 当前字幕命中词条的 canonical lemma 列表。 */
     vocabularyWords: string[];
     /** 匹配过程中是否因字幕切换而提前终止。 */
     cancelled: boolean;
@@ -132,7 +132,7 @@ const logger = getMainLogger('SubtitleServiceImpl');
 @injectable()
 export class SubtitleServiceImpl implements SubtitleService {
 
-    private readonly sentenceElementParser: SentenceElementParser = new CompromiseSentenceElementParser();
+    private readonly sentenceElementParser: SentenceElementParser = new WinkSentenceElementParser();
     /** 当前生词匹配任务代次；新播放会话或新匹配任务会使旧代次失效。 */
     private vocabularyMatchGeneration = 0;
     /** 当前播放视频 ID，用于阻止旧视频任务重新激活。 */
@@ -310,7 +310,7 @@ export class SubtitleServiceImpl implements SubtitleService {
 
         const vocabularyWords = new Set<string>();
         analysisResult.lineMatches.flat().forEach((matchedWord) => {
-            vocabularyWords.add(matchedWord.original.toLowerCase());
+            vocabularyWords.add(matchedWord.lemma.toLowerCase());
         });
 
         const result = Array.from(vocabularyWords);
@@ -471,6 +471,8 @@ export class SubtitleServiceImpl implements SubtitleService {
             blockParts.push({
                 content: element.text,
                 implicit: element.implicit ?? '',
+                lemma: element.implicit,
+                pos: element.pos,
                 isWord: true,
             });
             return blockParts;

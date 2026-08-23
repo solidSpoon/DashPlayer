@@ -53,7 +53,6 @@ export default function ClearAdjustButton({ className }: ClearAdjustButtonProps)
       text={t('clearAdjust.button')}
       onClick={handleClick}
       tooltipMd={tooltipMd}
-      tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
       className={className}
     />

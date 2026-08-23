@@ -28,6 +28,7 @@ const logger = getRendererLogger('Word');
 export interface WordParam {
     word: string;
     original: string;
+    lemma?: string;
     pop: boolean;
     requestPop: () => void;
     show: boolean;
@@ -58,17 +59,22 @@ export const getBox = (ele: HTMLElement): Feature<Polygon> => {
         ],
     ]);
 };
-const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
+/**
+ * 渲染单个字幕原文词，并使用 lemma 判断生词高亮；词典查询仍传递原文。
+ * @param props 字幕词原文、lemma 及交互状态。
+ */
+const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
     const pause = usePlayer((s) => s.pause);
     const vocabularyStore = useVocabulary();
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [referenceElement, setReferenceElement] = useState<HTMLSpanElement | null>(null);
 
     const theme = useTransLineTheme();
 
     // 检查是否是词汇单词
-    const cleanWord = word.toLowerCase().replace(/[^\w-]/g, '');
+    const cleanWord = (lemma ?? word).toLowerCase().trim();
     const isVocabularyWord = cleanWord && vocabularyStore.isVocabularyWord(cleanWord);
 
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
@@ -258,11 +264,16 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
         await playWordAudio();
     };
 
+    const setWordRef = (node: HTMLSpanElement | null) => {
+        eleRef.current = node;
+        setReferenceElement(node);
+    };
+
     return (
-        <span>
+        <span className="inline">
             <span
-                ref={eleRef}
-                className="rounded cursor-pointer"
+                ref={setWordRef}
+                className="rounded cursor-pointer inline"
                 role="button"
                 tabIndex={0}
                 onFocus={() => {
@@ -273,7 +284,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                     pause();
                 }}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (e.key === 'Enter') {
                         e.preventDefault();
                         void playWordAudio();
                         if (!hovered) {
@@ -290,9 +301,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
             >
                 <span
                     className={cn(
-                        'rounded select-text',
-                        // 隐藏英文时单词显示为原样式实心占位块：生词同样保留 font-medium，
-                        // 使占位块宽度与 hover 显示后的生词完全一致，避免整行出现位移
+                        'rounded select-text transition-all duration-150',
                         !show && ['text-transparent', Style.word_hover_bg],
                         show && hoverBg,
                         show && vocabCls,
@@ -307,7 +316,7 @@ const Word = ({word, original, pop, requestPop, show, alwaysDark, classNames}: W
                 <Eb>
                     <WordPop
                         translation={dictionaryResponse}
-                        referenceElement={eleRef.current}
+                        referenceElement={referenceElement}
                         ref={popperRef}
                         isLoading={isWordLoading || isRefreshing}
                         openaiStreamingData={openaiDictionaryEnabled ? dictionaryEntry?.data : null}

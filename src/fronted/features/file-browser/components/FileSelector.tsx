@@ -15,6 +15,7 @@ import StrUtil from '@/common/utils/str-util';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import i18n from '@/fronted/i18n';
 import { useTranslation } from 'react-i18next';
+import { FileVideo } from 'lucide-react';
 
 export class FileAction {
 
@@ -151,10 +152,12 @@ export class FileAction {
 
 export default function FileSelector({
                                          onSelected,
-                                         withMkv
+                                         withMkv,
+                                         className
                                      }: {
     onSelected: (ps: string[]) => Promise<void>;
     withMkv?: boolean;
+    className?: string;
 }) {
     const { t } = useTranslation('common');
     const handleClick = async () => {
@@ -171,8 +174,11 @@ export default function FileSelector({
                     <Button
                         onClick={() => handleClick()}
                         variant={'outline'}
-                        className={cn('w-28')}
-                    >{t('openFile')}</Button>
+                        className={cn('w-full rounded-xl flex items-center justify-center gap-2 h-10', className)}
+                    >
+                        <FileVideo className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span>{t('openFile')}</span>
+                    </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     可以同时选择一个视频文件及其对应的字幕文件

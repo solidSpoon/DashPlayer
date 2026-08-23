@@ -78,81 +78,87 @@ export default function WordSidebar({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       {/* 顶部工具栏 */}
-      <div className="pb-3 space-y-3">
+      <div className="pb-3 space-y-2.5 shrink-0 border-b border-border/40">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            className="pl-10"
+            className="pl-9 h-9 text-xs rounded-xl bg-muted/30 focus-visible:bg-background border-border/50 transition-colors"
             placeholder={t('wordSearch')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
         <TooltipProvider>
-          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-            <div className="mr-auto">
+          <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground pt-0.5">
+            <div className="text-xs font-medium text-muted-foreground tabular-nums">
               {t('wordCount', { count: words.length })}
-              {searchTerm && <span className="ml-2 text-primary">{t('foundWords', { count: filteredWords.length })}</span>}
+              {searchTerm && <span className="ml-1.5 text-primary">({t('foundWords', { count: filteredWords.length })})</span>}
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label={t('exportTemplate')}
-                  type="button"
-                  onClick={onExportTemplate}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('exportTemplate')}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label={t('importExcel')}
-                  type="button"
-                  onClick={handleImportClick}
-                >
-                  <Upload className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('importExcel')}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={selectedWord ? 'outline' : 'default'}
-                  size="icon"
-                  aria-label={t('showAllVideos')}
-                  type="button"
-                  onClick={handleShowAll}
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('showAllVideos')}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label={t('locateCurrentWord')}
-                  type="button"
-                  onClick={handleLocateCurrent}
-                  disabled={!selectedWord}
-                >
-                  <LocateFixed className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('locateCurrentWord')}</TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                    aria-label={t('exportTemplate')}
+                    type="button"
+                    onClick={onExportTemplate}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('exportTemplate')}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                    aria-label={t('importExcel')}
+                    type="button"
+                    onClick={handleImportClick}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('importExcel')}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={selectedWord ? 'ghost' : 'secondary'}
+                    size="icon"
+                    className="h-7 w-7 rounded-lg"
+                    aria-label={t('showAllVideos')}
+                    type="button"
+                    onClick={handleShowAll}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('showAllVideos')}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                    aria-label={t('locateCurrentWord')}
+                    type="button"
+                    onClick={handleLocateCurrent}
+                    disabled={!selectedWord}
+                  >
+                    <LocateFixed className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('locateCurrentWord')}</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </TooltipProvider>
       </div>
@@ -160,21 +166,21 @@ export default function WordSidebar({
       {/* 列表区域：使用虚拟列表，占满剩余高度 */}
       <div className="flex-1 min-h-0 pt-2">
         {loading ? (
-          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            {t('loading')}
+              <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary border-t-transparent"></div>
+              {t('loading')}
             </div>
           </div>
         ) : filteredWords.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8 text-sm">
+          <div className="text-center text-muted-foreground py-10 text-xs">
             {searchTerm ? t('noMatchingWords') : t('noVocabulary')}
           </div>
         ) : (
           <Virtuoso
             ref={virtuosoRef}
             style={{ height: '100%' }}
-            className="scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600"
+            className="scrollbar-thin"
             data={filteredWords}
             overscan={200}
             itemContent={(index, word) => {
@@ -184,10 +190,10 @@ export default function WordSidebar({
                   role="button"
                   tabIndex={0}
                   className={[
-                    'p-2 rounded-lg cursor-pointer transition-all text-sm leading-tight mb-1',
+                    'px-3 py-2 rounded-xl cursor-pointer transition-all text-xs mb-1.5 flex flex-col gap-0.5',
                     active
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
+                      ? 'bg-primary text-primary-foreground font-medium shadow-2xs'
+                      : 'hover:bg-muted/60 text-foreground'
                   ].join(' ')}
                   onClick={() => onWordClick(word)}
                   onKeyDown={(e) => {
@@ -197,15 +203,15 @@ export default function WordSidebar({
                     }
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">{word.word}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-sm tracking-tight truncate">{word.word}</div>
                     {!!word.videoCount && word.videoCount > 0 && (
                       <div
                         className={[
-                          'text-xs px-2 py-0.5 rounded-full border',
+                          'text-[11px] px-1.5 py-0.5 rounded-md font-medium shrink-0 tabular-nums',
                           active
-                            ? 'bg-primary/20 text-primary-foreground border-primary/30'
-                            : 'bg-secondary text-secondary-foreground border-transparent'
+                            ? 'bg-primary-foreground/20 text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
                         ].join(' ')}
                       >
                         {t('videoCount', { count: word.videoCount })}

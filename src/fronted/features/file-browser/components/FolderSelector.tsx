@@ -7,6 +7,7 @@ import { Button } from '@/fronted/components/ui/button';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
 import { useTranslation } from 'react-i18next';
+import { Folder } from 'lucide-react';
 
 const logger = getRendererLogger('FolderSelector');
 
@@ -54,9 +55,12 @@ const FolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
                 <TooltipTrigger asChild>
                     <Button
                         onClick={() => handleClick()}
-                        variant={'outline'}
-                        className={cn('w-28', className)}
-                    >{t('openFolder')}</Button>
+                        variant="outline"
+                        className={cn('w-full rounded-xl flex items-center justify-center gap-2 h-10', className)}
+                    >
+                        <Folder className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span>{t('openFolder')}</span>
+                    </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     文件夹内的视频和对应的字幕文件名称最好保持一致

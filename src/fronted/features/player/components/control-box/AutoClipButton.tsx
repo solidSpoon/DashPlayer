@@ -268,9 +268,7 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
       disabled={isDisabled}
       onClick={!isDisabled ? handleClick : undefined}
       tooltipMd={tooltipMd}
-      tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
-      fullWidth
       className={className}
     />
   );

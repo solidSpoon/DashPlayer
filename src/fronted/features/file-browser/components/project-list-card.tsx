@@ -71,11 +71,13 @@ import i18n from '@/fronted/i18n';
                     }}
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
-                    className={cn('')}
+                    className="group flex flex-col gap-2.5 text-left cursor-pointer outline-none transition-transform duration-200 hover:-translate-y-0.5"
                     onClick={onSelected}
                 >
                     <div
-                        className={cn('relative w-full rounded-lg overflow-hidden border-none')}
+                        className={cn(
+                            'relative w-full rounded-2xl overflow-hidden bg-muted/60 border border-border/60 shadow-2xs transition-shadow duration-200 group-hover:shadow-md group-hover:border-border'
+                        )}
                     >
                         {/* 3. 判断如果是 mp3，优先展示 Music 图标，否则还是原先逻辑 */}
                         {isAudio ? (
@@ -87,8 +89,8 @@ import i18n from '@/fronted/i18n';
                                     aspectRatio: '16/9'
                                 }}
                                 className={cn(
-                                    'w-full object-cover',
-                                    (hover || contextMenu) && 'filter brightness-75'
+                                    'w-full object-cover transition-transform duration-300 group-hover:scale-105',
+                                    (hover || contextMenu) && 'brightness-90'
                                 )}
                                 alt={video.fileName}
                             />
@@ -97,23 +99,23 @@ import i18n from '@/fronted/i18n';
                                 style={{
                                     aspectRatio: '16/9'
                                 }}
-                                className="w-full bg-gray-500 flex items-center justify-center"
+                                className="w-full bg-muted/80 flex items-center justify-center text-muted-foreground/60"
                             >
-                                <Film className="w-8 h-8" />
+                                <Film className="w-8 h-8 stroke-1" />
                             </div>
                         )}
 
                         {(showDuration || video.isFolder) && (
                             <div
                                 className={cn(
-                                    'absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex'
+                                    'absolute bottom-2.5 right-2.5 text-white/95 bg-black/75 backdrop-blur-md rounded-lg px-2 py-0.5 text-xs font-medium flex items-center gap-1 shadow-2xs'
                                 )}
                             >
                                 {/* 如果是文件夹，就用 ListVideo 图标；如果不是文件夹，就展示时长 */}
                                 {!video.isFolder ? (
                                     TimeUtil.secondToTimeStrCompact(video?.duration)
                                 ) : (
-                                    <ListVideo className="w-4 h-4" />
+                                    <ListVideo className="w-3.5 h-3.5" />
                                 )}
                             </div>
                         )}
@@ -121,7 +123,7 @@ import i18n from '@/fronted/i18n';
                         {/* 进度条 */}
                         {showDuration && (
                             <Progress
-                                className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
+                                className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-black/30')}
                                 value={Math.floor(
                                     ((video?.current_position || 0) / (video?.duration || 1)) * 100
                                 )}
@@ -131,7 +133,7 @@ import i18n from '@/fronted/i18n';
                         {/* 悬浮时展示删除按钮 */}
                         {hover && (
                             <Button
-                                className="absolute top-2 right-2 w-6 h-6 bg-background"
+                                className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/60 hover:bg-destructive text-white backdrop-blur-sm transition-colors shadow-2xs"
                                 size="icon"
                                 variant="ghost"
                                 onClick={async (e) => {
@@ -141,16 +143,16 @@ import i18n from '@/fronted/i18n';
                                     await swrApiMutate('watch-history/list');
                                 }}
                             >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                         )}
                     </div>
 
                     <div
                         className={cn(
-                            'w-full line-clamp-2 break-words',
-                            (hover || contextMenu) && 'underline'
+                            'w-full text-xs font-medium text-foreground line-clamp-2 break-words leading-relaxed group-hover:text-foreground/80 transition-colors'
                         )}
+                        title={video.fileName}
                     >
                         {video.fileName}
                     </div>

@@ -46,11 +46,11 @@ export default function useTrafficLightsVisibility(
 
     useEffect(() => {
         if (showSideBar) {
-            showNow();
+            window.setTimeout(showNow, 0);
             clearHideTimeout();
             return;
         }
-        showNow();
+        window.setTimeout(showNow, 0);
         scheduleHide();
     }, [clearHideTimeout, scheduleHide, showNow, showSideBar]);
 

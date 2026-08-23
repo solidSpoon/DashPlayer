@@ -101,6 +101,8 @@ export const themeProvider = (
 
 export default class Style {
     public static file_browser_icon = 'w-4 h-4 text-yellow-700/90 flex-shrink-0';
-    // 占位块半透明，使其与字幕容器背景更接近，同时仍能提示词界
-    public static word_hover_bg = 'bg-stone-100/60 dark:bg-neutral-600/60';
+    // 隐藏英文字幕时的单词占位：纯透明占位保留排版，通过整行磨砂遮罩或整行 hover 优雅显现
+    public static word_hover_bg = 'select-none';
 }
+
+

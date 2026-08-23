@@ -101,7 +101,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             fullText: session.paragraphLines.join(' '),
             subtitleOverview: this.getSubtitleOverview(session.subtitleFileHash, session.anchorSentenceIndex),
         });
-        this.startTextRun(sessionId, messageId, messages, 'welcome', params.reasoningEffort ?? 'medium');
+        this.startTextRun(sessionId, messageId, messages, 'welcome', params.reasoningEffort ?? 'auto');
 
         return { messageId };
     }
@@ -144,14 +144,14 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * 向会话追加用户消息并基于 main 进程持有的历史启动回答。
      * @param sessionId 会话 ID。
      * @param content 新增的用户文本。
-     * @param reasoningEffort 本次回答的推理强度，未传时使用中档。
+     * @param reasoningEffort 本次回答的推理强度；auto 或未传时不发送 reasoning。
      * @returns 新 assistant 消息的 ID。
      */
     @WithRateLimit('gpt')
     public async start(
         sessionId: string,
         content: string,
-        reasoningEffort: ChatReasoningEffort = 'medium',
+        reasoningEffort: ChatReasoningEffort = 'auto',
     ): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
         this.chatSessionStore.appendMessage(sessionId, { role: 'user', content });
@@ -212,7 +212,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         abortSignal: AbortSignal,
         reasoningEffort: ChatReasoningEffort,
     ): Promise<void> {
-        const model = this.aiProviderService.getModel('sentenceLearning', reasoningEffort);
+        const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             return;
         }
@@ -225,6 +225,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             model,
             system,
             messages: promptMessages,
+            ...(reasoningEffort === 'auto' ? {} : { reasoning: reasoningEffort }),
             tools: this.buildSubtitleTools(sessionId),
             stopWhen: isStepCount(20),
             abortSignal,

@@ -81,7 +81,7 @@ const FavouritePlayer = () => {
       playerActions.setSource(null);
       playerActions.clearSubtitles();
       loadedKeyRef.current = null;
-      setReady(false);
+      window.setTimeout(() => setReady(false), 0);
       bootOnceRef.current = false;
       return;
     }
@@ -99,7 +99,7 @@ const FavouritePlayer = () => {
         playerActions.loadSubtitles(sentencesConv);
       }
       loadedKeyRef.current = videoKey;
-      setReady(false);
+      window.setTimeout(() => setReady(false), 0);
       bootOnceRef.current = false;
       logger.debug('Loaded new clip', { key: videoKey });
     } else {
@@ -201,26 +201,34 @@ const FavouritePlayer = () => {
 
   if (!playInfo) {
     return (
-      <div className="w-full flex flex-col gap-4 p-6">
-        <div className="text-center text-muted-foreground">请从左侧选择一个收藏片段开始播放</div>
+      <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground/60 text-sm">
+        选择左侧片段即可播放
       </div>
     );
   }
 
   return (
-    <div className={'w-full flex flex-col gap-4'}>
-      <AspectRatio ratio={16 / 9}>
-        <div className="w-full rounded-lg overflow-hidden">
+    <div className="w-full flex flex-col gap-3 select-none">
+      {/* 视频主播放窗口 */}
+      <AspectRatio ratio={16 / 9} className="w-full">
+        <div className="w-full h-full rounded-xl overflow-hidden bg-black shadow-xs">
           <PlayerEngine width="100%" height="100%" onReady={handlePlayerReady} onEnded={handlePlayerEnded} />
         </div>
       </AspectRatio>
 
-      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+      {/* 控制条：极简通透无外线框 */}
+      <div className="flex items-center gap-1.5 px-1 py-1">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={() => playerActions.togglePlay()} disabled={!ready}>
-                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              <Button
+                variant={playing ? 'secondary' : 'default'}
+                size="icon"
+                className="h-8 w-8 rounded-lg shrink-0 shadow-2xs"
+                onClick={() => playerActions.togglePlay()}
+                disabled={!ready}
+              >
+                {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -232,7 +240,13 @@ const FavouritePlayer = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={goToPreviousVideo} disabled={!ready || allVideos.length === 0}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={goToPreviousVideo}
+                disabled={!ready || allVideos.length === 0}
+              >
                 <SkipBack className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -245,7 +259,13 @@ const FavouritePlayer = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={goToNextVideo} disabled={!ready || allVideos.length === 0}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={goToNextVideo}
+                disabled={!ready || allVideos.length === 0}
+              >
                 <SkipForward className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -258,8 +278,14 @@ const FavouritePlayer = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={() => playerActions.repeatCurrent({ loop: false })} disabled={!ready}>
-                <RotateCcw className="w-4 h-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => playerActions.repeatCurrent({ loop: false })}
+                disabled={!ready}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -271,7 +297,10 @@ const FavouritePlayer = () => {
         <FavouriteProgress />
       </div>
 
+      {/* 标签管理 */}
       <TagSelector />
+
+      {/* 当前精读金句与翻译 */}
       <FavouriteMainSrt />
 
       <VideoPlayerShortcut

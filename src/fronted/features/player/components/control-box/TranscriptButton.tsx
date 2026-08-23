@@ -97,7 +97,6 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       disabled={isInProgress}
       onClick={handleClick}
       tooltipMd={tooltipMd}
-      tooltipClassName="p-8 pb-6 rounded-md shadow-lg"
       variant="ghost"
       className={className}
     />

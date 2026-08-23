@@ -13,6 +13,7 @@ import useSWR from 'swr';
 import { transcriptApi } from '../transcriptApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { CheckCircle2, Clock, FileVideo, Loader2, Play, Trash2, XCircle } from 'lucide-react';
 
 /** 单个转录任务行的输入属性。 */
 export interface TranscriptItemProps {
@@ -39,14 +40,15 @@ const TranscriptItem = ({ task, onStart, onDelete }: TranscriptItemProps) => {
         if (task && task.status) {
             const status = task.status as TranscriptTaskState;
             if (status === TranscriptTaskState.DONE || status === TranscriptTaskState.CANCELLED || status === TranscriptTaskState.FAILED) {
-                setStarted(false);
+                window.setTimeout(() => setStarted(false), 0);
             }
         }
     }, [task]);
 
+    const status = task?.status as TranscriptTaskState;
+
     let msg = t('subtitleWorkspace.status.notStarted');
     if (task && task.status) {
-        const status = task.status as TranscriptTaskState;
         switch (status) {
             case TranscriptTaskState.INIT:
                 msg = t('subtitleWorkspace.status.initializing');
@@ -90,62 +92,130 @@ const TranscriptItem = ({ task, onStart, onDelete }: TranscriptItemProps) => {
         }
     };
 
-    const status = task?.status as TranscriptTaskState;
     const isFinished = !task || !status || status === TranscriptTaskState.DONE || status === TranscriptTaskState.CANCELLED || status === TranscriptTaskState.FAILED;
+    const isRunning = status === TranscriptTaskState.IN_PROGRESS || status === TranscriptTaskState.INIT || started;
+
+    const renderStatusBadge = () => {
+        if (!task || !status) {
+            return (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-border/50">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{msg}</span>
+                </span>
+            );
+        }
+        if (status === TranscriptTaskState.INIT || status === TranscriptTaskState.IN_PROGRESS) {
+            return (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary border border-primary/20 animate-pulse">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span className="truncate max-w-[120px]" title={msg}>{msg}</span>
+                </span>
+            );
+        }
+        if (status === TranscriptTaskState.DONE) {
+            return (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{msg}</span>
+                </span>
+            );
+        }
+        if (status === TranscriptTaskState.FAILED) {
+            return (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive border border-destructive/20">
+                    <XCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate max-w-[120px]" title={msg}>{msg}</span>
+                </span>
+            );
+        }
+        return (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-border/50">
+                <span>{msg}</span>
+            </span>
+        );
+    };
 
     return (
-        <TableRow>
-            <TableCell className="font-medium">
+        <TableRow className="border-border/50 hover:bg-muted/30 transition-colors group">
+            <TableCell className="font-medium pl-4 py-3 min-w-0 max-w-0">
                 <TooltipProvider>
                     <Tooltip>
-                        <TooltipTrigger className="text-left">
-                            {fInfo?.baseName}
+                        <TooltipTrigger className="text-left flex items-center gap-2.5 w-full min-w-0">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground border border-border/60 group-hover:border-primary/30 group-hover:text-primary transition-colors">
+                                <FileVideo className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                                <div className="truncate text-sm font-medium text-foreground">
+                                    {fInfo?.baseName || file}
+                                </div>
+                                <div className="truncate text-[11px] text-muted-foreground/80 font-normal">
+                                    {file}
+                                </div>
+                            </div>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="text-xs max-w-md break-all">
                             {file}
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
             </TableCell>
-            <TableCell className={cn(
-                'text-sm',
-                status === TranscriptTaskState.DONE && 'text-green-600 dark:text-green-400',
-                status === TranscriptTaskState.FAILED && 'text-destructive',
-                status === TranscriptTaskState.CANCELLED && 'text-muted-foreground'
-            )}>{msg}</TableCell>
-            <TableCell className="flex gap-1">
-                <Button
-                    onClick={async () => {
-                        const result = await onStart();
-                        if (result === 'model_missing') {
-                            toast.error(t('subtitleWorkspace.modelMissing'));
-                            return;
-                        }
-                        setStarted(true);
-                    }}
-                    disabled={!task || (task.status as TranscriptTaskState) === TranscriptTaskState.IN_PROGRESS || (task.status as TranscriptTaskState) === TranscriptTaskState.INIT || (started && !task)}
-                    size="sm"
-                    className="mx-auto"
-                >{t('subtitleWorkspace.actions.transcribe')}</Button>
-                <Button
-                    onClick={() => {
-                        if (isFinished) {
-                            void onDelete();
-                        } else {
-                            handleCancelTranscription();
-                        }
-                    }}
-                    variant="secondary"
-                    size="sm"
-                    className="mx-auto"
-                    disabled={cancelling}
-                >
-                    {cancelling
-                        ? t('subtitleWorkspace.status.cancelling')
-                        : isFinished
-                            ? t('subtitleWorkspace.actions.delete')
-                            : t('subtitleWorkspace.actions.cancel')}
-                </Button>
+            <TableCell className="py-3">
+                {renderStatusBadge()}
+            </TableCell>
+            <TableCell className="py-3 pr-4 text-right">
+                <div className="flex items-center justify-end gap-1.5 shrink-0">
+                    {/* 转录 / 重试按钮 */}
+                    {(!isRunning || isFinished) && (
+                        <Button
+                            onClick={async () => {
+                                const result = await onStart();
+                                if (result === 'model_missing') {
+                                    toast.error(t('subtitleWorkspace.modelMissing'));
+                                    return;
+                                }
+                                setStarted(true);
+                            }}
+                            size="sm"
+                            className="h-8 gap-1 px-3 text-xs font-medium shadow-2xs"
+                        >
+                            <Play className="h-3.5 w-3.5 fill-current" />
+                            <span>{t('subtitleWorkspace.actions.transcribe')}</span>
+                        </Button>
+                    )}
+
+                    {/* 取消 / 删除按钮 */}
+                    <Button
+                        onClick={() => {
+                            if (isFinished) {
+                                void onDelete();
+                            } else {
+                                handleCancelTranscription();
+                            }
+                        }}
+                        variant={isFinished ? 'ghost' : 'destructive'}
+                        size="sm"
+                        className={cn(
+                            'h-8 px-2.5 text-xs transition-colors',
+                            isFinished && 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+                        )}
+                        disabled={cancelling}
+                    >
+                        {cancelling ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : isFinished ? (
+                            <Trash2 className="h-3.5 w-3.5" />
+                        ) : (
+                            <XCircle className="h-3.5 w-3.5" />
+                        )}
+                        <span className="ml-1">
+                            {cancelling
+                                ? t('subtitleWorkspace.status.cancelling')
+                                : isFinished
+                                    ? t('subtitleWorkspace.actions.delete')
+                                    : t('subtitleWorkspace.actions.cancel')}
+                        </span>
+                    </Button>
+                </div>
             </TableCell>
         </TableRow>
     );
