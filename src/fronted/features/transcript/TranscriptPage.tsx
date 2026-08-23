@@ -57,8 +57,8 @@ const TranscriptPage = () => {
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
-            {/* 顶栏标题区：保持与 SplitPage / ConvertPage 一致的标准 PageHeader */}
-            <div className="px-6 pt-6 pb-4 border-b border-border/50">
+            {/* 顶栏标题区：保持现代无分割线设计 */}
+            <div className="px-6 pt-5 pb-2">
                 <PageHeader
                     title={t('subtitleWorkspace.title')}
                     description={t('subtitleWorkspace.description')}
@@ -80,7 +80,7 @@ const TranscriptPage = () => {
             </div>
 
             {/* 内容区：左侧 460px~520px 宽资源选择，右侧自适应任务列表 */}
-            <div className="flex-1 min-h-0 flex gap-6 px-6 py-5 overflow-hidden">
+            <div className="flex-1 min-h-0 flex gap-5 px-6 pb-5 pt-1 overflow-hidden">
                 <div className="w-[460px] xl:w-[500px] 2xl:w-[540px] shrink-0 min-h-0 flex flex-col">
                     <TranscriptFile tasks={tasks} onEnqueue={enqueue} />
                 </div>

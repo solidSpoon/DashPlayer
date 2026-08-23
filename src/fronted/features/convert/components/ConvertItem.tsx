@@ -56,9 +56,11 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
     } as ConvertResult;
 
 
+    const isRunning = dpTask?.status === DpTaskState.IN_PROGRESS;
+
     return (
         <ContextMenu>
-            <ContextMenuTrigger>
+            <ContextMenuTrigger asChild>
                 <div
                     onClick={onSelected}
                     role="button"
@@ -69,69 +71,92 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                             onSelected();
                         }
                     }}
-                    className={cn('flex gap-6  p-4 relative rounded-xl overflow-hidden', className)}>
-                    <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
-                        {url ? <img
-                            src={UrlUtil.toUrl(url)}
-                            style={{
-                                aspectRatio: '16/9'
-                            }}
-                            className="w-full object-cover"
-                            alt={file}
-                        /> : <div
-                            style={{
-                                aspectRatio: '16/9'
-                            }}
-                            className={'w-full bg-gray-500 flex items-center justify-center'}>
-                            <Film />
-                        </div>}
-                        <div
-                            className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
-                            {TimeUtil.secondToTimeStrCompact(videoLength)}
-                        </div>
-                    </div>
-
-                    <div className={'flex-1 w-0 flex flex-col'}>
-                        <div
-                            className={' w-full line-clamp-2 break-words h-fit'}
-                        >{file}</div>
-                        <div className={'w-full mt-auto flex gap-2 justify-end'}>
-
-                            <Button
-                                onClick={async () => {
-                                    if (dpTask?.status === DpTaskState.IN_PROGRESS) {
-                                        if (taskId === undefined) {
-                                            throw new Error(`转换任务缺少任务编号：${file}`);
-                                        }
-                                        await convertApi.cancelTask(taskId);
-                                    } else {
-                                        onDeleted?.();
-                                    }
-                                }}
-                                className={cn(buttonVariant === 'small' && 'px-2.5 py-0.5 text-xs h-6')}
-                                size={'sm'}
-                                variant={'secondary'}>
-                                {dpTask?.status === DpTaskState.IN_PROGRESS ? t('formatConverter.cancel') : t('formatConverter.delete')}
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    convert(file);
-                                }}
-                                disabled={dpTask?.status === DpTaskState.IN_PROGRESS}
-                                className={cn(buttonVariant === 'small' && 'px-2.5 py-0.5 text-xs h-6')}
-                                size={'sm'} variant={'default'}>
-                                {t('formatConverter.fix')}
-                            </Button>
-                        </div>
-                    </div>
-
-                    <Progress
-                        className={cn(
-                            'absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500',
-                            '[&>*]:transition-transform [&>*]:duration-700 [&>*]:ease-out'
+                    className={cn(
+                        'group flex gap-4 p-3.5 relative rounded-xl overflow-hidden transition-all text-foreground select-none',
+                        className
+                    )}
+                >
+                    {/* 视频缩略图 */}
+                    <div className="relative w-36 sm:w-40 shrink-0 rounded-lg overflow-hidden bg-muted/60 border border-border/40 aspect-video flex items-center justify-center">
+                        {url ? (
+                            <img
+                                src={UrlUtil.toUrl(url)}
+                                className="w-full h-full object-cover"
+                                alt={file}
+                            />
+                        ) : (
+                            <Film className="w-6 h-6 text-muted-foreground/60" />
                         )}
-                        value={progress.progress}
-                    />
+                        {videoLength !== undefined && (
+                            <div className="absolute bottom-1.5 right-1.5 text-white bg-black/75 backdrop-blur-xs rounded px-1.5 py-0.5 text-[11px] font-mono leading-none">
+                                {TimeUtil.secondToTimeStrCompact(videoLength)}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 文件名及操作区 */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-foreground line-clamp-2 break-all leading-snug" title={file}>
+                                {file.split(/[/\\]/).pop() || file}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground truncate" title={file}>
+                                {file}
+                            </span>
+                        </div>
+
+                        <div className="w-full flex items-center justify-between mt-2 pt-1">
+                            {/* 进度/状态简述 */}
+                            <div className="text-[11px] font-mono text-muted-foreground">
+                                {isRunning && progress.progress !== undefined ? `${Math.round(progress.progress)}%` : ''}
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                                <Button
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (isRunning) {
+                                            if (taskId === undefined) {
+                                                throw new Error(`转换任务缺少任务编号：${file}`);
+                                            }
+                                            await convertApi.cancelTask(taskId);
+                                        } else {
+                                            onDeleted?.();
+                                        }
+                                    }}
+                                    className={cn(
+                                        buttonVariant === 'small' ? 'px-2 py-0 text-xs h-6.5' : 'h-7 px-2.5 text-xs'
+                                    )}
+                                    size="sm"
+                                    variant="ghost"
+                                >
+                                    {isRunning ? t('formatConverter.cancel') : t('formatConverter.delete')}
+                                </Button>
+                                <Button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        convert(file);
+                                    }}
+                                    disabled={isRunning}
+                                    className={cn(
+                                        buttonVariant === 'small' ? 'px-2.5 py-0 text-xs h-6.5 font-medium' : 'h-7 px-3 text-xs font-medium'
+                                    )}
+                                    size="sm"
+                                    variant={isRunning ? 'secondary' : 'default'}
+                                >
+                                    {t('formatConverter.fix')}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 底部进度条 */}
+                    {isRunning && (
+                        <Progress
+                            className="absolute bottom-0 left-0 w-full rounded-none h-1 bg-muted/40 [&>*]:transition-transform [&>*]:duration-500"
+                            value={progress.progress}
+                        />
+                    )}
                 </div>
             </ContextMenuTrigger>
             <ContextMenuContent>
@@ -139,7 +164,9 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                     onClick={async () => {
                         await convertApi.openFolder(file);
                     }}
-                >{i18n.t('common:showInExplorer')}</ContextMenuItem>
+                >
+                    {i18n.t('common:showInExplorer')}
+                </ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>
     );

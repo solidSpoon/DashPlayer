@@ -32,16 +32,16 @@ const SplitRow = ({ line, shortDurationLabel }: { line: TaskChapterParseResult; 
     });
     const valid = (TimeUtil.parseDuration(line.timestampEnd) - TimeUtil.parseDuration(line.timestampStart)) > 60;
     return (
-        <TableRow>
+        <TableRow className="border-b border-border/40 hover:bg-muted/40 transition-colors">
             <TableCell
                 className={cn(
-                    'font-mono text-xs',
-                    !line.timestampValid && 'bg-red-100 dark:bg-red-950'
+                    'font-mono text-xs py-2 px-3 w-28 text-muted-foreground',
+                    !line.timestampValid && 'bg-destructive/10 text-destructive font-medium'
                 )}
             >
                 <TooltipProvider>
                     <Tooltip>
-                        <TooltipTrigger>{line.timestampStart}</TooltipTrigger>
+                        <TooltipTrigger className="hover:underline">{line.timestampStart}</TooltipTrigger>
                         <TooltipContent>
                             {valid ? TimeUtil.timeStrToChinese(line.timestampStart) : shortDurationLabel}
                         </TooltipContent>
@@ -50,13 +50,13 @@ const SplitRow = ({ line, shortDurationLabel }: { line: TaskChapterParseResult; 
             </TableCell>
             <TableCell
                 className={cn(
-                    'font-mono text-xs',
-                    !line.timestampValid && 'bg-red-100 dark:bg-red-950'
+                    'font-mono text-xs py-2 px-3 w-28 text-muted-foreground',
+                    !line.timestampValid && 'bg-destructive/10 text-destructive font-medium'
                 )}
             >
                 <TooltipProvider>
                     <Tooltip>
-                        <TooltipTrigger>{line.timestampEnd}</TooltipTrigger>
+                        <TooltipTrigger className="hover:underline">{line.timestampEnd}</TooltipTrigger>
                         <TooltipContent>
                             {valid ? TimeUtil.timeStrToChinese(line.timestampEnd) : shortDurationLabel}
                         </TooltipContent>
@@ -65,10 +65,12 @@ const SplitRow = ({ line, shortDurationLabel }: { line: TaskChapterParseResult; 
             </TableCell>
             <TableCell
                 className={cn(
-                    'text-sm break-words whitespace-normal',
-                    StrUtil.isBlank(line.title) && 'bg-red-100 dark:bg-red-950'
+                    'text-xs py-2 px-3 break-words whitespace-normal font-medium text-foreground',
+                    StrUtil.isBlank(line.title) && 'bg-destructive/10 text-destructive italic'
                 )}
-            >{line.title}</TableCell>
+            >
+                {line.title || '(未命名字段)'}
+            </TableCell>
         </TableRow>
     );
 };
@@ -85,19 +87,19 @@ const SplitPreview = ({ className }: {
 
     if (lines.length === 0) {
         return (
-            <div className={cn('flex items-center justify-center py-16 text-sm text-muted-foreground', className)}>
-                {t('sentenceSplitter.preview.empty')}
+            <div className={cn('flex flex-col items-center justify-center py-20 text-center text-muted-foreground', className)}>
+                <p className="text-xs leading-relaxed max-w-xs">{t('sentenceSplitter.preview.empty')}</p>
             </div>
         );
     }
 
     return (
-        <Table className={cn('min-w-0 w-full table-fixed', className)}>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="w-24">{t('sentenceSplitter.preview.startTime')}</TableHead>
-                    <TableHead className="w-24">{t('sentenceSplitter.preview.endTime')}</TableHead>
-                    <TableHead>{t('sentenceSplitter.preview.title')}</TableHead>
+        <Table className={cn('min-w-0 w-full table-fixed select-text', className)}>
+            <TableHeader className="sticky top-0 bg-muted/40 backdrop-blur-xs z-10 border-b border-border/50">
+                <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-28 text-xs font-semibold py-2 px-3">{t('sentenceSplitter.preview.startTime')}</TableHead>
+                    <TableHead className="w-28 text-xs font-semibold py-2 px-3">{t('sentenceSplitter.preview.endTime')}</TableHead>
+                    <TableHead className="text-xs font-semibold py-2 px-3">{t('sentenceSplitter.preview.title')}</TableHead>
                 </TableRow>
             </TableHeader>
             <ErrorBoundary fallback={<FallBack />}>

@@ -23,87 +23,91 @@ const SplitFile = () => {
     })));
 
     return (
-        <div className={cn('w-full h-full flex flex-col rounded p-4')}>
-            <div
-                className={cn('flex flex-wrap w-full justify-center items-center gap-2 min-h-14 rounded-lg border border-dashed p-2 mb-3')}
-            >
-                <FileSelector onSelected={async (ps) => {
-                    const vp = ps.find(MediaUtil.isMedia);
-                    const sp = ps.find(MediaUtil.isSrt);
-                    if (vp) {
-                        updateFile(vp);
-                        await splitApi.createWatchHistory(ps);
-                    }
-                    if (sp) {
-                        updateFile(sp);
-                        if (StrUtil.isNotBlank(videoPath)) {
-                            await splitApi.attachSubtitle(videoPath, sp);
+        <div className={cn('w-full h-full flex flex-col pt-1')}>
+            <div className="flex items-center gap-2 pb-2">
+                <div className="flex-1 min-w-0">
+                    <FileSelector onSelected={async (ps) => {
+                        const vp = ps.find(MediaUtil.isMedia);
+                        const sp = ps.find(MediaUtil.isSrt);
+                        if (vp) {
+                            updateFile(vp);
+                            await splitApi.createWatchHistory(ps);
                         }
-                    }
-                    await swrApiMutate('watch-history/list');
-                    await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
-                }}/>
-                <FolderSelector onSelected={FolderSelectAction.defaultAction()}/>
+                        if (sp) {
+                            updateFile(sp);
+                            if (StrUtil.isNotBlank(videoPath)) {
+                                await splitApi.attachSubtitle(videoPath, sp);
+                            }
+                        }
+                        await swrApiMutate('watch-history/list');
+                        await swrMutate(SWR_KEY.WATCH_PROJECT_DETAIL);
+                    }}/>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <FolderSelector onSelected={FolderSelectAction.defaultAction()}/>
+                </div>
             </div>
 
-            <ProjectListComp
-                backEle={(root, currentPath, hc) => (
-                    <BackNavItem
-                        root={root}
-                        currentPath={currentPath}
-                        onClick={hc}
-                    />
-                )}
-                videoEle={(pv) => {
-                    return <VideoItem2 pv={pv}
-                                       variant={PathUtil.join(pv.basePath,pv.fileName) === videoPath ? 'highlight' : 'normal'}
-                                       ctxMenus={[
-                                           {
-                                               icon: <Folder/>,
-                                               text: i18n.t('common:showInExplorer'),
-                                               onClick: async () => {
-                                                   await splitApi.openFolder(pv.basePath);
+            <div className="flex-1 min-h-0 overflow-hidden">
+                <ProjectListComp
+                    backEle={(root, currentPath, hc) => (
+                        <BackNavItem
+                            root={root}
+                            currentPath={currentPath}
+                            onClick={hc}
+                        />
+                    )}
+                    videoEle={(pv) => {
+                        return <VideoItem2 pv={pv}
+                                           variant={PathUtil.join(pv.basePath,pv.fileName) === videoPath ? 'highlight' : 'normal'}
+                                           ctxMenus={[
+                                               {
+                                                   icon: <Folder/>,
+                                                   text: i18n.t('common:showInExplorer'),
+                                                   onClick: async () => {
+                                                       await splitApi.openFolder(pv.basePath);
+                                                   }
                                                }
-                                           }
-                                       ]}
-                                       onClick={() => {
-                                           updateFile(PathUtil.join(pv.basePath,pv.fileName));
-                                           updateFile(pv.srtFile);
-                                       }}
-                    />
-                }}
-                projEle={(p, hc) => {
-                    const ctxMenus = [
-                        {
-                            icon: <Folder/>,
-                            text: i18n.t('common:showInExplorer'),
-                            onClick: async () => {
-                                await splitApi.openFolder(p.basePath);
+                                           ]}
+                                           onClick={() => {
+                                               updateFile(PathUtil.join(pv.basePath,pv.fileName));
+                                               updateFile(pv.srtFile);
+                                           }}
+                        />
+                    }}
+                    projEle={(p, hc) => {
+                        const ctxMenus = [
+                            {
+                                icon: <Folder/>,
+                                text: i18n.t('common:showInExplorer'),
+                                onClick: async () => {
+                                    await splitApi.openFolder(p.basePath);
+                                }
+                            },
+                            {
+                                icon: <X/>,
+                                text: i18n.t('common:delete'),
+                                disabled: false,
+                                onClick: async () => {
+                                    await splitApi.deleteWatchHistoryGroup(p.id);
+                                    await swrApiMutate('watch-history/list');
+                                }
                             }
-                        },
-                        {
-                            icon: <X/>,
-                            text: i18n.t('common:delete'),
-                            disabled: false,
-                            onClick: async () => {
-                                await splitApi.deleteWatchHistoryGroup(p.id);
-                                await swrApiMutate('watch-history/list');
-                            }
-                        }
-                    ];
-                    return <ProjItem2  v={p}
-                                      variant={PathUtil.join(p?.basePath, p?.fileName) === videoPath ? 'highlight' : 'normal'}
-                                      ctxMenus={ctxMenus}
-                                      onClick={() => {
-                                          hc();
-                                          if (!p.isFolder) {
-                                              updateFile(PathUtil.join(p.basePath, p.fileName));
-                                              updateFile(p.srtFile);
-                                          }
-                                      }}/>
-                }}
-                className={cn('w-full h-0 flex-1 scrollbar-none')}
-            />
+                        ];
+                        return <ProjItem2  v={p}
+                                          variant={PathUtil.join(p?.basePath, p?.fileName) === videoPath ? 'highlight' : 'normal'}
+                                          ctxMenus={ctxMenus}
+                                          onClick={() => {
+                                              hc();
+                                              if (!p.isFolder) {
+                                                  updateFile(PathUtil.join(p.basePath, p.fileName));
+                                                  updateFile(p.srtFile);
+                                              }
+                                          }}/>
+                    }}
+                    className={cn('w-full h-full scrollbar-none')}
+                />
+            </div>
         </div>
     );
 };
