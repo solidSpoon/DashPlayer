@@ -10,7 +10,7 @@ import { Progress } from '@/fronted/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/fronted/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
-import { SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
+import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
@@ -431,38 +431,34 @@ const ServiceCredentialSetting = () => {
                 description={t('serviceCredentials.description')}
                 contentClassName="space-y-6"
             >
-                <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
-                    {t('serviceCredentials.intro')}
-                </div>
-
                 {autoSaveStatus === 'error' && autoSaveError && (
                     <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
                         {autoSaveError}
                     </div>
                 )}
 
-                <div className="rounded-xl border border-border/70 p-5 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <div className="flex items-center gap-2 text-sm font-semibold"><Bot className="w-4 h-4" />OpenAI</div>
-                            <div className="text-xs text-muted-foreground mt-1">{t('serviceCredentials.openai.description')}</div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                {/* OpenAI 凭据卡片 */}
+                <SettingCard
+                    title="OpenAI"
+                    description={t('serviceCredentials.openai.description')}
+                    icon={Bot}
+                    headerAction={
+                        <div className="flex items-center gap-2">
                             {testResults.openai && (
-                                <span className={`flex items-center gap-1 text-xs ${testResults.openai.success ? 'text-green-600' : 'text-destructive'}`}>
+                                <span className={`flex items-center gap-1 text-xs ${testResults.openai.success ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
                                     {testResults.openai.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                                     {testResults.openai.success ? t('common.testSuccess') : testResults.openai.message}
                                 </span>
                             )}
                             <Button type="button" variant="outline" size="sm" onClick={() => testProvider('openai').catch(() => null)} disabled={testingOpenAi || autoSaveStatus === 'saving'}>
-                                <TestTube className="w-4 h-4 mr-2" />
+                                <TestTube className="w-3.5 h-3.5 mr-1.5" />
                                 {testingOpenAi ? t('common.testing') : t('common.testConnection')}
                             </Button>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2 md:col-span-2">
+                    }
+                >
+                    <div className="p-4 space-y-4">
+                        <div className="space-y-2">
                             <Label>API Key</Label>
                             <Input type="password" {...register('openai.key')} placeholder="sk-..." />
                         </div>
@@ -481,7 +477,7 @@ const ServiceCredentialSetting = () => {
                             </div>
                             <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.chatCompletionOnly')}</div>
                         </div>
-                        <div className="space-y-2 md:col-span-2">
+                        <div className="space-y-2">
                             <Label>{t('serviceCredentials.openai.modelsLabel')}</Label>
                             <div className="rounded-md border border-border/70 overflow-hidden">
                                 <Table>
@@ -531,28 +527,29 @@ const ServiceCredentialSetting = () => {
                             <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.usedByHint')}</div>
                         </div>
                     </div>
-                </div>
+                </SettingCard>
 
-                <div className="rounded-xl border border-border/70 p-5 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <div className="flex items-center gap-2 text-sm font-semibold"><Languages className="w-4 h-4" />{t('serviceCredentials.tencent.title')}</div>
-                            <div className="text-xs text-muted-foreground mt-1">{t('serviceCredentials.tencent.description')}</div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                {/* 腾讯云凭据卡片 */}
+                <SettingCard
+                    title={t('serviceCredentials.tencent.title')}
+                    description={t('serviceCredentials.tencent.description')}
+                    icon={Languages}
+                    headerAction={
+                        <div className="flex items-center gap-2">
                             {testResults.tencent && (
-                                <span className={`flex items-center gap-1 text-xs ${testResults.tencent.success ? 'text-green-600' : 'text-destructive'}`}>
+                                <span className={`flex items-center gap-1 text-xs ${testResults.tencent.success ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
                                     {testResults.tencent.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                                     {testResults.tencent.success ? t('common.testSuccess') : testResults.tencent.message}
                                 </span>
                             )}
                             <Button type="button" variant="outline" size="sm" onClick={() => testProvider('tencent').catch(() => null)} disabled={testingTencent || autoSaveStatus === 'saving'}>
-                                <TestTube className="w-4 h-4 mr-2" />
+                                <TestTube className="w-3.5 h-3.5 mr-1.5" />
                                 {testingTencent ? t('common.testing') : t('common.testConnection')}
                             </Button>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    }
+                >
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>SecretId</Label>
                             <Input {...register('tencent.secretId')} />
@@ -562,28 +559,29 @@ const ServiceCredentialSetting = () => {
                             <Input type="password" {...register('tencent.secretKey')} />
                         </div>
                     </div>
-                </div>
+                </SettingCard>
 
-                <div className="rounded-xl border border-border/70 p-5 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <div className="flex items-center gap-2 text-sm font-semibold"><Book className="w-4 h-4" />{t('serviceCredentials.youdao.title')}</div>
-                            <div className="text-xs text-muted-foreground mt-1">{t('serviceCredentials.youdao.description')}</div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                {/* 有道词典凭据卡片 */}
+                <SettingCard
+                    title={t('serviceCredentials.youdao.title')}
+                    description={t('serviceCredentials.youdao.description')}
+                    icon={Book}
+                    headerAction={
+                        <div className="flex items-center gap-2">
                             {testResults.youdao && (
-                                <span className={`flex items-center gap-1 text-xs ${testResults.youdao.success ? 'text-green-600' : 'text-destructive'}`}>
+                                <span className={`flex items-center gap-1 text-xs ${testResults.youdao.success ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
                                     {testResults.youdao.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                                     {testResults.youdao.success ? t('common.testSuccess') : testResults.youdao.message}
                                 </span>
                             )}
                             <Button type="button" variant="outline" size="sm" onClick={() => testProvider('youdao').catch(() => null)} disabled={testingYoudao || autoSaveStatus === 'saving'}>
-                                <TestTube className="w-4 h-4 mr-2" />
+                                <TestTube className="w-3.5 h-3.5 mr-1.5" />
                                 {testingYoudao ? t('common.testing') : t('common.testConnection')}
                             </Button>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    }
+                >
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>{t('serviceCredentials.youdao.appId')}</Label>
                             <Input {...register('youdao.secretId')} />
@@ -593,19 +591,20 @@ const ServiceCredentialSetting = () => {
                             <Input type="password" {...register('youdao.secretKey')} />
                         </div>
                     </div>
-                </div>
+                </SettingCard>
 
-                <div className="rounded-xl border border-border/70 p-5 space-y-4">
-                    <div>
-                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />英语字幕识别模型</div>
-                        <div className="text-xs text-muted-foreground mt-1">用于自动生成英语字幕，模型大小约 640 MB。</div>
-                    </div>
-                    <div className="space-y-3">
+                {/* 英语字幕识别模型卡片 */}
+                <SettingCard
+                    title="英语字幕识别模型"
+                    description="用于自动生成英语字幕，模型大小约 640 MB。"
+                    icon={Cpu}
+                >
+                    <div className="p-4 space-y-3">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <span className="text-sm font-medium">Parakeet TDT 0.6B v3 INT8</span>
                                 {parakeetModelStatus?.ready ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600 dark:text-green-400"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
                                 )}
@@ -689,7 +688,7 @@ const ServiceCredentialSetting = () => {
                                         </ContextMenuTrigger>
                                         <ContextMenuContent>
                                             <ContextMenuItem onSelect={() => copyText(parakeetModelStatus.archivePath)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
-                                            <ContextMenuItem onSelect={() => openModelFolder(parakeetModelStatus.archivePath)}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
+                                            <ContextMenuItem onSelect={() => openParakeetModelFolder()}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
                                         </ContextMenuContent>
                                     </ContextMenu>
                                 </div>
@@ -697,19 +696,20 @@ const ServiceCredentialSetting = () => {
                             </div>
                         )}
                     </div>
-                </div>
+                </SettingCard>
 
-                <div className="rounded-xl border border-border/70 p-5 space-y-4">
-                    <div>
-                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />英语语音朗读模型</div>
-                        <div className="text-xs text-muted-foreground mt-1">用于英语语音朗读，完全离线生成音频。</div>
-                    </div>
-                    <div className="space-y-3">
+                {/* 英语语音朗读模型卡片 */}
+                <SettingCard
+                    title="英语语音朗读模型"
+                    description="用于英语语音朗读，完全离线生成音频。"
+                    icon={Cpu}
+                >
+                    <div className="p-4 space-y-3">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <span className="text-sm font-medium">Piper en_US Amy Low</span>
                                 {sherpaTtsModelStatus?.ready ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600 dark:text-green-400"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
                                 )}
@@ -761,7 +761,7 @@ const ServiceCredentialSetting = () => {
                                         </ContextMenuTrigger>
                                         <ContextMenuContent>
                                             <ContextMenuItem onSelect={() => copyText(sherpaTtsModelStatus.archivePath)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
-                                            <ContextMenuItem onSelect={() => openModelFolder(sherpaTtsModelStatus.archivePath)}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
+                                            <ContextMenuItem onSelect={() => openSherpaTtsModelFolder()}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
                                         </ContextMenuContent>
                                     </ContextMenu>
                                 </div>
@@ -769,7 +769,7 @@ const ServiceCredentialSetting = () => {
                             </div>
                         )}
                     </div>
-                </div>
+                </SettingCard>
             </SettingsPageShell>
         </form>
     );

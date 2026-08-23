@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
-import { SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
+import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -83,173 +83,188 @@ const EngineSelectionSetting = () => {
                 description={t('engineSelection.description')}
                 contentClassName="space-y-6"
             >
-                <div className="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
-                    {t('engineSelection.intro')}
-                </div>
-
                 {autoSaveStatus === 'error' && autoSaveError && (
-                    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
                         {autoSaveError}
                     </div>
                 )}
 
-                <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                    <Settings2 className="w-5 h-5" />
-                    {t('engineSelection.featureSwitches')}
-                </div>
+                {/* 字幕翻译引擎 */}
+                <SettingCard
+                    title={t('engineSelection.subtitleTranslation.title')}
+                    description={t('engineSelection.subtitleTranslation.description')}
+                    icon={Languages}
+                >
+                    <SettingRow
+                        title={t('engineSelection.subtitleTranslation.title')}
+                        description={t('engineSelection.subtitleTranslation.description')}
+                        icon={Languages}
+                    >
+                        <Select
+                            value={watchedValues.providers?.subtitleTranslationEngine}
+                            onValueChange={(value: 'openai' | 'tencent' | 'none') => {
+                                setValue('providers.subtitleTranslationEngine', value, { shouldDirty: true });
+                            }}
+                        >
+                            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="openai">OpenAI</SelectItem>
+                                <SelectItem value="tencent">{t('engineSelection.engineTencent')}</SelectItem>
+                                <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </SettingRow>
 
-                <div className="space-y-4 rounded-xl border border-border/70 bg-background p-5">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm font-semibold"><Languages className="w-4 h-4" />{t('engineSelection.subtitleTranslation.title')}</div>
-                            <div className="text-xs text-muted-foreground">{t('engineSelection.subtitleTranslation.description')}</div>
-                        </div>
-                        <div className="w-full md:w-64">
-                            <Select
-                                value={watchedValues.providers?.subtitleTranslationEngine}
-                                onValueChange={(value: 'openai' | 'tencent' | 'none') => {
-                                    setValue('providers.subtitleTranslationEngine', value, { shouldDirty: true });
-                                }}
+                    {subtitleEngine === 'openai' && (
+                        <>
+                            <SettingRow
+                                title={t('engineSelection.subtitleTranslation.modelLabel')}
+                                icon={Settings2}
                             >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="openai">OpenAI</SelectItem>
-                                    <SelectItem value="tencent">{t('engineSelection.engineTencent')}</SelectItem>
-                                    <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                                <Select
+                                    value={watchedValues.openai?.featureModels?.subtitleTranslation}
+                                    onValueChange={(value) => {
+                                        setValue('openai.featureModels.subtitleTranslation', value, { shouldDirty: true });
+                                    }}
+                                >
+                                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {availableModels.map((model) => (
+                                            <SelectItem key={`subtitle-${model}`} value={model}>{model}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </SettingRow>
 
-                    <div className="pl-0 md:pl-6 border-l-0 md:border-l md:border-border space-y-3">
-                        {subtitleEngine === 'openai' ? (
-                            <>
-                                <div className="space-y-2">
-                                    <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.subtitleTranslation.modelLabel')}</div>
+                            <SettingRow
+                                title={t('engineSelection.subtitleTranslation.styleLabel')}
+                                icon={Settings2}
+                                alignTop={subtitleMode === 'custom'}
+                            >
+                                <div className="flex flex-col gap-2 w-72">
                                     <Select
-                                        value={watchedValues.openai?.featureModels?.subtitleTranslation}
-                                        onValueChange={(value) => {
-                                            setValue('openai.featureModels.subtitleTranslation', value, { shouldDirty: true });
+                                        value={watchedValues.openai?.subtitleTranslationMode}
+                                        onValueChange={(value: 'zh' | 'simple_en' | 'custom') => {
+                                            setValue('openai.subtitleTranslationMode', value, { shouldDirty: true });
                                         }}
                                     >
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            {availableModels.map((model) => (
-                                                <SelectItem key={`subtitle-${model}`} value={model}>{model}</SelectItem>
-                                            ))}
+                                            <SelectItem value="zh">{t('engineSelection.subtitleTranslation.styleZh')}</SelectItem>
+                                            <SelectItem value="simple_en">{t('engineSelection.subtitleTranslation.styleSimpleEn')}</SelectItem>
+                                            <SelectItem value="custom">{t('engineSelection.subtitleTranslation.styleCustom')}</SelectItem>
                                         </SelectContent>
                                     </Select>
+
+                                    {subtitleMode === 'custom' && (
+                                        <Textarea
+                                            value={watchedValues.openai?.subtitleCustomStyle}
+                                            onChange={(event) => {
+                                                setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
+                                            }}
+                                            placeholder="自定义 Prompt 样式..."
+                                            className="min-h-[100px] text-xs resize-none"
+                                        />
+                                    )}
                                 </div>
+                            </SettingRow>
+                        </>
+                    )}
+                </SettingCard>
 
-                                <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.subtitleTranslation.styleLabel')}</div>
-                                <Select
-                                    value={watchedValues.openai?.subtitleTranslationMode}
-                                    onValueChange={(value: 'zh' | 'simple_en' | 'custom') => {
-                                        setValue('openai.subtitleTranslationMode', value, { shouldDirty: true });
-                                    }}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="zh">{t('engineSelection.subtitleTranslation.styleZh')}</SelectItem>
-                                        <SelectItem value="simple_en">{t('engineSelection.subtitleTranslation.styleSimpleEn')}</SelectItem>
-                                        <SelectItem value="custom">{t('engineSelection.subtitleTranslation.styleCustom')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                {subtitleMode === 'custom' && (
-                                    <Textarea
-                                        value={watchedValues.openai?.subtitleCustomStyle}
-                                        onChange={(event) => {
-                                            setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
-                                        }}
-                                        className="min-h-[150px]"
-                                    />
-                                )}
-                            </>
-                        ) : (
-                            <div className="text-xs text-muted-foreground">{t('engineSelection.subtitleTranslation.hiddenHint')}</div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="space-y-3 rounded-xl border border-border/70 bg-background p-5">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm font-semibold"><Book className="w-4 h-4" />{t('engineSelection.dictionary.title')}</div>
-                            <div className="text-xs text-muted-foreground">{t('engineSelection.dictionary.description')}</div>
-                        </div>
-                        <div className="w-full md:w-64">
-                            <Select
-                                value={watchedValues.providers?.dictionaryEngine}
-                                onValueChange={(value: 'openai' | 'youdao' | 'none') => {
-                                    setValue('providers.dictionaryEngine', value, { shouldDirty: true });
-                                }}
-                            >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="openai">OpenAI</SelectItem>
-                                    <SelectItem value="youdao">{t('engineSelection.engineYoudao')}</SelectItem>
-                                    <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                {/* 词典引擎 */}
+                <SettingCard
+                    title={t('engineSelection.dictionary.title')}
+                    description={t('engineSelection.dictionary.description')}
+                    icon={Book}
+                >
+                    <SettingRow
+                        title={t('engineSelection.dictionary.title')}
+                        description={t('engineSelection.dictionary.description')}
+                        icon={Book}
+                    >
+                        <Select
+                            value={watchedValues.providers?.dictionaryEngine}
+                            onValueChange={(value: 'openai' | 'youdao' | 'none') => {
+                                setValue('providers.dictionaryEngine', value, { shouldDirty: true });
+                            }}
+                        >
+                            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="openai">OpenAI</SelectItem>
+                                <SelectItem value="youdao">{t('engineSelection.engineYoudao')}</SelectItem>
+                                <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </SettingRow>
 
                     {watchedValues.providers?.dictionaryEngine === 'openai' && (
-                        <div className="space-y-2 md:pl-6 md:border-l md:border-border">
-                            <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.dictionary.modelLabel')}</div>
+                        <SettingRow
+                            title={t('engineSelection.dictionary.modelLabel')}
+                            icon={Settings2}
+                        >
                             <Select
                                 value={watchedValues.openai?.featureModels?.dictionary}
                                 onValueChange={(value) => {
                                     setValue('openai.featureModels.dictionary', value, { shouldDirty: true });
                                 }}
                             >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {availableModels.map((model) => (
                                         <SelectItem key={`dict-${model}`} value={model}>{model}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </SettingRow>
                     )}
-                </div>
+                </SettingCard>
 
-
-                <div className="space-y-3 rounded-xl border border-border/70 bg-background p-5">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="w-4 h-4" />{t('engineSelection.sentenceLearning.title')}</div>
-                        <div className="text-xs text-muted-foreground">{t('engineSelection.sentenceLearning.description')}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            checked={watchedValues.openai?.enableSentenceLearning}
-                            onCheckedChange={(checked) => setValue('openai.enableSentenceLearning', checked === true, { shouldDirty: true })}
-                        />
-                        <Label>{t('engineSelection.sentenceLearning.enable')}</Label>
-                    </div>
+                {/* 句法分析与例句学习 */}
+                <SettingCard
+                    title={t('engineSelection.sentenceLearning.title')}
+                    description={t('engineSelection.sentenceLearning.description')}
+                    icon={Sparkles}
+                >
+                    <SettingRow
+                        title={t('engineSelection.sentenceLearning.enable')}
+                        description={t('engineSelection.sentenceLearning.description')}
+                        icon={Sparkles}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="enable-sentence-learning"
+                                checked={watchedValues.openai?.enableSentenceLearning}
+                                onCheckedChange={(checked) => setValue('openai.enableSentenceLearning', checked === true, { shouldDirty: true })}
+                            />
+                            <Label htmlFor="enable-sentence-learning" className="cursor-pointer text-xs">
+                                {t('engineSelection.sentenceLearning.enable')}
+                            </Label>
+                        </div>
+                    </SettingRow>
 
                     {watchedValues.openai?.enableSentenceLearning && (
-                        <div className="space-y-2 md:pl-6 md:border-l md:border-border">
-                            <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.sentenceLearning.modelLabel')}</div>
+                        <SettingRow
+                            title={t('engineSelection.sentenceLearning.modelLabel')}
+                            icon={Settings2}
+                        >
                             <Select
                                 value={watchedValues.openai?.featureModels?.sentenceLearning}
                                 onValueChange={(value) => {
                                     setValue('openai.featureModels.sentenceLearning', value, { shouldDirty: true });
                                 }}
                             >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {availableModels.map((model) => (
                                         <SelectItem key={`learn-${model}`} value={model}>{model}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </SettingRow>
                     )}
-                </div>
+                </SettingCard>
             </SettingsPageShell>
-
         </form>
     );
 };
