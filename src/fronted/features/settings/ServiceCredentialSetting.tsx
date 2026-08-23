@@ -1,7 +1,27 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
-import { Book, Bot, CheckCircle2, Copy, Cpu, Download, ExternalLink, FolderOpen, Languages, Loader2, Plus, ShieldCheck, Square, TestTube, Trash2, XCircle } from 'lucide-react';
+import {
+    Book,
+    Bot,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Copy,
+    Cpu,
+    Download,
+    ExternalLink,
+    FolderOpen,
+    HelpCircle,
+    Languages,
+    Loader2,
+    Plus,
+    ShieldCheck,
+    Square,
+    TestTube,
+    Trash2,
+    XCircle,
+} from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
@@ -115,6 +135,20 @@ const ServiceCredentialSetting = () => {
                 title: t('common.openFolderFailed'),
                 description: error instanceof Error ? error.message : String(error),
             });
+        }
+    };
+
+    /** 打开已下载的 Parakeet v3 模型所在目录。 */
+    const openParakeetModelFolder = async () => {
+        if (parakeetModelStatus?.archivePath) {
+            await openModelFolder(parakeetModelStatus.archivePath);
+        }
+    };
+
+    /** 打开 Sherpa TTS 模型所在的目录。 */
+    const openSherpaTtsModelFolder = async () => {
+        if (sherpaTtsModelStatus?.archivePath) {
+            await openModelFolder(sherpaTtsModelStatus.archivePath);
         }
     };
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
@@ -406,6 +440,21 @@ const ServiceCredentialSetting = () => {
         }
     };
 
+    const formatProgressPercent = (value: number) => `${Math.min(100, Math.max(0, Math.round(value)))}%`;
+
+    const getPhaseLabel = (phase: ParakeetModelPhase) => {
+        if (phase === 'extracting') {
+            return t('serviceCredentials.parakeet.extracting');
+        }
+        if (phase === 'cleaning') {
+            return t('serviceCredentials.parakeet.cleaning');
+        }
+        return t('serviceCredentials.parakeet.downloading');
+    };
+
+    const [parakeetGuideOpen, setParakeetGuideOpen] = React.useState(false);
+    const [sherpaGuideOpen, setSherpaGuideOpen] = React.useState(false);
+
     if (!ready) {
         return (
             <SettingsLoadingSkeleton
@@ -542,7 +591,7 @@ const ServiceCredentialSetting = () => {
                                     {testResults.tencent.success ? t('common.testSuccess') : testResults.tencent.message}
                                 </span>
                             )}
-                            <Button type="button" variant="outline" size="sm" onClick={() => testProvider('tencent').catch(() => null)} disabled={testingTencent || autoSaveStatus === 'saving'}>
+                            <Button type="button" variant="outline" size="sm" onClick={() => testProvider('tencent').catch(() => null)} disabled={testingOpenAi || autoSaveStatus === 'saving'}>
                                 <TestTube className="w-3.5 h-3.5 mr-1.5" />
                                 {testingTencent ? t('common.testing') : t('common.testConnection')}
                             </Button>
@@ -596,35 +645,61 @@ const ServiceCredentialSetting = () => {
                 {/* 英语字幕识别模型卡片 */}
                 <SettingCard
                     title="英语字幕识别模型"
-                    description="用于自动生成英语字幕，模型大小约 640 MB。"
+                    description="用于自动识别视频语音并生成双语字幕。"
                     icon={Cpu}
+                    headerAction={
+                        parakeetModelStatus?.ready && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={openParakeetModelFolder}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                打开存放目录
+                            </Button>
+                        )
+                    }
                 >
-                    <div className="p-4 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-sm font-medium">Parakeet TDT 0.6B v3 INT8</span>
-                                {parakeetModelStatus?.ready ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600 dark:text-green-400"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
-                                )}
+                    <div className="p-4 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 p-3.5 rounded-xl border border-border/50">
+                            <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2.5 flex-wrap">
+                                    <span className="text-sm font-semibold text-foreground">Parakeet TDT 0.6B v3</span>
+                                    <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">~640 MB</span>
+                                    {parakeetModelStatus?.ready ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            {t('common.ready')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                            {t('common.notDownloaded')}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    离线 ASR 语音转文字核心引擎，安装后无需网络即可秒速识别。
+                                </p>
                             </div>
+
                             <div className="flex items-center gap-2 shrink-0">
                                 {downloadingParakeetModel ? (
                                     parakeetDownloadPhase === 'downloading' ? (
                                         <Button type="button" variant="outline" size="sm" onClick={() => cancelParakeetDownload().catch(() => null)}>
-                                            <Square className="w-3.5 h-3.5 mr-1.5" />
+                                            <Square className="w-3.5 h-3.5 mr-1.5 text-destructive" />
                                             {t('serviceCredentials.parakeet.cancelDownload')}
                                         </Button>
                                     ) : (
                                         <Button type="button" variant="outline" size="sm" disabled>
+                                            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                                             {t('serviceCredentials.parakeet.installing')}
                                         </Button>
                                     )
                                 ) : (
                                     <>
                                         {!parakeetModelStatus?.ready && (
-                                            <Button type="button" variant="outline" size="sm" onClick={() => downloadParakeetModel().catch(() => null)}>
+                                            <Button type="button" size="sm" onClick={() => downloadParakeetModel().catch(() => null)}>
                                                 <Download className="w-3.5 h-3.5 mr-1.5" />
                                                 {t('common.download')}
                                             </Button>
@@ -632,7 +707,7 @@ const ServiceCredentialSetting = () => {
                                         {parakeetModelStatus?.ready && (
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button type="button" variant="outline" size="sm" disabled={deletingParakeetModel}>
+                                                    <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" disabled={deletingParakeetModel}>
                                                         <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                                                         {t('serviceCredentials.parakeet.deleteModel')}
                                                     </Button>
@@ -653,46 +728,74 @@ const ServiceCredentialSetting = () => {
                                 )}
                             </div>
                         </div>
+
                         {downloadingParakeetModel && (
-                            parakeetDownloadPhase === 'downloading' ? (
+                            <div className="space-y-1.5 p-3 rounded-lg bg-muted/30 border border-border/40">
+                                <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                                    <span>{getPhaseLabel(parakeetDownloadPhase)}</span>
+                                    <span>{formatProgressPercent(parakeetDownloadProgress)}</span>
+                                </div>
                                 <Progress value={parakeetDownloadProgress} className="h-1.5" />
-                            ) : (
-                                <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    {parakeetDownloadPhase === 'extracting'
-                                        ? t('serviceCredentials.parakeet.extracting')
-                                        : t('serviceCredentials.parakeet.installing')}
-                                </p>
-                            )
+                            </div>
                         )}
-                        {parakeetModelStatus && (
-                            <div className="mt-4 w-fit max-w-full space-y-0 text-xs text-muted-foreground">
-                                <p className="mb-3 font-medium text-foreground">{t('common.manualDownloadTitle')}</p>
-                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
-                                    <span className="shrink-0">{t('common.manualDownloadUrlLabel')}</span>
-                                    <ContextMenu>
-                                        <ContextMenuTrigger asChild>
-                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{parakeetModelStatus.downloadUrl}</code>
-                                        </ContextMenuTrigger>
-                                        <ContextMenuContent>
-                                            <ContextMenuItem onSelect={() => copyText(parakeetModelStatus.downloadUrl)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
-                                            <ContextMenuItem onSelect={() => openDownloadUrl(parakeetModelStatus.downloadUrl)}><ExternalLink className="mr-2 h-4 w-4" />{t('common.openInBrowser')}</ContextMenuItem>
-                                        </ContextMenuContent>
-                                    </ContextMenu>
-                                </div>
-                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
-                                    <span className="shrink-0">{t('common.manualDownloadSaveTo')}</span>
-                                    <ContextMenu>
-                                        <ContextMenuTrigger asChild>
-                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{parakeetModelStatus.archivePath}</code>
-                                        </ContextMenuTrigger>
-                                        <ContextMenuContent>
-                                            <ContextMenuItem onSelect={() => copyText(parakeetModelStatus.archivePath)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
-                                            <ContextMenuItem onSelect={() => openParakeetModelFolder()}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
-                                        </ContextMenuContent>
-                                    </ContextMenu>
-                                </div>
-                                <p>{t('common.manualDownloadNextStep')}</p>
+
+                        {/* 未就绪时提供可折叠的手动安装指引 */}
+                        {!parakeetModelStatus?.ready && parakeetModelStatus && (
+                            <div className="rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => setParakeetGuideOpen((open) => !open)}
+                                    className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <span className="flex items-center gap-1.5">
+                                        <HelpCircle className="w-3.5 h-3.5" />
+                                        网络不佳？查看手动下载与安装指南
+                                    </span>
+                                    {parakeetGuideOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                </button>
+
+                                {parakeetGuideOpen && (
+                                    <div className="p-3.5 pt-2 space-y-3.5 text-xs border-t border-border/40 text-muted-foreground">
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">1. 下载压缩包文件：</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                                <div className="text-muted-foreground/70">{parakeetModelStatus.downloadUrl}</div>
+                                                <div className="flex items-center gap-2 pt-1 font-sans">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(parakeetModelStatus.downloadUrl)}>
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        复制下载链接
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openDownloadUrl(parakeetModelStatus.downloadUrl)}>
+                                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                                        在浏览器中打开
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">2. 将下载的文件保存到指定路径：</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                                <div className="text-muted-foreground/70">{parakeetModelStatus.archivePath}</div>
+                                                <div className="flex items-center gap-2 pt-1 font-sans">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(parakeetModelStatus.archivePath)}>
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        复制目标路径
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={openParakeetModelFolder}>
+                                                        <FolderOpen className="w-3 h-3 mr-1" />
+                                                        一键打开目标文件夹
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-0.5 text-muted-foreground/90 bg-muted/30 p-2 rounded">
+                                            <span className="font-semibold text-foreground">3. 完成安装：</span>
+                                            <span>文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并解压生效。</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -701,71 +804,157 @@ const ServiceCredentialSetting = () => {
                 {/* 英语语音朗读模型卡片 */}
                 <SettingCard
                     title="英语语音朗读模型"
-                    description="用于英语语音朗读，完全离线生成音频。"
+                    description="用于英语语音朗读，完全离线生成高质量发音音频。"
                     icon={Cpu}
+                    headerAction={
+                        sherpaTtsModelStatus?.ready && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={openSherpaTtsModelFolder}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                打开存放目录
+                            </Button>
+                        )
+                    }
                 >
-                    <div className="p-4 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-sm font-medium">Piper en_US Amy Low</span>
-                                {sherpaTtsModelStatus?.ready ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-600 dark:text-green-400"><CheckCircle2 className="w-3 h-3" />{t('common.ready')}</span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('common.notDownloaded')}</span>
-                                )}
+                    <div className="p-4 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 p-3.5 rounded-xl border border-border/50">
+                            <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2.5 flex-wrap">
+                                    <span className="text-sm font-semibold text-foreground">Piper en_US Amy Low</span>
+                                    <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">~18 MB</span>
+                                    {sherpaTtsModelStatus?.ready ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            {t('common.ready')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                            {t('common.notDownloaded')}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    轻量级本地神经发音合成模型，无需消耗云端 API 额度。
+                                </p>
                             </div>
+
                             <div className="flex items-center gap-2 shrink-0">
                                 {downloadingSherpaTtsModel ? (
                                     sherpaTtsDownloadPhase === 'downloading' ? (
-                                        <Button type="button" variant="outline" size="sm" onClick={() => cancelSherpaTtsDownload().catch(() => null)}><Square className="w-3.5 h-3.5 mr-1.5" />取消下载</Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => cancelSherpaTtsDownload().catch(() => null)}>
+                                            <Square className="w-3.5 h-3.5 mr-1.5 text-destructive" />
+                                            取消下载
+                                        </Button>
                                     ) : (
-                                        <Button type="button" variant="outline" size="sm" disabled>安装中</Button>
+                                        <Button type="button" variant="outline" size="sm" disabled>
+                                            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                            安装中
+                                        </Button>
                                     )
                                 ) : (
                                     <>
                                         {!sherpaTtsModelStatus?.ready && (
-                                            <Button type="button" variant="outline" size="sm" onClick={() => downloadSherpaTtsModel().catch(() => null)}><Download className="w-3.5 h-3.5 mr-1.5" />{t('common.download')}</Button>
+                                            <Button type="button" size="sm" onClick={() => downloadSherpaTtsModel().catch(() => null)}>
+                                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                                {t('common.download')}
+                                            </Button>
                                         )}
                                         {sherpaTtsModelStatus?.ready && (
-                                            <Button type="button" variant="outline" size="sm" disabled={deletingSherpaTtsModel} onClick={() => deleteSherpaTtsModel().catch(() => null)}><Trash2 className="w-3.5 h-3.5 mr-1.5" />删除模型</Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" disabled={deletingSherpaTtsModel}>
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                                        删除模型
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>删除 Sherpa TTS 模型？</AlertDialogTitle>
+                                                        <AlertDialogDescription>删除后将无法使用本地离线朗读功能，随时可以重新下载。</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>取消</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => deleteSherpaTtsModel().catch(() => null)}>确认删除</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         )}
                                     </>
                                 )}
                             </div>
                         </div>
+
                         {downloadingSherpaTtsModel && (
-                            sherpaTtsDownloadPhase === 'downloading'
-                                ? <Progress value={sherpaTtsDownloadProgress} className="h-1.5" />
-                                : <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" />{sherpaTtsDownloadPhase === 'extracting' ? '正在解压模型…' : '正在安装模型…'}</p>
+                            <div className="space-y-1.5 p-3 rounded-lg bg-muted/30 border border-border/40">
+                                <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                                    <span>{sherpaTtsDownloadPhase === 'extracting' ? '正在解压模型…' : '正在下载模型…'}</span>
+                                    <span>{formatProgressPercent(sherpaTtsDownloadProgress)}</span>
+                                </div>
+                                <Progress value={sherpaTtsDownloadProgress} className="h-1.5" />
+                            </div>
                         )}
-                        {sherpaTtsModelStatus && (
-                            <div className="mt-4 w-fit max-w-full space-y-0 text-xs text-muted-foreground">
-                                <p className="mb-3 font-medium text-foreground">{t('common.manualDownloadTitle')}</p>
-                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
-                                    <span className="shrink-0">{t('common.manualDownloadUrlLabel')}</span>
-                                    <ContextMenu>
-                                        <ContextMenuTrigger asChild>
-                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{sherpaTtsModelStatus.downloadUrl}</code>
-                                        </ContextMenuTrigger>
-                                        <ContextMenuContent>
-                                            <ContextMenuItem onSelect={() => copyText(sherpaTtsModelStatus.downloadUrl)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
-                                            <ContextMenuItem onSelect={() => openDownloadUrl(sherpaTtsModelStatus.downloadUrl)}><ExternalLink className="mr-2 h-4 w-4" />{t('common.openInBrowser')}</ContextMenuItem>
-                                        </ContextMenuContent>
-                                    </ContextMenu>
-                                </div>
-                                <div className="flex flex-wrap items-start gap-1 min-w-0 leading-4">
-                                    <span className="shrink-0">{t('common.manualDownloadSaveTo')}</span>
-                                    <ContextMenu>
-                                        <ContextMenuTrigger asChild>
-                                            <code className="min-w-0 flex-[0_1_auto] select-text break-all hover:underline">{sherpaTtsModelStatus.archivePath}</code>
-                                        </ContextMenuTrigger>
-                                        <ContextMenuContent>
-                                            <ContextMenuItem onSelect={() => copyText(sherpaTtsModelStatus.archivePath)}><Copy className="mr-2 h-4 w-4" />{t('common.copy')}</ContextMenuItem>
-                                            <ContextMenuItem onSelect={() => openSherpaTtsModelFolder()}><FolderOpen className="mr-2 h-4 w-4" />{t('common.openFolder')}</ContextMenuItem>
-                                        </ContextMenuContent>
-                                    </ContextMenu>
-                                </div>
-                                <p>{t('common.manualDownloadNextStep')}</p>
+
+                        {/* 未就绪时提供可折叠的手动安装指引 */}
+                        {!sherpaTtsModelStatus?.ready && sherpaTtsModelStatus && (
+                            <div className="rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => setSherpaGuideOpen((open) => !open)}
+                                    className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <span className="flex items-center gap-1.5">
+                                        <HelpCircle className="w-3.5 h-3.5" />
+                                        网络不佳？查看手动下载与安装指南
+                                    </span>
+                                    {sherpaGuideOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                </button>
+
+                                {sherpaGuideOpen && (
+                                    <div className="p-3.5 pt-2 space-y-3.5 text-xs border-t border-border/40 text-muted-foreground">
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">1. 下载压缩包文件：</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                                <div className="text-muted-foreground/70">{sherpaTtsModelStatus.downloadUrl}</div>
+                                                <div className="flex items-center gap-2 pt-1 font-sans">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(sherpaTtsModelStatus.downloadUrl)}>
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        复制下载链接
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openDownloadUrl(sherpaTtsModelStatus.downloadUrl)}>
+                                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                                        在浏览器中打开
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">2. 将下载的文件保存到指定路径：</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                                <div className="text-muted-foreground/70">{sherpaTtsModelStatus.archivePath}</div>
+                                                <div className="flex items-center gap-2 pt-1 font-sans">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(sherpaTtsModelStatus.archivePath)}>
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        复制目标路径
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={openSherpaTtsModelFolder}>
+                                                        <FolderOpen className="w-3 h-3 mr-1" />
+                                                        一键打开目标文件夹
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-0.5 text-muted-foreground/90 bg-muted/30 p-2 rounded">
+                                            <span className="font-semibold text-foreground">3. 完成安装：</span>
+                                            <span>文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并解压生效。</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
