@@ -23,9 +23,9 @@
         "nightMode": "Night mode",
         "fullScreen": "Fullscreen",
         "podcastMode": "Podcast mode",
-        "shortcutHint": "Shortcut: {{shortcut}}",
+        "shortcutHint": "Shortcut `{{shortcut}}`",
         "syncSideHint": "Hide sidebar subtitles when English subtitles are hidden; hover over sidebar to reveal.",
-        "autoPauseHint": "Automatically pause when the current sentence ends. Shortcut: {{shortcut}}",
+        "autoPauseHint": "Automatically pause when current sentence ends (`{{shortcut}}`)",
         "autoPlayNextHint": "In folder mode, automatically plays the next video when the current one ends.",
         "fullScreenHint": "Click to toggle fullscreen.",
         "podcastModeHint": "Recommended when playing audio-only files."

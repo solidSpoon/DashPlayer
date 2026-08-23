@@ -78,20 +78,21 @@ export default function ControlBox() {
   }, [autoPlayNextSetting, setAutoPlayNext]);
 
   return (
-    <Card className={cn('w-full h-full flex flex-col')}>
-      <CardHeader className="px-3 pt-3 pb-2">
-        <CardTitle>{t('controlBox.title')}</CardTitle>
-        <CardDescription>{t('controlBox.description')}</CardDescription>
+    <Card className={cn('w-full h-full flex flex-col overflow-hidden')}>
+      <CardHeader className="shrink-0 px-4 pt-3.5 pb-2">
+        <CardTitle className="text-sm font-semibold">{t('controlBox.title')}</CardTitle>
       </CardHeader>
+      
+      {/* 滚动区域：仅开关网格在高度不够时纵向滚动 */}
       <CardContent
         className={cn(
-          'w-full flex-1 min-h-0 overflow-y-auto p-3 pt-2',
-          'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-thumb-rounded scrollbar-track-gray-100 scrollbar-track-rounded'
+          'w-full flex-1 min-h-0 overflow-y-auto px-4 py-1',
+          'scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-thumb-rounded scrollbar-track-transparent'
         )}
       >
         <div
-          className="grid min-h-0 content-start auto-rows-min gap-2 pr-1"
-          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}
+          className="grid min-h-0 content-start auto-rows-min gap-2"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}
         >
           <SettingToggle
             id="showEn"
@@ -99,8 +100,8 @@ export default function ControlBox() {
             checked={showEn}
             onCheckedChange={() => changeShowEn()}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="showCn"
@@ -108,8 +109,8 @@ export default function ControlBox() {
             checked={showCn}
             onCheckedChange={() => changeShowCn()}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="syncSide"
@@ -117,8 +118,8 @@ export default function ControlBox() {
             checked={syncSide}
             onCheckedChange={() => changeSyncSide()}
             tooltipMd={t('controlBox.syncSideHint')}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="singleRepeat"
@@ -126,8 +127,8 @@ export default function ControlBox() {
             checked={singleRepeat}
             onCheckedChange={() => setSingleRepeat(!singleRepeat)}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.repeatSentence') })}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="autoPause"
@@ -135,8 +136,8 @@ export default function ControlBox() {
             checked={autoPause}
             onCheckedChange={() => setAutoPause(!autoPause)}
             tooltipMd={t('controlBox.autoPauseHint', { shortcut: getShortcut('shortcut.autoPause') })}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="autoPlayNext"
@@ -148,8 +149,8 @@ export default function ControlBox() {
               await setSetting('player.autoPlayNext', next ? 'true' : 'false');
             }}
             tooltipMd={t('controlBox.autoPlayNextHint')}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="nightMode"
@@ -159,8 +160,8 @@ export default function ControlBox() {
               setSetting('appearance.theme', setting('appearance.theme') === 'dark' ? 'light' : 'dark');
             }}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.nextTheme') })}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="fullScreen"
@@ -175,8 +176,8 @@ export default function ControlBox() {
               await swrMutate(SWR_KEY.WINDOW_SIZE);
             }}
             tooltipMd={t('controlBox.fullScreenHint')}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
           <SettingToggle
             id="podcstMode"
@@ -193,14 +194,18 @@ export default function ControlBox() {
                 }
             }}
             tooltipMd={t('controlBox.podcastModeHint')}
-            className="h-11 px-3 py-2"
-            labelClassName="text-sm"
+            className="h-9 px-2.5 py-1"
+            labelClassName="text-xs font-medium"
           />
-          <ClearAdjustButton className="h-11 w-full justify-start rounded-xl border-0 bg-muted/45 px-3 text-sm font-medium text-[#a85700] shadow-[0_1px_2px_rgba(60,64,67,0.10)] transition-colors hover:bg-[#fff1e6]" />
-          <TranscriptButton className="h-11 w-full justify-start rounded-xl border-0 bg-muted/45 px-3 text-sm font-medium text-[#a85700] shadow-[0_1px_2px_rgba(60,64,67,0.10)] transition-colors hover:bg-[#fff1e6]" />
-          <AutoClipButton className="h-11 w-full justify-start rounded-xl border-0 bg-muted/45 px-3 text-sm font-medium text-[#a85700] shadow-[0_1px_2px_rgba(60,64,67,0.10)] transition-colors hover:bg-[#fff1e6]" />
         </div>
       </CardContent>
+
+      {/* 固定的底部动作工具栏：绝不与滚动内容重叠 */}
+      <div className="shrink-0 px-4 py-2.5 border-t border-border/50 bg-card flex flex-wrap items-center gap-2">
+        <ClearAdjustButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
+        <TranscriptButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
+        <AutoClipButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
+      </div>
     </Card>
   );
 }

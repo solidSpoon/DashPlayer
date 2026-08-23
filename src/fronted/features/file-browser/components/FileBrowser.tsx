@@ -58,9 +58,8 @@ const FileBrowser = () => {
             className={cn('h-full w-full flex flex-col')}
         >
             {showTitle && (
-                <CardHeader className="pb-3">
-                    <CardTitle>{t('videoExplorer')}</CardTitle>
-                    <CardDescription>{t('browseVideos')}</CardDescription>
+                <CardHeader className="pb-2 pt-3.5 px-4">
+                    <CardTitle className="text-sm font-semibold">{t('videoExplorer')}</CardTitle>
                 </CardHeader>
             )}
             <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-2 p-4')}>

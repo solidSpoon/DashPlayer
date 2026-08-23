@@ -11,7 +11,12 @@ export default class TimeUtil {
         const h = Math.floor(second / 3600);
         const m = Math.floor(second % 3600 / 60);
         const s = Math.floor(second % 60);
-        return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+        const ss = String(s).padStart(2, '0');
+        if (h > 0) {
+            const mm = String(m).padStart(2, '0');
+            return `${h}:${mm}:${ss}`;
+        }
+        return `${String(m).padStart(2, '0')}:${ss}`;
     }
 
     /**

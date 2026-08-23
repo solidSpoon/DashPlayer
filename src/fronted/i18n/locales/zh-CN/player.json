@@ -23,9 +23,9 @@
         "nightMode": "夜间模式",
         "fullScreen": "全屏模式",
         "podcastMode": "播客模式",
-        "shortcutHint": "快捷键：{{shortcut}}",
+        "shortcutHint": "快捷键 `{{shortcut}}`",
         "syncSideHint": "隐藏英文字幕时同步隐藏侧边字幕，鼠标悬停在侧边区域时显示。",
-        "autoPauseHint": "当前句子结束后自动暂停。快捷键：{{shortcut}}",
+        "autoPauseHint": "当前句子结束后自动暂停（快捷键 `{{shortcut}}`）",
         "autoPlayNextHint": "文件夹播放模式下，当前视频结束后自动播放下一个视频。",
         "fullScreenHint": "点击进入或退出全屏。",
         "podcastModeHint": "播放纯音频文件时建议开启播客模式。"
