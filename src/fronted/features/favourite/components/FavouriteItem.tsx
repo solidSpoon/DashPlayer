@@ -119,9 +119,9 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
                   logger.debug('Setting play info for line', { startTime: contextLine.start, sentenceIndex: index });
                 }}
                 className={cn(
-                  'rounded px-1 py-0.5 transition-colors',
-                  contextLine.isClip ? 'font-semibold text-foreground bg-primary/10' : 'text-muted-foreground hover:text-foreground',
-                  isHighlight && 'bg-primary text-primary-foreground font-bold'
+                  'rounded-sm px-0.5 transition-colors duration-150 inline-block',
+                  contextLine.isClip ? 'font-medium text-foreground bg-primary/10' : 'text-muted-foreground hover:text-foreground',
+                  isHighlight && 'bg-primary text-primary-foreground'
                 )}
               >
                 {contextLine.contentEn}
