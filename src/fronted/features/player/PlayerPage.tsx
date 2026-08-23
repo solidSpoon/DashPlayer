@@ -398,8 +398,8 @@ const PlayerWithControlsPage = () => {
                 </div>
                 <div
                     className={cn(
-                        'flex flex-col',
-                        showSideBar && 'p-4 pt-2 pr-2',
+                        'flex flex-col h-full w-full',
+                        showSideBar ? 'p-4 pt-2 pr-2' : 'p-2.5',
                         !((w('md') && h('md')) || !showSideBar) && 'hidden'
                     )}
                     style={{
