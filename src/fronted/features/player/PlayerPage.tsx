@@ -369,7 +369,7 @@ const PlayerWithControlsPage = () => {
                         </div>
                         <div
                             className={cn(
-                                'col-start-2 row-start-1 col-end-4 row-end-3 p-2',
+                                'col-start-2 row-start-1 col-end-4 row-end-3 p-2.5 pl-1.5',
                                 h('md') && 'row-start-2',
                                 w('md') && 'row-start-1 col-start-3 pl-1'
                             )}
@@ -379,7 +379,7 @@ const PlayerWithControlsPage = () => {
 
                         <div
                             className={cn(
-                                'hidden row-start-1 row-end-3 col-start-2  col-end-4 p-2',
+                                'hidden row-start-1 row-end-3 col-start-2 col-end-4 p-2.5 pl-1.5 pr-1',
                                 w('md') && 'block col-end-3',
                                 h('md') && 'block row-end-2'
                             )}
