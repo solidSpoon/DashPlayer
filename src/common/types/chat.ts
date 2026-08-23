@@ -42,8 +42,8 @@ export type ChatBackgroundContext = {
     };
 };
 
-/** 整句学习聊天可选的模型推理强度。 */
-export type ChatReasoningEffort = 'low' | 'medium' | 'high';
+/** AI SDK 7 统一的模型推理强度；auto 表示不传 reasoning。 */
+export type ChatReasoningEffort = 'auto' | 'low' | 'medium' | 'high';
 
 /**
  * 创建整句学习会话所需的稳定上下文快照。
@@ -75,7 +75,7 @@ export type ChatSessionCreateResult = {
 export type ChatStartParams = {
     sessionId: string;
     content: string;
-    /** 本次回答使用的推理强度；未传时使用中档。 */
+    /** 本次回答使用的推理强度；auto 或未传时不发送 reasoning。 */
     reasoningEffort?: ChatReasoningEffort;
 };
 
@@ -86,7 +86,7 @@ export type ChatStartResult = {
 export type ChatWelcomeParams = {
     /** 已由 main 进程持有上下文的会话 ID。 */
     sessionId: string;
-    /** 欢迎回答使用的推理强度；未传时使用中档。 */
+    /** 欢迎回答使用的推理强度；auto 或未传时不发送 reasoning。 */
     reasoningEffort?: ChatReasoningEffort;
 };
 

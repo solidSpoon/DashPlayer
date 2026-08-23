@@ -32,6 +32,7 @@
     "reasoningLow": "低",
     "reasoningMedium": "中",
     "reasoningHigh": "高",
+    "reasoningAuto": "Auto（兼容性最好）",
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "关闭",

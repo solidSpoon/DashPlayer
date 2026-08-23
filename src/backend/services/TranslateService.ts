@@ -316,6 +316,7 @@ export class TranslateServiceImpl implements TranslateService {
 
             const { partialOutputStream } = streamText({
                 model,
+                reasoning: 'low',
                 output: Output.object({ schema: openAIDictionaryResultSchema }),
                 prompt,
             });

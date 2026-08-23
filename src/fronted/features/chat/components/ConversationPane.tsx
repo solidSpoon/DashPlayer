@@ -563,6 +563,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="start">
+                                    <SelectItem value="auto">{t('reasoningAuto')}</SelectItem>
                                     <SelectItem value="low">{t('reasoningLow')}</SelectItem>
                                     <SelectItem value="medium">{t('reasoningMedium')}</SelectItem>
                                     <SelectItem value="high">{t('reasoningHigh')}</SelectItem>
