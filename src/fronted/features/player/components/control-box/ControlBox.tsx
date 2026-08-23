@@ -92,7 +92,7 @@ export default function ControlBox() {
   return (
     <Card className={cn('w-full h-full flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xs')}>
       <CardHeader className="shrink-0 px-4 pt-3.5 pb-2">
-        <CardTitle className="text-sm font-semibold">{t('controlBox.title')}</CardTitle>
+        <CardTitle className="text-base font-semibold">{t('controlBox.title')}</CardTitle>
       </CardHeader>
       
       {/* 滚动区域：仅开关网格在高度不够时纵向滚动 */}
@@ -245,14 +245,14 @@ export default function ControlBox() {
             labelClassName="text-xs font-medium"
           />
         </div>
-      </CardContent>
 
-      {/* 固定的底部动作工具栏：绝不与滚动内容重叠 */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-border/50 bg-card flex flex-wrap items-center gap-2">
-        <ClearAdjustButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
-        <TranscriptButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
-        <AutoClipButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
-      </div>
+        {/* 动作工具栏：自然跟随在控制项下方 */}
+        <div className="flex flex-wrap items-center gap-2 pt-2.5 pb-1">
+          <ClearAdjustButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
+          <TranscriptButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
+          <AutoClipButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
+        </div>
+      </CardContent>
     </Card>
   );
 }
