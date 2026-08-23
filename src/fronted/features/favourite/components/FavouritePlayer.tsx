@@ -81,7 +81,7 @@ const FavouritePlayer = () => {
       playerActions.setSource(null);
       playerActions.clearSubtitles();
       loadedKeyRef.current = null;
-      setReady(false);
+      window.setTimeout(() => setReady(false), 0);
       bootOnceRef.current = false;
       return;
     }
@@ -99,7 +99,7 @@ const FavouritePlayer = () => {
         playerActions.loadSubtitles(sentencesConv);
       }
       loadedKeyRef.current = videoKey;
-      setReady(false);
+      window.setTimeout(() => setReady(false), 0);
       bootOnceRef.current = false;
       logger.debug('Loaded new clip', { key: videoKey });
     } else {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import { Book, Languages, Settings2, Sparkles } from 'lucide-react';
 import { Label } from '@/fronted/components/ui/label';
@@ -28,7 +28,12 @@ const EngineSelectionSetting = () => {
     );
 
     const form = useForm<EngineSelectionSettingVO>();
-    const { setValue, watch } = form;
+    const { setValue } = form;
+    const [subtitleMode, subtitleEngine] = useWatch({
+        control: form.control,
+        name: ['openai.subtitleTranslationMode', 'providers.subtitleTranslationEngine'],
+    });
+    const watchedValues = useWatch({ control: form.control });
 
     const {
         ready,
@@ -49,9 +54,6 @@ const EngineSelectionSetting = () => {
         }
         initialize(settings);
     }, [initialize, settings]);
-
-    const subtitleMode = watch('openai.subtitleTranslationMode');
-    const subtitleEngine = watch('providers.subtitleTranslationEngine');
 
     const availableModels = React.useMemo(() => {
         if (!credentialSettings) {
@@ -108,7 +110,7 @@ const EngineSelectionSetting = () => {
                         </div>
                         <div className="w-full md:w-64">
                             <Select
-                                value={watch('providers.subtitleTranslationEngine')}
+                                value={watchedValues.providers?.subtitleTranslationEngine}
                                 onValueChange={(value: 'openai' | 'tencent' | 'none') => {
                                     setValue('providers.subtitleTranslationEngine', value, { shouldDirty: true });
                                 }}
@@ -129,7 +131,7 @@ const EngineSelectionSetting = () => {
                                 <div className="space-y-2">
                                     <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.subtitleTranslation.modelLabel')}</div>
                                     <Select
-                                        value={watch('openai.featureModels.subtitleTranslation')}
+                                        value={watchedValues.openai?.featureModels?.subtitleTranslation}
                                         onValueChange={(value) => {
                                             setValue('openai.featureModels.subtitleTranslation', value, { shouldDirty: true });
                                         }}
@@ -145,7 +147,7 @@ const EngineSelectionSetting = () => {
 
                                 <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.subtitleTranslation.styleLabel')}</div>
                                 <Select
-                                    value={watch('openai.subtitleTranslationMode')}
+                                    value={watchedValues.openai?.subtitleTranslationMode}
                                     onValueChange={(value: 'zh' | 'simple_en' | 'custom') => {
                                         setValue('openai.subtitleTranslationMode', value, { shouldDirty: true });
                                     }}
@@ -160,7 +162,7 @@ const EngineSelectionSetting = () => {
 
                                 {subtitleMode === 'custom' && (
                                     <Textarea
-                                        value={watch('openai.subtitleCustomStyle')}
+                                        value={watchedValues.openai?.subtitleCustomStyle}
                                         onChange={(event) => {
                                             setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
                                         }}
@@ -182,7 +184,7 @@ const EngineSelectionSetting = () => {
                         </div>
                         <div className="w-full md:w-64">
                             <Select
-                                value={watch('providers.dictionaryEngine')}
+                                value={watchedValues.providers?.dictionaryEngine}
                                 onValueChange={(value: 'openai' | 'youdao' | 'none') => {
                                     setValue('providers.dictionaryEngine', value, { shouldDirty: true });
                                 }}
@@ -197,11 +199,11 @@ const EngineSelectionSetting = () => {
                         </div>
                     </div>
 
-                    {watch('providers.dictionaryEngine') === 'openai' && (
+                    {watchedValues.providers?.dictionaryEngine === 'openai' && (
                         <div className="space-y-2 md:pl-6 md:border-l md:border-border">
                             <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.dictionary.modelLabel')}</div>
                             <Select
-                                value={watch('openai.featureModels.dictionary')}
+                                value={watchedValues.openai?.featureModels?.dictionary}
                                 onValueChange={(value) => {
                                     setValue('openai.featureModels.dictionary', value, { shouldDirty: true });
                                 }}
@@ -225,17 +227,17 @@ const EngineSelectionSetting = () => {
                     </div>
                     <div className="flex items-center gap-2">
                         <Checkbox
-                            checked={watch('openai.enableSentenceLearning')}
+                            checked={watchedValues.openai?.enableSentenceLearning}
                             onCheckedChange={(checked) => setValue('openai.enableSentenceLearning', checked === true, { shouldDirty: true })}
                         />
                         <Label>{t('engineSelection.sentenceLearning.enable')}</Label>
                     </div>
 
-                    {watch('openai.enableSentenceLearning') && (
+                    {watchedValues.openai?.enableSentenceLearning && (
                         <div className="space-y-2 md:pl-6 md:border-l md:border-border">
                             <div className="text-xs font-medium text-muted-foreground">{t('engineSelection.sentenceLearning.modelLabel')}</div>
                             <Select
-                                value={watch('openai.featureModels.sentenceLearning')}
+                                value={watchedValues.openai?.featureModels?.sentenceLearning}
                                 onValueChange={(value) => {
                                     setValue('openai.featureModels.sentenceLearning', value, { shouldDirty: true });
                                 }}

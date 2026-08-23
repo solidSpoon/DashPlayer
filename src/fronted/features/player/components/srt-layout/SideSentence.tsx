@@ -156,7 +156,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 return !noWordRegex.test(str);
             };
 
-            const textHash = Math.random().toString(36).substr(2, 9);
+            const textHash = text;
             return text
                 .replace(/\s+/g, ' ')
                 .split(SPLIT_REGEX)

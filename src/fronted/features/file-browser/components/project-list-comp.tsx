@@ -30,7 +30,7 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
     const isRoot = StrUtil.isBlank(finalPath);
     React.useEffect(() => {
         let cancelled = false;
-        setFullData(undefined);
+        window.setTimeout(() => setFullData(undefined), 0);
         const idleId = window.requestIdleCallback(() => {
             fileBrowserApi.listWatchHistoryByPath(finalPath)
                 .then((result) => {

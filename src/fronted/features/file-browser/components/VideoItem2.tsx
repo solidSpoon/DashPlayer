@@ -55,8 +55,10 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
     );
 
     React.useEffect(() => {
-        setThumbnailReady(false);
-        setThumbnailError(false);
+        window.setTimeout(() => {
+            setThumbnailReady(false);
+            setThumbnailError(false);
+        }, 0);
     }, [thumbnail]);
 
     const progress = pv?.duration ? Math.min(100, Math.floor(((pv?.current_position ?? 0) / pv.duration) * 100)) : 0;

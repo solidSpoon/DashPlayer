@@ -4,7 +4,7 @@ import SettingsPageShell from '@/fronted/features/settings/components/form/Setti
 import SettingInput from '@/fronted/features/settings/components/form/SettingInput';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
@@ -32,7 +32,9 @@ const ProxySetting = () => {
     );
 
     const form = useForm<ProxyFormValues>();
-    const { watch, setValue } = form;
+    const { setValue } = form;
+    const currentMode = normalizeMode(useWatch({ control: form.control, name: 'mode' }));
+    const [url, bypassRules] = useWatch({ control: form.control, name: ['url', 'bypassRules'] });
 
     const { ready, initialize, flush } = useAutoSaveSettingsForm<ProxyFormValues>({
         form,
@@ -69,8 +71,6 @@ const ProxySetting = () => {
             </div>
         );
     }
-
-    const currentMode = normalizeMode(watch('mode'));
 
     return (
         <form
@@ -110,14 +110,14 @@ const ProxySetting = () => {
                         <SettingInput
                             title={t('proxy.urlTitle')}
                             description={t('proxy.urlDescription')}
-                            value={watch('url') ?? ''}
+                            value={url ?? ''}
                             setValue={(value) => setValue('url', value, { shouldDirty: true, shouldTouch: true })}
                             placeHolder="http://127.0.0.1:7890"
                         />
                         <SettingInput
                             title={t('proxy.bypassRulesTitle')}
                             description={t('proxy.bypassRulesDescription')}
-                            value={watch('bypassRules') ?? ''}
+                            value={bypassRules ?? ''}
                             setValue={(value) => setValue('bypassRules', value, { shouldDirty: true, shouldTouch: true })}
                             placeHolder="localhost,127.0.0.1"
                         />

@@ -1,4 +1,5 @@
 import winkNLP from 'wink-nlp';
+import type { ItsFunction } from 'wink-nlp';
 import model from 'wink-eng-lite-web-model';
 
 const nlp = winkNLP(model);
@@ -37,10 +38,10 @@ export class WinkSentenceElementParser implements SentenceElementParser {
     parse(text: string): SentenceElement[] {
         if (!text) return [];
         const doc = nlp.readDoc(text);
-        const values = doc.tokens().out(nlp.its.value as any) as string[];
-        const lemmas = doc.tokens().out(nlp.its.lemma as any) as string[];
-        const types = doc.tokens().out(nlp.its.type as any) as string[];
-        const poses = doc.tokens().out(nlp.its.pos as any) as string[];
+        const values = doc.tokens().out(nlp.its.value as unknown as ItsFunction<string>) as string[];
+        const lemmas = doc.tokens().out(nlp.its.lemma as unknown as ItsFunction<string>) as string[];
+        const types = doc.tokens().out(nlp.its.type as unknown as ItsFunction<string>) as string[];
+        const poses = doc.tokens().out(nlp.its.pos as unknown as ItsFunction<string>) as string[];
         const tokens: Array<{ text: string; lemma: string; type: string; pos: string; start: number }> = [];
         let cursor = 0;
         values.forEach((value, index) => {

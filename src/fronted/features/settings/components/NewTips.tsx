@@ -23,12 +23,15 @@ const NewTips = () => {
             return;
         }
 
-        setCount(api.scrollSnapList().length);
-        setCurrent(api.selectedScrollSnap() + 1);
+        const initialTimer = window.setTimeout(() => {
+            setCount(api.scrollSnapList().length);
+            setCurrent(api.selectedScrollSnap() + 1);
+        }, 0);
 
         api.on('select', () => {
             setCurrent(api.selectedScrollSnap() + 1);
         });
+        return () => window.clearTimeout(initialTimer);
     }, [api]);
 
     return (

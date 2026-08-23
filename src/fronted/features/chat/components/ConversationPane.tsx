@@ -101,13 +101,13 @@ const QueuedMarkdown = ({
         if (!animate) {
             visibleLengthRef.current = characters.length;
             queuedMarkdownProgress.set(queueKey, characters.length);
-            setVisibleText(children);
+            window.setTimeout(() => setVisibleText(children), 0);
             return;
         }
         if (visibleLengthRef.current > characters.length) {
             visibleLengthRef.current = characters.length;
             queuedMarkdownProgress.set(queueKey, characters.length);
-            setVisibleText(children);
+            window.setTimeout(() => setVisibleText(children), 0);
         }
         if (visibleLengthRef.current >= characters.length) {
             return;

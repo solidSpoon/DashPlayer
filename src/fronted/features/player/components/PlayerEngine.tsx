@@ -86,11 +86,13 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
 
   // 最新回调引用：避免内联回调导致 effect 反复重建
   const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
   const onEndedRef = useRef(onEnded);
-  onEndedRef.current = onEnded;
   const onProvideRef = useRef(onProvideVideoElement);
-  onProvideRef.current = onProvideVideoElement;
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onEndedRef.current = onEnded;
+    onProvideRef.current = onProvideVideoElement;
+  }, [onReady, onEnded, onProvideVideoElement]);
 
   // 卡死自愈状态
   const stallAttemptRef = useRef(0);

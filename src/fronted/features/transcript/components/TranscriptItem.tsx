@@ -39,7 +39,7 @@ const TranscriptItem = ({ task, onStart, onDelete }: TranscriptItemProps) => {
         if (task && task.status) {
             const status = task.status as TranscriptTaskState;
             if (status === TranscriptTaskState.DONE || status === TranscriptTaskState.CANCELLED || status === TranscriptTaskState.FAILED) {
-                setStarted(false);
+                window.setTimeout(() => setStarted(false), 0);
             }
         }
     }, [task]);

@@ -377,39 +377,43 @@ export default function VideoLearningPage() {
       { length: Math.min(clips.length, PAGE_SIZE) },
       (_, idx) => idx
     );
-    ensureThumbnails(initialIndices);
+    const timer = window.setTimeout(() => ensureThumbnails(initialIndices), 0);
+    return () => window.clearTimeout(timer);
   }, [clips, ensureThumbnails]);
 
   // 初始化：有列表则默认播放第一个视频的中间句
   useEffect(() => {
     if (!clips.length) {
-      setCurrentClipIndex(-1);
-      setCurrentLineIndex(-1);
+      const timer = window.setTimeout(() => {
+        setCurrentClipIndex(-1);
+        setCurrentLineIndex(-1);
+      }, 0);
       if (pendingClip && pendingClip.page === loadedPage) {
-        setPendingClip(null);
+        window.setTimeout(() => setPendingClip(null), 0);
       }
-      return;
+      return () => window.clearTimeout(timer);
     }
 
     if (pendingClip && pendingClip.page === loadedPage) {
       const targetIndex = pendingClip.index === 'last'
         ? clips.length - 1
         : Math.max(0, Math.min(pendingClip.index, clips.length - 1));
-      playClip(targetIndex);
-      setPendingClip(null);
+      window.setTimeout(() => playClip(targetIndex), 0);
+      window.setTimeout(() => setPendingClip(null), 0);
       return;
     }
 
     if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
-      playClip(0);
+      window.setTimeout(() => playClip(0), 0);
     }
   }, [clips, currentClipIndex, loadedPage, pendingClip, playClip, setPendingClip]);
 
   // 初始化加载单词
   useEffect(() => {
-    fetchWords();
+    const timer = window.setTimeout(() => fetchWords(), 0);
     return () => {
-      setSelectedWord(null);
+      window.clearTimeout(timer);
+      window.setTimeout(() => setSelectedWord(null), 0);
     };
   }, [fetchWords]);
 

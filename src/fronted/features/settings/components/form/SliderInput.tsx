@@ -20,7 +20,7 @@ const SliderInput = ({
 }: SliderInputProps) => {
     const [localValue, setLocalValue] = useState<string>(defaultValue);
     useEffect(() => {
-        setLocalValue(defaultValue);
+        window.setTimeout(() => setLocalValue(defaultValue), 0);
     }, [defaultValue]);
     return (
         <div className="flex items-center gap-4  text-gray-700 select-none">

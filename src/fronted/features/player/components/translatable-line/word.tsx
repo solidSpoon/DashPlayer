@@ -69,6 +69,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [referenceElement, setReferenceElement] = useState<HTMLSpanElement | null>(null);
 
     const theme = useTransLineTheme();
 
@@ -266,7 +267,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     return (
         <span>
             <span
-                ref={eleRef}
+                ref={setReferenceElement}
                 className="rounded cursor-pointer"
                 role="button"
                 tabIndex={0}
@@ -312,7 +313,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                 <Eb>
                     <WordPop
                         translation={dictionaryResponse}
-                        referenceElement={eleRef.current}
+                        referenceElement={referenceElement}
                         ref={popperRef}
                         isLoading={isWordLoading || isRefreshing}
                         openaiStreamingData={openaiDictionaryEnabled ? dictionaryEntry?.data : null}

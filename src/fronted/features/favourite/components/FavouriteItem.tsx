@@ -26,17 +26,17 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
   useEffect(() => {
     // 仅当当前播放的视频就是本 item 时才做行高亮
     if (playInfo?.video.key !== item.key) {
-      if (currentLine) setCurrentLine(null);
+      if (currentLine) window.setTimeout(() => setCurrentLine(null), 0);
       return;
     }
     if (!currentSentence) {
-      if (currentLine) setCurrentLine(null);
+      if (currentLine) window.setTimeout(() => setCurrentLine(null), 0);
       return;
     }
     const idx = currentSentence.index;
     const line = lines[idx] ?? null;
     if (line !== currentLine) {
-      setCurrentLine(line);
+      window.setTimeout(() => setCurrentLine(line), 0);
     }
   }, [playInfo?.video.key, item.key, currentSentence, lines, currentLine]);
 

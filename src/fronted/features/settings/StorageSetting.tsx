@@ -90,7 +90,9 @@ const StorageSetting = () => {
         if (!detail) {
             return;
         }
-        loadStorageStatus(detail.path).catch(() => undefined);
+        window.setTimeout(() => {
+            loadStorageStatus(detail.path).catch(() => undefined);
+        }, 0);
     }, [detail, loadStorageStatus]);
 
     async function reloadOss() {

@@ -7,7 +7,7 @@ import ThemePreview from '@/fronted/features/settings/components/ThemePreview';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
@@ -31,7 +31,11 @@ const AppearanceSetting = () => {
     );
 
     const form = useForm<AppearanceFormValues>();
-    const { watch, setValue } = form;
+    const { setValue } = form;
+    const [currentTheme, currentFontSize, currentLanguage] = useWatch({
+        control: form.control,
+        name: ['theme', 'fontSize', 'language'],
+    });
 
     const { ready, initialize, flush } = useAutoSaveSettingsForm<AppearanceFormValues>({
         form,
@@ -61,10 +65,6 @@ const AppearanceSetting = () => {
             </div>
         );
     }
-
-    const currentTheme = watch('theme');
-    const currentFontSize = watch('fontSize');
-    const currentLanguage = watch('language');
 
     if (currentTheme === undefined || currentFontSize === undefined || currentLanguage === undefined) {
         throw new Error('外观设置表单未初始化');

@@ -66,6 +66,7 @@ export function useAutoSaveSettingsForm<TFormValues extends FieldValues>(
     const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveInFlightRef = React.useRef(false);
     const saveQueuedRef = React.useRef(false);
+    const commitRef = React.useRef<() => Promise<void>>(async () => undefined);
     const idleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     /**
@@ -123,13 +124,17 @@ export function useAutoSaveSettingsForm<TFormValues extends FieldValues>(
             }
         }
         if (shouldCommitAgain) {
-            await commit();
+            await commitRef.current();
             return;
         }
         if (thrownError) {
             throw thrownError;
         }
     }, [getValues, onSave, ready, scheduleIdleStatus]);
+
+    React.useEffect(() => {
+        commitRef.current = commit;
+    }, [commit]);
 
     /**
      * 用后端详情重置表单，并建立新的保存基线。

@@ -47,7 +47,7 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
     // 监听实际源标识：源切换（含同类型源之间）时重置就绪状态，避免旧循环继续抓旧元素
     useEffect(() => {
         videoElementRef.current = null;
-        setVideoReady(false);
+        window.setTimeout(() => setVideoReady(false), 0);
     }, [src]);
 
     /**

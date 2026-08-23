@@ -1,4 +1,4 @@
-import i18n, { changeLanguage, use } from 'i18next';
+import i18n, { changeLanguage, use as i18nextUse } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import zhNav from '@/fronted/i18n/locales/zh-CN/nav.json';
@@ -70,7 +70,7 @@ export const applyLanguageSetting = async (setting: string | undefined | null): 
     return locale;
 };
 
-void use(initReactI18next)
+void i18nextUse(initReactI18next)
     .init({
         resources,
         lng: I18N_FALLBACK_LOCALE,
