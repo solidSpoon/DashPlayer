@@ -360,30 +360,30 @@ export default function VideoPlayerPane({
   if (!clip) {
     // 空白骨架屏幕
     return (
-      <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
+        <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-center">
           {/* 视频播放器骨架 */}
           <div>
             <AspectRatio ratio={16 / 9}>
               <div className="w-full h-full bg-muted/40 rounded-xl flex items-center justify-center border border-border/40">
                 <div className="text-center text-muted-foreground">
-                  <div className="w-12 h-12 bg-muted/80 rounded-full mx-auto mb-2.5 flex items-center justify-center">
-                    <div className="w-5 h-5 text-muted-foreground/70">▶</div>
+                  <div className="w-9 h-9 bg-muted/80 rounded-full mx-auto mb-1.5 flex items-center justify-center">
+                    <div className="w-4 h-4 text-muted-foreground/70">▶</div>
                   </div>
-                  <p className="text-xs">点击上方视频开始播放</p>
+                  <p className="text-[11px]">点击上方片段开始播放</p>
                 </div>
               </div>
             </AspectRatio>
           </div>
 
           {/* 字幕区域骨架 */}
-          <div className="overflow-auto max-h-64 scrollbar-thin">
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="p-2.5 rounded-xl bg-muted/30 border border-border/30">
-                  <div className="h-3 bg-muted/80 rounded w-16 mb-1.5"></div>
-                  <div className="h-3.5 bg-muted/80 rounded w-full mb-1"></div>
-                  <div className="h-3 bg-muted/60 rounded w-3/4"></div>
+          <div className="overflow-auto max-h-48 scrollbar-thin">
+            <div className="space-y-1.5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-2 rounded-xl bg-muted/30 border border-border/30">
+                  <div className="h-2.5 bg-muted/80 rounded w-16 mb-1"></div>
+                  <div className="h-3 bg-muted/80 rounded w-full mb-1"></div>
+                  <div className="h-2.5 bg-muted/60 rounded w-3/4"></div>
                 </div>
               ))}
             </div>
@@ -394,8 +394,8 @@ export default function VideoPlayerPane({
   }
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-center">
+    <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
+      <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-center">
         <div>
           <AspectRatio ratio={16 / 9}>
             <div className="w-full rounded-xl overflow-hidden bg-black shadow-inner border border-black/10">

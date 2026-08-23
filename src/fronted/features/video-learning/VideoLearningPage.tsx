@@ -438,7 +438,7 @@ export default function VideoLearningPage() {
       />
 
       {/* 主体内容区域：双栏现代化卡片工作台 */}
-      <div className="flex-1 min-h-0 grid grid-cols-[300px_minmax(0,1fr)] gap-5 overflow-hidden pb-1">
+      <div className="flex-1 min-h-0 grid grid-cols-[360px_minmax(0,1fr)] gap-5 overflow-hidden pb-1">
         {/* 左栏卡片：生词库 */}
         <div className="flex flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-2xs min-h-0">
           <WordSidebar
