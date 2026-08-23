@@ -139,36 +139,33 @@ const Favorite = () => {
 
             {/* 内容主体：左侧列表 + 右侧播放器与金句 */}
             <div
-                className="flex-1 min-h-0 grid gap-5"
+                className="flex-1 min-h-0 grid gap-6"
                 style={{
-                    gridTemplateColumns: 'minmax(0, 1.15fr) minmax(360px, 0.85fr)',
+                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(360px, 0.8fr)',
                     gridTemplateRows: '100%'
                 }}
             >
                 {data.length === 0 ? (
-                    <div className="w-full h-full rounded-2xl border border-dashed border-border/80 p-8 flex flex-col gap-4 items-center justify-center text-center bg-card/30">
-                        <h3 className="text-lg font-semibold">{t('savedMoments.empty.title')}</h3>
-                        <p className="text-xs text-muted-foreground max-w-md leading-5">
+                    <div className="w-full h-full flex flex-col gap-3 items-center justify-center text-center text-muted-foreground/60">
+                        <h3 className="text-base font-medium text-foreground/80">{t('savedMoments.empty.title')}</h3>
+                        <p className="text-xs max-w-sm leading-5">
                             {t('savedMoments.empty.guideAdd')}
                         </p>
-                        <p className="text-xs text-muted-foreground max-w-md leading-5">
-                            {t('savedMoments.empty.guideRecover')}
-                        </p>
-                        <Button type="button" variant="outline" size="sm" className="rounded-xl mt-2" onClick={recoverSavedMoments}>
+                        <Button type="button" variant="outline" size="sm" className="rounded-lg mt-2" onClick={recoverSavedMoments}>
                             {t('savedMoments.recover.button')}
                         </Button>
                     </div>
                 ) : (
-                    <div className="w-full h-full min-h-0 overflow-hidden pr-1">
+                    <div className="w-full h-full min-h-0 overflow-hidden pr-2 border-r border-border/40">
                         <Virtuoso
                             ref={virtuosoRef}
-                            className="w-full h-full scrollbar-thin"
+                            className="w-full h-full scrollbar-none"
                             data={data}
                             itemContent={(_index, item) => <FavouriteItem item={item} />}
                         />
                     </div>
                 )}
-                <div className="w-full h-full min-h-0 overflow-y-auto pr-1 scrollbar-thin">
+                <div className="w-full h-full min-h-0 overflow-y-auto pl-1 pr-1 scrollbar-none">
                     <FavouritePlayer />
                 </div>
             </div>

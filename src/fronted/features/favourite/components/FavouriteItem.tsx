@@ -41,13 +41,15 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
   }, [playInfo?.video.key, item.key, currentSentence, lines, currentLine]);
 
   const isCurrentPlaying = playInfo?.video.key === item.key;
+  // 提取纯文件名，避免显示过长且杂乱的绝对路径
+  const displayName = item.video_name ? item.video_name.split('/').pop()?.replace(/\.[^/.]+$/, '') || item.video_name : '';
 
   return (
     <div
       key={item.key}
       className={cn(
-        'group relative flex items-start gap-3.5 rounded-xl p-3 mb-2.5 transition-all duration-200 border border-border/60 bg-card/60 hover:bg-card hover:border-border hover:shadow-xs select-text',
-        isCurrentPlaying && 'bg-primary/5 border-primary/40 shadow-xs ring-1 ring-primary/20'
+        'group relative flex items-start gap-3.5 px-3 py-3 rounded-xl transition-colors duration-150 select-text',
+        isCurrentPlaying ? 'bg-primary/8' : 'hover:bg-muted/50'
       )}
     >
       {/* 缩略图区域 */}
@@ -62,28 +64,32 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
             sentenceIndex: 0
           });
         }}
-        className="relative flex flex-col w-36 sm:w-40 shrink-0 aspect-video rounded-lg overflow-hidden border border-border/60 bg-muted cursor-pointer group/thumb"
+        className="relative flex flex-col w-32 sm:w-36 shrink-0 aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer"
       >
         <img
-          className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+          className="w-full h-full object-cover"
           src={UrlUtil.toUrl(item.baseDir, item.thumbnail_file)}
           alt=""
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-black/20 group-hover/thumb:bg-black/35 flex items-center justify-center transition-colors">
+        {/* 轻量播放指示标记（仅在当前播放中或鼠标悬停在封面上时轻微显现） */}
+        <div className={cn(
+          'absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity',
+          isCurrentPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        )}>
           <div className={cn(
-            'w-7 h-7 rounded-full bg-background/90 text-foreground flex items-center justify-center shadow-xs transition-transform group-hover/thumb:scale-110',
+            'w-6 h-6 rounded-full bg-background/90 text-foreground flex items-center justify-center shadow-xs',
             isCurrentPlaying && 'bg-primary text-primary-foreground'
           )}>
-            <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
+            <Play className="w-3 h-3 ml-0.5 fill-current" />
           </div>
         </div>
       </div>
 
       {/* 文本内容与信息 */}
-      <div className="min-w-0 flex-1 flex flex-col justify-between self-stretch gap-2.5">
+      <div className="min-w-0 flex-1 flex flex-col justify-between self-stretch gap-1.5">
         {/* 字幕上下文段落 */}
-        <div className="text-sm leading-relaxed text-foreground/90 space-x-1 cursor-pointer">
+        <div className="text-[13px] leading-relaxed text-foreground/80 space-x-1 cursor-pointer">
           {lines.map((contextLine: ClipSrtLine, index) => {
             const isHighlight = contextLine === currentLine && isCurrentPlaying;
             return (
@@ -115,7 +121,7 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
                 className={cn(
                   'rounded px-1 py-0.5 transition-colors',
                   contextLine.isClip ? 'font-semibold text-foreground bg-primary/10' : 'text-muted-foreground hover:text-foreground',
-                  isHighlight && 'bg-primary text-primary-foreground font-bold shadow-xs'
+                  isHighlight && 'bg-primary text-primary-foreground font-bold'
                 )}
               >
                 {contextLine.contentEn}
@@ -125,23 +131,23 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
         </div>
 
         {/* 底部元数据栏与操作 */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground/70">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
             <span className="shrink-0">{new Date(item.created_at).toLocaleDateString()}</span>
-            <span className="opacity-40">•</span>
-            <span className="truncate" title={item.video_name}>{item.video_name}</span>
+            <span className="opacity-30">•</span>
+            <span className="truncate text-muted-foreground/60" title={item.video_name}>{displayName}</span>
           </div>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+            className="h-5 w-5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={async (e) => {
               e.stopPropagation();
               deleteClip(item.key);
             }}
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3" />
           </Button>
         </div>
       </div>

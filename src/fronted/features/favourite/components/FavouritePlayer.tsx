@@ -201,34 +201,34 @@ const FavouritePlayer = () => {
 
   if (!playInfo) {
     return (
-      <div className="w-full h-full rounded-2xl border border-dashed border-border/80 flex flex-col items-center justify-center p-8 text-center bg-card/40">
-        <div className="text-sm font-medium text-muted-foreground">请从左侧选择一个收藏片段开始播放</div>
+      <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground/60 text-sm">
+        选择左侧片段即可播放
       </div>
     );
   }
 
   return (
-    <div className="w-full flex flex-col gap-3.5 select-none">
+    <div className="w-full flex flex-col gap-3 select-none">
       {/* 视频主播放窗口 */}
       <AspectRatio ratio={16 / 9} className="w-full">
-        <div className="w-full h-full rounded-2xl overflow-hidden border border-border/70 bg-black/90 shadow-xs">
+        <div className="w-full h-full rounded-xl overflow-hidden bg-black shadow-xs">
           <PlayerEngine width="100%" height="100%" onReady={handlePlayerReady} onEnded={handlePlayerEnded} />
         </div>
       </AspectRatio>
 
-      {/* 控制条 */}
-      <div className="flex items-center gap-2 p-2.5 bg-card/80 border border-border/70 rounded-xl shadow-2xs">
+      {/* 控制条：极简通透无外线框 */}
+      <div className="flex items-center gap-1.5 px-1 py-1">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant={playing ? 'secondary' : 'default'}
                 size="icon"
-                className="h-8 w-8 rounded-lg shadow-2xs shrink-0"
+                className="h-8 w-8 rounded-lg shrink-0 shadow-2xs"
                 onClick={() => playerActions.togglePlay()}
                 disabled={!ready}
               >
-                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -243,7 +243,7 @@ const FavouritePlayer = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg shrink-0"
+                className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
                 onClick={goToPreviousVideo}
                 disabled={!ready || allVideos.length === 0}
               >
@@ -262,7 +262,7 @@ const FavouritePlayer = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg shrink-0"
+                className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
                 onClick={goToNextVideo}
                 disabled={!ready || allVideos.length === 0}
               >
@@ -281,11 +281,11 @@ const FavouritePlayer = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg shrink-0"
+                className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
                 onClick={() => playerActions.repeatCurrent({ loop: false })}
                 disabled={!ready}
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

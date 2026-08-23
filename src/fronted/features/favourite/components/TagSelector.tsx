@@ -73,13 +73,13 @@ export default function TagSelector() {
     };
 
     return (
-        <div className={cn('w-full border border-border/70 rounded-xl bg-card/60 flex flex-wrap items-center gap-1.5 p-2')}>
+        <div className={cn('w-full flex flex-wrap items-center gap-1.5 py-1')}>
             {clipTags.map((tag) => (
                 <Badge
                     key={tag.id}
                     variant="secondary"
                     className={cn(
-                        'relative flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-normal bg-background/80 border border-border/60 hover:bg-background'
+                        'relative flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-normal bg-muted/60 hover:bg-muted text-muted-foreground'
                     )}
                     onContextMenu={(e) => {
                         e.preventDefault();
@@ -91,7 +91,7 @@ export default function TagSelector() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-3.5 w-3.5 p-0 hover:bg-muted/80 rounded-full"
+                        className="h-3.5 w-3.5 p-0 hover:bg-background/80 rounded-full"
                         onClick={async () => {
                             const key = playInfo?.video.key;
                             if (!key) return;
@@ -112,11 +112,11 @@ export default function TagSelector() {
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger asChild>
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-lg gap-1 border-dashed"
+                        className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-foreground rounded-md gap-1 hover:bg-muted/50"
                     >
-                        <Plus className="h-3.5 w-3.5" />
+                        <Plus className="h-3 w-3" />
                         添加标签
                     </Button>
                 </PopoverTrigger>
