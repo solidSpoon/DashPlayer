@@ -14,7 +14,13 @@
         "downloading": "Downloading...",
         "download": "Download",
         "ready": "Ready",
-        "notDownloaded": "Not downloaded"
+        "notDownloaded": "Not downloaded",
+        "copied": "Download address copied",
+        "manualDownloadTitle": "If the network is unstable, download the model manually:",
+        "manualDownloadSaveTo": "Save the downloaded file to:",
+        "manualDownloadNextStep": "Then return here and click Download to finish installing the model."
+        ,"openFolder": "Open folder"
+        ,"openFolderFailed": "Failed to open folder"
     },
     "sections": {
         "shortcut": "Shortcuts",
@@ -203,7 +209,11 @@
             "cancelDelete": "Keep Model",
             "confirmDelete": "Delete",
             "modelDeleted": "Model deleted",
-            "deleteFailed": "Failed to delete model"
+            "deleteFailed": "Failed to delete model",
+            "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
+        },
+        "sherpaTts": {
+            "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
         },
         "youdao": {
             "title": "Youdao Dictionary",

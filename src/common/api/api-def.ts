@@ -107,7 +107,7 @@ interface SystemDef {
         }
     };
     'system/reset-db': { params: void, return: void };
-    'system/open-folder': { params: string, return: void };
+    'system/open-folder': { params: { path: string; createDirectory?: boolean }, return: void };
     'system/open-folder/cache': { params: void, return: void };
     'system/window-size/change': { params: WindowState, return: void };
     'system/window-size': { params: void, return: WindowState };

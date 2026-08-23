@@ -15,6 +15,12 @@
         "download": "下载",
         "ready": "就绪",
         "notDownloaded": "未下载"
+        ,"copied": "已复制下载地址"
+        ,"manualDownloadTitle": "网络不稳定时，也可以手动下载模型："
+        ,"manualDownloadSaveTo": "下载完成后，将文件保存到："
+        ,"manualDownloadNextStep": "保存后，回到这里点击“下载”，完成模型安装。"
+        ,"openFolder": "打开文件夹"
+        ,"openFolderFailed": "打开文件夹失败"
     },
     "sections": {
         "shortcut": "快捷键",
@@ -204,6 +210,10 @@
             "confirmDelete": "确认删除",
             "modelDeleted": "模型已删除",
             "deleteFailed": "删除失败"
+            ,"manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
+        },
+        "sherpaTts": {
+            "manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
         },
         "youdao": {
             "title": "有道词典",

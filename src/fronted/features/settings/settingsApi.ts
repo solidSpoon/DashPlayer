@@ -65,6 +65,13 @@ export const settingsApi = {
     openUrl: (url: string) => backendClient.call('system/open-url', url),
 
     /**
+     * 打开指定文件所在的文件夹。
+     *
+     * @param filePath 文件路径；后端会打开其父目录。
+     */
+    openFolderForFile: (filePath: string) => backendClient.call('system/open-folder', { path: filePath, createDirectory: true }),
+
+    /**
      * 查询引擎选择设置。
      *
      * @returns 当前引擎选择设置。

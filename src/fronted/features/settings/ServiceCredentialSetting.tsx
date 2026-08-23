@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
-import { Book, Bot, CheckCircle2, Cpu, Download, Languages, Loader2, Plus, ShieldCheck, Square, TestTube, Trash2, XCircle } from 'lucide-react';
+import { Book, Bot, CheckCircle2, Copy, Cpu, Download, FolderOpen, Languages, Loader2, Plus, ShieldCheck, Square, TestTube, Trash2, XCircle } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
@@ -66,6 +66,25 @@ const ServiceCredentialSetting = () => {
     const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
+
+    /** 复制模型下载地址，并用提示反馈复制结果。 */
+    const copyDownloadUrl = async (url: string) => {
+        await navigator.clipboard.writeText(url);
+        toast({ title: t('common.copied') });
+    };
+
+    /** 打开模型归档所在的文件夹。 */
+    const openModelFolder = async (filePath: string) => {
+        try {
+            await settingsApi.openFolderForFile(filePath);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('common.openFolderFailed'),
+                description: error instanceof Error ? error.message : String(error),
+            });
+        }
+    };
     /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
     const downloadingRef = React.useRef(false);
     const sherpaTtsDownloadingRef = React.useRef(false);
@@ -554,10 +573,10 @@ const ServiceCredentialSetting = () => {
 
                 <div className="rounded-xl border border-border/70 p-5 space-y-4">
                     <div>
-                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />Sherpa ONNX · Parakeet v3</div>
-                        <div className="text-xs text-muted-foreground mt-1">本地英语字幕识别模型，INT8 版本约 640 MB。</div>
+                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />英语字幕识别模型</div>
+                        <div className="text-xs text-muted-foreground mt-1">用于自动生成英语字幕，模型大小约 640 MB。</div>
                     </div>
-                    <div className="rounded-lg border border-border/60 px-4 py-3 space-y-3">
+                    <div className="space-y-3">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <span className="text-sm font-medium">Parakeet TDT 0.6B v3 INT8</span>
@@ -623,15 +642,36 @@ const ServiceCredentialSetting = () => {
                                 </p>
                             )
                         )}
+                        {parakeetModelStatus && (
+                            <div className="space-y-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                                <p>{t('common.manualDownloadTitle')}</p>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1" title={parakeetModelStatus.downloadUrl}>{parakeetModelStatus.downloadUrl}</code>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(parakeetModelStatus.downloadUrl).catch(() => null)}>
+                                        <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <p className="min-w-0 flex-1">{t('common.manualDownloadSaveTo')} <code className="break-all rounded bg-muted px-1 py-0.5">{parakeetModelStatus.archivePath}</code></p>
+                                    <Button type="button" variant="secondary" size="sm" className="h-7 shrink-0" onClick={() => openModelFolder(parakeetModelStatus.archivePath).catch(() => null)}>
+                                        <FolderOpen className="h-3.5 w-3.5 mr-1.5" />{t('common.openFolder')}
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(parakeetModelStatus.archivePath).catch(() => null)}>
+                                        <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                                <p>{t('common.manualDownloadNextStep')}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div className="rounded-xl border border-border/70 p-5 space-y-4">
                     <div>
-                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />Sherpa ONNX · Piper TTS</div>
-                        <div className="text-xs text-muted-foreground mt-1">本地英语文字转语音模型，离线生成 WAV 音频。</div>
+                        <div className="flex items-center gap-2 text-sm font-semibold"><Cpu className="w-4 h-4" />英语语音朗读模型</div>
+                        <div className="text-xs text-muted-foreground mt-1">用于英语语音朗读，完全离线生成音频。</div>
                     </div>
-                    <div className="rounded-lg border border-border/60 px-4 py-3 space-y-3">
+                    <div className="space-y-3">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <span className="text-sm font-medium">Piper en_US Amy Low</span>
@@ -664,6 +704,27 @@ const ServiceCredentialSetting = () => {
                             sherpaTtsDownloadPhase === 'downloading'
                                 ? <Progress value={sherpaTtsDownloadProgress} className="h-1.5" />
                                 : <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" />{sherpaTtsDownloadPhase === 'extracting' ? '正在解压模型…' : '正在安装模型…'}</p>
+                        )}
+                        {sherpaTtsModelStatus && (
+                            <div className="space-y-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                                <p>{t('common.manualDownloadTitle')}</p>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1" title={sherpaTtsModelStatus.downloadUrl}>{sherpaTtsModelStatus.downloadUrl}</code>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(sherpaTtsModelStatus.downloadUrl).catch(() => null)}>
+                                        <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <p className="min-w-0 flex-1">{t('common.manualDownloadSaveTo')} <code className="break-all rounded bg-muted px-1 py-0.5">{sherpaTtsModelStatus.archivePath}</code></p>
+                                    <Button type="button" variant="secondary" size="sm" className="h-7 shrink-0" onClick={() => openModelFolder(sherpaTtsModelStatus.archivePath).catch(() => null)}>
+                                        <FolderOpen className="h-3.5 w-3.5 mr-1.5" />{t('common.openFolder')}
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t('common.copy')} title={t('common.copy')} onClick={() => copyDownloadUrl(sherpaTtsModelStatus.archivePath).catch(() => null)}>
+                                        <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                                <p>{t('common.manualDownloadNextStep')}</p>
+                            </div>
                         )}
                     </div>
                 </div>

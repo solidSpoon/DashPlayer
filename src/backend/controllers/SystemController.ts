@@ -1,6 +1,7 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { app, dialog, shell } from 'electron';
 import path from 'path';
+import * as fsPromises from 'fs/promises';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
@@ -93,9 +94,19 @@ export default class SystemController implements Controller {
         app.quit();
     }
 
-    public async openFolder(p: string) {
-        const folder = path.dirname(p);
-        await shell.openPath(folder);
+    /**
+     * 打开指定路径所在的文件夹；仅在显式允许时创建不存在的目录。
+     * @param request 文件路径或目录路径，以及是否在打开前创建父目录。
+     */
+    public async openFolder(request: { path: string; createDirectory?: boolean }): Promise<void> {
+        const folder = path.dirname(request.path);
+        if (request.createDirectory === true) {
+            await fsPromises.mkdir(folder, { recursive: true });
+        }
+        const error = await shell.openPath(folder);
+        if (error) {
+            throw new Error(`打开文件夹失败：${error}`);
+        }
     }
 
     public async setWindowButtonsVisible(visible: boolean) {

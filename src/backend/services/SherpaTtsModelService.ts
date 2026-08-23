@@ -10,13 +10,13 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import TYPES from '@/backend/ioc/types';
-import { SHERPA_TTS_MODEL_DIRECTORY, SHERPA_TTS_REQUIRED_FILES } from '@/backend/services/models/sherpaTtsModel';
+import { SHERPA_TTS_MODEL_ARCHIVE_NAME, SHERPA_TTS_MODEL_DIRECTORY, SHERPA_TTS_MODEL_DOWNLOAD_URL, SHERPA_TTS_REQUIRED_FILES } from '@/backend/services/models/sherpaTtsModel';
 import type { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 
-const ARCHIVE_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-amy-low.tar.bz2';
+const ARCHIVE_URL = SHERPA_TTS_MODEL_DOWNLOAD_URL;
 const DOWNLOAD_WORK_DIR = '.sherpa-tts-download';
-const ARCHIVE_FILE_NAME = 'model.tar.bz2';
+const ARCHIVE_FILE_NAME = SHERPA_TTS_MODEL_ARCHIVE_NAME;
 export const SHERPA_TTS_DOWNLOAD_CANCELLED_MESSAGE = 'Sherpa TTS 模型下载已取消';/**
  * SherpaTtsModelService 的业务契约。
  */
@@ -70,6 +70,7 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
      */
     public async getStatus(): Promise<SherpaTtsModelStatusVO> {
         const modelPath = await this.getModelPath();
+        const archivePath = path.join(path.dirname(modelPath), DOWNLOAD_WORK_DIR, ARCHIVE_FILE_NAME);
         const missingFiles = SHERPA_TTS_REQUIRED_FILES.filter((file) => !fs.existsSync(path.join(modelPath, file)));
         return {
             modelPath,
@@ -78,6 +79,8 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
             downloading: this.activeDownload !== null,
             phase: this.currentPhase,
             percent: this.currentPercent,
+            downloadUrl: ARCHIVE_URL,
+            archivePath,
         };
     }
 
@@ -140,6 +143,7 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
         const workDir = path.join(modelsRoot, DOWNLOAD_WORK_DIR);
         const archivePath = path.join(workDir, ARCHIVE_FILE_NAME);
         const extractPath = path.join(workDir, 'extract');
+        await fsPromises.rm(extractPath, { recursive: true, force: true });
         await fsPromises.mkdir(extractPath, { recursive: true });
         let installed = false;
         try {
@@ -157,7 +161,7 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
         } catch (error) {
             if (!controller.signal.aborted) {
                 this.logger.error('sherpa tts model download failed', { error });
-                await fsPromises.rm(workDir, { recursive: true, force: true }).catch(() => null);
+                // 保留归档和工作目录，支持用户手动下载后继续安装。
             }
             throw error;
         } finally {
@@ -173,11 +177,17 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
     private async downloadArchive(archivePath: string, signal: AbortSignal): Promise<void> {
         await fsPromises.mkdir(path.dirname(archivePath), { recursive: true });
         const existingSize = await this.getExistingArchiveSize(archivePath);
-        const response = await axios.get(ARCHIVE_URL, {
-            responseType: 'stream',
-            signal,
-            headers: existingSize > 0 ? { Range: `bytes=${existingSize}-` } : {},
-        });
+        let response;
+        try {
+            response = await axios.get(ARCHIVE_URL, {
+                responseType: 'stream',
+                signal,
+                headers: existingSize > 0 ? { Range: `bytes=${existingSize}-` } : {},
+            });
+        } catch (error) {
+            if (existingSize > 0 && axios.isAxiosError(error) && error.response?.status === 416) return;
+            throw error;
+        }
         const resuming = response.status === 206;
         const total = Number(response.headers['content-length'] ?? 0) + (resuming ? existingSize : 0);
         await new Promise<void>((resolve, reject) => {
