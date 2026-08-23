@@ -431,14 +431,17 @@ export default function VideoLearningPage() {
   }, [handlePageChange, setSelectedWord]);
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-background px-6 py-4 gap-4 text-foreground">
-      <PageHeader
-        title={t('vocabularyStudio.title')}
-        description={t('vocabularyStudio.description')}
-      />
+    <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
+      {/* 顶栏标题区：统一排版 */}
+      <div className="px-6 pt-5 pb-2">
+        <PageHeader
+          title={t('vocabularyStudio.title')}
+          description={t('vocabularyStudio.description')}
+        />
+      </div>
 
       {/* 主体内容区域：双栏现代化卡片工作台 */}
-      <div className="flex-1 min-h-0 grid grid-cols-[480px_minmax(0,1fr)] gap-5 overflow-hidden pb-1">
+      <div className="flex-1 min-h-0 grid grid-cols-[480px_minmax(0,1fr)] gap-5 px-6 pb-5 pt-1 overflow-hidden">
         {/* 左栏卡片：生词库 */}
         <div className="flex flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-2xs min-h-0">
           <WordSidebar
