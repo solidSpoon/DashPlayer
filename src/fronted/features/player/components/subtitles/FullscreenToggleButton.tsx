@@ -9,7 +9,7 @@ const FullscreenToggleButton = ({fullScreen, changeFullScreen}: {
     changeFullScreen: (v: boolean) => void;
 }) => {
     return (
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button
@@ -23,15 +23,18 @@ const FullscreenToggleButton = ({fullScreen, changeFullScreen}: {
                         {fullScreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                    <p className='text-sm'>
-                        <h1 className={cn('text-lg font-bold')}>点击隐藏/展示右侧和下侧的字幕</h1>
-                        如果想要全屏:<br/>
-                        <p className='mt-2'>
-                            <b className='font-semibold'> Windows:</b> <b>右键</b>点击标题栏最大化按钮<br/>
-                            <b className='font-semibold'> Mac:</b> 点击红绿灯全屏按钮
-                        </p>
-                    </p>
+                <TooltipContent
+                    side="top"
+                    align="end"
+                    sideOffset={10}
+                    className="max-w-xs p-3 bg-neutral-900/95 backdrop-blur-md border border-white/15 text-white shadow-2xl rounded-xl text-xs space-y-1.5"
+                >
+                    <div className="font-semibold text-sm text-neutral-100">点击隐藏 / 显示字幕列表</div>
+                    <div className="text-neutral-400 text-[11px] leading-relaxed">
+                        全屏播放提示：<br />
+                        <span className="text-neutral-300 font-medium">Windows:</span> 右键点击标题栏最大化按钮<br />
+                        <span className="text-neutral-300 font-medium">Mac:</span> 点击窗口左上角绿色全屏按钮
+                    </div>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
