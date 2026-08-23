@@ -63,8 +63,11 @@ const ProjectListItem = ({ video, onSelected }: {
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
                     onClick={onSelected}
-                    className={cn('flex gap-6  p-4 rounded-xl', (hover || contextMenu) && 'bg-muted')}>
-                    <div className={cn('relative w-40 rounded-lg overflow-hidden')}>
+                    className={cn(
+                        'group flex items-center gap-4 py-3 px-2 rounded-2xl transition-all duration-150 cursor-pointer outline-none',
+                        (hover || contextMenu) ? 'bg-muted/60' : 'hover:bg-muted/30'
+                    )}>
+                    <div className={cn('relative w-36 sm:w-44 shrink-0 rounded-xl overflow-hidden bg-muted/60 border border-border/50 shadow-2xs')}>
                         {isAudio ? (
                             <MusicCard fileName={video.fileName}/>
                         ) : url ? (
@@ -73,7 +76,7 @@ const ProjectListItem = ({ video, onSelected }: {
                                 style={{
                                     aspectRatio: '16/9'
                                 }}
-                                className="w-full object-cover"
+                                className="w-full object-cover transition-transform duration-200 group-hover:scale-105"
                                 alt={video.fileName}
                             />
                         ) : (
@@ -81,48 +84,46 @@ const ProjectListItem = ({ video, onSelected }: {
                                 style={{
                                     aspectRatio: '16/9'
                                 }}
-                                className={'w-full bg-gray-500 flex items-center justify-center'}>
-                                <Film />
+                                className={'w-full bg-muted/80 flex items-center justify-center text-muted-foreground/60'}>
+                                <Film className="w-6 h-6 stroke-1" />
                             </div>
                         )}
                         {(showDuration || video.isFolder) && (
                             <div
-                                className={cn('absolute bottom-2 right-2 text-white bg-black bg-opacity-80 rounded-md p-1 py-0.5 text-xs flex')}>
+                                className={cn('absolute bottom-2 right-2 text-white/95 bg-black/75 backdrop-blur-md rounded-md px-1.5 py-0.5 text-[11px] font-medium flex items-center gap-1 shadow-2xs')}>
                                 {!video.isFolder ? TimeUtil.secondToTimeStrCompact(video?.duration) : <>
-                                    <ListVideo className={'w-4 h-4'} /></>}
+                                    <ListVideo className={'w-3.5 h-3.5'} /></>}
                             </div>
                         )}
                         {showDuration && (
                             <Progress
-                                className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-gray-500')}
+                                className={cn('absolute bottom-0 left-0 w-full rounded-none h-1 bg-black/30')}
                                 value={Math.floor((video?.current_position || 0) / (video?.duration || 1) * 100)}
                             />
                         )}
                     </div>
-
-                    <div className={'flex-1 w-0'}>
-                        <div
-                            className={' w-full line-clamp-2 break-words h-fit'}
-                        >{video.displayFileName ?? video.fileName}</div>
-                        <div className={'text-sm text-muted-foreground mt-2'}>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                        <div className="text-sm font-medium text-foreground truncate group-hover:text-foreground/85 transition-colors" title={video.fileName}>
+                            {video.displayFileName ?? video.fileName}
+                        </div>
+                        <div className="text-xs text-muted-foreground/80 truncate">
                             {TimeUtil.dateToRelativeTime(video?.updatedAt ?? new Date())}
                         </div>
                     </div>
-
-                    <Button
-                        className={cn('w-6 h-6 bg-background self-center', !hover && 'scale-0')}
-                        size={'icon'}
-                        variant={'outline'}
-                        onClick={async (e) => {
-                            e.stopPropagation();
-                            await fileBrowserApi.deleteWatchHistoryGroup(video.id);
-                            await swrApiMutate('watch-history/list');
-                        }}
-                    >
-                        <Trash2
-                            className={'w-3 h-3'}
-                        />
-                    </Button>
+                    {hover && (
+                        <Button
+                            className="w-8 h-8 rounded-xl shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            size="icon"
+                            variant="ghost"
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                await fileBrowserApi.deleteWatchHistoryGroup(video.id);
+                                await swrApiMutate('watch-history/list');
+                            }}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+                    )}
                 </div>
             </ContextMenuTrigger>
             <ContextMenuContent>

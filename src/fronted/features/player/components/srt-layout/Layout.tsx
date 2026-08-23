@@ -30,9 +30,9 @@ const PlaybackLayout = () => {
     const navigate = useNavigate();
     const { handlePlayerReady, handleAutoPlayNext } = usePlayerBridge(navigate);
     const containerClass = cn(
-        'w-full h-full flex flex-col overflow-hidden',
-        !showSideBar && 'rounded-2xl border border-border/80 bg-background shadow-xs',
-        showSideBar && 'overflow-hidden border-[30px] border-background/80 rounded-[45px] drop-shadow-lg'
+        'w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden',
+        hasSubTitle && 'border-r-0',
+        showSideBar && 'overflow-hidden border-[30px] border-background/80 rounded-[45px]'
     );
 
     if (!hasSource) {
