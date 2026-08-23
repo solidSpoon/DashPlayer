@@ -26,7 +26,7 @@ export default function SettingToggle({
   const row = (
     <div
       className={cn(
-        'group flex items-center justify-between gap-3 rounded-lg border px-3 py-1.5 transition-all duration-150',
+        'group flex items-center justify-between gap-3 rounded-xl border px-3 py-1.5 transition-all duration-150',
         'border-border/60 bg-muted/20 hover:bg-muted/40 hover:border-border',
         checked && 'border-border/80 bg-accent/50',
         className

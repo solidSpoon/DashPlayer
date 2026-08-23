@@ -90,15 +90,15 @@ export default function ControlBox() {
   }, [autoPlayNextSetting, setAutoPlayNext]);
 
   return (
-    <Card className={cn('w-full h-full flex flex-col overflow-hidden')}>
-      <CardHeader className="shrink-0 px-4 pt-3.5 pb-2">
+    <Card className={cn('w-full h-full flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xs')}>
+      <CardHeader className="shrink-0 px-4 pt-3.5 pb-2.5 border-b border-border/40">
         <CardTitle className="text-sm font-semibold">{t('controlBox.title')}</CardTitle>
       </CardHeader>
       
       {/* 滚动区域：仅开关网格在高度不够时纵向滚动 */}
       <CardContent
         className={cn(
-          'w-full flex-1 min-h-0 overflow-y-auto px-4 py-1',
+          'w-full flex-1 min-h-0 overflow-y-auto px-4 py-2',
           'scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-thumb-rounded scrollbar-track-transparent'
         )}
       >
@@ -107,7 +107,7 @@ export default function ControlBox() {
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
           {/* 字幕轨道：并入网格中，在有空间时占 2 列，联动系统主题色 */}
-          <div className="sm:col-span-2 flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[36px]">
+          <div className="sm:col-span-2 flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
             <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
               {t('controlBox.subtitleTracks')}
             </span>
@@ -117,9 +117,9 @@ export default function ControlBox() {
                   type="button"
                   onClick={changeShowEn}
                   className={cn(
-                    'px-2.5 py-1 text-xs rounded-md border transition-all duration-150 select-none font-medium',
+                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
                     showEn
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      ? 'bg-amber-400 text-black border-amber-500 font-semibold shadow-2xs'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
                   )}
                 >
@@ -132,9 +132,9 @@ export default function ControlBox() {
                   type="button"
                   onClick={changeShowCn}
                   className={cn(
-                    'px-2.5 py-1 text-xs rounded-md border transition-all duration-150 select-none font-medium',
+                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
                     showCn
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      ? 'bg-amber-400 text-black border-amber-500 font-semibold shadow-2xs'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
                   )}
                 >
@@ -147,9 +147,9 @@ export default function ControlBox() {
                   type="button"
                   onClick={changeShowSourceZh}
                   className={cn(
-                    'px-2.5 py-1 text-xs rounded-md border transition-all duration-150 select-none font-medium',
+                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
                     showSourceZh
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      ? 'bg-amber-400 text-black border-amber-500 font-semibold shadow-2xs'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
                   )}
                 >
@@ -165,7 +165,7 @@ export default function ControlBox() {
             checked={syncSide}
             onCheckedChange={() => changeSyncSide()}
             tooltipMd={t('controlBox.syncSideHint')}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
           <SettingToggle
@@ -174,7 +174,7 @@ export default function ControlBox() {
             checked={singleRepeat}
             onCheckedChange={() => setSingleRepeat(!singleRepeat)}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.repeatSentence') })}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
           <SettingToggle
@@ -183,7 +183,7 @@ export default function ControlBox() {
             checked={autoPause}
             onCheckedChange={() => setAutoPause(!autoPause)}
             tooltipMd={t('controlBox.autoPauseHint', { shortcut: getShortcut('shortcut.autoPause') })}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
           <SettingToggle
@@ -196,7 +196,7 @@ export default function ControlBox() {
               await setSetting('player.autoPlayNext', next ? 'true' : 'false');
             }}
             tooltipMd={t('controlBox.autoPlayNextHint')}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
           <SettingToggle
@@ -207,7 +207,7 @@ export default function ControlBox() {
               setSetting('appearance.theme', setting('appearance.theme') === 'dark' ? 'light' : 'dark');
             }}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.nextTheme') })}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
           <SettingToggle
@@ -223,7 +223,7 @@ export default function ControlBox() {
               await swrMutate(SWR_KEY.WINDOW_SIZE);
             }}
             tooltipMd={t('controlBox.fullScreenHint')}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
           <SettingToggle
@@ -241,14 +241,14 @@ export default function ControlBox() {
                 }
             }}
             tooltipMd={t('controlBox.podcastModeHint')}
-            className="h-9 px-2.5 py-1"
+            className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
         </div>
       </CardContent>
 
       {/* 固定的底部动作工具栏：绝不与滚动内容重叠 */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-border/50 bg-card flex flex-wrap items-center gap-2">
+      <div className="shrink-0 px-4 py-2.5 border-t border-border/50 bg-muted/15 flex flex-wrap items-center gap-2">
         <ClearAdjustButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
         <TranscriptButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
         <AutoClipButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
