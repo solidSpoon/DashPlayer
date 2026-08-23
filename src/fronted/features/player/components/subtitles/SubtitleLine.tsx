@@ -9,10 +9,9 @@ interface SubtitleLineProps {
     order: 'second' | 'third';
 }
 const SubtitleLine = ({ text, order }: SubtitleLineProps) => {
-    const show = usePlayerUi((state) => state.showCn);
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
     
-    if (text === undefined || !show) {
+    if (text === undefined) {
         return <div />;
     }
     return (

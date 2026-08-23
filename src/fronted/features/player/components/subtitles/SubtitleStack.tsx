@@ -6,6 +6,7 @@ import FullscreenTranslatableLine from './FullscreenTranslatableLine';
 import SubtitleLine from './SubtitleLine';
 import StrUtil from '@/common/utils/str-util';
 import useTranslation from '@/fronted/features/player/translationStore';
+import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 
 const SubtitleStack = () => {
     const sentence = usePlayerState((state) => state.currentSentence);
@@ -15,49 +16,51 @@ const SubtitleStack = () => {
     const translationKey = sentence?.translationKey || '';
     const newTranslation = useTranslation((state) => state.translations.get(translationKey)) || '';
 
+    const showCn = usePlayerUi((state) => state.showCn);
+    const showSourceZh = usePlayerUi((state) => state.showSourceZh);
+
     const renderLines = (): ReactElement[] => {
         if (!sentence) {
             return [];
         }
-        const candidates: Array<string> = [
-            sentence.text,
-            newTranslation,
-            sentence.textZH
-        ]
-            .filter((item) => StrUtil.isNotBlank(item))
-            .map((item) => item ?? '');
 
-        return candidates.map((item, index) => {
-            if (index === 0) {
-                return (
-                        <FullscreenTranslatableLine
-                            adjusted={adjusted}
-                            clearAdjust={() => {
-                                void playerActions.clearAdjust();
-                            }}
-                            key={`first-${sentence.key}`}
-                            sentence={sentence}
-                        />
-                );
-            }
-            if (index === 1) {
-                return (
-                    <SubtitleLine
-                        key={`second-${sentence.key}`}
-                        text={item}
-                        order="second"
-                    />
-                );
-            }
+        const lines: ReactElement[] = [];
 
-            return (
+        // 1. 原文字幕 (英文)
+        lines.push(
+            <FullscreenTranslatableLine
+                adjusted={adjusted}
+                clearAdjust={() => {
+                    void playerActions.clearAdjust();
+                }}
+                key={`first-${sentence.key}`}
+                sentence={sentence}
+            />
+        );
+
+        // 2. 机翻字幕
+        if (showCn && StrUtil.isNotBlank(newTranslation)) {
+            lines.push(
                 <SubtitleLine
-                    key={`third-${sentence.key}`}
-                    text={item}
-                    order="third"
+                    key={`translation-${sentence.key}`}
+                    text={newTranslation}
+                    order="second"
                 />
             );
-        });
+        }
+
+        // 3. 字幕源自带中文
+        if (showSourceZh && StrUtil.isNotBlank(sentence.textZH)) {
+            lines.push(
+                <SubtitleLine
+                    key={`sourceZh-${sentence.key}`}
+                    text={sentence.textZH!}
+                    order={lines.length === 1 ? 'second' : 'third'}
+                />
+            );
+        }
+
+        return lines;
     };
 
     if (!sentence) {

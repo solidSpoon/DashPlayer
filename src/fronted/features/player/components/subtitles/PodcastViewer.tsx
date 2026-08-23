@@ -41,6 +41,7 @@ const PodcastViewer = ({ className }: { className?: string }) => {
     const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
 
     const showCn = usePlayerUi(s => s.showCn);
+    const showSourceZh = usePlayerUi(s => s.showSourceZh);
     const srtTender = usePlayer(s => s.srtTender);
     const clearAdjust = () => { void playerActions.clearAdjust(); };
     if (!current || !srtTender) {
@@ -75,7 +76,7 @@ const PodcastViewer = ({ className }: { className?: string }) => {
                         {showCn && !StrUtil.isBlank(newTranslation) && (
                             <div className="text-2xl text-foreground/80 dark:text-neutral-200">{newTranslation}</div>
                         )}
-                        {showCn && !StrUtil.isBlank(current?.textZH) && (
+                        {showSourceZh && !StrUtil.isBlank(current?.textZH) && (
                             <div className="text-xl text-foreground/70 dark:text-neutral-300">{current?.textZH}</div>
                         )}
                     </div>

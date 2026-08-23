@@ -2,6 +2,8 @@ import React, { ReactElement, useEffect, useMemo } from 'react';
 import TranslatableLine from '@/fronted/features/player/components/subtitles/TranslatableLineWrapper';
 import NormalLine from './NormalLine';
 import useTranslation from '@/fronted/features/player/translationStore';
+import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
+import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
@@ -35,48 +37,49 @@ export default function MainSubtitle() {
         }
     }, [logger, sentence, engine, openAiMode, activeFileHash, requestTranslation]);
 
+    const showCn = usePlayerUi((state) => state.showCn);
+    const showSourceZh = usePlayerUi((state) => state.showSourceZh);
+
     const ele = (): ReactElement[] => {
         if (!sentence) {
             return [];
         }
 
-        const tempEle: Array<string> = [
-            sentence.text,
-            newTranslation,
-            sentence.textZH,
-        ]
-            .filter((item) => item !== undefined)
-            .map((item) => item ?? '');
+        const lines: ReactElement[] = [];
 
-        return tempEle.map((item, index) => {
-            if (index === 0) {
-                return (
-                    <TranslatableLine
-                        adjusted={adjusted}
-                        clearAdjust={() => { void playerActions.clearAdjust(); }}
-                        key={`first-${sentence.key}`}
-                        sentence={sentence}
-                    />
-                );
-            }
-            if (index === 1) {
-                return (
-                    <NormalLine
-                        key={`second-${sentence.key}`}
-                        text={item}
-                        order="second"
-                    />
-                );
-            }
+        // 1. 原文字幕
+        lines.push(
+            <TranslatableLine
+                adjusted={adjusted}
+                clearAdjust={() => { void playerActions.clearAdjust(); }}
+                key={`first-${sentence.key}`}
+                sentence={sentence}
+            />
+        );
 
-            return (
+        // 2. 机器翻译
+        if (showCn && StrUtil.isNotBlank(newTranslation)) {
+            lines.push(
                 <NormalLine
-                    key={`third-${sentence.key}`}
-                    text={item}
-                    order="third"
+                    key={`translation-${sentence.key}`}
+                    text={newTranslation}
+                    order="second"
                 />
             );
-        });
+        }
+
+        // 3. 字幕自带中文
+        if (showSourceZh && StrUtil.isNotBlank(sentence.textZH)) {
+            lines.push(
+                <NormalLine
+                    key={`sourceZh-${sentence.key}`}
+                    text={sentence.textZH!}
+                    order={lines.length === 1 ? 'second' : 'third'}
+                />
+            );
+        }
+
+        return lines;
     };
 
     const render = () => {

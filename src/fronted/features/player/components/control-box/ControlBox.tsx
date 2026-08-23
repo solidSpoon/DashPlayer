@@ -14,6 +14,7 @@ import AutoClipButton from './AutoClipButton';
 import ClearAdjustButton from './ClearAdjustButton';
 import SettingToggle from './SettingToggle';
 import TranscriptButton from './TranscriptButton';
+import WithMarkdownTooltip from '@/fronted/components/shared/common/WithMarkdownTooltip';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -35,13 +36,24 @@ const getShortcut = (key: RuntimeSettingKey) => {
  */
 export default function ControlBox() {
   const { t } = useI18nTranslation('player');
-  const { showEn, showCn, syncSide, changeShowEn, changeShowCn, changeSyncSide } = usePlayerUi(
+  const {
+    showEn,
+    showCn,
+    showSourceZh,
+    syncSide,
+    changeShowEn,
+    changeShowCn,
+    changeShowSourceZh,
+    changeSyncSide,
+  } = usePlayerUi(
     useShallow((s) => ({
       showEn: s.showEn,
       showCn: s.showCn,
+      showSourceZh: s.showSourceZh,
       syncSide: s.syncSide,
       changeShowEn: s.changeShowEn,
       changeShowCn: s.changeShowCn,
+      changeShowSourceZh: s.changeShowSourceZh,
       changeSyncSide: s.changeSyncSide,
     }))
   );
@@ -92,26 +104,61 @@ export default function ControlBox() {
       >
         <div
           className="grid min-h-0 content-start auto-rows-min gap-2"
-          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
-          <SettingToggle
-            id="showEn"
-            label={t('controlBox.showEnglish')}
-            checked={showEn}
-            onCheckedChange={() => changeShowEn()}
-            tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}
-            className="h-9 px-2.5 py-1"
-            labelClassName="text-xs font-medium"
-          />
-          <SettingToggle
-            id="showCn"
-            label={t('controlBox.showChinese')}
-            checked={showCn}
-            onCheckedChange={() => changeShowCn()}
-            tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}
-            className="h-9 px-2.5 py-1"
-            labelClassName="text-xs font-medium"
-          />
+          {/* 字幕轨道：并入网格中，在有空间时占 2 列，联动系统主题色 */}
+          <div className="sm:col-span-2 flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[36px]">
+            <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
+              {t('controlBox.subtitleTracks')}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <WithMarkdownTooltip md={t('controlBox.trackEnHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}>
+                <button
+                  type="button"
+                  onClick={changeShowEn}
+                  className={cn(
+                    'px-2.5 py-1 text-xs rounded-md border transition-all duration-150 select-none font-medium',
+                    showEn
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
+                  )}
+                >
+                  {t('controlBox.showEnglish')}
+                </button>
+              </WithMarkdownTooltip>
+
+              <WithMarkdownTooltip md={t('controlBox.trackCnHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}>
+                <button
+                  type="button"
+                  onClick={changeShowCn}
+                  className={cn(
+                    'px-2.5 py-1 text-xs rounded-md border transition-all duration-150 select-none font-medium',
+                    showCn
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
+                  )}
+                >
+                  {t('controlBox.showChinese')}
+                </button>
+              </WithMarkdownTooltip>
+
+              <WithMarkdownTooltip md={t('controlBox.trackSourceZhHint')}>
+                <button
+                  type="button"
+                  onClick={changeShowSourceZh}
+                  className={cn(
+                    'px-2.5 py-1 text-xs rounded-md border transition-all duration-150 select-none font-medium',
+                    showSourceZh
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
+                  )}
+                >
+                  {t('controlBox.showSourceZh')}
+                </button>
+              </WithMarkdownTooltip>
+            </div>
+          </div>
+
           <SettingToggle
             id="syncSide"
             label={t('controlBox.syncSideSubtitles')}
