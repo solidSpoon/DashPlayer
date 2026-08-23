@@ -25,6 +25,9 @@
     "email": "cedarrival@outlook.com"
   },
   "license": "MIT",
+  "engines": {
+    "node": "22.x"
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.2",
     "@electron-forge/maker-deb": "^7.11.2",
