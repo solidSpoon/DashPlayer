@@ -431,11 +431,11 @@ type ShortcutFormValues = ShortcutSettingSaveVO;
 const KeyBadge = ({ keys }: { keys: string }) => {
     if (!keys) return <span className="text-muted-foreground text-xs">—</span>;
     return (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5 items-center">
             {keys.split(',').filter(Boolean).map((key) => (
                 <kbd
                     key={key}
-                    className="inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground"
+                    className="inline-flex items-center rounded-md border border-border/80 bg-muted/70 px-2 py-0.5 text-xs font-mono font-medium text-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)] dark:shadow-none"
                 >
                     {key.split('+').map((k) => k.charAt(0).toUpperCase() + k.slice(1)).join(' + ')}
                 </kbd>
