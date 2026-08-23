@@ -58,11 +58,11 @@ const FileBrowser = () => {
             className={cn('h-full w-full flex flex-col rounded-2xl border border-border/70 bg-card shadow-2xs overflow-hidden')}
         >
             {showTitle && (
-                <CardHeader className="pb-2 pt-3.5 px-4 shrink-0 border-b border-border/40">
+                <CardHeader className="pb-2 pt-3.5 px-4 shrink-0">
                     <CardTitle className="text-sm font-semibold">{t('videoExplorer')}</CardTitle>
                 </CardHeader>
             )}
-            <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-3 p-3 overflow-hidden')}>
+            <CardContent className={cn('h-0 flex-1 w-full flex flex-col gap-3 p-3 pt-1 overflow-hidden')}>
                 <div className="flex items-center gap-2 pb-1 shrink-0">
                     <div className="flex-1 min-w-0">
                         <FileSelector

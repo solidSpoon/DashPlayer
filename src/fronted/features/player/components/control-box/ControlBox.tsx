@@ -91,14 +91,14 @@ export default function ControlBox() {
 
   return (
     <Card className={cn('w-full h-full flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xs')}>
-      <CardHeader className="shrink-0 px-4 pt-3.5 pb-2.5 border-b border-border/40">
+      <CardHeader className="shrink-0 px-4 pt-3.5 pb-2">
         <CardTitle className="text-sm font-semibold">{t('controlBox.title')}</CardTitle>
       </CardHeader>
       
       {/* 滚动区域：仅开关网格在高度不够时纵向滚动 */}
       <CardContent
         className={cn(
-          'w-full flex-1 min-h-0 overflow-y-auto px-4 py-2',
+          'w-full flex-1 min-h-0 overflow-y-auto px-4 py-1',
           'scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-thumb-rounded scrollbar-track-transparent'
         )}
       >
@@ -106,7 +106,7 @@ export default function ControlBox() {
           className="grid min-h-0 content-start auto-rows-min gap-2"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
-          {/* 字幕轨道：并入网格中，在有空间时占 2 列，联动系统主题色 */}
+          {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色 */}
           <div className="sm:col-span-2 flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
             <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
               {t('controlBox.subtitleTracks')}
@@ -119,7 +119,7 @@ export default function ControlBox() {
                   className={cn(
                     'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
                     showEn
-                      ? 'bg-amber-400 text-black border-amber-500 font-semibold shadow-2xs'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
                   )}
                 >
@@ -134,7 +134,7 @@ export default function ControlBox() {
                   className={cn(
                     'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
                     showCn
-                      ? 'bg-amber-400 text-black border-amber-500 font-semibold shadow-2xs'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
                   )}
                 >
@@ -149,7 +149,7 @@ export default function ControlBox() {
                   className={cn(
                     'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
                     showSourceZh
-                      ? 'bg-amber-400 text-black border-amber-500 font-semibold shadow-2xs'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
                   )}
                 >
@@ -248,7 +248,7 @@ export default function ControlBox() {
       </CardContent>
 
       {/* 固定的底部动作工具栏：绝不与滚动内容重叠 */}
-      <div className="shrink-0 px-4 py-2.5 border-t border-border/50 bg-muted/15 flex flex-wrap items-center gap-2">
+      <div className="shrink-0 px-4 py-2.5 border-t border-border/50 bg-card flex flex-wrap items-center gap-2">
         <ClearAdjustButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
         <TranscriptButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
         <AutoClipButton className="h-8 rounded-lg border border-border/70 bg-muted/30 hover:bg-muted/70 px-3 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors shadow-none" />
