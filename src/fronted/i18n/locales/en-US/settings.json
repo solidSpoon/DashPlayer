@@ -134,6 +134,33 @@
             "openControlPanel": { "title": "Open Control Panel", "description": "Open the playback control panel." }
         }
     },
+    "about": {
+        "title": "About DashPlayer",
+        "slogan": "The intelligent bilingual media player built for language learners",
+        "description": "DashPlayer combines on-device offline speech recognition with modern LLMs to help you master languages through real video content.",
+        "features": {
+            "asrTitle": "Offline Speech Recognition",
+            "asrDesc": "Built-in neural ASR model generates bilingual subtitles in seconds without network connections.",
+            "aiTitle": "Context-Aware AI Assistant",
+            "aiDesc": "Breaks down complex sentences and grammar rules with rich context and authentic pronunciations.",
+            "listenTitle": "Intensive Listening Lab",
+            "listenDesc": "Supports single-line looping, AB repeating, auto-pausing, and clip bookmarking.",
+            "privacyTitle": "Local-First Privacy",
+            "privacyDesc": "Vocabulary notes, transcription history, and saved clips stay completely on your machine."
+        },
+        "links": {
+            "docs": "Official Documentation",
+            "docsDesc": "Explore tutorials, workflows, and shortcut guides",
+            "github": "GitHub Repository",
+            "githubDesc": "Submit issues, suggest features, or star the project",
+            "releases": "Release Notes",
+            "releasesDesc": "Check latest updates and changelogs",
+            "license": "Open Source License",
+            "licenseDesc": "Free & open source under MIT License"
+        },
+        "footer": "Crafted with care by solidSpoon",
+        "version": "Version {{version}}"
+    },
     "storage": {
         "title": "Storage",
         "descriptionLine1": "DashPlayer caches translation results locally to reduce API costs.",

@@ -134,6 +134,33 @@
             "openControlPanel": { "title": "打开控制面板", "description": "打开播放器控制面板" }
         }
     },
+    "about": {
+        "title": "关于 DashPlayer",
+        "slogan": "专为语言学习与长视频精听打造的智能双语播放器",
+        "description": "DashPlayer 结合端侧离线语音识别模型与大语言模型，帮助你通过影视与演讲素材高效精学外语。",
+        "features": {
+            "asrTitle": "离线语音识别",
+            "asrDesc": "内置端侧神经 ASR 模型，无需联网即可秒级自动生成中英双语字幕。",
+            "aiTitle": "AI 语境助记",
+            "aiDesc": "结合大语言模型深度拆解长难句，智能分析词汇语法与原声音频。",
+            "listenTitle": "句子精听工坊",
+            "listenDesc": "支持单句单曲循环、AB 复读微调、自动暂停与个性化片段收藏。",
+            "privacyTitle": "本地数据与隐私",
+            "privacyDesc": "所有生词本、转录历史与收藏片段均保存在本机，安全无泄露风险。"
+        },
+        "links": {
+            "docs": "官方使用文档",
+            "docsDesc": "查看完整教程与快捷键指南",
+            "github": "GitHub 开源主页",
+            "githubDesc": "欢迎提交 Issue、功能建议或 Star",
+            "releases": "版本更新日志",
+            "releasesDesc": "查看最新版本发布与改进",
+            "license": "开源协议",
+            "licenseDesc": "基于 MIT License 自由开源"
+        },
+        "footer": "由 solidSpoon 用心打造",
+        "version": "版本 {{version}}"
+    },
     "storage": {
         "title": "存储管理",
         "descriptionLine1": "DashPlayer 会缓存翻译结果，以降低 API 调用成本。",
