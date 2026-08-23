@@ -361,7 +361,7 @@ export default function VideoPlayerPane({
     // 空白骨架屏幕
     return (
       <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
-        <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-center">
+        <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
           {/* 视频播放器骨架 */}
           <div>
             <AspectRatio ratio={16 / 9}>
@@ -377,7 +377,7 @@ export default function VideoPlayerPane({
           </div>
 
           {/* 字幕区域骨架 */}
-          <div className="overflow-auto max-h-48 scrollbar-thin">
+          <div className="overflow-auto max-h-44 scrollbar-thin">
             <div className="space-y-1.5">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="p-2 rounded-xl bg-muted/30 border border-border/30">
@@ -395,7 +395,7 @@ export default function VideoPlayerPane({
 
   return (
     <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
-      <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-center">
+      <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
         <div>
           <AspectRatio ratio={16 / 9}>
             <div className="w-full rounded-xl overflow-hidden bg-black shadow-inner border border-black/10">
