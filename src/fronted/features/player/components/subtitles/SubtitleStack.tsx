@@ -26,17 +26,19 @@ const SubtitleStack = () => {
 
         const lines: ReactElement[] = [];
 
-        // 1. 原文字幕 (英文)
-        lines.push(
-            <FullscreenTranslatableLine
-                adjusted={adjusted}
-                clearAdjust={() => {
-                    void playerActions.clearAdjust();
-                }}
-                key={`first-${sentence.key}`}
-                sentence={sentence}
-            />
-        );
+        // 1. 原文字幕 (英文，支持隐藏占位)
+        if (StrUtil.isNotBlank(sentence.text)) {
+            lines.push(
+                <FullscreenTranslatableLine
+                    adjusted={adjusted}
+                    clearAdjust={() => {
+                        void playerActions.clearAdjust();
+                    }}
+                    key={`first-${sentence.key}`}
+                    sentence={sentence}
+                />
+            );
+        }
 
         // 2. 机翻字幕
         if (showCn && StrUtil.isNotBlank(newTranslation)) {

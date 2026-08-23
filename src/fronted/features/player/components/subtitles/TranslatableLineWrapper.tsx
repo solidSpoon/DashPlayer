@@ -42,14 +42,24 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
 
   if (!text) return <div />;
 
+  const isHidden = !show && !hovered;
+
   const variantConfig = variant === 'plain'
     ? {
-      root: 'relative z-10 mx-0 mt-0 rounded-none bg-transparent drop-shadow-none shadow-none text-foreground dark:text-neutral-100 pointer-events-auto',
+      root: cn(
+        'relative z-10 mx-0 mt-0 rounded-none bg-transparent drop-shadow-none shadow-none text-foreground dark:text-neutral-100 pointer-events-auto transition-all duration-200 box-border',
+        isHidden && 'opacity-60 hover:opacity-100'
+      ),
       leftControl: 'w-10 h-10 flex-shrink-0',
       rightControl: 'w-10 h-full flex items-center justify-center flex-shrink-0'
     }
     : {
-      root: 'rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50 bg-stone-200 dark:bg-neutral-700 text-stone-700 dark:text-neutral-100 shadow-stone-100 dark:shadow-neutral-600 pointer-events-auto',
+      root: cn(
+        'rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50 transition-all duration-200 pointer-events-auto box-border',
+        isHidden
+          ? 'bg-stone-200/80 dark:bg-neutral-800/80 text-stone-500 dark:text-neutral-400 shadow-stone-100/50 dark:shadow-neutral-900/50 hover:bg-stone-200 dark:hover:bg-neutral-700 hover:text-stone-700 dark:hover:text-neutral-100 hover:shadow-stone-100 dark:hover:shadow-neutral-600'
+          : 'bg-stone-200 dark:bg-neutral-700 text-stone-700 dark:text-neutral-100 shadow-stone-100 dark:shadow-neutral-600'
+      ),
       leftControl: 'w-10 m-2.5 h-10 flex-shrink-0',
       rightControl: 'w-10 h-full flex items-end justify-center pb-2 flex-shrink-0'
     };

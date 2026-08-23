@@ -264,10 +264,15 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
         await playWordAudio();
     };
 
+    const setWordRef = (node: HTMLSpanElement | null) => {
+        eleRef.current = node;
+        setReferenceElement(node);
+    };
+
     return (
         <span>
             <span
-                ref={setReferenceElement}
+                ref={setWordRef}
                 className="rounded cursor-pointer"
                 role="button"
                 tabIndex={0}
@@ -296,9 +301,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
             >
                 <span
                     className={cn(
-                        'rounded select-text',
-                        // 隐藏英文时单词显示为原样式实心占位块：生词同样保留 font-medium，
-                        // 使占位块宽度与 hover 显示后的生词完全一致，避免整行出现位移
+                        'rounded select-text transition-all duration-150',
                         !show && ['text-transparent', Style.word_hover_bg],
                         show && hoverBg,
                         show && vocabCls,

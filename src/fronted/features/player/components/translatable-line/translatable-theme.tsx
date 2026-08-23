@@ -33,7 +33,7 @@ const defaultTheme: TransLineTheme = {
   leftIcon: 'w-10 m-2.5 h-10 flex-shrink-0',
   rightIcon: 'w-10 h-full flex items-end justify-center pb-2 flex-shrink-0',
   core: {
-    root: 'px-10 pt-2.5 pb-2.5 text-center leading-relaxed'
+    root: 'px-10 pt-2.5 pb-2.5 text-center leading-relaxed box-border'
   },
   word: {
     hoverBgClass: 'transition-colors hover:bg-stone-100/90 dark:hover:bg-neutral-600/90',

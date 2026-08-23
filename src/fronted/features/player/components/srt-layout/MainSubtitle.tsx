@@ -47,15 +47,17 @@ export default function MainSubtitle() {
 
         const lines: ReactElement[] = [];
 
-        // 1. 原文字幕
-        lines.push(
-            <TranslatableLine
-                adjusted={adjusted}
-                clearAdjust={() => { void playerActions.clearAdjust(); }}
-                key={`first-${sentence.key}`}
-                sentence={sentence}
-            />
-        );
+        // 1. 原文字幕 (保留占位，showEn 为 false 时呈现模糊遮罩，hover 显示)
+        if (StrUtil.isNotBlank(sentence.text)) {
+            lines.push(
+                <TranslatableLine
+                    adjusted={adjusted}
+                    clearAdjust={() => { void playerActions.clearAdjust(); }}
+                    key={`first-${sentence.key}`}
+                    sentence={sentence}
+                />
+            );
+        }
 
         // 2. 机器翻译
         if (showCn && StrUtil.isNotBlank(newTranslation)) {
