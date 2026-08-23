@@ -1,16 +1,11 @@
 import * as React from 'react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
+import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Button } from '@/fronted/components/ui/button';
-import SettingInput from '@/fronted/features/settings/components/form/SettingInput';
-import { cn } from '@/fronted/lib/utils';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, HardDrive, RefreshCw, Trash2, FolderSync } from 'lucide-react';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
-import { Label } from '@/fronted/components/ui/label';
 import useFile from '@/fronted/features/file-browser/fileStore';
-import toast from 'react-hot-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import Md from '@/fronted/components/shared/markdown/Markdown';
-import { codeBlock } from 'common-tags';
+import { useToast } from '@/fronted/components/ui/use-toast';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/fronted/components/ui/input';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -27,6 +22,7 @@ type StorageFormValues = StorageSettingVO;
  */
 const StorageSetting = () => {
     const { t } = useI18nTranslation('settings');
+    const { toast } = useToast();
     const [size, setSize] = React.useState<string>('--');
     const [storageStatus, setStorageStatus] = React.useState<StorageStatusVO | null>(null);
 
@@ -39,8 +35,6 @@ const StorageSetting = () => {
 
     /**
      * 查询媒体库目录状态与占用空间。
-     *
-     * @param configuredPath 当前配置的媒体库路径；查询失败时用于构造错误状态。
      */
     const loadStorageStatus = React.useCallback(async (configuredPath: string) => {
         try {
@@ -98,33 +92,57 @@ const StorageSetting = () => {
     async function reloadOss() {
         try {
             await flush();
+            await settingsApi.syncFavouriteFromOss();
+            await swrApiMutate('favorite-clips/search');
+            useFile.setState({ subtitlePath: null });
+            toast({
+                title: t('storage.collectionSync.success'),
+            });
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            throw new Error(t('storage.saveSettingsFailed', { message }));
+            toast({
+                variant: 'destructive',
+                title: t('storage.collectionSync.error'),
+                description: message,
+            });
         }
-        await settingsApi.syncFavouriteFromOss();
-        await swrApiMutate('favorite-clips/search');
-        useFile.setState({
-            subtitlePath: null,
-        });
     }
 
     async function reloadWordLearningClips() {
         try {
             await flush();
+            const result = await settingsApi.syncVideoLearningFromOss();
+            if (!result?.success) {
+                throw new Error(t('storage.syncWordClipsFailed'));
+            }
+            await swrApiMutate('video-learning/search');
+            toast({
+                title: t('storage.wordClipsSync.success'),
+            });
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            throw new Error(t('storage.saveSettingsFailed', { message }));
+            toast({
+                variant: 'destructive',
+                title: t('storage.wordClipsSync.error'),
+                description: message,
+            });
         }
-        const result = await settingsApi.syncVideoLearningFromOss();
-        if (!result?.success) {
-            throw new Error(t('storage.syncWordClipsFailed'));
-        }
-        await swrApiMutate('video-learning/search');
     }
 
     const handleClear = async () => {
-        await settingsApi.resetDatabase();
+        try {
+            await settingsApi.resetDatabase();
+            toast({
+                title: t('storage.resetSuccess', { defaultValue: '数据库已成功重置' }),
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            toast({
+                variant: 'destructive',
+                title: t('storage.resetFailed', { defaultValue: '数据库重置失败' }),
+                description: message,
+            });
+        }
     };
 
     const handleOpen = async () => {
@@ -134,6 +152,15 @@ const StorageSetting = () => {
     const libraryAvailable = storageStatus?.available ?? false;
     const canSyncCollections = libraryAvailable && !formState.isDirty && autoSaveStatus !== 'saving';
     const canOpenLibrary = libraryAvailable;
+
+    if (!detail) {
+        return (
+            <SettingsLoadingSkeleton
+                title={t('storage.title')}
+                description={`${t('storage.descriptionLine1')} ${t('storage.descriptionLine2')}`}
+            />
+        );
+    }
 
     return (
         <div className="w-full h-full min-h-0">
@@ -148,151 +175,118 @@ const StorageSetting = () => {
                 }
                 contentClassName="space-y-6"
                 actions={(
-                    <>
+                    <div className="flex gap-2">
                         <Button
                             onClick={handleClear}
-                            variant="secondary"
+                            variant="destructive"
+                            size="sm"
                             type="button"
                         >
+                            <Trash2 className="h-4 w-4 mr-1.5" />
                             {t('storage.resetDatabase')}
                         </Button>
                         <Button
                             onClick={handleOpen}
-                            variant="secondary"
+                            variant="outline"
+                            size="sm"
                             type="button"
                             disabled={!canOpenLibrary}
                         >
+                            <FolderOpen className="h-4 w-4 mr-1.5" />
                             {t('storage.openLibraryFolder')}
                         </Button>
-                    </>
+                    </div>
                 )}
             >
-                <div className="mt-4 flex text-lg flex-row items-center gap-2">
-                    <span>{t('storage.occupiedSpace')}</span>
-                    <span>{size}</span>
-                </div>
-
-                <div className="flex gap-2 items-start">
-                    <Controller
-                        name="path"
-                        control={control}
-                        render={({ field }) => (
-                            <SettingInput
-                                className={cn('w-fit')}
-                                type="text"
-                                inputWidth="w-96"
-                                placeHolder="Documents/DashPlayer"
-                                setValue={(value) => field.onChange(value)}
-                                onBlur={field.onBlur}
-                                title={t('storage.libraryPathTitle')}
-                                value={field.value ?? ''}
-                                description={t('storage.libraryPathDescription')}
-                            />
-                        )}
-                    />
-                    <Button
-                        className="mt-5"
-                        variant="outline"
-                        size="icon"
-                        type="button"
-                        onClick={async () => {
-                            const folder: string[] = await settingsApi.selectStorageFolder({ createDirectory: true });
-                            if (folder.length > 0) {
-                                const f = `${folder[0]}`;
-                                setValue('path', f, { shouldDirty: true, shouldTouch: true });
-                            }
-                        }}
+                {/* 媒体库路径卡片 */}
+                <SettingCard
+                    title={t('storage.libraryPathTitle')}
+                    icon={HardDrive}
+                    headerAction={
+                        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <span>{t('storage.occupiedSpace')}</span>
+                            <span className="font-mono font-semibold text-foreground px-2 py-0.5 rounded bg-muted/80">
+                                {size}
+                            </span>
+                        </div>
+                    }
+                >
+                    <SettingRow
+                        title={t('storage.libraryPathTitle')}
+                        description={t('storage.libraryPathDescription')}
+                        icon={FolderOpen}
                     >
-                        <FolderOpen />
-                    </Button>
-                </div>
-                <div className="flex gap-2 items-end">
-                    <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
-                        <Label>{t('storage.switchCollection')}</Label>
-                        <div className="flex gap-2">
-                            <Input
-                                value="default"
-                                readOnly
-                                className="w-48"
-                            />
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            disabled={!canSyncCollections}
-                                            onClick={async () => {
-                                                await toast.promise(reloadOss(), {
-                                                    loading: t('storage.collectionSync.loading'),
-                                                    success: t('storage.collectionSync.success'),
-                                                    error: t('storage.collectionSync.error'),
-                                                });
-                                            }}
-                                            variant="outline"
-                                            type="button"
-                                        >
-                                            {t('storage.collectionSync.button')}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
-                                        <Md>
-                                            {codeBlock`
-                                            #### ${t('storage.collectionSync.tooltipTitle')}
-                                            ${t('storage.collectionSync.tooltipDescription')}
-                                            `}
-                                        </Md>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">
-                            {t('storage.collectionHint')}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex gap-2 items-end">
-                    <div className={cn('grid items-center gap-1.5 pl-2 w-fit')}>
-                        <Label>{t('storage.wordClipsTitle')}</Label>
                         <div className="flex gap-2 items-center">
-                            <Input
-                                value="word_video"
-                                readOnly
-                                className="w-48"
+                            <Controller
+                                name="path"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                        className="w-72 font-mono text-xs"
+                                        placeholder="Documents/DashPlayer"
+                                        value={field.value ?? ''}
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                        onBlur={field.onBlur}
+                                    />
+                                )}
                             />
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            disabled={!canSyncCollections}
-                                            onClick={async () => {
-                                                await toast.promise(reloadWordLearningClips(), {
-                                                    loading: t('storage.wordClipsSync.loading'),
-                                                    success: t('storage.wordClipsSync.success'),
-                                                    error: t('storage.wordClipsSync.error'),
-                                                });
-                                            }}
-                                            variant="outline"
-                                            type="button"
-                                        >
-                                            {t('storage.wordClipsSync.button')}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="p-8 pb-6 rounded-md shadow-lg bg-white text-gray-800">
-                                        <Md>
-                                            {codeBlock`
-                                            #### ${t('storage.wordClipsSync.tooltipTitle')}
-                                            ${t('storage.wordClipsSync.tooltipDescription')}
-                                            `}
-                                        </Md>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                type="button"
+                                onClick={async () => {
+                                    const folder: string[] = await settingsApi.selectStorageFolder({ createDirectory: true });
+                                    if (folder.length > 0) {
+                                        const f = `${folder[0]}`;
+                                        setValue('path', f, { shouldDirty: true, shouldTouch: true });
+                                    }
+                                }}
+                            >
+                                <FolderOpen className="h-4 w-4" />
+                            </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            {t('storage.wordClipsHint')}
-                        </p>
-                    </div>
-                </div>
+                    </SettingRow>
+                </SettingCard>
+
+                {/* 资源同步卡片 */}
+                <SettingCard
+                    title={t('storage.switchCollection')}
+                    icon={FolderSync}
+                >
+                    <SettingRow
+                        title={t('storage.switchCollection')}
+                        description={t('storage.collectionHint')}
+                        icon={RefreshCw}
+                    >
+                        <Button
+                            disabled={!canSyncCollections}
+                            onClick={reloadOss}
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                        >
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                            {t('storage.collectionSync.button')}
+                        </Button>
+                    </SettingRow>
+
+                    <SettingRow
+                        title={t('storage.wordClipsTitle')}
+                        description={t('storage.wordClipsHint')}
+                        icon={RefreshCw}
+                    >
+                        <Button
+                            disabled={!canSyncCollections}
+                            onClick={reloadWordLearningClips}
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                        >
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                            {t('storage.wordClipsSync.button')}
+                        </Button>
+                    </SettingRow>
+                </SettingCard>
             </SettingsPageShell>
         </div>
     );

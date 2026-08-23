@@ -10,6 +10,7 @@ import { Progress } from '@/fronted/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/fronted/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
+import { SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
@@ -407,15 +408,10 @@ const ServiceCredentialSetting = () => {
 
     if (!ready) {
         return (
-            <div className="w-full h-full min-h-0">
-                <SettingsPageShell
-                    title={t('serviceCredentials.title')}
-                    description={t('serviceCredentials.description')}
-                    contentClassName="space-y-6"
-                >
-                    <></>
-                </SettingsPageShell>
-            </div>
+            <SettingsLoadingSkeleton
+                title={t('serviceCredentials.title')}
+                description={t('serviceCredentials.description')}
+            />
         );
     }
     if (!openAiModels) {

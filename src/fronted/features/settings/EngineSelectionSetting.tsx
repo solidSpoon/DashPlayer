@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
+import { SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -65,15 +66,10 @@ const EngineSelectionSetting = () => {
 
     if (!ready || !credentialSettings) {
         return (
-            <div className="w-full h-full min-h-0">
-                <SettingsPageShell
-                    title={t('engineSelection.title')}
-                    description={t('engineSelection.description')}
-                    contentClassName="space-y-6"
-                >
-                    <></>
-                </SettingsPageShell>
-            </div>
+            <SettingsLoadingSkeleton
+                title={t('engineSelection.title')}
+                description={t('engineSelection.description')}
+            />
         );
     }
 

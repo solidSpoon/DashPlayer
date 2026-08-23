@@ -1,7 +1,9 @@
 import React from 'react';
 import {
     SliderInput,
-    Title,
+    SettingCard,
+    SettingRow,
+    SettingsLoadingSkeleton,
 } from '@/fronted/features/settings/components/form';
 import ThemePreview from '@/fronted/features/settings/components/ThemePreview';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
@@ -9,13 +11,13 @@ import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm, useWatch } from 'react-hook-form';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { applyLanguageSetting } from '@/fronted/i18n';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import { Globe, Palette, Sliders, Type } from 'lucide-react';
 
 const logger = getRendererLogger('AppearanceSetting');
 type AppearanceFormValues = AppearanceSettingVO;
@@ -54,15 +56,10 @@ const AppearanceSetting = () => {
 
     if (!ready) {
         return (
-            <div className="w-full h-full min-h-0">
-                <SettingsPageShell
-                    title={t('appearance.title')}
-                    description={t('appearance.description')}
-                    contentClassName="space-y-8"
-                >
-                    <></>
-                </SettingsPageShell>
-            </div>
+            <SettingsLoadingSkeleton
+                title={t('appearance.title')}
+                description={t('appearance.description')}
+            />
         );
     }
 
@@ -86,79 +83,71 @@ const AppearanceSetting = () => {
             <SettingsPageShell
                 title={t('appearance.title')}
                 description={t('appearance.description')}
-                contentClassName="space-y-8"
+                contentClassName="space-y-6"
             >
-                <Title title={t('appearance.themeTitle')} description={t('appearance.themeDescription')} />
-                <div className="px-3 py-2 h-60 flex-shrink-0 flex overflow-x-scroll scrollbar-thin gap-8 scrollbar-thumb-rounded scrollbar-thumb-gray-400/25">
-                    {['dark', 'light'].map((themeOption) => {
-                        return (
-                            <div
-                                key={themeOption}
-                                className={cn('h-full flex flex-col gap-2 cursor-pointer')}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
+                {/* 主题选择卡片 */}
+                <SettingCard
+                    title={t('appearance.themeTitle')}
+                    description={t('appearance.themeDescription')}
+                    icon={Palette}
+                >
+                    <div className="p-4 flex flex-wrap gap-6 items-center">
+                        {['dark', 'light'].map((themeOption) => {
+                            const isSelected = currentTheme === themeOption;
+                            return (
+                                <div
+                                    key={themeOption}
+                                    className={cn(
+                                        'flex flex-col gap-2 cursor-pointer rounded-xl p-2 transition-all border-2',
+                                        isSelected
+                                            ? 'border-primary bg-primary/5 shadow-xs'
+                                            : 'border-border/40 hover:border-border hover:bg-muted/30'
+                                    )}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setValue('theme', themeOption as AppearanceFormValues['theme'], {
+                                                shouldDirty: true,
+                                                shouldTouch: true,
+                                            });
+                                        }
+                                    }}
+                                    onClick={() => {
                                         setValue('theme', themeOption as AppearanceFormValues['theme'], {
                                             shouldDirty: true,
                                             shouldTouch: true,
                                         });
-                                    }
-                                }}
-                                onClick={() => {
-                                    setValue('theme', themeOption as AppearanceFormValues['theme'], {
-                                        shouldDirty: true,
-                                        shouldTouch: true,
-                                    });
-                                }}
-                            >
-                                <div
-                                    className={cn(
-                                        'p-1 h-full rounded-lg',
-                                        currentTheme === themeOption
-                                            ? 'border-2 border-primary'
-                                            : 'border-2 border-secondary'
-                                    )}
+                                    }}
                                 >
-                                    <ThemePreview
-                                        theme={themeOption}
-                                        className={cn(
-                                            `${themeOption} w-80 flex-1 flex-shrink-0 rounded overflow-hidden h-full`
-                                        )}
-                                    />
+                                    <div className="h-44 w-72 rounded-lg overflow-hidden border border-border/60">
+                                        <ThemePreview
+                                            theme={themeOption}
+                                            className={cn(
+                                                `${themeOption} w-full h-full`
+                                            )}
+                                        />
+                                    </div>
+                                    <span className="text-center text-xs font-semibold capitalize text-foreground">
+                                        {themeOption}
+                                    </span>
                                 </div>
-                                <div className="text-center">{themeOption}</div>
-                            </div>
-                        );
-                    })}
-                </div>
-                <Title title={t('appearance.fontSizeTitle')} description={t('appearance.fontSizeDescription')} />
-                <SliderInput
-                    title={t('appearance.fontSizeLabel')}
-                    values={['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge']}
-                    valueLabelMap={fontSizeOptions}
-                    defaultValue={currentFontSize}
-                    inputWidth="w-56"
-                    setValue={(v) => {
-                        if (v === 'fontSizeSmall') {
-                            setValue('fontSize', 'fontSizeSmall', { shouldDirty: true, shouldTouch: true });
-                        }
-                        if (v === 'fontSizeMedium') {
-                            setValue('fontSize', 'fontSizeMedium', { shouldDirty: true, shouldTouch: true });
-                        }
-                        if (v === 'fontSizeLarge') {
-                            setValue('fontSize', 'fontSizeLarge', { shouldDirty: true, shouldTouch: true });
-                        }
-                    }}
-                />
-                <div className="space-y-3">
-                    <div>
-                        <h1 className="text-lg font-bold mb-2">{t('appearance.languageTitle')}</h1>
-                        <p className="text-base text-gray-600">{t('appearance.languageDescription')}</p>
+                            );
+                        })}
                     </div>
-                    <div className="max-w-sm">
-                        <Label className="mb-2 block">{t('appearance.languageTitle')}</Label>
+                </SettingCard>
+
+                {/* 偏好与排版卡片 */}
+                <SettingCard
+                    title={t('appearance.displayPreferencesTitle', { defaultValue: '偏好与排版' })}
+                    icon={Sliders}
+                >
+                    <SettingRow
+                        title={t('appearance.languageTitle')}
+                        description={t('appearance.languageDescription')}
+                        icon={Globe}
+                    >
                         <Select
                             value={currentLanguage}
                             onValueChange={(value) => {
@@ -169,7 +158,7 @@ const AppearanceSetting = () => {
                                 applyLanguageSetting(value).catch(() => undefined);
                             }}
                         >
-                            <SelectTrigger>
+                            <SelectTrigger className="w-48">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -178,8 +167,29 @@ const AppearanceSetting = () => {
                                 <SelectItem value="en-US">{t('appearance.languageEnUS')}</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-                </div>
+                    </SettingRow>
+
+                    <SettingRow
+                        title={t('appearance.fontSizeTitle')}
+                        description={t('appearance.fontSizeDescription')}
+                        icon={Type}
+                    >
+                        <div className="w-64">
+                            <SliderInput
+                                title={t('appearance.fontSizeLabel')}
+                                values={['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge']}
+                                valueLabelMap={fontSizeOptions}
+                                defaultValue={currentFontSize}
+                                inputWidth="w-full"
+                                setValue={(v) => {
+                                    if (v === 'fontSizeSmall' || v === 'fontSizeMedium' || v === 'fontSizeLarge') {
+                                        setValue('fontSize', v, { shouldDirty: true, shouldTouch: true });
+                                    }
+                                }}
+                            />
+                        </div>
+                    </SettingRow>
+                </SettingCard>
             </SettingsPageShell>
         </form>
     );
