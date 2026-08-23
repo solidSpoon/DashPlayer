@@ -86,8 +86,8 @@ export default function SubtitleList({
   }, [isVocabularyWord, vocabularyVersion]);
 
   return (
-    <div ref={containerRef} className="overflow-auto max-h-64 scrollbar-thin scrollbar-track-gray-200 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
-      <div className="space-y-2">
+    <div ref={containerRef} className="overflow-auto max-h-64 scrollbar-thin pr-1">
+      <div className="space-y-1.5">
         {lines.map((line, idx) => (
           <div
             key={idx}
@@ -103,20 +103,22 @@ export default function SubtitleList({
                 onPickLine?.(idx);
               }
             }}
-            className={`p-2 rounded-lg text-sm cursor-pointer transition-colors ${
+            className={`p-2.5 rounded-xl text-xs cursor-pointer transition-all ${
               idx === activeIndex
-                ? 'bg-primary/10'
+                ? 'bg-primary/10 border border-primary/20 text-foreground shadow-2xs font-medium'
                 : line.isClip
-                  ? 'bg-secondary/5 hover:bg-secondary/10'
-                  : 'hover:bg-muted/50'
+                  ? 'bg-muted/40 hover:bg-muted/70 text-foreground'
+                  : 'hover:bg-muted/40 text-muted-foreground hover:text-foreground'
             }`}
           >
-              <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-foreground">
+                <div className="text-xs leading-relaxed text-foreground">
                   {renderHighlightedText(line.contentEn, `${idx}-${line.index}`)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">{line.contentZh}</div>
+                {line.contentZh && (
+                  <div className="text-[11px] text-muted-foreground mt-1 leading-normal">{line.contentZh}</div>
+                )}
               </div>
 
               {/* 当前行的状态图标 */}
