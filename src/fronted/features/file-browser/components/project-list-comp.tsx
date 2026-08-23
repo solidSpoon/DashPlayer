@@ -54,10 +54,10 @@ const ProjectListComp = ({ className, videoEle, projEle, backEle, enterProj = ''
         setBasePath('');
     });
     return (
-        <div className={cn('flex flex-col', className)}>
-            <div className={cn('h-0 flex-1 overflow-y-auto scrollbar-none flex flex-col')}>
+        <div className={cn('flex flex-col h-full', className)}>
+            <div className={cn('h-0 flex-1 overflow-y-auto scrollbar-none flex flex-col gap-1 pr-0.5')}>
                 {backNode && (
-                    <div className="mb-2">
+                    <div className="mb-1">
                         {backNode}
                     </div>
                 )}

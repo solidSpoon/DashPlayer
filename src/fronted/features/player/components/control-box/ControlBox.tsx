@@ -91,14 +91,14 @@ export default function ControlBox() {
 
   return (
     <Card className={cn('w-full h-full flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xs')}>
-      <CardHeader className="shrink-0 px-4 pt-3.5 pb-2">
-        <CardTitle className="text-base font-semibold">{t('controlBox.title')}</CardTitle>
+      <CardHeader className="shrink-0 px-4 pt-4 pb-3.5">
+        <CardTitle className="text-base font-semibold tracking-tight text-foreground">{t('controlBox.title')}</CardTitle>
       </CardHeader>
       
       {/* 滚动区域：仅开关网格在高度不够时纵向滚动 */}
       <CardContent
         className={cn(
-          'w-full flex-1 min-h-0 overflow-y-auto px-4 py-1',
+          'w-full flex-1 min-h-0 overflow-y-auto px-4 pt-0 pb-3',
           'scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-thumb-rounded scrollbar-track-transparent'
         )}
       >
