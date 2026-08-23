@@ -1,7 +1,7 @@
 {
   "name": "dash-player",
   "productName": "DashPlayer",
-  "version": "6.4.1",
+  "version": "6.4.2",
   "description": "A video player designed for English learning",
   "main": ".vite/build/main.js",
   "scripts": {
