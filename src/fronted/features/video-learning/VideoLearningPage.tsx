@@ -19,6 +19,7 @@ import {
 } from '@/fronted/components/ui/pagination';
 import { Button } from '@/fronted/components/ui/button';
 import toast from 'react-hot-toast';
+import { cn } from '@/fronted/lib/utils';
 
 const logger = getRendererLogger('VideoLearning');
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
