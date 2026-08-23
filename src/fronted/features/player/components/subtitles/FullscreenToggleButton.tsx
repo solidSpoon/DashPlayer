@@ -15,14 +15,12 @@ const FullscreenToggleButton = ({fullScreen, changeFullScreen}: {
                     <Button
                         size={'icon'}
                         variant={'ghost'}
-                        // size={'md'}
-                        // onClick={fullScreen}
                         onClick={() => {
                             changeFullScreen(!fullScreen);
                         }}
-                        className='flex items-center justify-center w-9 h-9'
+                        className='w-8 h-8 rounded-lg text-white/90 hover:text-white hover:bg-white/15 transition-colors flex items-center justify-center'
                     >
-                        {fullScreen ? <Minimize/> : <Maximize/>}
+                        {fullScreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>

@@ -102,17 +102,22 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                 <Button
                     role='combobox'
                     aria-expanded={open}
-                    size={'sm'} variant='outline'><span className={cn('w-12 font-mono')}>{speed.toFixed(2)}x</span></Button>
+                    size={'sm'}
+                    variant='ghost'
+                    className="h-8 px-2.5 rounded-lg text-xs font-mono text-white/90 hover:text-white hover:bg-white/15 transition-colors"
+                >
+                    <span className="font-mono">{speed.toFixed(2)}x</span>
+                </Button>
             </PopoverTrigger>
             <PopoverContent
-                side={'top'} align={'start'}
-                className='w-56 px-4 py-2'>
+                side={'top'} align={'center'}
+                className='w-56 px-3 py-2 bg-popover/95 backdrop-blur-md shadow-xl border border-border/60 rounded-xl'>
 
                 <div
                     style={{
                         gridTemplateColumns: 'auto 20px'
                     }}
-                    className={cn('grid grid-cols-2 gap-x-4')}
+                    className={cn('grid grid-cols-2 gap-x-2 gap-y-0.5')}
                 >
 
                     {pageSelectItem(0.25)}
@@ -123,7 +128,7 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                     {pageSelectItem(1.5)}
                     {pageSelectItem(1.75)}
                     {pageSelectItem(2)}
-                    <div className={cn('pt-3 col-span-2')}>
+                    <div className={cn('pt-2.5 col-span-2')}>
                         <Input
                             size={100}
                             ref={inputRef}
@@ -132,7 +137,7 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                             min={0.25} // 最小速度
                             max={16} // 最大速度
                             step={0.25} // 步进值
-                            className={cn('bg-secondary font-mono')}
+                            className={cn('h-8 text-xs bg-muted/50 font-mono rounded-lg')}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     setOpen(false);
