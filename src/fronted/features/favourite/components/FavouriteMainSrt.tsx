@@ -14,13 +14,13 @@ const FavouriteMainSrt = () => {
   }
 
   return (
-    <div className="w-full flex flex-col pt-2 gap-2 select-text">
+    <div className="w-full flex flex-col pt-2 gap-2 select-text min-w-0">
       {/* 英文可翻译字幕行 */}
-      <div className="flex justify-center text-center">
+      <div className="w-full flex justify-center text-center min-w-0">
         <TranslatableLine
           sentence={currentSentence}
           show={true}
-          className="text-lg sm:text-xl font-medium tracking-tight text-foreground leading-relaxed"
+          className="w-full max-w-full text-base sm:text-lg md:text-xl font-medium tracking-tight text-foreground leading-relaxed break-words whitespace-normal px-2 text-center"
           wordClassNames={{
             hover: 'hover:bg-primary/20 rounded px-0.5 transition-colors',
             vocab: '!text-purple-600 dark:!text-purple-400 !underline !decoration-purple-500 !decoration-1 !bg-purple-500/10 px-1 py-0.5 rounded font-semibold hover:!bg-purple-500/25'
@@ -30,14 +30,14 @@ const FavouriteMainSrt = () => {
 
       {/* 显示翻译 */}
       {(transMap.get(currentSentence.text) || currentSentence.textZH) && (
-        <div className="flex flex-col gap-1 text-center">
+        <div className="w-full flex flex-col gap-1 text-center min-w-0 px-2">
           {transMap.get(currentSentence.text) && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground leading-normal break-words whitespace-normal">
               {transMap.get(currentSentence.text)}
             </div>
           )}
           {currentSentence.textZH && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground leading-normal break-words whitespace-normal">
               {currentSentence.textZH}
             </div>
           )}

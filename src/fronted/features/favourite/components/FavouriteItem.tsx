@@ -98,7 +98,7 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
                     setPlayInfo({
                       video: item,
