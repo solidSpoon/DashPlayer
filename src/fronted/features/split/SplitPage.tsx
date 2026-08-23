@@ -79,25 +79,25 @@ const SplitPage = () => {
             )}>
                 {/* 左栏卡片：章节输入、快捷辅助与目标文件卡片 */}
                 <div className="flex min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-2xs min-h-0 gap-4">
-                    {/* 时间点与章节输入区 */}
-                    <div className="flex flex-col gap-2.5 flex-1 min-h-0">
-                        <div className="flex items-center justify-between h-9 shrink-0">
+                    {/* 时间点与章节输入区：作为沉浸式编辑器设计 */}
+                    <div className="flex flex-col flex-1 min-h-0">
+                        <div className="flex items-center justify-between h-9 shrink-0 mb-2">
                             <div className="flex items-center gap-2">
                                 <Label className="text-sm font-semibold text-foreground tracking-tight">
                                     {t('sentenceSplitter.inputLabel')}
                                 </Label>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                                                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                                                 onClick={() => setUseInput(example.trim())}
                                             >
-                                                <FileQuestion className="w-3.5 h-3.5 mr-1.5" />
+                                                <FileQuestion className="w-3.5 h-3.5 mr-1" />
                                                 {t('sentenceSplitter.loadExample')}
                                             </Button>
                                         </TooltipTrigger>
@@ -111,7 +111,7 @@ const SplitPage = () => {
                                                 onClick={aiFormat}
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-8 px-2.5 text-xs font-medium"
+                                                className="h-8 px-2.5 text-xs font-medium bg-background"
                                             >
                                                 <Stethoscope className="w-3.5 h-3.5 mr-1.5 text-primary" />
                                                 {t('sentenceSplitter.aiFormat')}
@@ -122,17 +122,19 @@ const SplitPage = () => {
                                 </TooltipProvider>
                             </div>
                         </div>
-                        <Textarea
-                            disabled={!inputable}
-                            value={userInput}
-                            onChange={e => setUseInput(e.target.value)}
-                            placeholder={t('sentenceSplitter.inputPlaceholder')}
-                            className="flex-1 resize-none font-mono text-xs md:text-sm leading-relaxed bg-muted/15 focus-visible:bg-background border-border/60 rounded-xl transition-colors"
-                        />
+                        <div className="flex-1 min-h-0 flex flex-col">
+                            <Textarea
+                                disabled={!inputable}
+                                value={userInput}
+                                onChange={e => setUseInput(e.target.value)}
+                                placeholder={t('sentenceSplitter.inputPlaceholder')}
+                                className="flex-1 resize-none font-mono text-xs md:text-sm leading-relaxed p-0 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none scrollbar-thin placeholder:text-muted-foreground/60"
+                            />
+                        </div>
                     </div>
 
                     {/* 已选媒体与字幕文件绑定 */}
-                    <div className="flex flex-col gap-2 shrink-0">
+                    <div className="flex flex-col gap-2 shrink-0 pt-3 border-t border-border/40">
                         <div className="flex items-center justify-between">
                             <Label className="text-xs font-semibold text-muted-foreground tracking-wide">
                                 {t('sentenceSplitter.filesLabel')}
@@ -150,7 +152,7 @@ const SplitPage = () => {
                         </div>
                         <div className="flex flex-col gap-1.5">
                             {/* 视频条目 */}
-                            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-muted/30 border border-border/50 min-h-9 transition-colors hover:bg-muted/45">
+                            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-muted/40 min-h-9 transition-colors hover:bg-muted/60">
                                 <FileVideo2 className="w-4 h-4 shrink-0 text-primary" />
                                 {video?.baseName ? (
                                     <>
@@ -190,7 +192,7 @@ const SplitPage = () => {
                             </div>
 
                             {/* 字幕条目 */}
-                            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-muted/30 border border-border/50 min-h-9 transition-colors hover:bg-muted/45">
+                            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-muted/40 min-h-9 transition-colors hover:bg-muted/60">
                                 <FileType2 className="w-4 h-4 shrink-0 text-muted-foreground" />
                                 {srt?.baseName ? (
                                     <>
@@ -249,7 +251,7 @@ const SplitPage = () => {
                             </TabsList>
 
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onSelect}>
+                                <Button variant="outline" size="sm" className="h-8 text-xs bg-background" onClick={onSelect}>
                                     {t('sentenceSplitter.selectFile')}
                                 </Button>
                                 <Button
@@ -276,13 +278,13 @@ const SplitPage = () => {
 
                         <TabsContent
                             value="preview"
-                            className="mt-2 min-w-0 flex-1 overflow-auto rounded-xl border border-border/50 bg-muted/15 scrollbar-thin"
+                            className="mt-3 min-w-0 flex-1 overflow-auto scrollbar-thin"
                         >
                             <SplitPreview className="w-full h-full" />
                         </TabsContent>
                         <TabsContent
                             value="quickSelect"
-                            className="mt-2 min-w-0 flex-1 overflow-hidden"
+                            className="mt-3 min-w-0 flex-1 overflow-hidden"
                         >
                             <SplitFile />
                         </TabsContent>
