@@ -82,16 +82,16 @@ const TranslatableLine = ({
                     const gap = start >= sourceCursor ? text.slice(sourceCursor, start) : '';
                     sourceCursor = start >= sourceCursor ? start + part.content.length : sourceCursor;
                     const partId = `${textHash}:${partIndex}`;
-                    const gapElement = gap ? <span className={cn('whitespace-pre', !show && 'text-transparent')} key={`${partId}:gap`}>{gap}</span> : null;
+                    const gapElement = gap ? <span className={cn('whitespace-pre-wrap', !show && 'text-transparent')} key={`${partId}:gap`}>{gap}</span> : null;
                 if (part.isWord) {
                     return [gapElement, <Word key={partId} word={part.content} original={part.content} lemma={part.lemma}
                         pop={popELe === partId} requestPop={() => handleRequestPop(partId)} show={show}
                         alwaysDark={hoverDark} classNames={wordClassNames} />];
                 }
-                return [gapElement, <span className={cn('whitespace-pre', !show && 'text-transparent')} key={partId}>{part.content}</span>];
+                return [gapElement, <span className={cn('whitespace-pre-wrap', !show && 'text-transparent')} key={partId}>{part.content}</span>];
                 });
                 if (sourceCursor < text.length) {
-                    rendered.push(<span className={cn('whitespace-pre', !show && 'text-transparent')} key={`${textHash}:tail`}>{text.slice(sourceCursor)}</span>);
+                    rendered.push(<span className={cn('whitespace-pre-wrap', !show && 'text-transparent')} key={`${textHash}:tail`}>{text.slice(sourceCursor)}</span>);
                 }
                 return rendered;
             })()}

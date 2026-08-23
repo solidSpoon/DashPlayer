@@ -270,10 +270,10 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     };
 
     return (
-        <span>
+        <span className="inline">
             <span
                 ref={setWordRef}
-                className="rounded cursor-pointer"
+                className="rounded cursor-pointer inline"
                 role="button"
                 tabIndex={0}
                 onFocus={() => {
@@ -284,7 +284,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                     pause();
                 }}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (e.key === 'Enter') {
                         e.preventDefault();
                         void playWordAudio();
                         if (!hovered) {
