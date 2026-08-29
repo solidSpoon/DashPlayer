@@ -78,31 +78,33 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
         }
         let animationFrameId: number | undefined;
         let cancelled = false;
-        let lastDrawTime = Date.now();
+        let lastDrawTime = 0;
         let lastCanvasW = 0;
         let lastCanvasH = 0;
-        const fps = 25;
+        // 采样帧率：24fps（与大部分影视帧率一致，完全匹配视频本身的流畅度）
+        const fps = 24;
         const drawInterval = 1000 / fps;
 
         /**
-         * 同步抓取视频当前帧绘制到背景 canvas；支持取消与尺寸缓存。
+         * 极速同步抓取视频帧：
+         * 1. 放弃 createImageBitmap 异步 Promise，直接使用浏览器 GPU 加速的 ctx.drawImage(HTMLVideoElement)，零异步/GC开销；
+         * 2. 移除 DOM 上的 backdrop-filter，避免 GPU 逐帧回读合成瓶颈。
          */
-        const syncVideos = async () => {
+        const syncVideos = () => {
             if (cancelled) return;
-            const now = Date.now();
+            const now = performance.now();
             if (now - lastDrawTime >= drawInterval) {
                 const mainVideo = videoElementRef.current;
                 const backgroundCanvas = playerRefBackground.current;
-                if (mainVideo && backgroundCanvas && mainVideo.readyState >= 2 && !mainVideo.seeking) {
-                    const ctx = backgroundCanvas.getContext('2d');
+                if (mainVideo && backgroundCanvas && mainVideo.readyState >= 2 && !mainVideo.seeking && !mainVideo.paused) {
+                    const ctx = backgroundCanvas.getContext('2d', { alpha: false });
                     if (ctx) {
                         const { width, height } = backgroundCanvas.getBoundingClientRect();
                         const ratio = window.devicePixelRatio || 1;
-                        const resolutionFactor = 0.1;
-                        const scaledWidth = width * ratio * resolutionFactor;
-                        const scaledHeight = height * ratio * resolutionFactor;
+                        const resolutionFactor = 0.2;
+                        const scaledWidth = Math.max(1, Math.floor(width * ratio * resolutionFactor));
+                        const scaledHeight = Math.max(1, Math.floor(height * ratio * resolutionFactor));
 
-                        // 仅在尺寸变化时重设，避免每帧重分配 canvas backing store
                         if (scaledWidth !== lastCanvasW || scaledHeight !== lastCanvasH) {
                             backgroundCanvas.width = scaledWidth;
                             backgroundCanvas.height = scaledHeight;
@@ -110,37 +112,16 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
                             lastCanvasH = scaledHeight;
                         }
 
-                        ctx.save();
-                        ctx.setTransform(1, 0, 0, 1, 0, 0);
-                        ctx.clearRect(0, 0, scaledWidth, scaledHeight);
-                        let bitmap: ImageBitmap | null = null;
-                        try {
-                            bitmap = await createImageBitmap(mainVideo);
-                            if (!cancelled) {
-                                ctx.drawImage(bitmap, 0, 0, scaledWidth, scaledHeight);
-                            }
-                        } catch (error) {
-                            logger.error('failed to draw video frame', { error: error instanceof Error ? error.message : String(error) });
-                        } finally {
-                            bitmap?.close();
-                            ctx.restore();
-                        }
-                        // 无论成功或失败都更新时间戳，避免失败时每帧高频重试
-                        lastDrawTime = now;
-                    } else {
-                        // 拿不到 2D 上下文：更新时间戳避免每帧高频重试
-                        lastDrawTime = now;
+                        ctx.drawImage(mainVideo, 0, 0, scaledWidth, scaledHeight);
                     }
-                } else {
-                    // 视频未就绪/正在 seek：也推进时间戳，避免无谓高频轮询
-                    lastDrawTime = now;
                 }
+                lastDrawTime = now;
             }
             if (cancelled) return;
             animationFrameId = requestAnimationFrame(syncVideos);
         };
 
-        syncVideos().then();
+        animationFrameId = requestAnimationFrame(syncVideos);
         return () => {
             cancelled = true;
             if (animationFrameId) {
@@ -154,20 +135,42 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
     }
 
     return (
-        <div className={cn('w-full h-full overflow-hidden', className)}>
-            <div className="w-full h-full relative overflow-hidden">
+        <div className={cn('w-full h-full overflow-hidden bg-neutral-200 dark:bg-black transition-colors duration-300', className)}>
+            <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+                {/* 动态环境光 Canvas：
+                    - 硬件加速模糊与缩放（适度提高虚化至 48px~52px，保留光影流动感但消除具象细节）
+                    - 亮色模式：提亮 + 自然白底融合
+                    - 暗色模式：适度压暗 + 深黑底融合
+                */}
                 <canvas
-                    className="w-full h-full"
+                    className={cn(
+                        'absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-300 ease-out',
+                        'blur-[48px] saturate-[1.25] brightness-105',
+                        'dark:blur-[52px] dark:saturate-[1.2] dark:brightness-[0.75]',
+                        'opacity-0',
+                        videoReady && !podcastMode && 'opacity-90 dark:opacity-85'
+                    )}
                     ref={playerRefBackground}
                     style={{
-                        filter: 'blur(100px)',
-                        objectFit: 'cover'
+                        transform: 'scale(1.22) translate3d(0, 0, 0)',
+                        willChange: 'transform'
                     }}
                 />
+
+                {/* 高性能主题遮罩层（使用纯 CSS 渐变，不使用 backdrop-filter 以免消耗 GPU） */}
+                <div
+                    className={cn(
+                        'absolute inset-0 pointer-events-none transition-colors duration-300',
+                        'bg-gradient-to-b from-white/25 via-transparent to-white/35',
+                        'dark:bg-gradient-to-b dark:from-black/50 dark:via-black/20 dark:to-black/65'
+                    )}
+                />
+
+                {/* 视频核心播放引擎 */}
                 <PlayerEngine
                     width="100%"
                     height="100%"
-                    className="w-full h-full absolute top-0 left-0"
+                    className="w-full h-full absolute top-0 left-0 z-10"
                     onReady={handlePlayerReady}
                     onEnded={handlePlayerEnded}
                     onProvideVideoElement={handleProvideVideoElement}
