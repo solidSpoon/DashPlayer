@@ -6,7 +6,6 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { Ele } from './useBoundary';
-import useLayout from '@/fronted/hooks/useLayout';
 
 export type ScrollState =
     | 'USER_BROWSING'
@@ -29,15 +28,19 @@ export type SubtitleScrollState = {
     scrollState: ScrollState;
     boundary: Ele;
 };
-const topShouldScroll = (boundary: Ele, e: Ele): boolean => {
-    return e.yt < boundary.yt;
-};
-
 const suggestScrollBottom = (boundary: Ele, e: Ele): number => {
     if (e.yb > boundary.yb) {
         return e.yb - boundary.yb;
     }
     return 0;
+};
+
+const topShouldScroll = (boundary: Ele, e: Ele): boolean => {
+    return e.yt < boundary.yt;
+};
+
+const bottomShouldScroll = (boundary: Ele, e: Ele): boolean => {
+    return e.yb > boundary.yb;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -76,17 +79,46 @@ export type SubtitleScrollActions = {
     /** 用户通过滚轮中断自动滚动时调用，立即切换到浏览模式 */
     onUserInterrupt: () => void;
 };
-const delaySetNormal = () => {
+
+const cancelPendingTimers = () => {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const scrollTimer = useSubtitleScroll.getState().internal.scrollStatusTimer;
-    if (scrollTimer) {
-        clearTimeout(scrollTimer);
+    const internal = useSubtitleScroll.getState().internal;
+    if (internal.scrollStatusTimer) {
+        clearTimeout(internal.scrollStatusTimer);
+        internal.scrollStatusTimer = undefined;
     }
+    if (internal.scrollTopTimer) {
+        clearTimeout(internal.scrollTopTimer);
+        internal.scrollTopTimer = undefined;
+    }
+};
+
+const delaySetNormal = (delay = 300) => {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    useSubtitleScroll.getState().internal.scrollStatusTimer = setTimeout(() => {
+    const internal = useSubtitleScroll.getState().internal;
+    if (internal.scrollStatusTimer) {
+        clearTimeout(internal.scrollStatusTimer);
+    }
+    internal.scrollStatusTimer = setTimeout(() => {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         useSubtitleScroll.setState({ scrollState: 'NORMAL' });
-    }, 300);
+    }, delay);
+};
+
+const executeScroll = (
+    virtuoso: VirtuosoHandle,
+    index: number,
+    options?: { align?: 'start' | 'center' | 'end'; smooth?: boolean }
+) => {
+    cancelPendingTimers();
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
+    virtuoso.scrollToIndex({
+        index,
+        align: options?.align,
+        behavior: options?.smooth ? 'smooth' : 'auto',
+    });
+    delaySetNormal();
 };
 
 const syncCurrentIntoView = () => {
@@ -112,42 +144,42 @@ const syncCurrentIntoView = () => {
         return;
     }
 
-    const { showSideBar } = useLayout.getState();
-    if (showSideBar) {
-        useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
-        setTimeout(() => {
-            virtuoso.scrollToIndex({ index });
-            delaySetNormal();
-        }, 0);
-        return;
-    }
     const currentEle = getEle(ref);
     if (topShouldScroll(boundary, currentEle)) {
+        // 场景一：向上越出上边界，立即定位到顶部，快速切句零延迟
+        executeScroll(virtuoso, index, { align: 'start', smooth: false });
+    } else if (bottomShouldScroll(boundary, currentEle)) {
+        // 场景二：下边界触碰
+        // 第一步：先立即以最小距离微滚展现出来（即刻跟手响应）
+        const scrollBottom = suggestScrollBottom(boundary, currentEle);
+        cancelPendingTimers();
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
-        setTimeout(() => {
-            virtuoso.scrollToIndex({ index });
-            delaySetNormal();
-        }, 0);
-        return;
-    }
+        if (scrollBottom > 0) {
+            virtuoso.scrollBy({ top: scrollBottom });
+        } else {
+            virtuoso.scrollToIndex({ index, align: 'end', behavior: 'auto' });
+        }
 
-    const scrollBottom = suggestScrollBottom(boundary, currentEle);
-    if (scrollBottom <= 0) {
-        return;
+        // 第二步：等待用户按键操作停歇后（防抖 250ms），再平滑将该行滚动到顶部
+        internal.scrollTopTimer = setTimeout(() => {
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            const currentScrollState = useSubtitleScroll.getState().scrollState;
+            if (currentScrollState === 'USER_BROWSING' || currentScrollState === 'PAUSE_MEASUREMENT') {
+                return;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
+            virtuoso.scrollToIndex({
+                index,
+                align: 'start',
+                behavior: 'smooth',
+            });
+            delaySetNormal(500);
+        }, 250);
     }
-
-    if (internal.scrollTopTimer) {
-        clearTimeout(internal.scrollTopTimer);
-    }
-    useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
-    setTimeout(() => {
-        virtuoso.scrollBy({ top: scrollBottom });
-    }, 0);
-    internal.scrollTopTimer = setTimeout(() => {
-        virtuoso.scrollToIndex({ behavior: 'smooth', index });
-        delaySetNormal();
-    }, 150);
 };
+
 
 const useSubtitleScroll = create(
     subscribeWithSelector<SubtitleScrollState & SubtitleScrollActions>(
@@ -225,20 +257,20 @@ const useSubtitleScroll = create(
                 internal.currentIndex = index;
 
                 const { visibleRange } = internal;
+                // 如果当前已在可视范围内，无需打断视口
                 if (index >= visibleRange[0] && index <= visibleRange[1]) {
                     return;
                 }
-                set({ scrollState: 'AUTO_SCROLLING' });
-                internal.virtuoso.scrollToIndex({ behavior: 'smooth', index });
-                delaySetNormal();
+                // 按键跨出可视区快速导航：立即定位以保证连击跟手
+                executeScroll(internal.virtuoso, index, { smooth: false });
             },
             onUserFinishScrolling: () => {
-                set({ scrollState: 'AUTO_SCROLLING' });
-                get().internal.virtuoso?.scrollToIndex({
-                    behavior: 'smooth',
-                    index: get().internal.currentIndex,
-                });
-                delaySetNormal();
+                const virtuoso = get().internal.virtuoso;
+                const index = get().internal.currentIndex;
+                if (virtuoso && index >= 0) {
+                    // 用户点击悬浮按钮返回当前播放位置：平滑回到当前句
+                    executeScroll(virtuoso, index, { smooth: true });
+                }
             },
             updateBoundary: (boundary: Ele) => {
                 set({ boundary });
@@ -261,9 +293,7 @@ const useSubtitleScroll = create(
                 set({ scrollState: 'PAUSE_MEASUREMENT' });
                 setTimeout(() => {
                     set({ scrollState });
-                    if (!useLayout.getState().showSideBar) {
-                        useSubtitleScroll.getState().onScrolling();
-                    }
+                    useSubtitleScroll.getState().onScrolling();
                 }, 500);
             },
             delaySetNormal,
@@ -273,9 +303,7 @@ const useSubtitleScroll = create(
                     return;
                 }
                 internal.interrupted = true;
-                if (internal.scrollStatusTimer) {
-                    clearTimeout(internal.scrollStatusTimer);
-                }
+                cancelPendingTimers();
                 set({ scrollState: 'USER_BROWSING' });
             },
         })
@@ -291,3 +319,4 @@ export function useSubtitleScrollState<T>(
 ): T {
     return useStoreWithEqualityFn(subtitleScrollStore, selector, equalityFn);
 }
+
