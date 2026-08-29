@@ -123,20 +123,20 @@ const PlaybackLayout = () => {
                 ref={ambientCanvasRef}
                 className={cn(
                     'absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-500 z-0',
-                    'blur-[80px] saturate-[1.35] brightness-105',
-                    'dark:blur-[80px] dark:saturate-[1.3] dark:brightness-[0.72]',
-                    videoElement ? 'opacity-90 dark:opacity-80' : 'opacity-0',
+                    'blur-[80px] saturate-[1.1] brightness-[0.78]',
+                    'dark:blur-[80px] dark:saturate-[1.15] dark:brightness-[0.52]',
+                    videoElement ? 'opacity-80 dark:opacity-75' : 'opacity-0',
                     podcastMode && 'hidden'
                 )}
             />
 
-            {/* 高性能全局氛围渐变滤镜 */}
+            {/* 高性能全局氛围渐变滤镜：压暗背景，提高画质沉浸感与文字可读性 */}
             {!podcastMode && (
                 <div
                     className={cn(
                         'absolute inset-0 pointer-events-none transition-colors duration-300 z-0',
-                        'bg-gradient-to-b from-white/20 via-transparent to-white/30',
-                        'dark:bg-gradient-to-b dark:from-black/30 dark:via-transparent dark:to-black/50'
+                        'bg-gradient-to-b from-black/15 via-black/10 to-black/25',
+                        'dark:bg-gradient-to-b dark:from-black/45 dark:via-black/25 dark:to-black/65'
                     )}
                 />
             )}
@@ -179,15 +179,19 @@ const PlaybackLayout = () => {
                                 <>
                                     <ResizableHandle
                                         className={cn(
-                                            'group relative h-2 w-full flex items-center justify-center',
-                                            'bg-stone-300 dark:bg-neutral-800 border-t border-b border-black/10 dark:border-white/10',
-                                            'hover:bg-stone-400/90 dark:hover:bg-neutral-700 transition-colors duration-150 cursor-row-resize z-20'
+                                            'group relative h-0 w-full flex items-center justify-center bg-transparent',
+                                            'after:hidden data-[panel-group-direction=vertical]:h-0 data-[panel-group-direction=vertical]:after:hidden',
+                                            'cursor-row-resize z-20'
                                         )}
                                     >
-                                        <div className="w-10 h-1 rounded-full bg-stone-500/70 dark:bg-neutral-500 group-hover:bg-stone-800 dark:group-hover:bg-neutral-200 group-hover:w-14 transition-all duration-200 shadow-xs" />
+                                        <div className="absolute -top-2 -bottom-2 inset-x-0 z-10" />
+                                        <div className="w-10 h-1 rounded-full bg-stone-500/40 dark:bg-neutral-500/50 group-hover:bg-stone-800 dark:group-hover:bg-neutral-200 group-hover:w-14 transition-all duration-200 shadow-xs z-20 pointer-events-none" />
                                     </ResizableHandle>
                                     <ResizablePanel
-                                        className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65 backdrop-blur-2xl')}
+                                        className={cn(
+                                            'overflow-hidden p-2.5',
+                                            'bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl'
+                                        )}
                                         minSize={0}
                                         defaultSize={sizeIb}
                                         onResize={(e) => {
@@ -197,7 +201,9 @@ const PlaybackLayout = () => {
                                             setSizeIb(e);
                                         }}
                                     >
-                                        <MainSubtitle />
+                                        <div className="w-full h-full rounded-2xl overflow-hidden bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 shadow-[0_4px_24px_-2px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_24px_-2px_rgba(0,0,0,0.5)]">
+                                            <MainSubtitle />
+                                        </div>
                                     </ResizablePanel>
                                 </>
                             )}
@@ -215,15 +221,15 @@ const PlaybackLayout = () => {
                     <>
                         <ResizableHandle
                             className={cn(
-                                'group relative w-2 h-full flex items-center justify-center',
-                                'bg-stone-300 dark:bg-neutral-800 border-l border-r border-black/10 dark:border-white/10',
-                                'hover:bg-stone-400/90 dark:hover:bg-neutral-700 transition-colors duration-150 cursor-col-resize z-20'
+                                'group relative w-0 h-full flex items-center justify-center bg-transparent',
+                                'after:hidden cursor-col-resize z-20'
                             )}
                         >
-                            <div className="w-1 h-10 rounded-full bg-stone-500/70 dark:bg-neutral-500 group-hover:bg-stone-800 dark:group-hover:bg-neutral-200 group-hover:h-14 transition-all duration-200 shadow-xs" />
+                            <div className="absolute -left-2 -right-2 inset-y-0 z-10" />
+                            <div className="w-1 h-10 rounded-full bg-stone-500/40 dark:bg-neutral-500/50 group-hover:bg-stone-800 dark:group-hover:bg-neutral-200 group-hover:h-14 transition-all duration-200 shadow-xs z-20 pointer-events-none" />
                         </ResizableHandle>
                         <ResizablePanel
-                            className="relative overflow-hidden bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)] border-l border-black/5 dark:border-white/5"
+                            className="relative overflow-hidden bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl"
                             defaultSize={sizeOb}
                             onResize={(e) => {
                                 if (fullScreen) {

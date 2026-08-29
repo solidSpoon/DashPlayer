@@ -99,7 +99,7 @@ const PlaybackControlBar = ({
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
             className={cn(
-                'w-full flex flex-col-reverse h-36 text-white/90 p-4 pointer-events-auto',
+                'w-full flex flex-col-reverse h-36 text-white/90 px-4 pb-6 pt-4 pointer-events-auto',
                 className
             )}
         >
