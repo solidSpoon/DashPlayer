@@ -162,13 +162,13 @@ const PlaybackLayout = () => {
                                 <>
                                     <ResizableHandle
                                         className={cn(
-                                            'group relative h-2.5 w-full flex items-center justify-center bg-stone-100/70 dark:bg-neutral-900/55 backdrop-blur-xl border-t border-black/10 dark:border-white/10 hover:bg-stone-200/80 dark:hover:bg-neutral-800/70 transition-colors cursor-row-resize'
+                                            'group relative h-2.5 w-full flex items-center justify-center bg-stone-100/70 dark:bg-neutral-800/60 backdrop-blur-xl border-t border-black/10 dark:border-white/10 hover:bg-stone-200/80 dark:hover:bg-neutral-700/70 transition-colors cursor-row-resize'
                                         )}
                                     >
                                         <div className="w-12 h-1 rounded-full bg-stone-400/70 dark:bg-neutral-400/70 group-hover:bg-stone-700 dark:group-hover:bg-neutral-200 group-hover:w-16 transition-all duration-200" />
                                     </ResizableHandle>
                                     <ResizablePanel
-                                        className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-900/62 backdrop-blur-2xl')}
+                                        className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65 backdrop-blur-2xl')}
                                         minSize={0}
                                         defaultSize={sizeIb}
                                         onResize={(e) => {

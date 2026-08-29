@@ -66,38 +66,41 @@ export default function MainSubtitle() {
 
         const lines: ReactElement[] = [];
 
-        // 1. 原文字幕
+        // 1. 原文字幕 (最高优先级，不被压缩，保持顶部与呼吸空间)
         if (StrUtil.isNotBlank(sentence.text)) {
             lines.push(
-                <TranslatableLine
-                    variant="plain"
-                    adjusted={adjusted}
-                    clearAdjust={() => { void playerActions.clearAdjust(); }}
-                    key={`first-${sentence.key}`}
-                    sentence={sentence}
-                />
+                <div key={`first-${sentence.key}`} className="w-full shrink-0">
+                    <TranslatableLine
+                        variant="plain"
+                        adjusted={adjusted}
+                        clearAdjust={() => { void playerActions.clearAdjust(); }}
+                        sentence={sentence}
+                    />
+                </div>
             );
         }
 
-        // 2. 机器翻译
+        // 2. 机器翻译 (次级，空间不足时优先被挤出/裁切)
         if (showCn && StrUtil.isNotBlank(newTranslation)) {
             lines.push(
-                <NormalLine
-                    key={`translation-${sentence.key}`}
-                    text={newTranslation}
-                    order="second"
-                />
+                <div key={`translation-${sentence.key}`} className="w-full min-h-0">
+                    <NormalLine
+                        text={newTranslation}
+                        order="second"
+                    />
+                </div>
             );
         }
 
-        // 3. 字幕自带中文
+        // 3. 字幕自带中文 (次级)
         if (showSourceZh && StrUtil.isNotBlank(sentence.textZH)) {
             lines.push(
-                <NormalLine
-                    key={`sourceZh-${sentence.key}`}
-                    text={sentence.textZH!}
-                    order={lines.length === 1 ? 'second' : 'third'}
-                />
+                <div key={`sourceZh-${sentence.key}`} className="w-full min-h-0">
+                    <NormalLine
+                        text={sentence.textZH!}
+                        order={lines.length === 1 ? 'second' : 'third'}
+                    />
+                </div>
             );
         }
 
@@ -111,12 +114,18 @@ export default function MainSubtitle() {
         return (
             <div
                 key={`trans-sub:${sentence?.key}`}
-                className="relative flex flex-col w-full h-full justify-center items-center px-12 py-2 text-center text-textColor select-none"
+                className="relative flex flex-col w-full h-full items-center px-12 pt-3 pb-2 text-center text-textColor select-none overflow-hidden"
             >
-                {/* 字幕内容区：独占完全居中的纵向空间 */}
-                <div className="flex flex-col justify-center items-center gap-1.5 w-full min-w-0">
+                {/* 顶部弹性占位：比底部占位少，让文字动态停留在“中上”黄金位置（约 40% 高度） */}
+                <div className="w-full flex-[2] min-h-0 pointer-events-none" />
+
+                {/* 字幕内容区：永远受到外层 pt-3 顶距保护，绝不削顶 */}
+                <div className="flex flex-col justify-start items-center gap-1.5 w-full min-w-0 shrink-0">
                     {ele()}
                 </div>
+
+                {/* 底部弹性占位：比顶部占位更多 */}
+                <div className="w-full flex-[3] min-h-0 pointer-events-none" />
 
                 {/* 右下角横向悬浮胶囊控制栏：与下方译文行同层右靠，完全不占垂直空间 */}
                 <div className="absolute right-3 bottom-2 z-20 pointer-events-auto">
