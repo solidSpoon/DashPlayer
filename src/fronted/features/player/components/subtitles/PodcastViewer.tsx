@@ -117,27 +117,27 @@ const PodcastViewer = ({ className }: { className?: string }) => {
                                 isCurrent ? 'cursor-default' : 'hover:opacity-80'
                             )}
                         >
-                            {/* 统一使用原生大字号基准，纯靠 GPU scale 缩放，0 次 CPU 字体重排 */}
+                            {/* 统一使用原生大字号基准，温润护眼的柔白/柔灰配色 */}
                             <TranslatableLinePodcast
                                 className={cn(
                                     'text-3xl md:text-[2.2rem] leading-relaxed tracking-tight transition-colors duration-300',
                                     isCurrent
-                                        ? 'font-bold text-zinc-900 dark:text-zinc-50'
-                                        : 'font-normal text-zinc-600 dark:text-zinc-400'
+                                        ? 'font-bold text-zinc-800 dark:text-zinc-200'
+                                        : 'font-normal text-zinc-500 dark:text-zinc-400'
                                 )}
                                 adjusted={isCurrent ? (srtTender.adjusted(current) ?? false) : false}
                                 clearAdjust={isCurrent ? clearAdjust : FuncUtil.blank}
                                 sentence={sentence}
                             />
 
-                            {/* 仅焦点句展示中文与源译文 */}
+                            {/* 仅焦点句展示中文与源译文（柔和灰阶） */}
                             {isCurrent && showCn && !StrUtil.isBlank(newTranslation) && (
-                                <div className="mt-4 text-xl md:text-2xl font-normal text-zinc-600 dark:text-zinc-300 leading-relaxed transition-all">
+                                <div className="mt-4 text-xl md:text-2xl font-normal text-zinc-600 dark:text-zinc-400 leading-relaxed transition-all">
                                     {newTranslation}
                                 </div>
                             )}
                             {isCurrent && showSourceZh && !StrUtil.isBlank(current?.textZH) && (
-                                <div className="mt-2 text-lg md:text-xl font-normal text-zinc-500 dark:text-zinc-400 leading-relaxed transition-all">
+                                <div className="mt-2 text-lg md:text-xl font-normal text-zinc-500 dark:text-zinc-500 leading-relaxed transition-all">
                                     {current?.textZH}
                                 </div>
                             )}
