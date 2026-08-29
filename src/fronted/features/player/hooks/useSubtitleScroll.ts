@@ -149,8 +149,8 @@ const syncCurrentIntoView = () => {
 
     const { showSideBar } = useLayout.getState();
     if (showSideBar) {
-        // 小窗模式下保持极简滚动：不做复杂的两阶段或边界换算，直接通过 Virtuoso 原生 auto 对齐确保当前句在可视区内
-        executeScroll(virtuoso, index, { align: 'auto', smooth: false });
+        // 小窗模式下保持极简滚动：不做复杂的两阶段或边界换算，直接通过 Virtuoso 原生对齐确保当前句在可视区内
+        executeScroll(virtuoso, index, { align: 'start', smooth: false });
         return;
     }
 
@@ -229,14 +229,16 @@ const useSubtitleScroll = create(
                 }
                 if (cs === 'USER_BROWSING') {
                     const ref = get().internal.currentRef;
+                    // 只有当前句重新回到安全边界内时，才恢复 NORMAL 状态
                     if (ref && inBoundary(ref)) {
-                        set({ scrollState: 'NORMAL' });
+                        delaySetNormal(150);
                     }
                     return;
                 }
                 if (cs === 'NORMAL') {
                     const ref = get().internal.currentRef;
                     if (ref && !inBoundary(ref)) {
+                        cancelPendingTimers();
                         set({ scrollState: 'USER_BROWSING' });
                     }
                     return;

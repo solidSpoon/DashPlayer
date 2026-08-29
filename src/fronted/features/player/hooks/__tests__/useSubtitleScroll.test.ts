@@ -51,6 +51,7 @@ describe('useSubtitleScroll', () => {
     });
 
     it('should stay or restore to NORMAL when current item is within safe boundary', () => {
+        vi.useFakeTimers();
         const mockEle = {
             getBoundingClientRect: () => ({
                 top: 100, // within bounds (yt: 50, yb: 500)
@@ -76,7 +77,9 @@ describe('useSubtitleScroll', () => {
         });
 
         useSubtitleScroll.getState().onScrolling();
+        vi.advanceTimersByTime(200);
         expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+        vi.useRealTimers();
     });
 
     it('should respect user wheel interruption and switch to USER_BROWSING', () => {

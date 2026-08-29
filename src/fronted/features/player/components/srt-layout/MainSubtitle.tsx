@@ -95,6 +95,8 @@ export default function MainSubtitle() {
             );
         }
 
+        const hasMultipleZh = (showCn && StrUtil.isNotBlank(newTranslation)) && (showSourceZh && StrUtil.isNotBlank(sentence.textZH));
+
         // 2. 机器翻译 (次级，空间不足时优先被挤出/裁切)
         if (showCn && StrUtil.isNotBlank(newTranslation)) {
             lines.push(
@@ -102,6 +104,7 @@ export default function MainSubtitle() {
                     <NormalLine
                         text={newTranslation}
                         order="second"
+                        source={hasMultipleZh ? 'ai' : undefined}
                     />
                 </div>
             );
@@ -114,6 +117,7 @@ export default function MainSubtitle() {
                     <NormalLine
                         text={sentence.textZH!}
                         order={lines.length === 1 ? 'second' : 'third'}
+                        source={hasMultipleZh ? 'source' : undefined}
                     />
                 </div>
             );

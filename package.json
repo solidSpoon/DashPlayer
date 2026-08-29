@@ -147,7 +147,7 @@
     "ffmpeg-static": "^5.2.0",
     "ffprobe-static": "^3.1.0",
     "fluent-ffmpeg": "^2.1.2",
-    "framer-motion": "12.36.0",
+    "framer-motion": "^13.1.1",
     "hi-base32": "^0.5.1",
     "i18next": "^23.16.8",
     "iconv-lite": "^0.6.3",

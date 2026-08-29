@@ -254,37 +254,6 @@ export default function Subtitle() {
     const render = () => {
         return (
             <div className="w-full h-full relative" ref={setBoundaryRef}>
-                <AnimatePresence>
-                    {scrollState === 'USER_BROWSING' && (
-                        <motion.div
-                            initial={{
-                                scale: 0.8,
-                                opacity: 0,
-                                y: -10,
-                            }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.8, opacity: 0, y: -10 }}
-                            onClick={() => {
-                                onUserFinishScrolling();
-                            }}
-                            className={cn(
-                                'absolute top-14 right-5 z-50',
-                            )}
-                        >
-                            <Button
-                                size="sm"
-                                className={cn(
-                                    'h-8 px-3 gap-1.5 rounded-full backdrop-blur-md shadow-md text-xs font-medium border transition-all duration-200',
-                                    'bg-stone-900/90 text-stone-100 border-black/10 hover:bg-stone-900 hover:scale-105 active:scale-95',
-                                    'dark:bg-neutral-100/90 dark:text-neutral-900 dark:border-white/20 dark:hover:bg-neutral-100'
-                                )}
-                            >
-                                <FlipVertical2 className="w-3.5 h-3.5" />
-                                <span>回到当前</span>
-                            </Button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
                 <Virtuoso
                     onScroll={onScrolling}
                     scrollerRef={handleScrollerRef}
