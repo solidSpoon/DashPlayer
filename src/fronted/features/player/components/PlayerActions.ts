@@ -20,14 +20,6 @@ export class PlayerActions {
   // 源与字幕
   setSource(src: string | null) { this.s.setSource(src); }
   loadSubtitles(sentences: Sentence[]) { this.s.loadSubtitles(sentences); }
-  /**
-   * 追加增量字幕。
-   *
-   * @param sentences 待追加的字幕句子。
-   */
-  appendSubtitles(sentences: Sentence[]) {
-    this.s.appendSubtitles(sentences);
-  }
   clearSubtitles() { this.s.clearSubtitles(); }
 
   // 播放控制

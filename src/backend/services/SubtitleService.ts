@@ -48,6 +48,23 @@ export default interface SubtitleService {
     parseSrt(path: string): Promise<SrtSentence>;
 
     /**
+     * 从已分段的 SrtLine 数组直接构建播放器句子并注册到内存缓存。
+     *
+     * 用于增量转录场景：后端每完成一个块后，将所有已完成块的 SrtLine
+     * 一次性构建为 Sentence[]，注册到 cache:srt 供翻译调度器读取。
+     *
+     * @param lines 已按时间排序并赋予全局稳定序号的 SrtLine 数组。
+     * @param identityOverride 用作 fileHash 的稳定标识（如转录会话 sessionId）。
+     * @param options.transient 为 true 时标记缓存条目为临时数据，翻译结果不落库。
+     * @returns 构建后的字幕句子集合。
+     */
+    buildSentencesFromLines(
+        lines: SrtLine[],
+        identityOverride: string,
+        options?: { transient?: boolean }
+    ): SrtSentence;
+
+    /**
      * 激活当前播放视频，并使上一视频的生词匹配任务失效。
      *
      * @param videoId 当前播放视频 ID。
@@ -207,6 +224,39 @@ export class SubtitleServiceImpl implements SubtitleService {
             ...res,
             sentences: adjustedSentence
         };
+    }
+
+    /** {@inheritDoc SubtitleService.buildSentencesFromLines} */
+    public buildSentencesFromLines(
+        lines: SrtLine[],
+        identityOverride: string,
+        options?: { transient?: boolean }
+    ): SrtSentence {
+        const subtitles = lines.map<Sentence>((line) => ({
+            fileHash: identityOverride,
+            index: line.index,
+            start: line.start,
+            end: line.end,
+            adjustedStart: null,
+            adjustedEnd: null,
+            text: line.contentEn,
+            textZH: line.contentZh,
+            key: `${identityOverride}-${line.index}`,
+            transGroup: 0,
+            translationKey: generateTranslationKey(identityOverride, line.index),
+            struct: this.processSentence(line.contentEn)
+        }));
+        groupSentence(subtitles, 20, (s, index) => {
+            s.transGroup = index;
+        });
+        const res: SrtSentence & { transient?: boolean } = {
+            fileHash: identityOverride,
+            filePath: '',
+            sentences: subtitles,
+            transient: options?.transient ?? false,
+        };
+        this.cacheService.set('cache:srt', identityOverride, res);
+        return res;
     }
 
     /**

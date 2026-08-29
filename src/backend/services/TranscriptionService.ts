@@ -21,9 +21,11 @@ import {
     TranscriptTask,
     TranscriptTaskResult,
     TranscriptTaskState,
+    TranscriptChunkResult,
 } from '@/common/contracts/transcript/transcript-task';
 import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
-import { TranscriptChunkResult } from '@/common/contracts/transcript/transcript-task';
+import SubtitleService from '@/backend/services/SubtitleService';
+import { Sentence } from '@/common/types/SentenceC';
 
 /**
  * 本地转录任务的持久化、排队、执行与取消契约。
@@ -71,7 +73,7 @@ export interface TranscriptionService {
      */
     transcribe(filePath: string, currentPosition?: number): Promise<void>;
     updateDemand(filePath: string, currentPosition: number): void;
-    getSessionSnapshot(filePath: string): { sessionId: string; chunks: TranscriptChunkResult[] } | null;
+    getSessionSnapshot(filePath: string): { sessionId: string; sentences: Sentence[] } | null;
     
     /**
      * 取消转录任务
@@ -115,6 +117,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private fileSystemGateway: FileSystemGateway,
         @inject(TYPES.TranscriptionTaskRepository) private transcriptionTaskRepository: TranscriptionTaskRepository,
+        @inject(TYPES.SubtitleService) private subtitleService: SubtitleService,
     ) {}
 
     private readonly subtitleSegmenter = new EnglishSubtitleSegmenter();
@@ -302,11 +305,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         if (session && Number.isFinite(currentPosition)) session.currentPosition = Math.max(0, currentPosition);
     }
 
-    /** 返回当前会话已完成的增量块，供页面重新进入时恢复。 */
-    public getSessionSnapshot(filePath: string): { sessionId: string; chunks: TranscriptChunkResult[] } | null {
+    /** 返回当前会话已完成的全部字幕句子，供页面重新进入时恢复。 */
+    public getSessionSnapshot(filePath: string): { sessionId: string; sentences: Sentence[] } | null {
         const session = this.sessions.get(this.normalizeFilePath(filePath));
         if (!session) return null;
-        return { sessionId: session.sessionId, chunks: Array.from(session.chunks.values()).sort((a, b) => a.chunkIndex - b.chunkIndex) };
+        const allLines = Array.from(session.chunks.values())
+            .sort((a, b) => a.chunkIndex - b.chunkIndex)
+            .flatMap((c) => c.sentences);
+        const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, { transient: true });
+        return { sessionId: session.sessionId, sentences };
     }
 
     /**
@@ -403,7 +410,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 // 增量阶段使用全局稳定序号，避免各块的局部字幕序号互相覆盖。
                 const chunk: TranscriptChunkResult = { filePath, chunkIndex: index, start: ranges[index].start, end: ranges[index].end, sentences: lines.map((line) => ({ ...line, index: index * 100000 + line.index })) };
                 session.chunks.set(index, chunk);
-                this.rendererGateway.fireAndForget('transcript/chunk-result', { ...chunk, sessionId: session.sessionId, isFinal: false });
+                const allLines = Array.from(session.chunks.values())
+                    .sort((a, b) => a.chunkIndex - b.chunkIndex)
+                    .flatMap((c) => c.sentences);
+                const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, { transient: true });
+                this.rendererGateway.fireAndForget('transcript/chunk-result', { filePath, sessionId: session.sessionId, sentences });
             }
         }
         if (signal.aborted) throw new Error('Transcription cancelled by user');

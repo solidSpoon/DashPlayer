@@ -117,7 +117,6 @@ interface PlayerState {
   // 源与字幕
   setSource: (src: string | null) => void;
   loadSubtitles: (sentences: Sentence[], tender?: SrtTender<Sentence>) => void;
-  appendSubtitles: (sentences: Sentence[]) => void;
   clearSubtitles: () => void;
 
   // 播放控制
@@ -548,30 +547,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
           indexing // 构建索引
         }
       }));
-    },
-
-    appendSubtitles: (incoming) => {
-      if (incoming.length === 0) return;
-      set((prev) => {
-        const byKey = new Map(prev.sentences.map((sentence) => [sentence.translationKey, sentence]));
-        incoming.forEach((sentence) => byKey.set(sentence.translationKey, sentence));
-        const ordered = Array.from(byKey.values()).sort((a, b) => a.start - b.start);
-        const currentKey = prev.currentSentence?.translationKey ?? null;
-        const sentences = ordered.map((sentence, index) => ({
-          ...sentence,
-          index,
-          key: `${sentence.fileHash}-${index}`,
-        }));
-        const currentSentence = currentKey
-          ? sentences.find((sentence) => sentence.translationKey === currentKey) ?? null
-          : (sentences[0] ?? null);
-        return {
-          sentences,
-          srtTender: new SrtTenderImpl(sentences),
-          currentSentence,
-          internal: { ...prev.internal, indexing: buildIndexingCache(sentences) },
-        };
-      });
     },
 
     clearSubtitles: () => {

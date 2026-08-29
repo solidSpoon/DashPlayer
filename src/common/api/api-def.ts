@@ -1,7 +1,7 @@
 import {DpTask} from '@/common/contracts/dp-task';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
-import {SrtSentence} from '@/common/types/SentenceC';
+import {SrtSentence, Sentence} from '@/common/types/SentenceC';
 import {WindowState} from '@/common/types/Types';
 import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
@@ -41,7 +41,6 @@ import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
-import { TranscriptChunkResult } from '@/common/contracts/transcript/transcript-task';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -59,7 +58,7 @@ interface TranscriptDef {
     'transcript/remove': { params: { filePath: string }, return: void };
     'transcript/start': { params: { filePath: string; currentPosition?: number }, return: 'started' | 'model_missing' };
     'transcript/update-demand': { params: { filePath: string; currentPosition: number }, return: void };
-    'transcript/session-snapshot': { params: { filePath: string }, return: { sessionId: string; chunks: TranscriptChunkResult[] } | null };
+    'transcript/session-snapshot': { params: { filePath: string }, return: { sessionId: string; sentences: Sentence[] } | null };
     'transcript/cancel': { params: { filePath: string }, return: boolean };
 }
 

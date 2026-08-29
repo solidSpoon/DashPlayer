@@ -46,6 +46,8 @@ interface SubtitleTranslationExecutionContext {
     sentences: Sentence[];
     /** 当前字幕文件哈希。 */
     fileHash: string;
+    /** 为 true 时翻译结果仅存内存，不写入数据库（增量转录会话）。 */
+    transient?: boolean;
     /** OpenAI 批量提示词使用的风格约束。 */
     style?: string;
 }
@@ -401,6 +403,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                     mode: 'zh',
                     sentences: srtData.sentences,
                     fileHash,
+                    transient: srtData.transient ?? false,
                 },
             });
             return;
@@ -431,6 +434,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 mode,
                 sentences: srtData.sentences,
                 fileHash,
+                transient: srtData.transient ?? false,
                 style,
             },
         });
@@ -519,7 +523,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 ? await this.translateWithTencent(request, pending)
                 : await this.translateWithOpenAi(request, pending);
             this.throwIfAborted(request.signal);
-            await this.saveTranslations(onlineResults, request.context.storageMode);
+            if (!request.context.transient) {
+                await this.saveTranslations(onlineResults, request.context.storageMode);
+            }
             this.pushTranslations(onlineResults, request.context);
 
             const translatedKeys = new Set(onlineResults.keys());
@@ -645,7 +651,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 unchanged.set(sentence.translationKey, sentence.text);
                 completedIndices.add(sentence.index);
             });
-            await this.saveTranslations(unchanged, request.context.storageMode);
+            if (!request.context.transient) {
+                await this.saveTranslations(unchanged, request.context.storageMode);
+            }
             this.pushTranslations(unchanged, request.context);
         }
 

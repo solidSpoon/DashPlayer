@@ -2,7 +2,8 @@ import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import { RendererTranslationItem } from '@/common/types/TranslationResult';
 import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
-import { TranscriptChunkResult, TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
+import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
+import { Sentence } from '@/common/types/SentenceC';
 import { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 
 /**
@@ -58,7 +59,7 @@ interface DictionaryRendererDef {
 // 转录相关的前端API定义
 interface TranscriptRendererDef {
     'transcript/batch-result': { params: { updates: TranscriptTaskUpdate[] }, return: void };
-    'transcript/chunk-result': { params: TranscriptChunkResult & { sessionId: string; isFinal: boolean }, return: void };
+    'transcript/chunk-result': { params: { filePath: string; sessionId: string; sentences: Sentence[] }, return: void };
 }
 
 // 视频学习裁切状态更新的前端API定义

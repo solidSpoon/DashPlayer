@@ -13,7 +13,6 @@ import { playerApi } from '@/fronted/features/player/playerApi';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
-import { toIncrementalSentence } from '@/fronted/features/transcript/incrementalTranscript';
 
 const logger = getRendererLogger('usePlayerBridge');
 
@@ -71,9 +70,9 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             const incrementalSnapshot = await transcriptApi.getSessionSnapshot(videoPath!);
             if (cancelled || videoPath !== useFile.getState().videoPath) return;
             if (incrementalSnapshot) {
-                if (incrementalSnapshot.chunks.length > 0) {
-                    playerActions.clearSubtitles();
-                    playerActions.appendSubtitles(incrementalSnapshot.chunks.flatMap((chunk) => chunk.sentences.map((line) => toIncrementalSentence(line, incrementalSnapshot.sessionId))));
+                if (incrementalSnapshot.sentences.length > 0) {
+                    useTranslation.getState().setActiveFileHash(incrementalSnapshot.sessionId);
+                    playerActions.loadSubtitles(incrementalSnapshot.sentences);
                 }
                 return;
             }

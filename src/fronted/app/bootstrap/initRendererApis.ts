@@ -11,9 +11,6 @@ import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
 import toast from 'react-hot-toast';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
-import { toIncrementalSentence } from '@/fronted/features/transcript/incrementalTranscript';
-/** 已清空旧字幕的增量会话 ID，同一会话只清空一次；仅保留最近一个，避免无限增长。 */
-let lastClearedIncrementalSession: string | null = null;
 
 /**
  * 注册 main 进程可调用的 renderer 接口。
@@ -113,12 +110,9 @@ export function initRendererApis(): () => void {
 
     register('transcript/chunk-result', async (params) => {
         if (params.filePath !== useFile.getState().videoPath) return;
-        const sentences = params.sentences.map((line) => toIncrementalSentence(line, params.sessionId));
-        if (lastClearedIncrementalSession !== params.sessionId) {
-            playerActions.clearSubtitles();
-            lastClearedIncrementalSession = params.sessionId;
-        }
-        playerActions.appendSubtitles(sentences);
+        if (params.sentences.length === 0) return;
+        useTranslation.getState().setActiveFileHash(params.sessionId);
+        playerActions.loadSubtitles(params.sentences);
     });
 
     register('dictionary/openai-update', async ({ requestId, word, data, isComplete = false }) => {
