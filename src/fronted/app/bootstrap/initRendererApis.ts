@@ -101,6 +101,14 @@ export function initRendererApis(): () => void {
                     await transcriptApi.attachSubtitle(update.filePath, 'same');
                     await swrMutate(SWR_KEY.PLAYER_P);
                     toast('Transcript done', { icon: '🚀' });
+                    continue;
+                }
+                // 取消/失败后增量会话已结束，当前视频需回退到已挂载的真实字幕（无则清空）。
+                if (
+                    (update.status === TranscriptTaskState.CANCELLED || update.status === TranscriptTaskState.FAILED)
+                    && update.filePath === useFile.getState().videoPath
+                ) {
+                    useFile.getState().reloadSubtitles();
                 }
             }
         } finally {

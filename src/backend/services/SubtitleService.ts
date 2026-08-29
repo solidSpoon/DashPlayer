@@ -56,12 +56,18 @@ export default interface SubtitleService {
      * @param lines 已按时间排序并赋予全局稳定序号的 SrtLine 数组。
      * @param identityOverride 用作 fileHash 的稳定标识（如转录会话 sessionId）。
      * @param options.transient 为 true 时标记缓存条目为临时数据，翻译结果不落库。
+     * @param options.reuseSentences 按稳定序号索引的已构建句子；命中时直接复用
+     *        （含句法解析结果），跳过昂贵的逐句重新解析。已完成块的行内容不可变，
+     *        因此按序号复用是安全的。
      * @returns 构建后的字幕句子集合。
      */
     buildSentencesFromLines(
         lines: SrtLine[],
         identityOverride: string,
-        options?: { transient?: boolean }
+        options?: {
+            transient?: boolean;
+            reuseSentences?: Map<number, Sentence>;
+        }
     ): SrtSentence;
 
     /**
@@ -230,22 +236,33 @@ export class SubtitleServiceImpl implements SubtitleService {
     public buildSentencesFromLines(
         lines: SrtLine[],
         identityOverride: string,
-        options?: { transient?: boolean }
+        options?: {
+            transient?: boolean;
+            reuseSentences?: Map<number, Sentence>;
+        }
     ): SrtSentence {
-        const subtitles = lines.map<Sentence>((line) => ({
-            fileHash: identityOverride,
-            index: line.index,
-            start: line.start,
-            end: line.end,
-            adjustedStart: null,
-            adjustedEnd: null,
-            text: line.contentEn,
-            textZH: line.contentZh,
-            key: `${identityOverride}-${line.index}`,
-            transGroup: 0,
-            translationKey: generateTranslationKey(identityOverride, line.index),
-            struct: this.processSentence(line.contentEn)
-        }));
+        const reuse = options?.reuseSentences;
+        const subtitles = lines.map<Sentence>((line) => {
+            // 已完成块的行内容不可变，按稳定序号直接复用旧句子，跳过句法解析。
+            const cached = reuse?.get(line.index);
+            if (cached) {
+                return cached;
+            }
+            return {
+                fileHash: identityOverride,
+                index: line.index,
+                start: line.start,
+                end: line.end,
+                adjustedStart: null,
+                adjustedEnd: null,
+                text: line.contentEn,
+                textZH: line.contentZh,
+                key: `${identityOverride}-${line.index}`,
+                transGroup: 0,
+                translationKey: generateTranslationKey(identityOverride, line.index),
+                struct: this.processSentence(line.contentEn)
+            };
+        });
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });

@@ -95,7 +95,13 @@ const CHUNK_OVERLAP_SECONDS = 1;
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
     /** 运行中的增量转录会话；仅用于当前主进程生命周期。 */
-    private sessions = new Map<string, { sessionId: string; currentPosition: number; chunks: Map<number, TranscriptChunkResult> }>();
+    private sessions = new Map<string, {
+        sessionId: string;
+        currentPosition: number;
+        chunks: Map<number, TranscriptChunkResult>;
+        /** 按稳定序号缓存已构建的句子，供增量重建复用，避免逐句重新解析。 */
+        builtSentences: Map<number, Sentence>;
+    }>();
     // 记录每个文件的 Promise 控制器
     private deferred = new Map<string, { resolve: () => void; reject: (error: unknown) => void }>();
 
@@ -262,7 +268,12 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
 
         const controller = new AbortController();
-        this.sessions.set(normalizedFilePath, { sessionId: objectHash(`${normalizedFilePath}:${Date.now()}`), currentPosition, chunks: new Map() });
+        this.sessions.set(normalizedFilePath, {
+            sessionId: objectHash(`${normalizedFilePath}:${Date.now()}`),
+            currentPosition,
+            chunks: new Map(),
+            builtSentences: new Map(),
+        });
         this.deferred.set(normalizedFilePath, { resolve: resolveTask, reject: rejectTask });
         this.abortControllers.set(normalizedFilePath, controller);
 
@@ -324,7 +335,10 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const allLines = Array.from(session.chunks.values())
             .sort((a, b) => a.chunkIndex - b.chunkIndex)
             .flatMap((c) => c.sentences);
-        const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, { transient: true });
+        const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, {
+            transient: true,
+            reuseSentences: session.builtSentences,
+        });
         return { sessionId: session.sessionId, sentences };
     }
 
@@ -430,7 +444,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 const allLines = Array.from(session.chunks.values())
                     .sort((a, b) => a.chunkIndex - b.chunkIndex)
                     .flatMap((c) => c.sentences);
-                const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, { transient: true });
+                const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, {
+                    transient: true,
+                    reuseSentences: session.builtSentences,
+                });
+                sentences.forEach((sentence) => session.builtSentences.set(sentence.index, sentence));
                 this.rendererGateway.fireAndForget('transcript/chunk-result', { filePath, sessionId: session.sessionId, sentences });
             }
         }

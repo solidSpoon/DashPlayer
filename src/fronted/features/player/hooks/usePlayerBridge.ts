@@ -35,6 +35,8 @@ export function usePlayerBridge(navigate: (path: string) => void) {
     const srtHash = useFile((s) => s.srtHash);
     const subtitleSessionId = useFile((s) => s.subtitleSessionId);
     const videoId = useFile((s) => s.videoId);
+    /** 字幕重载令牌；增量转录会话结束后由 renderer api 递增，触发字幕回退重载。 */
+    const subtitleReloadToken = useFile((s) => s.subtitleReloadToken);
 
     const lastLoadedFileRef = useRef<string | undefined>(undefined);
 
@@ -66,14 +68,20 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             if (StrUtil.isBlank(currentVideoId)) {
                 return;
             }
+            // 先清掉上一视频残留的字幕哈希与翻译上下文，避免增量分支提前返回时旧状态继续生效。
+            useFile.setState({
+                srtHash: null,
+                subtitleSessionId: null,
+            });
+            useTranslation.getState().setActiveFileHash(null);
+            playerActions.clearSubtitles();
             const currentPath = StrUtil.isBlank(subtitlePath) ? null : subtitlePath!;
             const incrementalSnapshot = await transcriptApi.getSessionSnapshot(videoPath!);
             if (cancelled || videoPath !== useFile.getState().videoPath) return;
-            if (incrementalSnapshot) {
-                if (incrementalSnapshot.sentences.length > 0) {
-                    useTranslation.getState().setActiveFileHash(incrementalSnapshot.sessionId);
-                    playerActions.loadSubtitles(incrementalSnapshot.sentences);
-                }
+            if (incrementalSnapshot && incrementalSnapshot.sentences.length > 0) {
+                // 转录进行中：增量字幕优先于已挂载的 SRT，直到会话结束。
+                useTranslation.getState().setActiveFileHash(incrementalSnapshot.sessionId);
+                playerActions.loadSubtitles(incrementalSnapshot.sentences);
                 return;
             }
             const playbackSessionId = crypto.randomUUID();
@@ -82,12 +90,6 @@ export function usePlayerBridge(navigate: (path: string) => void) {
                 subtitlePath: currentPath,
                 playbackSessionId,
             });
-            useFile.setState({
-                srtHash: null,
-                subtitleSessionId: null,
-            });
-            useTranslation.getState().setActiveFileHash(null);
-            playerActions.clearSubtitles();
             try {
                 const result = await playerApi.parseSubtitleToSentences({
                     subtitlePath: currentPath,
@@ -129,7 +131,7 @@ export function usePlayerBridge(navigate: (path: string) => void) {
         return () => {
             cancelled = true;
         };
-    }, [subtitlePath, videoId]);
+    }, [subtitlePath, videoId, videoPath, subtitleReloadToken]);
 
     useEffect(() => {
         if (StrUtil.isBlank(videoPath)) return;
