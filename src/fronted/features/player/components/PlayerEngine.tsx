@@ -331,8 +331,17 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
         if (typeof p.playedSeconds === 'number') {
           updateExactPlayTime(p.playedSeconds);
         }
+        // 兜底补全 duration：若 ReactPlayer onDuration 偶发丢失或先于元数据触发，从 video 元素同步
+        const video = videoRef.current;
+        if (video && Number.isFinite(video.duration) && video.duration > 0 && usePlayer.getState().duration <= 0) {
+          setDuration(video.duration);
+        }
       }}
-      onDuration={(d) => setDuration(d)}
+      onDuration={(d) => {
+        if (typeof d === 'number' && Number.isFinite(d) && d > 0) {
+          setDuration(d);
+        }
+      }}
       onError={(e) => {
         // 仅当错误元素仍属于当前代际时才读取其上下文，避免重建/切源竞态下误报
         const errVideo = videoRef.current;
@@ -367,6 +376,10 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
         videoRef.current = internal;
         videoGenerationRef.current = recoveryKey;
         onProvideRef.current?.(internal);
+
+        if (internal && Number.isFinite(internal.duration) && internal.duration > 0) {
+          setDuration(internal.duration);
+        }
 
         // 卡死重建恢复：仅当恢复目标仍有效（期间无新 seek）时回到目标时间并继续播放
         const pending = pendingRecoveryRef.current;

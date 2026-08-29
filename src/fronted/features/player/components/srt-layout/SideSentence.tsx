@@ -254,7 +254,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     {/* 英文主句：激活与非激活字体大小、字重严格恒定(font-normal)，仅通过颜色加深，字符宽度100%不变，绝无换行跳动 */}
                     <div className={cn(
                         'w-full leading-snug transition-colors tracking-normal text-center font-normal',
-                        fontSize === 'fontSizeSmall' ? 'text-sm' : 'text-[15.5px]',
+                        fontSize === 'fontSizeSmall' ? 'text-[15.5px]' : 'text-[17px]',
                         isCurrent
                             ? 'text-stone-950 dark:text-white'
                             : 'text-stone-700 dark:text-neutral-300 group-hover:text-stone-950 dark:group-hover:text-white'
@@ -266,7 +266,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     {secondaryText && (
                         <div className={cn(
                             'w-full mt-1.5 leading-normal transition-colors font-normal text-center',
-                            fontSize === 'fontSizeSmall' ? 'text-xs' : 'text-[12.5px]',
+                            fontSize === 'fontSizeSmall' ? 'text-[13.5px]' : 'text-[14.5px]',
                             isCurrent
                                 ? 'text-stone-600 dark:text-neutral-300'
                                 : 'text-stone-500/90 dark:text-neutral-400/90 group-hover:text-stone-700 dark:group-hover:text-neutral-200'

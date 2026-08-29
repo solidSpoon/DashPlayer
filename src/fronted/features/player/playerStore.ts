@@ -537,10 +537,26 @@ export const usePlayer = create<PlayerState>((set, get) => {
     loadSubtitles: (sentences, tender) => {
       const srt = tender ?? new SrtTenderImpl(sentences);
       const indexing = buildIndexingCache(sentences);
+      const exactPlayTime = get().internal.exactPlayTime;
+
+      // 如果当前已有播放进度且 srt 能找到对应句，保留当前播放位置对应的句子；否则默认使用第一句
+      let targetCurrentSentence: Sentence | null = null;
+      if (sentences.length > 0) {
+        if (exactPlayTime > 0) {
+          try {
+            targetCurrentSentence = srt.getByTime(exactPlayTime) ?? sentences[0];
+          } catch {
+            targetCurrentSentence = sentences[0];
+          }
+        } else {
+          targetCurrentSentence = sentences[0];
+        }
+      }
+
       set((prev) => ({
         srtTender: srt,
         sentences,
-        currentSentence: sentences.length > 0 ? sentences[0] : null,
+        currentSentence: targetCurrentSentence,
         virtualGroup: { active: false, sentences: [] },
         internal: {
           ...prev.internal,

@@ -10,6 +10,7 @@ import { playerActions } from '@/fronted/features/player/components/PlayerAction
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import useFavouriteClip, { mapClipKey } from '@/fronted/features/favourite/favouriteStore';
 import useFile from '@/fronted/features/file-browser/fileStore';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import { 
     Play, 
     Pause, 
@@ -50,10 +51,21 @@ export default function MainSubtitle() {
     );
     const changeCurrentLineClip = useFavouriteClip((s) => s.changeCurrentLineClip);
 
+    const prevShortcut = useSetting((s) => s.setting('shortcut.previousSentence'));
+    const nextShortcut = useSetting((s) => s.setting('shortcut.nextSentence'));
+    const playPauseShortcut = useSetting((s) => s.setting('shortcut.playPause'));
+    const repeatShortcut = useSetting((s) => s.setting('shortcut.repeatSingleSentence'));
+    const autoPauseShortcut = useSetting((s) => s.setting('shortcut.autoPause'));
+    const favShortcut = useSetting((s) => s.setting('shortcut.addClip'));
+
+    const formatShortcut = (k?: string) => (k ? ` (${k})` : '');
+
     const requestTranslation = useTranslation(state => state.requestTranslation);
     const engine = useTranslation(state => state.engine);
     const openAiMode = useTranslation(state => state.openAiMode);
     const activeFileHash = useTranslation(state => state.activeFileHash);
+
+    const sentences = usePlayerState((s) => s.sentences);
 
     // 在组件顶层获取当前句子的翻译
     const translationKey = sentence?.translationKey || '';
@@ -160,7 +172,7 @@ export default function MainSubtitle() {
                                         <SkipBack className="w-3.5 h-3.5" />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">上一句 (A)</TooltipContent>
+                                <TooltipContent side="top">上一句{formatShortcut(prevShortcut)}</TooltipContent>
                             </Tooltip>
 
                             {/* 播放/暂停 */}
@@ -179,7 +191,7 @@ export default function MainSubtitle() {
                                         {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">{playing ? '暂停 (Space)' : '播放 (Space)'}</TooltipContent>
+                                <TooltipContent side="top">{playing ? `暂停${formatShortcut(playPauseShortcut)}` : `播放${formatShortcut(playPauseShortcut)}`}</TooltipContent>
                             </Tooltip>
 
                             {/* 下一句 */}
@@ -192,7 +204,7 @@ export default function MainSubtitle() {
                                         <SkipForward className="w-3.5 h-3.5" />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">下一句 (D)</TooltipContent>
+                                <TooltipContent side="top">下一句{formatShortcut(nextShortcut)}</TooltipContent>
                             </Tooltip>
 
                             <div className="h-3 w-px bg-stone-400/30 dark:bg-neutral-600 mx-0.5" />
@@ -211,7 +223,7 @@ export default function MainSubtitle() {
                                         <Repeat1 className="w-3.5 h-3.5 stroke-[2.2]" />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">单句循环 (R)</TooltipContent>
+                                <TooltipContent side="top">单句循环{formatShortcut(repeatShortcut)}</TooltipContent>
                             </Tooltip>
 
                             {/* 自动暂停 */}
@@ -228,7 +240,7 @@ export default function MainSubtitle() {
                                         <CirclePause className="w-3.5 h-3.5" />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">句末自动暂停 (P)</TooltipContent>
+                                <TooltipContent side="top">句末自动暂停{formatShortcut(autoPauseShortcut)}</TooltipContent>
                             </Tooltip>
 
                             {/* 收藏当前句 */}
@@ -245,7 +257,7 @@ export default function MainSubtitle() {
                                         <Bookmark className={`w-3.5 h-3.5 ${isFavourite ? 'fill-current' : ''}`} />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">收藏当前句 (S)</TooltipContent>
+                                <TooltipContent side="top">收藏当前句{formatShortcut(favShortcut)}</TooltipContent>
                             </Tooltip>
 
                             {/* 时间戳重置（有调整时显示） */}

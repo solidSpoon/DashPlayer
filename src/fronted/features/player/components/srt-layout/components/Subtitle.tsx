@@ -35,7 +35,7 @@ export default function Subtitle() {
         setVirtuoso,
         updateVisibleRange,
         delaySetNormal,
-        syncIndexIntoView,
+        syncListPositionIntoView,
     } = useSubtitleScrollState((s) => ({
         scrollState: s.scrollState,
         onScrolling: s.onScrolling,
@@ -44,17 +44,24 @@ export default function Subtitle() {
         setVirtuoso: s.setVirtuoso,
         updateVisibleRange: s.updateVisibleRange,
         delaySetNormal: s.delaySetNormal,
-        syncIndexIntoView: s.syncIndexIntoView,
+        syncListPositionIntoView: s.syncListPositionIntoView,
     }), shallow);
 
-    const currentIndex = currentSentence?.index ?? -1;
+    const currentListPosition = useMemo(() => {
+        if (!currentSentence || subtitle.length === 0) {
+            return -1;
+        }
+        return subtitle.findIndex(
+            (item) => item.index === currentSentence.index && item.fileHash === currentSentence.fileHash
+        );
+    }, [currentSentence, subtitle]);
 
     useEffect(() => {
-        if (currentIndex < 0) {
+        if (currentListPosition < 0) {
             return;
         }
-        syncIndexIntoView(currentIndex);
-    }, [currentIndex, syncIndexIntoView]);
+        syncListPositionIntoView(currentListPosition);
+    }, [currentListPosition, syncListPositionIntoView]);
 
     useEffect(() => {
         const handleWheel = () => {
@@ -74,58 +81,58 @@ export default function Subtitle() {
     }, []);
     const dragStateRef = useRef<{
         active: boolean;
-        startIndex: number | null;
-        lastIndex: number | null;
+        startListPosition: number | null;
+        lastListPosition: number | null;
         sentence: Sentence | null;
     }>({
         active: false,
-        startIndex: null,
-        lastIndex: null,
+        startListPosition: null,
+        lastListPosition: null,
         sentence: null,
     });
 
-    const selectionRangeRef = useRef<{ start: number; end: number } | null>(null);
+    const selectionRangeRef = useRef<{ startPos: number; endPos: number } | null>(null);
 
     const virtualGroupMeta = useMemo(() => {
         if (!virtualGroup.active || virtualGroup.sentences.length < 2) {
             return {
                 hasGroup: false,
-                indexSet: new Set<number>(),
-                min: null as number | null,
-                max: null as number | null,
+                keyGroupSet: new Set<string>(),
+                firstKey: null as string | null,
+                lastKey: null as string | null,
             };
         }
 
-        const sorted = [...virtualGroup.sentences]
-            .map((s) => s.index)
-            .sort((a, b) => a - b);
-        const indexSet = new Set(sorted);
+        const keyGroupSet = new Set(virtualGroup.sentences.map((s) => `${s.fileHash}-${s.index}`));
+        const first = virtualGroup.sentences[0];
+        const last = virtualGroup.sentences[virtualGroup.sentences.length - 1];
         return {
             hasGroup: true,
-            indexSet,
-            min: sorted[0] ?? null,
-            max: sorted[sorted.length - 1] ?? null,
+            keyGroupSet,
+            firstKey: first ? `${first.fileHash}-${first.index}` : null,
+            lastKey: last ? `${last.fileHash}-${last.index}` : null,
         };
     }, [virtualGroup]);
 
-    const applySelectionRange = useCallback((startIndex: number, endIndex: number) => {
-        const normalizedStart = Math.min(startIndex, endIndex);
-        const normalizedEnd = Math.max(startIndex, endIndex);
+    const applySelectionRange = useCallback((startPos: number, endPos: number) => {
+        const normalizedStart = Math.min(startPos, endPos);
+        const normalizedEnd = Math.max(startPos, endPos);
 
         if (selectionRangeRef.current &&
-            selectionRangeRef.current.start === normalizedStart &&
-            selectionRangeRef.current.end === normalizedEnd) {
+            selectionRangeRef.current.startPos === normalizedStart &&
+            selectionRangeRef.current.endPos === normalizedEnd) {
             return;
         }
 
         if (normalizedEnd !== normalizedStart) {
-            selectionRangeRef.current = { start: normalizedStart, end: normalizedEnd };
-            playerActions.setVirtualGroupByIndexRange(normalizedStart, normalizedEnd);
+            selectionRangeRef.current = { startPos: normalizedStart, endPos: normalizedEnd };
+            const selectedSentences = subtitle.slice(normalizedStart, normalizedEnd + 1);
+            playerActions.setVirtualGroupBySentences(selectedSentences);
         } else {
             selectionRangeRef.current = null;
             playerActions.clearVirtualGroup();
         }
-    }, []);
+    }, [subtitle]);
 
     const finalizeSelection = useCallback(() => {
         const state = dragStateRef.current;
@@ -134,14 +141,14 @@ export default function Subtitle() {
         }
 
         state.active = false;
-        const { startIndex, lastIndex, sentence } = state;
+        const { startListPosition, lastListPosition, sentence } = state;
 
         if (
-            startIndex !== null &&
-            lastIndex !== null &&
-            Math.abs(lastIndex - startIndex) >= 1
+            startListPosition !== null &&
+            lastListPosition !== null &&
+            Math.abs(lastListPosition - startListPosition) >= 1
         ) {
-            applySelectionRange(startIndex, lastIndex);
+            applySelectionRange(startListPosition, lastListPosition);
         } else if (sentence) {
             playerActions.clearVirtualGroup();
             playerActions.gotoSentence(sentence);
@@ -153,8 +160,8 @@ export default function Subtitle() {
         selectionRangeRef.current = null;
         dragStateRef.current = {
             active: false,
-            startIndex: null,
-            lastIndex: null,
+            startListPosition: null,
+            lastListPosition: null,
             sentence: null,
         };
     }, [applySelectionRange, delaySetNormal, scrollState]);
@@ -166,25 +173,25 @@ export default function Subtitle() {
         };
     }, [finalizeSelection]);
 
-    const handleMouseDown = useCallback((sentence: Sentence) => (event: React.MouseEvent) => {
+    const handleMouseDown = useCallback((sentence: Sentence, listPosition: number) => (event: React.MouseEvent) => {
         event.preventDefault();
         dragStateRef.current = {
             active: true,
-            startIndex: sentence.index,
-            lastIndex: sentence.index,
+            startListPosition: listPosition,
+            lastListPosition: listPosition,
             sentence,
         };
         selectionRangeRef.current = null;
     }, []);
 
-    const handleMouseEnter = useCallback((sentence: Sentence) => () => {
+    const handleMouseEnter = useCallback((_sentence: Sentence, listPosition: number) => () => {
         const state = dragStateRef.current;
-        if (!state.active || state.startIndex === null) {
+        if (!state.active || state.startListPosition === null) {
             return;
         }
 
-        state.lastIndex = sentence.index;
-        applySelectionRange(state.startIndex, sentence.index);
+        state.lastListPosition = listPosition;
+        applySelectionRange(state.startListPosition, listPosition);
     }, [applySelectionRange]);
 
     const handleMouseUp = useCallback(() => {
@@ -199,19 +206,20 @@ export default function Subtitle() {
         updateVisibleRange([startIndex, endIndex]);
     }, [updateVisibleRange]);
 
-    const renderItem = useCallback((_index: number, item: Sentence) => {
+    const renderItem = useCallback((listPosition: number, item: Sentence) => {
         const isCurrent = !!currentSentence && item.index === currentSentence.index && item.fileHash === currentSentence.fileHash;
+        const itemKey = `${item.fileHash}-${item.index}`;
         const isSelected =
             virtualGroupMeta.hasGroup &&
-            virtualGroupMeta.indexSet.has(item.index);
-        const isGroupStart = isSelected && item.index === virtualGroupMeta.min;
-        const isGroupEnd = isSelected && item.index === virtualGroupMeta.max;
+            virtualGroupMeta.keyGroupSet.has(itemKey);
+        const isGroupStart = isSelected && itemKey === virtualGroupMeta.firstKey;
+        const isGroupEnd = isSelected && itemKey === virtualGroupMeta.lastKey;
         return (
             // 拖拽选区容器：鼠标按下/进入/抬起用于区间选择，不承担点击交互
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <div
-                onMouseDown={handleMouseDown(item)}
-                onMouseEnter={handleMouseEnter(item)}
+                onMouseDown={handleMouseDown(item, listPosition)}
+                onMouseEnter={handleMouseEnter(item, listPosition)}
                 onMouseUp={handleMouseUp}
             >
                 <SideSentence
@@ -232,10 +240,7 @@ export default function Subtitle() {
                     }
                     ref={(ref) => {
                         if (isCurrent) {
-                            updateCurrentRef(
-                                ref,
-                                currentSentence?.index ?? -1
-                            );
+                            updateCurrentRef(ref, listPosition);
                         }
                     }}
                 />

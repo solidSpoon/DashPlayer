@@ -5,7 +5,6 @@ import {
     SettingRow,
     SettingsLoadingSkeleton,
 } from '@/fronted/features/settings/components/form';
-import ThemePreview from '@/fronted/features/settings/components/ThemePreview';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -17,7 +16,7 @@ import { applyLanguageSetting } from '@/fronted/i18n';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
-import { Globe, Palette, Sliders, Type } from 'lucide-react';
+import { Globe, Palette, Sliders, Type, Moon, Sun } from 'lucide-react';
 
 const logger = getRendererLogger('AppearanceSetting');
 type AppearanceFormValues = AppearanceSettingVO;
@@ -85,64 +84,59 @@ const AppearanceSetting = () => {
                 description={t('appearance.description')}
                 contentClassName="space-y-6"
             >
-                {/* 主题选择卡片 */}
+                {/* 统一的外观偏好卡片 */}
                 <SettingCard
-                    title={t('appearance.themeTitle')}
-                    description={t('appearance.themeDescription')}
+                    title={t('appearance.cardTitle')}
+                    description={t('appearance.cardDescription')}
                     icon={Palette}
                 >
-                    <div className="p-4 flex flex-wrap gap-6 items-center">
-                        {['dark', 'light'].map((themeOption) => {
-                            const isSelected = currentTheme === themeOption;
-                            return (
-                                <div
-                                    key={themeOption}
-                                    className={cn(
-                                        'flex flex-col gap-2 cursor-pointer rounded-xl p-2 transition-all border-2',
-                                        isSelected
-                                            ? 'border-primary bg-primary/5 shadow-xs'
-                                            : 'border-border/40 hover:border-border hover:bg-muted/30'
-                                    )}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            setValue('theme', themeOption as AppearanceFormValues['theme'], {
+                    {/* 主题风格切换行 */}
+                    <SettingRow
+                        title={t('appearance.themeTitle')}
+                        description={t('appearance.themeDescription')}
+                        icon={Palette}
+                    >
+                        <div className="flex items-center gap-2">
+                            {[
+                                {
+                                    value: 'dark' as const,
+                                    label: t('appearance.themeDark'),
+                                    icon: Moon,
+                                },
+                                {
+                                    value: 'light' as const,
+                                    label: t('appearance.themeLight'),
+                                    icon: Sun,
+                                },
+                            ].map((option) => {
+                                const isSelected = currentTheme === option.value;
+                                const IconComponent = option.icon;
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => {
+                                            setValue('theme', option.value, {
                                                 shouldDirty: true,
                                                 shouldTouch: true,
                                             });
-                                        }
-                                    }}
-                                    onClick={() => {
-                                        setValue('theme', themeOption as AppearanceFormValues['theme'], {
-                                            shouldDirty: true,
-                                            shouldTouch: true,
-                                        });
-                                    }}
-                                >
-                                    <div className="h-44 w-72 rounded-lg overflow-hidden border border-border/60">
-                                        <ThemePreview
-                                            theme={themeOption}
-                                            className={cn(
-                                                `${themeOption} w-full h-full`
-                                            )}
-                                        />
-                                    </div>
-                                    <span className="text-center text-xs font-semibold capitalize text-foreground">
-                                        {themeOption}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </SettingCard>
+                                        }}
+                                        className={cn(
+                                            'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border text-xs font-medium transition-all duration-150 cursor-pointer select-none',
+                                            isSelected
+                                                ? 'border-primary/80 bg-primary/10 text-primary shadow-xs ring-1 ring-primary/20'
+                                                : 'border-border/70 bg-card hover:bg-muted/50 hover:border-border text-muted-foreground hover:text-foreground'
+                                        )}
+                                    >
+                                        <IconComponent className={cn('h-3.5 w-3.5 shrink-0', isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                                        <span>{option.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </SettingRow>
 
-                {/* 偏好与排版卡片 */}
-                <SettingCard
-                    title={t('appearance.displayPreferencesTitle', { defaultValue: '偏好与排版' })}
-                    icon={Sliders}
-                >
+                    {/* 界面语言行 */}
                     <SettingRow
                         title={t('appearance.languageTitle')}
                         description={t('appearance.languageDescription')}
@@ -158,7 +152,7 @@ const AppearanceSetting = () => {
                                 applyLanguageSetting(value).catch(() => undefined);
                             }}
                         >
-                            <SelectTrigger className="w-48">
+                            <SelectTrigger className="w-44">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -169,6 +163,7 @@ const AppearanceSetting = () => {
                         </Select>
                     </SettingRow>
 
+                    {/* 字幕字号行 */}
                     <SettingRow
                         title={t('appearance.fontSizeTitle')}
                         description={t('appearance.fontSizeDescription')}

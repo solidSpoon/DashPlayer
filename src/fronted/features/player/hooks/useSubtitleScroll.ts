@@ -17,13 +17,15 @@ export type ScrollState =
 export type SubtitleScrollState = {
     internal: {
         virtuoso: VirtuosoHandle | null;
-        currentIndex: number;
+        /** 当前高亮项在 Virtuoso 列表中的实际数组位置下标（0 ~ sentences.length - 1） */
+        currentListPosition: number;
         currentRef: HTMLDivElement | null;
         scrollStatusTimer: number | undefined | NodeJS.Timeout;
         scrollTopTimer: number | undefined | NodeJS.Timeout;
+        /** 当前 Virtuoso 视口渲染的列表位置范围 [startListPos, endListPos] */
         visibleRange: [number, number];
         syncPending: boolean;
-        lastSyncIndex: number;
+        lastSyncListPosition: number;
         /** 用户通过滚轮中断了自动滚动，下一次 onScroll 应跳过状态判断 */
         interrupted: boolean;
     };
@@ -55,10 +57,10 @@ const getEle = (ele: HTMLDivElement): Ele => {
 
 const inBoundary = (ref: HTMLDivElement) => {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const index = useSubtitleScroll.getState().internal.currentIndex;
+    const listPosition = useSubtitleScroll.getState().internal.currentListPosition;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const { visibleRange } = useSubtitleScroll.getState().internal;
-    if (index < visibleRange[0] || index > visibleRange[1]) {
+    if (listPosition < visibleRange[0] || listPosition > visibleRange[1]) {
         return false;
     }
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -69,9 +71,9 @@ const inBoundary = (ref: HTMLDivElement) => {
 
 export type SubtitleScrollActions = {
     onScrolling: () => void;
-    updateCurrentRef: (ref: HTMLDivElement | null, index: number) => void;
+    updateCurrentRef: (ref: HTMLDivElement | null, listPosition: number) => void;
     syncCurrentIntoView: () => void;
-    syncIndexIntoView: (index: number) => void;
+    syncListPositionIntoView: (listPosition: number) => void;
     onUserFinishScrolling: () => void;
     setVirtuoso: (virtuoso: VirtuosoHandle) => void;
     updateBoundary: (boundary: Ele) => void;
@@ -109,14 +111,14 @@ const delaySetNormal = (delay = 300) => {
 
 const executeScroll = (
     virtuoso: VirtuosoHandle,
-    index: number,
+    listPosition: number,
     options?: { align?: 'start' | 'center' | 'end'; smooth?: boolean }
 ) => {
     cancelPendingTimers();
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
     virtuoso.scrollToIndex({
-        index,
+        index: listPosition,
         align: options?.align,
         behavior: options?.smooth ? 'smooth' : 'auto',
     });
@@ -131,17 +133,17 @@ const syncCurrentIntoView = () => {
         return;
     }
     const ref = internal.currentRef;
-    const index = internal.currentIndex;
+    const listPosition = internal.currentListPosition;
     const virtuoso = internal.virtuoso;
-    if (!ref || !virtuoso || !boundary || index < 0) {
+    if (!ref || !virtuoso || !boundary || listPosition < 0) {
         return;
     }
 
-    const lastIndex = internal.lastSyncIndex;
-    if (lastIndex === index) {
+    const lastListPos = internal.lastSyncListPosition;
+    if (lastListPos === listPosition) {
         return;
     }
-    internal.lastSyncIndex = index;
+    internal.lastSyncListPosition = listPosition;
 
     if (inBoundary(ref)) {
         return;
@@ -150,17 +152,17 @@ const syncCurrentIntoView = () => {
     const { showSideBar } = useLayout.getState();
     if (showSideBar) {
         // 小窗模式下保持极简滚动：不做复杂的两阶段或边界换算，直接通过 Virtuoso 原生对齐确保当前句在可视区内
-        executeScroll(virtuoso, index, { align: 'start', smooth: false });
+        executeScroll(virtuoso, listPosition, { align: 'start', smooth: false });
         return;
     }
 
 
     const currentEle = getEle(ref);
-    const isMovingUp = lastIndex >= 0 && index < lastIndex;
+    const isMovingUp = lastListPos >= 0 && listPosition < lastListPos;
 
     // 只要是向上切句或者越出上边界：严格对齐到顶部（align: 'start'），绝不贴到底部
     if (isMovingUp || topShouldScroll(boundary, currentEle)) {
-        executeScroll(virtuoso, index, { align: 'start', smooth: false });
+        executeScroll(virtuoso, listPosition, { align: 'start', smooth: false });
         return;
     }
 
@@ -174,7 +176,7 @@ const syncCurrentIntoView = () => {
         if (scrollBottom > 0) {
             virtuoso.scrollBy({ top: scrollBottom });
         } else {
-            virtuoso.scrollToIndex({ index, align: 'end', behavior: 'auto' });
+            virtuoso.scrollToIndex({ index: listPosition, align: 'end', behavior: 'auto' });
         }
 
         // 第二步：等待用户按键操作停歇后（防抖 250ms），再平滑将该行滚动到顶部
@@ -187,7 +189,7 @@ const syncCurrentIntoView = () => {
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
             useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
             virtuoso.scrollToIndex({
-                index,
+                index: listPosition,
                 align: 'start',
                 behavior: 'smooth',
             });
@@ -203,13 +205,13 @@ const useSubtitleScroll = create(
         (set, get) => ({
             internal: {
                 virtuoso: null,
-                currentIndex: -1,
+                currentListPosition: -1,
                 scrollStatusTimer: undefined,
                 scrollTopTimer: undefined,
                 currentRef: null,
                 visibleRange: [0, 0],
                 syncPending: false,
-                lastSyncIndex: -1,
+                lastSyncListPosition: -1,
                 interrupted: false,
             },
             scrollState: 'NORMAL',
@@ -245,12 +247,12 @@ const useSubtitleScroll = create(
                 }
                 delaySetNormal();
             },
-            updateCurrentRef: (ref: HTMLDivElement | null, index: number) => {
+            updateCurrentRef: (ref: HTMLDivElement | null, listPosition: number) => {
                 const internal = get().internal;
-                if (internal.currentIndex === index && internal.currentRef === ref) {
+                if (internal.currentListPosition === listPosition && internal.currentRef === ref) {
                     return;
                 }
-                internal.currentIndex = index;
+                internal.currentListPosition = listPosition;
                 internal.currentRef = ref;
 
                 const currentScrollState = get().scrollState;
@@ -275,25 +277,25 @@ const useSubtitleScroll = create(
                 }, 0);
             },
             syncCurrentIntoView,
-            syncIndexIntoView: (index: number) => {
+            syncListPositionIntoView: (listPosition: number) => {
                 const { scrollState, internal } = get();
                 if (scrollState === 'USER_BROWSING' || scrollState === 'PAUSE_MEASUREMENT') {
                     return;
                 }
-                if (!internal.virtuoso || index < 0) {
+                if (!internal.virtuoso || listPosition < 0) {
                     return;
                 }
-                const lastIdx = internal.currentIndex;
-                internal.currentIndex = index;
+                const lastListPos = internal.currentListPosition;
+                internal.currentListPosition = listPosition;
 
                 const { visibleRange } = internal;
                 // 如果当前已在可视范围内，无需打断视口
-                if (index >= visibleRange[0] && index <= visibleRange[1]) {
+                if (listPosition >= visibleRange[0] && listPosition <= visibleRange[1]) {
                     return;
                 }
                 // 按键跨出可视区快速导航：向上导航严格 align: 'start' 对齐到顶部
-                const isMovingUp = index < visibleRange[0] || (lastIdx >= 0 && index < lastIdx);
-                executeScroll(internal.virtuoso, index, {
+                const isMovingUp = listPosition < visibleRange[0] || (lastListPos >= 0 && listPosition < lastListPos);
+                executeScroll(internal.virtuoso, listPosition, {
                     align: isMovingUp ? 'start' : 'end',
                     smooth: false,
                 });
@@ -301,10 +303,10 @@ const useSubtitleScroll = create(
 
             onUserFinishScrolling: () => {
                 const virtuoso = get().internal.virtuoso;
-                const index = get().internal.currentIndex;
-                if (virtuoso && index >= 0) {
+                const listPosition = get().internal.currentListPosition;
+                if (virtuoso && listPosition >= 0) {
                     // 用户点击悬浮按钮返回当前播放位置：平滑回到当前句
-                    executeScroll(virtuoso, index, { smooth: true });
+                    executeScroll(virtuoso, listPosition, { smooth: true });
                 }
             },
             updateBoundary: (boundary: Ele) => {
