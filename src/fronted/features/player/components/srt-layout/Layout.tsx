@@ -179,10 +179,12 @@ const PlaybackLayout = () => {
                                 <>
                                     <ResizableHandle
                                         className={cn(
-                                            'group relative h-2.5 w-full flex items-center justify-center bg-stone-200/50 dark:bg-neutral-800/50 border-t border-black/5 dark:border-white/5 hover:bg-stone-300/80 dark:hover:bg-neutral-700/80 transition-colors cursor-row-resize'
+                                            'group relative h-2 w-full flex items-center justify-center',
+                                            'bg-stone-300 dark:bg-neutral-800 border-t border-b border-black/10 dark:border-white/10',
+                                            'hover:bg-stone-400/90 dark:hover:bg-neutral-700 transition-colors duration-150 cursor-row-resize z-20'
                                         )}
                                     >
-                                        <div className="w-10 h-0.5 rounded-full bg-stone-400 dark:bg-neutral-500 opacity-40 group-hover:opacity-100 group-hover:bg-stone-600 dark:group-hover:bg-neutral-300 group-hover:w-14 transition-all duration-200" />
+                                        <div className="w-10 h-1 rounded-full bg-stone-500/70 dark:bg-neutral-500 group-hover:bg-stone-800 dark:group-hover:bg-neutral-200 group-hover:w-14 transition-all duration-200 shadow-xs" />
                                     </ResizableHandle>
                                     <ResizablePanel
                                         className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65 backdrop-blur-2xl')}
@@ -213,13 +215,15 @@ const PlaybackLayout = () => {
                     <>
                         <ResizableHandle
                             className={cn(
-                                'group relative w-1.5 h-full flex items-center justify-center bg-stone-200/50 dark:bg-neutral-800/50 border-l border-black/5 dark:border-white/5 hover:bg-stone-300/80 dark:hover:bg-neutral-700/80 transition-colors cursor-col-resize z-20'
+                                'group relative w-2 h-full flex items-center justify-center',
+                                'bg-stone-300 dark:bg-neutral-800 border-l border-r border-black/10 dark:border-white/10',
+                                'hover:bg-stone-400/90 dark:hover:bg-neutral-700 transition-colors duration-150 cursor-col-resize z-20'
                             )}
                         >
-                            <div className="w-0.5 h-8 rounded-full bg-stone-400 dark:bg-neutral-500 opacity-40 group-hover:opacity-100 group-hover:bg-stone-600 dark:group-hover:bg-neutral-300 group-hover:h-12 transition-all duration-200" />
+                            <div className="w-1 h-10 rounded-full bg-stone-500/70 dark:bg-neutral-500 group-hover:bg-stone-800 dark:group-hover:bg-neutral-200 group-hover:h-14 transition-all duration-200 shadow-xs" />
                         </ResizableHandle>
                         <ResizablePanel
-                            className="relative overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65 backdrop-blur-2xl"
+                            className="relative overflow-hidden bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)] border-l border-black/5 dark:border-white/5"
                             defaultSize={sizeOb}
                             onResize={(e) => {
                                 if (fullScreen) {
