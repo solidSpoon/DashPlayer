@@ -48,28 +48,15 @@ const PodcastControlBar = ({
 
 
     return (
-        <div className={cn(' h-32 flex w-full flex-col justify-end', className)}>
-
-            <Card
-                className={cn('w-full p-4 pt-6 backdrop-blur bg-gray-500/20 rounded-none border-0 border-t shadow-2xl',
-                    !mouseOver && 'bg-transparent border-none backdrop-blur-0 shadow-none'
-                )}
-                onMouseOver={() => {
-                    setMouseOver(true);
-                }}
-                onMouseLeave={() => {
-                    setMouseOver(false);
-                }}
-            >
-                <div
-                    className={cn(
-                        'flex flex-col items-center justify-between w-full gap-4',
-                        !mouseOver && 'invisible'
-                    )}
-                >
-
+        <div className={cn('w-full pointer-events-auto transition-colors duration-300 pb-5 pt-2 px-8', className)}>
+            <div className="w-full flex flex-col gap-3">
+                {/* 细致平滑的进度条 */}
+                <div className="w-full flex items-center">
                     <Slider
-                        className=""
+                        className="cursor-pointer py-1"
+                        trackClassName="bg-zinc-200/70 dark:bg-zinc-800/80"
+                        rangeClassName="bg-zinc-400 dark:bg-zinc-500"
+                        thumbClassName="border-zinc-400 dark:border-zinc-500 bg-white dark:bg-zinc-900 shadow-sm"
                         max={duration}
                         min={0}
                         value={[currentValue]}
@@ -83,56 +70,57 @@ const PodcastControlBar = ({
                         }}
                         onValueCommit={() => {
                             currentValueUpdateTime.current = Date.now();
-                            // onTimeChange?.({time: value[0]});
                             setSelecting(false);
                         }}
                     />
-                    <div className="w-full flex justify-between items-center">
-                        <div className="flex gap-4 items-center">
-                            <Button
-                                onClick={() => {
-                                    if (playing) {
-                                        onPause?.();
-                                    } else {
-                                        onPlay?.();
-                                    }
-                                }}
-                                size={'icon'}
-                                variant={'ghost'}
-                                className={'w-9 h-9'}
-                            >
-                                {playing ? (
-                                    <Pause className="" />
-                                ) : (
-                                    <Play className="" />
-                                )}
-                            </Button>
-                            <div className=" h-full flex items-center font-mono">
-                                {`${TimeUtil.secondToTimeStr(
-                                    currentValue
-                                )} / ${TimeUtil.secondToTimeStr(duration)}`}
-                            </div>
-                        </div>
-                        <div className="h-full flex-1" />
-                        <div className="flex justify-center items-end gap-4">
-                            {/* Fullscreen toggle lives in the normal playback control bar */}
-                            <SpeedSlider
-                                speed={playbackRate}
-                                onSpeedChange={setPlaybackRate}
-                            />
-                            <VolumeSlider
-                                muted={muted}
-                                onMutedChange={setMuted}
-                                volume={volume}
-                                onVolumeChange={setVolume}
-                            />
+                </div>
+
+                {/* 底部控制项与时间展示 */}
+                <div className="w-full flex justify-between items-center text-zinc-500 dark:text-zinc-400">
+                    <div className="flex gap-3.5 items-center">
+                        <Button
+                            onClick={() => {
+                                if (playing) {
+                                    onPause?.();
+                                } else {
+                                    onPlay?.();
+                                }
+                            }}
+                            size={'icon'}
+                            variant={'ghost'}
+                            className="w-9 h-9 rounded-full text-zinc-800 dark:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                        >
+                            {playing ? (
+                                <Pause className="w-4 h-4" />
+                            ) : (
+                                <Play className="w-4 h-4 ml-0.5" />
+                            )}
+                        </Button>
+                        <div className="flex items-center font-mono text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                            <span className="text-zinc-800 dark:text-zinc-200 font-medium">{TimeUtil.secondToTimeStr(currentValue)}</span>
+                            <span className="mx-1.5 opacity-40">/</span>
+                            <span>{TimeUtil.secondToTimeStr(duration)}</span>
                         </div>
                     </div>
 
+                    <div className="flex justify-center items-center gap-4 text-zinc-600 dark:text-zinc-400">
+                        <SpeedSlider
+                            speed={playbackRate}
+                            onSpeedChange={setPlaybackRate}
+                        />
+                        <VolumeSlider
+                            muted={muted}
+                            onMutedChange={setMuted}
+                            volume={volume}
+                            onVolumeChange={setVolume}
+                            sliderTrackClassName="bg-zinc-200/70 dark:bg-zinc-800/80"
+                            sliderRangeClassName="bg-zinc-400 dark:bg-zinc-500"
+                            sliderThumbClassName="border-zinc-400 dark:border-zinc-500 bg-white dark:bg-zinc-900 shadow-sm"
+                        />
+                    </div>
                 </div>
-            </Card>
+            </div>
         </div>
-
     );
 };
 PodcastControlBar.defaultProps = {

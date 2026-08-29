@@ -9,9 +9,22 @@ export interface VolumeSliderProps {
     onVolumeChange: (volume: number) => void;
     muted: boolean;
     onMutedChange: (muted: boolean) => void;
+    className?: string;
+    sliderTrackClassName?: string;
+    sliderRangeClassName?: string;
+    sliderThumbClassName?: string;
 }
 
-const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSliderProps) => {
+const VolumeSlider = ({
+    volume,
+    onVolumeChange,
+    muted,
+    onMutedChange,
+    className,
+    sliderTrackClassName,
+    sliderRangeClassName,
+    sliderThumbClassName
+}: VolumeSliderProps) => {
     const [localVolume, setLocalVolume] = useState<number>(volume);
 
     const getVolumeIcon = () => {
@@ -25,12 +38,12 @@ const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSl
     };
 
     return (
-        <div className="flex items-center gap-1.5 font-mono text-white/90">
+        <div className={cn("flex items-center gap-1.5 font-mono text-inherit", className)}>
             <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => onMutedChange(!muted)}
-                className="h-8 px-2 rounded-lg text-white/90 hover:text-white hover:bg-white/15 transition-colors gap-1.5"
+                className="h-8 px-2 rounded-lg text-inherit hover:bg-black/5 dark:hover:bg-white/15 transition-colors gap-1.5"
                 title={muted ? '取消静音' : '静音'}
             >
                 {getVolumeIcon()}
@@ -40,6 +53,9 @@ const VolumeSlider = ({ volume, onVolumeChange, muted, onMutedChange }: VolumeSl
             </Button>
             <div className="w-20 flex items-center">
                 <Slider
+                    trackClassName={sliderTrackClassName}
+                    rangeClassName={sliderRangeClassName}
+                    thumbClassName={sliderThumbClassName}
                     max={100}
                     min={0}
                     value={[muted ? 0 : localVolume * 100]}

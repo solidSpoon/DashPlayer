@@ -79,7 +79,7 @@ const PlaybackLayout = () => {
                                     onEnded={handleAutoPlayNext}
                                 />
                                 {podcastMode && <PodcastViewer
-                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
+                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-20')}
                                 />}
                             </div>
                         </ResizablePanel>

@@ -148,7 +148,8 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
                         'blur-[48px] saturate-[1.25] brightness-105',
                         'dark:blur-[52px] dark:saturate-[1.2] dark:brightness-[0.75]',
                         'opacity-0',
-                        videoReady && !podcastMode && 'opacity-90 dark:opacity-85'
+                        videoReady && !podcastMode && 'opacity-90 dark:opacity-85',
+                        podcastMode && 'hidden'
                     )}
                     ref={playerRefBackground}
                     style={{
@@ -158,19 +159,24 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
                 />
 
                 {/* 高性能主题遮罩层（使用纯 CSS 渐变，不使用 backdrop-filter 以免消耗 GPU） */}
-                <div
-                    className={cn(
-                        'absolute inset-0 pointer-events-none transition-colors duration-300',
-                        'bg-gradient-to-b from-white/25 via-transparent to-white/35',
-                        'dark:bg-gradient-to-b dark:from-black/50 dark:via-black/20 dark:to-black/65'
-                    )}
-                />
+                {!podcastMode && (
+                    <div
+                        className={cn(
+                            'absolute inset-0 pointer-events-none transition-colors duration-300',
+                            'bg-gradient-to-b from-white/25 via-transparent to-white/35',
+                            'dark:bg-gradient-to-b dark:from-black/50 dark:via-black/20 dark:to-black/65'
+                        )}
+                    />
+                )}
 
-                {/* 视频核心播放引擎 */}
+                {/* 视频核心播放引擎：播客模式下保持音频播放但对画面进行隐藏，不遮挡 PodcastViewer */}
                 <PlayerEngine
                     width="100%"
                     height="100%"
-                    className="w-full h-full absolute top-0 left-0 z-10"
+                    className={cn(
+                        'w-full h-full absolute top-0 left-0 z-10',
+                        podcastMode && 'invisible pointer-events-none'
+                    )}
                     onReady={handlePlayerReady}
                     onEnded={handlePlayerEnded}
                     onProvideVideoElement={handleProvideVideoElement}
