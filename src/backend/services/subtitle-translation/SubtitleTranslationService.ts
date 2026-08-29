@@ -42,8 +42,12 @@ interface SubtitleTranslationExecutionContext {
     storageMode: SubtitleTranslationStorageMode;
     /** 前端用于过滤过期结果的翻译模式。 */
     mode: TranslationMode;
-    /** 当前字幕文件的完整句子列表。 */
-    sentences: Sentence[];
+    /**
+     * 当前字幕文件按稳定坐标（sentence.index）索引的句子映射。
+     * 增量转录会话的坐标为「分片序号 × 100000 + 片内序号」，与数组下标不同，
+     * 因此取句、前后文邻居查询都必须走该映射而非数组下标。
+     */
+    sentencesByIndex: Map<number, Sentence>;
     /** 当前字幕文件哈希。 */
     fileHash: string;
     /** 为 true 时翻译结果仅存内存，不写入数据库（增量转录会话）。 */
@@ -68,7 +72,7 @@ interface DirectTranslationTarget {
 export interface SubtitleTranslationDemandInput {
     /** 字幕文件哈希。 */
     fileHash: string;
-    /** 当前正在播放的字幕索引。 */
+    /** 当前正在播放的字幕稳定坐标（sentence.index；增量转录为大坐标）。 */
     currentIndex: number;
     /** 前端按播放位置递增的需求标记。 */
     demandId: number;
@@ -382,6 +386,10 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('未找到字幕缓存，请重新加载字幕或重新打开视频');
         }
+        // 坐标升序排列；普通 SRT 的坐标即 0..N-1，与数组下标一致。
+        const sentenceIndices = srtData.sentences
+            .map((sentence) => sentence.index)
+            .sort((left, right) => left - right);
 
         const provider = await this.settingService.getCurrentTranslationProvider();
         if (!provider) {
@@ -395,13 +403,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 currentIndex: input.currentIndex,
                 demandId: input.demandId,
                 rendererSessionId: input.rendererSessionId,
-                sentenceCount: srtData.sentences.length,
+                sentenceIndices,
                 profileKey: 'tencent',
                 context: {
                     provider,
                     storageMode: 'tencent',
                     mode: 'zh',
-                    sentences: srtData.sentences,
+                    sentencesByIndex: this.buildSentencesByIndex(srtData.sentences),
                     fileHash,
                     transient: srtData.transient ?? false,
                 },
@@ -426,18 +434,28 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             currentIndex: input.currentIndex,
             demandId: input.demandId,
             rendererSessionId: input.rendererSessionId,
-            sentenceCount: srtData.sentences.length,
+            sentenceIndices,
             profileKey: `${storageMode}:${routedModel.fullModelId}`,
             context: {
                 provider,
                 storageMode,
                 mode,
-                sentences: srtData.sentences,
+                sentencesByIndex: this.buildSentencesByIndex(srtData.sentences),
                 fileHash,
                 transient: srtData.transient ?? false,
                 style,
             },
         });
+    }
+
+    /**
+     * 构建按稳定坐标索引的句子映射，供批次取句与前后文邻居查询使用。
+     *
+     * @param sentences 当前字幕文件的完整句子列表。
+     * @returns 坐标到句子的映射。
+     */
+    private buildSentencesByIndex(sentences: Sentence[]): Map<number, Sentence> {
+        return new Map(sentences.map((sentence) => [sentence.index, sentence]));
     }
 
     /**
@@ -467,7 +485,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const failedIndices = new Set<number>();
         const batchStartedAt = Date.now();
         const targets = request.indices
-            .map((index) => request.context.sentences[index])
+            .map((index) => request.context.sentencesByIndex.get(index))
             .filter((sentence): sentence is Sentence => Boolean(sentence));
 
         this.logger.info('字幕翻译批次开始', {
@@ -484,7 +502,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         });
 
         request.indices.forEach((index) => {
-            if (!request.context.sentences[index]) {
+            if (!request.context.sentencesByIndex.has(index)) {
                 failedIndices.add(index);
             }
         });
@@ -757,11 +775,12 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         }));
         const firstIndex = targets[0].index;
         const lastIndex = targets[targets.length - 1].index;
+        // 前后文邻居按稳定坐标取：坐标相邻即时间相邻；跨分片间隔处查不到邻居则上下文留空。
         const contextBefore = this.buildContextItem(
-            request.context.sentences[firstIndex - 1]
+            request.context.sentencesByIndex.get(firstIndex - 1)
         );
         const contextAfter = this.buildContextItem(
-            request.context.sentences[lastIndex + 1]
+            request.context.sentencesByIndex.get(lastIndex + 1)
         );
         const prompt = buildSubtitleBatchPrompt({
             targets: targetItems,

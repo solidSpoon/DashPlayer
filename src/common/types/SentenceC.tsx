@@ -5,6 +5,8 @@ export interface SrtSentence {
     fileHash: string;
     filePath: string;
     sentences: Sentence[];
+    /** 为 true 时表示增量转录会话：句子坐标为分片大坐标，翻译结果仅存内存。 */
+    transient?: boolean;
 }
 
 export interface Sentence {

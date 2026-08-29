@@ -55,14 +55,20 @@ export type SubtitleTranslationBatchLifecycleEvent<TContext> = Omit<
 export interface SubtitleTranslationDemand<TContext> {
     /** 字幕文件哈希。 */
     fileHash: string;
-    /** 当前正在播放的字幕索引。 */
+    /**
+     * 当前正在播放的字幕稳定坐标（sentence.index）。
+     * 增量转录会话中坐标为「分片序号 × 100000 + 片内序号」，与数组下标不同。
+     */
     currentIndex: number;
     /** 前端按播放位置递增的需求标记。 */
     demandId: number;
     /** 发起需求的 renderer 进程会话标识。 */
     rendererSessionId: string;
-    /** 当前字幕总句数。 */
-    sentenceCount: number;
+    /**
+     * 当前全部字幕的稳定坐标，按升序排列。
+     * 调度器按坐标划分批次，因此坐标稀疏（例如增量转录的跨分片间隔）时批次自然缩小，不会跨分片拼批。
+     */
+    sentenceIndices: number[];
     /** 标识翻译引擎、模式和提示词版本的稳定键。 */
     profileKey: string;
     /** 当前翻译配置上下文。 */
@@ -121,9 +127,9 @@ export interface SubtitleTranslationSchedulerOptions<TContext> {
 interface SubtitleTranslationJob<TContext> {
     /** 用于串联一次批次生命周期日志的稳定编号。 */
     batchId: string;
-    /** 该批次在字幕文件中的起始索引。 */
+    /** 该批次在坐标空间中的起始坐标。 */
     batchStart: number;
-    /** 当前任务需要处理的句子索引。 */
+    /** 当前任务需要处理的句子稳定坐标。 */
     indices: number[];
     /** 当前批次相对于播放位置的优先级。 */
     priority: SubtitleTranslationPriority;
@@ -149,17 +155,17 @@ interface SubtitleTranslationSession<TContext> {
     rendererSessionId: string;
     /** 当前翻译配置上下文。 */
     context: TContext;
-    /** 当前播放字幕索引。 */
+    /** 当前播放字幕稳定坐标。 */
     currentIndex: number;
-    /** 当前字幕总句数。 */
-    sentenceCount: number;
-    /** 当前窗口起始批次。 */
+    /** 当前全部字幕的稳定坐标，按升序排列。 */
+    sentenceIndices: number[];
+    /** 当前窗口起始批次（坐标空间）。 */
     currentBatchStart: number;
-    /** 已完成的字幕索引。 */
+    /** 已完成的字幕稳定坐标。 */
     completedIndices: Set<number>;
-    /** 在本次会话中已经进入死信状态的字幕索引。 */
+    /** 在本次会话中已经进入死信状态的字幕稳定坐标。 */
     deadIndices: Set<number>;
-    /** 已经分配给运行任务的字幕索引。 */
+    /** 已经分配给运行任务的字幕稳定坐标。 */
     inFlightIndices: Set<number>;
     /** 当前有效窗口中已经创建过的批次起点。 */
     knownBatchStarts: Set<number>;
@@ -194,18 +200,21 @@ export default class SubtitleTranslationScheduler<TContext> {
      *
      * 前一批次、当前批次、下一批次和下下批次组成窗口；当前批次和下一批次为高优先级，前一批次与下下批次为低优先级。
      * 需求标记倒退时直接忽略，避免异步 IPC 返回顺序导致播放位置回退。
+     * 窗口按稳定坐标计算：增量转录会话的坐标存在跨分片间隔，批次会自然缩小而不跨分片拼批。
      *
      * @param demand 当前字幕翻译需求。
      */
     public updateDemand(demand: SubtitleTranslationDemand<TContext>): void {
-        if (demand.sentenceCount <= 0) {
+        if (demand.sentenceIndices.length === 0) {
             this.release(demand.fileHash, demand.rendererSessionId);
             return;
         }
 
+        // 坐标钳制到现有字幕范围内；普通 SRT 的坐标即 0..N-1，与旧数组下标语义一致。
+        const lastIndex = demand.sentenceIndices[demand.sentenceIndices.length - 1];
         const currentIndex = Math.max(
-            0,
-            Math.min(demand.currentIndex, demand.sentenceCount - 1)
+            demand.sentenceIndices[0],
+            Math.min(demand.currentIndex, lastIndex)
         );
         const existing = this.sessions.get(demand.fileHash);
 
@@ -236,7 +245,7 @@ export default class SubtitleTranslationScheduler<TContext> {
         existing.demandId = demand.demandId;
         existing.rendererSessionId = demand.rendererSessionId;
         existing.currentIndex = currentIndex;
-        existing.sentenceCount = demand.sentenceCount;
+        existing.sentenceIndices = demand.sentenceIndices;
         existing.context = demand.context;
         existing.currentBatchStart = this.getBatchStart(currentIndex);
         this.refreshWindow(existing);
@@ -280,7 +289,7 @@ export default class SubtitleTranslationScheduler<TContext> {
             rendererSessionId: demand.rendererSessionId,
             context: demand.context,
             currentIndex,
-            sentenceCount: demand.sentenceCount,
+            sentenceIndices: demand.sentenceIndices,
             currentBatchStart: this.getBatchStart(currentIndex),
             completedIndices: new Set(),
             deadIndices: new Set(),
@@ -304,7 +313,8 @@ export default class SubtitleTranslationScheduler<TContext> {
             offset += 1
         ) {
             const batchStart = session.currentBatchStart + offset * SUBTITLE_BATCH_SIZE;
-            if (batchStart >= 0 && batchStart < session.sentenceCount) {
+            // 仅保留坐标区间内实际存在字幕的批次；坐标稀疏时空批次被自然跳过。
+            if (batchStart >= 0 && this.getBatchIndices(session, batchStart).length > 0) {
                 desiredBatchStarts.add(batchStart);
             }
         }
@@ -562,33 +572,32 @@ export default class SubtitleTranslationScheduler<TContext> {
     }
 
     /**
-     * 计算当前字幕所属的五句批次起点。
+     * 计算当前字幕所属的五句批次起点（坐标空间）。
      *
-     * @param index 当前字幕索引。
-     * @returns 批次起始索引。
+     * @param index 当前字幕稳定坐标。
+     * @returns 批次起始坐标。
      */
     private getBatchStart(index: number): number {
         return Math.floor(index / SUBTITLE_BATCH_SIZE) * SUBTITLE_BATCH_SIZE;
     }
 
     /**
-     * 返回指定批次内仍存在的字幕索引。
+     * 返回指定坐标区间内实际存在的字幕稳定坐标。
+     *
+     * 区间为 [batchStart, batchStart + SUBTITLE_BATCH_SIZE)。增量转录的坐标
+     * 在分片边界处存在间隔，因此返回数量可能小于批次大小，且不会跨分片拼批。
      *
      * @param session 当前字幕翻译会话。
-     * @param batchStart 批次起始索引。
-     * @returns 批次内的有效索引。
+     * @param batchStart 批次起始坐标。
+     * @returns 批次内的有效稳定坐标，按升序排列。
      */
     private getBatchIndices(
         session: SubtitleTranslationSession<TContext>,
         batchStart: number
     ): number[] {
-        const end = Math.min(
-            session.sentenceCount,
-            batchStart + SUBTITLE_BATCH_SIZE
-        );
-        return Array.from(
-            { length: Math.max(0, end - batchStart) },
-            (_, offset) => batchStart + offset
+        const end = batchStart + SUBTITLE_BATCH_SIZE;
+        return session.sentenceIndices.filter(
+            (index) => index >= batchStart && index < end
         );
     }
 

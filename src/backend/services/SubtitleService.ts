@@ -249,7 +249,7 @@ export class SubtitleServiceImpl implements SubtitleService {
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });
-        const res: SrtSentence & { transient?: boolean } = {
+        const res: SrtSentence = {
             fileHash: identityOverride,
             filePath: '',
             sentences: subtitles,
