@@ -41,6 +41,7 @@ import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+import { TranscriptChunkResult } from '@/common/contracts/transcript/transcript-task';
 
 interface ApiDefinition {
     'eg': { params: string, return: number },
@@ -56,7 +57,9 @@ interface TranscriptDef {
     'transcript/list': { params: void, return: TranscriptTask[] };
     'transcript/enqueue': { params: { filePath: string }, return: TranscriptTask };
     'transcript/remove': { params: { filePath: string }, return: void };
-    'transcript/start': { params: { filePath: string }, return: 'started' | 'model_missing' };
+    'transcript/start': { params: { filePath: string; currentPosition?: number }, return: 'started' | 'model_missing' };
+    'transcript/update-demand': { params: { filePath: string; currentPosition: number }, return: void };
+    'transcript/session-snapshot': { params: { filePath: string }, return: { sessionId: string; chunks: TranscriptChunkResult[] } | null };
     'transcript/cancel': { params: { filePath: string }, return: boolean };
 }
 

@@ -23,6 +23,7 @@ import {
     TranscriptTaskState,
 } from '@/common/contracts/transcript/transcript-task';
 import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
+import { TranscriptChunkResult } from '@/common/contracts/transcript/transcript-task';
 
 /**
  * 本地转录任务的持久化、排队、执行与取消契约。
@@ -68,7 +69,9 @@ export interface TranscriptionService {
      * 开始转录任务
      * @param filePath 音频/视频文件路径
      */
-    transcribe(filePath: string): Promise<void>;
+    transcribe(filePath: string, currentPosition?: number): Promise<void>;
+    updateDemand(filePath: string, currentPosition: number): void;
+    getSessionSnapshot(filePath: string): { sessionId: string; chunks: TranscriptChunkResult[] } | null;
     
     /**
      * 取消转录任务
@@ -89,6 +92,8 @@ const CHUNK_OVERLAP_SECONDS = 1;
  */
 @injectable()
 export class LocalTranscriptionServiceImpl implements TranscriptionService {
+    /** 运行中的增量转录会话；仅用于当前主进程生命周期。 */
+    private sessions = new Map<string, { sessionId: string; currentPosition: number; chunks: Map<number, TranscriptChunkResult> }>();
     // 记录每个文件的 Promise 控制器
     private deferred = new Map<string, { resolve: () => void; reject: (error: unknown) => void }>();
 
@@ -228,7 +233,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
      * 将文件加入本地转录队列，同一时间只处理一个文件。
      * @param filePath 待转录媒体的绝对路径。
      */
-    public async transcribe(filePath: string): Promise<void> {
+    public async transcribe(filePath: string, currentPosition = 0): Promise<void> {
         const normalizedFilePath = this.normalizeFilePath(filePath);
         if (this.deferred.has(normalizedFilePath)) {
             throw new Error('File already in queue or processing');
@@ -242,6 +247,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
 
         const controller = new AbortController();
+        this.sessions.set(normalizedFilePath, { sessionId: objectHash(`${normalizedFilePath}:${Date.now()}`), currentPosition, chunks: new Map() });
         this.deferred.set(normalizedFilePath, { resolve: resolveTask, reject: rejectTask });
         this.abortControllers.set(normalizedFilePath, controller);
 
@@ -290,6 +296,19 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         return taskPromise;
     }
 
+    /** 更新尚未开始的块的调度位置；当前识别块不会被中断。 */
+    public updateDemand(filePath: string, currentPosition: number): void {
+        const session = this.sessions.get(this.normalizeFilePath(filePath));
+        if (session && Number.isFinite(currentPosition)) session.currentPosition = Math.max(0, currentPosition);
+    }
+
+    /** 返回当前会话已完成的增量块，供页面重新进入时恢复。 */
+    public getSessionSnapshot(filePath: string): { sessionId: string; chunks: TranscriptChunkResult[] } | null {
+        const session = this.sessions.get(this.normalizeFilePath(filePath));
+        if (!session) return null;
+        return { sessionId: session.sessionId, chunks: Array.from(session.chunks.values()).sort((a, b) => a.chunkIndex - b.chunkIndex) };
+    }
+
     /**
      * 执行单个文件的完整转录流程并负责临时目录清理。
      * @param filePath 待转录媒体的绝对路径。
@@ -326,6 +345,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 this.logger.warn('Failed to cleanup temporary files', {cleanupError});
             }
             this.activeFilePath = null;
+            this.sessions.delete(filePath);
         }
     }
 
@@ -355,11 +375,18 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         });
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 35);
 
-        const chunkTimelines: SpeechRecognitionToken[][] = [];
-        for (let index = 0; index < wavPaths.length; index++) {
+        const chunkTimelines: SpeechRecognitionToken[][] = Array.from({ length: wavPaths.length }, () => []);
+        const session = this.sessions.get(filePath);
+        const order = wavPaths.map((_, index) => index).sort((a, b) => {
+            const position = session?.currentPosition ?? 0;
+            const distance = (index: number) => ranges[index].end <= position ? Number.MAX_SAFE_INTEGER : Math.abs(ranges[index].start - position);
+            return distance(a) - distance(b);
+        });
+        for (let processed = 0; processed < order.length; processed++) {
+            const index = order[processed];
             if (signal.aborted) throw new Error('Transcription cancelled by user');
             // 进度从 35% 起步，覆盖到 100%，并留出整理字幕的最后一步。
-            const progress = Math.min(90, 35 + Math.floor(index / Math.max(wavPaths.length, 1) * 55));
+            const progress = Math.min(90, 35 + Math.floor(processed / Math.max(order.length, 1) * 55));
             await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
             const offset = ranges[index].start;
             const result = await this.transcribeChunkWithRetry({
@@ -369,7 +396,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 filePath,
                 progress,
             });
-            chunkTimelines.push(result.tokens.map((token) => ({ ...token, start: token.start + offset })));
+            const timeline = result.tokens.map((token) => ({ ...token, start: token.start + offset }));
+            chunkTimelines[index] = timeline;
+            const lines = this.subtitleSegmenter.segment([timeline], [ranges[index].start]);
+            if (session) {
+                // 增量阶段使用全局稳定序号，避免各块的局部字幕序号互相覆盖。
+                const chunk: TranscriptChunkResult = { filePath, chunkIndex: index, start: ranges[index].start, end: ranges[index].end, sentences: lines.map((line) => ({ ...line, index: index * 100000 + line.index })) };
+                session.chunks.set(index, chunk);
+                this.rendererGateway.fireAndForget('transcript/chunk-result', { ...chunk, sessionId: session.sessionId, isFinal: false });
+            }
         }
         if (signal.aborted) throw new Error('Transcription cancelled by user');
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
@@ -384,6 +419,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);
 
         await this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
+        this.sessions.delete(filePath);
     }
 
     /**

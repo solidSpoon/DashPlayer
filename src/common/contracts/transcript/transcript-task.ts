@@ -21,6 +21,20 @@ export interface TranscriptTaskResult {
     srtPath?: string;
 }
 
+/** 转录增量块结果，仅在当前 Electron 进程内流转。 */
+export interface TranscriptChunkResult {
+    /** 转录任务所属媒体。 */
+    filePath: string;
+    /** 稳定块序号，从零开始。 */
+    chunkIndex: number;
+    /** 块在原视频中的起始秒数。 */
+    start: number;
+    /** 块在原视频中的结束秒数。 */
+    end: number;
+    /** 当前块已经生成的字幕句子。 */
+    sentences: import('@/common/utils/SrtUtil').SrtLine[];
+}
+
 /** 后端向渲染进程推送的单条转录状态更新。 */
 export interface TranscriptTaskUpdate {
     /** 被转录的媒体文件绝对路径。 */

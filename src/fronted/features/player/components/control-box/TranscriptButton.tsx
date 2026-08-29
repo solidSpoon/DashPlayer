@@ -10,6 +10,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
+import { usePlayer } from '@/fronted/features/player/playerStore';
 
 const logger = getRendererLogger('TranscriptButton');
 
@@ -28,6 +29,7 @@ interface TranscriptButtonProps {
 export default function TranscriptButton({ className }: TranscriptButtonProps) {
   const { t } = useI18nTranslation('player');
   const videoPath = useFile((s) => s.videoPath);
+  const currentPosition = usePlayer((s) => s.internal.exactPlayTime);
   const { data: tasks = [], error, mutate } = useSWR(
     SWR_KEY.TRANSCRIPTION_TASKS,
     transcriptApi.listTasks,
@@ -81,7 +83,7 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       toast.error(t('transcript.noVideoSelected'));
       return;
     }
-    const result = await transcriptApi.startTranscription(srtPath);
+    const result = await transcriptApi.startTranscription(srtPath, currentPosition);
     await mutate();
     if (result === 'model_missing') {
       toast.error(t('transcript.modelMissing'));

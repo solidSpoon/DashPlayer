@@ -36,7 +36,13 @@ export const transcriptApi = {
      * @param filePath 视频绝对路径。
      * @returns 后端接受任务后结束。
      */
-    startTranscription: (filePath: string) => backendClient.call('transcript/start', { filePath }),
+    startTranscription: (filePath: string, currentPosition?: number) => backendClient.call('transcript/start', { filePath, currentPosition }),
+
+    /** 更新转录任务的最新播放位置。 */
+    updateDemand: (filePath: string, currentPosition: number) => backendClient.call('transcript/update-demand', { filePath, currentPosition }),
+
+    /** 读取运行中任务已完成的内存字幕块。 */
+    getSessionSnapshot: (filePath: string) => backendClient.call('transcript/session-snapshot', { filePath }),
 
     /**
      * 取消指定视频的转录任务。

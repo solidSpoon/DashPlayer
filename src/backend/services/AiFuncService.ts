@@ -29,7 +29,9 @@ export default interface AiFuncService {
 
     removeTranscription(params: { filePath: string }): Promise<void>;
 
-    transcript(params: { filePath: string }): Promise<'started' | 'model_missing'>;
+    transcript(params: { filePath: string; currentPosition?: number }): Promise<'started' | 'model_missing'>;
+    updateTranscriptionDemand(params: { filePath: string; currentPosition: number }): Promise<void>;
+    getTranscriptionSnapshot(params: { filePath: string }): Promise<ReturnType<TranscriptionService['getSessionSnapshot']>>;
 
     cancelTranscription(params: { filePath: string }): Promise<boolean>;
 }
@@ -108,8 +110,8 @@ export class AiFuncServiceImpl implements AiFuncService {
      * @param params 待转录的媒体路径。
      * @returns 模型缺失时返回 model_missing，否则返回 started。
      */
-    public async transcript(params: { filePath: string }): Promise<'started' | 'model_missing'> {
-        const { filePath } = params;
+    public async transcript(params: { filePath: string; currentPosition?: number }): Promise<'started' | 'model_missing'> {
+        const { filePath, currentPosition } = params;
         this.logger.info('Transcription task started', { filePath });
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
         await this.localTranscriptionService.enqueue(filePath);
@@ -125,10 +127,20 @@ export class AiFuncServiceImpl implements AiFuncService {
             return 'model_missing';
         }
 
-        this.localTranscriptionService.transcribe(filePath).catch((error) => {
+        this.localTranscriptionService.transcribe(filePath, currentPosition).catch((error) => {
             this.logger.error('Local transcription failed', { error: error instanceof Error ? error.message : String(error) });
         });
         return 'started';
+    }
+
+    /** 更新转录任务的最新播放位置。 */
+    public async updateTranscriptionDemand(params: { filePath: string; currentPosition: number }): Promise<void> {
+        this.localTranscriptionService.updateDemand(params.filePath, params.currentPosition);
+    }
+
+    /** 查询运行中转录任务的内存增量结果。 */
+    public async getTranscriptionSnapshot(params: { filePath: string }): Promise<ReturnType<TranscriptionService['getSessionSnapshot']>> {
+        return this.localTranscriptionService.getSessionSnapshot(params.filePath);
     }
 
     public async cancelTranscription(params: { filePath: string }): Promise<boolean> {
