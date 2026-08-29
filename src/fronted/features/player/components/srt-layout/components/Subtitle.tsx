@@ -258,24 +258,29 @@ export default function Subtitle() {
                     {scrollState === 'USER_BROWSING' && (
                         <motion.div
                             initial={{
-                                scale: 0,
+                                scale: 0.8,
                                 opacity: 0,
+                                y: -10,
                             }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.8, opacity: 0, y: -10 }}
                             onClick={() => {
                                 onUserFinishScrolling();
                             }}
                             className={cn(
-                                'absolute top-12 right-12  z-50 ',
+                                'absolute top-6 right-6 z-50',
                             )}
                         >
-                            <Button size={'icon'}
-                                    className={cn('bg-purple-600 hover:bg-purple-700',
-                                        'dark:bg-purple-700 dark:hover:bg-purple-800',
-                                        'transition-colors duration-200 rounded-full drop-shadow-md')}
+                            <Button
+                                size="sm"
+                                className={cn(
+                                    'h-8 px-3 gap-1.5 rounded-full backdrop-blur-md shadow-md text-xs font-medium border transition-all duration-200',
+                                    'bg-stone-900/90 text-stone-100 border-black/10 hover:bg-stone-900 hover:scale-105 active:scale-95',
+                                    'dark:bg-neutral-100/90 dark:text-neutral-900 dark:border-white/20 dark:hover:bg-neutral-100'
+                                )}
                             >
-                                <FlipVertical2 className={'text-purple-50'}/>
+                                <FlipVertical2 className="w-3.5 h-3.5" />
+                                <span>回到当前</span>
                             </Button>
                         </motion.div>
                     )}
@@ -294,10 +299,9 @@ export default function Subtitle() {
                     defaultItemHeight={55}
                     ref={setVirtuoso}
                     className={twJoin(
-                        'h-full w-full overflow-y-scroll text-stone-600 dark:text-neutral-200',
+                        'h-full w-full overflow-y-auto text-stone-600 dark:text-neutral-200 py-2',
                         'scrollbar-thin scrollbar-thumb-rounded-full',
-                        mouseOver &&
-                            'scrollbar-thumb-zinc-400 dark:scrollbar-thumb-stone-400 hover:scrollbar-thumb-zinc-500 dark:hover:scrollbar-thumb-stone-300',
+                        'scrollbar-thumb-stone-300/60 dark:scrollbar-thumb-neutral-700/60 hover:scrollbar-thumb-stone-400 dark:hover:scrollbar-thumb-neutral-500',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}

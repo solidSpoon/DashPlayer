@@ -1,6 +1,5 @@
 import React, { forwardRef } from 'react';
 import useSetting from '@/fronted/features/settings/settingsStore';
-// removed old player controller usage
 import { usePlayerUiState } from '@/fronted/features/player/playerUiStore';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { cn } from '@/fronted/lib/utils';
@@ -12,7 +11,7 @@ import { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { shallow } from 'zustand/shallow';
-import { Bookmark } from 'lucide-react';
+import { Bookmark, Play, Pause, Repeat1 } from 'lucide-react';
 
 interface SideSentenceNewParam {
     sentence: Sentence;
@@ -38,100 +37,64 @@ export const SPLIT_REGEX =
 
 const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) => {
     return (
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
             <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger asChild>
                     {children}
                 </TooltipTrigger>
-                <TooltipContent align={'start'}>
+                <TooltipContent side="left" className="text-xs">
                     {tip}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
     );
-
 };
 
-const PlayingIcon = () => {
-    return (
-        <IconTip tip={'Playing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                 className="lucide lucide-circle-play">
-                <circle cx="12" cy="12" r="10" />
-                <polygon points="10 8 16 12 10 16 10 8" />
-            </svg>
-        </IconTip>
-    );
-};
+// 精致跳动的音频声波小动效
+const PlayingAudioWave = () => (
+    <IconTip tip="正在播放">
+        <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-stone-900 dark:text-white">
+            <span className="w-[2.5px] h-3.5 bg-current rounded-full animate-[pulse_0.8s_ease-in-out_infinite]" />
+            <span className="w-[2.5px] h-2 bg-current rounded-full animate-[pulse_0.6s_ease-in-out_0.2s_infinite]" />
+            <span className="w-[2.5px] h-4 bg-current rounded-full animate-[pulse_0.9s_ease-in-out_0.4s_infinite]" />
+        </div>
+    </IconTip>
+);
 
-const RepeatPlayingIcon = () => {
-    return (
-        <IconTip tip={'Repeat Playing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                 className="lucide lucide-circle-percent">
-                <circle cx="12" cy="12" r="10" />
-                <path d="m15 9-6 6" />
-                <path d="M9 9h.01" />
-                <path d="M15 15h.01" />
-            </svg>
-        </IconTip>
-    );
-};
+const RepeatAudioWave = () => (
+    <IconTip tip="单句循环中">
+        <div className="flex items-center justify-center w-4 h-4 text-stone-900 dark:text-white">
+            <Repeat1 className="w-3.5 h-3.5" />
+        </div>
+    </IconTip>
+);
 
-const NormalPausingIcon = () => {
-    return (
-        <IconTip tip={'Pausing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor"
-                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-pause">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="10" x2="10" y1="15" y2="9" />
-                <line x1="14" x2="14" y1="15" y2="9" />
-            </svg>
-        </IconTip>
-    );
-};
+const PausedIcon = () => (
+    <IconTip tip="已暂停">
+        <div className="flex items-center justify-center w-4 h-4 text-stone-400 dark:text-neutral-500">
+            <Pause className="w-3 h-3 fill-current" />
+        </div>
+    </IconTip>
+);
 
-const AutoPausingIcon = () => {
-    return (
-        <IconTip tip={'Auto Pausing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                 strokeLinejoin="round"
-                 className="lucide lucide-octagon-pause">
-                <path d="M10 15V9" />
-                <path d="M14 15V9" />
-                <path d="M7.714 2h8.572L22 7.714v8.572L16.286 22H7.714L2 16.286V7.714z" />
-            </svg>
-        </IconTip>
-    );
-};
-
-const CARD_SPACING_PX = 6; // 与 m-1.5 保持一致
-const CARD_RADIUS_PX = 12;
+const CARD_SPACING_PX = 4;
+const CARD_RADIUS_PX = 10;
 
 /**
- * 渲染侧边字幕卡片。
- *
- * 说明：
- * - 侧边字幕保留生词提示，但不复用主字幕的强交互高亮样式。
- * - 这里的高亮只承担“轻提示”职责，避免误导用户以为支持悬浮词典。
+ * 渲染侧边字幕条目（极简现代列表项）。
  */
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat, selectionState }: SideSentenceNewParam, ref) => {
         const playing = usePlayerState((state) => state.playing);
         const translationKey = sentence?.translationKey || '';
         const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
-        const s = [sentence.text, sentence.textZH, newTranslation].find(
-            (i) => i !== undefined && i !== ''
-        );
+        
+        const primaryText = sentence.text || '';
+        const secondaryText = sentence.textZH || newTranslation || '';
+
         const fontSize = useSetting((state) =>
             state.values.get('appearance.fontSize')
         );
-        const ap = usePlayerState((state) => state.internal.onPlaySeekTime !== null);
         const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
         const [hover, setHover] = React.useState(false);
         const { showEn, syncSide } = usePlayerUiState(
@@ -142,12 +105,12 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         const vocabularyStore = useVocabulary();
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
 
-        const icon = () => {
+        const renderStatusIcon = () => {
+            if (!isCurrent) return null;
             if (playing) {
-                return isRepeat ? <RepeatPlayingIcon /> : <PlayingIcon />;
-            } else {
-                return ap ? <AutoPausingIcon /> : <NormalPausingIcon />;
+                return isRepeat ? <RepeatAudioWave /> : <PlayingAudioWave />;
             }
+            return <PausedIcon />;
         };
 
         // 分割文本为单词和非单词部分
@@ -173,13 +136,6 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 });
         };
 
-        /**
-         * 为侧边字幕渲染低强调生词提示。
-         *
-         * 说明：
-         * - 仅保留较轻的字重和虚线下划线。
-         * - 不使用主字幕那种高对比底色，避免产生可悬浮交互的暗示。
-         */
         const renderHighlightedText = (text: string) => {
             const parts = splitText(text);
             return parts.map((part) => {
@@ -187,9 +143,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     return (
                         <span
                             key={part.id}
-                            className={cn(
-                                'font-medium underline decoration-dotted underline-offset-[0.18em] decoration-current/35'
-                            )}
+                            className="font-medium underline decoration-dotted underline-offset-[0.18em] decoration-current/40"
                         >
                             {part.content}
                         </span>
@@ -221,16 +175,16 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             }
             const base = [
                 'pointer-events-none absolute left-0 right-0',
-                'bg-stone-50/95 dark:bg-neutral-800/95',
+                'bg-stone-300/60 dark:bg-neutral-700/60 backdrop-blur-xs',
                 'transition-all duration-150 ease-out',
             ];
             if (selectionState.isGroupStart) {
-                base.push('border border-stone-200/80 dark:border-neutral-600/70 shadow-md');
+                base.push('border-t border-x border-black/10 dark:border-white/10 shadow-xs');
             } else if (selectionState.isMember) {
-                base.push('border-x border-stone-200/80 dark:border-neutral-600/70');
+                base.push('border-x border-black/10 dark:border-white/10');
             }
             if (selectionState.isGroupEnd) {
-                base.push('border-b border-stone-200/80 dark:border-neutral-600/70');
+                base.push('border-b border-black/10 dark:border-white/10');
             }
             return base.join(' ');
         }, [selectionState]);
@@ -239,13 +193,12 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
-                    'relative m-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 items-start rounded-lg overflow-visible',
-                    selectionState?.isMember ? 'bg-transparent hover:bg-transparent drop-shadow-none' : 'bg-stone-200 dark:bg-neutral-700',
-                    selectionState?.isMember ? 'hover:drop-shadow-none' : 'hover:drop-shadow-lg drop-shadow',
-                    selectionState?.isMember && 'transition-transform duration-150',
-                    !show && 'transition-colors duration-500',
-                    fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                    !selectionState?.isMember && 'transition-colors duration-150'
+                    'group relative mx-2 my-1 px-3 py-2.5 flex items-start gap-2.5 rounded-xl cursor-pointer border transition-all duration-150 select-none overflow-visible',
+                    // 默认状态纯净透明，当前句微升且温润衬底，悬浮平滑浅色反馈
+                    isCurrent
+                        ? 'bg-stone-200/90 dark:bg-neutral-800/90 shadow-xs border-black/5 dark:border-white/10 text-stone-950 dark:text-neutral-50'
+                        : 'border-transparent text-stone-600 dark:text-neutral-400 hover:bg-stone-200/50 dark:hover:bg-neutral-800/50 hover:text-stone-900 dark:hover:text-neutral-200',
+                    selectionState?.isMember && 'bg-transparent hover:bg-transparent shadow-none border-transparent'
                 )}
                 onClick={() => {
                     onClick(sentence);
@@ -264,34 +217,47 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
 
                 {/* 收藏句右上角精致书签标记 */}
                 {isFavourite && (
-                    <div className="absolute top-1.5 right-1.5 z-20 pointer-events-none">
-                        <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 opacity-90" />
+                    <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
+                        <Bookmark className="w-3 h-3 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 opacity-90" />
                     </div>
                 )}
 
+                {/* 左侧状态指示器：固定宽度并占位，避免由于显示/隐藏引起后续所有文本横向抖动与不对齐 */}
                 <div
                     className={cn(
-                        'relative z-10 flex flex-col items-center justify-center shrink-0 pt-0.5',
-                        isCurrent ? 'visible' : 'invisible',
-                        fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7',
-                        fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                        `text-red-500 dark:text-red-600`
+                        'relative z-10 flex items-center justify-center w-4 h-4 shrink-0 mt-0.5 transition-opacity duration-200',
+                        isCurrent ? 'opacity-100' : 'opacity-0'
                     )}
                 >
-                    {icon()}
+                    {renderStatusIcon()}
                 </div>
 
+                {/* 文本内容区：固定对齐、层级清晰 */}
                 <motion.div
                     className={cn(
-                        'relative z-10 w-full text-center',
+                        'relative z-10 flex-1 min-w-0 flex flex-col text-left transition-opacity duration-300',
                         isFavourite && 'pr-4',
-                        hover || show ? 'text-opacity-100' : 'text-opacity-0'
+                        hover || show ? 'opacity-100' : 'opacity-0'
                     )}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: hover || show ? 1 : 0 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.2 }}
                 >
-                    {renderHighlightedText(s ?? '')}
+                    {/* 英文主句 */}
+                    <div className={cn(
+                        'leading-snug transition-colors',
+                        fontSize === 'fontSizeSmall' ? 'text-sm' : 'text-base',
+                        isCurrent ? 'text-stone-950 dark:text-white font-medium' : 'text-stone-800 dark:text-neutral-300 group-hover:text-stone-950 dark:group-hover:text-white'
+                    )}>
+                        {renderHighlightedText(primaryText)}
+                    </div>
+
+                    {/* 中文译文 */}
+                    {secondaryText && (
+                        <div className="mt-1 text-xs leading-normal text-stone-500 dark:text-neutral-400 font-normal">
+                            {secondaryText}
+                        </div>
+                    )}
                 </motion.div>
             </div>
         );
