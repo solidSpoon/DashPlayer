@@ -12,6 +12,7 @@ import { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { shallow } from 'zustand/shallow';
+import { Bookmark } from 'lucide-react';
 
 interface SideSentenceNewParam {
     sentence: Sentence;
@@ -238,13 +239,12 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
-                    'relative m-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg overflow-visible',
+                    'relative m-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 items-start rounded-lg overflow-visible',
                     selectionState?.isMember ? 'bg-transparent hover:bg-transparent drop-shadow-none' : 'bg-stone-200 dark:bg-neutral-700',
                     selectionState?.isMember ? 'hover:drop-shadow-none' : 'hover:drop-shadow-lg drop-shadow',
                     selectionState?.isMember && 'transition-transform duration-150',
                     !show && 'transition-colors duration-500',
                     fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                    isFavourite && 'text-yellow-500 dark:text-yellow-300',
                     !selectionState?.isMember && 'transition-colors duration-150'
                 )}
                 onClick={() => {
@@ -261,9 +261,17 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 {selectionState?.isMember && overlayStyle && (
                     <div aria-hidden className={overlayClass} style={overlayStyle} />
                 )}
+
+                {/* 收藏句右上角精致书签标记 */}
+                {isFavourite && (
+                    <div className="absolute top-1.5 right-1.5 z-20 pointer-events-none">
+                        <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 opacity-90" />
+                    </div>
+                )}
+
                 <div
                     className={cn(
-                        'relative z-10 flex flex-col items-center justify-center',
+                        'relative z-10 flex flex-col items-center justify-center shrink-0 pt-0.5',
                         isCurrent ? 'visible' : 'invisible',
                         fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7',
                         fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
@@ -276,6 +284,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 <motion.div
                     className={cn(
                         'relative z-10 w-full text-center',
+                        isFavourite && 'pr-4',
                         hover || show ? 'text-opacity-100' : 'text-opacity-0'
                     )}
                     initial={{ opacity: 0 }}

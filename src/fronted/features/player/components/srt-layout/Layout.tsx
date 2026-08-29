@@ -81,11 +81,14 @@ const PlaybackLayout = () => {
                             {!fullScreen && !podcastMode && (
                                 <>
                                     <ResizableHandle
-                                        withHandle
-                                        className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')}
-                                    />
+                                        className={cn(
+                                            'group relative h-2.5 w-full flex items-center justify-center bg-stone-200/90 dark:bg-neutral-800/90 border-t border-black/10 dark:border-white/10 hover:bg-stone-300/80 dark:hover:bg-neutral-700/80 transition-colors cursor-row-resize'
+                                        )}
+                                    >
+                                        <div className="w-12 h-1 rounded-full bg-stone-400/60 dark:bg-neutral-500/60 group-hover:bg-stone-600 dark:group-hover:bg-neutral-300 group-hover:w-16 transition-all duration-200" />
+                                    </ResizableHandle>
                                     <ResizablePanel
-                                        className={cn('ofvisible')}
+                                        className={cn('ofvisible bg-stone-200/90 dark:bg-neutral-800/90')}
                                         defaultSize={sizeIb}
                                         onResize={(e) => {
                                             if (fullScreen) {
