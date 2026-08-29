@@ -184,7 +184,7 @@
     "react-router-dom": "^6.21.0",
     "react-split": "^2.0.14",
     "react-syntax-highlighter": "^15.5.0",
-    "react-virtuoso": "^4.17.0",
+    "react-virtuoso": "4.18.12",
     "recharts": "2.15.4",
     "reflect-metadata": "^0.2.2",
     "remark-gfm": "^4.0.0",

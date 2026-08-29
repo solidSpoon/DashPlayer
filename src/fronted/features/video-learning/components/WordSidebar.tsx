@@ -182,7 +182,7 @@ export default function WordSidebar({
             style={{ height: '100%' }}
             className="scrollbar-thin"
             data={filteredWords}
-            overscan={200}
+            increaseViewportBy={200}
             itemContent={(index, word) => {
               const active = selectedWord?.id === word.id;
               return (

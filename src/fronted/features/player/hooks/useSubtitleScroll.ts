@@ -23,6 +23,8 @@ export type SubtitleScrollState = {
         visibleRange: [number, number];
         syncPending: boolean;
         lastSyncIndex: number;
+        /** 用户通过滚轮中断了自动滚动，下一次 onScroll 应跳过状态判断 */
+        interrupted: boolean;
     };
     scrollState: ScrollState;
     boundary: Ele;
@@ -71,6 +73,8 @@ export type SubtitleScrollActions = {
     updateVisibleRange: (range: [number, number]) => void;
     pauseMeasurement: () => void;
     delaySetNormal: () => void;
+    /** 用户通过滚轮中断自动滚动时调用，立即切换到浏览模式 */
+    onUserInterrupt: () => void;
 };
 const delaySetNormal = () => {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -117,7 +121,6 @@ const syncCurrentIntoView = () => {
         }, 0);
         return;
     }
-
     const currentEle = getEle(ref);
     if (topShouldScroll(boundary, currentEle)) {
         useSubtitleScroll.setState({ scrollState: 'AUTO_SCROLLING' });
@@ -158,6 +161,7 @@ const useSubtitleScroll = create(
                 visibleRange: [0, 0],
                 syncPending: false,
                 lastSyncIndex: -1,
+                interrupted: false,
             },
             scrollState: 'NORMAL',
             boundary: {
@@ -167,6 +171,11 @@ const useSubtitleScroll = create(
             onScrolling: () => {
                 const cs = get().scrollState;
                 if (cs === 'PAUSE_MEASUREMENT') {
+                    return;
+                }
+                // 用户滚轮中断后，跳过一次 onScroll 防止 auto-scroll 动画残余触发误切换
+                if (get().internal.interrupted) {
+                    get().internal.interrupted = false;
                     return;
                 }
                 if (cs === 'USER_BROWSING') {
@@ -258,6 +267,17 @@ const useSubtitleScroll = create(
                 }, 500);
             },
             delaySetNormal,
+            onUserInterrupt: () => {
+                const { scrollState, internal } = get();
+                if (scrollState !== 'AUTO_SCROLLING') {
+                    return;
+                }
+                internal.interrupted = true;
+                if (internal.scrollStatusTimer) {
+                    clearTimeout(internal.scrollStatusTimer);
+                }
+                set({ scrollState: 'USER_BROWSING' });
+            },
         })
     )
 );

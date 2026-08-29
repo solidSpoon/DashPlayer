@@ -57,15 +57,13 @@ export default function Subtitle() {
     }, [currentIndex, syncIndexIntoView]);
 
     useEffect(() => {
-        const handleWheel = (e: { preventDefault: () => void }) => {
-            if (useSubtitleScroll.getState().scrollState === 'AUTO_SCROLLING') {
-                e.preventDefault();
-            }
+        const handleWheel = () => {
+            useSubtitleScroll.getState().onUserInterrupt?.();
         };
-        const listRefCurrent = scrollerRef.current; // listRef 是你的 ref
+        const listRefCurrent = scrollerRef.current;
         if (listRefCurrent) {
             listRefCurrent.addEventListener('wheel', handleWheel, {
-                passive: false,
+                passive: true,
             });
         }
         return () => {
@@ -292,6 +290,7 @@ export default function Subtitle() {
                         setMouseOver(false);
                     }}
                     increaseViewportBy={200}
+                    minOverscanItemCount={{ top: 3, bottom: 6 }}
                     defaultItemHeight={55}
                     ref={setVirtuoso}
                     className={twJoin(
