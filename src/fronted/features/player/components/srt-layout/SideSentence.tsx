@@ -53,7 +53,7 @@ const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) 
 // 精致跳动的音频声波小动效
 const PlayingAudioWave = () => (
     <IconTip tip="正在播放">
-        <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-stone-900 dark:text-white">
+        <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-indigo-600 dark:text-indigo-400">
             <span className="w-[2.5px] h-3.5 bg-current rounded-full animate-[pulse_0.8s_ease-in-out_infinite]" />
             <span className="w-[2.5px] h-2 bg-current rounded-full animate-[pulse_0.6s_ease-in-out_0.2s_infinite]" />
             <span className="w-[2.5px] h-4 bg-current rounded-full animate-[pulse_0.9s_ease-in-out_0.4s_infinite]" />
@@ -63,7 +63,7 @@ const PlayingAudioWave = () => (
 
 const RepeatAudioWave = () => (
     <IconTip tip="单句循环中">
-        <div className="flex items-center justify-center w-4 h-4 text-stone-900 dark:text-white">
+        <div className="flex items-center justify-center w-4 h-4 text-indigo-600 dark:text-indigo-400">
             <Repeat1 className="w-3.5 h-3.5" />
         </div>
     </IconTip>
@@ -162,9 +162,9 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 return '';
             }
             const classes: string[] = [
-                'bg-stone-100/95 dark:bg-neutral-800/95',
-                'border-stone-400/80 dark:border-neutral-600',
-                'shadow-sm text-stone-900 dark:text-neutral-100',
+                'bg-stone-200/90 dark:bg-neutral-800/90',
+                'border-stone-400/70 dark:border-neutral-600/80',
+                'shadow-xs text-stone-900 dark:text-neutral-100',
             ];
 
             if (selectionState.isGroupStart && selectionState.isGroupEnd) {
@@ -189,11 +189,11 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 className={cn(
                     // 外边距与内边距保持绝对恒定，四个方向 1px 边框始终存在，高度与定位 100% 绝对静止
                     'group relative my-1.5 ml-1.5 mr-0 pl-3.5 pr-2.5 py-3 rounded-xl flex items-start gap-2.5 cursor-pointer select-none border transition-colors duration-150',
-                    // 卡片色调（层级理论上跟主字幕区域 bg-stone-50/75 dark:bg-neutral-800/65 对应，亮色稍暗、暗色稍亮）：
+                    // 卡片色调（激活与常规卡片底色非常接近、仅微调边框和文字，保持整体质感平滑统一）：
                     !selectionState?.isMember && (
                         isCurrent
-                            ? 'bg-stone-50 dark:bg-neutral-800 border-stone-400/70 dark:border-neutral-600 shadow-sm text-stone-900 dark:text-neutral-100'
-                            : 'bg-stone-200/85 dark:bg-neutral-850/90 border-stone-300/60 dark:border-neutral-750/70 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-stone-100 dark:hover:bg-neutral-800 hover:border-stone-400/60 dark:hover:border-neutral-700 text-stone-700 dark:text-neutral-300'
+                            ? 'bg-stone-200/90 dark:bg-neutral-800/85 border-stone-400/60 dark:border-neutral-600/70 shadow-xs text-stone-900 dark:text-neutral-100'
+                            : 'bg-stone-200/70 dark:bg-neutral-800/60 border-stone-300/60 dark:border-neutral-700/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:bg-stone-200/90 dark:hover:bg-neutral-800/80 hover:border-stone-400/50 dark:hover:border-neutral-600 text-stone-700 dark:text-neutral-300'
                     ),
                     selectionClass
                 )}
@@ -212,7 +212,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 {selectionState?.isMember && !selectionState.isGroupEnd && (
                     <div
                         aria-hidden="true"
-                        className="absolute -bottom-[13px] -left-[1px] -right-[1px] h-[14px] bg-stone-100/95 dark:bg-neutral-800/95 border-l border-r border-stone-400/80 dark:border-neutral-600 z-0 pointer-events-none"
+                        className="absolute -bottom-[13px] -left-[1px] -right-[1px] h-[14px] bg-stone-200/90 dark:bg-neutral-800/90 border-l border-r border-stone-400/70 dark:border-neutral-600/80 z-0 pointer-events-none"
                     />
                 )}
 
@@ -220,7 +220,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 {selectionState?.isMember && !selectionState.isGroupEnd && (
                     <div
                         aria-hidden="true"
-                        className="absolute -bottom-[6px] left-4 right-4 h-[1px] bg-stone-300/80 dark:bg-neutral-700/80 z-[1] pointer-events-none"
+                        className="absolute -bottom-[6px] left-4 right-4 h-[1px] bg-stone-300/80 dark:bg-neutral-600/80 z-[1] pointer-events-none"
                     />
                 )}
 
@@ -262,14 +262,14 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                         {renderHighlightedText(primaryText)}
                     </div>
 
-                    {/* 中文译文：水平居中，激活与非激活字体大小严格一致 */}
+                    {/* 中文译文：水平居中，激活与非激活字体大小严格一致，加深文本颜色以确保高可读性 */}
                     {secondaryText && (
                         <div className={cn(
                             'w-full mt-1.5 leading-normal transition-colors font-normal text-center',
                             fontSize === 'fontSizeSmall' ? 'text-xs' : 'text-[12.5px]',
                             isCurrent
-                                ? 'text-stone-400 dark:text-neutral-500'
-                                : 'text-stone-400/80 dark:text-neutral-500/80 group-hover:text-stone-400 dark:group-hover:text-neutral-500'
+                                ? 'text-stone-600 dark:text-neutral-300'
+                                : 'text-stone-500/90 dark:text-neutral-400/90 group-hover:text-stone-700 dark:group-hover:text-neutral-200'
                         )}>
                             {secondaryText}
                         </div>

@@ -174,9 +174,9 @@ export default function MainSubtitle() {
                                                 void playerActions.play();
                                             }
                                         }}
-                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-stone-900 text-stone-100 dark:bg-neutral-200 dark:text-neutral-900 hover:scale-105 active:scale-95 transition-all shadow-xs"
+                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 transition-all shadow-xs"
                                     >
-                                        {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                                        {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">{playing ? '暂停 (Space)' : '播放 (Space)'}</TooltipContent>

@@ -253,7 +253,17 @@ const useSubtitleScroll = create(
                 internal.currentIndex = index;
                 internal.currentRef = ref;
 
-                if (!ref || get().scrollState === 'USER_BROWSING' || get().scrollState === 'PAUSE_MEASUREMENT') {
+                const currentScrollState = get().scrollState;
+
+                // 若处于用户浏览状态，但视频自然播放推进使新的当前句进入了屏幕可视安全区，自动恢复 NORMAL 让返回按钮消失
+                if (currentScrollState === 'USER_BROWSING') {
+                    if (ref && inBoundary(ref)) {
+                        delaySetNormal(150);
+                    }
+                    return;
+                }
+
+                if (!ref || currentScrollState === 'PAUSE_MEASUREMENT') {
                     return;
                 }
                 if (internal.syncPending) {
@@ -309,6 +319,13 @@ const useSubtitleScroll = create(
                     return;
                 }
                 get().internal.visibleRange = range;
+
+                if (get().scrollState === 'USER_BROWSING') {
+                    const ref = get().internal.currentRef;
+                    if (ref && inBoundary(ref)) {
+                        delaySetNormal(150);
+                    }
+                }
             },
             pauseMeasurement: () => {
                 const { scrollState } = get();

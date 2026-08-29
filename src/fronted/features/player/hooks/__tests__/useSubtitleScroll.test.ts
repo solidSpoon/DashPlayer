@@ -95,4 +95,38 @@ describe('useSubtitleScroll', () => {
         useSubtitleScroll.getState().onScrolling();
         expect(useSubtitleScroll.getState().internal.interrupted).toBe(false);
     });
+
+    it('should automatically restore to NORMAL when natural video playback advances currentRef into safe boundary', () => {
+        vi.useFakeTimers();
+        const mockEle = {
+            getBoundingClientRect: () => ({
+                top: 150, // within bounds (yt: 50, yb: 500)
+                bottom: 190,
+                height: 40,
+                width: 100,
+                left: 0,
+                right: 100,
+                x: 0,
+                y: 150,
+                toJSON: () => {},
+            }),
+        } as unknown as HTMLDivElement;
+
+        useSubtitleScroll.setState({
+            scrollState: 'USER_BROWSING',
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                currentIndex: 1,
+                currentRef: null,
+                visibleRange: [0, 10],
+            },
+        });
+
+        // 视频自然播放推进，高亮句更新为索引 3 且渲染节点在可视安全区域内
+        useSubtitleScroll.getState().updateCurrentRef(mockEle, 3);
+        vi.advanceTimersByTime(200);
+
+        expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+        vi.useRealTimers();
+    });
 });
