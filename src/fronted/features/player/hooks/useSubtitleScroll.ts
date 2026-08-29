@@ -6,8 +6,10 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { Ele } from './useBoundary';
+import useLayout from '@/fronted/hooks/useLayout';
 
 export type ScrollState =
+
     | 'USER_BROWSING'
     | 'AUTO_SCROLLING'
     | 'NORMAL'
@@ -135,7 +137,8 @@ const syncCurrentIntoView = () => {
         return;
     }
 
-    if (internal.lastSyncIndex === index) {
+    const lastIndex = internal.lastSyncIndex;
+    if (lastIndex === index) {
         return;
     }
     internal.lastSyncIndex = index;
@@ -144,12 +147,25 @@ const syncCurrentIntoView = () => {
         return;
     }
 
+    const { showSideBar } = useLayout.getState();
+    if (showSideBar) {
+        // 小窗模式下保持极简滚动：不做复杂的两阶段或边界换算，直接通过 Virtuoso 原生 auto 对齐确保当前句在可视区内
+        executeScroll(virtuoso, index, { align: 'auto', smooth: false });
+        return;
+    }
+
+
     const currentEle = getEle(ref);
-    if (topShouldScroll(boundary, currentEle)) {
-        // 场景一：向上越出上边界，立即定位到顶部，快速切句零延迟
+    const isMovingUp = lastIndex >= 0 && index < lastIndex;
+
+    // 只要是向上切句或者越出上边界：严格对齐到顶部（align: 'start'），绝不贴到底部
+    if (isMovingUp || topShouldScroll(boundary, currentEle)) {
         executeScroll(virtuoso, index, { align: 'start', smooth: false });
-    } else if (bottomShouldScroll(boundary, currentEle)) {
-        // 场景二：下边界触碰
+        return;
+    }
+
+    if (bottomShouldScroll(boundary, currentEle)) {
+        // 向下播放/切句触碰下边界：
         // 第一步：先立即以最小距离微滚展现出来（即刻跟手响应）
         const scrollBottom = suggestScrollBottom(boundary, currentEle);
         cancelPendingTimers();
@@ -179,6 +195,7 @@ const syncCurrentIntoView = () => {
         }, 250);
     }
 };
+
 
 
 const useSubtitleScroll = create(
@@ -254,6 +271,7 @@ const useSubtitleScroll = create(
                 if (!internal.virtuoso || index < 0) {
                     return;
                 }
+                const lastIdx = internal.currentIndex;
                 internal.currentIndex = index;
 
                 const { visibleRange } = internal;
@@ -261,9 +279,14 @@ const useSubtitleScroll = create(
                 if (index >= visibleRange[0] && index <= visibleRange[1]) {
                     return;
                 }
-                // 按键跨出可视区快速导航：立即定位以保证连击跟手
-                executeScroll(internal.virtuoso, index, { smooth: false });
+                // 按键跨出可视区快速导航：向上导航严格 align: 'start' 对齐到顶部
+                const isMovingUp = index < visibleRange[0] || (lastIdx >= 0 && index < lastIdx);
+                executeScroll(internal.virtuoso, index, {
+                    align: isMovingUp ? 'start' : 'end',
+                    smooth: false,
+                });
             },
+
             onUserFinishScrolling: () => {
                 const virtuoso = get().internal.virtuoso;
                 const index = get().internal.currentIndex;

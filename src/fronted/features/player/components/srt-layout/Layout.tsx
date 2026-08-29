@@ -60,47 +60,54 @@ const PlaybackLayout = () => {
                         setSizeOa(e);
                     }}
                 >
-                    <ResizablePanelGroup direction={'vertical'}>
-                        <ResizablePanel
-                            minSize={10}
-                            defaultSize={sizeIa}
-                            onResize={(e) => {
-                                if (fullScreen) {
-                                    return;
-                                }
-                                setSizeIa(e);
-                            }}
-                        >
-                            <div
-                                className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
+                    <div className="relative w-full h-full">
+                        <ResizablePanelGroup direction={'vertical'}>
+                            <ResizablePanel
+                                minSize={10}
+                                defaultSize={sizeIa}
+                                onResize={(e) => {
+                                    if (fullScreen) {
+                                        return;
+                                    }
+                                    setSizeIa(e);
+                                }}
+                            >
                                 <PlaybackStage
-                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}
+                                    className="w-full h-full"
                                     onReady={handlePlayerReady}
                                     onEnded={handleAutoPlayNext}
                                 />
-                                {podcastMode && <PodcastViewer
-                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-20')}
-                                />}
-                            </div>
-                        </ResizablePanel>
-                        {(!fullScreen && !podcastMode) && (
-                            <>
-                                <ResizableHandle withHandle
-                                                 className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')} />
-                                <ResizablePanel
-                                    className={cn('ofvisible')}
-                                    defaultSize={sizeIb}
-                                    onResize={(e) => {
-                                        if (fullScreen) {
-                                            return;
-                                        }
-                                        setSizeIb(e);
-                                    }}
-                                ><MainSubtitle /></ResizablePanel>
-                            </>
+                            </ResizablePanel>
+                            {!fullScreen && !podcastMode && (
+                                <>
+                                    <ResizableHandle
+                                        withHandle
+                                        className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')}
+                                    />
+                                    <ResizablePanel
+                                        className={cn('ofvisible')}
+                                        defaultSize={sizeIb}
+                                        onResize={(e) => {
+                                            if (fullScreen) {
+                                                return;
+                                            }
+                                            setSizeIb(e);
+                                        }}
+                                    >
+                                        <MainSubtitle />
+                                    </ResizablePanel>
+                                </>
+                            )}
+
+                        </ResizablePanelGroup>
+
+                        {/* 播客模式：作为顶层全屏覆盖层呈现，保留底部的 PlaybackStage 与 Panel 结构完整稳定 */}
+                        {podcastMode && (
+                            <PodcastViewer className="absolute inset-0 z-30" />
                         )}
-                    </ResizablePanelGroup>
+                    </div>
                 </ResizablePanel>
+
                 {!fullScreen && (
                     <>
                         <ResizableHandle withHandle className={cn('gutter-style w-2 dark:bg-zinc-700')} />

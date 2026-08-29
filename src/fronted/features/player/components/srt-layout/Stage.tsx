@@ -169,18 +169,17 @@ export default function PlaybackStage({ className, onReady, onEnded }: PlaybackS
                     />
                 )}
 
-                {/* 视频核心播放引擎：播客模式下保持音频播放但对画面进行隐藏，不遮挡 PodcastViewer */}
+                {/* 视频核心播放引擎 */}
                 <PlayerEngine
                     width="100%"
                     height="100%"
-                    className={cn(
-                        'w-full h-full absolute top-0 left-0 z-10',
-                        podcastMode && 'invisible pointer-events-none'
-                    )}
+                    className="w-full h-full absolute top-0 left-0 z-10"
                     onReady={handlePlayerReady}
                     onEnded={handlePlayerEnded}
                     onProvideVideoElement={handleProvideVideoElement}
                 />
+
+
                 {!fullScreen && !podcastMode && (
                     <PlaybackControlBar
                         onTimeChange={(time) => playerActions.seekTo({ time })}
