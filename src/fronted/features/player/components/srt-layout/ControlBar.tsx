@@ -115,20 +115,24 @@ const PlaybackControlBar = ({
             >
                 <div className="flex flex-col items-center justify-between w-full gap-2.5">
                     <Slider
-                        max={duration}
+                        max={Math.max(duration, 0.1)}
                         min={0}
-                        value={[currentValue]}
+                        step={0.1}
+                        disabled={duration <= 0}
+                        value={[Math.min(Math.max(0, currentValue), Math.max(duration, 0.1))]}
                         onValueChange={(value) => {
                             const [next] = value;
                             logger.debug('time slider changing', { next });
                             setCurrentValue(next);
                             setSelecting(true);
+                        }}
+                        onValueCommit={(value) => {
+                            const [next] = value;
+                            currentValueUpdateTime.current = Date.now();
+                            setCurrentValue(next);
                             onTimeChange?.(next);
                             playerActions.setAutoPause(false);
                             playerActions.setSingleRepeat(false);
-                        }}
-                        onValueCommit={() => {
-                            currentValueUpdateTime.current = Date.now();
                             setSelecting(false);
                         }}
                     />

@@ -174,7 +174,7 @@ export default function MainSubtitle() {
                                                 void playerActions.play();
                                             }
                                         }}
-                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 transition-all shadow-xs"
+                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-stone-900/10 text-stone-700 dark:bg-white/15 dark:text-neutral-200 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white active:scale-95 transition-all shadow-xs"
                                     >
                                         {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
                                     </button>

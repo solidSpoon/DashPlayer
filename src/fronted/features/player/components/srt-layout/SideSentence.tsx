@@ -53,7 +53,7 @@ const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) 
 // 精致跳动的音频声波小动效
 const PlayingAudioWave = () => (
     <IconTip tip="正在播放">
-        <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-indigo-600 dark:text-indigo-400">
+        <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-rose-600 dark:text-rose-400">
             <span className="w-[2.5px] h-3.5 bg-current rounded-full animate-[pulse_0.8s_ease-in-out_infinite]" />
             <span className="w-[2.5px] h-2 bg-current rounded-full animate-[pulse_0.6s_ease-in-out_0.2s_infinite]" />
             <span className="w-[2.5px] h-4 bg-current rounded-full animate-[pulse_0.9s_ease-in-out_0.4s_infinite]" />
@@ -63,7 +63,7 @@ const PlayingAudioWave = () => (
 
 const RepeatAudioWave = () => (
     <IconTip tip="单句循环中">
-        <div className="flex items-center justify-center w-4 h-4 text-indigo-600 dark:text-indigo-400">
+        <div className="flex items-center justify-center w-4 h-4 text-rose-600 dark:text-rose-400">
             <Repeat1 className="w-3.5 h-3.5" />
         </div>
     </IconTip>

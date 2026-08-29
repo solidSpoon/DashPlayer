@@ -105,9 +105,11 @@ const OverlayControlBar = ({
                     <div className="flex-1 px-2 flex items-center">
                         <Slider
                             className="w-full"
-                            max={duration}
+                            max={Math.max(duration, 0.1)}
                             min={0}
-                            value={[currentValue]}
+                            step={0.1}
+                            disabled={duration <= 0}
+                            value={[Math.min(Math.max(0, currentValue), Math.max(duration, 0.1))]}
                             onValueChange={(value) => {
                                 const [next] = value;
                                 logger.debug('Time slider value changed', { value: next });
@@ -118,6 +120,7 @@ const OverlayControlBar = ({
                             onValueCommit={(value) => {
                                 const [next] = value;
                                 currentValueUpdateTime.current = Date.now();
+                                setCurrentValue(next);
                                 onTimeChange?.(next);
                                 playerActions.setAutoPause(false);
                                 playerActions.setSingleRepeat(false);

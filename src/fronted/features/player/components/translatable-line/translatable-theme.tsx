@@ -36,9 +36,9 @@ const defaultTheme: TransLineTheme = {
     root: 'px-10 pt-2.5 pb-2.5 text-center leading-relaxed box-border'
   },
   word: {
-    hoverBgClass: 'transition-colors duration-150 hover:bg-stone-300/40 dark:hover:bg-neutral-600/50 rounded px-0.5',
+    hoverBgClass: 'transition-colors duration-150 hover:bg-white/95 hover:shadow-xs hover:text-stone-950 dark:hover:bg-neutral-600/80 dark:hover:text-white rounded px-1',
     vocabHighlightClass: 'text-emerald-700 dark:text-emerald-400 font-medium underline decoration-emerald-500/50 dark:decoration-emerald-400/40 decoration-[1.5px] underline-offset-[0.22em] rounded px-0.5 transition-colors duration-150 hover:bg-emerald-500/10 dark:hover:bg-emerald-400/10 hover:decoration-emerald-600 dark:hover:decoration-emerald-300',
-    popReferenceBgClass: 'bg-stone-200/80 dark:bg-neutral-600/80'
+    popReferenceBgClass: 'bg-white/95 shadow-xs text-stone-950 dark:bg-neutral-600/80 dark:text-white'
   },
   pop: {
     container: 'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start bg-popover text-popover-foreground shadow-lg border border-border rounded-xl px-4 scrollbar-none',
