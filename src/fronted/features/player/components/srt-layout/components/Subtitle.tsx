@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import { shallow } from 'zustand/shallow';
 import { twJoin } from 'tailwind-merge';
-import { AnimatePresence, motion } from 'framer-motion';
 import SideSentence from '../SideSentence';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
@@ -10,12 +9,9 @@ import useLayout from '@/fronted/hooks/useLayout';
 import { cn } from '@/fronted/lib/utils';
 import useSubtitleScroll, { useSubtitleScrollState } from '@/fronted/features/player/hooks/useSubtitleScroll';
 import useBoundary from '@/fronted/features/player/hooks/useBoundary';
-import { FlipVertical2 } from 'lucide-react';
-import { Button } from '@/fronted/components/ui/button';
 import { Sentence } from '@/common/types/SentenceC';
 
 export default function Subtitle() {
-    const [mouseOver, setMouseOver] = useState(false);
     const showSideBar = useLayout((state) => state.showSideBar);
     const { currentSentence, subtitle, singleRepeat, virtualGroup } = usePlayerState((s) => ({
         currentSentence: s.currentSentence,
@@ -26,25 +22,25 @@ export default function Subtitle() {
     const { setBoundaryRef } = useBoundary();
 
     const scrollerRef = useRef<HTMLElement | Window | null>(null);
+    /** 卸载当前滚动容器上用户输入监听的函数；容器（重）挂载时先卸载旧监听 */
+    const detachUserInputRef = useRef<(() => void) | null>(null);
 
     const {
         scrollState,
         onScrolling,
-        onUserFinishScrolling,
         updateCurrentRef,
         setVirtuoso,
         updateVisibleRange,
         delaySetNormal,
-        syncListPositionIntoView,
+        syncIntoView,
     } = useSubtitleScrollState((s) => ({
         scrollState: s.scrollState,
         onScrolling: s.onScrolling,
         updateCurrentRef: s.updateCurrentRef,
-        onUserFinishScrolling: s.onUserFinishScrolling,
         setVirtuoso: s.setVirtuoso,
         updateVisibleRange: s.updateVisibleRange,
         delaySetNormal: s.delaySetNormal,
-        syncListPositionIntoView: s.syncListPositionIntoView,
+        syncIntoView: s.syncIntoView,
     }), shallow);
 
     const currentListPosition = useMemo(() => {
@@ -60,23 +56,13 @@ export default function Subtitle() {
         if (currentListPosition < 0) {
             return;
         }
-        syncListPositionIntoView(currentListPosition);
-    }, [currentListPosition, syncListPositionIntoView]);
+        syncIntoView(currentListPosition);
+    }, [currentListPosition, syncIntoView]);
 
     useEffect(() => {
-        const handleWheel = () => {
-            useSubtitleScroll.getState().onUserInterrupt?.();
-        };
-        const listRefCurrent = scrollerRef.current;
-        if (listRefCurrent) {
-            listRefCurrent.addEventListener('wheel', handleWheel, {
-                passive: true,
-            });
-        }
         return () => {
-            if (listRefCurrent) {
-                listRefCurrent.removeEventListener('wheel', handleWheel);
-            }
+            detachUserInputRef.current?.();
+            detachUserInputRef.current = null;
         };
     }, []);
     const dragStateRef = useRef<{
@@ -198,8 +184,41 @@ export default function Subtitle() {
         finalizeSelection();
     }, [finalizeSelection]);
 
+    /**
+     * Virtuoso 滚动容器（重）挂载时挂载/卸载用户输入监听。
+     * 滚轮、滚动条拖拽、翻页键发生在自动滚动（AUTO_SCROLLING）期间时立即中断跟读，
+     * 避免平滑动画与用户输入争夺滚动位置；其他状态下 onUserInterrupt 自身为空操作。
+     */
     const handleScrollerRef = useCallback((ref: unknown) => {
-        scrollerRef.current = ref as HTMLElement;
+        detachUserInputRef.current?.();
+        detachUserInputRef.current = null;
+        const scroller = ref as HTMLElement | null;
+        scrollerRef.current = scroller;
+        if (!scroller) {
+            return;
+        }
+        const interruptAutoScroll = () => {
+            useSubtitleScroll.getState().onUserInterrupt();
+        };
+        const handlePointerDown = (e: PointerEvent) => {
+            // 事件 target 为滚动容器本身说明按下的是滚动条区域，而非字幕行
+            if (e.target === scroller) {
+                interruptAutoScroll();
+            }
+        };
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                interruptAutoScroll();
+            }
+        };
+        scroller.addEventListener('wheel', interruptAutoScroll, { passive: true });
+        scroller.addEventListener('pointerdown', handlePointerDown);
+        scroller.addEventListener('keydown', handleKeyDown);
+        detachUserInputRef.current = () => {
+            scroller.removeEventListener('wheel', interruptAutoScroll);
+            scroller.removeEventListener('pointerdown', handlePointerDown);
+            scroller.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
     const handleRangeChanged = useCallback(({ startIndex, endIndex }: { startIndex: number; endIndex: number }) => {
@@ -262,12 +281,6 @@ export default function Subtitle() {
                 <Virtuoso
                     onScroll={onScrolling}
                     scrollerRef={handleScrollerRef}
-                    onMouseOver={() => {
-                        setMouseOver(true);
-                    }}
-                    onMouseLeave={() => {
-                        setMouseOver(false);
-                    }}
                     increaseViewportBy={200}
                     minOverscanItemCount={{ top: 3, bottom: 6 }}
                     defaultItemHeight={55}
