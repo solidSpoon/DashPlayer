@@ -28,6 +28,28 @@ export type SeekAction =
     | ((prev: SeekRequest) => SeekRequest);
 type Range = { start: number; end: number };
 
+/**
+ * 瞬态播放计划：在锚定句子的播放区间上连续播放固定遍数，完成后自动跳到下一句。
+ * 用于"本句 ×N 后下一句""递进倍速精听"等组合动作；执行期间覆盖一切全局模式，
+ * 用户手动跳转（currentSentence 与锚点不符）即视为放弃计划并回归全局模式。
+ */
+type TransientPlan = {
+    /** 锚定句 key（fileHash-index）；currentSentence 与之不符时计划作废。 */
+    anchorKey: string;
+    /** 锚定句：循环 seek 时作为高亮目标（虚拟组时为组内第一句）。 */
+    anchor: Sentence;
+    /** 循环区间：单句为该句区间，虚拟组为组整体区间。 */
+    range: Range;
+    /** 总播放遍数。 */
+    loopTotal: number;
+    /** 已完成遍数（0 表示正在播放第 1 遍）。 */
+    loopDone: number;
+    /** 每一遍的倍速（下标 = 遍数）；缺省表示全程沿用当前倍速。 */
+    rates?: number[];
+    /** 计划开始前的倍速，计划结束/作废时恢复。 */
+    prevRate: number;
+};
+
 const OVERDUE_TIME = 600;
 const SEEK_OVERRIDE_MS = 500; // 跳转后的覆盖时间窗口（优先使用目标 seek 时间）
 const CURRENT_LOCK_MS = 500;  // 跳转后的 currentSentence 锁定时长（禁止时间回写高亮）
@@ -57,6 +79,8 @@ interface InternalState {
   tailPreview: TailPreviewState | null;
   timeOverride: TimeOverrideState | null;
   currentLock: CurrentLockState | null;
+  /** 瞬态播放计划；非空时 onTimeUpdate 优先按计划驱动。 */
+  transientPlan: TransientPlan | null;
 
   // 新增：只读选择器的索引缓存
   indexing: IndexingCache | null;
@@ -103,6 +127,16 @@ interface PlayerState {
   singleRepeat: boolean;
   autoPlayNext: boolean;
 
+  // 训练模式（组合播放行为）
+  /** 正常连播时跳过句间空隙：越过当前句结尾后直接 seek 到下一句开头。 */
+  skipGap: boolean;
+  /** 影子跟读：句末暂停留白（时长按本句时长自适应），随后自动下一句。 */
+  shadowing: boolean;
+  /** 暂停后恢复播放时回退到当前句开头（若已进入本句超过 0.3s）。 */
+  rewindOnResume: boolean;
+  /** 常开的逐句循环模式：每句连播 N 遍后自动下一句（rates 为每遍倍速表）；null 表示关闭。 */
+  sentenceLoop: { times: number; rates?: number[]; prevRate: number } | null;
+
   // 字幕
   srtTender: SrtTender<Sentence> | null;
   sentences: Sentence[];
@@ -140,6 +174,15 @@ interface PlayerState {
   setAutoPause: (v: boolean) => void;
   setSingleRepeat: (v: boolean) => void;
   setAutoPlayNext: (v: boolean) => void;
+
+  // 训练模式控制
+  setSkipGap: (v: boolean) => void;
+  setShadowing: (v: boolean) => void;
+  setRewindOnResume: (v: boolean) => void;
+  /** 开启/关闭常开逐句循环模式（每句 ×N 后自动下一句）；传 null 关闭并恢复倍速。 */
+  setSentenceLoop: (config: { times: number; rates?: number[] } | null) => void;
+  /** 随机跳到一句字幕（避开当前句）。 */
+  randomJump: () => void;
 
   // 时间同步
   updateExactPlayTime: (currentTime: number) => void;
@@ -190,6 +233,8 @@ interface PlayerState {
 // 模块内定时器（不放入 Zustand）
 let timeOverrideTimer: ReturnType<typeof setTimeout> | null = null;
 let currentLockTimer: ReturnType<typeof setTimeout> | null = null;
+// 影子跟读：句末暂停后的自动下一句定时器
+let shadowTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const usePlayer = create<PlayerState>((set, get) => {
   // 工具：句子 key
@@ -258,6 +303,64 @@ export const usePlayer = create<PlayerState>((set, get) => {
   const clearTailPreview = () => {
     set((prev) => ({ internal: { ...prev.internal, tailPreview: null } }));
   };
+
+  // 清除影子跟读定时器（手动播放/暂停/seek 均取消待触发的自动下一句）
+  const clearShadowTimer = () => {
+    if (shadowTimer) {
+      clearTimeout(shadowTimer);
+      shadowTimer = null;
+    }
+  };
+
+  /**
+   * 清除瞬态播放计划。
+   * @param restoreRate 是否恢复计划开始前的倍速（默认恢复）
+   */
+  const clearTransientPlan = (restoreRate = true) => {
+    const plan = get().internal.transientPlan;
+    if (!plan) return;
+    if (restoreRate && plan.prevRate !== get().playbackRate) {
+      set({ playbackRate: plan.prevRate });
+    }
+    set((prev) => ({ internal: { ...prev.internal, transientPlan: null } }));
+  };
+
+  /**
+   * 关闭常开逐句循环模式并恢复倍速。
+   * 计划可能已被 seek/切源清除（倍速残留），因此除清除计划外再按模式基准倍速兜底恢复。
+   */
+  const clearSentenceLoopMode = () => {
+    const mode = get().sentenceLoop;
+    if (!mode) return;
+    clearTransientPlan();
+    if (get().playbackRate !== mode.prevRate) {
+      set({ playbackRate: mode.prevRate });
+    }
+    set({ sentenceLoop: null });
+  };
+
+  /**
+   * 获取相对当前聚焦句偏移 offset 个的导航单元及其播放区间（虚拟组视为一个单元）。
+   * @param offset 偏移量（1 = 下一单元，-1 = 上一单元）
+   * @returns 目标单元与区间；越界或无法定位时返回 null
+   */
+  const getNavUnitAtOffset = (offset: number): { unit: NavUnit; range: Range } | null => {
+    const { srtTender } = get();
+    if (!srtTender) return null;
+    const units = buildNavUnits();
+    const pos = findFocusedNavIndex();
+    if (pos < 0) return null;
+    const idx = pos + offset;
+    if (idx < 0 || idx >= units.length) return null;
+    const unit = units[idx];
+    const range = unit.type === 'sentence'
+      ? srtTender.mapSeekTime(unit.s)
+      : (get().getVirtualGroupRange() ?? srtTender.mapSeekTime(unit.repr));
+    return { unit, range };
+  };
+
+  // 取导航单元的 seek 目标（虚拟组用代表句）
+  const navUnitTarget = (unit: NavUnit): Sentence => unit.type === 'sentence' ? unit.s : unit.repr;
 
   // 开启"时间覆盖"窗口
   const activateTimeOverride = (time: number, ms = SEEK_OVERRIDE_MS) => {
@@ -387,11 +490,11 @@ export const usePlayer = create<PlayerState>((set, get) => {
     return Date.now() - lastSeekAt > OVERDUE_TIME;
   };
 
-  // 时间驱动：优先处理尾部预览；在 currentLock 有效期内跳过"按时间回写 currentSentence"
+  // 时间驱动：尾部预览 → 瞬态播放计划 → autoPause → singleRepeat → 影子跟读/跳过空隙 → 正常回写
   const onTimeUpdate = () => {
     const state = get();
-    const { playing, autoPause, singleRepeat, currentSentence, srtTender, virtualGroup } = state;
-    const { lastSeekAt, tailPreview, currentLock } = state.internal;
+    const { playing, autoPause, singleRepeat, shadowing, skipGap, sentenceLoop, currentSentence, srtTender, virtualGroup } = state;
+    const { lastSeekAt, tailPreview, currentLock, transientPlan } = state.internal;
 
     // 1) 尾部预览优先
     if (tailPreview?.active) {
@@ -415,7 +518,50 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
     const effectiveTime = getEffectiveTime();
 
-    // 2) AutoPause（基于当前句）
+    // 2) 瞬态播放计划：覆盖一切全局模式
+    if (transientPlan) {
+      if (currentSentence && sentenceKey(currentSentence) !== transientPlan.anchorKey) {
+        // 锚点句已变化（用户手动跳转）：常开模式为新高亮句续开一轮，否则放弃计划
+        if (sentenceLoop) {
+          beginSentencePlan(sentenceLoop, true);
+        } else {
+          clearTransientPlan();
+        }
+        return;
+      }
+      if (playing && effectiveTime > transientPlan.range.end) {
+        const done = transientPlan.loopDone + 1;
+        if (done >= transientPlan.loopTotal) {
+          // 本句计划完成：常开模式为下一句续开一轮（nextSentence 已定位到下一句开头），否则恢复倍速
+          set((prev) => ({ internal: { ...prev.internal, transientPlan: null } }));
+          get().nextSentence();
+          if (sentenceLoop) {
+            beginSentencePlan(sentenceLoop, false);
+          } else if (transientPlan.prevRate !== get().playbackRate) {
+            set({ playbackRate: transientPlan.prevRate });
+          }
+        } else {
+          set((prev) => ({
+            internal: { ...prev.internal, transientPlan: { ...transientPlan, loopDone: done } }
+          }));
+          const plan = get().internal.transientPlan;
+          if (plan?.rates && plan.rates[done] !== undefined) {
+            set({ playbackRate: plan.rates[done] });
+          }
+          usePlayerToaster.getState().setNotification({ type: 'info', text: `第 ${done + 1}/${transientPlan.loopTotal} 遍` });
+          get().seekToTarget({ time: transientPlan.range.start, target: transientPlan.anchor });
+        }
+      }
+      return;
+    }
+
+    // 2.5) 常开逐句循环：模式开着但没有进行中的计划（切源/进度条拖动后清除），为当前句补开一轮
+    if (sentenceLoop && playing) {
+      beginSentencePlan(sentenceLoop, true);
+      return;
+    }
+
+    // 3) AutoPause（基于当前句）
     if (currentSentence && playing && autoPause) {
       const { start, end } = srtTender.mapSeekTime(currentSentence);
       if (effectiveTime > end) {
@@ -425,7 +571,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return;
     }
 
-    // 3) SingleRepeat：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
+    // 4) SingleRepeat：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
     if (playing && singleRepeat) {
       const { start, end } = state.getLoopRange();
       const focusInGroup = isFocusInVirtualGroup();
@@ -449,7 +595,40 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return; // singleRepeat 分支到此结束（单句冻结 / 组内已更新）
     }
 
-    // 4) 正常模式：按时间回写 currentSentence（若当前未锁定）
+    // 5) 句末处理：影子跟读 / 跳过句间空隙（均要求播放中且已越过当前句结尾）
+    if (playing && currentSentence) {
+      const { start, end } = srtTender.mapSeekTime(currentSentence);
+      if (effectiveTime > end) {
+        if (shadowing) {
+          // 影子跟读：原地停在句尾暂停留白（供跟读），留白结束后再跳下一句续播
+          state.pause();
+          clearShadowTimer();
+          // 留白时长按本句时长 ×1.5（留足跟读一遍的时间），钳制在 1~10s
+          const pauseMs = Math.min(Math.max((end - start) * 1500, 1000), 10000);
+          // 暂停生效前播放头可能滑入下一句区间并触发一次时间回写，把高亮锁到留白结束以防字幕提前跳句
+          activateCurrentLock(currentSentence, pauseMs + 1500);
+          shadowTimer = setTimeout(() => {
+            shadowTimer = null;
+            const s = get();
+            if (s.shadowing && !s.playing) {
+              // 仍处于留白暂停：跳到下一句开头并继续播放
+              s.nextSentence();
+            }
+          }, pauseMs);
+          return;
+        }
+        if (skipGap) {
+          // 正常连播但跳过空隙：已过当前句结尾且尚未到达下一句开头时，直接 seek 过去
+          const next = getNavUnitAtOffset(1);
+          if (next && effectiveTime < next.range.start) {
+            get().seekToTarget({ time: next.range.start, target: navUnitTarget(next.unit) });
+            return;
+          }
+        }
+      }
+    }
+
+    // 6) 正常模式：按时间回写 currentSentence（若当前未锁定）
     if (!singleRepeat && !autoPause) {
       if (currentLock?.active && Date.now() < currentLock.untilTs) {
         // 锁定期内，不回写，保持 UI 高亮为用户刚选中的句子
@@ -477,6 +656,71 @@ export const usePlayer = create<PlayerState>((set, get) => {
     return null;
   };
 
+  /**
+   * 为当前聚焦句构建瞬态循环计划（虚拟组时以整组为循环单元）。
+   * @param mode 常开的逐句循环配置（遍数、每遍倍速、基准倍速）
+   * @param seekToStart 是否 seek 到循环区间开头（开启模式/续接新锚点句时需要；
+   *                    句间续接时 nextSentence 已定位到下一句开头，传 false 避免重复 seek）
+   */
+  const beginSentencePlan = (mode: { times: number; rates?: number[]; prevRate: number }, seekToStart: boolean) => {
+    const state = get();
+    const { srtTender, virtualGroup } = state;
+    if (!srtTender) return;
+    const focus = state.currentSentence ?? getFocusedSentence();
+    if (!focus || mode.times < 1) return;
+
+    let anchor = focus;
+    let range = srtTender.mapSeekTime(focus);
+    if (virtualGroup.active && virtualGroup.sentences.length > 0 && isFocusInVirtualGroup()) {
+      const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
+      if (first) {
+        anchor = first;
+        range = get().getVirtualGroupRange() ?? range;
+      }
+    }
+
+    set((prev) => ({
+      internal: { ...prev.internal, transientPlan: {
+        anchorKey: sentenceKey(anchor),
+        anchor,
+        range,
+        loopTotal: mode.times,
+        loopDone: 0,
+        rates: mode.rates,
+        prevRate: mode.prevRate
+      } }
+    }));
+    if (mode.rates?.[0] !== undefined) {
+      set({ playbackRate: mode.rates[0] });
+    }
+    usePlayerToaster.getState().setNotification({ type: 'info', text: `第 1/${mode.times} 遍` });
+    if (seekToStart) {
+      get().seekToTarget({ time: range.start, target: anchor });
+    }
+  };
+
+  /**
+   * 统一的恢复播放入口：取消待触发的影子跟读自动下一句，并按 rewindOnResume 决定是否回退句首。
+   */
+  const startPlayback = () => {
+    clearShadowTimer();
+    const { onPlaySeekTime, exactPlayTime } = get().internal;
+    if (onPlaySeekTime !== null) {
+      get().seekToTarget({ time: onPlaySeekTime, target: get().currentSentence ?? undefined });
+      return;
+    }
+    const { rewindOnResume, currentSentence, srtTender } = get();
+    if (rewindOnResume && currentSentence && srtTender) {
+      const { start } = srtTender.mapSeekTime(currentSentence);
+      // 已进入本句超过 0.3s 才回退，避免句首续播被误判为需要回退
+      if (exactPlayTime > start + 0.3) {
+        get().seekToTarget({ time: start, target: currentSentence });
+        return;
+      }
+    }
+    set((prev) => ({ playing: true, playRequestId: prev.playRequestId + 1 }));
+  };
+
   return {
     // 初始
     src: null,
@@ -491,6 +735,11 @@ export const usePlayer = create<PlayerState>((set, get) => {
     autoPause: false,
     singleRepeat: false,
     autoPlayNext: false,
+
+    skipGap: false,
+    shadowing: false,
+    rewindOnResume: false,
+    sentenceLoop: null,
 
     srtTender: null,
     sentences: [],
@@ -508,6 +757,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       tailPreview: null,
       timeOverride: null,
       currentLock: null,
+      transientPlan: null,
       indexing: null // 新增
     },
 
@@ -515,6 +765,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
     setSource: (src) => {
       if (timeOverrideTimer) { clearTimeout(timeOverrideTimer); timeOverrideTimer = null; }
       if (currentLockTimer) { clearTimeout(currentLockTimer); currentLockTimer = null; }
+      clearShadowTimer();
+      clearTransientPlan();
       set({
         src,
         playing: false,
@@ -529,12 +781,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
           tailPreview: null,
           timeOverride: null,
           currentLock: null,
+          transientPlan: null,
           indexing: null // 清理索引
         }
       });
     },
 
     loadSubtitles: (sentences, tender) => {
+      clearTransientPlan();
       const srt = tender ?? new SrtTenderImpl(sentences);
       const indexing = buildIndexingCache(sentences);
       const exactPlayTime = get().internal.exactPlayTime;
@@ -566,6 +820,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
     },
 
     clearSubtitles: () => {
+      clearTransientPlan();
+      clearShadowTimer();
       set((prev) => ({
         srtTender: null,
         sentences: [],
@@ -579,32 +835,31 @@ export const usePlayer = create<PlayerState>((set, get) => {
     },
 
     /**
-     * 开始播放：若存在延迟播放起点则先跳转，否则置播放态并递增播放请求计数。
+     * 开始播放：统一走 startPlayback（处理延迟播放起点与回退句首）。
      */
     play: () => {
-      const { onPlaySeekTime } = get().internal;
-      if (onPlaySeekTime !== null) {
-        get().seekToTarget({ time: onPlaySeekTime, target: get().currentSentence ?? undefined });
-      } else {
-        set((prev) => ({ playing: true, playRequestId: prev.playRequestId + 1 }));
-      }
+      startPlayback();
     },
 
     /**
-     * 暂停播放。
+     * 暂停播放：同时取消待触发的影子跟读自动下一句。
      */
-    pause: () => set({ playing: false }),
+    pause: () => {
+      clearShadowTimer();
+      set({ playing: false });
+    },
 
     /**
-     * 切换播放/暂停：开启时递增播放请求计数，驱动引擎强制原生播放。
+     * 切换播放/暂停：开启时走统一启动逻辑，关闭时取消影子跟读定时器。
      */
     togglePlay: () => {
-      set((prev) => {
-        const next = !prev.playing;
-        return next
-          ? { playing: true, playRequestId: prev.playRequestId + 1 }
-          : { playing: false };
-      });
+      const next = !get().playing;
+      if (next) {
+        startPlayback();
+      } else {
+        clearShadowTimer();
+        set({ playing: false });
+      }
     },
 
     /**
@@ -612,6 +867,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
      * @param seekTime 目标时间（可传函数形式读取上一次 seek）
      */
     seekTo: (seekTime) => {
+      clearShadowTimer();
+      clearTransientPlan();
       const srtTender = get().srtTender;
       const currentSeek = get().seekTime;
       const next = typeof seekTime === 'function' ? seekTime(currentSeek) : seekTime;
@@ -639,6 +896,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
      * @param play 是否在 seek 后继续播放
      */
     seekToTarget: ({ time, target, overrideMs = SEEK_OVERRIDE_MS, lockMs = CURRENT_LOCK_MS, play = true }) => {
+      clearShadowTimer();
       set((prev) => ({
         playing: play,
         playRequestId: play ? prev.playRequestId + 1 : prev.playRequestId,
@@ -674,10 +932,90 @@ export const usePlayer = create<PlayerState>((set, get) => {
       });
     },
 
-    // 模式控制
-    setAutoPause: (v) => set({ autoPause: v }),
-    setSingleRepeat: (v) => set({ singleRepeat: v }),
+    // 模式控制（句末行为互斥：开启任一会关闭其他句末模式）
+    /**
+     * 句末自动暂停：本句播完暂停，续播从句首开始。
+     * 开启时自动关闭其他句末模式（单句循环/影子跟读/逐句循环计划）。
+     */
+    setAutoPause: (v) => {
+      if (!v) {
+        set({ autoPause: false });
+        return;
+      }
+      clearSentenceLoopMode();
+      set({ autoPause: true, singleRepeat: false, shadowing: false });
+    },
+    /**
+     * 单句循环：当前句（虚拟组为整组）无限循环。
+     * 开启时自动关闭其他句末模式（句末暂停/影子跟读/逐句循环计划）。
+     */
+    setSingleRepeat: (v) => {
+      if (!v) {
+        set({ singleRepeat: false });
+        return;
+      }
+      clearSentenceLoopMode();
+      set({ singleRepeat: true, autoPause: false, shadowing: false });
+    },
     setAutoPlayNext: (v) => set({ autoPlayNext: v }),
+
+    // 训练模式控制
+    setSkipGap: (v) => set({ skipGap: v }),
+    /**
+     * 影子跟读：句末暂停留白后自动下一句。
+     * 开启时自动关闭其他句末模式（单句循环/句末暂停/逐句循环计划）。
+     */
+    setShadowing: (v) => {
+      if (!v) {
+        clearShadowTimer();
+        set({ shadowing: false });
+        return;
+      }
+      clearSentenceLoopMode();
+      set({ shadowing: true, singleRepeat: false, autoPause: false });
+    },
+    setRewindOnResume: (v) => set({ rewindOnResume: v }),
+
+    /**
+     * 开启/关闭常开逐句循环模式：开启时立即为当前句开启第一轮计划；
+     * 关闭时取消进行中的计划并恢复模式开启前的倍速。
+     * 开启时自动关闭其他句末模式（单句循环/句末暂停/影子跟读）。
+     */
+    setSentenceLoop: (config) => {
+      clearTailPreview();
+      clearShadowTimer();
+      if (!config) {
+        clearSentenceLoopMode();
+        return;
+      }
+      if (config.times < 1) return;
+      // 切换配置时保留最初开启前的倍速作为恢复基准
+      const prevRate = get().sentenceLoop?.prevRate ?? get().playbackRate;
+      set({ sentenceLoop: { times: config.times, rates: config.rates, prevRate }, singleRepeat: false, autoPause: false, shadowing: false });
+      beginSentencePlan(get().sentenceLoop!, true);
+    },
+
+    /**
+     * 随机跳到一句字幕（避开当前聚焦句；单句字幕时直接回到该句）。
+     */
+    randomJump: () => {
+      const state = get();
+      const count = state.getSentenceCount();
+      if (count <= 0) return;
+      if (count === 1) {
+        state.gotoSentenceIndex(state.sentences[0]?.index ?? 0);
+        return;
+      }
+      const focusIdx = state.getFocusedIndex();
+      let pos = Math.floor(Math.random() * count);
+      if (pos === focusIdx) {
+        pos = (pos + 1) % count;
+      }
+      const target = state.sentences[pos];
+      if (target) {
+        state.gotoSentenceIndex(target.index);
+      }
+    },
 
     // 时间同步
     updateExactPlayTime: (currentTime: number) => {

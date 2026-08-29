@@ -11,22 +11,25 @@ import { usePlayer } from '@/fronted/features/player/playerStore';
 import useFavouriteClip, { mapClipKey } from '@/fronted/features/favourite/favouriteStore';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { 
-    Play, 
-    Pause, 
-    SkipBack, 
-    SkipForward, 
-    Repeat1, 
-    Bookmark, 
+import {
+    Play,
+    Pause,
+    SkipBack,
+    SkipForward,
+    Repeat1,
+    Bookmark,
     CirclePause,
     Languages,
-    History
+    History,
+    Dumbbell,
+    Shuffle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
@@ -45,6 +48,19 @@ export default function MainSubtitle() {
     const setSingleRepeat = usePlayer((s) => s.setSingleRepeat);
     const autoPause = usePlayer((s) => s.autoPause);
     const setAutoPause = usePlayer((s) => s.setAutoPause);
+
+    // 训练模式（组合播放计划）
+    const skipGap = usePlayer((s) => s.skipGap);
+    const setSkipGap = usePlayer((s) => s.setSkipGap);
+    const shadowing = usePlayer((s) => s.shadowing);
+    const setShadowing = usePlayer((s) => s.setShadowing);
+    const rewindOnResume = usePlayer((s) => s.rewindOnResume);
+    const setRewindOnResume = usePlayer((s) => s.setRewindOnResume);
+    const sentenceLoop = usePlayer((s) => s.sentenceLoop);
+    // 两种逐句循环配置互斥：×N 模式不带倍速表，精听模式带倍速表
+    const loopTimesActive = sentenceLoop !== null && !sentenceLoop.rates;
+    const loopRatesActive = sentenceLoop !== null && !!sentenceLoop.rates;
+    const trainingActive = sentenceLoop !== null || skipGap || shadowing || rewindOnResume;
 
     const isFavourite = useFavouriteClip(
         (s) => sentence ? (s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false) : false
@@ -321,6 +337,98 @@ export default function MainSubtitle() {
                                         className="text-xs cursor-pointer"
                                     >
                                         {t('controlBox.showSourceZh')}
+                                    </DropdownMenuCheckboxItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* 训练模式（组合播放计划） */}
+                            <DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <button
+                                                className={`p-1 rounded-full transition-colors ${
+                                                    trainingActive
+                                                        ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-200/70 dark:bg-emerald-900/60'
+                                                        : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
+                                                }`}
+                                            >
+                                                <Dumbbell className="w-3.5 h-3.5" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">训练模式</TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent side="top" align="end" className="w-60">
+                                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
+                                        训练模式
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {/* 句末行为（引擎层互斥：开启任一自动关闭其他） */}
+                                    <DropdownMenuCheckboxItem
+                                        checked={singleRepeat}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setSingleRepeat(!singleRepeat)}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        单句循环
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={autoPause}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setAutoPause(!autoPause)}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        句末自动暂停
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={shadowing}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setShadowing(!shadowing)}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        影子跟读（句末留白自动下一句）
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={loopTimesActive}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => { playerActions.setSentenceLoop(loopTimesActive ? null : { times: 3 }); }}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        每句 ×3 后下一句
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={loopRatesActive}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => { playerActions.setSentenceLoop(loopRatesActive ? null : { times: 3, rates: [0.75, 1, 1.25] }); }}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        递进倍速精听（0.75→1.0→1.25）
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={() => { playerActions.randomJump(); }}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        <Shuffle className="w-3.5 h-3.5" />
+                                        随机跳一句
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuCheckboxItem
+                                        checked={skipGap}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setSkipGap(!skipGap)}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        跳过句间空隙
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={rewindOnResume}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setRewindOnResume(!rewindOnResume)}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        暂停后回退句首
                                     </DropdownMenuCheckboxItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

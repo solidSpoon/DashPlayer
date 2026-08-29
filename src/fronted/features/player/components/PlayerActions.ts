@@ -51,6 +51,18 @@ export class PlayerActions {
   setSingleRepeat(v: boolean) { this.s.setSingleRepeat(v); }
   setAutoPlayNext(v: boolean) { this.s.setAutoPlayNext(v); }
 
+  // 训练模式
+  setSkipGap(v: boolean) { this.s.setSkipGap(v); }
+  setShadowing(v: boolean) { this.s.setShadowing(v); }
+  setRewindOnResume(v: boolean) { this.s.setRewindOnResume(v); }
+  /**
+   * 开启/关闭常开逐句循环模式（每句 ×N 后自动下一句）。
+   * @param config 遍数与每遍倍速表；传 null 关闭并恢复倍速
+   */
+  setSentenceLoop(config: { times: number; rates?: number[] } | null) { this.s.setSentenceLoop(config); }
+  /** 随机跳到一句字幕（避开当前句）。 */
+  randomJump() { this.s.randomJump(); }
+
   /**
    * 高频：updateExactPlayTime
    * - 来源：PlayerEngine -> ReactPlayer.onProgress
