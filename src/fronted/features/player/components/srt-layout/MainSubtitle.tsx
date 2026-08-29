@@ -77,27 +77,7 @@ export default function MainSubtitle() {
     const loopRatesActive = sentenceLoop !== null && !!sentenceLoop.rates;
     const trainingActive = sentenceLoop !== null || skipGap || shadowing || rewindOnResume;
 
-    // 影子跟读句末留白暂停时的剩余秒数
-    const [shadowSecondsLeft, setShadowSecondsLeft] = useState(0);
-
-    useEffect(() => {
-        if (!shadowingPause) {
-            setShadowSecondsLeft(0);
-            return;
-        }
-
-        const update = () => {
-            const now = Date.now();
-            const remaining = Math.max(shadowingPause.untilTs - now, 0);
-            setShadowSecondsLeft(Math.ceil(remaining / 1000));
-        };
-
-        update();
-        const intervalId = setInterval(update, 200);
-        return () => {
-            clearInterval(intervalId);
-        };
-    }, [shadowingPause]);
+    // 影子跟读句末留白暂停的倒计时由 ShadowCountdown 子组件独立承担，避免高频刷新扩散到整个控制条
 
     const isFavourite = useFavouriteClip(
         (s) => sentence ? (s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false) : false
@@ -117,8 +97,6 @@ export default function MainSubtitle() {
     const engine = useTranslation(state => state.engine);
     const openAiMode = useTranslation(state => state.openAiMode);
     const activeFileHash = useTranslation(state => state.activeFileHash);
-
-    const sentences = usePlayerState((s) => s.sentences);
 
     // 在组件顶层获取当前句子的翻译
     const translationKey = sentence?.translationKey || '';
@@ -303,9 +281,7 @@ export default function MainSubtitle() {
                                                         </span>
                                                     </div>
                                                 ) : shadowing && shadowingPause ? (
-                                                    <span className="font-mono text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1 py-0.5 rounded-sm animate-pulse">
-                                                        {shadowSecondsLeft}s
-                                                    </span>
+                                                    <ShadowCountdown key={shadowingPause.untilTs} untilTs={shadowingPause.untilTs} />
                                                 ) : trainingActive && (
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                 )}
@@ -318,7 +294,7 @@ export default function MainSubtitle() {
                                             : autoPause
                                             ? `训练模式：句末自动暂停${formatShortcut(autoPauseShortcut)}`
                                             : shadowing
-                                            ? `训练模式：影子跟读${shadowingPause ? ` (留白剩余 ${shadowSecondsLeft}s)` : ''}`
+                                            ? `训练模式：影子跟读${shadowingPause ? ' (留白中)' : ''}`
                                             : loopTimesActive
                                             ? `训练模式：每句重复 ×3 (第 ${(activePlan?.loopDone ?? 0) + 1}/${activePlan?.loopTotal ?? 3} 遍)`
                                             : loopRatesActive
@@ -329,22 +305,10 @@ export default function MainSubtitle() {
                                     </TooltipContent>
                                 </Tooltip>
                                 <DropdownMenuContent side="top" align="end" className="w-64">
-                                    <div className="flex items-center justify-between px-2 py-1.5">
-                                        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground p-0">
-                                            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                                            精听与训练模式
-                                        </DropdownMenuLabel>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSettingsOpen(true);
-                                            }}
-                                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-stone-200/60 dark:hover:bg-neutral-700/60 transition-colors"
-                                            title="参数设置"
-                                        >
-                                            <Settings2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
+                                    <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                        <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                                        精听与训练模式
+                                    </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {/* 句末行为（引擎层互斥：开启任一自动关闭其他） */}
                                     <DropdownMenuCheckboxItem
@@ -598,4 +562,25 @@ export default function MainSubtitle() {
     };
 
     return render();
+}
+
+/**
+ * 影子跟读留白剩余秒数徽章：按 200ms tick 派生渲染剩余时间。
+ * 独立成子组件以隔离高频刷新；setState 仅在定时器回调中发生，挂载阶段无同步写状态。
+ * @param untilTs 留白结束的时间戳（毫秒）
+ */
+function ShadowCountdown({ untilTs }: { untilTs: number }) {
+    // 初始值在 useState 惰性初始化中派生（父级以 untilTs 作 key，变化即重挂载）；后续由定时器回调刷新
+    const [secondsLeft, setSecondsLeft] = useState(() => Math.max(Math.ceil((untilTs - Date.now()) / 1000), 0));
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setSecondsLeft(Math.max(Math.ceil((untilTs - Date.now()) / 1000), 0));
+        }, 200);
+        return () => clearInterval(intervalId);
+    }, [untilTs]);
+    return (
+        <span className="font-mono text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1 py-0.5 rounded-sm animate-pulse">
+            {secondsLeft}s
+        </span>
+    );
 }
