@@ -268,7 +268,7 @@ export default function Subtitle() {
                                 onUserFinishScrolling();
                             }}
                             className={cn(
-                                'absolute top-6 right-6 z-50',
+                                'absolute top-14 right-5 z-50',
                             )}
                         >
                             <Button
