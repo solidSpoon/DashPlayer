@@ -80,7 +80,7 @@ export default function PlaybackStage({ className, onReady, onEnded, onProvideVi
                 {!fullScreen && !podcastMode && (
                     <PlaybackControlBar
                         onTimeChange={(time) => playerActions.seekTo({ time })}
-                        className="absolute bottom-0 left-0 z-20"
+                        className="absolute bottom-2 left-0 z-20"
                         onPause={() => playerActions.pause()}
                         onPlay={() => playerActions.play()}
                         playing={playing}

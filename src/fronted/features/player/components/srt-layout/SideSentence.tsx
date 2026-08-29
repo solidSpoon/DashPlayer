@@ -162,7 +162,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 return '';
             }
             const classes: string[] = [
-                'bg-stone-50 dark:bg-neutral-800',
+                'bg-stone-100/95 dark:bg-neutral-800/95',
                 'border-stone-400/80 dark:border-neutral-600',
                 'shadow-sm text-stone-900 dark:text-neutral-100',
             ];
@@ -189,11 +189,11 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 className={cn(
                     // 外边距与内边距保持绝对恒定，四个方向 1px 边框始终存在，高度与定位 100% 绝对静止
                     'group relative my-1.5 ml-1.5 mr-0 pl-3.5 pr-2.5 py-3 rounded-xl flex items-start gap-2.5 cursor-pointer select-none border transition-colors duration-150',
-                    // 卡片色调（激活与非激活仅通过底色与边框区分，无尺寸、无字体缩放）：
+                    // 卡片色调（层级理论上跟主字幕区域 bg-stone-50/75 dark:bg-neutral-800/65 对应，亮色稍暗、暗色稍亮）：
                     !selectionState?.isMember && (
                         isCurrent
-                            ? 'bg-white dark:bg-neutral-800 border-stone-400/60 dark:border-neutral-650 shadow-sm text-stone-900 dark:text-neutral-100'
-                            : 'bg-stone-100/90 dark:bg-neutral-900/90 border-stone-300/50 dark:border-neutral-800/80 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-stone-50 dark:hover:bg-neutral-850 hover:border-stone-400/50 dark:hover:border-neutral-700 text-stone-700 dark:text-neutral-300'
+                            ? 'bg-stone-50 dark:bg-neutral-800 border-stone-400/70 dark:border-neutral-600 shadow-sm text-stone-900 dark:text-neutral-100'
+                            : 'bg-stone-200/85 dark:bg-neutral-850/90 border-stone-300/60 dark:border-neutral-750/70 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:bg-stone-100 dark:hover:bg-neutral-800 hover:border-stone-400/60 dark:hover:border-neutral-700 text-stone-700 dark:text-neutral-300'
                     ),
                     selectionClass
                 )}
@@ -212,7 +212,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 {selectionState?.isMember && !selectionState.isGroupEnd && (
                     <div
                         aria-hidden="true"
-                        className="absolute -bottom-[13px] -left-[1px] -right-[1px] h-[14px] bg-stone-50 dark:bg-neutral-800 border-l border-r border-stone-400/80 dark:border-neutral-600 z-0 pointer-events-none"
+                        className="absolute -bottom-[13px] -left-[1px] -right-[1px] h-[14px] bg-stone-100/95 dark:bg-neutral-800/95 border-l border-r border-stone-400/80 dark:border-neutral-600 z-0 pointer-events-none"
                     />
                 )}
 
@@ -220,7 +220,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 {selectionState?.isMember && !selectionState.isGroupEnd && (
                     <div
                         aria-hidden="true"
-                        className="absolute -bottom-[6px] left-4 right-4 h-[1px] bg-stone-200/90 dark:bg-neutral-700/90 z-[1] pointer-events-none"
+                        className="absolute -bottom-[6px] left-4 right-4 h-[1px] bg-stone-300/80 dark:bg-neutral-700/80 z-[1] pointer-events-none"
                     />
                 )}
 

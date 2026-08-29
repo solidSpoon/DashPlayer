@@ -99,14 +99,14 @@ const PlaybackControlBar = ({
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
             className={cn(
-                'w-full flex flex-col-reverse h-36 text-white/90 px-4 pb-6 pt-4 pointer-events-auto',
+                'w-full flex flex-col-reverse h-36 text-white/90 px-4 pb-8 pt-2 pointer-events-auto',
                 className
             )}
         >
             <div
                 className={cn(
-                    'w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-all duration-150 ease-out pointer-events-auto',
-                    mouseOverOut ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'
+                    'w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    mouseOverOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 )}
                 onMouseMove={(e) => {
                     e.stopPropagation();
