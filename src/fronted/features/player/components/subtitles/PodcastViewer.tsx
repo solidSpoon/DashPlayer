@@ -14,7 +14,6 @@ import useTranslation from '@/fronted/features/player/translationStore';
 const PodcastViewer = ({ className }: { className?: string }) => {
     const current: Sentence | null = usePlayer((s) => s.currentSentence);
     const sentences = usePlayer((s) => s.sentences);
-    const seekTo = usePlayer((s) => s.seekTo);
 
     const translationKey = current?.translationKey || '';
     const newTranslation = useTranslation((state) => state.translations.get(translationKey)) || '';
@@ -102,9 +101,7 @@ const PodcastViewer = ({ className }: { className?: string }) => {
                             key={sentence.key}
                             ref={isCurrent ? activeItemRef : undefined}
                             onClick={() => {
-                                if (typeof sentence.start === 'number') {
-                                    seekTo({ time: sentence.start / 1000 });
-                                }
+                                playerActions.gotoSentence(sentence);
                             }}
                             style={{
                                 transform: `scale(${scale})`,

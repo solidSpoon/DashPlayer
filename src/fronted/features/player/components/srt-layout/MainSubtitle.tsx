@@ -22,9 +22,19 @@ import {
     History
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/fronted/components/ui/dropdown-menu';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
+    const { t } = useI18nTranslation('player');
     const sentence = usePlayerState((s) => s.currentSentence);
     const playing = usePlayerState((s) => s.playing);
     const srtTender = usePlayerState((s) => s.srtTender);
@@ -55,9 +65,14 @@ export default function MainSubtitle() {
         }
     }, [logger, sentence, engine, openAiMode, activeFileHash, requestTranslation]);
 
+    const showEn = usePlayerUi((state) => state.showEn);
     const showCn = usePlayerUi((state) => state.showCn);
     const showSourceZh = usePlayerUi((state) => state.showSourceZh);
+    const changeShowEn = usePlayerUi((state) => state.changeShowEn);
     const changeShowCn = usePlayerUi((state) => state.changeShowCn);
+    const changeShowSourceZh = usePlayerUi((state) => state.changeShowSourceZh);
+
+    const hasAnyTrack = showEn || showCn || showSourceZh;
 
     const ele = (): ReactElement[] => {
         if (!sentence) {
@@ -155,9 +170,9 @@ export default function MainSubtitle() {
                                                 void playerActions.play();
                                             }
                                         }}
-                                        className="p-1 rounded-full bg-stone-900 text-stone-100 dark:bg-neutral-200 dark:text-neutral-900 hover:scale-105 active:scale-95 transition-all shadow-xs"
+                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-stone-900 text-stone-100 dark:bg-neutral-200 dark:text-neutral-900 hover:scale-105 active:scale-95 transition-all shadow-xs"
                                     >
-                                        {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                                        {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">{playing ? '暂停 (Space)' : '播放 (Space)'}</TooltipContent>
@@ -244,22 +259,55 @@ export default function MainSubtitle() {
                                 </Tooltip>
                             )}
 
-                            {/* 译文开关 */}
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => changeShowCn()}
-                                        className={`p-1 rounded-full transition-colors ${
-                                            showCn
-                                                ? 'text-stone-900 dark:text-neutral-100 bg-stone-300/80 dark:bg-neutral-600'
-                                                : 'text-stone-400 dark:text-neutral-500 hover:text-stone-700 dark:hover:text-neutral-300 hover:bg-stone-300/40 dark:hover:bg-neutral-700/40'
-                                        }`}
+                            {/* 字幕轨道开关下拉菜单 */}
+                            <DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <button
+                                                className={`p-1 rounded-full transition-colors ${
+                                                    hasAnyTrack
+                                                        ? 'text-stone-900 dark:text-neutral-100 bg-stone-300/80 dark:bg-neutral-600'
+                                                        : 'text-stone-400 dark:text-neutral-500 hover:text-stone-700 dark:hover:text-neutral-300 hover:bg-stone-300/40 dark:hover:bg-neutral-700/40'
+                                                }`}
+                                            >
+                                                <Languages className="w-3.5 h-3.5" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">{t('controlBox.subtitleTracks')}</TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent side="top" align="end" className="w-40">
+                                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
+                                        {t('controlBox.subtitleTracks')}
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuCheckboxItem
+                                        checked={showEn}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => changeShowEn()}
+                                        className="text-xs cursor-pointer"
                                     >
-                                        <Languages className="w-3.5 h-3.5" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">显示/隐藏中文翻译 (T)</TooltipContent>
-                            </Tooltip>
+                                        {t('controlBox.showEnglish')}
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={showCn}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => changeShowCn()}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        {t('controlBox.showChinese')}
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={showSourceZh}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => changeShowSourceZh()}
+                                        className="text-xs cursor-pointer"
+                                    >
+                                        {t('controlBox.showSourceZh')}
+                                    </DropdownMenuCheckboxItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </TooltipProvider>
                     </div>
                 </div>
