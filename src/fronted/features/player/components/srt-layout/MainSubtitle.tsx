@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useMemo } from 'react';
+import React, { ReactElement, useEffect, useMemo, useState } from 'react';
 import TranslatableLine from '@/fronted/features/player/components/subtitles/TranslatableLineWrapper';
 import NormalLine from './NormalLine';
 import useTranslation from '@/fronted/features/player/translationStore';
@@ -22,7 +22,13 @@ import {
     Languages,
     History,
     Dumbbell,
-    Shuffle
+    Sparkles,
+    Mic,
+    FastForward,
+    RotateCcw,
+    Gauge,
+    Repeat,
+    Settings2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import {
@@ -35,12 +41,15 @@ import {
     DropdownMenuTrigger,
 } from '@/fronted/components/ui/dropdown-menu';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
+import { TrainingSettingsDialog } from '@/fronted/features/player/components/TrainingSettingsDialog';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
     const { t } = useI18nTranslation('player');
     const sentence = usePlayerState((s) => s.currentSentence);
     const playing = usePlayerState((s) => s.playing);
+    const playbackRate = usePlayerState((s) => s.playbackRate);
     const srtTender = usePlayerState((s) => s.srtTender);
     const adjusted = useMemo(() => (sentence && srtTender ? (srtTender.adjusted(sentence) ?? false) : false), [sentence, srtTender]);
 
@@ -54,13 +63,41 @@ export default function MainSubtitle() {
     const setSkipGap = usePlayer((s) => s.setSkipGap);
     const shadowing = usePlayer((s) => s.shadowing);
     const setShadowing = usePlayer((s) => s.setShadowing);
+    const shadowingPause = usePlayer((s) => s.shadowingPause);
     const rewindOnResume = usePlayer((s) => s.rewindOnResume);
     const setRewindOnResume = usePlayer((s) => s.setRewindOnResume);
     const sentenceLoop = usePlayer((s) => s.sentenceLoop);
+    const activePlan = usePlayer((s) => s.activePlan);
+    // 训练模式持久化配置
+    const trainingConfig = useTrainingModeStore((s) => s.config);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+
     // 两种逐句循环配置互斥：×N 模式不带倍速表，精听模式带倍速表
     const loopTimesActive = sentenceLoop !== null && !sentenceLoop.rates;
     const loopRatesActive = sentenceLoop !== null && !!sentenceLoop.rates;
     const trainingActive = sentenceLoop !== null || skipGap || shadowing || rewindOnResume;
+
+    // 影子跟读句末留白暂停时的剩余秒数
+    const [shadowSecondsLeft, setShadowSecondsLeft] = useState(0);
+
+    useEffect(() => {
+        if (!shadowingPause) {
+            setShadowSecondsLeft(0);
+            return;
+        }
+
+        const update = () => {
+            const now = Date.now();
+            const remaining = Math.max(shadowingPause.untilTs - now, 0);
+            setShadowSecondsLeft(Math.ceil(remaining / 1000));
+        };
+
+        update();
+        const intervalId = setInterval(update, 200);
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [shadowingPause]);
 
     const isFavourite = useFavouriteClip(
         (s) => sentence ? (s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false) : false
@@ -160,7 +197,6 @@ export default function MainSubtitle() {
         }
         return (
             <div
-                key={`trans-sub:${sentence?.key}`}
                 className="relative flex flex-col w-full h-full items-center px-12 pt-3 pb-2 text-center text-textColor select-none overflow-hidden"
             >
                 {/* 顶部弹性占位：比底部占位少，让文字动态停留在“中上”黄金位置（约 40% 高度） */}
@@ -225,39 +261,222 @@ export default function MainSubtitle() {
 
                             <div className="h-3 w-px bg-stone-400/30 dark:bg-neutral-600 mx-0.5" />
 
-                            {/* 单句循环 */}
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => setSingleRepeat(!singleRepeat)}
-                                        className={`p-1 rounded-full transition-colors ${
-                                            singleRepeat
-                                                ? 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60'
-                                                : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
-                                        }`}
-                                    >
-                                        <Repeat1 className="w-3.5 h-3.5 stroke-[2.2]" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">单句循环{formatShortcut(repeatShortcut)}</TooltipContent>
-                            </Tooltip>
+                            {/* 训练模式（复合按钮：左边展示当前激活的训练模式图标，右边展示实时状态/第N遍/当前倍速 Badge） */}
+                            <DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <button
+                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all text-[11px] font-medium leading-none ${
+                                                    trainingActive
+                                                        ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-200/70 dark:bg-emerald-900/60 shadow-xs ring-1 ring-emerald-500/30'
+                                                        : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
+                                                }`}
+                                            >
+                                                {/* 复合模式主图标 */}
+                                                {singleRepeat ? (
+                                                    <Repeat1 className="w-3.5 h-3.5 text-red-600 dark:text-red-400 stroke-[2.2]" />
+                                                ) : autoPause ? (
+                                                    <CirclePause className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                                                ) : shadowing ? (
+                                                    <Mic className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                ) : loopTimesActive ? (
+                                                    <Repeat className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                                ) : loopRatesActive ? (
+                                                    <Gauge className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                                ) : (
+                                                    <Dumbbell className="w-3.5 h-3.5" />
+                                                )}
 
-                            {/* 自动暂停 */}
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => setAutoPause(!autoPause)}
-                                        className={`p-1 rounded-full transition-colors ${
-                                            autoPause
-                                                ? 'text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/60'
-                                                : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
-                                        }`}
+                                                {/* 复合详细状态 Badge */}
+                                                {loopTimesActive && activePlan ? (
+                                                    <span className="font-mono text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-1 py-0.5 rounded-sm">
+                                                        {activePlan.loopDone + 1}/{activePlan.loopTotal}
+                                                    </span>
+                                                ) : loopRatesActive && activePlan ? (
+                                                    <div className="flex items-center gap-0.5">
+                                                        <span className="font-mono text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/80 px-1 py-0.5 rounded-sm">
+                                                            {playbackRate}x
+                                                        </span>
+                                                        <span className="text-[9px] text-purple-600/70 dark:text-purple-400/70 font-mono">
+                                                            ({activePlan.loopDone + 1}/{activePlan.loopTotal})
+                                                        </span>
+                                                    </div>
+                                                ) : shadowing && shadowingPause ? (
+                                                    <span className="font-mono text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1 py-0.5 rounded-sm animate-pulse">
+                                                        {shadowSecondsLeft}s
+                                                    </span>
+                                                ) : trainingActive && (
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                )}
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        {singleRepeat
+                                            ? `训练模式：单句循环${formatShortcut(repeatShortcut)}`
+                                            : autoPause
+                                            ? `训练模式：句末自动暂停${formatShortcut(autoPauseShortcut)}`
+                                            : shadowing
+                                            ? `训练模式：影子跟读${shadowingPause ? ` (留白剩余 ${shadowSecondsLeft}s)` : ''}`
+                                            : loopTimesActive
+                                            ? `训练模式：每句重复 ×3 (第 ${(activePlan?.loopDone ?? 0) + 1}/${activePlan?.loopTotal ?? 3} 遍)`
+                                            : loopRatesActive
+                                            ? `训练模式：递进倍速精听 (当前 ${playbackRate}x，第 ${(activePlan?.loopDone ?? 0) + 1}/${activePlan?.loopTotal ?? 3} 遍)`
+                                            : trainingActive
+                                            ? '训练模式（已启用辅助行为）'
+                                            : '训练与精听模式'}
+                                    </TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent side="top" align="end" className="w-64">
+                                    <div className="flex items-center justify-between px-2 py-1.5">
+                                        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground p-0">
+                                            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                                            精听与训练模式
+                                        </DropdownMenuLabel>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSettingsOpen(true);
+                                            }}
+                                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-stone-200/60 dark:hover:bg-neutral-700/60 transition-colors"
+                                            title="参数设置"
+                                        >
+                                            <Settings2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <DropdownMenuSeparator />
+                                    {/* 句末行为（引擎层互斥：开启任一自动关闭其他） */}
+                                    <DropdownMenuCheckboxItem
+                                        checked={singleRepeat}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setSingleRepeat(!singleRepeat)}
+                                        className="text-xs cursor-pointer py-1.5"
                                     >
-                                        <CirclePause className="w-3.5 h-3.5" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">句末自动暂停{formatShortcut(autoPauseShortcut)}</TooltipContent>
-                            </Tooltip>
+                                        <div className="flex items-center gap-2">
+                                            <Repeat1 className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">单句循环</span>
+                                                {repeatShortcut && (
+                                                    <span className="text-[10px] text-muted-foreground leading-tight">快捷键 {repeatShortcut}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={autoPause}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setAutoPause(!autoPause)}
+                                        className="text-xs cursor-pointer py-1.5"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <CirclePause className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">句末自动暂停</span>
+                                                {autoPauseShortcut && (
+                                                    <span className="text-[10px] text-muted-foreground leading-tight">快捷键 {autoPauseShortcut}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={shadowing}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setShadowing(!shadowing)}
+                                        className="text-xs cursor-pointer py-1.5"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Mic className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">影子跟读</span>
+                                                <span className="text-[10px] text-muted-foreground leading-tight">
+                                                    句末留白 {trainingConfig.shadowingRatio.toFixed(1)}x 时长后自动下一句
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={loopTimesActive}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => {
+                                            playerActions.setSentenceLoop(loopTimesActive ? null : { times: trainingConfig.repeatTimes });
+                                        }}
+                                        className="text-xs cursor-pointer py-1.5"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Repeat className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">每句重复 ×{trainingConfig.repeatTimes}</span>
+                                                <span className="text-[10px] text-muted-foreground leading-tight">
+                                                    每句连续播放 {trainingConfig.repeatTimes} 遍后自动下一句
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={loopRatesActive}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => {
+                                            playerActions.setSentenceLoop(
+                                                loopRatesActive
+                                                    ? null
+                                                    : { times: trainingConfig.progressiveRates.length, rates: trainingConfig.progressiveRates }
+                                            );
+                                        }}
+                                        className="text-xs cursor-pointer py-1.5"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Gauge className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">递进倍速精听</span>
+                                                <span className="text-[10px] text-muted-foreground leading-tight">
+                                                    每句 {trainingConfig.progressiveRates.map((r) => `${r}x`).join(' → ')} 递进
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuSeparator />
+                                    {/* 辅助播放行为 */}
+                                    <DropdownMenuCheckboxItem
+                                        checked={skipGap}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setSkipGap(!skipGap)}
+                                        className="text-xs cursor-pointer py-1.5"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <FastForward className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">跳过句间空隙</span>
+                                                <span className="text-[10px] text-muted-foreground leading-tight">句末立即跳转到下一句开头</span>
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem
+                                        checked={rewindOnResume}
+                                        onSelect={(e) => e.preventDefault()}
+                                        onCheckedChange={() => setRewindOnResume(!rewindOnResume)}
+                                        className="text-xs cursor-pointer py-1.5"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <RotateCcw className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">暂停后回退句首</span>
+                                                <span className="text-[10px] text-muted-foreground leading-tight">继续播放时从当前句开头开始</span>
+                                            </div>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={() => setSettingsOpen(true)}
+                                        className="text-xs cursor-pointer py-1.5 flex items-center justify-between text-muted-foreground hover:text-foreground"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Settings2 className="w-3.5 h-3.5 text-stone-500" />
+                                            <span>自定义训练参数...</span>
+                                        </div>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
 
                             {/* 收藏当前句 */}
                             <Tooltip>
@@ -291,23 +510,51 @@ export default function MainSubtitle() {
                                 </Tooltip>
                             )}
 
-                            {/* 字幕轨道开关下拉菜单 */}
+                            {/* 字幕轨道开关下拉菜单（直观展示当前是双语/单英文/单中文/全关状态） */}
                             <DropdownMenu>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <DropdownMenuTrigger asChild>
                                             <button
-                                                className={`p-1 rounded-full transition-colors ${
+                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all text-[10px] font-medium leading-none ${
                                                     hasAnyTrack
-                                                        ? 'text-stone-900 dark:text-neutral-100 bg-stone-300/80 dark:bg-neutral-600'
+                                                        ? 'text-stone-900 dark:text-neutral-100 bg-stone-300/80 dark:bg-neutral-600 shadow-xs'
                                                         : 'text-stone-400 dark:text-neutral-500 hover:text-stone-700 dark:hover:text-neutral-300 hover:bg-stone-300/40 dark:hover:bg-neutral-700/40'
                                                 }`}
                                             >
                                                 <Languages className="w-3.5 h-3.5" />
+                                                {/* 轨道标签 Badge: 双语/英/中/隐藏 */}
+                                                {showEn && (showCn || showSourceZh) ? (
+                                                    <span className="font-sans text-[10px] font-semibold text-stone-700 dark:text-neutral-200">
+                                                        双语
+                                                    </span>
+                                                ) : showEn ? (
+                                                    <span className="font-sans text-[10px] font-semibold text-stone-700 dark:text-neutral-200">
+                                                        EN
+                                                    </span>
+                                                ) : showCn || showSourceZh ? (
+                                                    <span className="font-sans text-[10px] font-semibold text-stone-700 dark:text-neutral-200">
+                                                        中
+                                                    </span>
+                                                ) : (
+                                                    <span className="font-sans text-[10px] text-stone-400 dark:text-neutral-500">
+                                                        无
+                                                    </span>
+                                                )}
                                             </button>
                                         </DropdownMenuTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">{t('controlBox.subtitleTracks')}</TooltipContent>
+                                    <TooltipContent side="top" align="end">
+                                        {`字幕轨道: ${
+                                            showEn && (showCn || showSourceZh)
+                                                ? '双语显示'
+                                                : showEn
+                                                ? '仅显示英文'
+                                                : showCn || showSourceZh
+                                                ? '仅显示中文'
+                                                : '已全部隐藏'
+                                        }`}
+                                    </TooltipContent>
                                 </Tooltip>
                                 <DropdownMenuContent side="top" align="end" className="w-40">
                                     <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
@@ -340,101 +587,12 @@ export default function MainSubtitle() {
                                     </DropdownMenuCheckboxItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-
-                            {/* 训练模式（组合播放计划） */}
-                            <DropdownMenu>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild>
-                                            <button
-                                                className={`p-1 rounded-full transition-colors ${
-                                                    trainingActive
-                                                        ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-200/70 dark:bg-emerald-900/60'
-                                                        : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
-                                                }`}
-                                            >
-                                                <Dumbbell className="w-3.5 h-3.5" />
-                                            </button>
-                                        </DropdownMenuTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">训练模式</TooltipContent>
-                                </Tooltip>
-                                <DropdownMenuContent side="top" align="end" className="w-60">
-                                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
-                                        训练模式
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {/* 句末行为（引擎层互斥：开启任一自动关闭其他） */}
-                                    <DropdownMenuCheckboxItem
-                                        checked={singleRepeat}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setSingleRepeat(!singleRepeat)}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        单句循环
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        checked={autoPause}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setAutoPause(!autoPause)}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        句末自动暂停
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        checked={shadowing}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setShadowing(!shadowing)}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        影子跟读（句末留白自动下一句）
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        checked={loopTimesActive}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => { playerActions.setSentenceLoop(loopTimesActive ? null : { times: 3 }); }}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        每句 ×3 后下一句
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        checked={loopRatesActive}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => { playerActions.setSentenceLoop(loopRatesActive ? null : { times: 3, rates: [0.75, 1, 1.25] }); }}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        递进倍速精听（0.75→1.0→1.25）
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        onClick={() => { playerActions.randomJump(); }}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        <Shuffle className="w-3.5 h-3.5" />
-                                        随机跳一句
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuCheckboxItem
-                                        checked={skipGap}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setSkipGap(!skipGap)}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        跳过句间空隙
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        checked={rewindOnResume}
-                                        onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setRewindOnResume(!rewindOnResume)}
-                                        className="text-xs cursor-pointer"
-                                    >
-                                        暂停后回退句首
-                                    </DropdownMenuCheckboxItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
                         </TooltipProvider>
                     </div>
                 </div>
+
+                {/* 训练模式参数配置弹窗 */}
+                <TrainingSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
             </div>
         );
     };

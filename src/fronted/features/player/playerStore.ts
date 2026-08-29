@@ -8,6 +8,7 @@ import StrUtil from '@/common/utils/str-util';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import usePlayerToaster from '@/fronted/features/player/playerToasterStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
+import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
 
 /**
@@ -132,10 +133,14 @@ interface PlayerState {
   skipGap: boolean;
   /** 影子跟读：句末暂停留白（时长按本句时长自适应），随后自动下一句。 */
   shadowing: boolean;
+  /** 影子跟读留白暂停状态（若在留白倒计时中，包含总时长与结束时间戳，用于 UI 倒计时环等展现） */
+  shadowingPause: { durationMs: number; untilTs: number } | null;
   /** 暂停后恢复播放时回退到当前句开头（若已进入本句超过 0.3s）。 */
   rewindOnResume: boolean;
   /** 常开的逐句循环模式：每句连播 N 遍后自动下一句（rates 为每遍倍速表）；null 表示关闭。 */
   sentenceLoop: { times: number; rates?: number[]; prevRate: number } | null;
+  /** 当前进行中的计划状态（已完成遍数、总遍数、每遍倍速等，供 UI 展示精细进度） */
+  activePlan: { loopDone: number; loopTotal: number; rates?: number[] } | null;
 
   // 字幕
   srtTender: SrtTender<Sentence> | null;
@@ -181,8 +186,6 @@ interface PlayerState {
   setRewindOnResume: (v: boolean) => void;
   /** 开启/关闭常开逐句循环模式（每句 ×N 后自动下一句）；传 null 关闭并恢复倍速。 */
   setSentenceLoop: (config: { times: number; rates?: number[] } | null) => void;
-  /** 随机跳到一句字幕（避开当前句）。 */
-  randomJump: () => void;
 
   // 时间同步
   updateExactPlayTime: (currentTime: number) => void;
@@ -310,6 +313,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
       clearTimeout(shadowTimer);
       shadowTimer = null;
     }
+    if (get().shadowingPause) {
+      set({ shadowingPause: null });
+    }
   };
 
   /**
@@ -322,7 +328,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
     if (restoreRate && plan.prevRate !== get().playbackRate) {
       set({ playbackRate: plan.prevRate });
     }
-    set((prev) => ({ internal: { ...prev.internal, transientPlan: null } }));
+    set((prev) => ({
+      activePlan: null,
+      internal: { ...prev.internal, transientPlan: null }
+    }));
   };
 
   /**
@@ -533,7 +542,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
         const done = transientPlan.loopDone + 1;
         if (done >= transientPlan.loopTotal) {
           // 本句计划完成：常开模式为下一句续开一轮（nextSentence 已定位到下一句开头），否则恢复倍速
-          set((prev) => ({ internal: { ...prev.internal, transientPlan: null } }));
+          set((prev) => ({
+            activePlan: null,
+            internal: { ...prev.internal, transientPlan: null }
+          }));
           get().nextSentence();
           if (sentenceLoop) {
             beginSentencePlan(sentenceLoop, false);
@@ -542,6 +554,11 @@ export const usePlayer = create<PlayerState>((set, get) => {
           }
         } else {
           set((prev) => ({
+            activePlan: {
+              loopDone: done,
+              loopTotal: transientPlan.loopTotal,
+              rates: transientPlan.rates
+            },
             internal: { ...prev.internal, transientPlan: { ...transientPlan, loopDone: done } }
           }));
           const plan = get().internal.transientPlan;
@@ -603,12 +620,15 @@ export const usePlayer = create<PlayerState>((set, get) => {
           // 影子跟读：原地停在句尾暂停留白（供跟读），留白结束后再跳下一句续播
           state.pause();
           clearShadowTimer();
-          // 留白时长按本句时长 ×1.5（留足跟读一遍的时间），钳制在 1~10s
-          const pauseMs = Math.min(Math.max((end - start) * 1500, 1000), 10000);
+          // 留白时长按本句时长 × 留白倍率（默认 1.5），钳制在 0.5~15s
+          const ratio = useTrainingModeStore.getState().config.shadowingRatio || 1.5;
+          const pauseMs = Math.min(Math.max((end - start) * ratio * 1000, 500), 15000);
+          set({ shadowingPause: { durationMs: pauseMs, untilTs: Date.now() + pauseMs } });
           // 暂停生效前播放头可能滑入下一句区间并触发一次时间回写，把高亮锁到留白结束以防字幕提前跳句
           activateCurrentLock(currentSentence, pauseMs + 1500);
           shadowTimer = setTimeout(() => {
             shadowTimer = null;
+            set({ shadowingPause: null });
             const s = get();
             if (s.shadowing && !s.playing) {
               // 仍处于留白暂停：跳到下一句开头并继续播放
@@ -680,6 +700,11 @@ export const usePlayer = create<PlayerState>((set, get) => {
     }
 
     set((prev) => ({
+      activePlan: {
+        loopDone: 0,
+        loopTotal: mode.times,
+        rates: mode.rates
+      },
       internal: { ...prev.internal, transientPlan: {
         anchorKey: sentenceKey(anchor),
         anchor,
@@ -738,8 +763,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
     skipGap: false,
     shadowing: false,
+    shadowingPause: null,
     rewindOnResume: false,
     sentenceLoop: null,
+    activePlan: null,
 
     srtTender: null,
     sentences: [],
@@ -773,6 +800,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
         duration: 0,
         seekTime: { time: 0 },
         playRequestId: 0,
+        shadowingPause: null,
+        activePlan: null,
         virtualGroup: { active: false, sentences: [] },
         internal: {
           exactPlayTime: 0,
@@ -826,6 +855,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
         srtTender: null,
         sentences: [],
         currentSentence: null,
+        shadowingPause: null,
+        activePlan: null,
         virtualGroup: { active: false, sentences: [] },
         internal: {
           ...prev.internal,
@@ -993,28 +1024,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const prevRate = get().sentenceLoop?.prevRate ?? get().playbackRate;
       set({ sentenceLoop: { times: config.times, rates: config.rates, prevRate }, singleRepeat: false, autoPause: false, shadowing: false });
       beginSentencePlan(get().sentenceLoop!, true);
-    },
-
-    /**
-     * 随机跳到一句字幕（避开当前聚焦句；单句字幕时直接回到该句）。
-     */
-    randomJump: () => {
-      const state = get();
-      const count = state.getSentenceCount();
-      if (count <= 0) return;
-      if (count === 1) {
-        state.gotoSentenceIndex(state.sentences[0]?.index ?? 0);
-        return;
-      }
-      const focusIdx = state.getFocusedIndex();
-      let pos = Math.floor(Math.random() * count);
-      if (pos === focusIdx) {
-        pos = (pos + 1) % count;
-      }
-      const target = state.sentences[pos];
-      if (target) {
-        state.gotoSentenceIndex(target.index);
-      }
     },
 
     // 时间同步

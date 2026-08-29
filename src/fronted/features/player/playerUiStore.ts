@@ -1,7 +1,9 @@
 /**
  * 管理播放器字幕展示偏好，例如中英显示、侧栏联动和逐词模式。
+ * 使用 persist 中间件自动持久化到本地浏览器 localStorage。
  */
 import { create } from 'zustand';
+import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 type PlayerUiState = {
@@ -21,20 +23,27 @@ type PlayerUiActions = {
   changeShowWordLevel: () => void;
 };
 
-export const usePlayerUi = create<PlayerUiState & PlayerUiActions>((set) => ({
-  showEn: true,
-  showCn: true,
-  showSourceZh: true,
-  syncSide: false,
-  showWordLevel: false,
+export const usePlayerUi = create(
+  persist(
+    subscribeWithSelector<PlayerUiState & PlayerUiActions>((set) => ({
+      showEn: true,
+      showCn: true,
+      showSourceZh: true,
+      syncSide: false,
+      showWordLevel: false,
 
-  changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
-  changeShowCn: () => set((s) => ({ showCn: !s.showCn })),
-  changeShowSourceZh: () => set((s) => ({ showSourceZh: !s.showSourceZh })),
-  changeShowEnCn: () => set((s) => ({ showEn: !s.showEn, showCn: !s.showEn })),
-  changeSyncSide: () => set((s) => ({ syncSide: !s.syncSide })),
-  changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
-}));
+      changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
+      changeShowCn: () => set((s) => ({ showCn: !s.showCn })),
+      changeShowSourceZh: () => set((s) => ({ showSourceZh: !s.showSourceZh })),
+      changeShowEnCn: () => set((s) => ({ showEn: !s.showEn, showCn: !s.showEn })),
+      changeSyncSide: () => set((s) => ({ syncSide: !s.syncSide })),
+      changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
+    })),
+    {
+      name: 'dash-player-subtitle-tracks',
+    }
+  )
+);
 
 const playerUiStore = usePlayerUi;
 

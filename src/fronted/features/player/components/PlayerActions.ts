@@ -60,8 +60,6 @@ export class PlayerActions {
    * @param config 遍数与每遍倍速表；传 null 关闭并恢复倍速
    */
   setSentenceLoop(config: { times: number; rates?: number[] } | null) { this.s.setSentenceLoop(config); }
-  /** 随机跳到一句字幕（避开当前句）。 */
-  randomJump() { this.s.randomJump(); }
 
   /**
    * 高频：updateExactPlayTime
