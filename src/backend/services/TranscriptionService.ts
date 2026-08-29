@@ -150,14 +150,26 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         progress: number,
         result?: TranscriptTaskResult,
     ): Promise<void> {
-        const finalResult = { ...result };
+        const finalResult: TranscriptTaskResult = { ...result };
         if (status === TranscriptTaskState.INIT) {
             this.transcriptionStartedAt.set(filePath, Date.now());
-            finalResult.message = `${progress}%（0秒）`;
+            if (!finalResult.phase) {
+                finalResult.phase = 'preparing';
+            }
+            if (!finalResult.message) {
+                finalResult.message = '预处理中';
+            }
         } else if (status === TranscriptTaskState.IN_PROGRESS) {
             const startedAt = this.transcriptionStartedAt.get(filePath);
             const elapsedSeconds = startedAt === undefined ? 0 : Math.floor((Date.now() - startedAt) / 1000);
-            finalResult.message = `${progress}%（${elapsedSeconds}秒）`;
+            if (finalResult.phase === 'preparing') {
+                finalResult.message = `预处理中（${elapsedSeconds}秒）`;
+            } else if (finalResult.phase === 'finishing') {
+                finalResult.message = `整理字幕中（${elapsedSeconds}秒）`;
+            } else {
+                finalResult.phase = 'generating';
+                finalResult.message = `${progress}%（${elapsedSeconds}秒）`;
+            }
         } else {
             this.transcriptionStartedAt.delete(filePath);
         }
@@ -363,7 +375,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
         const { filePath, tempFolder, signal } = opts;
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
-        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 10, { message: '正在切分长音频...' });
+        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
         if (signal.aborted) throw new Error('Transcription cancelled by user');
         const duration = await this.ffmpegService.duration(filePath);
         if (!Number.isFinite(duration) || duration <= 0) throw new Error(`无法读取音频时长：${duration}`);
@@ -380,7 +392,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             ranges,
             outputFolder: tempFolder,
         });
-        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 35);
+        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
 
         const chunkTimelines: SpeechRecognitionToken[][] = Array.from({ length: wavPaths.length }, () => []);
         const session = this.sessions.get(filePath);
@@ -389,12 +401,17 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const distance = (index: number) => ranges[index].end <= position ? Number.MAX_SAFE_INTEGER : Math.abs(ranges[index].start - position);
             return distance(a) - distance(b);
         });
-        for (let processed = 0; processed < order.length; processed++) {
+        const totalChunks = order.length;
+        for (let processed = 0; processed < totalChunks; processed++) {
             const index = order[processed];
             if (signal.aborted) throw new Error('Transcription cancelled by user');
-            // 进度从 35% 起步，覆盖到 100%，并留出整理字幕的最后一步。
-            const progress = Math.min(90, 35 + Math.floor(processed / Math.max(order.length, 1) * 55));
-            await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
+            // 真实的生成进度百分比：从 0% 到 99%
+            const progress = Math.min(99, Math.floor((processed / Math.max(totalChunks, 1)) * 100));
+            await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress, {
+                phase: 'generating',
+                currentChunk: processed,
+                totalChunks,
+            });
             const offset = ranges[index].start;
             const result = await this.transcribeChunkWithRetry({
                 wavPath: wavPaths[index],
@@ -418,7 +435,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             }
         }
         if (signal.aborted) throw new Error('Transcription cancelled by user');
-        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 95, { message: '整理字幕文件...' });
+        await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 100, { phase: 'finishing' });
         const lines = this.subtitleSegmenter.segment(
             chunkTimelines,
             ranges.map((range) => range.start),

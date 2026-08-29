@@ -49,8 +49,11 @@
     "transcript": {
         "button": "生成字幕",
         "modelMissing": "需要先下载字幕模型，请前往“设置中心 > 服务凭据”下载",
-        "statusInit": "初始化中...",
-        "statusInProgress": "字幕转录中...",
+        "statusInit": "准备中...",
+        "statusPreparing": "预处理中...",
+        "statusGenerating": "生成字幕 {{progress}}%",
+        "statusFinishing": "整理中...",
+        "statusInProgress": "生成中...",
         "tooltipTitle": "生成字幕",
         "tooltipBody": "使用 AI 为当前视频自动生成字幕。字幕文件将保存在视频同级目录，并在完成后自动载入。",
         "noVideoSelected": "请先选择一个视频文件",

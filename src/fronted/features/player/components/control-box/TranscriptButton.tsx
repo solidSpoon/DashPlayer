@@ -53,7 +53,20 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       case 'init':
         return t('transcript.statusInit');
       case 'in_progress': {
-        const message = currentVideoTask.result?.message || t('transcript.statusInProgress');
+        const result = currentVideoTask.result;
+        if (result?.phase === 'preparing') {
+          return t('transcript.statusPreparing');
+        }
+        if (result?.phase === 'finishing') {
+          return t('transcript.statusFinishing');
+        }
+        if (result?.phase === 'generating') {
+          if (typeof result.currentChunk === 'number' && typeof result.totalChunks === 'number' && result.totalChunks > 0) {
+            const percent = Math.min(99, Math.floor((result.currentChunk / result.totalChunks) * 100));
+            return t('transcript.statusGenerating', { progress: percent });
+          }
+        }
+        const message = result?.message || t('transcript.statusInProgress');
         return message.length > 10 ? message.substring(0, 10) + '...' : message;
       }
       case 'done':

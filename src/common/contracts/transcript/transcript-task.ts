@@ -11,8 +11,16 @@ export enum TranscriptTaskState {
     FAILED = 'failed',
 }
 
+/** 转录阶段枚举 */
+export type TranscriptPhase = 'preparing' | 'generating' | 'finishing';
+
 /** 转录任务的展示结果，各字段按状态可选出现。 */
 export interface TranscriptTaskResult {
+    /** 当前阶段：'preparing' 预处理中, 'generating' 字幕生成中, 'finishing' 正在整理字幕 */
+    phase?: TranscriptPhase;
+    /** 生成阶段的当前完成分块数/总数或生成进度 */
+    currentChunk?: number;
+    totalChunks?: number;
     /** 面向用户的状态说明，如进度百分比与累计秒数。 */
     message?: string;
     /** 失败时的错误信息。 */

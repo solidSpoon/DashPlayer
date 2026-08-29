@@ -49,8 +49,11 @@
     "transcript": {
         "button": "Generate subtitles",
         "modelMissing": "Please download the subtitle model first in Settings Center > Service Credentials.",
-        "statusInit": "Initializing...",
-        "statusInProgress": "Transcribing...",
+        "statusInit": "Preparing...",
+        "statusPreparing": "Preprocessing...",
+        "statusGenerating": "Generating {{progress}}%",
+        "statusFinishing": "Finishing...",
+        "statusInProgress": "Generating...",
         "tooltipTitle": "Generate subtitles",
         "tooltipBody": "Automatically generate subtitles using AI. Subtitles will be saved in the video folder and loaded automatically.",
         "noVideoSelected": "Please select a video file first.",
