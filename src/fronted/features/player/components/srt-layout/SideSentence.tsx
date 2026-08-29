@@ -42,7 +42,7 @@ const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) 
                 <TooltipTrigger asChild>
                     {children}
                 </TooltipTrigger>
-                <TooltipContent side="left" className="text-xs">
+                <TooltipContent side="top" sideOffset={4} className="text-xs">
                     {tip}
                 </TooltipContent>
             </Tooltip>
@@ -76,9 +76,6 @@ const PausedIcon = () => (
         </div>
     </IconTip>
 );
-
-const CARD_SPACING_PX = 6;
-const CARD_RADIUS_PX = 12;
 
 /**
  * 渲染侧边字幕条目（实体卡片流设计：实色卡片、清晰层次与高亮聚焦）。
@@ -146,7 +143,7 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                             className={cn(
                                 'underline decoration-dotted underline-offset-[0.2em] transition-colors',
                                 isCurrent
-                                    ? 'font-medium decoration-stone-900/60 dark:decoration-white/70'
+                                    ? 'decoration-stone-900/60 dark:decoration-white/70'
                                     : 'decoration-stone-400/50 dark:decoration-neutral-500/50'
                             )}
                         >
@@ -158,7 +155,8 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             });
         };
 
-        // 计算选区形态：自然合并卡片（顶部卡片保留上圆角、底部保留下圆角，中间无圆角无缝连接）
+        // 计算选区形态与合并卡片质感
+        // 注意：四周 1px 边框必须永远保留（不可用 border-b-0 / border-t-0），否则 box-sizing 会让高度少 1~2px 造成内部文字跳动！
         const selectionClass = React.useMemo(() => {
             if (!selectionState?.isMember) {
                 return '';
@@ -170,17 +168,17 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             ];
 
             if (selectionState.isGroupStart && selectionState.isGroupEnd) {
-                // 单个选中（完整卡片）
-                classes.push('rounded-xl border');
+                // 单个选中（完整圆角）
+                classes.push('rounded-xl');
             } else if (selectionState.isGroupStart) {
-                // 选区头部：保留上圆角，下边距贴合，移除下边框和下圆角
-                classes.push('rounded-t-xl rounded-b-none border-t border-x border-b-0 mb-0 shadow-none');
+                // 选区头部：保留上圆角，下方直角，下边框颜色融入底色（不改边框宽度）
+                classes.push('rounded-t-xl rounded-b-none border-b-transparent');
             } else if (selectionState.isGroupEnd) {
-                // 选区尾部：保留下圆角，上边距贴合，移除上边框和上圆角
-                classes.push('rounded-b-xl rounded-t-none border-b border-x border-t-0 mt-0');
+                // 选区尾部：保留下圆角，上方直角，上边框颜色融入底色（不改边框宽度）
+                classes.push('rounded-b-xl rounded-t-none border-t-transparent');
             } else {
-                // 选区中间成员：完全无缝，直角，移除上下边框与上下外边距
-                classes.push('rounded-none border-x border-t-0 border-b-0 my-0 shadow-none');
+                // 选区中间成员：上下直角，上下边框颜色融入底色（不改边框宽度）
+                classes.push('rounded-none border-y-transparent');
             }
             return classes.join(' ');
         }, [selectionState]);
@@ -189,12 +187,9 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
-                    // 外边距：上下与左侧保持一致(1.5 = 6px)，右侧完全去除外边距(mr-0)
-                    'group relative my-1.5 ml-1.5 mr-0 px-3.5 py-3 flex items-start gap-3 cursor-pointer select-none border transition-colors duration-150',
-                    !selectionState?.isMember && 'rounded-xl',
-                    // 卡片色调：
-                    // 默认卡片：微暗石色，极淡边框
-                    // 激活卡片：平稳温润白色，边框微亮，不改变任何内边距或文本大小
+                    // 外边距与内边距保持绝对恒定，四个方向 1px 边框始终存在，高度与定位 100% 绝对静止
+                    'group relative my-1.5 ml-1.5 mr-0 pl-3.5 pr-2.5 py-3 rounded-xl flex items-start gap-2.5 cursor-pointer select-none border transition-colors duration-150',
+                    // 卡片色调（激活与非激活仅通过底色与边框区分，无尺寸、无字体缩放）：
                     !selectionState?.isMember && (
                         isCurrent
                             ? 'bg-white dark:bg-neutral-800 border-stone-400/60 dark:border-neutral-650 shadow-sm text-stone-900 dark:text-neutral-100'
@@ -213,19 +208,30 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 }}
                 ref={ref}
             >
-                {/* 选区内分割线（非末尾句提供细腻的内部分割线，呈现合并卡片的自然分行） */}
+                {/* 选区卡片之间的向下无缝连接桥（my-1.5 为 6px，上下两张卡片间距刚好是 12px，高度填满 14px 覆盖上下接缝） */}
                 {selectionState?.isMember && !selectionState.isGroupEnd && (
-                    <div aria-hidden className="absolute bottom-0 left-3 right-3 h-[1px] bg-stone-200/80 dark:bg-neutral-700/80 pointer-events-none" />
+                    <div
+                        aria-hidden="true"
+                        className="absolute -bottom-[13px] -left-[1px] -right-[1px] h-[14px] bg-stone-50 dark:bg-neutral-800 border-l border-r border-stone-400/80 dark:border-neutral-600 z-0 pointer-events-none"
+                    />
                 )}
 
-                {/* 收藏句右上角精致书签标记 */}
+                {/* 选区内句间分割线 */}
+                {selectionState?.isMember && !selectionState.isGroupEnd && (
+                    <div
+                        aria-hidden="true"
+                        className="absolute -bottom-[6px] left-4 right-4 h-[1px] bg-stone-200/90 dark:bg-neutral-700/90 z-[1] pointer-events-none"
+                    />
+                )}
+
+                {/* 收藏句右上角精致书签标记（绝对定位，不影响文本排版） */}
                 {isFavourite && (
-                    <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
+                    <div className="absolute top-2.5 right-2 z-20 pointer-events-none">
                         <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 opacity-90 drop-shadow-xs" />
                     </div>
                 )}
 
-                {/* 左侧状态指示器：固定尺寸与位置 */}
+                {/* 左上角状态指示器：固定 4x4 占位布局，通过透明度显隐，绝对不挤压文字 */}
                 <div
                     className={cn(
                         'relative z-10 flex items-center justify-center w-4 h-4 shrink-0 mt-0.5 transition-opacity duration-200',
@@ -235,32 +241,31 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                     {renderStatusIcon()}
                 </div>
 
-                {/* 文本内容区：固定对齐、层级主次清晰 */}
+                {/* 文本内容区：水平居中对齐 */}
                 <motion.div
                     className={cn(
-                        'relative z-10 flex-1 min-w-0 flex flex-col text-left transition-opacity duration-300',
-                        isFavourite && 'pr-4',
+                        'relative z-10 flex-1 min-w-0 flex flex-col items-center justify-center text-center transition-opacity duration-300',
                         hover || show ? 'opacity-100' : 'opacity-0'
                     )}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: hover || show ? 1 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {/* 英文主句：更显眼清晰，适度放大，激活与非激活字体大小严格一致 */}
+                    {/* 英文主句：激活与非激活字体大小、字重严格恒定(font-normal)，仅通过颜色加深，字符宽度100%不变，绝无换行跳动 */}
                     <div className={cn(
-                        'leading-snug transition-colors tracking-normal',
+                        'w-full leading-snug transition-colors tracking-normal text-center font-normal',
                         fontSize === 'fontSizeSmall' ? 'text-sm' : 'text-[15.5px]',
                         isCurrent
-                            ? 'text-stone-950 dark:text-white font-medium'
-                            : 'text-stone-800 dark:text-neutral-200 group-hover:text-stone-950 dark:group-hover:text-white font-normal'
+                            ? 'text-stone-950 dark:text-white'
+                            : 'text-stone-700 dark:text-neutral-300 group-hover:text-stone-950 dark:group-hover:text-white'
                     )}>
                         {renderHighlightedText(primaryText)}
                     </div>
 
-                    {/* 中文译文：弱化对比度，不抢占视觉中心 */}
+                    {/* 中文译文：水平居中，激活与非激活字体大小严格一致 */}
                     {secondaryText && (
                         <div className={cn(
-                            'mt-1.5 leading-normal transition-colors font-normal',
+                            'w-full mt-1.5 leading-normal transition-colors font-normal text-center',
                             fontSize === 'fontSizeSmall' ? 'text-xs' : 'text-[12.5px]',
                             isCurrent
                                 ? 'text-stone-400 dark:text-neutral-500'
