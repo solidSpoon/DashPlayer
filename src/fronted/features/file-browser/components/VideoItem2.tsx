@@ -54,12 +54,13 @@ const VideoItem2 = ({ pv, variant = 'normal', ctxMenus, onClick }: {
         }
     );
 
-    React.useEffect(() => {
-        window.setTimeout(() => {
-            setThumbnailReady(false);
-            setThumbnailError(false);
-        }, 0);
-    }, [thumbnail]);
+    // 缩略图路径变化时同步重置加载状态，避免 setTimeout 与 onLoad 的竞态导致图片透明
+    const [lastThumbnail, setLastThumbnail] = React.useState(thumbnail);
+    if (thumbnail !== lastThumbnail) {
+        setLastThumbnail(thumbnail);
+        setThumbnailReady(false);
+        setThumbnailError(false);
+    }
 
     const progress = pv?.duration ? Math.min(100, Math.floor(((pv?.current_position ?? 0) / pv.duration) * 100)) : 0;
     const actionButtons = ctxMenus?.length ? ctxMenus : [];
