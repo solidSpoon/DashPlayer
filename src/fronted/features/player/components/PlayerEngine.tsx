@@ -364,6 +364,11 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
           networkState: errVideo?.networkState,
           src: src
         });
+        // 解码失败或格式不支持才上报给播放状态：中止/网络类错误不属于兼容性问题
+        const code = mediaError?.code;
+        if (code === MediaError.MEDIA_ERR_DECODE || code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+          usePlayer.getState().reportMediaError(code);
+        }
       }}
       onBuffer={() => {
         logger.debug('media buffering');

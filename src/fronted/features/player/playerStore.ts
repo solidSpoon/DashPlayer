@@ -124,6 +124,8 @@ interface PlayerState {
 
   /** 播放请求计数：每次显式请求播放 +1，供 PlayerEngine 强制执行原生 play()；source 级计数，切换源时重置。 */
   playRequestId: number;
+  /** 最近一次"解码失败/格式不支持"类媒体错误码（MediaError code）；切换源时重置，null 表示无此类错误。 */
+  mediaErrorCode: number | null;
 
   // 模式
   autoPause: boolean;
@@ -164,6 +166,12 @@ interface PlayerState {
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
+
+  /**
+   * 上报"解码失败/格式不支持"类媒体错误（由 PlayerEngine 调用）。
+   * @param code MediaError 错误码
+   */
+  reportMediaError: (code: number) => void;
 
   // 基础 seek（保留）：按时间立即匹配高亮（用于进度条等）
   seekTo: (seekTime: SeekAction) => void;
@@ -800,6 +808,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     playbackRate: 1,
     seekTime: { time: 0 },
     playRequestId: 0,
+    mediaErrorCode: null,
 
     autoPause: false,
     singleRepeat: false,
@@ -845,6 +854,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         duration: 0,
         seekTime: { time: 0 },
         playRequestId: 0,
+        mediaErrorCode: null,
         shadowingPause: null,
         activePlan: null,
         virtualGroup: { active: false, sentences: [] },
@@ -939,6 +949,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
         set({ playing: false });
       }
     },
+
+    // 相同错误码重复上报时值不变，订阅方不会重复触发
+    reportMediaError: (code) => set({ mediaErrorCode: code }),
 
     /**
      * 基础 seek：按时间匹配高亮，用于进度条拖动等通用场景。

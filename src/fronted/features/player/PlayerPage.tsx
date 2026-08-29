@@ -1,5 +1,5 @@
 import {AnimatePresence} from 'framer-motion';
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
 import {cn} from '@/fronted/lib/utils';
@@ -26,10 +26,22 @@ import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSubtitleTranslation from '@/fronted/features/player/translationStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
+import { usePlayer } from '@/fronted/features/player/playerStore';
 
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
 const COMPAT_TOAST_ID = 'compat-playback-toast';
+// 疑似播放器不支持的音频编码：命中时视频可能"能播但无声"（DTS 可能显示为 dts/dca，TrueHD 可能显示为 truehd/mlp）
+const SUSPICIOUS_AUDIO_CODECS = new Set([
+    'dts',
+    'dca',
+    'truehd',
+    'mlp',
+    'eac3',
+    'ac3',
+    'opus',
+    'vorbis',
+]);
 const PlayerWithControlsPage = () => {
     const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
@@ -56,7 +68,34 @@ const PlayerWithControlsPage = () => {
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
     const windowButtonsVisibleRef = useRef<boolean | null>(null);
+    // 兼容性提示去重：key 形如 `${场景}:${视频路径}`，同场景同文件只提示一次
     const compatToastShownRef = useRef<Set<string>>(new Set());
+    const mediaErrorCode = usePlayer((s) => s.mediaErrorCode);
+    /**
+     * 弹出兼容性引导 toast（按"场景+文件"去重），按钮会把视频加入待转换列表并跳转转码页。
+     * @param kind audio=疑似无声预检；playback=实际播放失败
+     * @param videoPath 视频绝对路径
+     */
+    const showCompatToast = useCallback((kind: 'audio' | 'playback', videoPath: string) => {
+        const key = `${kind}:${videoPath}`;
+        if (compatToastShownRef.current.has(key)) {
+            return;
+        }
+        compatToastShownRef.current.add(key);
+        sonnerToast(kind === 'audio' ? t('compatToastAudioTitle') : t('compatToastErrorTitle'), {
+            id: COMPAT_TOAST_ID,
+            description: kind === 'audio' ? t('compatToastAudioDescription') : t('compatToastErrorDescription'),
+            duration: 8000,
+            position: 'top-right',
+            action: {
+                label: t('compatToastAction'),
+                onClick: () => {
+                    useConvert.getState().addFiles([videoPath]);
+                    navigate('/convert');
+                },
+            },
+        });
+    }, [navigate, t]);
     useEffect(() => {
         if (!isMac) {
             return;
@@ -147,12 +186,14 @@ const PlayerWithControlsPage = () => {
                 useFile.getState().updateFile(videoPath);
             }
 
+            // 音频兼容预检：音频编码可疑时视频会"能播但无声"，播放错误检测发现不了，只能提前探测
             setTimeout(() => {
                 (async () => {
-                    if (!videoPath || compatToastShownRef.current.has(videoPath)) {
+                    if (!videoPath || compatToastShownRef.current.has(`probed:${videoPath}`)) {
                         return;
                     }
-                    compatToastShownRef.current.add(videoPath);
+                    // 先登记再探测，保证会话内每个文件只探测一次
+                    compatToastShownRef.current.add(`probed:${videoPath}`);
                     try {
                         const suggested = await playerApi.suggestHtml5Video(videoPath);
                         if (suggested) {
@@ -160,31 +201,10 @@ const PlayerWithControlsPage = () => {
                         }
                         const info = await playerApi.getMediaInfo(videoPath);
                         const audioCodec = (info?.audioCodec ?? '').toLowerCase();
-                        const suspiciousAudioCodecs = new Set([
-                            'dts',
-                            'dca',
-                            'truehd',
-                            'mlp',
-                            'eac3',
-                            'ac3',
-                            'opus',
-                            'vorbis',
-                        ]);
-                        if (audioCodec.length > 0 && !suspiciousAudioCodecs.has(audioCodec)) {
+                        if (audioCodec.length > 0 && !SUSPICIOUS_AUDIO_CODECS.has(audioCodec)) {
                             return;
                         }
-                        sonnerToast(t('compatToastTitle'), {
-                            id: COMPAT_TOAST_ID,
-                            duration: 6000,
-                            position: 'top-right',
-                            action: {
-                                label: t('compatToastAction'),
-                                onClick: () => {
-                                    useConvert.getState().addFiles([videoPath]);
-                                    navigate('/convert');
-                                },
-                            },
-                        });
+                        showCompatToast('audio', videoPath);
                     } catch (error) {
                         logger.debug('compat probe failed', { error: error instanceof Error ? error.message : String(error) });
                     }
@@ -247,7 +267,18 @@ const PlayerWithControlsPage = () => {
             }
         };
         runEffect();
-    }, [video, navigate, t]);
+    }, [video, showCompatToast]);
+    useEffect(() => {
+        // 乐观播放：真的播不了（解码失败/格式不支持）时才提示转换
+        if (!video || mediaErrorCode === null) {
+            return;
+        }
+        const videoPath = PathUtil.join(video.basePath, video.fileName);
+        if (!videoPath) {
+            return;
+        }
+        showCompatToast('playback', videoPath);
+    }, [video, mediaErrorCode, showCompatToast]);
     useEffect(() => {
         let cancelled = false;
 

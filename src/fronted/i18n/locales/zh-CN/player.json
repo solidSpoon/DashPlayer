@@ -1,6 +1,9 @@
 {
-    "compatToastTitle": "该视频可能在播放器中无声",
-    "compatToastAction": "生成兼容版本",
+    "compatToastAudioTitle": "该视频可能没有声音",
+    "compatToastAudioDescription": "它的音频格式可能不被播放器支持，转换一下就能正常出声了。",
+    "compatToastErrorTitle": "该视频无法正常播放",
+    "compatToastErrorDescription": "它的格式可能不被播放器支持，转换一下就能正常播放了。",
+    "compatToastAction": "去转换",
     "emptyState": {
         "heroTitle": "开启英语学习之旅",
         "heroDescription": "选择视频，通过双语字幕和智能学习工具提升英语水平。",

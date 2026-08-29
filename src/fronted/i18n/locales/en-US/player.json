@@ -1,6 +1,9 @@
 {
-    "compatToastTitle": "This video may play without audio in the current player.",
-    "compatToastAction": "Generate compatible version",
+    "compatToastAudioTitle": "This video may play without sound",
+    "compatToastAudioDescription": "Its audio format may not be supported by the player. Converting it should fix this.",
+    "compatToastErrorTitle": "This video can't play properly",
+    "compatToastErrorDescription": "Its format may not be supported by the player. Converting it should fix this.",
+    "compatToastAction": "Convert",
     "emptyState": {
         "heroTitle": "Start your English learning journey",
         "heroDescription": "Pick a video and improve your English with bilingual subtitles and smart learning tools.",
