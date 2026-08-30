@@ -134,14 +134,10 @@ interface PlayerState {
   autoPlayNext: boolean;
 
   // 训练模式（组合播放行为）
-  /** 正常连播时跳过句间空隙：越过当前句结尾后直接 seek 到下一句开头。 */
-  skipGap: boolean;
   /** 影子跟读：句末暂停留白（时长按本句时长自适应），留白结束后按"跳过句间空隙"开关直跳下一句或自然过渡。 */
   shadowing: boolean;
   /** 影子跟读留白暂停状态（若在留白倒计时中，包含总时长与结束时间戳，用于 UI 倒计时环等展现） */
   shadowingPause: { durationMs: number; untilTs: number } | null;
-  /** 暂停后恢复播放时回退到当前句开头（若已进入本句超过 0.3s）。 */
-  rewindOnResume: boolean;
   /** 常开的逐句循环模式：每句连播 N 遍后自动下一句（rates 为每遍倍速表）；null 表示关闭。 */
   sentenceLoop: { times: number; rates?: number[]; prevRate: number } | null;
   /** 当前进行中的计划状态（已完成遍数、总遍数、每遍倍速等，供 UI 展示精细进度） */
@@ -195,9 +191,7 @@ interface PlayerState {
   setAutoPlayNext: (v: boolean) => void;
 
   // 训练模式控制
-  setSkipGap: (v: boolean) => void;
   setShadowing: (v: boolean) => void;
-  setRewindOnResume: (v: boolean) => void;
   /** 开启/关闭常开逐句循环模式（每句 ×N 后自动下一句）；传 null 关闭并恢复倍速。 */
   setSentenceLoop: (config: { times: number; rates?: number[] } | null) => void;
 
@@ -518,7 +512,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
   // 时间驱动：尾部预览 → 瞬态播放计划 → autoPause → singleRepeat → 影子跟读/跳过空隙 → 正常回写
   const onTimeUpdate = () => {
     const state = get();
-    const { playing, autoPause, singleRepeat, shadowing, skipGap, sentenceLoop, currentSentence, srtTender, virtualGroup } = state;
+    const { playing, autoPause, singleRepeat, shadowing, sentenceLoop, currentSentence, srtTender, virtualGroup } = state;
+    // 跳过句间空隙属于持久化的训练偏好，每轮实时读取以保证弹窗/菜单改动即时生效
+    const skipGap = useTrainingModeStore.getState().skipGap;
     const { lastSeekAt, tailPreview, currentLock, transientPlan } = state.internal;
 
     // 1) 尾部预览优先
@@ -680,7 +676,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
             set({ shadowingPause: null });
             const s = get();
             if (s.shadowing && !s.playing) {
-              if (s.skipGap) {
+              if (useTrainingModeStore.getState().skipGap) {
                 // 跳过空隙：直接跳到下一句开头并继续播放
                 s.nextSentence();
               } else {
@@ -788,8 +784,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
       get().seekToTarget({ time: onPlaySeekTime, target: get().currentSentence ?? undefined });
       return;
     }
-    const { rewindOnResume, currentSentence, srtTender } = get();
-    if (rewindOnResume && currentSentence && srtTender) {
+    const { currentSentence, srtTender } = get();
+    if (useTrainingModeStore.getState().rewindOnResume && currentSentence && srtTender) {
       const { start } = srtTender.mapSeekTime(currentSentence);
       // 已进入本句超过 0.3s 才回退，避免句首续播被误判为需要回退
       if (exactPlayTime > start + 0.3) {
@@ -817,10 +813,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
     singleRepeat: false,
     autoPlayNext: false,
 
-    skipGap: false,
     shadowing: false,
     shadowingPause: null,
-    rewindOnResume: false,
     sentenceLoop: null,
     activePlan: null,
 
@@ -1059,7 +1053,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
     setAutoPlayNext: (v) => set({ autoPlayNext: v }),
 
     // 训练模式控制
-    setSkipGap: (v) => set({ skipGap: v }),
     /**
      * 影子跟读：句末暂停留白后自动下一句。
      * 开启时自动关闭其他句末模式（单句循环/句末暂停/逐句循环计划）。
@@ -1074,7 +1067,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
       clearSentenceLoopMode();
       set({ shadowing: true, singleRepeat: false, autoPause: false });
     },
-    setRewindOnResume: (v) => set({ rewindOnResume: v }),
 
     /**
      * 开启/关闭常开逐句循环模式：开启时立即为当前句开启第一轮计划；

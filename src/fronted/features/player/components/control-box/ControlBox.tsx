@@ -6,6 +6,7 @@ import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import { usePlayer } from '@/fronted/features/player/playerStore';
+import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
@@ -58,12 +59,10 @@ export default function ControlBox() {
     }))
   );
 
+  // 模式开关的写入统一走 PlayerActions，此处只订阅展示用的值
   const singleRepeat = usePlayer((s) => s.singleRepeat);
-  const setSingleRepeat = usePlayer((s) => s.setSingleRepeat);
   const autoPause = usePlayer((s) => s.autoPause);
-  const setAutoPause = usePlayer((s) => s.setAutoPause);
   const autoPlayNext = usePlayer((s) => s.autoPlayNext);
-  const setAutoPlayNext = usePlayer((s) => s.setAutoPlayNext);
 
   const setSetting = useSetting((s) => s.setSetting);
   const setting = useSetting((s) => s.setting);
@@ -82,12 +81,12 @@ export default function ControlBox() {
 
   useEffect(() => {
     if (autoPlayNextSetting === 'true') {
-      setAutoPlayNext(true);
+      playerActions.setAutoPlayNext(true);
     }
     if (autoPlayNextSetting === 'false') {
-      setAutoPlayNext(false);
+      playerActions.setAutoPlayNext(false);
     }
-  }, [autoPlayNextSetting, setAutoPlayNext]);
+  }, [autoPlayNextSetting]);
 
   return (
     <Card className={cn('w-full h-full flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xs')}>
@@ -172,7 +171,7 @@ export default function ControlBox() {
             id="singleRepeat"
             label={t('controlBox.singleRepeat')}
             checked={singleRepeat}
-            onCheckedChange={() => setSingleRepeat(!singleRepeat)}
+            onCheckedChange={() => playerActions.setSingleRepeat(!singleRepeat)}
             tooltipMd={t('controlBox.shortcutHint', { shortcut: getShortcut('shortcut.repeatSentence') })}
             className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
@@ -181,7 +180,7 @@ export default function ControlBox() {
             id="autoPause"
             label={t('controlBox.autoPause')}
             checked={autoPause}
-            onCheckedChange={() => setAutoPause(!autoPause)}
+            onCheckedChange={() => playerActions.setAutoPause(!autoPause)}
             tooltipMd={t('controlBox.autoPauseHint', { shortcut: getShortcut('shortcut.autoPause') })}
             className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
@@ -192,7 +191,7 @@ export default function ControlBox() {
             checked={autoPlayNext}
             onCheckedChange={async () => {
               const next = !autoPlayNext;
-              setAutoPlayNext(next);
+              playerActions.setAutoPlayNext(next);
               await setSetting('player.autoPlayNext', next ? 'true' : 'false');
             }}
             tooltipMd={t('controlBox.autoPlayNextHint')}

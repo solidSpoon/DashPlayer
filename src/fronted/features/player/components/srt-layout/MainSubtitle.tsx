@@ -103,23 +103,17 @@ export default function MainSubtitle() {
         }
     };
 
+    // 句末行为与训练开关的写入统一走 PlayerActions，此处只订阅展示用的值
     const singleRepeat = usePlayer((s) => s.singleRepeat);
-    const setSingleRepeat = usePlayer((s) => s.setSingleRepeat);
     const autoPause = usePlayer((s) => s.autoPause);
-    const setAutoPause = usePlayer((s) => s.setAutoPause);
-
-    // 训练模式（组合播放计划）
-    const skipGap = usePlayer((s) => s.skipGap);
-    const setSkipGap = usePlayer((s) => s.setSkipGap);
     const shadowing = usePlayer((s) => s.shadowing);
-    const setShadowing = usePlayer((s) => s.setShadowing);
     const shadowingPause = usePlayer((s) => s.shadowingPause);
-    const rewindOnResume = usePlayer((s) => s.rewindOnResume);
-    const setRewindOnResume = usePlayer((s) => s.setRewindOnResume);
     const sentenceLoop = usePlayer((s) => s.sentenceLoop);
     const activePlan = usePlayer((s) => s.activePlan);
-    // 训练模式持久化配置
+    // 训练模式持久化配置：数值参数 + 两个常开行为开关，唯一真相在 trainingStore
     const trainingConfig = useTrainingModeStore((s) => s.config);
+    const skipGap = useTrainingModeStore((s) => s.skipGap);
+    const rewindOnResume = useTrainingModeStore((s) => s.rewindOnResume);
     const [settingsOpen, setSettingsOpen] = useState(false);
 
     // 两种逐句循环配置互斥：×N 模式不带倍速表，精听模式带倍速表
@@ -369,7 +363,7 @@ export default function MainSubtitle() {
                                     <DropdownMenuCheckboxItem
                                         checked={singleRepeat}
                                         onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setSingleRepeat(!singleRepeat)}
+                                        onCheckedChange={() => playerActions.setSingleRepeat(!singleRepeat)}
                                         className="text-xs cursor-pointer py-1.5"
                                     >
                                         <div className="flex items-center gap-2">
@@ -385,7 +379,7 @@ export default function MainSubtitle() {
                                     <DropdownMenuCheckboxItem
                                         checked={autoPause}
                                         onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setAutoPause(!autoPause)}
+                                        onCheckedChange={() => playerActions.setAutoPause(!autoPause)}
                                         className="text-xs cursor-pointer py-1.5"
                                     >
                                         <div className="flex items-center gap-2">
@@ -401,7 +395,7 @@ export default function MainSubtitle() {
                                     <DropdownMenuCheckboxItem
                                         checked={shadowing}
                                         onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setShadowing(!shadowing)}
+                                        onCheckedChange={() => playerActions.setShadowing(!shadowing)}
                                         className="text-xs cursor-pointer py-1.5"
                                     >
                                         <div className="flex items-center gap-2">
@@ -459,7 +453,7 @@ export default function MainSubtitle() {
                                     <DropdownMenuCheckboxItem
                                         checked={skipGap}
                                         onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setSkipGap(!skipGap)}
+                                        onCheckedChange={() => playerActions.setSkipGap(!skipGap)}
                                         className="text-xs cursor-pointer py-1.5"
                                     >
                                         <div className="flex items-center gap-2">
@@ -473,7 +467,7 @@ export default function MainSubtitle() {
                                     <DropdownMenuCheckboxItem
                                         checked={rewindOnResume}
                                         onSelect={(e) => e.preventDefault()}
-                                        onCheckedChange={() => setRewindOnResume(!rewindOnResume)}
+                                        onCheckedChange={() => playerActions.setRewindOnResume(!rewindOnResume)}
                                         className="text-xs cursor-pointer py-1.5"
                                     >
                                         <div className="flex items-center gap-2">
