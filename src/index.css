@@ -210,24 +210,4 @@
   .dark [class~="dark:scrollbar-track-gray-800"] { --scrollbar-track: #1f2937; }
 }
 
-/* 播放异常提示：标题与描述独占整行，操作按钮靠右紧凑排列 */
-[data-sonner-toast].compat-toast {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-template-rows: auto auto;
-  align-items: center;
-  gap: 8px 8px;
-}
 
-[data-sonner-toast].compat-toast [data-content] {
-  grid-column: 1 / -1;
-}
-
-[data-sonner-toast].compat-toast [data-cancel] {
-  grid-column: 2;
-  margin-left: auto;
-}
-
-[data-sonner-toast].compat-toast [data-action] {
-  grid-column: 3;
-}

@@ -19,14 +19,15 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
 import toast, { Toast } from 'react-hot-toast';
 import {ModeSwitchToast} from '@/fronted/components/shared/toasts/ModeSwitchToast';
+import {PlaybackIssueToast} from '@/fronted/components/shared/toasts/PlaybackIssueToast';
 import useSystem from '@/fronted/hooks/useSystem';
 import useConvert from '@/fronted/features/convert/convertStore';
-import { toast as sonnerToast } from 'sonner';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSubtitleTranslation from '@/fronted/features/player/translationStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import { usePlayer } from '@/fronted/features/player/playerStore';
+import {Button} from "@/fronted/components/ui/button";
 
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
@@ -85,19 +86,32 @@ const PlayerWithControlsPage = () => {
             return;
         }
         audioCompatToastShownRef.current.add(videoPath);
-        sonnerToast(t('compatToastAudioTitle'), {
-            id: COMPAT_TOAST_ID,
-            description: t('compatToastAudioDescription'),
-            duration: 8000,
-            position: 'top-right',
-            action: {
-                label: t('compatToastAction'),
-                onClick: () => {
-                    useConvert.getState().addFiles([videoPath]);
-                    navigate('/convert');
-                },
-            },
-        });
+        toast(
+            (tState: Toast) => (
+                <div className="flex items-center gap-3 text-sm">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-xs">{t('compatToastAudioTitle')}</span>
+                        <span className="text-xs text-muted-foreground">{t('compatToastAudioDescription')}</span>
+                    </div>
+                    <Button
+                        size="sm"
+                        className="h-7 px-3 text-xs shrink-0"
+                        onClick={() => {
+                            toast.dismiss(tState.id);
+                            useConvert.getState().addFiles([videoPath]);
+                            navigate('/convert');
+                        }}
+                    >
+                        {t('compatToastAction')}
+                    </Button>
+                </div>
+            ),
+            {
+                id: COMPAT_TOAST_ID,
+                duration: 8000,
+                position: 'top-right',
+            }
+        );
     }, [navigate, t]);
     useEffect(() => {
         if (!isMac) {
@@ -284,26 +298,26 @@ const PlayerWithControlsPage = () => {
             return;
         }
 
-        sonnerToast(t('compatToastIssueTitle'), {
-            id: COMPAT_TOAST_ID,
-            className: 'compat-toast',
-            description: t('compatToastIssueDescription'),
-            duration: 8000,
-            position: 'top-right',
-            action: {
-                label: t('compatToastAction'),
-                onClick: () => {
-                    useConvert.getState().addFiles([videoPath]);
-                    navigate('/convert');
-                },
-            },
-            cancel: {
-                label: t('compatToastIgnore'),
-                onClick: () => {
-                    stallIgnoreVideoIdRef.current = videoId;
-                },
-            },
-        });
+        toast(
+            (tState: Toast) => (
+                <PlaybackIssueToast
+                    onConvert={() => {
+                        toast.dismiss(tState.id);
+                        useConvert.getState().addFiles([videoPath]);
+                        navigate('/convert');
+                    }}
+                    onIgnore={() => {
+                        stallIgnoreVideoIdRef.current = videoId;
+                        toast.dismiss(tState.id);
+                    }}
+                />
+            ),
+            {
+                id: COMPAT_TOAST_ID,
+                duration: 8000,
+                position: 'top-right',
+            }
+        );
     }, [mediaErrorCode, playbackStallCount, navigate, t]);
     useEffect(() => {
         let cancelled = false;
